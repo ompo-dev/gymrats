@@ -313,7 +313,12 @@ export function OptionSelector({
                 ) : (
                   <div
                     className={cn(
-                      "font-bold text-center",
+                      "font-bold",
+                      textAlign === "left"
+                        ? "text-left"
+                        : textAlign === "right"
+                        ? "text-right"
+                        : "text-center",
                       selected ? "text-white" : "text-gray-900"
                     )}
                   >
@@ -509,13 +514,19 @@ export function OptionSelector({
                   ? "border-duo-green bg-duo-green text-white"
                   : "border-gray-300 bg-white text-gray-900 hover:border-duo-green/50",
                 sizeClasses[size],
-                option.emoji || option.icon
+                (option.emoji || option.icon) && textAlign === "left"
                   ? "text-left"
-                  : textAlign === "left"
-                  ? "text-left"
-                  : textAlign === "right"
+                  : (option.emoji || option.icon) && textAlign === "right"
                   ? "text-right"
-                  : "text-center"
+                  : (option.emoji || option.icon) && textAlign === "center"
+                  ? "text-center"
+                  : !option.emoji && !option.icon
+                  ? textAlign === "left"
+                    ? "text-left"
+                    : textAlign === "right"
+                    ? "text-right"
+                    : "text-center"
+                  : ""
               )}
               style={{
                 gridColumn: `span ${finalColSpan}`,
@@ -530,21 +541,80 @@ export function OptionSelector({
                   <Check className="h-3 w-3" />
                 </motion.div>
               )}
-              {option.emoji && (
-                <div className="mb-1 text-3xl">{option.emoji}</div>
-              )}
-              {option.icon && <div className="mb-2">{option.icon}</div>}
-              <div className="font-bold break-words">{option.label}</div>
-              {option.description && (
-                <div
-                  id={descriptionId}
-                  className={cn(
-                    "mt-1 text-xs opacity-80",
-                    selected && "opacity-90"
+              {(option.emoji || option.icon) && textAlign === "center" ? (
+                <div className="flex flex-col items-center">
+                  {option.emoji && (
+                    <div className="mb-1 text-3xl">{option.emoji}</div>
                   )}
-                >
-                  {option.description}
+                  {option.icon && <div className="mb-2">{option.icon}</div>}
+                  <div className="font-bold break-words text-center">
+                    {option.label}
+                  </div>
+                  {option.description && (
+                    <div
+                      id={descriptionId}
+                      className={cn(
+                        "mt-1 text-xs opacity-80 text-center",
+                        selected && "opacity-90"
+                      )}
+                    >
+                      {option.description}
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <>
+                  {option.emoji && (
+                    <div
+                      className={cn(
+                        "mb-1 text-3xl",
+                        textAlign === "center" && "mx-auto",
+                        textAlign === "right" && "ml-auto"
+                      )}
+                    >
+                      {option.emoji}
+                    </div>
+                  )}
+                  {option.icon && (
+                    <div
+                      className={cn(
+                        "mb-2",
+                        textAlign === "center" && "mx-auto",
+                        textAlign === "right" && "ml-auto"
+                      )}
+                    >
+                      {option.icon}
+                    </div>
+                  )}
+                  <div
+                    className={cn(
+                      "font-bold break-words",
+                      textAlign === "left"
+                        ? "text-left"
+                        : textAlign === "right"
+                        ? "text-right"
+                        : "text-center"
+                    )}
+                  >
+                    {option.label}
+                  </div>
+                  {option.description && (
+                    <div
+                      id={descriptionId}
+                      className={cn(
+                        "mt-1 text-xs opacity-80",
+                        selected && "opacity-90",
+                        textAlign === "left"
+                          ? "text-left"
+                          : textAlign === "right"
+                          ? "text-right"
+                          : "text-center"
+                      )}
+                    >
+                      {option.description}
+                    </div>
+                  )}
+                </>
               )}
             </TapButton>
           );
