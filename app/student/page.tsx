@@ -2,16 +2,15 @@
 
 import { Suspense } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { LearningPath } from "@/components/learning-path";
+
 import { PersonalizationPage } from "@/components/personalization-page";
 import { CardioFunctionalPage } from "@/components/cardio-functional-page";
 import { DietPage } from "@/components/diet-page";
-import { MuscleExplorer } from "@/components/muscle-explorer";
-import { EducationalLessons } from "@/components/educational-lessons";
 import { EducationPage } from "@/components/education-page";
-import { ShopCard } from "@/components/shop-card";
 import { ProfilePage } from "@/components/profile-page";
 import { StudentPaymentsPage } from "@/components/student-payments-page";
+
+import { LearningPath } from "@/components/learning-path";
 import { StudentMoreMenu } from "@/components/student-more-menu";
 import { mockUnits } from "@/lib/mock-data";
 import { GymMap } from "@/components/gym-map";
@@ -23,6 +22,9 @@ import { motion } from "motion/react";
 import { useStudentStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
+import { MuscleExplorer } from "@/components/muscle-explorer";
+import { EducationalLessons } from "@/components/educational-lessons";
+import { ShopCard } from "@/components/shop-card";
 
 function StudentHomeContent() {
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
