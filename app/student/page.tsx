@@ -8,6 +8,7 @@ import { CardioFunctionalPage } from "@/components/cardio-functional-page";
 import { DietPage } from "@/components/diet-page";
 import { MuscleExplorer } from "@/components/muscle-explorer";
 import { EducationalLessons } from "@/components/educational-lessons";
+import { EducationPage } from "@/components/education-page";
 import { ShopCard } from "@/components/shop-card";
 import { ProfilePage } from "@/components/profile-page";
 import { StudentPaymentsPage } from "@/components/student-payments-page";
@@ -173,89 +174,36 @@ function StudentHomeContent() {
       {tab === "education" && (
         <>
           {educationView === "menu" && (
-            <div className="space-y-6">
-              <div className="text-center">
-                <h1 className="mb-2 text-3xl font-bold text-duo-text">
-                  Central de Aprendizado
-                </h1>
-                <p className="text-sm text-duo-gray-dark">
-                  Conhecimento baseado em ciência
-                </p>
-              </div>
-
-              <div className="grid gap-4">
-                <button
-                  onClick={() => setEducationView("muscles")}
-                  className="rounded-2xl border-2 border-duo-blue bg-gradient-to-br from-duo-blue/10 to-duo-green/10 p-6 text-left transition-all hover:shadow-lg"
-                >
-                  <div className="mb-2 text-4xl">💪</div>
-                  <h3 className="mb-2 text-xl font-bold text-duo-text">
-                    Anatomia e Exercícios
-                  </h3>
-                  <p className="text-sm text-duo-gray-dark">
-                    Explore músculos, funções e técnicas corretas de execução
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => setEducationView("lessons")}
-                  className="rounded-2xl border-2 border-duo-green bg-gradient-to-br from-duo-green/10 to-duo-yellow/10 p-6 text-left transition-all hover:shadow-lg"
-                >
-                  <div className="mb-2 text-4xl">📚</div>
-                  <h3 className="mb-2 text-xl font-bold text-duo-text">
-                    Lições de Ciência
-                  </h3>
-                  <p className="text-sm text-duo-gray-dark">
-                    Aprenda sobre hipertrofia, nutrição e recuperação com
-                    evidências
-                  </p>
-                </button>
-              </div>
-            </div>
+            <EducationPage
+              onSelectView={(view) => {
+                setEducationView(view);
+              }}
+            />
           )}
 
           {educationView === "muscles" && (
-            <div>
-              <button
-                onClick={() => {
-                  setEducationView("menu");
-                  setMuscleId(null);
-                  setExerciseId(null);
-                }}
-                className="mb-4 flex items-center gap-2 font-bold text-duo-blue hover:underline"
-              >
-                ← Voltar
-              </button>
-              <MuscleExplorer
-                muscleId={muscleId || null}
-                exerciseId={exerciseId || null}
-                onMuscleSelect={(id) => setMuscleId(id)}
-                onExerciseSelect={(id) => setExerciseId(id)}
-                onBack={() => {
-                  setMuscleId(null);
-                  setExerciseId(null);
-                }}
-              />
-            </div>
+            <MuscleExplorer
+              muscleId={muscleId || null}
+              exerciseId={exerciseId || null}
+              onMuscleSelect={(id) => setMuscleId(id)}
+              onExerciseSelect={(id) => setExerciseId(id)}
+              onBack={() => {
+                setEducationView("menu");
+                setMuscleId(null);
+                setExerciseId(null);
+              }}
+            />
           )}
 
           {educationView === "lessons" && (
-            <div>
-              <button
-                onClick={() => {
-                  setEducationView("menu");
-                  setLessonId(null);
-                }}
-                className="mb-4 flex items-center gap-2 font-bold text-duo-green hover:underline"
-              >
-                ← Voltar
-              </button>
-              <EducationalLessons
-                lessonId={lessonId || null}
-                onLessonSelect={(id) => setLessonId(id)}
-                onBack={() => setLessonId(null)}
-              />
-            </div>
+            <EducationalLessons
+              lessonId={lessonId || null}
+              onLessonSelect={(id) => setLessonId(id)}
+              onBack={() => {
+                setEducationView("menu");
+                setLessonId(null);
+              }}
+            />
           )}
         </>
       )}
