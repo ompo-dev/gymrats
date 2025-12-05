@@ -102,8 +102,7 @@ export function GymStudentsPage() {
               onChange={(value) =>
                 setStatusFilter(value as "all" | "active" | "inactive")
               }
-              layout="grid"
-              columns={3}
+              layout="list"
               size="md"
               textAlign="center"
               animate={true}

@@ -195,7 +195,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
             value={activeTab}
             onChange={(value) => setActiveTab(value)}
             layout="grid"
-            columns={3}
+            columns={2}
             size="md"
             textAlign="center"
             animate={true}
@@ -229,11 +229,13 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                   },
                 ].map((info, index) => (
                   <DuoCard key={index} variant="default" size="sm">
-                    <div className="flex justify-between">
-                      <span className="font-bold text-duo-gray-dark">
+                    <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
+                      <span className="font-bold text-duo-gray-dark text-sm sm:text-base">
                         {info.label}
                       </span>
-                      <span className="text-duo-text">{info.value}</span>
+                      <span className="text-duo-text text-sm sm:text-base break-words">
+                        {info.value}
+                      </span>
                     </div>
                   </DuoCard>
                 ))}
@@ -279,43 +281,47 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
               <div className="space-y-2">
                 {student.weightHistory.map((record, index) => (
                   <DuoCard key={index} variant="default" size="sm">
-                    <div className="flex items-center gap-4">
-                      <Calendar className="h-5 w-5 text-duo-gray-dark" />
-                      <span className="flex-1 font-bold text-duo-text">
-                        {record.date.toLocaleDateString("pt-BR")}
-                      </span>
-                      <span className="text-2xl font-bold text-duo-blue">
-                        {record.weight}kg
-                      </span>
-                      {index < student.weightHistory.length - 1 && (
-                        <div className="flex items-center gap-1">
-                          {record.weight <
-                          student.weightHistory[index + 1].weight ? (
-                            <>
-                              <TrendingUp className="h-4 w-4 text-duo-red" />
-                              <span className="text-sm font-bold text-duo-red">
-                                +
-                                {(
-                                  student.weightHistory[index + 1].weight -
-                                  record.weight
-                                ).toFixed(1)}
-                                kg
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <TrendingUp className="h-4 w-4 rotate-180 text-duo-green" />
-                              <span className="text-sm font-bold text-duo-green">
-                                {(
-                                  record.weight -
-                                  student.weightHistory[index + 1].weight
-                                ).toFixed(1)}
-                                kg
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      )}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Calendar className="h-5 w-5 text-duo-gray-dark shrink-0" />
+                        <span className="font-bold text-duo-text text-sm sm:text-base truncate">
+                          {record.date.toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+                        <span className="text-xl sm:text-2xl font-bold text-duo-blue">
+                          {record.weight}kg
+                        </span>
+                        {index < student.weightHistory.length - 1 && (
+                          <div className="flex items-center gap-1">
+                            {record.weight <
+                            student.weightHistory[index + 1].weight ? (
+                              <>
+                                <TrendingUp className="h-4 w-4 text-duo-red shrink-0" />
+                                <span className="text-xs sm:text-sm font-bold text-duo-red whitespace-nowrap">
+                                  +
+                                  {(
+                                    student.weightHistory[index + 1].weight -
+                                    record.weight
+                                  ).toFixed(1)}
+                                  kg
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="h-4 w-4 rotate-180 text-duo-green shrink-0" />
+                                <span className="text-xs sm:text-sm font-bold text-duo-green whitespace-nowrap">
+                                  {(
+                                    record.weight -
+                                    student.weightHistory[index + 1].weight
+                                  ).toFixed(1)}
+                                  kg
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </DuoCard>
                 ))}
@@ -345,36 +351,40 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                   {student.profile.targetCalories} kcal
                 </p>
               </DuoCard>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <DuoCard
                   variant="highlighted"
                   size="sm"
-                  className="p-4 text-center"
+                  className="p-3 sm:p-4 text-center"
                 >
-                  <p className="text-sm font-bold text-duo-gray-dark">
+                  <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                     Proteína
                   </p>
-                  <p className="text-2xl font-bold text-duo-green">
+                  <p className="text-xl sm:text-2xl font-bold text-duo-green">
                     {student.profile.targetProtein}g
                   </p>
                 </DuoCard>
-                <DuoCard variant="blue" size="sm" className="p-4 text-center">
-                  <p className="text-sm font-bold text-duo-gray-dark">
+                <DuoCard
+                  variant="blue"
+                  size="sm"
+                  className="p-3 sm:p-4 text-center"
+                >
+                  <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                     Carboidratos
                   </p>
-                  <p className="text-2xl font-bold text-duo-blue">
+                  <p className="text-xl sm:text-2xl font-bold text-duo-blue">
                     {student.profile.targetCarbs || 250}g
                   </p>
                 </DuoCard>
                 <DuoCard
                   variant="default"
                   size="sm"
-                  className="border-duo-purple bg-duo-purple/10 p-4 text-center"
+                  className="border-duo-purple bg-duo-purple/10 p-3 sm:p-4 text-center"
                 >
-                  <p className="text-sm font-bold text-duo-gray-dark">
+                  <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                     Gorduras
                   </p>
-                  <p className="text-2xl font-bold text-duo-purple">
+                  <p className="text-xl sm:text-2xl font-bold text-duo-purple">
                     {student.profile.targetFats || 70}g
                   </p>
                 </DuoCard>
@@ -412,15 +422,17 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
               </div>
             </div>
 
-            <h3 className="mb-3 font-bold text-duo-text">Atividade Semanal</h3>
-            <div className="grid grid-cols-7 gap-2">
+            <h3 className="mb-3 font-bold text-duo-text text-sm sm:text-base">
+              Atividade Semanal
+            </h3>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
                 <div key={index} className="text-center">
-                  <p className="mb-2 text-xs font-bold text-duo-gray-dark">
+                  <p className="mb-1 sm:mb-2 text-xs font-bold text-duo-gray-dark">
                     {day}
                   </p>
-                  <DuoCard variant="default" size="sm" className="p-3">
-                    <p className="text-lg font-bold text-duo-green">
+                  <DuoCard variant="default" size="sm" className="p-2 sm:p-3">
+                    <p className="text-sm sm:text-lg font-bold text-duo-green">
                       {student.progress.weeklyXP[index]}
                     </p>
                   </DuoCard>
@@ -437,17 +449,17 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
             <div className="space-y-3">
               {student.personalRecords.map((record, index) => (
                 <DuoCard key={index} variant="orange" size="default">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-lg font-bold text-duo-text">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base sm:text-lg font-bold text-duo-text break-words">
                         {record.exerciseName}
                       </p>
-                      <p className="text-sm text-duo-gray-dark">
+                      <p className="text-xs sm:text-sm text-duo-gray-dark">
                         {record.date.toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-3xl font-bold text-duo-orange">
+                    <div className="text-left sm:text-right">
+                      <p className="text-2xl sm:text-3xl font-bold text-duo-orange">
                         {record.value}kg
                       </p>
                       <p className="text-xs font-bold text-duo-gray-dark capitalize">
@@ -528,27 +540,27 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                   transition={{ delay: index * 0.05, duration: 0.4 }}
                 >
                   <DuoCard variant="default" size="default">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-bold text-duo-text">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-duo-text text-sm sm:text-base break-words">
                           {payment.planName}
                         </h3>
-                        <p className="text-sm text-duo-gray-dark mt-1">
+                        <p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
                           Vencimento:{" "}
                           {payment.dueDate.toLocaleDateString("pt-BR")}
                         </p>
                         {payment.status === "paid" && (
-                          <p className="text-sm text-duo-gray-dark">
+                          <p className="text-xs sm:text-sm text-duo-gray-dark">
                             Pago em: {payment.date.toLocaleDateString("pt-BR")}
                           </p>
                         )}
-                        <p className="text-sm text-duo-gray-dark capitalize">
+                        <p className="text-xs sm:text-sm text-duo-gray-dark capitalize">
                           Método: {payment.paymentMethod.replace("-", " ")}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-duo-blue mb-2">
+                      <div className="w-full sm:w-auto text-left sm:text-right">
+                        <p className="text-xl sm:text-2xl font-bold text-duo-blue mb-2">
                           R$ {payment.amount.toFixed(2)}
                         </p>
 
@@ -558,6 +570,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                             payment.status === "paid" ? "default" : "outline"
                           }
                           size="sm"
+                          className="w-full sm:w-auto"
                         >
                           {payment.status === "paid" ? (
                             <>
@@ -567,7 +580,10 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                           ) : (
                             <>
                               <XCircle className="h-4 w-4" />
-                              Marcar como Pago
+                              <span className="hidden sm:inline">
+                                Marcar como Pago
+                              </span>
+                              <span className="sm:hidden">Marcar Pago</span>
                             </>
                           )}
                         </Button>

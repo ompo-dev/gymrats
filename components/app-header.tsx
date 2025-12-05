@@ -65,31 +65,33 @@ export function AppHeader({
               </div>
             )}
 
-            {/* Streak */}
-            <button
-              onClick={() => setStreakModalOpen(true)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-2xl border-2 bg-white transition-all",
-                isGym
-                  ? "border-[#FF9600] px-3 py-1.5 hover:bg-orange-50"
-                  : "border-duo-orange px-4 py-2 hover:bg-orange-50"
-              )}
-            >
-              <Flame
+            {/* Streak only for students */}
+            {!isGym && (
+              <button
+                onClick={() => setStreakModalOpen(true)}
                 className={cn(
-                  isGym ? "h-4 w-4" : "h-5 w-5",
-                  "fill-duo-orange text-duo-orange"
-                )}
-              />
-              <span
-                className={cn(
-                  "font-bold text-duo-orange",
-                  isGym ? "text-xs" : "text-sm"
+                  "flex items-center gap-1.5 rounded-2xl border-2 bg-white transition-all",
+                  isGym
+                    ? "border-[#FF9600] px-3 py-1.5 hover:bg-orange-50"
+                    : "border-duo-orange px-4 py-2 hover:bg-orange-50"
                 )}
               >
-                {stats.streak}
-              </span>
-            </button>
+                <Flame
+                  className={cn(
+                    isGym ? "h-4 w-4" : "h-5 w-5",
+                    "fill-duo-orange text-duo-orange"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "font-bold text-duo-orange",
+                    isGym ? "text-xs" : "text-sm"
+                  )}
+                >
+                  {stats.streak}
+                </span>
+              </button>
+            )}
 
             {/* Hearts - only for students */}
             {!isGym && (

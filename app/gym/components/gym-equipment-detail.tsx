@@ -104,25 +104,26 @@ export function GymEquipmentDetail({
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6  ">
+    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-4 sm:px-0">
       <FadeIn>
         <Button variant="ghost" onClick={onBack} className="gap-2 font-bold">
           <ArrowLeft className="h-4 w-4" />
-          Voltar para Equipamentos
+          <span className="hidden sm:inline">Voltar para Equipamentos</span>
+          <span className="sm:hidden">Voltar</span>
         </Button>
       </FadeIn>
 
       <SlideIn delay={0.1}>
         <SectionCard title={equipment.name} icon={Dumbbell} variant="default">
-          <div className="flex items-start gap-6">
-            <div className="flex h-32 w-32 shrink-0 items-center justify-center rounded-2xl bg-duo-green">
-              <Dumbbell className="h-16 w-16 text-white" />
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+            <div className="flex h-24 w-24 sm:h-32 sm:w-32 shrink-0 items-center justify-center rounded-2xl bg-duo-green">
+              <Dumbbell className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
             </div>
-            <div className="flex-1">
-              <div className="mb-2 flex items-center gap-3">
+            <div className="flex-1 w-full min-w-0">
+              <div className="mb-2 flex items-center justify-center sm:justify-start gap-3">
                 <span
                   className={cn(
-                    "flex items-center gap-2 rounded-full px-4 py-2 text-base font-bold",
+                    "flex items-center gap-2 rounded-full px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-base font-bold",
                     getStatusColor(equipment.status)
                   )}
                 >
@@ -131,33 +132,36 @@ export function GymEquipmentDetail({
                 </span>
               </div>
               <div className="mb-4 space-y-1 text-duo-gray-dark">
-                <p className="text-lg">
+                <p className="text-sm sm:text-base lg:text-lg break-words">
                   <span className="font-bold">Marca:</span> {equipment.brand}
                 </p>
-                <p className="text-lg">
+                <p className="text-sm sm:text-base lg:text-lg break-words">
                   <span className="font-bold">Modelo:</span> {equipment.model}
                 </p>
-                <p>
+                <p className="text-sm sm:text-base break-words">
                   <span className="font-bold">Número de Série:</span>{" "}
                   {equipment.serialNumber}
                 </p>
-                <p>
+                <p className="text-sm sm:text-base break-words">
                   <span className="font-bold">Tipo:</span>{" "}
                   <span className="capitalize">{equipment.type}</span>
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button className="w-full sm:w-auto">
                   <Edit className="h-4 w-4" />
-                  Editar Equipamento
+                  <span className="hidden sm:inline">Editar Equipamento</span>
+                  <span className="sm:hidden">Editar</span>
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <Wrench className="h-4 w-4" />
-                  Agendar Manutenção
+                  <span className="hidden sm:inline">Agendar Manutenção</span>
+                  <span className="sm:hidden">Manutenção</span>
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <QrCode className="h-4 w-4" />
-                  Gerar QR Code
+                  <span className="hidden sm:inline">Gerar QR Code</span>
+                  <span className="sm:hidden">QR Code</span>
                 </Button>
               </div>
             </div>
@@ -172,20 +176,20 @@ export function GymEquipmentDetail({
             size="default"
             className="border-duo-blue bg-duo-blue/10"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-duo-gray-dark">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                   Equipamento em uso por:
                 </p>
-                <p className="text-2xl font-bold text-duo-blue">
+                <p className="text-xl sm:text-2xl font-bold text-duo-blue break-words">
                   {equipment.currentUser.studentName}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-duo-gray-dark">
+              <div className="text-left sm:text-right">
+                <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                   Tempo de Uso
                 </p>
-                <p className="text-3xl font-bold text-duo-blue">
+                <p className="text-2xl sm:text-3xl font-bold text-duo-blue">
                   {Math.floor(
                     (Date.now() - equipment.currentUser.startTime.getTime()) /
                       60000
@@ -199,7 +203,7 @@ export function GymEquipmentDetail({
       )}
 
       <SlideIn delay={0.2}>
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCardLarge
             icon={BarChart3}
             value={String(equipment.usageStats.totalUses)}
@@ -255,14 +259,16 @@ export function GymEquipmentDetail({
                     key={index}
                     variant="highlighted"
                     size="sm"
-                    className="p-4"
+                    className="p-3 sm:p-4"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-duo-green" />
-                        <span className="font-bold text-duo-text">{time}</span>
+                        <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-duo-green shrink-0" />
+                        <span className="font-bold text-duo-text text-sm sm:text-base">
+                          {time}
+                        </span>
                       </div>
-                      <span className="text-sm font-bold text-duo-gray-dark">
+                      <span className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                         Alta demanda
                       </span>
                     </div>
@@ -278,10 +284,10 @@ export function GymEquipmentDetail({
                   size="sm"
                   className="border-duo-purple bg-duo-purple/10"
                 >
-                  <p className="text-sm font-bold text-duo-gray-dark">
+                  <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                     Taxa de Utilização
                   </p>
-                  <p className="text-3xl font-bold text-duo-purple">
+                  <p className="text-2xl sm:text-3xl font-bold text-duo-purple">
                     {Math.round((equipment.usageStats.totalUses / 2000) * 100)}%
                   </p>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
@@ -297,10 +303,12 @@ export function GymEquipmentDetail({
                 </DuoCard>
 
                 <DuoCard variant="blue" size="sm">
-                  <p className="text-sm font-bold text-duo-gray-dark">
+                  <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                     Eficiência de Uso
                   </p>
-                  <p className="text-3xl font-bold text-duo-blue">92%</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-duo-blue">
+                    92%
+                  </p>
                   <p className="text-xs text-duo-gray-dark">
                     Baseado em tempo médio vs recomendado
                   </p>
@@ -324,24 +332,24 @@ export function GymEquipmentDetail({
                     transition={{ delay: index * 0.05, duration: 0.4 }}
                   >
                     <DuoCard variant="default" size="default">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-bold text-duo-text capitalize">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-duo-text capitalize text-sm sm:text-base break-words">
                             {record.type}
                           </p>
-                          <p className="text-sm text-duo-gray-dark">
+                          <p className="text-xs sm:text-sm text-duo-gray-dark break-words">
                             {record.description}
                           </p>
                           <p className="text-xs text-duo-gray-dark">
                             Por: {record.performedBy}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-duo-gray-dark">
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                             {record.date.toLocaleDateString("pt-BR")}
                           </p>
                           {record.cost && (
-                            <p className="text-lg font-bold text-duo-orange">
+                            <p className="text-base sm:text-lg font-bold text-duo-orange">
                               R$ {record.cost.toFixed(2)}
                             </p>
                           )}
@@ -392,13 +400,13 @@ export function GymEquipmentDetail({
                 },
               ].map((info, index) => (
                 <DuoCard key={index} variant="default" size="sm">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-duo-gray-dark">
+                  <div className="flex flex-col sm:flex-row justify-between gap-2">
+                    <span className="font-bold text-duo-gray-dark text-sm sm:text-base">
                       {info.label}
                     </span>
                     <span
                       className={cn(
-                        "text-duo-text",
+                        "text-duo-text text-sm sm:text-base break-words",
                         info.capitalize && "capitalize"
                       )}
                     >

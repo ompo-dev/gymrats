@@ -349,10 +349,10 @@ export function WorkoutModal() {
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.3 }}
             onClick={(e) => e.stopPropagation()}
-            className="flex min-h-screen w-full flex-col items-center justify-center bg-linear-to-b from-white to-gray-50 p-4"
+            className="flex h-screen w-full max-h-screen flex-col items-center overflow-y-auto bg-linear-to-b from-white to-gray-50 p-4 sm:p-6"
           >
             <FadeIn delay={0.1}>
-              <div className="mb-8 text-center">
+              <div className="mb-4 sm:mb-8 text-center">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -362,34 +362,34 @@ export function WorkoutModal() {
                     damping: 10,
                     delay: 0.2,
                   }}
-                  className="mb-6 text-8xl"
+                  className="mb-4 sm:mb-6 text-6xl sm:text-8xl"
                 >
                   🎉
                 </motion.div>
-                <h1 className="mb-2 text-4xl font-black text-[#58CC02]">
+                <h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#58CC02]">
                   Treino Completo!
                 </h1>
-                <p className="text-lg text-duo-gray-dark">
+                <p className="text-sm sm:text-base lg:text-lg text-duo-gray-dark">
                   Excelente trabalho hoje!
                 </p>
               </div>
             </FadeIn>
 
-            <div className="mb-8 grid w-full max-w-md grid-cols-2 gap-4">
+            <div className="mb-4 sm:mb-8 grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8, x: -20 }}
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
                 whileHover={{ scale: 1.05 }}
-                className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-6 text-center shadow-lg"
+                className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-4 sm:p-6 text-center shadow-lg"
               >
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <Zap className="h-6 w-6 text-[#FFC800]" />
+                  <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFC800]" />
                 </div>
                 <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
                   XP Ganho
                 </div>
-                <div className="text-3xl font-black text-[#FFC800]">
+                <div className="text-2xl sm:text-3xl font-black text-[#FFC800]">
                   {workout.xpReward}
                 </div>
               </motion.div>
@@ -399,15 +399,15 @@ export function WorkoutModal() {
                 animate={{ opacity: 1, scale: 1, x: 0 }}
                 transition={{ delay: 0.35, duration: 0.4 }}
                 whileHover={{ scale: 1.05 }}
-                className="rounded-2xl border-2 border-[#1CB0F6] bg-linear-to-br from-[#1CB0F6]/20 to-[#58CC02]/20 p-6 text-center shadow-lg"
+                className="rounded-2xl border-2 border-[#1CB0F6] bg-linear-to-br from-[#1CB0F6]/20 to-[#58CC02]/20 p-4 sm:p-6 text-center shadow-lg"
               >
                 <div className="mb-2 flex items-center justify-center gap-2">
-                  <Weight className="h-6 w-6 text-[#1CB0F6]" />
+                  <Weight className="h-5 w-5 sm:h-6 sm:w-6 text-[#1CB0F6]" />
                 </div>
                 <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
                   Volume Total
                 </div>
-                <div className="text-3xl font-black text-[#1CB0F6]">
+                <div className="text-2xl sm:text-3xl font-black text-[#1CB0F6]">
                   {totalVolume.toFixed(0)}kg
                 </div>
               </motion.div>
@@ -418,9 +418,9 @@ export function WorkoutModal() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
-                className="mb-6 w-full max-w-md space-y-3"
+                className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
               >
-                <h3 className="text-lg font-bold text-duo-text">
+                <h3 className="text-base sm:text-lg font-bold text-duo-text">
                   Resumo do Treino
                 </h3>
                 {workoutData.exerciseLogs.map((log, index) => (
@@ -430,15 +430,15 @@ export function WorkoutModal() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
                     whileHover={{ scale: 1.02, x: 5 }}
-                    className="rounded-xl border-2 border-duo-border bg-white p-4 shadow-sm transition-all hover:shadow-md"
+                    className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
                   >
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="font-bold text-duo-text">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="font-bold text-duo-text text-sm sm:text-base break-words flex-1">
                         {log.exerciseName}
                       </div>
-                      <CheckCircle2 className="h-5 w-5 fill-[#58CC02] text-white" />
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
                     </div>
-                    <div className="text-sm text-duo-gray-dark">
+                    <div className="text-xs sm:text-sm text-duo-gray-dark">
                       {
                         log.sets.filter((set) => set.weight > 0 && set.reps > 0)
                           .length
@@ -459,11 +459,11 @@ export function WorkoutModal() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.4 }}
-              className="flex w-full max-w-md gap-3"
+              className="flex w-full max-w-md gap-2 sm:gap-3 mb-4 sm:mb-0"
             >
               <Button
                 variant="white"
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base"
                 onClick={() => {
                   if (!workout) return;
 
@@ -478,15 +478,16 @@ export function WorkoutModal() {
                   setCompletedWorkoutData(null);
                 }}
               >
-                FAZER NOVAMENTE
+                <span className="hidden sm:inline">FAZER NOVAMENTE</span>
+                <span className="sm:hidden">REFAZER</span>
               </Button>
               <Button
                 variant="default"
-                className="flex-1"
+                className="flex-1 text-sm sm:text-base"
                 onClick={handleClose}
               >
                 CONTINUAR
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </motion.div>
           </motion.div>
@@ -563,19 +564,19 @@ export function WorkoutModal() {
           className="fixed inset-0 z-50 flex h-screen flex-col bg-white overflow-hidden"
         >
           {/* Header Estilo Duolingo */}
-          <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
+          <div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
+            <div className="mb-2 sm:mb-3 flex items-center justify-between">
               <button
                 onClick={handleClose}
                 className="rounded-xl p-2 transition-colors hover:bg-gray-100 active:scale-95"
               >
-                <X className="h-6 w-6 text-duo-gray-dark" />
+                <X className="h-5 w-5 sm:h-6 sm:w-6 text-duo-gray-dark" />
               </button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 {Array.from({ length: hearts }).map((_, i) => (
                   <Heart
                     key={i}
-                    className="h-6 w-6 fill-duo-red text-duo-red"
+                    className="h-5 w-5 sm:h-6 sm:w-6 fill-duo-red text-duo-red"
                   />
                 ))}
               </div>
@@ -597,137 +598,140 @@ export function WorkoutModal() {
                 activeWorkout?.exerciseLogs?.length || 0
               }`}
               value={progress}
-              className="h-3"
+              className="h-2 sm:h-3"
             />
           </div>
 
           {/* Exercise Content */}
           {activeWorkout && currentExercise && (
-            <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center justify-center p-6 pb-32">
-              <div className="w-full max-w-2xl">
-                {/* Exercise Card Estilo Duolingo */}
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeWorkout.currentExerciseIndex}
-                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                    className="mb-8 rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-8 shadow-lg"
-                  >
-                    <div className="mb-6 text-center">
-                      <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-[#58CC02] to-[#47A302] text-5xl shadow-lg">
-                        💪
-                      </div>
-                    </div>
-
-                    <h1 className="mb-6 text-center text-3xl font-black text-duo-text">
-                      {currentExercise.name}
-                    </h1>
-
-                    <div className="space-y-4">
-                      <div className="rounded-2xl border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-[#47A302]/10 p-6 text-center">
-                        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                          Séries e Repetições
-                        </div>
-                        <div className="text-4xl font-black text-[#58CC02]">
-                          {currentExercise.sets} x {currentExercise.reps}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-4 text-center">
-                          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                            Descanso
-                          </div>
-                          <div className="text-2xl font-black text-duo-blue">
-                            {currentExercise.rest}s
-                          </div>
-                        </div>
-                        <div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-white p-4 text-center">
-                          <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                            XP
-                          </div>
-                          <div className="text-2xl font-black text-duo-orange">
-                            +
-                            {Math.round(
-                              workout.xpReward / workout.exercises.length
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {currentExercise.notes && (
-                        <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-4">
-                          <div className="mb-1 flex items-center gap-2 text-sm font-bold text-duo-blue">
-                            <span>💡</span>
-                            <span>Dica</span>
-                          </div>
-                          <p className="text-sm text-duo-text">
-                            {currentExercise.notes}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
-
-                {/* Botões fixos na parte inferior */}
-                <div className="fixed bottom-0 left-0 right-0 z-40 border-t-2 border-duo-border bg-white p-4 shadow-lg">
-                  <div className="mx-auto max-w-2xl">
+            <>
+              <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center justify-center p-4 sm:p-6 min-h-0">
+                <div className="w-full max-w-2xl">
+                  {/* Exercise Card Estilo Duolingo */}
+                  <AnimatePresence mode="wait">
                     <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2, duration: 0.4 }}
-                      className="space-y-3"
+                      key={activeWorkout.currentExerciseIndex}
+                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                      className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
                     >
-                      <motion.button
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowWeightTracker(true)}
-                        className="duo-button-green w-full flex items-center justify-center gap-2 text-lg py-4"
-                      >
-                        <Weight className="h-5 w-5" />
-                        REGISTRAR SÉRIES E CARGAS
-                      </motion.button>
-                      <div className="grid grid-cols-2 gap-3">
-                        {activeWorkout &&
-                          activeWorkout.currentExerciseIndex > 0 && (
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() => {
-                                if (activeWorkout) {
-                                  setCurrentExerciseIndex(
-                                    activeWorkout.currentExerciseIndex - 1
-                                  );
-                                  saveWorkoutProgress(workout.id);
-                                }
-                              }}
-                              className="rounded-2xl border-2 border-duo-border bg-white py-4 font-bold text-duo-gray-dark transition-all hover:bg-gray-50"
-                            >
-                              ← ANTERIOR
-                            </motion.button>
-                          )}
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleSkip}
-                          className={cn(
-                            "rounded-2xl border-2 border-duo-border bg-white py-4 font-bold text-duo-gray-dark transition-all hover:bg-gray-50",
-                            activeWorkout &&
-                              activeWorkout.currentExerciseIndex === 0 &&
-                              "col-span-2"
-                          )}
-                        >
-                          PULAR EXERCÍCIO
-                        </motion.button>
+                      <h1 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text break-words">
+                        {currentExercise.name}
+                      </h1>
+
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="rounded-xl sm:rounded-2xl border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-[#47A302]/10 p-4 sm:p-6 text-center">
+                          <div className="mb-2 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
+                            Séries e Repetições
+                          </div>
+                          <div className="text-3xl sm:text-4xl font-black text-[#58CC02]">
+                            {currentExercise.sets} x {currentExercise.reps}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                          <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4 text-center">
+                            <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
+                              Descanso
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-duo-blue">
+                              {currentExercise.rest}s
+                            </div>
+                          </div>
+                          <div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-white p-3 sm:p-4 text-center">
+                            <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
+                              XP
+                            </div>
+                            <div className="text-xl sm:text-2xl font-black text-duo-orange">
+                              +
+                              {Math.round(
+                                workout.xpReward / workout.exercises.length
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {currentExercise.notes && (
+                          <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4">
+                            <div className="mb-1 flex items-center gap-2 text-xs sm:text-sm font-bold text-duo-blue">
+                              <span>💡</span>
+                              <span>Dica</span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-duo-text break-words">
+                              {currentExercise.notes}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
-                  </div>
+                  </AnimatePresence>
                 </div>
               </div>
-            </div>
+
+              {/* Botões fixos na parte inferior */}
+              <div className="border-t-2 border-duo-border bg-white p-3 sm:p-4 shadow-lg shrink-0">
+                <div className="mx-auto max-w-2xl">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.4 }}
+                    className="space-y-2 sm:space-y-3"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.02, y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setShowWeightTracker(true)}
+                      className="duo-button-green w-full flex items-center justify-center gap-2 text-sm sm:text-base lg:text-lg py-3 sm:py-4"
+                    >
+                      <Weight className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="hidden sm:inline">
+                        REGISTRAR SÉRIES E CARGAS
+                      </span>
+                      <span className="sm:hidden">SÉRIES E CARGAS</span>
+                    </motion.button>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      {activeWorkout &&
+                        activeWorkout.currentExerciseIndex > 0 && (
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => {
+                              if (activeWorkout) {
+                                setCurrentExerciseIndex(
+                                  activeWorkout.currentExerciseIndex - 1
+                                );
+                                saveWorkoutProgress(workout.id);
+                              }
+                            }}
+                            className="rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50"
+                          >
+                            <span className="hidden sm:inline">← ANTERIOR</span>
+                            <span className="sm:hidden">ANTERIOR</span>
+                          </motion.button>
+                        )}
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleSkip}
+                        className={cn(
+                          "rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50",
+                          activeWorkout &&
+                            activeWorkout.currentExerciseIndex === 0 &&
+                            "col-span-2"
+                        )}
+                      >
+                        <span className="hidden sm:inline">
+                          PULAR EXERCÍCIO
+                        </span>
+                        <span className="sm:hidden">PULAR</span>
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            </>
           )}
         </motion.div>
       )}

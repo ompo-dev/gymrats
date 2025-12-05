@@ -99,8 +99,7 @@ export function MealCard({
             <div className="flex-1">
               <div className="mb-1 font-bold text-duo-text">{meal.name}</div>
               <div className="text-xs font-bold text-duo-gray-dark">
-                {getMealTime(meal.type, meal.name)}{" "}
-                {meal.time && `• ${meal.time}`}
+                {meal.time && ` ${meal.time}`}
               </div>
             </div>
           </div>
