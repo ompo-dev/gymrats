@@ -615,7 +615,7 @@ export function WorkoutModal() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -20, scale: 0.95 }}
                       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
+                      className="rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
                     >
                       <h1 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text break-words">
                         {currentExercise.name}
@@ -689,7 +689,7 @@ export function WorkoutModal() {
                       <span className="hidden sm:inline">
                         REGISTRAR SÉRIES E CARGAS
                       </span>
-                      <span className="sm:hidden">SÉRIES E CARGAS</span>
+                      <span className="sm:hidden">REGISTRAR</span>
                     </motion.button>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       {activeWorkout &&
