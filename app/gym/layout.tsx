@@ -110,7 +110,7 @@ function GymLayoutContent({ children }: { children: React.ReactNode }) {
           level: mockGymProfile.gamification.level,
           ranking: mockGymProfile.gamification.ranking,
         }}
-        showLogo={false}
+        showLogo={true}
       />
 
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-20">
