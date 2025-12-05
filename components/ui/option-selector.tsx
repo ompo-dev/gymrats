@@ -1,9 +1,10 @@
 "use client";
 
+import * as React from "react";
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 interface Option {
   value: string;
@@ -30,6 +31,73 @@ interface OptionSelectorProps {
   ariaLabel?: string;
   ariaLabelledBy?: string;
 }
+
+// Componente auxiliar para garantir que a animação de tap complete mesmo em cliques rápidos
+const TapButton = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<typeof motion.button> & { selected: boolean }
+>(({ onClick, selected, animate, transition, ...props }, ref) => {
+  const [isTapping, setIsTapping] = useState(false);
+
+  const handlePointerDown = () => {
+    setIsTapping(true);
+  };
+
+  const handlePointerUp = () => {
+    setTimeout(() => {
+      setIsTapping(false);
+    }, 250);
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    onClick?.(e);
+  };
+
+  const animateValue =
+    typeof animate === "object" && animate !== null && !Array.isArray(animate)
+      ? animate
+      : {};
+  const transitionValue =
+    typeof transition === "object" &&
+    transition !== null &&
+    !Array.isArray(transition)
+      ? transition
+      : {};
+
+  return (
+    <motion.button
+      ref={ref}
+      {...props}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      onClick={handleClick}
+      animate={{
+        ...animateValue,
+        y: isTapping ? 4 : 0,
+        boxShadow: isTapping
+          ? selected
+            ? "0 0px 0 #58A700"
+            : "0 0px 0 #D1D5DB"
+          : selected
+          ? "0 4px 0 #58A700"
+          : "0 4px 0 #D1D5DB",
+      }}
+      transition={{
+        ...transitionValue,
+        y: { duration: 0.2, ease: "easeInOut" },
+        boxShadow: { duration: 0.2, ease: "easeInOut" },
+      }}
+      whileTap={{
+        y: 4,
+        boxShadow: selected ? "0 0px 0 #58A700" : "0 0px 0 #D1D5DB",
+        transition: { duration: 0.2, ease: "easeInOut" },
+      }}
+    />
+  );
+});
+
+TapButton.displayName = "TapButton";
 
 export function OptionSelector({
   options,
@@ -166,10 +234,22 @@ export function OptionSelector({
                 }}
                 id={optionId}
                 initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05, type: "spring" }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                  boxShadow: selected ? "0 4px 0 #58A700" : "0 4px 0 #D1D5DB",
+                }}
+                transition={{
+                  delay: index * 0.05,
+                  type: "spring",
+                  boxShadow: { duration: 0, ease: "linear" },
+                }}
                 whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                whileTap={{
+                  y: 4,
+                  boxShadow: selected ? "0 0px 0 #58A700" : "0 0px 0 #D1D5DB",
+                  transition: { duration: 0.2, ease: "easeInOut" },
+                }}
                 onClick={() => onChange(option.value)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 role={multiple ? "checkbox" : "radio"}
@@ -178,7 +258,7 @@ export function OptionSelector({
                 aria-label={option.label}
                 aria-describedby={descriptionId}
                 className={cn(
-                  "relative w-full rounded-2xl border-2 p-4 font-bold transition-all active:shadow-none active:translate-y-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
+                  "relative w-full rounded-2xl border-2 p-4 font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
                   !option.emoji &&
                     !option.icon &&
                     !option.description &&
@@ -186,8 +266,8 @@ export function OptionSelector({
                   (option.emoji || option.icon || option.description) &&
                     "text-left",
                   selected
-                    ? "border-duo-green bg-duo-green shadow-[0_4px_0_#58A700]"
-                    : "border-gray-300 bg-white shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]",
+                    ? "border-duo-green bg-duo-green"
+                    : "border-gray-300 bg-white hover:border-duo-green/50",
                   sizeClasses[size]
                 )}
               >
@@ -294,17 +374,25 @@ export function OptionSelector({
           // Se precisa ajuste e é o último item, ele vai para linha de baixo ocupando todas as colunas
           if (shouldMoveToBottom) {
             return (
-              <motion.button
+              <TapButton
                 key={option.value}
                 ref={(el) => {
                   buttonRefs.current[index] = el;
                 }}
                 id={optionId}
                 initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05, type: "spring" }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  boxShadow: selected ? "0 4px 0 #58A700" : "0 4px 0 #D1D5DB",
+                }}
+                transition={{
+                  delay: index * 0.05,
+                  type: "spring",
+                  boxShadow: { duration: 0, ease: "linear" },
+                }}
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.99 }}
+                selected={selected}
                 onClick={() => onChange(option.value)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
                 role={multiple ? "checkbox" : "radio"}
@@ -313,14 +401,14 @@ export function OptionSelector({
                 aria-label={option.label}
                 aria-describedby={descriptionId}
                 className={cn(
-                  "relative rounded-2xl border-2 transition-all min-w-0 overflow-hidden font-bold active:shadow-none active:translate-y-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
+                  "relative rounded-2xl border-2 transition-all min-w-0 overflow-hidden font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
                   !option.emoji &&
                     !option.icon &&
                     !option.description &&
                     "uppercase tracking-wider",
                   selected
-                    ? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-                    : "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]",
+                    ? "border-duo-green bg-duo-green text-white"
+                    : "border-gray-300 bg-white text-gray-900 hover:border-duo-green/50",
                   sizeClasses[size],
                   option.emoji || option.icon || option.description
                     ? "text-left"
@@ -376,7 +464,7 @@ export function OptionSelector({
                     {option.description}
                   </div>
                 )}
-              </motion.button>
+              </TapButton>
             );
           }
 
@@ -385,17 +473,25 @@ export function OptionSelector({
           const finalColSpan = 1;
 
           return (
-            <motion.button
+            <TapButton
               key={option.value}
               ref={(el) => {
                 buttonRefs.current[index] = el;
               }}
               id={optionId}
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05, type: "spring" }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                boxShadow: selected ? "0 4px 0 #58A700" : "0 4px 0 #D1D5DB",
+              }}
+              transition={{
+                delay: index * 0.05,
+                type: "spring",
+                boxShadow: { duration: 0, ease: "linear" },
+              }}
               whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
+              selected={selected}
               onClick={() => onChange(option.value)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               role={multiple ? "checkbox" : "radio"}
@@ -404,14 +500,14 @@ export function OptionSelector({
               aria-label={option.label}
               aria-describedby={descriptionId}
               className={cn(
-                "relative rounded-2xl border-2 transition-all min-w-0 overflow-hidden font-bold active:shadow-none active:translate-y-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
+                "relative rounded-2xl border-2 transition-all min-w-0 overflow-hidden font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
                 !option.emoji &&
                   !option.icon &&
                   !option.description &&
                   "uppercase tracking-wider",
                 selected
-                  ? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-                  : "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]",
+                  ? "border-duo-green bg-duo-green text-white"
+                  : "border-gray-300 bg-white text-gray-900 hover:border-duo-green/50",
                 sizeClasses[size],
                 option.emoji || option.icon
                   ? "text-left"
@@ -450,7 +546,7 @@ export function OptionSelector({
                   {option.description}
                 </div>
               )}
-            </motion.button>
+            </TapButton>
           );
         })}
       </Wrapper>

@@ -41,6 +41,19 @@ export interface WorkoutSession {
   completedAt?: Date
 }
 
+// Item de alimento adicionado a uma refeição
+export interface MealFoodItem {
+  id: string
+  foodId: string
+  foodName: string
+  servings: number
+  calories: number
+  protein: number
+  carbs: number
+  fats: number
+  servingSize: string
+}
+
 // Refeição individual
 export interface Meal {
   id: string
@@ -54,6 +67,7 @@ export interface Meal {
   time?: string
   image?: string
   ingredients?: string[]
+  foods?: MealFoodItem[] // Alimentos adicionados dinamicamente
 }
 
 // Plano de dieta do dia (equivalente a uma "lição" de dieta)

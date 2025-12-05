@@ -1,21 +1,21 @@
-import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { DM_Sans, Space_Grotesk } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { NuqsAdapter } from "nuqs/adapters/next/app"
-import "./globals.css"
+import type React from "react";
+import type { Metadata, Viewport } from "next";
+import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import "./globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
-})
+});
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-})
+});
 
 export const metadata: Metadata = {
   title: "GymRats - Aprenda Musculação de Forma Gamificada",
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/icon.svg",
         media: "(prefers-color-scheme: light)",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/icon.svg",
         media: "(prefers-color-scheme: dark)",
       },
       {
@@ -38,9 +38,9 @@ export const metadata: Metadata = {
         type: "image/svg+xml",
       },
     ],
-    apple: "/apple-icon.png",
+    apple: "/icon.svg",
   },
-}
+};
 
 export const viewport: Viewport = {
   themeColor: "#58c27d",
@@ -48,24 +48,22 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="pt-BR">
-      <body 
+      <body
         className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
-        <NuqsAdapter>
-        {children}
-        </NuqsAdapter>
+        <NuqsAdapter>{children}</NuqsAdapter>
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

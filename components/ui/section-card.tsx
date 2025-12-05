@@ -1,101 +1,67 @@
-"use client";
-
-import { Book } from "lucide-react";
+import * as React from "react";
+import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { cva, type VariantProps } from "class-variance-authority";
-import { motion } from "motion/react";
-import { Button } from "./button";
 import Link from "next/link";
+import { Button } from "./button";
+import { Book } from "lucide-react";
 
-const sectionCardVariants = cva(
-  "relative flex flex-row items-stretch gap-0 rounded-[14px] filter drop-shadow-[0px_4px_0px] transition-all hover:scale-[1.01] overflow-hidden",
-  {
-    variants: {
-      variant: {
-        default: "drop-shadow-[0px_4px_0px_#48A502]",
-        blue: "drop-shadow-[0px_4px_0px_#1899D6]",
-        orange: "drop-shadow-[0px_4px_0px_#E68500]",
-        purple: "drop-shadow-[0px_4px_0px_#B870E6]",
-        red: "drop-shadow-[0px_4px_0px_#E63939]",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
-
-interface SectionCardProps extends VariantProps<typeof sectionCardVariants> {
-  sectionLabel: string;
+export interface SectionCardProps
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+  icon?: LucideIcon;
   title: string;
-  showButton?: boolean;
+  headerAction?: React.ReactNode;
+  sectionLabel?: string;
   buttonHref?: string;
-  className?: string;
+  buttonText?: string;
+  variant?: "default" | "small" | "highlighted" | "blue" | "orange" | "yellow";
 }
 
 export function SectionCard({
-  sectionLabel,
+  icon: Icon,
   title,
-  variant,
+  headerAction,
+  children,
   className,
-  showButton = true,
-  buttonHref = "/student?tab=education",
+  sectionLabel,
+  buttonHref,
+  buttonText = "Ver mais",
+  variant,
+  ...props
 }: SectionCardProps) {
-  const cardClasses = cn(sectionCardVariants({ variant }), className);
-
   return (
-    <motion.div
-      whileHover={{ scale: 1.01 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.2 }}
-      className={cardClasses}
+    <div
+      className={cn(
+        "w-full rounded-[14px] bg-[#5ACD05] px-4 py-[15px] flex flex-row items-center justify-between gap-4 drop-shadow-[0_4px_0_#48A502] min-h-[76px]",
+        className
+      )}
+      {...props}
     >
-      {/* Main Content */}
-      <div
-        className={cn(
-          "relative flex flex-col items-start px-4 py-[15px] gap-[10px] flex-1 min-w-0 rounded-[14px]",
-          variant === "default" && "bg-[#5ACD05]",
-          variant === "blue" && "bg-[#1CB0F6]",
-          variant === "orange" && "bg-[#FF9600]",
-          variant === "purple" && "bg-[#CE82FF]",
-          variant === "red" && "bg-[#FF4B4B]"
-        )}
-        style={{ minHeight: "76px" }}
-      >
-        {/* Button com ícone de livro - Centralizado verticalmente */}
-        {showButton && (
-          <Link
-            href={buttonHref}
-            className="absolute top-1/2 -translate-y-1/2 right-3 z-10"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button
-              variant="white"
-              size="icon"
-              className="h-12 w-12 rounded-full"
-            >
-              <Book className="h-7 w-7" />
-            </Button>
-          </Link>
-        )}
-
-        <div className="flex flex-col items-start gap-0 w-full pr-16">
-          {/* Section Label */}
-          <div
-            className="w-full font-nunito font-extrabold text-[13px] leading-[22px] flex items-center text-[#CEF2AD] mb-[2px]"
-            style={{ fontFamily: "Nunito, sans-serif" }}
-          >
+      {/* Conteúdo à esquerda */}
+      <div className="flex flex-col items-start flex-1 min-w-0">
+        {sectionLabel && (
+          <div className="w-full h-[22px] flex items-center text-[13px] font-extrabold leading-[22px] text-[#CEF2AD] uppercase mb-0">
             {sectionLabel}
           </div>
-          {/* Title - Permite múltiplas linhas */}
-          <div
-            className="w-full font-nunito font-extrabold text-[20px] leading-[24px] text-[#FFFDFE] wrap-break-word"
-            style={{ fontFamily: "Nunito, sans-serif" }}
-          >
-            {title}
-          </div>
+        )}
+        <div className="w-full h-6 flex items-center text-xl font-extrabold leading-6 text-[#FFFDFE]">
+          {title}
         </div>
+        {children && <div className="w-full mt-2.5">{children}</div>}
       </div>
-    </motion.div>
+
+      {/* Botão à direita */}
+      {buttonHref && (
+        <div className="shrink-0">
+          <Button variant="white" size="sm" asChild>
+            <Link href={buttonHref}>
+              <Book className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+      {!buttonHref && headerAction && (
+        <div className="shrink-0">{headerAction}</div>
+      )}
+    </div>
   );
 }

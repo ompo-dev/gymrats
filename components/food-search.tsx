@@ -1,98 +1,455 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { mockFoodDatabase } from "@/lib/mock-data"
-import type { FoodItem } from "@/lib/types"
-import { Search, Plus } from "lucide-react"
+import { useState } from "react";
+import { mockFoodDatabase } from "@/lib/mock-data";
+import type { FoodItem, Meal } from "@/lib/types";
+import { Search, Plus, Minus } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { OptionSelector } from "@/components/ui/option-selector";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface FoodSearchProps {
-  onAddFood: (food: FoodItem, servings: number) => void
-  onClose: () => void
+  onAddFood: (
+    foods: Array<{ food: FoodItem; servings: number }>,
+    mealIds: string[]
+  ) => void;
+  onClose: () => void;
+  selectedMealId?: string | null;
+  meals?: Meal[];
+  onSelectMeal?: (mealId: string) => void;
 }
 
-export function FoodSearch({ onAddFood, onClose }: FoodSearchProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedFood, setSelectedFood] = useState<FoodItem | null>(null)
-  const [servings, setServings] = useState(1)
+const mealIcons: Record<string, string> = {
+  breakfast: "🍳",
+  lunch: "🍽️",
+  dinner: "🌙",
+  snack: "🍎",
+  "afternoon-snack": "☕",
+  "pre-workout": "💪",
+  "post-workout": "🏋️",
+};
 
-  const filteredFoods = mockFoodDatabase.filter((food) => food.name.toLowerCase().includes(searchQuery.toLowerCase()))
+const mealTimes: Record<string, string> = {
+  breakfast: "Café da Manhã",
+  lunch: "Almoço",
+  dinner: "Jantar",
+  snack: "Lanche",
+  "afternoon-snack": "Café da Tarde",
+  "pre-workout": "Pré Treino",
+  "post-workout": "Pós Treino",
+};
 
-  const handleAddFood = () => {
-    if (selectedFood) {
-      onAddFood(selectedFood, servings)
-      onClose()
+export function FoodSearch({
+  onAddFood,
+  onClose,
+  selectedMealId,
+  meals = [],
+  onSelectMeal,
+}: FoodSearchProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
+  const [foodServings, setFoodServings] = useState<Record<string, number>>({});
+
+  // Se selectedMealId está definido, não permite seleção múltipla - adiciona direto naquela refeição
+  const isSpecificMeal = !!selectedMealId;
+  const [selectedMealIds, setSelectedMealIds] = useState<Set<string>>(() =>
+    selectedMealId ? new Set([selectedMealId]) : new Set()
+  );
+
+  const filteredFoods = mockFoodDatabase.filter((food) =>
+    food.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const getMealIcon = (type: string, name?: string) => {
+    // Se o tipo for snack, tenta determinar pelo nome
+    if (type === "snack" && name) {
+      if (name.includes("Café da Tarde")) return mealIcons["afternoon-snack"];
+      if (name.includes("Pré Treino") || name.includes("Pré"))
+        return mealIcons["pre-workout"];
+      if (name.includes("Pós Treino") || name.includes("Pós"))
+        return mealIcons["post-workout"];
     }
-  }
+    return mealIcons[type] || "🍴";
+  };
+
+  const getMealTime = (type: string, name?: string) => {
+    // Se o tipo for snack, tenta determinar pelo nome
+    if (type === "snack" && name) {
+      if (name.includes("Café da Tarde")) return mealTimes["afternoon-snack"];
+      if (name.includes("Pré Treino") || name.includes("Pré"))
+        return mealTimes["pre-workout"];
+      if (name.includes("Pós Treino") || name.includes("Pós"))
+        return mealTimes["post-workout"];
+    }
+    return mealTimes[type] || type;
+  };
+
+  const handleFoodSelection = (foodId: string) => {
+    setSelectedFoodIds((prev) => {
+      if (prev.includes(foodId)) {
+        // Remove o alimento e suas porções
+        const newServings = { ...foodServings };
+        delete newServings[foodId];
+        setFoodServings(newServings);
+        return prev.filter((id) => id !== foodId);
+      } else {
+        // Adiciona o alimento com 1 porção padrão
+        setFoodServings((prev) => ({ ...prev, [foodId]: 1 }));
+        return [...prev, foodId];
+      }
+    });
+  };
+
+  const handleServingsChange = (foodId: string, delta: number) => {
+    setFoodServings((prev) => {
+      const current = prev[foodId] || 1;
+      const newValue = Math.max(0.5, current + delta);
+      return { ...prev, [foodId]: newValue };
+    });
+  };
+
+  const handleAddFoods = () => {
+    if (selectedFoodIds.length > 0 && selectedMealIds.size > 0) {
+      const foodsToAdd = selectedFoodIds
+        .map((foodId) => {
+          const food = mockFoodDatabase.find((f) => f.id === foodId);
+          if (!food) return null;
+          return {
+            food,
+            servings: foodServings[foodId] || 1,
+          };
+        })
+        .filter(Boolean) as Array<{ food: FoodItem; servings: number }>;
+
+      if (foodsToAdd.length > 0) {
+        onAddFood(foodsToAdd, Array.from(selectedMealIds));
+        onClose();
+      }
+    }
+  };
+
+  const handleToggleMeal = (mealId: string) => {
+    setSelectedMealIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(mealId)) {
+        newSet.delete(mealId);
+      } else {
+        newSet.add(mealId);
+      }
+      return newSet;
+    });
+    if (onSelectMeal) {
+      onSelectMeal(mealId);
+    }
+  };
+
+  const hasSelectedMeals = selectedMealIds.size > 0;
+  const hasSelectedFoods = selectedFoodIds.length > 0;
+
+  // Prepara opções para o OptionSelector
+  const foodOptions = filteredFoods.map((food) => ({
+    value: food.id,
+    label: food.name,
+    description: `${food.calories} cal • P: ${food.protein}g • C: ${food.carbs}g • G: ${food.fats}g • ${food.servingSize}`,
+  }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl">
-        <div className="border-b-2 border-duo-gray-border p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-duo-text">Adicionar Alimento</h2>
-            <button
-              onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-gray-light"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar alimentos..."
-              className="w-full rounded-xl border-2 border-duo-gray-border py-3 pl-12 pr-4 font-bold text-duo-text placeholder:text-duo-gray-light focus:border-duo-blue focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <div className="max-h-96 overflow-y-auto p-6">
-          <div className="space-y-2">
-            {filteredFoods.map((food) => (
-              <button
-                key={food.id}
-                onClick={() => setSelectedFood(food)}
-                className={`w-full rounded-2xl border-2 p-4 text-left transition-all hover:border-duo-blue ${
-                  selectedFood?.id === food.id ? "border-duo-blue bg-duo-blue/5" : "border-duo-gray-border"
-                }`}
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: "100%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "100%", opacity: 0 }}
+          transition={{
+            type: "spring",
+            damping: 25,
+            stiffness: 300,
+            duration: 0.3,
+          }}
+          className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl sm:scale-100"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            maxHeight: "90vh",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="border-b-2 border-gray-300 p-6"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Adicionar Alimento
+              </h2>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={onClose}
+                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
               >
-                <div className="mb-2 font-bold text-duo-text">{food.name}</div>
-                <div className="flex gap-4 text-sm text-duo-gray-dark">
-                  <span>{food.calories} cal</span>
-                  <span>P: {food.protein}g</span>
-                  <span>C: {food.carbs}g</span>
-                  <span>G: {food.fats}g</span>
-                </div>
-                <div className="mt-1 text-xs text-duo-gray-dark">{food.servingSize}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+                ✕
+              </motion.button>
+            </div>
 
-        {selectedFood && (
-          <div className="border-t-2 border-duo-gray-border p-6">
-            <div className="mb-4">
-              <label className="mb-2 block text-sm font-bold text-duo-gray-dark">Porções</label>
+            {!isSpecificMeal && meals.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+                className="mb-4"
+              >
+                <label className="mb-2 block text-sm font-bold text-gray-600">
+                  Selecione as refeições ({selectedMealIds.size} selecionada
+                  {selectedMealIds.size !== 1 ? "s" : ""}):
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {meals.map((meal, index) => {
+                    const isSelected = selectedMealIds.has(meal.id);
+                    return (
+                      <motion.button
+                        key={meal.id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{
+                          delay: 0.2 + index * 0.05,
+                          duration: 0.2,
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleToggleMeal(meal.id)}
+                        className={cn(
+                          "relative rounded-xl border-2 p-3 text-left transition-all",
+                          isSelected
+                            ? "border-duo-green bg-duo-green/10 shadow-[0_2px_0_#58A700]"
+                            : "border-gray-300 bg-white shadow-[0_2px_0_#D1D5DB] hover:border-duo-green/50"
+                        )}
+                      >
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 200 }}
+                            className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-duo-green text-white text-xs"
+                          >
+                            ✓
+                          </motion.div>
+                        )}
+                        <div className="mb-1 text-2xl">
+                          {getMealIcon(meal.type, meal.name)}
+                        </div>
+                        <div className="text-xs font-bold text-gray-900">
+                          {meal.name}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {getMealTime(meal.type, meal.name)}
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {isSpecificMeal && meals.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2, duration: 0.3 }}
+                className="mb-4 rounded-xl border-2 border-duo-green bg-duo-green/10 p-3"
+              >
+                <div className="flex items-center gap-2">
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.25, type: "spring", stiffness: 200 }}
+                    className="text-xl"
+                  >
+                    {getMealIcon(
+                      meals.find((m) => m.id === selectedMealId)?.type || "",
+                      meals.find((m) => m.id === selectedMealId)?.name
+                    )}
+                  </motion.span>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {meals.find((m) => m.id === selectedMealId)?.name}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {getMealTime(
+                        meals.find((m) => m.id === selectedMealId)?.type || "",
+                        meals.find((m) => m.id === selectedMealId)?.name
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-600" />
               <input
-                type="number"
-                min="0.5"
-                step="0.5"
-                value={servings}
-                onChange={(e) => setServings(Number.parseFloat(e.target.value) || 1)}
-                className="w-full rounded-xl border-2 border-duo-gray-border px-4 py-3 font-bold text-duo-text focus:border-duo-blue focus:outline-none"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar alimentos..."
+                className="w-full rounded-xl border-2 border-gray-300 py-3 pl-12 pr-4 font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-blue focus:outline-none"
               />
             </div>
-            <button onClick={handleAddFood} className="duo-button-green w-full">
-              <Plus className="mr-2 h-5 w-5" />
-              ADICIONAR ALIMENTO
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  )
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25, duration: 0.3 }}
+            className="flex-1 overflow-y-auto p-6"
+            style={{ maxHeight: "50vh" }}
+          >
+            {filteredFoods.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-8 text-center text-gray-600"
+              >
+                Nenhum alimento encontrado
+              </motion.div>
+            ) : (
+              <OptionSelector
+                options={foodOptions}
+                value={selectedFoodIds}
+                onChange={handleFoodSelection}
+                multiple={true}
+                layout="list"
+                size="md"
+                textAlign="left"
+                animate={true}
+                delay={0.3}
+              />
+            )}
+          </motion.div>
+
+          <AnimatePresence>
+            {hasSelectedFoods && (isSpecificMeal || hasSelectedMeals) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className="border-t-2 border-gray-300 p-6 space-y-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <label className="mb-3 block text-sm font-bold text-gray-600">
+                    Ajustar Porções ({selectedFoodIds.length} alimento
+                    {selectedFoodIds.length !== 1 ? "s" : ""} selecionado
+                    {selectedFoodIds.length !== 1 ? "s" : ""})
+                  </label>
+                  <div className="space-y-3">
+                    <AnimatePresence>
+                      {selectedFoodIds.map((foodId, index) => {
+                        const food = mockFoodDatabase.find(
+                          (f) => f.id === foodId
+                        );
+                        if (!food) return null;
+                        const servings = foodServings[foodId] || 1;
+                        return (
+                          <motion.div
+                            key={foodId}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, height: 0 }}
+                            transition={{ delay: index * 0.05, duration: 0.2 }}
+                            className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
+                          >
+                            <div className="flex-1">
+                              <div className="text-sm font-bold text-gray-900">
+                                {food.name}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                {food.servingSize}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() =>
+                                  handleServingsChange(foodId, -0.5)
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 active:scale-90"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <div className="w-16 text-center">
+                                <div className="text-sm font-bold text-gray-900">
+                                  {servings}
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  {servings === 1 ? "porção" : "porções"}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() =>
+                                  handleServingsChange(foodId, 0.5)
+                                }
+                                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green bg-duo-green text-white transition-all hover:bg-duo-green/90 active:scale-90"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+                <Button onClick={handleAddFoods} className="w-full">
+                  <Plus className="h-5 w-5" />
+                  {isSpecificMeal
+                    ? `ADICIONAR ${selectedFoodIds.length} ALIMENTO${
+                        selectedFoodIds.length !== 1 ? "S" : ""
+                      }`
+                    : `ADICIONAR ${selectedFoodIds.length} ALIMENTO${
+                        selectedFoodIds.length !== 1 ? "S" : ""
+                      } EM ${selectedMealIds.size} REFEIÇÃO${
+                        selectedMealIds.size > 1 ? "ÕES" : ""
+                      }`}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {hasSelectedFoods &&
+              !isSpecificMeal &&
+              !hasSelectedMeals &&
+              meals.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="border-t-2 border-gray-300 p-6"
+                >
+                  <div className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-4 text-center text-sm font-bold text-duo-orange">
+                    Selecione pelo menos uma refeição para adicionar o(s)
+                    alimento(s)
+                  </div>
+                </motion.div>
+              )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
 }

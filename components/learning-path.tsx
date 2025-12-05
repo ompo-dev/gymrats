@@ -63,8 +63,9 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
               <SectionCard
                 sectionLabel={unit.title}
                 title={unit.description}
-                variant="default"
+                variant="highlighted"
                 buttonHref="/student?tab=education"
+                buttonText="Ver conteúdo"
               />
             </div>
 

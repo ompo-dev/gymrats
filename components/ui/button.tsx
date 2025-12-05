@@ -18,7 +18,7 @@ const buttonVariants = cva(
         disabled:
           "bg-[#E5E5E5] text-[#AFAFAF] font-bold uppercase tracking-wider cursor-not-allowed rounded-2xl text-[13px] leading-[18px]",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-red-50 text-red-600 border-2 border-red-300 font-bold uppercase tracking-wider shadow-[0_4px_0_#FCA5A5] hover:bg-red-100 active:shadow-none active:translate-y-[4px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary:
