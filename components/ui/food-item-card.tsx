@@ -1,16 +1,17 @@
-import * as React from "react"
-import { ChevronDown, Trash2 } from "lucide-react"
-import { motion, AnimatePresence } from "motion/react"
-import { DuoCard } from "./duo-card"
-import { Button } from "./button"
-import { cn } from "@/lib/utils"
-import type { MealFoodItem } from "@/lib/types"
+import * as React from "react";
+import { ChevronDown, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { DuoCard } from "./duo-card";
+import { Button } from "./button";
+import { cn } from "@/lib/utils";
+import type { MealFoodItem } from "@/lib/types";
 
-export interface FoodItemCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  food: MealFoodItem
-  isExpanded: boolean
-  onToggle: () => void
-  onDelete?: () => void
+export interface FoodItemCardProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  food: MealFoodItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onDelete?: () => void;
 }
 
 export function FoodItemCard({
@@ -27,24 +28,33 @@ export function FoodItemCard({
       onClick={(e) => e.stopPropagation()}
       {...props}
     >
-      <button
+      <div
         onClick={(e) => {
-          e.stopPropagation()
-          onToggle()
+          e.stopPropagation();
+          onToggle();
         }}
         className={cn(
-          "w-full rounded-xl border-2 p-3 text-left transition-all active:scale-[0.98]",
+          "w-full rounded-xl border-2 p-3 text-left transition-all active:scale-[0.98] cursor-pointer",
           isExpanded
             ? "border-duo-blue bg-duo-blue/5 shadow-sm"
             : "border-gray-300 bg-white hover:border-duo-blue hover:shadow-sm"
         )}
-        type="button"
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggle();
+          }
+        }}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="font-bold text-gray-900">{food.foodName}</div>
             <div className="text-xs text-gray-600">
-              {food.servings} {food.servings === 1 ? "porção" : "porções"} • {food.servingSize}
+              {food.servings} {food.servings === 1 ? "porção" : "porções"} •{" "}
+              {food.servingSize}
             </div>
           </div>
           <ChevronDown
@@ -72,23 +82,31 @@ export function FoodItemCard({
                   className="grid grid-cols-4 gap-2 text-center"
                 >
                   <div>
-                    <div className="text-sm font-bold text-gray-900">{food.calories}</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {food.calories}
+                    </div>
                     <div className="text-xs text-gray-600">cal</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-900">{food.protein}g</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {food.protein}g
+                    </div>
                     <div className="text-xs text-gray-600">prot</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-900">{food.carbs}g</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {food.carbs}g
+                    </div>
                     <div className="text-xs text-gray-600">carb</div>
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-900">{food.fats}g</div>
+                    <div className="text-sm font-bold text-gray-900">
+                      {food.fats}g
+                    </div>
                     <div className="text-xs text-gray-600">gord</div>
                   </div>
                 </motion.div>
-                
+
                 {onDelete && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -100,8 +118,8 @@ export function FoodItemCard({
                       size="sm"
                       className="w-full"
                       onClick={(e) => {
-                        e.stopPropagation()
-                        onDelete()
+                        e.stopPropagation();
+                        onDelete();
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -113,7 +131,7 @@ export function FoodItemCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </button>
+      </div>
     </div>
-  )
+  );
 }
