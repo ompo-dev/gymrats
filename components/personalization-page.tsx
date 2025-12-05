@@ -1,12 +1,15 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { AIWorkoutGenerator } from "./ai-workout-generator"
-import { AIDietGenerator } from "./ai-diet-generator"
-import { Dumbbell, UtensilsCrossed } from "lucide-react"
+import { useState } from "react";
+import { AIWorkoutGenerator } from "./ai-workout-generator";
+import { AIDietGenerator } from "./ai-diet-generator";
+import { Dumbbell, UtensilsCrossed, Sparkles } from "lucide-react";
+import { SectionCard } from "./ui/section-card";
 
 export function PersonalizationPage() {
-  const [activeView, setActiveView] = useState<"menu" | "workout" | "diet">("menu")
+  const [activeView, setActiveView] = useState<"menu" | "workout" | "diet">(
+    "menu"
+  );
 
   if (activeView === "workout") {
     return (
@@ -19,7 +22,7 @@ export function PersonalizationPage() {
         </button>
         <AIWorkoutGenerator />
       </div>
-    )
+    );
   }
 
   if (activeView === "diet") {
@@ -33,51 +36,65 @@ export function PersonalizationPage() {
         </button>
         <AIDietGenerator />
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="mb-2 text-3xl font-bold text-duo-text">Personalização com IA</h1>
-        <p className="text-sm text-duo-gray-dark">Crie treinos e dietas personalizados instantaneamente</p>
-      </div>
-
       <div className="grid gap-4">
         <button
           onClick={() => setActiveView("workout")}
-          className="rounded-2xl border-2 border-duo-blue bg-gradient-to-br from-duo-blue/10 to-duo-green/10 p-6 text-left transition-all hover:shadow-lg"
+          className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-6 text-left transition-all hover:bg-duo-blue/20 active:scale-[0.98]"
         >
-          <Dumbbell className="mb-3 h-12 w-12 text-duo-blue" />
-          <h3 className="mb-2 text-xl font-bold text-duo-text">Gerar Treino com IA</h3>
-          <p className="text-sm text-duo-gray-dark">
-            Crie treinos personalizados baseados em suas preferências e objetivos
-          </p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-blue">
+              <Dumbbell className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="mb-1 text-lg font-bold text-duo-text">
+                Gerar Treino com IA
+              </h3>
+              <p className="text-sm text-duo-gray-dark">
+                Crie treinos personalizados baseados em suas preferências e
+                objetivos
+              </p>
+            </div>
+          </div>
         </button>
 
         <button
           onClick={() => setActiveView("diet")}
-          className="rounded-2xl border-2 border-duo-green bg-gradient-to-br from-duo-green/10 to-duo-yellow/10 p-6 text-left transition-all hover:shadow-lg"
+          className="rounded-xl border-2 border-duo-green bg-duo-green/10 p-6 text-left transition-all hover:bg-duo-green/20 active:scale-[0.98]"
         >
-          <UtensilsCrossed className="mb-3 h-12 w-12 text-duo-green" />
-          <h3 className="mb-2 text-xl font-bold text-duo-text">Gerar Dieta com IA</h3>
-          <p className="text-sm text-duo-gray-dark">Crie planos alimentares ajustados aos seus macros e restrições</p>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green">
+              <UtensilsCrossed className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="mb-1 text-lg font-bold text-duo-text">
+                Gerar Dieta com IA
+              </h3>
+              <p className="text-sm text-duo-gray-dark">
+                Crie planos alimentares ajustados aos seus macros e restrições
+              </p>
+            </div>
+          </div>
         </button>
       </div>
 
-      <div className="rounded-2xl border-2 border-duo-yellow bg-duo-yellow/10 p-6">
-        <h3 className="mb-3 flex items-center gap-2 text-lg font-bold text-duo-text">
-          <span>✨</span>
-          Tecnologia de IA
-        </h3>
+      <SectionCard icon={Sparkles} title="Tecnologia de IA">
         <ul className="space-y-2 text-sm text-duo-gray-dark">
           <li className="flex items-start gap-2">
             <span className="text-duo-green">•</span>
-            <span>Treinos adaptados ao seu nível e equipamentos disponíveis</span>
+            <span>
+              Treinos adaptados ao seu nível e equipamentos disponíveis
+            </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-duo-green">•</span>
-            <span>Dietas balanceadas respeitando suas restrições alimentares</span>
+            <span>
+              Dietas balanceadas respeitando suas restrições alimentares
+            </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-duo-green">•</span>
@@ -88,7 +105,7 @@ export function PersonalizationPage() {
             <span>Sugestões personalizadas para otimizar resultados</span>
           </li>
         </ul>
-      </div>
+      </SectionCard>
     </div>
-  )
+  );
 }
