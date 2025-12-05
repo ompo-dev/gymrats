@@ -1,9 +1,29 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { CardioType, UserProfile } from "@/lib/types"
-import { calculateCardioCalories, calculateTargetHeartRateZone } from "@/lib/calorie-calculator"
-import { Play, Pause, Square, Heart, Flame, Timer, TrendingUp } from "lucide-react"
+import { useState, useEffect } from "react";
+import type { CardioType, UserProfile } from "@/lib/types";
+import {
+  calculateCardioCalories,
+  calculateTargetHeartRateZone,
+} from "@/lib/calorie-calculator";
+import {
+  Play,
+  Pause,
+  Square,
+  Heart,
+  Flame,
+  Timer,
+  TrendingUp,
+} from "lucide-react";
+import { OptionSelector } from "@/components/ui/option-selector";
+import { Button } from "@/components/ui/button";
+import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
 const mockUserProfile: UserProfile = {
   id: "1",
@@ -22,161 +42,278 @@ const mockUserProfile: UserProfile = {
   preferredSets: 3,
   preferredRepRange: "hipertrofia",
   restTime: "medio",
-}
+};
 
-const cardioTypes: { type: CardioType; label: string; emoji: string; avgCaloriesPerMin: number }[] = [
+const cardioTypes: {
+  type: CardioType;
+  label: string;
+  emoji: string;
+  avgCaloriesPerMin: number;
+}[] = [
   { type: "corrida", label: "Corrida", emoji: "🏃", avgCaloriesPerMin: 10 },
-  { type: "bicicleta", label: "Bicicleta", emoji: "🚴", avgCaloriesPerMin: 8 },
+  {
+    type: "bicicleta",
+    label: "Bicicleta",
+    emoji: "🚴",
+    avgCaloriesPerMin: 8,
+  },
   { type: "natacao", label: "Natação", emoji: "🏊", avgCaloriesPerMin: 11 },
   { type: "remo", label: "Remo", emoji: "🚣", avgCaloriesPerMin: 9 },
-  { type: "eliptico", label: "Elíptico", emoji: "⚡", avgCaloriesPerMin: 7 },
-  { type: "pular-corda", label: "Pular Corda", emoji: "🪢", avgCaloriesPerMin: 12 },
-  { type: "caminhada", label: "Caminhada", emoji: "🚶", avgCaloriesPerMin: 4 },
+  {
+    type: "eliptico",
+    label: "Elíptico",
+    emoji: "⚡",
+    avgCaloriesPerMin: 7,
+  },
+  {
+    type: "pular-corda",
+    label: "Pular Corda",
+    emoji: "🪢",
+    avgCaloriesPerMin: 12,
+  },
+  {
+    type: "caminhada",
+    label: "Caminhada",
+    emoji: "🚶",
+    avgCaloriesPerMin: 4,
+  },
   { type: "hiit", label: "HIIT", emoji: "💥", avgCaloriesPerMin: 14 },
-]
+];
+
+const intensityOptions = [
+  { value: "baixa", label: "Baixa", emoji: "🐢" },
+  { value: "moderada", label: "Moderada", emoji: "🚶" },
+  { value: "alta", label: "Alta", emoji: "🏃" },
+  { value: "muito-alta", label: "Muito Alta", emoji: "💥" },
+];
 
 export function CardioTracker() {
-  const [selectedType, setSelectedType] = useState<CardioType>("corrida")
-  const [isRunning, setIsRunning] = useState(false)
-  const [duration, setDuration] = useState(0)
-  const [intensity, setIntensity] = useState<"baixa" | "moderada" | "alta" | "muito-alta">("moderada")
-  const [heartRate, setHeartRate] = useState(0)
-  const [distance, setDistance] = useState(0)
+  const [selectedType, setSelectedType] = useState<CardioType>("corrida");
+  const [isRunning, setIsRunning] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [intensity, setIntensity] = useState<
+    "baixa" | "moderada" | "alta" | "muito-alta"
+  >("moderada");
+  const [heartRate, setHeartRate] = useState(0);
+  const [distance, setDistance] = useState(0);
 
-  const selected = cardioTypes.find((c) => c.type === selectedType)!
-  const targetHRZone = calculateTargetHeartRateZone(mockUserProfile.age, "cardio")
+  const selected = cardioTypes.find((c) => c.type === selectedType)!;
+  const targetHRZone = calculateTargetHeartRateZone(
+    mockUserProfile.age,
+    "cardio"
+  );
   const estimatedCalories =
-    duration > 0 ? calculateCardioCalories(selectedType, duration, intensity, mockUserProfile) : 0
+    duration > 0
+      ? calculateCardioCalories(
+          selectedType,
+          duration,
+          intensity,
+          mockUserProfile
+        )
+      : 0;
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setDuration((prev) => prev + 1);
+        setDistance((prev) => prev + 0.01);
+        setHeartRate(() => {
+          const baseHR = 60 + mockUserProfile.age;
+          const intensityMultiplier = {
+            baixa: 1.2,
+            moderada: 1.4,
+            alta: 1.6,
+            "muito-alta": 1.8,
+          }[intensity];
+          return Math.round(baseHR * intensityMultiplier);
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, intensity]);
+
+  const cardioOptions = cardioTypes.map((cardio) => ({
+    value: cardio.type,
+    label: cardio.label,
+    emoji: cardio.emoji,
+  }));
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Seleção de Modalidade */}
-      <div>
-        <h3 className="mb-3 text-sm font-bold text-duo-gray-dark">Selecione a modalidade</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {cardioTypes.map((cardio) => (
-            <button
-              key={cardio.type}
-              onClick={() => setSelectedType(cardio.type)}
-              className={`rounded-xl border-2 p-3 transition-all ${
-                selectedType === cardio.type
-                  ? "border-duo-blue bg-duo-blue/10 shadow-md"
-                  : "border-duo-border bg-white hover:border-duo-blue/50"
-              }`}
-            >
-              <div className="mb-1 text-2xl">{cardio.emoji}</div>
-              <div className="text-xs font-bold text-duo-text">{cardio.label}</div>
-            </button>
-          ))}
+    <div className="mx-auto max-w-4xl space-y-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+            Treino Cardio
+          </h1>
+          <p className="text-sm text-duo-gray-dark">
+            Acompanhe seu treino em tempo real
+          </p>
         </div>
-      </div>
+      </FadeIn>
 
-      {/* Informações em Tempo Real */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-2xl border-2 border-duo-border bg-gradient-to-br from-duo-orange/10 to-duo-orange/5 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Timer className="h-5 w-5 text-duo-orange" />
-            <span className="text-xs font-bold text-duo-gray-dark">Duração</span>
-          </div>
-          <div className="text-3xl font-black text-duo-text">
-            {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, "0")}
-          </div>
-          <div className="text-xs text-duo-gray-dark">minutos</div>
-        </div>
-
-        <div className="rounded-2xl border-2 border-duo-border bg-gradient-to-br from-duo-red/10 to-duo-red/5 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Flame className="h-5 w-5 text-duo-red" />
-            <span className="text-xs font-bold text-duo-gray-dark">Calorias</span>
-          </div>
-          <div className="text-3xl font-black text-duo-text">{estimatedCalories}</div>
-          <div className="text-xs text-duo-gray-dark">kcal queimadas</div>
-        </div>
-
-        <div className="rounded-2xl border-2 border-duo-border bg-gradient-to-br from-duo-green/10 to-duo-green/5 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-duo-green" />
-            <span className="text-xs font-bold text-duo-gray-dark">Distância</span>
-          </div>
-          <div className="text-3xl font-black text-duo-text">{distance.toFixed(2)}</div>
-          <div className="text-xs text-duo-gray-dark">km</div>
-        </div>
-
-        <div className="rounded-2xl border-2 border-duo-border bg-gradient-to-br from-pink-500/10 to-pink-500/5 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Heart className="h-5 w-5 text-pink-500" />
-            <span className="text-xs font-bold text-duo-gray-dark">FC</span>
-          </div>
-          <div className="text-3xl font-black text-duo-text">{heartRate}</div>
-          <div className="text-xs text-duo-gray-dark">bpm</div>
-        </div>
-      </div>
-
-      {/* Zona de FC Alvo */}
-      <div className="rounded-xl border-2 border-duo-border bg-white p-4">
-        <div className="mb-2 text-sm font-bold text-duo-text">Zona de FC Alvo (Cardio)</div>
-        <div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
-          <span>{targetHRZone.min} bpm</span>
-          <span>{targetHRZone.max} bpm</span>
-        </div>
-        <div className="h-2 overflow-hidden rounded-full bg-duo-border">
-          <div
-            className="h-full bg-gradient-to-r from-pink-400 to-pink-600 transition-all"
-            style={{
-              width: heartRate > 0 ? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%` : "0%",
-            }}
+      <SlideIn delay={0.1}>
+        <SectionCard title="Selecione a Modalidade" icon={Heart}>
+          <OptionSelector
+            options={cardioOptions}
+            value={selectedType}
+            onChange={(value) => setSelectedType(value as CardioType)}
+            layout="grid"
+            columns={2}
+            size="md"
+            textAlign="center"
+            animate={true}
           />
-        </div>
-      </div>
+        </SectionCard>
+      </SlideIn>
 
-      {/* Controle de Intensidade */}
-      <div>
-        <label className="mb-2 block text-sm font-bold text-duo-gray-dark">Intensidade</label>
-        <div className="grid grid-cols-4 gap-2">
-          {(["baixa", "moderada", "alta", "muito-alta"] as const).map((int) => (
-            <button
-              key={int}
-              onClick={() => setIntensity(int)}
-              className={`rounded-xl border-2 py-2 text-xs font-bold capitalize transition-all ${
-                intensity === int
-                  ? "border-duo-yellow bg-duo-yellow text-white"
-                  : "border-duo-border bg-white text-duo-text hover:border-duo-yellow/50"
-              }`}
-            >
-              {int}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Controles */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => setIsRunning(!isRunning)}
-          className="duo-button-green flex-1 flex items-center justify-center gap-2"
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
         >
-          {isRunning ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-          {isRunning ? "PAUSAR" : "INICIAR"}
-        </button>
-        <button
-          onClick={() => {
-            setIsRunning(false)
-            setDuration(0)
-            setDistance(0)
-            setHeartRate(0)
-          }}
-          className="rounded-2xl border-2 border-duo-border bg-white px-6 py-3 font-bold text-duo-text hover:bg-duo-border/30"
+          <StatCardLarge
+            icon={Timer}
+            value={formatTime(duration)}
+            label="Duração"
+            iconColor="duo-orange"
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
         >
-          <Square className="h-5 w-5" />
-        </button>
+          <StatCardLarge
+            icon={Flame}
+            value={estimatedCalories}
+            label="Calorias"
+            iconColor="duo-red"
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <StatCardLarge
+            icon={TrendingUp}
+            value={distance.toFixed(2)}
+            label="Distância (km)"
+            iconColor="duo-green"
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          <StatCardLarge
+            icon={Heart}
+            value={heartRate}
+            label="FC (bpm)"
+            iconColor="duo-red"
+          />
+        </motion.div>
       </div>
 
-      <div className="rounded-xl border-2 border-duo-blue bg-duo-blue/5 p-4">
-        <div className="text-xs font-bold text-duo-blue">💡 Dica</div>
-        <div className="mt-1 text-xs text-duo-text">
-          O cálculo de calorias considera seu peso, idade, gênero e perfil hormonal para maior precisão!
+      <SlideIn delay={0.4}>
+        <SectionCard title="Zona de FC Alvo (Cardio)" icon={Heart}>
+          <div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
+            <span>{targetHRZone.min} bpm</span>
+            <span>{targetHRZone.max} bpm</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-duo-border">
+            <div
+              className="h-full bg-gradient-to-r from-pink-400 to-pink-600 transition-all"
+              style={{
+                width:
+                  heartRate > 0
+                    ? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%`
+                    : "0%",
+              }}
+            />
+          </div>
+        </SectionCard>
+      </SlideIn>
+
+      <SlideIn delay={0.5}>
+        <SectionCard title="Intensidade" icon={Flame}>
+          <OptionSelector
+            options={intensityOptions}
+            value={intensity}
+            onChange={(value) =>
+              setIntensity(
+                value as "baixa" | "moderada" | "alta" | "muito-alta"
+              )
+            }
+            layout="grid"
+            columns={2}
+            size="md"
+            textAlign="center"
+            animate={true}
+          />
+        </SectionCard>
+      </SlideIn>
+
+      <SlideIn delay={0.6}>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setIsRunning(!isRunning)}
+            className="flex-1"
+            variant="default"
+          >
+            {isRunning ? (
+              <>
+                <Pause className="h-5 w-5" />
+                PAUSAR
+              </>
+            ) : (
+              <>
+                <Play className="h-5 w-5" />
+                INICIAR
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => {
+              setIsRunning(false);
+              setDuration(0);
+              setDistance(0);
+              setHeartRate(0);
+            }}
+            variant="white"
+            size="icon-lg"
+          >
+            <Square className="h-5 w-5" />
+          </Button>
         </div>
-      </div>
+      </SlideIn>
+
+      <SlideIn delay={0.7}>
+        <DuoCard variant="blue" size="md">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">💡</div>
+            <div>
+              <div className="mb-1 text-sm font-bold text-duo-blue">Dica</div>
+              <p className="text-xs text-duo-gray-dark">
+                O cálculo de calorias considera seu peso, idade, gênero e perfil
+                hormonal para maior precisão!
+              </p>
+            </div>
+          </div>
+        </DuoCard>
+      </SlideIn>
     </div>
-  )
+  );
 }
