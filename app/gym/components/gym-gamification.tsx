@@ -1,11 +1,25 @@
-"use client"
+"use client";
 
-import { mockGymProfile } from "@/lib/gym-mock-data"
-import { Card } from "@/components/ui/card"
-import { Trophy, Flame, Target, TrendingUp, Award, Users, Star } from "lucide-react"
+import { mockGymProfile } from "@/lib/gym-mock-data";
+import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { motion } from "motion/react";
+import {
+  Trophy,
+  Flame,
+  Target,
+  TrendingUp,
+  Award,
+  Users,
+  Star,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function GymGamificationPage() {
-  const { gamification } = mockGymProfile
+  const { gamification } = mockGymProfile;
 
   const mockAchievements = [
     {
@@ -48,214 +62,252 @@ export function GymGamificationPage() {
       xpReward: 400,
       unlocked: false,
     },
-  ]
+  ];
 
   const mockRanking = [
     { position: 1, name: "FitLife Academia", xp: 15670, city: "São Paulo" },
     { position: 2, name: "Strong Gym", xp: 12450, city: "Rio de Janeiro" },
-    { position: 3, name: "PowerFit Academia", xp: 2450, city: "São Paulo", isCurrentGym: true },
+    {
+      position: 3,
+      name: "PowerFit Academia",
+      xp: 2450,
+      city: "São Paulo",
+      isCurrentGym: true,
+    },
     { position: 4, name: "Iron Paradise", xp: 2120, city: "Belo Horizonte" },
     { position: 5, name: "Muscle Factory", xp: 1980, city: "Curitiba" },
-  ]
+  ];
 
-  const progressToNextLevel = (gamification.xp / (gamification.xp + gamification.xpToNextLevel)) * 100
+  const progressToNextLevel =
+    (gamification.xp / (gamification.xp + gamification.xpToNextLevel)) * 100;
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-black text-gray-900 md:text-4xl">Gamificação da Academia</h1>
-        <p className="text-sm text-gray-600 md:text-lg">
-          Acompanhe suas conquistas e compare-se com outras academias
-        </p>
-      </div>
-
-      <Card className="mb-6 border-2 p-6 md:p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#FF9600] to-[#E68A00] md:h-20 md:w-20">
-              <Trophy className="h-8 w-8 text-white md:h-10 md:w-10" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">Nível Atual</p>
-              <p className="text-3xl font-black text-[#FF9600] md:text-4xl">{gamification.level}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-bold text-gray-600 md:text-sm">Próximo Nível</p>
-            <p className="text-3xl font-black text-gray-900 md:text-4xl">{gamification.level + 1}</p>
-          </div>
+    <div className="mx-auto max-w-4xl space-y-6  ">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+            Gamificação da Academia
+          </h1>
+          <p className="text-sm text-duo-gray-dark">
+            Acompanhe suas conquistas e compare-se com outras academias
+          </p>
         </div>
+      </FadeIn>
 
-        <div className="mb-3">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-bold text-gray-700 md:text-base">Progresso</span>
-            <span className="text-xs text-gray-600 md:text-sm">
-              {gamification.xp} / {gamification.xp + gamification.xpToNextLevel} XP
-            </span>
-          </div>
-          <div className="h-6 overflow-hidden rounded-full bg-gray-200">
-            <div
-              className="h-full bg-gradient-to-r from-[#FF9600] to-[#E68A00] transition-all"
-              style={{ width: `${progressToNextLevel}%` }}
-            />
-          </div>
-        </div>
-        <p className="text-center text-xs text-gray-600 md:text-sm">
-          Faltam <span className="font-bold text-[#FF9600]">{gamification.xpToNextLevel} XP</span> para o próximo
-          nível
-        </p>
-      </Card>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <Card className="border-2 border-[#FF9600] bg-gradient-to-br from-[#FF9600]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Flame className="h-6 w-6 fill-[#FF9600] text-[#FF9600] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">Sequência</p>
-              <p className="text-2xl font-black text-[#FF9600] md:text-3xl">{gamification.currentStreak}</p>
+      <SlideIn delay={0.1}>
+        <SectionCard title="Nível e Progresso" icon={Trophy} variant="orange">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-duo-orange">
+                <Trophy className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-duo-gray-dark">
+                  Nível Atual
+                </p>
+                <p className="text-3xl font-bold text-duo-orange">
+                  {gamification.level}
+                </p>
+              </div>
             </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">Recorde: {gamification.longestStreak} dias</p>
-        </Card>
-
-        <Card className="border-2 border-[#CE82FF] bg-gradient-to-br from-[#CE82FF]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-6 w-6 text-[#CE82FF] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">Ranking</p>
-              <p className="text-2xl font-black text-[#CE82FF] md:text-3xl">#{gamification.ranking}</p>
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">Entre academias da região</p>
-        </Card>
-
-        <Card className="border-2 border-[#1CB0F6] bg-gradient-to-br from-[#1CB0F6]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Users className="h-6 w-6 text-[#1CB0F6] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">Meta de Alunos</p>
-              <p className="text-2xl font-black text-[#1CB0F6] md:text-3xl">
-                {mockGymProfile.totalStudents}/{gamification.monthlyStudentGoal}
+            <div className="text-right">
+              <p className="text-xs font-bold text-duo-gray-dark">
+                Próximo Nível
+              </p>
+              <p className="text-3xl font-bold text-duo-text">
+                {gamification.level + 1}
               </p>
             </div>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
-            <div
-              className="h-full bg-[#1CB0F6]"
-              style={{ width: `${(mockGymProfile.totalStudents / gamification.monthlyStudentGoal) * 100}%` }}
-            />
-          </div>
-        </Card>
 
-        <Card className="border-2 border-[#58CC02] bg-gradient-to-br from-[#58CC02]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Target className="h-6 w-6 text-[#58CC02] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">Utilização</p>
-              <p className="text-2xl font-black text-[#58CC02] md:text-3xl">{gamification.equipmentUtilization}%</p>
+          <div className="mb-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-bold text-duo-text">Progresso</span>
+              <span className="text-xs text-duo-gray-dark">
+                {gamification.xp} /{" "}
+                {gamification.xp + gamification.xpToNextLevel} XP
+              </span>
+            </div>
+            <div className="h-6 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full bg-duo-orange transition-all"
+                style={{ width: `${progressToNextLevel}%` }}
+              />
             </div>
           </div>
-          <p className="mt-2 text-xs text-gray-600">Equipamentos em uso</p>
-        </Card>
-      </div>
+          <p className="text-center text-xs text-duo-gray-dark">
+            Faltam{" "}
+            <span className="font-bold text-duo-orange">
+              {gamification.xpToNextLevel} XP
+            </span>{" "}
+            para o próximo nível
+          </p>
+        </SectionCard>
+      </SlideIn>
+
+      <SlideIn delay={0.2}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCardLarge
+            icon={Flame}
+            value={String(gamification.currentStreak)}
+            label="Sequência"
+            subtitle={`Recorde: ${gamification.longestStreak} dias`}
+            iconColor="duo-orange"
+          />
+          <StatCardLarge
+            icon={TrendingUp}
+            value={`#${gamification.ranking}`}
+            label="Ranking"
+            subtitle="Entre academias da região"
+            iconColor="duo-purple"
+          />
+          <StatCardLarge
+            icon={Users}
+            value={`${mockGymProfile.totalStudents}/${gamification.monthlyStudentGoal}`}
+            label="Meta de Alunos"
+            iconColor="duo-blue"
+          />
+          <StatCardLarge
+            icon={Target}
+            value={`${gamification.equipmentUtilization}%`}
+            label="Utilização"
+            subtitle="Equipamentos em uso"
+            iconColor="duo-green"
+          />
+        </div>
+      </SlideIn>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-xl font-bold md:text-2xl">
-            <Award className="h-5 w-5 text-[#FF9600] md:h-6 md:w-6" />
-            Conquistas
-          </h2>
-          <div className="space-y-3">
-            {mockAchievements.map((achievement) => (
-              <div
-                key={achievement.id}
-                className={`rounded-xl border-2 p-4 transition-all ${
-                  achievement.unlocked ? "border-[#58CC02] bg-[#58CC02]/10" : "border-gray-300 bg-gray-50"
-                }`}
-              >
-                <div className="mb-3 flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="text-2xl md:text-3xl">{achievement.icon}</div>
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900 md:text-base">{achievement.title}</h3>
-                      <p className="text-xs text-gray-600 md:text-sm">{achievement.description}</p>
-                    </div>
-                  </div>
-                  {achievement.unlocked && (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#58CC02]">
-                      <Trophy className="h-4 w-4 text-white" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-2">
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="font-bold text-gray-700">
-                      {achievement.progress}/{achievement.target}
-                    </span>
-                    <span className="text-[#FF9600]">+{achievement.xpReward} XP</span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className={`h-full ${achievement.unlocked ? "bg-[#58CC02]" : "bg-[#FF9600]"}`}
-                      style={{ width: `${(achievement.progress / achievement.target) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-xl font-bold md:text-2xl">
-            <Star className="h-5 w-5 text-[#CE82FF] md:h-6 md:w-6" />
-            Ranking Regional
-          </h2>
-          <div className="space-y-2">
-            {mockRanking.map((gym) => (
-              <div
-                key={gym.position}
-                className={`rounded-xl border-2 p-4 transition-all ${
-                  gym.isCurrentGym ? "border-[#FF9600] bg-[#FF9600]/10" : "border-gray-300 hover:border-[#CE82FF]"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-black md:h-12 md:w-12 md:text-xl ${
-                      gym.position === 1
-                        ? "bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-white"
-                        : gym.position === 2
-                          ? "bg-gradient-to-br from-[#C0C0C0] to-[#808080] text-white"
-                          : gym.position === 3
-                            ? "bg-gradient-to-br from-[#CD7F32] to-[#8B4513] text-white"
-                            : gym.isCurrentGym
-                              ? "bg-gradient-to-br from-[#FF9600] to-[#E68A00] text-white"
-                              : "bg-gray-200 text-gray-700"
-                    }`}
+        <SlideIn delay={0.3}>
+          <SectionCard title="Conquistas" icon={Award} variant="orange">
+            <div className="space-y-3">
+              {mockAchievements.map((achievement, index) => (
+                <motion.div
+                  key={achievement.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <DuoCard
+                    variant={achievement.unlocked ? "highlighted" : "default"}
+                    size="default"
+                    className={cn(
+                      achievement.unlocked && "border-duo-green bg-duo-green/10"
+                    )}
                   >
-                    {gym.position}
-                  </div>
-                  <div className="flex-1">
-                    <p
-                      className={`text-sm font-bold md:text-base ${gym.isCurrentGym ? "text-[#FF9600]" : "text-gray-900"}`}
-                    >
-                      {gym.name}
-                      {gym.isCurrentGym && " (Você)"}
-                    </p>
-                    <p className="text-xs text-gray-600 md:text-sm">{gym.city}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-black text-[#1CB0F6] md:text-2xl">{gym.xp}</p>
-                    <p className="text-xs text-gray-600">XP</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">{achievement.icon}</div>
+                        <div>
+                          <h3 className="text-sm font-bold text-duo-text">
+                            {achievement.title}
+                          </h3>
+                          <p className="text-xs text-duo-gray-dark">
+                            {achievement.description}
+                          </p>
+                        </div>
+                      </div>
+                      {achievement.unlocked && (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-green">
+                          <Trophy className="h-4 w-4 text-white" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="mb-2">
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="font-bold text-duo-text">
+                          {achievement.progress}/{achievement.target}
+                        </span>
+                        <span className="text-duo-orange">
+                          +{achievement.xpReward} XP
+                        </span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className={cn(
+                            "h-full",
+                            achievement.unlocked
+                              ? "bg-duo-green"
+                              : "bg-duo-orange"
+                          )}
+                          style={{
+                            width: `${
+                              (achievement.progress / achievement.target) * 100
+                            }%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </DuoCard>
+                </motion.div>
+              ))}
+            </div>
+          </SectionCard>
+        </SlideIn>
+
+        <SlideIn delay={0.4}>
+          <SectionCard title="Ranking Regional" icon={Star} variant="default">
+            <div className="space-y-2">
+              {mockRanking.map((gym, index) => (
+                <motion.div
+                  key={gym.position}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <DuoCard
+                    variant="default"
+                    size="default"
+                    className={cn(
+                      gym.isCurrentGym && "border-duo-orange bg-duo-orange/10"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold",
+                          gym.position === 1 && "bg-duo-yellow text-white",
+                          gym.position === 2 && "bg-gray-400 text-white",
+                          gym.position === 3 && "bg-duo-orange text-white",
+                          gym.isCurrentGym &&
+                            gym.position > 3 &&
+                            "bg-duo-orange text-white",
+                          !gym.isCurrentGym &&
+                            gym.position > 3 &&
+                            "bg-gray-200 text-duo-gray-dark"
+                        )}
+                      >
+                        {gym.position}
+                      </div>
+                      <div className="flex-1">
+                        <p
+                          className={cn(
+                            "text-sm font-bold",
+                            gym.isCurrentGym
+                              ? "text-duo-orange"
+                              : "text-duo-text"
+                          )}
+                        >
+                          {gym.name}
+                          {gym.isCurrentGym && " (Você)"}
+                        </p>
+                        <p className="text-xs text-duo-gray-dark">{gym.city}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-bold text-duo-blue">
+                          {gym.xp}
+                        </p>
+                        <p className="text-xs text-duo-gray-dark">XP</p>
+                      </div>
+                    </div>
+                  </DuoCard>
+                </motion.div>
+              ))}
+            </div>
+          </SectionCard>
+        </SlideIn>
       </div>
     </div>
-  )
+  );
 }
-

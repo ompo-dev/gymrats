@@ -1,6 +1,5 @@
 "use client";
 
-import { Card } from "@/components/ui/card";
 import Image from "next/image";
 import {
   mockGymStats,
@@ -11,6 +10,12 @@ import {
 } from "@/lib/gym-mock-data";
 import { Users, Dumbbell } from "lucide-react";
 import { useState, useEffect } from "react";
+import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { motion } from "motion/react";
 
 function RelativeTime({ timestamp }: { timestamp: Date }) {
   const [timeAgo, setTimeAgo] = useState<string>("");
@@ -58,271 +63,256 @@ export function GymDashboardPage() {
   );
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-black text-gray-900 md:text-4xl">
-          Dashboard
-        </h1>
-        <p className="text-sm text-gray-600 md:text-lg">
-          Visão geral da sua academia em tempo real
-        </p>
-      </div>
-
-      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-2 border-[#58CC02] bg-gradient-to-br from-[#58CC02]/10 to-white p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Check-ins Hoje
-              </p>
-              <p className="text-3xl font-black text-[#58CC02] md:text-4xl">
-                {today.checkins}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-[#58CC02] p-3 md:p-4">
-              <Users className="h-6 w-6 text-white md:h-8 md:w-8" />
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">Pico: {today.peakHour}</p>
-        </Card>
-
-        <Card className="border-2 border-[#1CB0F6] bg-gradient-to-br from-[#1CB0F6]/10 to-white p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Alunos Ativos
-              </p>
-              <p className="text-3xl font-black text-[#1CB0F6] md:text-4xl">
-                {today.activeStudents}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-[#1CB0F6] p-3 md:p-4">
-              <Users className="h-6 w-6 text-white md:h-8 md:w-8" />
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">
-            Total: {mockGymProfile.totalStudents}
+    <div className="mx-auto max-w-4xl space-y-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">Dashboard</h1>
+          <p className="text-sm text-duo-gray-dark">
+            Visão geral da sua academia em tempo real
           </p>
-        </Card>
+        </div>
+      </FadeIn>
 
-        <Card className="border-2 border-[#FF9600] bg-gradient-to-br from-[#FF9600]/10 to-white p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Equipamentos em Uso
-              </p>
-              <p className="text-3xl font-black text-[#FF9600] md:text-4xl">
-                {today.equipmentInUse}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-[#FF9600] p-3 md:p-4">
-              <Dumbbell className="h-6 w-6 text-white md:h-8 md:w-8" />
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">
-            Total: {mockEquipment.length}
-          </p>
-        </Card>
-
-        <Card className="border-2 border-[#CE82FF] bg-gradient-to-br from-[#CE82FF]/10 to-white p-4 md:p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Novos Alunos
-              </p>
-              <p className="text-3xl font-black text-[#CE82FF] md:text-4xl">
-                +{week.newMembers}
-              </p>
-            </div>
-            <div className="rounded-2xl bg-[#CE82FF] p-3 md:p-4">
-              <Users className="h-6 w-6 text-white md:h-8 md:w-8" />
-            </div>
-          </div>
-          <p className="mt-2 text-xs text-gray-600">Esta semana</p>
-        </Card>
-      </div>
+      <SlideIn delay={0.1}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCardLarge
+            icon={Users}
+            value={String(today.checkins)}
+            label="Check-ins Hoje"
+            subtitle={`Pico: ${today.peakHour}`}
+            iconColor="duo-green"
+          />
+          <StatCardLarge
+            icon={Users}
+            value={String(today.activeStudents)}
+            label="Alunos Ativos"
+            subtitle={`Total: ${mockGymProfile.totalStudents}`}
+            iconColor="duo-blue"
+          />
+          <StatCardLarge
+            icon={Dumbbell}
+            value={String(today.equipmentInUse)}
+            label="Equipamentos em Uso"
+            subtitle={`Total: ${mockEquipment.length}`}
+            iconColor="duo-orange"
+          />
+          <StatCardLarge
+            icon={Users}
+            value={`+${week.newMembers}`}
+            label="Novos Alunos"
+            subtitle="Esta semana"
+            iconColor="duo-purple"
+          />
+        </div>
+      </SlideIn>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold md:text-xl">
-            <Users className="h-5 w-5 text-[#58CC02]" />
-            Check-ins Recentes
-          </h2>
-          <div className="space-y-3">
-            {mockRecentCheckIns.map((checkin) => {
-              const student = mockStudents.find(
-                (s) => s.id === checkin.studentId
-              );
-              return (
-                <div
-                  key={checkin.id}
-                  className="flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:border-[#58CC02]"
-                >
-                  {student?.avatar && (
-                    <div className="relative h-10 w-10 overflow-hidden rounded-full md:h-12 md:w-12">
-                      <Image
-                        src={student.avatar || "/placeholder.svg"}
-                        alt={student.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900 md:text-base">
-                      {checkin.studentName}
-                    </p>
-                    <p className="text-xs text-gray-600 md:text-sm">
-                      <RelativeTime timestamp={checkin.timestamp} />
-                    </p>
-                  </div>
-                  <div className="rounded-full bg-[#58CC02] p-1.5 md:px-3 md:py-1">
-                    <Users className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold md:text-xl">
-            <Dumbbell className="h-5 w-5 text-[#FF9600]" />
-            Equipamentos em Tempo Real
-          </h2>
-          <div className="space-y-3">
-            {equipmentInUse.map((eq) => (
-              <div
-                key={eq.id}
-                className="rounded-xl border-2 border-[#FF9600] bg-[#FF9600]/5 p-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900 md:text-base">
-                      {eq.name}
-                    </p>
-                    <p className="text-xs text-gray-600 md:text-sm">
-                      {eq.currentUser?.studentName}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">
-                      <RelativeTime timestamp={eq.currentUser!.startTime} />
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {equipmentMaintenance.length > 0 && (
-              <>
-                <div className="my-2 border-t-2" />
-                <h3 className="flex items-center gap-2 text-sm font-bold text-orange-600">
-                  <Users className="h-4 w-4" />
-                  Em Manutenção
-                </h3>
-                {equipmentMaintenance.map((eq) => (
-                  <div
-                    key={eq.id}
-                    className="rounded-xl border-2 border-orange-500 bg-orange-50 p-3"
+        <SlideIn delay={0.2}>
+          <SectionCard title="Check-ins Recentes" icon={Users}>
+            <div className="space-y-3">
+              {mockRecentCheckIns.map((checkin, index) => {
+                const student = mockStudents.find(
+                  (s) => s.id === checkin.studentId
+                );
+                return (
+                  <motion.div
+                    key={checkin.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.4 }}
                   >
-                    <p className="text-sm font-bold text-gray-900 md:text-base">
-                      {eq.name}
-                    </p>
-                    <p className="text-xs text-orange-600 md:text-sm">
-                      Aguardando manutenção
-                    </p>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-        </Card>
+                    <DuoCard variant="default" size="sm" className="bg-gray-50">
+                      <div className="flex items-center gap-3">
+                        {student?.avatar && (
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                            <Image
+                              src={student.avatar || "/placeholder.svg"}
+                              alt={student.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-duo-text">
+                            {checkin.studentName}
+                          </p>
+                          <p className="text-xs text-duo-gray-dark">
+                            <RelativeTime timestamp={checkin.timestamp} />
+                          </p>
+                        </div>
+                      </div>
+                    </DuoCard>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        </SlideIn>
 
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold md:text-xl">
-            <Users className="h-5 w-5 text-[#CE82FF]" />
-            Top Alunos do Mês
-          </h2>
-          <div className="space-y-3">
-            {month.topStudents.slice(0, 5).map((student, index) => (
-              <div
-                key={student.id}
-                className="flex items-center gap-3 rounded-xl border-2 p-3 transition-all hover:border-[#CE82FF]"
+        <SlideIn delay={0.3}>
+          <SectionCard title="Equipamentos em Tempo Real" icon={Dumbbell}>
+            <div className="space-y-3">
+              {equipmentInUse.map((eq, index) => (
+                <motion.div
+                  key={eq.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                >
+                  <DuoCard variant="blue" size="sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-duo-text">
+                          {eq.name}
+                        </p>
+                        <p className="text-xs text-duo-gray-dark">
+                          {eq.currentUser?.studentName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-duo-gray-dark">
+                          <RelativeTime timestamp={eq.currentUser!.startTime} />
+                        </p>
+                      </div>
+                    </div>
+                  </DuoCard>
+                </motion.div>
+              ))}
+
+              {equipmentMaintenance.length > 0 && (
+                <>
+                  <div className="my-2 border-t-2 border-duo-border" />
+                  <h3 className="mb-2 text-sm font-bold text-duo-text">
+                    Em Manutenção
+                  </h3>
+                  {equipmentMaintenance.map((eq, index) => (
+                    <motion.div
+                      key={eq.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.4 }}
+                    >
+                      <DuoCard variant="orange" size="sm">
+                        <p className="text-sm font-bold text-duo-text">
+                          {eq.name}
+                        </p>
+                        <p className="text-xs text-duo-gray-dark">
+                          Aguardando manutenção
+                        </p>
+                      </DuoCard>
+                    </motion.div>
+                  ))}
+                </>
+              )}
+            </div>
+          </SectionCard>
+        </SlideIn>
+
+        <SlideIn delay={0.4}>
+          <SectionCard title="Top Alunos do Mês" icon={Users}>
+            <div className="space-y-3">
+              {month.topStudents.slice(0, 5).map((student, index) => {
+                const variants = [
+                  "highlighted",
+                  "yellow",
+                  "blue",
+                  "default",
+                  "default",
+                ] as const;
+                const variant = variants[index] || "default";
+                return (
+                  <motion.div
+                    key={student.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05, duration: 0.4 }}
+                  >
+                    <DuoCard variant={variant} size="sm">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-purple text-sm font-bold text-white">
+                          {index + 1}
+                        </div>
+                        {student.avatar && (
+                          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                            <Image
+                              src={student.avatar || "/placeholder.svg"}
+                              alt={student.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-bold text-duo-text">
+                            {student.name}
+                          </p>
+                          <p className="text-xs text-duo-gray-dark">
+                            {student.totalVisits} treinos
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-duo-green">
+                            {student.attendanceRate}%
+                          </p>
+                          <p className="text-xs text-duo-gray-dark">
+                            frequência
+                          </p>
+                        </div>
+                      </div>
+                    </DuoCard>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </SectionCard>
+        </SlideIn>
+
+        <SlideIn delay={0.5}>
+          <SectionCard title="Estatísticas da Semana" icon={Users}>
+            <div className="space-y-4">
+              <DuoCard variant="highlighted" size="sm">
+                <p className="text-xs font-bold text-duo-gray-dark">
+                  Total de Check-ins
+                </p>
+                <p className="text-2xl font-bold text-duo-green">
+                  {week.totalCheckins}
+                </p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="h-full bg-duo-green"
+                    style={{ width: "85%" }}
+                  />
+                </div>
+              </DuoCard>
+
+              <DuoCard variant="blue" size="sm">
+                <p className="text-xs font-bold text-duo-gray-dark">
+                  Média Diária
+                </p>
+                <p className="text-2xl font-bold text-duo-blue">
+                  {week.avgDailyCheckins}
+                </p>
+                <p className="text-xs text-duo-gray-dark">alunos por dia</p>
+              </DuoCard>
+
+              <DuoCard
+                variant="default"
+                size="sm"
+                className="border-duo-purple bg-duo-purple/10"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#CE82FF] to-[#FF9600] text-sm font-black text-white md:h-10 md:w-10 md:text-lg">
-                  {index + 1}
-                </div>
-                {student.avatar && (
-                  <div className="relative h-10 w-10 overflow-hidden rounded-full md:h-12 md:w-12">
-                    <Image
-                      src={student.avatar || "/placeholder.svg"}
-                      alt={student.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900 md:text-base">
-                    {student.name}
-                  </p>
-                  <p className="text-xs text-gray-600 md:text-sm">
-                    {student.totalVisits} treinos
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[#58CC02] md:text-base">
-                    {student.attendanceRate}%
-                  </p>
-                  <p className="text-xs text-gray-500">frequência</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="border-2 p-4 md:p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-bold md:text-xl">
-            <Users className="h-5 w-5 text-[#1CB0F6]" />
-            Estatísticas da Semana
-          </h2>
-          <div className="space-y-4">
-            <div className="rounded-xl bg-gradient-to-r from-[#58CC02]/10 to-white p-4">
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Total de Check-ins
-              </p>
-              <p className="text-2xl font-black text-[#58CC02] md:text-3xl">
-                {week.totalCheckins}
-              </p>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-200">
-                <div className="h-full bg-[#58CC02]" style={{ width: "85%" }} />
-              </div>
+                <p className="text-xs font-bold text-duo-gray-dark">
+                  Taxa de Retenção
+                </p>
+                <p className="text-2xl font-bold text-duo-purple">
+                  {month.retentionRate}%
+                </p>
+                <p className="text-xs text-duo-gray-dark">últimos 30 dias</p>
+              </DuoCard>
             </div>
-
-            <div className="rounded-xl bg-gradient-to-r from-[#1CB0F6]/10 to-white p-4">
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Média Diária
-              </p>
-              <p className="text-2xl font-black text-[#1CB0F6] md:text-3xl">
-                {week.avgDailyCheckins}
-              </p>
-              <p className="text-xs text-gray-600">alunos por dia</p>
-            </div>
-
-            <div className="rounded-xl bg-gradient-to-r from-[#CE82FF]/10 to-white p-4">
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Taxa de Retenção
-              </p>
-              <p className="text-2xl font-black text-[#CE82FF] md:text-3xl">
-                {month.retentionRate}%
-              </p>
-              <p className="text-xs text-gray-600">últimos 30 dias</p>
-            </div>
-          </div>
-        </Card>
+          </SectionCard>
+        </SlideIn>
       </div>
     </div>
   );
 }
-

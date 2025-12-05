@@ -1,9 +1,15 @@
 "use client";
 
 import { mockEquipment } from "@/lib/gym-mock-data";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { OptionSelector } from "@/components/ui/option-selector";
+import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { motion } from "motion/react";
 import {
   Search,
   Plus,
@@ -15,15 +21,20 @@ import {
   Clock,
   BarChart3,
 } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryState } from "nuqs";
+import { cn } from "@/lib/utils";
+import { GymEquipmentDetail } from "./gym-equipment-detail";
 
 export function GymEquipmentPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<
+  const [searchQuery, setSearchQuery] = useQueryState("search", {
+    defaultValue: "",
+  });
+  const [statusFilter, setStatusFilter] = useQueryState<
     "all" | "available" | "in-use" | "maintenance" | "broken"
-  >("all");
+  >("status", {
+    defaultValue: "all",
+  });
+  const [equipmentId, setEquipmentId] = useQueryState("equipmentId");
 
   const filteredEquipment = mockEquipment.filter((equipment) => {
     const matchesSearch =
@@ -37,15 +48,15 @@ export function GymEquipmentPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "available":
-        return "bg-[#58CC02] text-white";
+        return "bg-duo-green text-white";
       case "in-use":
-        return "bg-[#1CB0F6] text-white";
+        return "bg-duo-blue text-white";
       case "maintenance":
-        return "bg-[#FF9600] text-white";
+        return "bg-duo-orange text-white";
       case "broken":
-        return "bg-red-500 text-white";
+        return "bg-duo-red text-white";
       default:
-        return "bg-gray-300 text-gray-700";
+        return "bg-gray-300 text-duo-gray-dark";
     }
   };
 
@@ -86,229 +97,235 @@ export function GymEquipmentPage() {
     maintenance: mockEquipment.filter((e) => e.status === "maintenance").length,
   };
 
+  const statusOptions = [
+    { value: "all", label: "Todos" },
+    { value: "available", label: "Disponíveis" },
+    { value: "in-use", label: "Em Uso" },
+    { value: "maintenance", label: "Manutenção" },
+  ];
+
+  if (equipmentId) {
+    return (
+      <GymEquipmentDetail
+        equipmentId={equipmentId}
+        onBack={() => setEquipmentId(null)}
+      />
+    );
+  }
+
   return (
-    <div className="p-4 md:p-8">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 md:text-4xl">
-            Gestão de Equipamentos
-          </h1>
-          <p className="text-sm text-gray-600 md:text-lg">
-            {filteredEquipment.length} equipamento
-            {filteredEquipment.length !== 1 ? "s" : ""} encontrado
-            {filteredEquipment.length !== 1 ? "s" : ""}
-          </p>
+    <div className="mx-auto max-w-4xl space-y-6  ">
+      <FadeIn>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold text-duo-text">
+              Gestão de Equipamentos
+            </h1>
+            <p className="text-sm text-duo-gray-dark">
+              {filteredEquipment.length} equipamento
+              {filteredEquipment.length !== 1 ? "s" : ""} encontrado
+              {filteredEquipment.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <Button>
+            <Plus className="h-5 w-5" />
+            Novo Equipamento
+          </Button>
         </div>
-        <Button className="h-12 gap-2 bg-[#58CC02] px-6 text-base font-bold hover:bg-[#47A302]">
-          <Plus className="h-5 w-5" />
-          Novo Equipamento
-        </Button>
-      </div>
+      </FadeIn>
 
-      <div className="mb-6 grid gap-4 md:grid-cols-4">
-        <Card className="border-2 border-gray-300 p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Dumbbell className="h-6 w-6 text-gray-600 md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Total
-              </p>
-              <p className="text-2xl font-black text-gray-900 md:text-3xl">
-                {statsOverview.total}
-              </p>
+      <SlideIn delay={0.1}>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCardLarge
+            icon={Dumbbell}
+            value={String(statsOverview.total)}
+            label="Total"
+            iconColor="duo-gray"
+          />
+          <StatCardLarge
+            icon={CheckCircle2}
+            value={String(statsOverview.available)}
+            label="Disponíveis"
+            iconColor="duo-green"
+          />
+          <StatCardLarge
+            icon={Activity}
+            value={String(statsOverview.inUse)}
+            label="Em Uso"
+            iconColor="duo-blue"
+          />
+          <StatCardLarge
+            icon={Wrench}
+            value={String(statsOverview.maintenance)}
+            label="Manutenção"
+            iconColor="duo-orange"
+          />
+        </div>
+      </SlideIn>
+
+      <SlideIn delay={0.2}>
+        <SectionCard title="Buscar e Filtrar" icon={Search}>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
+              <Input
+                placeholder="Buscar por nome ou tipo..."
+                value={searchQuery || ""}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 pl-10"
+              />
             </div>
-          </div>
-        </Card>
-
-        <Card className="border-2 border-[#58CC02] bg-gradient-to-br from-[#58CC02]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="h-6 w-6 text-[#58CC02] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Disponíveis
-              </p>
-              <p className="text-2xl font-black text-[#58CC02] md:text-3xl">
-                {statsOverview.available}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-2 border-[#1CB0F6] bg-gradient-to-br from-[#1CB0F6]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Activity className="h-6 w-6 text-[#1CB0F6] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Em Uso
-              </p>
-              <p className="text-2xl font-black text-[#1CB0F6] md:text-3xl">
-                {statsOverview.inUse}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="border-2 border-[#FF9600] bg-gradient-to-br from-[#FF9600]/10 to-white p-4 md:p-6">
-          <div className="flex items-center gap-3">
-            <Wrench className="h-6 w-6 text-[#FF9600] md:h-8 md:w-8" />
-            <div>
-              <p className="text-xs font-bold text-gray-600 md:text-sm">
-                Manutenção
-              </p>
-              <p className="text-2xl font-black text-[#FF9600] md:text-3xl">
-                {statsOverview.maintenance}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="mb-6 border-2 p-4 md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder="Buscar por nome ou tipo..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-12 pl-10 text-base"
+            <OptionSelector
+              options={statusOptions}
+              value={statusFilter || "all"}
+              onChange={(value) =>
+                setStatusFilter(
+                  value as "all" | "available" | "in-use" | "maintenance"
+                )
+              }
+              layout="grid"
+              columns={2}
+              size="md"
+              textAlign="center"
+              animate={true}
             />
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={statusFilter === "all" ? "default" : "outline"}
-              onClick={() => setStatusFilter("all")}
-              className="h-12 flex-1 font-bold md:flex-initial"
-              size="sm"
-            >
-              Todos
-            </Button>
-            <Button
-              variant={statusFilter === "available" ? "default" : "outline"}
-              onClick={() => setStatusFilter("available")}
-              className="h-12 flex-1 font-bold md:flex-initial"
-              size="sm"
-            >
-              Disponíveis
-            </Button>
-            <Button
-              variant={statusFilter === "in-use" ? "default" : "outline"}
-              onClick={() => setStatusFilter("in-use")}
-              className="h-12 flex-1 font-bold md:flex-initial"
-              size="sm"
-            >
-              Em Uso
-            </Button>
-            <Button
-              variant={statusFilter === "maintenance" ? "default" : "outline"}
-              onClick={() => setStatusFilter("maintenance")}
-              className="h-12 flex-1 font-bold md:flex-initial"
-              size="sm"
-            >
-              Manutenção
-            </Button>
-          </div>
-        </div>
-      </Card>
+        </SectionCard>
+      </SlideIn>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredEquipment.map((equipment) => (
-          <Link key={equipment.id} href={`/gym/equipment/${equipment.id}`}>
-            <Card className="group cursor-pointer border-2 p-6 transition-all hover:border-[#58CC02] hover:shadow-lg">
-              <div className="mb-4">
-                <div className="mb-2 flex items-start justify-between">
-                  <h3 className="flex-1 text-xl font-bold text-gray-900 group-hover:text-[#58CC02]">
-                    {equipment.name}
-                  </h3>
-                  <span
-                    className={`flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${getStatusColor(
-                      equipment.status
-                    )}`}
-                  >
-                    {getStatusIcon(equipment.status)}
-                    {getStatusText(equipment.status)}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600">
-                  {equipment.brand} - {equipment.model}
-                </p>
-                <p className="text-xs text-gray-500">
-                  SN: {equipment.serialNumber}
-                </p>
-              </div>
-
-              {equipment.status === "in-use" && equipment.currentUser && (
-                <div className="mb-4 rounded-xl border-2 border-[#1CB0F6] bg-[#1CB0F6]/10 p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-bold text-gray-600">
-                        Usuário Atual
-                      </p>
-                      <p className="font-bold text-gray-900">
-                        {equipment.currentUser.studentName}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <Clock className="mb-1 inline h-4 w-4 text-[#1CB0F6]" />
-                      <p className="text-xs font-bold text-[#1CB0F6]">
-                        {Math.floor(
-                          (Date.now() -
-                            equipment.currentUser.startTime.getTime()) /
-                            60000
-                        )}{" "}
-                        min
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between rounded-xl border-2 p-3">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-[#CE82FF]" />
-                    <span className="font-bold text-gray-700">
-                      Total de Usos
+      <SlideIn delay={0.3}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filteredEquipment.map((equipment, index) => (
+            <motion.div
+              key={equipment.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: 0.4 }}
+            >
+              <DuoCard
+                variant="default"
+                size="default"
+                onClick={() => setEquipmentId(equipment.id)}
+                className="cursor-pointer transition-all hover:border-duo-green active:scale-[0.98]"
+              >
+                <div className="mb-4">
+                  <div className="mb-2 flex items-start justify-between">
+                    <h3 className="flex-1 text-xl font-bold text-duo-text">
+                      {equipment.name}
+                    </h3>
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold",
+                        getStatusColor(equipment.status)
+                      )}
+                    >
+                      {getStatusIcon(equipment.status)}
+                      {getStatusText(equipment.status)}
                     </span>
                   </div>
-                  <span className="text-xl font-black text-[#CE82FF]">
-                    {equipment.usageStats.totalUses}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between rounded-xl border-2 p-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-[#1CB0F6]" />
-                    <span className="font-bold text-gray-700">Tempo Médio</span>
-                  </div>
-                  <span className="text-xl font-black text-[#1CB0F6]">
-                    {equipment.usageStats.avgUsageTime}min
-                  </span>
-                </div>
-              </div>
-
-              {equipment.nextMaintenance && (
-                <div className="mt-4 rounded-xl bg-gray-100 p-3">
-                  <p className="text-xs font-bold text-gray-600">
-                    Próxima Manutenção
+                  <p className="text-sm text-duo-gray-dark">
+                    {equipment.brand} - {equipment.model}
                   </p>
-                  <p className="font-bold text-gray-900">
-                    {equipment.nextMaintenance.toLocaleDateString("pt-BR")}
+                  <p className="text-xs text-duo-gray-dark">
+                    SN: {equipment.serialNumber}
                   </p>
                 </div>
-              )}
-            </Card>
-          </Link>
-        ))}
-      </div>
+
+                {equipment.status === "in-use" && equipment.currentUser && (
+                  <DuoCard
+                    variant="blue"
+                    size="sm"
+                    className="mb-4 border-duo-blue bg-duo-blue/10"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-duo-gray-dark">
+                          Usuário Atual
+                        </p>
+                        <p className="font-bold text-duo-text">
+                          {equipment.currentUser.studentName}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Clock className="mb-1 inline h-4 w-4 text-duo-blue" />
+                        <p className="text-xs font-bold text-duo-blue">
+                          {Math.floor(
+                            (Date.now() -
+                              equipment.currentUser.startTime.getTime()) /
+                              60000
+                          )}{" "}
+                          min
+                        </p>
+                      </div>
+                    </div>
+                  </DuoCard>
+                )}
+
+                <div className="space-y-3">
+                  <DuoCard variant="default" size="sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-duo-purple" />
+                        <span className="font-bold text-duo-text">
+                          Total de Usos
+                        </span>
+                      </div>
+                      <span className="text-xl font-bold text-duo-purple">
+                        {equipment.usageStats.totalUses}
+                      </span>
+                    </div>
+                  </DuoCard>
+
+                  <DuoCard variant="default" size="sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-5 w-5 text-duo-blue" />
+                        <span className="font-bold text-duo-text">
+                          Tempo Médio
+                        </span>
+                      </div>
+                      <span className="text-xl font-bold text-duo-blue">
+                        {equipment.usageStats.avgUsageTime}min
+                      </span>
+                    </div>
+                  </DuoCard>
+                </div>
+
+                {equipment.nextMaintenance && (
+                  <DuoCard
+                    variant="default"
+                    size="sm"
+                    className="mt-4 bg-gray-100 p-3"
+                  >
+                    <p className="text-xs font-bold text-duo-gray-dark">
+                      Próxima Manutenção
+                    </p>
+                    <p className="font-bold text-duo-text">
+                      {equipment.nextMaintenance.toLocaleDateString("pt-BR")}
+                    </p>
+                  </DuoCard>
+                )}
+              </DuoCard>
+            </motion.div>
+          ))}
+        </div>
+      </SlideIn>
 
       {filteredEquipment.length === 0 && (
-        <Card className="border-2 p-12 text-center">
-          <p className="text-xl font-bold text-gray-500">
-            Nenhum equipamento encontrado
-          </p>
-          <p className="text-gray-400">Tente ajustar os filtros de busca</p>
-        </Card>
+        <SlideIn delay={0.4}>
+          <DuoCard
+            variant="default"
+            size="default"
+            className="p-12 text-center"
+          >
+            <p className="text-xl font-bold text-duo-gray-dark">
+              Nenhum equipamento encontrado
+            </p>
+            <p className="text-duo-gray-dark">
+              Tente ajustar os filtros de busca
+            </p>
+          </DuoCard>
+        </SlideIn>
       )}
     </div>
   );

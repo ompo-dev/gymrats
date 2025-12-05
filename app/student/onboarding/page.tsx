@@ -193,7 +193,7 @@ export default function StudentOnboardingPage() {
       </div>
 
       {/* Conteúdo centralizado */}
-      <div className="flex flex-1 items-center justify-center p-4 pb-24 overflow-y-auto scrollbar-hide">
+      <div className="flex flex-1 items-center justify-center p-4   overflow-y-auto scrollbar-hide">
         <div className="relative mx-auto w-full max-w-2xl">
           <AnimatePresence mode="wait">
             {step === 1 && (

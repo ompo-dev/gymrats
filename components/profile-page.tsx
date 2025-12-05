@@ -17,7 +17,7 @@ export function ProfilePage() {
   console.log("[v0] Rendering ProfilePage");
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-24">
+    <div className="mx-auto max-w-4xl space-y-6  ">
       <ProfileHeader
         name="AtletaFit"
         username="@atletafit"

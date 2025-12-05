@@ -522,10 +522,10 @@ export function OptionSelector({
                   ? "text-center"
                   : !option.emoji && !option.icon
                   ? textAlign === "left"
-                    ? "text-left"
-                    : textAlign === "right"
-                    ? "text-right"
-                    : "text-center"
+                  ? "text-left"
+                  : textAlign === "right"
+                  ? "text-right"
+                  : "text-center"
                   : ""
               )}
               style={{
@@ -543,23 +543,23 @@ export function OptionSelector({
               )}
               {(option.emoji || option.icon) && textAlign === "center" ? (
                 <div className="flex flex-col items-center">
-                  {option.emoji && (
-                    <div className="mb-1 text-3xl">{option.emoji}</div>
-                  )}
-                  {option.icon && <div className="mb-2">{option.icon}</div>}
+              {option.emoji && (
+                <div className="mb-1 text-3xl">{option.emoji}</div>
+              )}
+              {option.icon && <div className="mb-2">{option.icon}</div>}
                   <div className="font-bold break-words text-center">
                     {option.label}
                   </div>
-                  {option.description && (
-                    <div
-                      id={descriptionId}
-                      className={cn(
+              {option.description && (
+                <div
+                  id={descriptionId}
+                  className={cn(
                         "mt-1 text-xs opacity-80 text-center",
-                        selected && "opacity-90"
-                      )}
-                    >
-                      {option.description}
-                    </div>
+                    selected && "opacity-90"
+                  )}
+                >
+                  {option.description}
+                </div>
                   )}
                 </div>
               ) : (

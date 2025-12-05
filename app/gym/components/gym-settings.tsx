@@ -1,7 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { mockGymProfile, mockMembershipPlans } from "@/lib/gym-mock-data"
+import { mockGymProfile, mockMembershipPlans } from "@/lib/gym-mock-data";
 import {
   Building2,
   Phone,
@@ -16,171 +15,239 @@ import {
   Edit2,
   Plus,
   Trash2,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { Button } from "@/components/ui/button";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { motion } from "motion/react";
+import { cn } from "@/lib/utils";
 
 export function GymSettingsPage() {
-
   const operatingHours = [
     { day: "Segunda a Sexta", hours: "06:00 - 22:00" },
     { day: "Sábado", hours: "08:00 - 20:00" },
     { day: "Domingo", hours: "09:00 - 14:00" },
-  ]
+  ];
 
   return (
-    <div className="container px-4 py-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="mb-2 text-2xl font-black text-duo-gray-darkest">Configurações</h1>
-          <p className="text-sm text-duo-gray-dark">Gerencie o perfil e configurações da academia</p>
+    <div className="mx-auto max-w-4xl space-y-6  ">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+            Configurações
+          </h1>
+          <p className="text-sm text-duo-gray-dark">
+            Gerencie o perfil e configurações da academia
+          </p>
         </div>
+      </FadeIn>
 
-        {/* Perfil da Academia */}
-        <div className="mb-6 overflow-hidden rounded-2xl border-2 border-duo-border bg-white">
-          <div className="bg-gradient-to-r from-[#FF9600] to-orange-500 p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-white bg-white">
-                <Building2 className="h-8 w-8 text-[#FF9600]" />
-              </div>
-              <div className="flex-1 text-white">
-                <h2 className="text-xl font-black">{mockGymProfile.name}</h2>
-                <p className="text-sm opacity-90">Plano {mockGymProfile.plan}</p>
-              </div>
-              <button className="rounded-xl bg-white/20 p-2 backdrop-blur-sm hover:bg-white/30">
-                <Edit2 className="h-5 w-5 text-white" />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-5">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-duo-gray-dark" />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-duo-gray-dark">Endereço</div>
-                  <div className="text-sm font-bold text-duo-gray-darkest">{mockGymProfile.address}</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-duo-gray-dark" />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-duo-gray-dark">Telefone</div>
-                  <div className="text-sm font-bold text-duo-gray-darkest">{mockGymProfile.phone}</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-duo-gray-dark" />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-duo-gray-dark">Email</div>
-                  <div className="text-sm font-bold text-duo-gray-darkest">{mockGymProfile.email}</div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <FileText className="h-5 w-5 text-duo-gray-dark" />
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-duo-gray-dark">CNPJ</div>
-                  <div className="text-sm font-bold text-duo-gray-darkest">{mockGymProfile.cnpj}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Horários de Funcionamento */}
-        <div className="mb-6 rounded-2xl border-2 border-duo-border bg-white p-5">
+      <SlideIn delay={0.1}>
+        <SectionCard
+          title={mockGymProfile.name}
+          icon={Building2}
+          variant="orange"
+        >
           <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-duo-blue" />
-              <h2 className="text-lg font-black text-duo-gray-darkest">Horários de Funcionamento</h2>
-            </div>
-            <button className="rounded-xl bg-duo-blue/10 p-2 hover:bg-duo-blue/20">
-              <Edit2 className="h-4 w-4 text-duo-blue" />
-            </button>
+            <p className="text-sm text-duo-gray-dark">
+              Plano {mockGymProfile.plan}
+            </p>
+            <Button size="sm" variant="outline">
+              <Edit2 className="h-4 w-4" />
+            </Button>
           </div>
-
           <div className="space-y-3">
-            {operatingHours.map((schedule) => (
-              <div key={schedule.day} className="flex items-center justify-between rounded-xl bg-gray-50 p-3">
-                <span className="text-sm font-bold text-duo-gray-darkest">{schedule.day}</span>
-                <span className="text-sm font-black text-duo-blue">{schedule.hours}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Planos de Assinatura */}
-        <div className="mb-6 rounded-2xl border-2 border-duo-border bg-white p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-duo-green" />
-              <h2 className="text-lg font-black text-duo-gray-darkest">Planos de Assinatura</h2>
-            </div>
-            <button className="rounded-xl bg-duo-green/10 p-2 hover:bg-duo-green/20">
-              <Plus className="h-4 w-4 text-duo-green" />
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {mockMembershipPlans.slice(0, 4).map((plan) => (
-              <div key={plan.id} className="rounded-xl border-2 border-gray-100 bg-gray-50 p-4">
-                <div className="mb-2 flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-black text-duo-gray-darkest">{plan.name}</div>
-                    <div className="text-xs text-duo-gray-dark">{plan.duration} dias</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-black text-duo-green">R$ {plan.price}</div>
-                    <div className="text-xs text-duo-gray-dark">{plan.type === "monthly" ? "/mês" : "total"}</div>
+            {[
+              {
+                icon: MapPin,
+                label: "Endereço",
+                value: mockGymProfile.address,
+              },
+              {
+                icon: Phone,
+                label: "Telefone",
+                value: mockGymProfile.phone,
+              },
+              {
+                icon: Mail,
+                label: "Email",
+                value: mockGymProfile.email,
+              },
+              {
+                icon: FileText,
+                label: "CNPJ",
+                value: mockGymProfile.cnpj,
+              },
+            ].map((info, index) => (
+              <DuoCard key={index} variant="default" size="sm">
+                <div className="flex items-start gap-3">
+                  <info.icon className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+                  <div className="flex-1">
+                    <div className="text-xs font-bold text-duo-gray-dark">
+                      {info.label}
+                    </div>
+                    <div className="text-sm font-bold text-duo-text">
+                      {info.value}
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button className="flex-1 rounded-lg bg-duo-blue/10 py-2 text-xs font-bold text-duo-blue hover:bg-duo-blue/20">
-                    Editar
-                  </button>
-                  <button className="rounded-lg bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
+              </DuoCard>
             ))}
           </div>
-        </div>
+        </SectionCard>
+      </SlideIn>
 
-        {/* Outras Configurações */}
-        <div className="space-y-3">
-          <button className="flex w-full items-center gap-3 rounded-2xl border-2 border-duo-border bg-white p-4 hover:bg-gray-50">
-            <div className="rounded-xl bg-purple-50 p-3">
-              <Users className="h-5 w-5 text-purple-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="text-sm font-black text-duo-gray-darkest">Gerenciar Equipe</div>
-              <div className="text-xs text-duo-gray-dark">Adicionar e remover funcionários</div>
-            </div>
-          </button>
+      <SlideIn delay={0.2}>
+        <SectionCard
+          title="Horários de Funcionamento"
+          icon={Clock}
+          variant="blue"
+          headerAction={
+            <Button size="sm" variant="outline">
+              <Edit2 className="h-4 w-4" />
+            </Button>
+          }
+        >
+          <div className="space-y-3">
+            {operatingHours.map((schedule, index) => (
+              <DuoCard key={schedule.day} variant="default" size="sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-duo-text">
+                    {schedule.day}
+                  </span>
+                  <span className="text-sm font-bold text-duo-blue">
+                    {schedule.hours}
+                  </span>
+                </div>
+              </DuoCard>
+            ))}
+          </div>
+        </SectionCard>
+      </SlideIn>
 
-          <button className="flex w-full items-center gap-3 rounded-2xl border-2 border-duo-border bg-white p-4 hover:bg-gray-50">
-            <div className="rounded-xl bg-yellow-50 p-3">
-              <Bell className="h-5 w-5 text-yellow-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="text-sm font-black text-duo-gray-darkest">Notificações</div>
-              <div className="text-xs text-duo-gray-dark">Configurar alertas e lembretes</div>
-            </div>
-          </button>
+      <SlideIn delay={0.3}>
+        <SectionCard
+          title="Planos de Assinatura"
+          icon={CreditCard}
+          variant="highlighted"
+          headerAction={
+            <Button size="sm" variant="outline">
+              <Plus className="h-4 w-4" />
+            </Button>
+          }
+        >
+          <div className="space-y-3">
+            {mockMembershipPlans.slice(0, 4).map((plan, index) => (
+              <motion.div
+                key={plan.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.4 }}
+              >
+                <DuoCard variant="default" size="default">
+                  <div className="mb-2 flex items-start justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-duo-text">
+                        {plan.name}
+                      </div>
+                      <div className="text-xs text-duo-gray-dark">
+                        {plan.duration} dias
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-duo-green">
+                        R$ {plan.price}
+                      </div>
+                      <div className="text-xs text-duo-gray-dark">
+                        {plan.type === "monthly" ? "/mês" : "total"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1">
+                      Editar
+                    </Button>
+                    <Button size="sm" variant="destructive">
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </DuoCard>
+              </motion.div>
+            ))}
+          </div>
+        </SectionCard>
+      </SlideIn>
 
-          <button className="flex w-full items-center gap-3 rounded-2xl border-2 border-duo-border bg-white p-4 hover:bg-gray-50">
-            <div className="rounded-xl bg-red-50 p-3">
-              <Shield className="h-5 w-5 text-red-600" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="text-sm font-black text-duo-gray-darkest">Privacidade e Segurança</div>
-              <div className="text-xs text-duo-gray-dark">Gerencie dados e permissões</div>
-            </div>
-          </button>
-        </div>
+      <SlideIn delay={0.4}>
+        <SectionCard title="Outras Configurações" icon={Shield}>
+          <div className="space-y-3">
+            {[
+              {
+                icon: Users,
+                title: "Gerenciar Equipe",
+                description: "Adicionar e remover funcionários",
+                color: "duo-purple",
+              },
+              {
+                icon: Bell,
+                title: "Notificações",
+                description: "Configurar alertas e lembretes",
+                color: "duo-yellow",
+              },
+              {
+                icon: Shield,
+                title: "Privacidade e Segurança",
+                description: "Gerencie dados e permissões",
+                color: "duo-red",
+              },
+            ].map((setting, index) => (
+              <motion.div
+                key={setting.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.4 }}
+              >
+                <DuoCard
+                  variant="default"
+                  size="default"
+                  className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "rounded-xl p-3",
+                        setting.color === "duo-purple" && "bg-duo-purple/10",
+                        setting.color === "duo-yellow" && "bg-duo-yellow/10",
+                        setting.color === "duo-red" && "bg-duo-red/10"
+                      )}
+                    >
+                      {setting.color === "duo-purple" && (
+                        <Users className="h-5 w-5 text-duo-purple" />
+                      )}
+                      {setting.color === "duo-yellow" && (
+                        <Bell className="h-5 w-5 text-duo-yellow" />
+                      )}
+                      {setting.color === "duo-red" && (
+                        <Shield className="h-5 w-5 text-duo-red" />
+                      )}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="text-sm font-bold text-duo-text">
+                        {setting.title}
+                      </div>
+                      <div className="text-xs text-duo-gray-dark">
+                        {setting.description}
+                      </div>
+                    </div>
+                  </div>
+                </DuoCard>
+              </motion.div>
+            ))}
+          </div>
+        </SectionCard>
+      </SlideIn>
     </div>
-  )
+  );
 }

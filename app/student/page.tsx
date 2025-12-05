@@ -16,16 +16,13 @@ import { StudentMoreMenu } from "@/components/student-more-menu";
 import { mockUnits } from "@/lib/mock-data";
 import { GymMap } from "@/components/gym-map";
 import { mockGymLocations } from "@/lib/gym-mock-data";
-import { Home, Dumbbell, Heart, Flame, Zap } from "lucide-react";
+import { Heart, Flame, Zap } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
-import { SlideIn } from "@/components/animations/slide-in";
-import { HoverScale } from "@/components/animations/hover-scale";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { motion } from "motion/react";
-import { useUIStore, useStudentStore } from "@/stores";
+import { useStudentStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
-import { NavigationCard } from "@/components/ui/navigation-card";
 
 function StudentHomeContent() {
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));

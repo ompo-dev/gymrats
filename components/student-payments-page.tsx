@@ -55,7 +55,7 @@ export function StudentPaymentsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-24">
+    <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
         <div className="text-center">
           <h1 className="mb-2 text-3xl font-bold text-duo-text">Pagamentos</h1>
