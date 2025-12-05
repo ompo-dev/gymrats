@@ -154,21 +154,11 @@ function StudentHomeContent() {
       {tab === "payments" && <StudentPaymentsPage />}
 
       {tab === "gyms" && (
-        <div className="h-[calc(100vh-180px)]">
-          <div className="mb-4 text-center">
-            <h1 className="mb-2 text-2xl font-bold text-duo-text">
-              Academias Parceiras
-            </h1>
-            <p className="text-sm text-duo-gray-dark">
-              Encontre academias próximas e compre diárias
-            </p>
-          </div>
-          <GymMap
-            gyms={mockGymLocations}
-            dayPasses={dayPasses}
-            onPurchaseDayPass={handlePurchaseDayPass}
-          />
-        </div>
+        <GymMap
+          gyms={mockGymLocations}
+          dayPasses={dayPasses}
+          onPurchaseDayPass={handlePurchaseDayPass}
+        />
       )}
 
       {tab === "education" && (
