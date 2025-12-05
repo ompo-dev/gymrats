@@ -7,7 +7,7 @@ import { useWorkoutStore } from "@/stores/workout-store";
 import { StaggerContainer } from "./animations/stagger-container";
 import { StaggerItem } from "./animations/stagger-item";
 import { motion } from "motion/react";
-import { SectionCard } from "./ui/section-card";
+import { UnitSectionCard } from "./ui/unit-section-card";
 
 interface LearningPathProps {
   units: Unit[];
@@ -60,12 +60,10 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
           >
             {/* Unit Header - Estilo Duolingo */}
             <div className="mb-8">
-              <SectionCard
+              <UnitSectionCard
                 sectionLabel={unit.title}
                 title={unit.description}
-                variant="highlighted"
                 buttonHref="/student?tab=education"
-                buttonText="Ver conteúdo"
               />
             </div>
 
