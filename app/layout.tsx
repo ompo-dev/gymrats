@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { PWARegister } from "./pwa-register";
+import { PWAProtection } from "./pwa-protection";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -23,6 +25,7 @@ export const metadata: Metadata = {
     "Domine técnicas de musculação com lições interativas, gamificação e conquistas. O Duolingo da academia.",
   generator: "v0.app",
   keywords: ["musculação", "treino", "fitness", "gamificação", "aprendizado"],
+  manifest: "/manifest.json",
   icons: {
     icon: [
       {
@@ -39,6 +42,11 @@ export const metadata: Metadata = {
       },
     ],
     apple: "/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "GymRats",
   },
 };
 
@@ -62,6 +70,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <NuqsAdapter>{children}</NuqsAdapter>
+        <PWARegister />
+        <PWAProtection />
         <Analytics />
       </body>
     </html>
