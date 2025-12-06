@@ -8,11 +8,11 @@ import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { MuscleDetail } from "./muscle/muscle-detail";
-import { ExerciseDetail } from "./muscle/exercise-detail";
-import { MuscleList } from "./muscle/muscle-list";
-import { ExerciseList } from "./muscle/exercise-list";
-import { SearchBar } from "./muscle/search-bar";
+import { MuscleDetail } from "./components/muscle/muscle-detail";
+import { ExerciseDetail } from "./components/muscle/exercise-detail";
+import { MuscleList } from "./components/muscle/muscle-list";
+import { ExerciseList } from "./components/muscle/exercise-list";
+import { SearchBar } from "./components/muscle/search-bar";
 
 interface MuscleExplorerProps {
   muscleId?: string | null;

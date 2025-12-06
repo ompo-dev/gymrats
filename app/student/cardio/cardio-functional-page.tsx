@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CardioTracker } from "./cardio-tracker";
-import { FunctionalWorkout } from "./functional-workout";
+import { CardioTracker } from "../../../components/cardio-tracker";
+import { FunctionalWorkout } from "../../../components/functional-workout";
 import { Heart, Target, TrendingUp, ArrowLeft } from "lucide-react";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";

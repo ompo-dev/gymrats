@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { NutritionTracker } from "./nutrition-tracker";
-import { FoodSearch } from "./food-search";
-import { AddMealModal } from "./add-meal-modal";
+import { NutritionTracker } from "../../../components/nutrition-tracker";
+import { FoodSearch } from "../../../components/food-search";
+import { AddMealModal } from "../../../components/add-meal-modal";
 import type { FoodItem } from "@/lib/types";
 import { Calendar, TrendingUp } from "lucide-react";
 import { useNutritionStore, useUIStore } from "@/stores";

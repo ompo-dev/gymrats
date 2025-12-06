@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AIWorkoutGenerator } from "./ai-workout-generator";
-import { AIDietGenerator } from "./ai-diet-generator";
+import { AIWorkoutGenerator } from "../../../components/ai-workout-generator";
+import { AIDietGenerator } from "../../../components/ai-diet-generator";
 import { Dumbbell, UtensilsCrossed, Sparkles } from "lucide-react";
-import { SectionCard } from "./ui/section-card";
+import { SectionCard } from "../../../components/ui/section-card";
 
 export function PersonalizationPage() {
   const [activeView, setActiveView] = useState<"menu" | "workout" | "diet">(

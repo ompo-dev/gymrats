@@ -4,10 +4,10 @@ import { useState, useEffect, useMemo, useLayoutEffect } from "react";
 import { educationalLessons } from "@/lib/educational-data";
 import type { EducationalLesson } from "@/lib/types";
 import { FadeIn } from "@/components/animations/fade-in";
-import { LessonQuiz } from "./education/lesson-quiz";
-import { LessonDetail } from "./education/lesson-detail";
-import { LessonList } from "./education/lesson-list";
-import { LessonFilters } from "./education/lesson-filters";
+import { LessonQuiz } from "./components/lesson-quiz";
+import { LessonDetail } from "./components/lesson-detail";
+import { LessonList } from "./components/lesson-list";
+import { LessonFilters } from "./components/lesson-filters";
 
 interface EducationalLessonsProps {
   lessonId?: string | null;

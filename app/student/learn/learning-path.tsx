@@ -1,13 +1,13 @@
 "use client";
 
 import type { Unit } from "@/lib/types";
-import { WorkoutNode } from "./workout-node";
+import { WorkoutNode } from "../../../components/workout-node";
 import { Trophy, Lock } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
-import { StaggerContainer } from "./animations/stagger-container";
-import { StaggerItem } from "./animations/stagger-item";
+import { StaggerContainer } from "../../../components/animations/stagger-container";
+import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
-import { UnitSectionCard } from "./ui/unit-section-card";
+import { UnitSectionCard } from "../../../components/ui/unit-section-card";
 
 interface LearningPathProps {
   units: Unit[];

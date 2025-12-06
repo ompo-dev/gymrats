@@ -3,15 +3,17 @@
 import { Suspense } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 
-import { PersonalizationPage } from "@/components/personalization-page";
-import { CardioFunctionalPage } from "@/components/cardio-functional-page";
-import { DietPage } from "@/components/diet-page";
-import { EducationPage } from "@/components/education-page";
-import { ProfilePage } from "@/components/profile-page";
-import { StudentPaymentsPage } from "@/components/student-payments-page";
+import { PersonalizationPage } from "@/app/student/personalization/personalization-page";
+import { CardioFunctionalPage } from "@/app/student/cardio/cardio-functional-page";
+import { DietPage } from "@/app/student/diet/diet-page";
+import { EducationPage } from "@/app/student/education/education-page";
+import { ProfilePage } from "@/app/student/profile/profile-page";
+import { StudentPaymentsPage } from "@/app/student/payments/student-payments-page";
+import { LearningPath } from "@/app/student/learn/learning-path";
+import { StudentMoreMenu } from "@/app/student/more/student-more-menu";
+import { MuscleExplorer } from "@/app/student/education/muscle-explorer";
+import { EducationalLessons } from "@/app/student/education/educational-lessons";
 
-import { LearningPath } from "@/components/learning-path";
-import { StudentMoreMenu } from "@/components/student-more-menu";
 import { mockUnits } from "@/lib/mock-data";
 import { GymMap } from "@/components/gym-map";
 import { mockGymLocations } from "@/lib/gym-mock-data";
@@ -22,8 +24,7 @@ import { motion } from "motion/react";
 import { useStudentStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
-import { MuscleExplorer } from "@/components/muscle-explorer";
-import { EducationalLessons } from "@/components/educational-lessons";
+
 import { ShopCard } from "@/components/shop-card";
 
 function StudentHomeContent() {
