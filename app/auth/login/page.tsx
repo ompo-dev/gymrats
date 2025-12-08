@@ -83,7 +83,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <div className="p-4 flex-shrink-0">
+      <div className="p-4 shrink-0">
         <Link href="/welcome">
           <motion.button
             whileHover={{ scale: 1.05 }}

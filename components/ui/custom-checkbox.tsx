@@ -74,7 +74,7 @@ export function CustomCheckbox({
         className
       )}
     >
-      <div className="relative flex-shrink-0">
+      <div className="relative shrink-0">
         <input
           id={checkboxId.current}
           type="checkbox"
