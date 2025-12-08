@@ -15,6 +15,48 @@ export default function UserTypePage() {
   );
   const [isLoading, setIsLoading] = useState(false);
 
+  const checkStudentProfile = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return false;
+
+      const response = await fetch("/api/students/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      return data.hasProfile === true;
+    } catch (error) {
+      console.error("Erro ao verificar perfil:", error);
+      return false;
+    }
+  };
+
+  const checkGymProfile = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return false;
+
+      const response = await fetch("/api/gyms/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      return data.hasProfile === true;
+    } catch (error) {
+      console.error("Erro ao verificar perfil:", error);
+      return false;
+    }
+  };
+
   const handleSelectType = async (type: "student" | "gym") => {
     setSelectedType(type);
     setIsLoading(true);
@@ -49,11 +91,21 @@ export default function UserTypePage() {
       localStorage.setItem("userMode", type);
       localStorage.setItem("isAuthenticated", "true");
 
-      // Redirecionar direto para o app (sem delay)
+      // Verificar se tem perfil e redirecionar adequadamente
       if (type === "student") {
-        router.push("/student");
+        const hasProfile = await checkStudentProfile();
+        if (!hasProfile) {
+          router.push("/student/onboarding");
+        } else {
+          router.push("/student");
+        }
       } else {
-        router.push("/gym");
+        const hasProfile = await checkGymProfile();
+        if (!hasProfile) {
+          router.push("/gym/onboarding");
+        } else {
+          router.push("/gym");
+        }
       }
     } catch (error: any) {
       console.error("Erro ao selecionar tipo:", error);
