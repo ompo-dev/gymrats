@@ -2,7 +2,7 @@
 
 import type { Unit } from "@/lib/types";
 import { WorkoutNode } from "../../../components/workout-node";
-import { Trophy, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
@@ -47,9 +47,6 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
   return (
     <div className="relative mx-auto max-w-2xl py-8">
       {units.map((unit, unitIndex) => {
-        const completedCount = unit.workouts.filter((w) => w.completed).length;
-        const totalCount = unit.workouts.length;
-
         return (
           <motion.div
             key={unit.id}

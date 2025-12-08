@@ -1,6 +1,5 @@
 "use client";
 
-import { BookOpen, Dumbbell, ArrowLeft } from "lucide-react";
 import { DuoCard } from "@/components/ui/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";

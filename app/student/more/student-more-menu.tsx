@@ -49,8 +49,8 @@ const moreMenuItems: MoreMenuItem[] = [
 export function StudentMoreMenu() {
   const [, setTab] = useQueryState("tab");
 
-  const handleItemClick = async (itemId: string) => {
-    await setTab(itemId);
+  const handleItemClick = (itemId: string) => {
+    setTab(itemId);
   };
 
   return (
@@ -68,10 +68,10 @@ export function StudentMoreMenu() {
         <div className="grid gap-4">
           {moreMenuItems.map((item, index) => (
             <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.4 }}
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
             >
               <NavigationButtonCard
                 icon={item.icon}

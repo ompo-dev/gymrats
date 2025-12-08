@@ -1,6 +1,5 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
 import type { EducationalLesson } from "@/lib/types";
 import { CheckCircle, Clock, Zap, ArrowLeft, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { MarkdownRenderer } from "./markdown-renderer";
 import { cn } from "@/lib/utils";
+import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 
 interface LessonDetailProps {
   lesson: EducationalLesson;
@@ -32,25 +32,12 @@ export function LessonDetail({
   getCategoryLabel,
   getCategoryColor,
 }: LessonDetailProps) {
-  const lessonContainerRef = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-
-    if (lessonContainerRef.current) {
-      lessonContainerRef.current.scrollIntoView({
-        block: "start",
-        behavior: "auto",
-      });
-    }
-  }, [lesson]);
+  useScrollToTop([lesson]);
 
   const colors = getCategoryColor(lesson.category);
 
   return (
-    <div ref={lessonContainerRef} className="mx-auto max-w-4xl space-y-6  ">
+    <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
         <button
           onClick={onBack}

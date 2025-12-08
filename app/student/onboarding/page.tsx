@@ -15,7 +15,7 @@ import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
 import { Step4 } from "./steps/step4";
-import { OnboardingData } from "./steps/types";
+import type { OnboardingData } from "./steps/types";
 
 function Confetti() {
   if (typeof window === "undefined") return null;
@@ -60,7 +60,6 @@ export default function StudentOnboardingPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -87,7 +86,6 @@ export default function StudentOnboardingPage() {
 
   const handleNext = () => {
     if (canProceed()) {
-      setCompletedSteps([...completedSteps, step]);
       setShowConfetti(true);
       setTimeout(() => {
         setShowConfetti(false);
@@ -115,27 +113,17 @@ export default function StudentOnboardingPage() {
     setShowConfetti(true);
 
     try {
-      const token = localStorage.getItem("auth_token");
-      const response = await fetch("/api/students/profile", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
+      const { submitOnboarding } = await import("./actions");
+      const result = await submitOnboarding(formData);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Erro ao salvar perfil");
+      if (!result.success) {
+        throw new Error(result.error || "Erro ao salvar perfil");
       }
 
       setTimeout(() => {
-        localStorage.setItem("student_onboarding_completed", "true");
         router.push("/student");
       }, 1500);
     } catch (error: any) {
-      console.error("Erro ao salvar perfil:", error);
       alert(error.message || "Erro ao salvar perfil. Tente novamente.");
       setIsLoading(false);
       setShowConfetti(false);

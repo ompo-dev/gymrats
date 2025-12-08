@@ -3,20 +3,11 @@
 import { StepCard } from "@/components/ui/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { RangeSlider } from "@/components/ui/range-slider";
-import { StepProps } from "./types";
-
-const STEPS = [
-  {
-    number: 2,
-    title: "Objetivos",
-    icon: "🎯",
-    color: "from-purple-400 to-purple-600",
-  },
-];
+import type { StepProps } from "./types";
 
 export function Step2({ formData, setFormData }: StepProps) {
   return (
-    <StepCard title={STEPS[0].title} description="O que você quer alcançar?">
+    <StepCard title="Objetivos" description="O que você quer alcançar?">
       <div className="space-y-6">
         <OptionSelector
           options={[

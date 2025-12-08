@@ -1,69 +1,30 @@
 "use client";
 
-import { useState } from "react";
 import { NutritionTracker } from "../../../components/nutrition-tracker";
 import { FoodSearch } from "../../../components/food-search";
 import { AddMealModal } from "../../../components/add-meal-modal";
-import type { FoodItem } from "@/lib/types";
 import { Calendar, TrendingUp } from "lucide-react";
-import { useNutritionStore, useUIStore } from "@/stores";
+import { useUIStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 
 export function DietPage() {
   const {
     dailyNutrition,
-    toggleMealComplete,
-    addFoodToMeal,
-    addMeal,
+    selectedMealId,
+    showAddMealModal,
+    setShowAddMealModal,
+    handleMealComplete,
+    handleAddFoodToMeal,
+    handleAddFood,
+    handleToggleWaterGlass,
+    handleCloseFoodSearch,
+    handleAddMealSubmit,
+    setSelectedMealId,
     removeMeal,
     removeFoodFromMeal,
-    updateWaterIntake,
-  } = useNutritionStore();
-  const { showFoodSearch, setShowFoodSearch } = useUIStore();
-  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
-  const [showAddMealModal, setShowAddMealModal] = useState(false);
-
-  const handleMealComplete = (mealId: string) => {
-    toggleMealComplete(mealId);
-  };
-
-  const handleAddFoodToMeal = (mealId: string) => {
-    setSelectedMealId(mealId);
-    setShowFoodSearch(true);
-  };
-
-  const handleAddFood = (
-    foods: Array<{ food: FoodItem; servings: number }>,
-    mealIds: string[]
-  ) => {
-    if (mealIds.length > 0 && foods.length > 0) {
-      mealIds.forEach((mealId) => {
-        foods.forEach(({ food, servings }) => {
-          addFoodToMeal(mealId, food, servings);
-        });
-      });
-      setSelectedMealId(null);
-      setShowFoodSearch(false);
-    }
-  };
-
-  const handleToggleWaterGlass = (index: number) => {
-    const glassSize = 250; // ml por copo
-    const currentGlasses = Math.floor(dailyNutrition.waterIntake / glassSize);
-
-    if (index < currentGlasses) {
-      // Remove copo
-      const newAmount = Math.max(0, dailyNutrition.waterIntake - glassSize);
-      updateWaterIntake(newAmount);
-    } else {
-      // Adiciona copo
-      const newAmount = Math.min(
-        dailyNutrition.targetWater,
-        dailyNutrition.waterIntake + glassSize
-      );
-      updateWaterIntake(newAmount);
-    }
-  };
+  } = useNutritionHandlers();
+  const { showFoodSearch } = useUIStore();
 
   const completedMeals = dailyNutrition.meals.filter((m) => m.completed).length;
   const totalMeals = dailyNutrition.meals.length;
@@ -108,24 +69,17 @@ export function DietPage() {
       {showAddMealModal && (
         <AddMealModal
           onClose={() => setShowAddMealModal(false)}
-          onAddMeal={(mealsData) => {
-            mealsData.forEach((mealData) => {
-              addMeal(mealData);
-            });
-          }}
+          onAddMeal={handleAddMealSubmit}
         />
       )}
 
       {showFoodSearch && (
         <FoodSearch
           onAddFood={handleAddFood}
-          onClose={() => {
-            setShowFoodSearch(false);
-            setSelectedMealId(null);
-          }}
+          onClose={handleCloseFoodSearch}
           selectedMealId={selectedMealId}
           meals={dailyNutrition.meals}
-          onSelectMeal={(mealId) => setSelectedMealId(mealId)}
+          onSelectMeal={setSelectedMealId}
         />
       )}
     </div>

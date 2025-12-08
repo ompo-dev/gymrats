@@ -5,20 +5,14 @@ import { StepCard } from "@/components/ui/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { FormInput } from "@/components/ui/form-input";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
-import { StepProps, DifficultyLevel } from "./types";
-
-const STEPS = [
-  {
-    number: 1,
-    title: "Informações Pessoais",
-    icon: "👤",
-    color: "from-blue-400 to-blue-600",
-  },
-];
+import type { StepProps, DifficultyLevel } from "./types";
 
 export function Step1({ formData, setFormData }: StepProps) {
   return (
-    <StepCard title={STEPS[0].title} description="Vamos conhecer você melhor">
+    <StepCard
+      title="Informações Pessoais"
+      description="Vamos conhecer você melhor"
+    >
       <div className="space-y-5">
         <FormInput
           label="Idade"

@@ -5,6 +5,7 @@ import { AIWorkoutGenerator } from "../../../components/ai-workout-generator";
 import { AIDietGenerator } from "../../../components/ai-diet-generator";
 import { Dumbbell, UtensilsCrossed, Sparkles } from "lucide-react";
 import { SectionCard } from "../../../components/ui/section-card";
+import { BackButton } from "@/components/back-button";
 
 export function PersonalizationPage() {
   const [activeView, setActiveView] = useState<"menu" | "workout" | "diet">(
@@ -14,12 +15,7 @@ export function PersonalizationPage() {
   if (activeView === "workout") {
     return (
       <div>
-        <button
-          onClick={() => setActiveView("menu")}
-          className="mb-4 flex items-center gap-2 font-bold text-duo-blue hover:underline"
-        >
-          ← Voltar
-        </button>
+        <BackButton onClick={() => setActiveView("menu")} color="duo-blue" />
         <AIWorkoutGenerator />
       </div>
     );
@@ -28,12 +24,7 @@ export function PersonalizationPage() {
   if (activeView === "diet") {
     return (
       <div>
-        <button
-          onClick={() => setActiveView("menu")}
-          className="mb-4 flex items-center gap-2 font-bold text-duo-green hover:underline"
-        >
-          ← Voltar
-        </button>
+        <BackButton onClick={() => setActiveView("menu")} color="duo-green" />
         <AIDietGenerator />
       </div>
     );

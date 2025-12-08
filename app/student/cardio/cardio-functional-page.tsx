@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CardioTracker } from "../../../components/cardio-tracker";
 import { FunctionalWorkout } from "../../../components/functional-workout";
-import { Heart, Target, TrendingUp, ArrowLeft } from "lucide-react";
+import { Heart, Target, TrendingUp } from "lucide-react";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
@@ -11,6 +11,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { BackButton } from "@/components/back-button";
 
 export function CardioFunctionalPage() {
   const [view, setView] = useState<"menu" | "cardio" | "functional">("menu");
@@ -19,13 +20,7 @@ export function CardioFunctionalPage() {
     return (
       <div className="mx-auto max-w-4xl space-y-6  ">
         <FadeIn>
-          <button
-            onClick={() => setView("menu")}
-            className="mb-4 flex items-center gap-2 font-bold text-duo-red hover:underline"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Voltar
-          </button>
+          <BackButton onClick={() => setView("menu")} color="duo-red" />
         </FadeIn>
         <CardioTracker />
       </div>
@@ -36,13 +31,7 @@ export function CardioFunctionalPage() {
     return (
       <div className="mx-auto max-w-4xl space-y-6  ">
         <FadeIn>
-          <button
-            onClick={() => setView("menu")}
-            className="mb-4 flex items-center gap-2 font-bold text-duo-blue hover:underline"
-          >
-            <ArrowLeft className="h-5 w-5" />
-            Voltar
-          </button>
+          <BackButton onClick={() => setView("menu")} color="duo-blue" />
         </FadeIn>
         <FunctionalWorkout />
       </div>

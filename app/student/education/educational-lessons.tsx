@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useLayoutEffect } from "react";
+import { useState, useEffect } from "react";
 import { educationalLessons } from "@/lib/educational-data";
 import type { EducationalLesson } from "@/lib/types";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -8,6 +8,13 @@ import { LessonQuiz } from "./components/lesson-quiz";
 import { LessonDetail } from "./components/lesson-detail";
 import { LessonList } from "./components/lesson-list";
 import { LessonFilters } from "./components/lesson-filters";
+import {
+  useEducationCategories,
+  useCategoryHelpers,
+  useFilteredLessons,
+  useLessonsByCategory,
+} from "@/hooks/use-education-data";
+import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 
 interface EducationalLessonsProps {
   lessonId?: string | null;
@@ -62,32 +69,13 @@ export function EducationalLessons({
       const lesson = educationalLessons.find((l) => l.id === lessonId);
       if (lesson) {
         setSelectedLesson(lesson);
-        setTimeout(() => {
-          window.scrollTo(0, 0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-        }, 100);
       }
     } else {
       setSelectedLesson(null);
     }
   }, [lessonId]);
 
-  useLayoutEffect(() => {
-    if (showQuiz && selectedLesson?.quiz) {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }
-  }, [showQuiz, selectedLesson]);
-
-  useLayoutEffect(() => {
-    if (selectedLesson && !showQuiz) {
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-    }
-  }, [selectedLesson, showQuiz]);
+  useScrollToTop([selectedLesson, showQuiz]);
 
   const handleLessonSelect = (lesson: EducationalLesson) => {
     setSelectedLesson(lesson);
@@ -104,110 +92,28 @@ export function EducationalLessons({
     if (selectedLesson?.quiz) {
       setShowQuiz(true);
     } else {
-      console.log(
-        "[v0] Lesson completed, awarding XP:",
-        selectedLesson?.xpReward
-      );
       handleBack();
     }
   };
 
   const handleQuizComplete = (passed: boolean) => {
     if (passed) {
-      console.log("[v0] Quiz passed! Awarding XP:", selectedLesson?.xpReward);
       setShowQuiz(false);
       handleBack();
     }
   };
 
-  const handleQuizRetry = () => {
-    // Quiz component handles its own state
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      anatomy: "🦴",
-      nutrition: "🥗",
-      "training-science": "🔬",
-      recovery: "😴",
-      form: "✓",
-    };
-    return icons[category] || "📚";
-  };
-
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      anatomy: "Anatomia",
-      nutrition: "Nutrição",
-      "training-science": "Ciência do Treino",
-      recovery: "Recuperação",
-      form: "Técnica",
-    };
-    return labels[category] || category;
-  };
-
-  const categories = useMemo(() => {
-    const cats = new Set(educationalLessons.map((l) => l.category));
-    return Array.from(cats);
-  }, []);
-
-  const filteredLessons = useMemo(() => {
-    let filtered = educationalLessons;
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter((l) => l.category === selectedCategory);
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (lesson) =>
-          lesson.title.toLowerCase().includes(query) ||
-          lesson.content.toLowerCase().includes(query) ||
-          getCategoryLabel(lesson.category).toLowerCase().includes(query) ||
-          lesson.keyPoints.some((kp) => kp.toLowerCase().includes(query))
-      );
-    }
-
-    return filtered;
-  }, [selectedCategory, searchQuery]);
-
-  const lessonsByCategory = useMemo(() => {
-    if (selectedCategory !== "all" || searchQuery.trim()) {
-      return null;
-    }
-
-    const categoryOrder: Record<string, number> = {
-      "training-science": 1,
-      nutrition: 2,
-      recovery: 3,
-      form: 4,
-      anatomy: 5,
-    };
-
-    const grouped: Record<string, EducationalLesson[]> = {};
-    educationalLessons.forEach((lesson) => {
-      if (!grouped[lesson.category]) {
-        grouped[lesson.category] = [];
-      }
-      grouped[lesson.category].push(lesson);
-    });
-
-    const sorted = Object.entries(grouped).sort((a, b) => {
-      const orderA = categoryOrder[a[0]] || 99;
-      const orderB = categoryOrder[b[0]] || 99;
-      return orderA - orderB;
-    });
-
-    return Object.fromEntries(sorted);
-  }, [selectedCategory, searchQuery]);
+  const categories = useEducationCategories();
+  const { getCategoryIcon, getCategoryLabel } = useCategoryHelpers();
+  const filteredLessons = useFilteredLessons(searchQuery, selectedCategory);
+  const lessonsByCategory = useLessonsByCategory(selectedCategory, searchQuery);
 
   if (showQuiz && selectedLesson?.quiz) {
     return (
       <LessonQuiz
         lesson={selectedLesson}
         onComplete={handleQuizComplete}
-        onRetry={handleQuizRetry}
+        onRetry={() => setShowQuiz(false)}
       />
     );
   }

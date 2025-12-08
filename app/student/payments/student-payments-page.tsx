@@ -35,11 +35,10 @@ export function StudentPaymentsPage() {
   const [activeTab, setActiveTab] = useState<
     "memberships" | "payments" | "methods"
   >("memberships");
-  const [memberships] = useState<StudentGymMembership[]>(
-    mockStudentMemberships
-  );
-  const [payments] = useState<StudentPayment[]>(mockStudentPayments);
-  const [paymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+
+  const memberships = mockStudentMemberships;
+  const payments = mockStudentPayments;
+  const paymentMethods = mockPaymentMethods;
 
   const pendingPayments = payments.filter(
     (p) => p.status === "pending" || p.status === "overdue"

@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useLayoutEffect } from "react";
+import { useState } from "react";
 import type { EducationalLesson } from "@/lib/types";
 import { BookOpen, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { cn } from "@/lib/utils";
+import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 
 interface LessonQuizProps {
   lesson: EducationalLesson;
@@ -22,11 +22,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
   const [quizScore, setQuizScore] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(false);
 
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  }, []);
+  useScrollToTop([lesson]);
 
   const handleSubmitQuiz = () => {
     if (!lesson.quiz) return;
