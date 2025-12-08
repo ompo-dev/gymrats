@@ -73,6 +73,7 @@ export function StudentLayoutContent({
       tabs={studentTabs}
       defaultTab="home"
       basePath="/student"
+      showLogo={true}
       stats={{
         streak: initialProgress.streak,
         xp: initialProgress.xp,

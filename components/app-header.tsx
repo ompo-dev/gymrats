@@ -25,11 +25,6 @@ export function AppHeader({
   const [streakModalOpen, setStreakModalOpen] = useState(false);
   const isGym = userType === "gym";
 
-  const primaryColor = isGym ? "#FF9600" : "#58CC02";
-  const primaryColorClass = isGym
-    ? "border-[#FF9600] text-[#FF9600]"
-    : "border-duo-green text-duo-green";
-
   return (
     <>
       <header
@@ -45,7 +40,6 @@ export function AppHeader({
             "flex h-[70px] items-center px-4 container justify-between"
           )}
         >
-          {/* Logo - only for students */}
           {showLogo && (
             <Link href="/student" className="flex items-center gap-2">
               <div className="text-2xl font-black tracking-tight text-duo-green">
