@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
+import { usePathname } from "next/navigation";
 
 interface GymLayoutContentProps {
   children: React.ReactNode;
@@ -24,9 +25,13 @@ export function GymLayoutContent({
   children,
   initialStats,
 }: GymLayoutContentProps) {
+  const pathname = usePathname();
   const [studentId] = useQueryState("studentId", parseAsString);
   const [equipmentId] = useQueryState("equipmentId", parseAsString);
   const isInDetailPage = !!studentId || !!equipmentId;
+
+  const isOnboarding =
+    typeof pathname === "string" && pathname.includes("/onboarding");
 
   const gymTabs: TabConfig[] = [
     { id: "dashboard", icon: LayoutDashboard, label: "Início" },
@@ -35,6 +40,10 @@ export function GymLayoutContent({
     { id: "financial", icon: DollarSign, label: "Finanças" },
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
+
+  if (isOnboarding) {
+    return <>{children}</>;
+  }
 
   return (
     <AppLayout

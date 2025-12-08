@@ -356,7 +356,10 @@ export function FoodSearch({
                     {selectedFoodIds.length !== 1 ? "s" : ""} selecionado
                     {selectedFoodIds.length !== 1 ? "s" : ""})
                   </label>
-                  <div className="space-y-3">
+                  <div
+                    className="space-y-3 overflow-y-auto scrollbar-hide"
+                    style={{ maxHeight: "240px" }}
+                  >
                     <AnimatePresence>
                       {selectedFoodIds.map((foodId, index) => {
                         const food = mockFoodDatabase.find(

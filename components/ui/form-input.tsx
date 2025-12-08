@@ -19,6 +19,7 @@ interface FormInputProps {
   className?: string;
   delay?: number;
   icon?: React.ReactNode;
+  maxLength?: number;
 }
 
 export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
@@ -36,6 +37,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       className,
       delay = 0,
       icon,
+      maxLength,
     },
     ref
   ) => {
@@ -80,10 +82,12 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
             onChange={handleChange}
             placeholder={placeholder}
             disabled={disabled}
+            maxLength={maxLength}
             className={cn(
               sizeClasses[size],
               "border-2 border-gray-300 font-semibold transition-all focus:border-duo-green focus:ring-2 focus:ring-duo-green/20",
-              error && "border-red-500 focus:border-red-500 focus:ring-red-500/20",
+              error &&
+                "border-red-500 focus:border-red-500 focus:ring-red-500/20",
               icon && "pl-10"
             )}
           />
@@ -103,4 +107,3 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 );
 
 FormInput.displayName = "FormInput";
-

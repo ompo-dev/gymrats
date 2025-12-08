@@ -34,6 +34,27 @@ export default function SelectModePage() {
     }
   };
 
+  const checkGymProfile = async () => {
+    try {
+      const token = localStorage.getItem("auth_token");
+      if (!token) return false;
+
+      const response = await fetch("/api/gyms/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) return false;
+
+      const data = await response.json();
+      return data.hasProfile === true;
+    } catch (error) {
+      console.error("Erro ao verificar perfil:", error);
+      return false;
+    }
+  };
+
   const handleSelectMode = async (mode: "student" | "gym") => {
     setSelectedMode(mode);
     setIsChecking(true);
@@ -49,7 +70,13 @@ export default function SelectModePage() {
         router.push("/student");
       }
     } else {
-      router.push("/gym/dashboard");
+      const hasProfile = await checkGymProfile();
+
+      if (!hasProfile) {
+        router.push("/gym/onboarding");
+      } else {
+        router.push("/gym/dashboard");
+      }
     }
 
     setIsChecking(false);
