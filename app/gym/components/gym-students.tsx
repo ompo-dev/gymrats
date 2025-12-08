@@ -1,6 +1,6 @@
 "use client";
 
-import { mockStudents } from "@/lib/gym-mock-data";
+import type { StudentData } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { OptionSelector } from "@/components/ui/option-selector";
@@ -9,24 +9,27 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
-import { Search, UserPlus, Flame, Users } from "lucide-react";
+import { Search, UserPlus, Flame } from "lucide-react";
 import Image from "next/image";
-import { useQueryState } from "nuqs";
+import { useQueryState, parseAsString } from "nuqs";
 import { cn } from "@/lib/utils";
 import { GymStudentDetail } from "./gym-student-detail";
 
-export function GymStudentsPage() {
+interface GymStudentsPageProps {
+  students: StudentData[];
+}
+
+export function GymStudentsPage({ students }: GymStudentsPageProps) {
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
-  const [statusFilter, setStatusFilter] = useQueryState<
-    "all" | "active" | "inactive"
-  >("status", {
-    defaultValue: "all",
-  });
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsString.withDefault("all")
+  );
   const [studentId, setStudentId] = useQueryState("studentId");
 
-  const filteredStudents = mockStudents.filter((student) => {
+  const filteredStudents = students.filter((student) => {
     const matchesSearch =
       student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.email.toLowerCase().includes(searchQuery.toLowerCase());
@@ -55,9 +58,10 @@ export function GymStudentsPage() {
   ];
 
   if (studentId) {
+    const student = students.find((s) => s.id === studentId);
     return (
       <GymStudentDetail
-        studentId={studentId}
+        student={student || null}
         onBack={() => setStudentId(null)}
       />
     );

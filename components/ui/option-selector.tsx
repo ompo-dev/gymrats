@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useId } from "react";
 
 interface Option {
   value: string;
@@ -116,9 +116,8 @@ export function OptionSelector({
   ariaLabel,
   ariaLabelledBy,
 }: OptionSelectorProps) {
-  const groupId = useRef(
-    `option-group-${Math.random().toString(36).substr(2, 9)}`
-  );
+  const id = useId();
+  const groupId = useRef(`option-group-${id.replace(/:/g, "-")}`);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const isSelected = (optionValue: string) => {
@@ -443,7 +442,7 @@ export function OptionSelector({
                 {option.icon && <div className="mb-2">{option.icon}</div>}
                 <div
                   className={cn(
-                    "font-bold break-words",
+                    "font-bold wrap-break-words",
                     textAlign === "left"
                       ? "text-left"
                       : textAlign === "right"
@@ -522,10 +521,10 @@ export function OptionSelector({
                   ? "text-center"
                   : !option.emoji && !option.icon
                   ? textAlign === "left"
-                  ? "text-left"
-                  : textAlign === "right"
-                  ? "text-right"
-                  : "text-center"
+                    ? "text-left"
+                    : textAlign === "right"
+                    ? "text-right"
+                    : "text-center"
                   : ""
               )}
               style={{
@@ -543,23 +542,23 @@ export function OptionSelector({
               )}
               {(option.emoji || option.icon) && textAlign === "center" ? (
                 <div className="flex flex-col items-center">
-              {option.emoji && (
-                <div className="mb-1 text-3xl">{option.emoji}</div>
-              )}
-              {option.icon && <div className="mb-2">{option.icon}</div>}
-                  <div className="font-bold break-words text-center">
+                  {option.emoji && (
+                    <div className="mb-1 text-3xl">{option.emoji}</div>
+                  )}
+                  {option.icon && <div className="mb-2">{option.icon}</div>}
+                  <div className="font-bold wrap-break-words text-center">
                     {option.label}
                   </div>
-              {option.description && (
-                <div
-                  id={descriptionId}
-                  className={cn(
+                  {option.description && (
+                    <div
+                      id={descriptionId}
+                      className={cn(
                         "mt-1 text-xs opacity-80 text-center",
-                    selected && "opacity-90"
-                  )}
-                >
-                  {option.description}
-                </div>
+                        selected && "opacity-90"
+                      )}
+                    >
+                      {option.description}
+                    </div>
                   )}
                 </div>
               ) : (
@@ -588,7 +587,7 @@ export function OptionSelector({
                   )}
                   <div
                     className={cn(
-                      "font-bold break-words",
+                      "font-bold wrap-break-words",
                       textAlign === "left"
                         ? "text-left"
                         : textAlign === "right"

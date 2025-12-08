@@ -1,26 +1,28 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { DuoButton } from "@/components/ui/duo-button"
-import { Users, Building2, Dumbbell, Check } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "motion/react"
-import { useAuthStore } from "@/stores"
+import { useState } from "react";
+import { DuoButton } from "@/components/ui/duo-button";
+import { Users, Building2, Dumbbell, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
+import { useAuthStore } from "@/stores";
 
 export default function UserTypePage() {
-  const router = useRouter()
-  const { setUserMode, userId, setAuthenticated } = useAuthStore()
-  const [selectedType, setSelectedType] = useState<"student" | "gym" | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter();
+  const { setUserMode, userId, setAuthenticated } = useAuthStore();
+  const [selectedType, setSelectedType] = useState<"student" | "gym" | null>(
+    null
+  );
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSelectType = async (type: "student" | "gym") => {
-    setSelectedType(type)
-    setIsLoading(true)
-    
+    setSelectedType(type);
+    setIsLoading(true);
+
     try {
       // Atualizar role no banco de dados
-      const currentUserId = userId || localStorage.getItem("userId")
-      
+      const currentUserId = userId || localStorage.getItem("userId");
+
       if (currentUserId) {
         const response = await fetch("/api/users/update-role", {
           method: "POST",
@@ -31,37 +33,41 @@ export default function UserTypePage() {
             userId: currentUserId,
             userType: type,
           }),
-        })
+        });
 
         if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Erro ao atualizar tipo de usuário")
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || "Erro ao atualizar tipo de usuário"
+          );
         }
       }
 
       // Atualizar store e localStorage
-      setUserMode(type)
-      setAuthenticated(true)
-      localStorage.setItem("userMode", type)
-      localStorage.setItem("isAuthenticated", "true")
+      setUserMode(type);
+      setAuthenticated(true);
+      localStorage.setItem("userMode", type);
+      localStorage.setItem("isAuthenticated", "true");
 
       // Redirecionar direto para o app (sem delay)
       if (type === "student") {
-        router.push("/student")
+        router.push("/student");
       } else {
-        router.push("/gym")
+        router.push("/gym");
       }
     } catch (error: any) {
-      console.error("Erro ao selecionar tipo:", error)
-      alert(error.message || "Erro ao selecionar tipo de usuário. Tente novamente.")
-      setIsLoading(false)
+      console.error("Erro ao selecionar tipo:", error);
+      alert(
+        error.message || "Erro ao selecionar tipo de usuário. Tente novamente."
+      );
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center px-4 py-12 min-h-0">
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-12 min-h-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -81,7 +87,7 @@ export default function UserTypePage() {
               transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
               className="flex justify-center mb-4"
             >
-              <div className="w-20 h-20 bg-gradient-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg">
+              <div className="w-20 h-20 bg-linear-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg">
                 <Dumbbell className="w-10 h-10 text-white" />
               </div>
             </motion.div>
@@ -116,7 +122,7 @@ export default function UserTypePage() {
                   <motion.div
                     className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 ${
                       selectedType === "student"
-                        ? "bg-gradient-to-br from-[#58CC02] to-[#47A302]"
+                        ? "bg-linear-to-br from-[#58CC02] to-[#47A302]"
                         : "bg-gray-100"
                     }`}
                     whileHover={{ scale: 1.1 }}
@@ -124,11 +130,15 @@ export default function UserTypePage() {
                   >
                     <Users
                       className={`w-12 h-12 ${
-                        selectedType === "student" ? "text-white" : "text-gray-400"
+                        selectedType === "student"
+                          ? "text-white"
+                          : "text-gray-400"
                       }`}
                     />
                   </motion.div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Sou Aluno</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Sou Aluno
+                  </h2>
                   <p className="text-gray-600 text-sm">
                     Acompanhe treinos, dieta e progresso
                   </p>
@@ -150,7 +160,9 @@ export default function UserTypePage() {
                     >
                       <div
                         className={`w-2 h-2 rounded-full ${
-                          selectedType === "student" ? "bg-[#58CC02]" : "bg-gray-300"
+                          selectedType === "student"
+                            ? "bg-[#58CC02]"
+                            : "bg-gray-300"
                         }`}
                       />
                       <span>{feature}</span>
@@ -195,7 +207,7 @@ export default function UserTypePage() {
                   <motion.div
                     className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 ${
                       selectedType === "gym"
-                        ? "bg-gradient-to-br from-[#FF9600] to-[#E68A00]"
+                        ? "bg-linear-to-br from-[#FF9600] to-[#E68A00]"
                         : "bg-gray-100"
                     }`}
                     whileHover={{ scale: 1.1 }}
@@ -207,7 +219,9 @@ export default function UserTypePage() {
                       }`}
                     />
                   </motion.div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Sou Academia</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Sou Academia
+                  </h2>
                   <p className="text-gray-600 text-sm">
                     Gerencie alunos e equipamentos
                   </p>
@@ -229,7 +243,9 @@ export default function UserTypePage() {
                     >
                       <div
                         className={`w-2 h-2 rounded-full ${
-                          selectedType === "gym" ? "bg-[#FF9600]" : "bg-gray-300"
+                          selectedType === "gym"
+                            ? "bg-[#FF9600]"
+                            : "bg-gray-300"
                         }`}
                       />
                       <span>{feature}</span>
@@ -265,5 +281,5 @@ export default function UserTypePage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }

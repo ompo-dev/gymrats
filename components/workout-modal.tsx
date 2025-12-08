@@ -433,7 +433,7 @@ export function WorkoutModal() {
                     className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="font-bold text-duo-text text-sm sm:text-base break-words flex-1">
+                      <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
                         {log.exerciseName}
                       </div>
                       <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
@@ -617,7 +617,7 @@ export function WorkoutModal() {
                       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                       className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
                     >
-                      <h1 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text break-words">
+                      <h1 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
                         {currentExercise.name}
                       </h1>
 
@@ -659,7 +659,7 @@ export function WorkoutModal() {
                               <span>💡</span>
                               <span>Dica</span>
                             </div>
-                            <p className="text-xs sm:text-sm text-duo-text break-words">
+                            <p className="text-xs sm:text-sm text-duo-text wrap-break-words">
                               {currentExercise.notes}
                             </p>
                           </div>

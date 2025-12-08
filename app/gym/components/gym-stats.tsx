@@ -1,6 +1,6 @@
 "use client";
 
-import { mockGymStats, mockEquipment } from "@/lib/gym-mock-data";
+import type { GymStats, Equipment } from "@/lib/types";
 import {
   TrendingUp,
   Users,
@@ -17,7 +17,12 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 
-export function GymStatsPage() {
+interface GymStatsPageProps {
+  stats: GymStats;
+  equipment: Equipment[];
+}
+
+export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
   const weeklyData = [
     { day: "Seg", checkins: 58, value: 70 },
     { day: "Ter", checkins: 62, value: 75 },
@@ -59,28 +64,28 @@ export function GymStatsPage() {
         <div className="grid grid-cols-2 gap-4">
           <StatCardLarge
             icon={Users}
-            value={String(mockGymStats.week.totalCheckins)}
+            value={String(stats.week.totalCheckins)}
             label="Check-ins Semana"
             subtitle="+8%"
             iconColor="duo-blue"
           />
           <StatCardLarge
             icon={Activity}
-            value={`${mockGymStats.month.retentionRate}%`}
+            value={`${stats.month.retentionRate}%`}
             label="Taxa Retenção"
             subtitle="+5%"
             iconColor="duo-green"
           />
           <StatCardLarge
             icon={Target}
-            value={String(mockGymStats.week.avgDailyCheckins)}
+            value={String(stats.week.avgDailyCheckins)}
             label="Média Diária"
             subtitle="85%"
             iconColor="duo-purple"
           />
           <StatCardLarge
             icon={Dumbbell}
-            value={String(mockEquipment.length)}
+            value={String(equipment.length)}
             label="Equipamentos Ativos"
             subtitle="78%"
             iconColor="duo-orange"
@@ -165,7 +170,7 @@ export function GymStatsPage() {
           variant="blue"
         >
           <div className="space-y-3">
-            {mockEquipment.slice(0, 5).map((eq, index) => (
+            {equipment.slice(0, 5).map((eq: Equipment, index: number) => (
               <motion.div
                 key={eq.id}
                 initial={{ opacity: 0, y: 20 }}

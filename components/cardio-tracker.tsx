@@ -235,7 +235,7 @@ export function CardioTracker() {
           </div>
           <div className="h-3 overflow-hidden rounded-full bg-duo-border">
             <div
-              className="h-full bg-gradient-to-r from-pink-400 to-pink-600 transition-all"
+              className="h-full bg-linear-to-r from-pink-400 to-pink-600 transition-all"
               style={{
                 width:
                   heartRate > 0

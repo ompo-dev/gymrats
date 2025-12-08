@@ -1,60 +1,61 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { DuoButton } from "@/components/ui/duo-button"
-import { Input } from "@/components/ui/input"
-import { Dumbbell, Mail, Lock, User, Chrome, ArrowLeft } from "lucide-react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { motion } from "motion/react"
-import { useAuthStore } from "@/stores"
-import { authApi } from "@/lib/api/auth"
+import type React from "react";
+import { useState } from "react";
+import { DuoButton } from "@/components/ui/duo-button";
+import { Input } from "@/components/ui/input";
+import { Dumbbell, Mail, Lock, User, Chrome, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { motion } from "motion/react";
+import { useAuthStore } from "@/stores";
+import { authApi } from "@/lib/api/auth";
 
 export default function RegisterPage() {
-  const router = useRouter()
-  const { setAuthenticated, setUserProfile, setUserId, setUserMode } = useAuthStore()
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter();
+  const { setAuthenticated, setUserProfile, setUserId, setUserMode } =
+    useAuthStore();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
+    e.preventDefault();
+    setError("");
 
     if (password !== confirmPassword) {
-      setError("As senhas não coincidem!")
-      return
+      setError("As senhas não coincidem!");
+      return;
     }
 
     if (password.length < 8) {
-      setError("A senha deve ter no mínimo 8 caracteres")
-      return
+      setError("A senha deve ter no mínimo 8 caracteres");
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       const response = await authApi.register({
         name,
         email,
         password,
-      })
+      });
 
       // Salvar token e dados
-      localStorage.setItem("auth_token", response.session.token)
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("userEmail", email)
-      localStorage.setItem("userName", name)
-      localStorage.setItem("userId", response.user.id)
+      localStorage.setItem("auth_token", response.session.token);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("userName", name);
+      localStorage.setItem("userId", response.user.id);
 
       // Atualizar store
-      setAuthenticated(true)
-      setUserId(response.user.id)
-      setUserMode(null) // Ainda não tem tipo definido
+      setAuthenticated(true);
+      setUserId(response.user.id);
+      setUserMode(null); // Ainda não tem tipo definido
       setUserProfile({
         id: response.user.id,
         name: response.user.name,
@@ -72,43 +73,43 @@ export default function RegisterPage() {
         preferredSets: 3,
         preferredRepRange: "hipertrofia",
         restTime: "medio",
-      })
+      });
 
       // Manter usuário logado e ir para seleção de tipo
-      router.push("/auth/register/user-type")
+      router.push("/auth/register/user-type");
     } catch (err: any) {
-      setError(err.message || "Erro ao criar conta")
+      setError(err.message || "Erro ao criar conta");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleRegister = () => {
-    setIsLoading(true)
-    setError("")
+    setIsLoading(true);
+    setError("");
     // TODO: Implementar registro com Google usando Better Auth
-    alert("Registro com Google será implementado em breve")
-    setIsLoading(false)
-  }
+    alert("Registro com Google será implementado em breve");
+    setIsLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-        {/* Header */}
-        <div className="p-4 flex-shrink-0">
-          <Link href="/welcome">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">Voltar</span>
-            </motion.button>
-          </Link>
-        </div>
+      {/* Header */}
+      <div className="p-4 flex-shrink-0">
+        <Link href="/welcome">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Voltar</span>
+          </motion.button>
+        </Link>
+      </div>
 
-        {/* Main Content */}
-        <div className="flex-1 flex items-center justify-center px-4 py-8 min-h-0">
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center px-4 py-8 min-h-0">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -123,11 +124,13 @@ export default function RegisterPage() {
               transition={{ delay: 0.1, duration: 0.5, type: "spring" }}
               className="flex justify-center mb-4"
             >
-              <div className="w-20 h-20 bg-gradient-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg">
+              <div className="w-20 h-20 bg-linear-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg">
                 <Dumbbell className="w-10 h-10 text-white" />
               </div>
             </motion.div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Criar conta</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Criar conta
+            </h1>
             <p className="text-gray-600">Comece sua jornada fitness hoje</p>
           </div>
 
@@ -166,7 +169,9 @@ export default function RegisterPage() {
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500 font-medium">OU</span>
+              <span className="bg-white px-4 text-gray-500 font-medium">
+                OU
+              </span>
             </div>
           </div>
 
@@ -196,7 +201,9 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">E-mail</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                E-mail
+              </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
@@ -211,7 +218,9 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Senha</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Senha
+              </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <Input
@@ -264,7 +273,10 @@ export default function RegisterPage() {
           >
             <p className="text-gray-600 text-sm">
               Já tem uma conta?{" "}
-              <Link href="/auth/login" className="text-[#58CC02] hover:underline font-bold">
+              <Link
+                href="/auth/login"
+                className="text-[#58CC02] hover:underline font-bold"
+              >
                 Entrar
               </Link>
             </p>
@@ -283,6 +295,5 @@ export default function RegisterPage() {
         </motion.div>
       </div>
     </div>
-  )
+  );
 }
-

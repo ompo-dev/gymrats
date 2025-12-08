@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import type {
+  FinancialSummary,
+  Payment,
+  Coupon,
+  Referral,
+  Expense,
+} from "@/lib/types";
 import {
-  mockFinancialSummary,
   mockPayments,
   mockCoupons,
   mockReferrals,
@@ -29,7 +35,21 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
-export function GymFinancialPage() {
+interface GymFinancialPageProps {
+  financialSummary: FinancialSummary;
+  payments?: Payment[];
+  coupons?: Coupon[];
+  referrals?: Referral[];
+  expenses?: Expense[];
+}
+
+export function GymFinancialPage({
+  financialSummary,
+  payments = mockPayments,
+  coupons = mockCoupons,
+  referrals = mockReferrals,
+  expenses = mockExpenses,
+}: GymFinancialPageProps) {
   const [viewMode, setViewMode] = useState<
     "overview" | "payments" | "coupons" | "referrals" | "expenses"
   >("overview");
@@ -110,27 +130,27 @@ export function GymFinancialPage() {
             <div className="grid grid-cols-2 gap-4">
               <StatCardLarge
                 icon={TrendingUp}
-                value={`R$ ${mockFinancialSummary.totalRevenue.toLocaleString()}`}
+                value={`R$ ${financialSummary.totalRevenue.toLocaleString()}`}
                 label="Receita Total"
-                subtitle={`+${mockFinancialSummary.revenueGrowth}%`}
+                subtitle={`+${financialSummary.revenueGrowth}%`}
                 iconColor="duo-green"
               />
               <StatCardLarge
                 icon={TrendingDown}
-                value={`R$ ${mockFinancialSummary.totalExpenses.toLocaleString()}`}
+                value={`R$ ${financialSummary.totalExpenses.toLocaleString()}`}
                 label="Despesas"
                 subtitle="Mensal"
                 iconColor="duo-red"
               />
               <StatCardLarge
                 icon={DollarSign}
-                value={`R$ ${mockFinancialSummary.netProfit.toLocaleString()}`}
+                value={`R$ ${financialSummary.netProfit.toLocaleString()}`}
                 label="Lucro Líquido"
                 iconColor="duo-blue"
               />
               <StatCardLarge
                 icon={CreditCard}
-                value={`R$ ${mockFinancialSummary.monthlyRecurring.toLocaleString()}`}
+                value={`R$ ${financialSummary.monthlyRecurring.toLocaleString()}`}
                 label="Recorrente Mensal"
                 subtitle="MRR"
                 iconColor="duo-purple"
@@ -138,7 +158,7 @@ export function GymFinancialPage() {
             </div>
           </SlideIn>
 
-          {mockFinancialSummary.overduePayments > 0 && (
+          {financialSummary.overduePayments > 0 && (
             <SlideIn delay={0.3}>
               <DuoCard
                 variant="default"
@@ -152,12 +172,9 @@ export function GymFinancialPage() {
                       Pagamentos Atrasados
                     </div>
                     <div className="text-xs text-duo-red">
-                      {
-                        mockPayments.filter((p) => p.status === "overdue")
-                          .length
-                      }{" "}
+                      {payments.filter((p) => p.status === "overdue").length}{" "}
                       pagamento(s) atrasado(s) - R${" "}
-                      {mockFinancialSummary.overduePayments}
+                      {financialSummary.overduePayments}
                     </div>
                   </div>
                 </div>
@@ -171,16 +188,16 @@ export function GymFinancialPage() {
                 {[
                   {
                     label: "Ticket Médio",
-                    value: `R$ ${mockFinancialSummary.averageTicket}`,
+                    value: `R$ ${financialSummary.averageTicket}`,
                   },
                   {
                     label: "Taxa de Churn",
-                    value: `${mockFinancialSummary.churnRate}%`,
+                    value: `${financialSummary.churnRate}%`,
                     color: "text-duo-red",
                   },
                   {
                     label: "Pagamentos Pendentes",
-                    value: `R$ ${mockFinancialSummary.pendingPayments}`,
+                    value: `R$ ${financialSummary.pendingPayments}`,
                     color: "text-duo-yellow",
                   },
                 ].map((metric, index) => (
@@ -281,7 +298,7 @@ export function GymFinancialPage() {
             }
           >
             <div className="space-y-3">
-              {mockCoupons.map((coupon, index) => (
+              {coupons.map((coupon, index) => (
                 <motion.div
                   key={coupon.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -359,7 +376,7 @@ export function GymFinancialPage() {
         <SlideIn delay={0.2}>
           <SectionCard title="Programa de Indicações" icon={UsersIcon}>
             <div className="space-y-3">
-              {mockReferrals.map((referral, index) => (
+              {referrals.map((referral, index) => (
                 <motion.div
                   key={referral.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -427,7 +444,7 @@ export function GymFinancialPage() {
             }
           >
             <div className="space-y-3">
-              {mockExpenses.map((expense, index) => (
+              {expenses.map((expense, index) => (
                 <motion.div
                   key={expense.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -472,7 +489,7 @@ export function GymFinancialPage() {
                 </span>
                 <span className="text-xl font-bold text-duo-red">
                   R${" "}
-                  {mockExpenses
+                  {expenses
                     .reduce((sum, exp) => sum + exp.amount, 0)
                     .toLocaleString()}
                 </span>

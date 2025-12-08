@@ -1,6 +1,6 @@
 "use client";
 
-import { mockEquipment } from "@/lib/gym-mock-data";
+import type { Equipment } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { OptionSelector } from "@/components/ui/option-selector";
@@ -21,22 +21,25 @@ import {
   Clock,
   BarChart3,
 } from "lucide-react";
-import { useQueryState } from "nuqs";
+import { useQueryState, parseAsString } from "nuqs";
 import { cn } from "@/lib/utils";
 import { GymEquipmentDetail } from "./gym-equipment-detail";
 
-export function GymEquipmentPage() {
+interface GymEquipmentPageProps {
+  equipment: Equipment[];
+}
+
+export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
-  const [statusFilter, setStatusFilter] = useQueryState<
-    "all" | "available" | "in-use" | "maintenance" | "broken"
-  >("status", {
-    defaultValue: "all",
-  });
+  const [statusFilter, setStatusFilter] = useQueryState(
+    "status",
+    parseAsString.withDefault("all")
+  );
   const [equipmentId, setEquipmentId] = useQueryState("equipmentId");
 
-  const filteredEquipment = mockEquipment.filter((equipment) => {
+  const filteredEquipment = equipment.filter((equipment) => {
     const matchesSearch =
       equipment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       equipment.type.toLowerCase().includes(searchQuery.toLowerCase());
@@ -91,10 +94,10 @@ export function GymEquipmentPage() {
   };
 
   const statsOverview = {
-    total: mockEquipment.length,
-    available: mockEquipment.filter((e) => e.status === "available").length,
-    inUse: mockEquipment.filter((e) => e.status === "in-use").length,
-    maintenance: mockEquipment.filter((e) => e.status === "maintenance").length,
+    total: equipment.length,
+    available: equipment.filter((e) => e.status === "available").length,
+    inUse: equipment.filter((e) => e.status === "in-use").length,
+    maintenance: equipment.filter((e) => e.status === "maintenance").length,
   };
 
   const statusOptions = [
@@ -105,9 +108,10 @@ export function GymEquipmentPage() {
   ];
 
   if (equipmentId) {
+    const equipmentItem = equipment.find((e) => e.id === equipmentId);
     return (
       <GymEquipmentDetail
-        equipmentId={equipmentId}
+        equipment={equipmentItem || null}
         onBack={() => setEquipmentId(null)}
       />
     );
@@ -140,7 +144,7 @@ export function GymEquipmentPage() {
             icon={Dumbbell}
             value={String(statsOverview.total)}
             label="Total"
-            iconColor="duo-gray"
+            iconColor="duo-blue"
           />
           <StatCardLarge
             icon={CheckCircle2}
@@ -180,7 +184,12 @@ export function GymEquipmentPage() {
               value={statusFilter || "all"}
               onChange={(value) =>
                 setStatusFilter(
-                  value as "all" | "available" | "in-use" | "maintenance"
+                  value as
+                    | "all"
+                    | "available"
+                    | "in-use"
+                    | "maintenance"
+                    | "broken"
                 )
               }
               layout="grid"

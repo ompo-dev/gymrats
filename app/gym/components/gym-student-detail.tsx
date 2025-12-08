@@ -1,6 +1,6 @@
 "use client";
 
-import { mockStudents, mockPayments } from "@/lib/gym-mock-data";
+import type { StudentData, Payment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
@@ -33,15 +33,17 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface GymStudentDetailProps {
-  studentId: string;
+  student: StudentData | null;
+  payments?: Payment[];
   onBack: () => void;
 }
 
-export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
-  const student = mockStudents.find((s) => s.id === studentId);
-  const [studentPayments, setStudentPayments] = useState(
-    mockPayments.filter((p) => p.studentId === studentId)
-  );
+export function GymStudentDetail({
+  student,
+  payments = [],
+  onBack,
+}: GymStudentDetailProps) {
+  const [studentPayments, setStudentPayments] = useState(payments);
   const [activeTab, setActiveTab] = useState("overview");
 
   if (!student) {
@@ -117,7 +119,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                 </span>
               </div>
               <div className="mb-4 space-y-2 text-sm text-duo-gray-dark">
-                <div className="flex items-center gap-2 break-words">
+                <div className="flex items-center gap-2 wrap-break-words">
                   <Mail className="h-4 w-4 shrink-0" />
                   <span className="break-all">{student.email}</span>
                 </div>
@@ -233,7 +235,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                       <span className="font-bold text-duo-gray-dark text-sm sm:text-base">
                         {info.label}
                       </span>
-                      <span className="text-duo-text text-sm sm:text-base break-words">
+                      <span className="text-duo-text text-sm sm:text-base wrap-break-words">
                         {info.value}
                       </span>
                     </div>
@@ -451,7 +453,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                 <DuoCard key={index} variant="orange" size="default">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-base sm:text-lg font-bold text-duo-text break-words">
+                      <p className="text-base sm:text-lg font-bold text-duo-text wrap-break-words">
                         {record.exerciseName}
                       </p>
                       <p className="text-xs sm:text-sm text-duo-gray-dark">
@@ -542,7 +544,7 @@ export function GymStudentDetail({ studentId, onBack }: GymStudentDetailProps) {
                   <DuoCard variant="default" size="default">
                     <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-duo-text text-sm sm:text-base break-words">
+                        <h3 className="font-bold text-duo-text text-sm sm:text-base wrap-break-words">
                           {payment.planName}
                         </h3>
                         <p className="text-xs sm:text-sm text-duo-gray-dark mt-1">

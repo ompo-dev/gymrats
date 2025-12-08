@@ -1,6 +1,6 @@
 "use client";
 
-import { mockGymProfile } from "@/lib/gym-mock-data";
+import type { GymProfile } from "@/lib/types";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
@@ -18,8 +18,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function GymGamificationPage() {
-  const { gamification } = mockGymProfile;
+interface GymGamificationPageProps {
+  profile: GymProfile;
+}
+
+export function GymGamificationPage({ profile }: GymGamificationPageProps) {
+  const { gamification } = profile;
 
   const mockAchievements = [
     {
@@ -163,7 +167,7 @@ export function GymGamificationPage() {
           />
           <StatCardLarge
             icon={Users}
-            value={`${mockGymProfile.totalStudents}/${gamification.monthlyStudentGoal}`}
+            value={`${profile.totalStudents}/${gamification.monthlyStudentGoal}`}
             label="Meta de Alunos"
             iconColor="duo-blue"
           />

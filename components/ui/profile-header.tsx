@@ -39,7 +39,7 @@ export function ProfileHeader({
       {...props}
     >
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
-        <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 border-gray-300 bg-gradient-to-br from-duo-blue/10 to-duo-green/10 text-3xl sm:text-4xl shadow-[0_2px_0_#D1D5DB] shrink-0">
+        <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border-2 border-gray-300 bg-linear-to-br from-duo-blue/10 to-duo-green/10 text-3xl sm:text-4xl shadow-[0_2px_0_#D1D5DB] shrink-0">
           {avatar}
         </div>
         <div className="flex-1 text-center sm:text-left w-full">

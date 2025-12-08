@@ -1,64 +1,41 @@
 "use client";
 
 import Image from "next/image";
-import {
-  mockGymStats,
-  mockGymProfile,
-  mockRecentCheckIns,
-  mockStudents,
-  mockEquipment,
-} from "@/lib/gym-mock-data";
+import type {
+  GymProfile,
+  GymStats,
+  StudentData,
+  Equipment,
+  CheckIn,
+} from "@/lib/types";
 import { Users, Dumbbell } from "lucide-react";
-import { useState, useEffect } from "react";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
+import { RelativeTime } from "@/components/relative-time";
 
-function RelativeTime({ timestamp }: { timestamp: Date }) {
-  const [timeAgo, setTimeAgo] = useState<string>("");
-  const [mounted, setMounted] = useState(false);
-
-  const calculateTimeAgo = (baseTime: number) => {
-    const diff = baseTime - timestamp.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-
-    if (minutes < 60) {
-      return `${minutes}m atrás`;
-    } else if (hours < 24) {
-      return `${hours}h atrás`;
-    } else {
-      return `${Math.floor(hours / 24)}d atrás`;
-    }
-  };
-
-  useEffect(() => {
-    setMounted(true);
-    const updateTime = () => {
-      setTimeAgo(calculateTimeAgo(Date.now()));
-    };
-
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-
-    return () => clearInterval(interval);
-  }, [timestamp]);
-
-  if (!mounted) {
-    return <span suppressHydrationWarning>—</span>;
-  }
-
-  return <span>{timeAgo || "—"}</span>;
+interface GymDashboardPageProps {
+  profile: GymProfile;
+  stats: GymStats;
+  students: StudentData[];
+  equipment: Equipment[];
+  recentCheckIns?: CheckIn[];
 }
 
-export function GymDashboardPage() {
-  const { today, week, month } = mockGymStats;
+export function GymDashboardPage({
+  profile,
+  stats,
+  students,
+  equipment,
+  recentCheckIns = [],
+}: GymDashboardPageProps) {
+  const { today, week, month } = stats;
 
-  const equipmentInUse = mockEquipment.filter((eq) => eq.status === "in-use");
-  const equipmentMaintenance = mockEquipment.filter(
+  const equipmentInUse = equipment.filter((eq) => eq.status === "in-use");
+  const equipmentMaintenance = equipment.filter(
     (eq) => eq.status === "maintenance"
   );
 
@@ -86,14 +63,14 @@ export function GymDashboardPage() {
             icon={Users}
             value={String(today.activeStudents)}
             label="Alunos Ativos"
-            subtitle={`Total: ${mockGymProfile.totalStudents}`}
+            subtitle={`Total: ${profile.totalStudents}`}
             iconColor="duo-blue"
           />
           <StatCardLarge
             icon={Dumbbell}
             value={String(today.equipmentInUse)}
             label="Equipamentos em Uso"
-            subtitle={`Total: ${mockEquipment.length}`}
+            subtitle={`Total: ${equipment.length}`}
             iconColor="duo-orange"
           />
           <StatCardLarge
@@ -110,8 +87,8 @@ export function GymDashboardPage() {
         <SlideIn delay={0.2}>
           <SectionCard title="Check-ins Recentes" icon={Users}>
             <div className="space-y-3">
-              {mockRecentCheckIns.map((checkin, index) => {
-                const student = mockStudents.find(
+              {recentCheckIns.map((checkin, index) => {
+                const student = students.find(
                   (s) => s.id === checkin.studentId
                 );
                 return (

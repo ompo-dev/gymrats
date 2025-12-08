@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { DuoButton } from "@/components/ui/duo-button"
-import { motion } from "motion/react"
-import Link from "next/link"
-import { Dumbbell } from "lucide-react"
+import { DuoButton } from "@/components/ui/duo-button";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { Dumbbell } from "lucide-react";
 
 export default function WelcomePage() {
   return (
@@ -25,7 +25,7 @@ export default function WelcomePage() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2, duration: 0.5, type: "spring" }}
-                  className="w-32 h-32 bg-gradient-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-xl"
+                  className="w-32 h-32 bg-linear-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-xl"
                 >
                   <Dumbbell className="w-16 h-16 text-white" />
                 </motion.div>
@@ -50,7 +50,8 @@ export default function WelcomePage() {
               eficaz de aprender musculação!
             </h1>
             <p className="text-base text-gray-600 max-w-sm mx-auto">
-              Transforme seu treino em uma jornada gamificada. Aprenda técnicas, evolua e conquiste seus objetivos.
+              Transforme seu treino em uma jornada gamificada. Aprenda técnicas,
+              evolua e conquiste seus objetivos.
             </p>
           </motion.div>
 
@@ -105,5 +106,5 @@ export default function WelcomePage() {
         </p>
       </motion.div>
     </div>
-  )
+  );
 }

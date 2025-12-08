@@ -1,6 +1,7 @@
 "use client";
 
-import { mockGymProfile, mockMembershipPlans } from "@/lib/gym-mock-data";
+import type { GymProfile } from "@/lib/types";
+import { mockMembershipPlans } from "@/lib/gym-mock-data";
 import {
   Building2,
   Phone,
@@ -24,7 +25,11 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
-export function GymSettingsPage() {
+interface GymSettingsPageProps {
+  profile: GymProfile;
+}
+
+export function GymSettingsPage({ profile }: GymSettingsPageProps) {
   const operatingHours = [
     { day: "Segunda a Sexta", hours: "06:00 - 22:00" },
     { day: "Sábado", hours: "08:00 - 20:00" },
@@ -45,15 +50,9 @@ export function GymSettingsPage() {
       </FadeIn>
 
       <SlideIn delay={0.1}>
-        <SectionCard
-          title={mockGymProfile.name}
-          icon={Building2}
-          variant="orange"
-        >
+        <SectionCard title={profile.name} icon={Building2} variant="orange">
           <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm text-duo-gray-dark">
-              Plano {mockGymProfile.plan}
-            </p>
+            <p className="text-sm text-duo-gray-dark">Plano {profile.plan}</p>
             <Button size="sm" variant="outline">
               <Edit2 className="h-4 w-4" />
             </Button>
@@ -63,22 +62,22 @@ export function GymSettingsPage() {
               {
                 icon: MapPin,
                 label: "Endereço",
-                value: mockGymProfile.address,
+                value: profile.address,
               },
               {
                 icon: Phone,
                 label: "Telefone",
-                value: mockGymProfile.phone,
+                value: profile.phone,
               },
               {
                 icon: Mail,
                 label: "Email",
-                value: mockGymProfile.email,
+                value: profile.email,
               },
               {
                 icon: FileText,
                 label: "CNPJ",
-                value: mockGymProfile.cnpj,
+                value: profile.cnpj,
               },
             ].map((info, index) => (
               <DuoCard key={index} variant="default" size="sm">

@@ -1,6 +1,6 @@
 "use client";
 
-import { mockEquipment } from "@/lib/gym-mock-data";
+import type { Equipment } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
@@ -26,15 +26,14 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 interface GymEquipmentDetailProps {
-  equipmentId: string;
+  equipment: Equipment | null;
   onBack: () => void;
 }
 
 export function GymEquipmentDetail({
-  equipmentId,
+  equipment,
   onBack,
 }: GymEquipmentDetailProps) {
-  const equipment = mockEquipment.find((e) => e.id === equipmentId);
   const [activeTab, setActiveTab] = useState("usage");
 
   if (!equipment) {
@@ -132,17 +131,17 @@ export function GymEquipmentDetail({
                 </span>
               </div>
               <div className="mb-4 space-y-1 text-duo-gray-dark">
-                <p className="text-sm sm:text-base lg:text-lg break-words">
+                <p className="text-sm sm:text-base lg:text-lg wrap-break-words">
                   <span className="font-bold">Marca:</span> {equipment.brand}
                 </p>
-                <p className="text-sm sm:text-base lg:text-lg break-words">
+                <p className="text-sm sm:text-base lg:text-lg wrap-break-words">
                   <span className="font-bold">Modelo:</span> {equipment.model}
                 </p>
-                <p className="text-sm sm:text-base break-words">
+                <p className="text-sm sm:text-base wrap-break-words">
                   <span className="font-bold">Número de Série:</span>{" "}
                   {equipment.serialNumber}
                 </p>
-                <p className="text-sm sm:text-base break-words">
+                <p className="text-sm sm:text-base wrap-break-words">
                   <span className="font-bold">Tipo:</span>{" "}
                   <span className="capitalize">{equipment.type}</span>
                 </p>
@@ -181,7 +180,7 @@ export function GymEquipmentDetail({
                 <p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
                   Equipamento em uso por:
                 </p>
-                <p className="text-xl sm:text-2xl font-bold text-duo-blue break-words">
+                <p className="text-xl sm:text-2xl font-bold text-duo-blue wrap-break-words">
                   {equipment.currentUser.studentName}
                 </p>
               </div>
@@ -334,10 +333,10 @@ export function GymEquipmentDetail({
                     <DuoCard variant="default" size="default">
                       <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="font-bold text-duo-text capitalize text-sm sm:text-base break-words">
+                          <p className="font-bold text-duo-text capitalize text-sm sm:text-base wrap-break-words">
                             {record.type}
                           </p>
-                          <p className="text-xs sm:text-sm text-duo-gray-dark break-words">
+                          <p className="text-xs sm:text-sm text-duo-gray-dark wrap-break-words">
                             {record.description}
                           </p>
                           <p className="text-xs text-duo-gray-dark">
@@ -406,7 +405,7 @@ export function GymEquipmentDetail({
                     </span>
                     <span
                       className={cn(
-                        "text-duo-text text-sm sm:text-base break-words",
+                        "text-duo-text text-sm sm:text-base wrap-break-words",
                         info.capitalize && "capitalize"
                       )}
                     >

@@ -220,7 +220,7 @@ export function RangeSlider({
         >
           {/* Filled Track */}
           <motion.div
-            className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-duo-green via-duo-green to-duo-green-dark"
+            className="absolute left-0 top-0 h-full rounded-full bg-linear-to-r from-duo-green via-duo-green to-duo-green-dark"
             initial={{ width: `${percentage}%` }}
             animate={{ width: `${percentage}%` }}
             transition={{ duration: isDragging ? 0 : 0.3, ease: "easeOut" }}
