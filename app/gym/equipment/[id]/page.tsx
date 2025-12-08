@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import EquipmentDetailPage from "./page-content";
 import { getGymEquipmentById } from "../../actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function EquipmentDetailPageWrapper({
   params,
 }: {
