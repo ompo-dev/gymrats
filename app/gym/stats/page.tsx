@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import StatsPage from "./page-content";
 import { getGymStats, getGymEquipment } from "../actions";
 
