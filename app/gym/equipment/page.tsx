@@ -2,8 +2,6 @@ import { Suspense } from "react";
 import GymEquipmentPage from "./page-content";
 import { getGymEquipment } from "../actions";
 
-export const dynamic = "force-dynamic";
-
 export default async function EquipmentPage() {
   const equipment = await getGymEquipment();
 

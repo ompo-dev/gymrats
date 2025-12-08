@@ -8,8 +8,6 @@ import {
   getGymExpenses,
 } from "../actions";
 
-export const dynamic = "force-dynamic";
-
 export default async function FinancialPageWrapper() {
   const [financialSummary, payments, coupons, referrals, expenses] =
     await Promise.all([
