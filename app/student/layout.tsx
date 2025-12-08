@@ -3,7 +3,7 @@ import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import { StudentLayoutContent } from "./layout-content";
 import { getStudentProfile, getStudentProgress } from "./actions";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 async function StudentLayoutWrapper({
   children,

@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { PWARegister } from "./pwa-register";
 import { PWAProtection } from "./pwa-protection";
+import { PerformanceOptimizer } from "../components/performance-optimizer";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -69,6 +70,7 @@ export default function RootLayout({
         className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
+        <PerformanceOptimizer />
         <NuqsAdapter>{children}</NuqsAdapter>
         <PWARegister />
         <PWAProtection />
