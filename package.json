@@ -92,6 +92,8 @@
   },
   "pnpm": {
     "overrides": {
+      "zod": "3.25.76",
+      "better-auth>zod": "3.25.76",
       "better-call>zod": "3.25.76"
     }
   }
