@@ -3,7 +3,7 @@ import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import { GymLayoutContent } from "./layout-content";
 import { getGymProfile } from "./actions";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
   const profile = await getGymProfile();

@@ -14,7 +14,6 @@ const nextConfig = {
           }
         : false,
   },
-  swcMinify: true,
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
