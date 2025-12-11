@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRef, useEffect, useState, useId } from "react";
+import { useRef, useMemo, useState } from "react";
 
 interface Option {
   value: string;
@@ -116,9 +116,20 @@ export function OptionSelector({
   ariaLabel,
   ariaLabelledBy,
 }: OptionSelectorProps) {
-  const id = useId();
-  const groupId = useRef(`option-group-${id.replace(/:/g, "-")}`);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  // Gerar ID estável baseado nos valores das opções, garantindo consistência entre servidor e cliente
+  const stableId = useMemo(() => {
+    const optionsHash = options.map((o) => o.value).join("-");
+    // Usar um hash simples e determinístico
+    let hash = 0;
+    for (let i = 0; i < optionsHash.length; i++) {
+      const char = optionsHash.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `option-group-${Math.abs(hash)}`;
+  }, [options]);
 
   const isSelected = (optionValue: string) => {
     if (multiple) {
@@ -197,10 +208,12 @@ export function OptionSelector({
   const needsAdjustment = longItemIndex !== -1;
 
   if (layout === "list") {
-    const Wrapper = animate ? motion.div : "div";
-    const labelId = label ? `${groupId.current}-label` : undefined;
+    const labelId = label ? `${stableId}-label` : undefined;
+    const staticBoxShadow = (selected: boolean) =>
+      selected ? "0 4px 0 #58A700" : "0 4px 0 #D1D5DB";
+
     return (
-      <div className={cn("space-y-3", className)}>
+      <div className={cn("space-y-3", className)} suppressHydrationWarning>
         {label && (
           <label
             id={labelId}
@@ -209,48 +222,34 @@ export function OptionSelector({
             {label}
           </label>
         )}
-        <Wrapper
-          initial={animate ? { opacity: 0, y: 20 } : undefined}
-          animate={animate ? { opacity: 1, y: 0 } : undefined}
-          transition={animate ? { delay } : undefined}
+        <div
           role={multiple ? "group" : "radiogroup"}
           aria-label={ariaLabel || (label ? undefined : "Opções de seleção")}
           aria-labelledby={ariaLabelledBy || labelId}
           className="space-y-3"
+          suppressHydrationWarning
         >
           {options.map((option, index) => {
             const selected = isSelected(option.value);
-            const optionId = `${groupId.current}-option-${index}`;
+            const optionId = `${stableId}-option-${index}`;
             const descriptionId = option.description
               ? `${optionId}-description`
               : undefined;
 
+            // SEMPRE renderizar TODOS os botões, sem nenhuma condição
+            // Garantir HTML idêntico entre servidor e cliente
             return (
-              <motion.button
-                key={option.value}
-                ref={(el) => {
+              <button
+                key={`${stableId}-${option.value}-${index}`}
+                ref={(el: HTMLButtonElement | null) => {
                   buttonRefs.current[index] = el;
                 }}
                 id={optionId}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{
-                  opacity: 1,
-                  x: 0,
-                  boxShadow: selected ? "0 4px 0 #58A700" : "0 4px 0 #D1D5DB",
-                }}
-                transition={{
-                  delay: index * 0.05,
-                  type: "spring",
-                  boxShadow: { duration: 0, ease: "linear" },
-                }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{
-                  y: 4,
-                  boxShadow: selected ? "0 0px 0 #58A700" : "0 0px 0 #D1D5DB",
-                  transition: { duration: 0.2, ease: "easeInOut" },
-                }}
+                suppressHydrationWarning
                 onClick={() => onChange(option.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) =>
+                  handleKeyDown(e, index)
+                }
                 role={multiple ? "checkbox" : "radio"}
                 aria-checked={selected}
                 aria-selected={selected}
@@ -269,15 +268,12 @@ export function OptionSelector({
                     : "border-gray-300 bg-white hover:border-duo-green/50",
                   sizeClasses[size]
                 )}
+                style={{ boxShadow: staticBoxShadow(selected) }}
               >
                 {showCheck && isSelected(option.value) && (
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-duo-green shadow-lg"
-                  >
+                  <div className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white text-duo-green shadow-lg">
                     <Check className="h-4 w-4" />
-                  </motion.div>
+                  </div>
                 )}
                 {option.emoji || option.icon || option.description ? (
                   <div className="flex items-center gap-3">
@@ -324,10 +320,10 @@ export function OptionSelector({
                     {option.label}
                   </div>
                 )}
-              </motion.button>
+              </button>
             );
           })}
-        </Wrapper>
+        </div>
       </div>
     );
   }
@@ -338,7 +334,7 @@ export function OptionSelector({
   const actualColumns = needsAdjustment ? itemsInFirstRow : columns;
 
   const Wrapper = animate ? motion.div : "div";
-  const labelId = label ? `${groupId.current}-label` : undefined;
+  const labelId = label ? `${stableId}-label` : undefined;
   return (
     <div className={cn("space-y-3", className)}>
       {label && (
@@ -368,7 +364,7 @@ export function OptionSelector({
       >
         {options.map((option, index) => {
           const selected = isSelected(option.value);
-          const optionId = `${groupId.current}-option-${index}`;
+          const optionId = `${stableId}-option-${index}`;
           const descriptionId = option.description
             ? `${optionId}-description`
             : undefined;
@@ -384,6 +380,7 @@ export function OptionSelector({
                   buttonRefs.current[index] = el;
                 }}
                 id={optionId}
+                suppressHydrationWarning
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
                   opacity: 1,

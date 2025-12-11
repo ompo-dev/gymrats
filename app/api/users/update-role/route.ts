@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
+import { initializeStudentTrial, initializeGymTrial } from "@/lib/utils/auto-trial"
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,24 +21,33 @@ export async function POST(request: NextRequest) {
       data: { role },
     })
 
-    // Criar Student ou Gym se necessário
+    // Criar Student ou Gym se necessário e inicializar trial
     if (userType === "student") {
       const existingStudent = await db.student.findUnique({
         where: { userId },
       })
 
+      let student
       if (!existingStudent) {
-        await db.student.create({
+        student = await db.student.create({
           data: { userId },
         })
+      } else {
+        student = existingStudent
+      }
+
+      // Inicializar trial automaticamente para o aluno
+      if (student) {
+        await initializeStudentTrial(student.id)
       }
     } else if (userType === "gym") {
       const existingGym = await db.gym.findUnique({
         where: { userId },
       })
 
+      let gym
       if (!existingGym) {
-        await db.gym.create({
+        gym = await db.gym.create({
           data: {
             userId,
             name: updatedUser.name,
@@ -46,6 +56,13 @@ export async function POST(request: NextRequest) {
             email: updatedUser.email,
           },
         })
+      } else {
+        gym = existingGym
+      }
+
+      // Inicializar trial automaticamente para a academia
+      if (gym) {
+        await initializeGymTrial(gym.id)
       }
     }
 

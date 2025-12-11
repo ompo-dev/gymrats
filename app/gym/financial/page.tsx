@@ -6,16 +6,19 @@ import {
   getGymCoupons,
   getGymReferrals,
   getGymExpenses,
+  getGymSubscription,
+  startGymTrial,
 } from "../actions";
 
 export default async function FinancialPageWrapper() {
-  const [financialSummary, payments, coupons, referrals, expenses] =
+  const [financialSummary, payments, coupons, referrals, expenses, subscription] =
     await Promise.all([
       getGymFinancialSummary(),
       getGymPayments(),
       getGymCoupons(),
       getGymReferrals(),
       getGymExpenses(),
+      getGymSubscription(),
     ]);
 
   return (
@@ -25,6 +28,8 @@ export default async function FinancialPageWrapper() {
       coupons={coupons}
       referrals={referrals}
       expenses={expenses}
+      subscription={subscription}
+      startTrial={startGymTrial}
     />
   );
 }

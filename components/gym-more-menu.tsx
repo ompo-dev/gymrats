@@ -1,10 +1,10 @@
 "use client";
 
-import { BarChart3, Settings, Trophy, LucideIcon } from "lucide-react";
+import { BarChart3, Settings, Trophy, Crown, LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { useQueryState } from "nuqs";
+import { useQueryState, parseAsString } from "nuqs";
 import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
 
 interface MoreMenuItem {
@@ -37,12 +37,27 @@ const moreMenuItems: MoreMenuItem[] = [
     description: "XP, rankings e conquistas",
     color: "duo-yellow",
   },
+  {
+    id: "subscription",
+    icon: Crown,
+    label: "Assinatura",
+    description: "Gerencie sua assinatura",
+    color: "duo-green",
+  },
 ];
 
 export function GymMoreMenu() {
-  const [, setTab] = useQueryState("tab");
+  const [, setTab] = useQueryState("tab", parseAsString);
+  const [, setView] = useQueryState("view", parseAsString.withDefault("overview"));
+  const [, setSubTab] = useQueryState("subTab", parseAsString);
 
   const handleItemClick = async (itemId: string) => {
+    if (itemId === "subscription") {
+      await setTab("financial");
+      await setView("subscription");
+      await setSubTab("subscription");
+      return;
+    }
     await setTab(itemId);
   };
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { Heart, BookOpen, MapPin, Wallet, LucideIcon } from "lucide-react";
+import { Heart, BookOpen, MapPin, Wallet, Crown, LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { useQueryState } from "nuqs";
+import { useQueryState, parseAsString } from "nuqs";
 import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
 
 interface MoreMenuItem {
@@ -12,7 +12,7 @@ interface MoreMenuItem {
   icon: LucideIcon;
   label: string;
   description: string;
-  color: "duo-red" | "duo-green" | "duo-blue" | "duo-purple";
+  color: "duo-red" | "duo-green" | "duo-blue" | "duo-purple" | "duo-yellow";
 }
 
 const moreMenuItems: MoreMenuItem[] = [
@@ -44,12 +44,28 @@ const moreMenuItems: MoreMenuItem[] = [
     description: "Assinaturas e histórico",
     color: "duo-purple",
   },
+  {
+    id: "subscription",
+    icon: Crown,
+    label: "Assinatura Premium",
+    description: "Gerencie sua assinatura",
+    color: "duo-yellow",
+  },
 ];
 
 export function StudentMoreMenu() {
-  const [, setTab] = useQueryState("tab");
+  const [, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
+  const [, setSubTab] = useQueryState(
+    "subTab",
+    parseAsString.withDefault("memberships")
+  );
 
-  const handleItemClick = (itemId: string) => {
+  const handleItemClick = async (itemId: string) => {
+    if (itemId === "subscription") {
+      await setTab("payments");
+      await setSubTab("subscription");
+      return;
+    }
     setTab(itemId);
   };
 

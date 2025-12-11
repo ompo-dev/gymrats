@@ -854,3 +854,133 @@ export async function getGymMembershipPlans() {
     return mockMembershipPlans;
   }
 }
+
+export async function getGymSubscription() {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("auth_token")?.value;
+
+    if (!sessionToken) {
+      return null;
+    }
+
+    const session = await getSession(sessionToken);
+    if (!session || !session.user.gym) {
+      return null;
+    }
+
+    const subscription = await db.gymSubscription.findUnique({
+      where: { gymId: session.user.gym.id },
+    });
+
+    if (!subscription) {
+      return null;
+    }
+
+    const activeStudents = await db.gymMembership.count({
+      where: {
+        gymId: session.user.gym.id,
+        status: "active",
+      },
+    });
+
+    return {
+      id: subscription.id,
+      plan: subscription.plan,
+      status: subscription.status,
+      basePrice: subscription.basePrice,
+      pricePerStudent: subscription.pricePerStudent,
+      currentPeriodStart: subscription.currentPeriodStart,
+      currentPeriodEnd: subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+      canceledAt: subscription.canceledAt,
+      trialStart: subscription.trialStart,
+      trialEnd: subscription.trialEnd,
+      isTrial: subscription.trialEnd
+        ? new Date() < subscription.trialEnd
+        : false,
+      daysRemaining: subscription.trialEnd
+        ? Math.max(
+            0,
+            Math.ceil(
+              (subscription.trialEnd.getTime() - new Date().getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          )
+        : null,
+      activeStudents,
+      billingPeriod: subscription.billingPeriod || "monthly", // Default para monthly se não existir
+      totalAmount:
+        (subscription.billingPeriod || "monthly") === "annual"
+          ? subscription.basePrice // Plano anual: preço fixo, sem cobrança por aluno
+          : subscription.basePrice +
+            subscription.pricePerStudent * activeStudents, // Plano mensal: base + por aluno
+    };
+  } catch (error) {
+    console.error("Erro ao buscar assinatura:", error);
+    return null;
+  }
+}
+
+export async function startGymTrial() {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("auth_token")?.value;
+
+    if (!sessionToken) {
+      return { error: "Não autenticado" };
+    }
+
+    const session = await getSession(sessionToken);
+    if (!session || !session.user.gym) {
+      return { error: "Academia não encontrada" };
+    }
+
+    const existingSubscription = await db.gymSubscription.findUnique({
+      where: { gymId: session.user.gym.id },
+    });
+
+    if (existingSubscription) {
+      return { error: "Assinatura já existe" };
+    }
+
+    const activeStudents = await db.gymMembership.count({
+      where: {
+        gymId: session.user.gym.id,
+        status: "active",
+      },
+    });
+
+    const now = new Date();
+    const trialEnd = new Date(now);
+    trialEnd.setDate(trialEnd.getDate() + 14);
+
+    const planPrices = {
+      basic: { base: 150, perStudent: 1.5 },
+      premium: { base: 250, perStudent: 1 },
+      enterprise: { base: 400, perStudent: 0.5 },
+    };
+
+    const prices = planPrices.basic;
+
+    const subscription = await db.gymSubscription.create({
+      data: {
+        gymId: session.user.gym.id,
+        plan: "basic",
+        billingPeriod: "monthly", // Trial sempre é mensal
+        status: "trialing",
+        basePrice: prices.base,
+        pricePerStudent: prices.perStudent,
+        currentPeriodStart: now,
+        currentPeriodEnd: trialEnd,
+        trialStart: now,
+        trialEnd: trialEnd,
+      },
+    });
+
+    return { success: true, subscription };
+  } catch (error) {
+    console.error("Erro ao iniciar trial:", error);
+    return { error: "Erro ao iniciar trial" };
+  }
+}

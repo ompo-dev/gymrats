@@ -3,16 +3,19 @@ import {
   getStudentUnits,
   getGymLocations,
   getStudentProgress,
+  getStudentSubscription,
 } from "./actions";
 import { getStudentProfileData } from "./profile/actions";
 
 export default async function StudentPage() {
-  const [units, gymLocations, progress, profileData] = await Promise.all([
-    getStudentUnits(),
-    getGymLocations(),
-    getStudentProgress(),
-    getStudentProfileData(),
-  ]);
+  const [units, gymLocations, progress, profileData, subscription] =
+    await Promise.all([
+      getStudentUnits(),
+      getGymLocations(),
+      getStudentProgress(),
+      getStudentProfileData(),
+      getStudentSubscription(),
+    ]);
 
   return (
     <StudentHome
@@ -25,6 +28,7 @@ export default async function StudentPage() {
         todayXP: progress.todayXP,
       }}
       profileData={profileData}
+      subscription={subscription}
     />
   );
 }

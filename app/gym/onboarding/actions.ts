@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/utils/session";
 import { db } from "@/lib/db";
+import { initializeGymTrial } from "@/lib/utils/auto-trial";
 import type { GymOnboardingData } from "./steps/types";
 
 export async function submitGymOnboarding(formData: GymOnboardingData) {
@@ -127,6 +128,9 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
         },
       });
     }
+
+    // Inicializar trial de 14 dias automaticamente
+    await initializeGymTrial(gym.id);
 
     return { success: true };
   } catch (error: any) {

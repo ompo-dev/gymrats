@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 
 import { PersonalizationPage } from "@/app/student/personalization/personalization-page";
@@ -45,6 +45,19 @@ interface StudentHomeContentProps {
     todayXP: number;
   };
   profileData?: ProfileData;
+  subscription?: {
+    id: string;
+    plan: string;
+    status: string;
+    currentPeriodStart: Date;
+    currentPeriodEnd: Date;
+    cancelAtPeriodEnd: boolean;
+    canceledAt: Date | null;
+    trialStart: Date | null;
+    trialEnd: Date | null;
+    isTrial: boolean;
+    daysRemaining: number | null;
+  } | null;
 }
 
 function StudentHomeContent({
@@ -52,7 +65,9 @@ function StudentHomeContent({
   gymLocations,
   initialProgress,
   profileData,
+  subscription,
 }: StudentHomeContentProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [educationView, setEducationView] = useQueryState(
     "view",
@@ -62,6 +77,10 @@ function StudentHomeContent({
   const [exerciseId, setExerciseId] = useQueryState("exercise", parseAsString);
   const [lessonId, setLessonId] = useQueryState("lesson", parseAsString);
   const { dayPasses, addDayPass } = useStudentStore();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const progress = useStudentStore((state) => state.progress);
   const displayProgress = {
@@ -97,10 +116,11 @@ function StudentHomeContent({
   return (
     <motion.div
       key={tab}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={isMounted ? { opacity: 0 } : false}
+      animate={isMounted ? { opacity: 1 } : false}
       transition={{ duration: 0.2 }}
       className="px-4 py-6"
+      suppressHydrationWarning
     >
       {tab === "home" && (
         <div className="mx-auto max-w-2xl space-y-6">
@@ -184,7 +204,18 @@ function StudentHomeContent({
 
       {tab === "diet" && <DietPage />}
 
-      {tab === "payments" && <StudentPaymentsPage />}
+      {tab === "payments" && (
+        <StudentPaymentsPage
+          subscription={subscription}
+          startTrial={async () => {
+            const response = await fetch("/api/subscriptions/start-trial", {
+              method: "POST",
+            });
+            const data = await response.json();
+            return data;
+          }}
+        />
+      )}
 
       {tab === "gyms" && (
         <GymMap
@@ -250,6 +281,7 @@ export default function StudentHome({
   gymLocations,
   initialProgress,
   profileData,
+  subscription,
 }: StudentHomeContentProps) {
   return (
     <Suspense
@@ -264,6 +296,7 @@ export default function StudentHome({
         gymLocations={gymLocations}
         initialProgress={initialProgress}
         profileData={profileData}
+        subscription={subscription}
       />
     </Suspense>
   );

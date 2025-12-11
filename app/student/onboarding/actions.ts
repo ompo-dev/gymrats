@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/utils/session";
 import { db } from "@/lib/db";
+import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import type { OnboardingData } from "./steps/types";
 
 export async function submitOnboarding(formData: OnboardingData) {
@@ -86,6 +87,9 @@ export async function submitOnboarding(formData: OnboardingData) {
         },
       });
     }
+
+    // Inicializar trial de 14 dias automaticamente
+    await initializeStudentTrial(student.id);
 
     return { success: true };
   } catch (error: any) {

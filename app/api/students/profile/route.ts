@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getSession } from "@/lib/utils/session"
+import { initializeStudentTrial } from "@/lib/utils/auto-trial"
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,6 +101,9 @@ export async function POST(request: NextRequest) {
         },
       })
     }
+
+    // Inicializar trial de 14 dias automaticamente
+    await initializeStudentTrial(student.id)
 
     return NextResponse.json({
       success: true,

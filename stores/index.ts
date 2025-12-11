@@ -6,4 +6,5 @@ export { useWorkoutStore } from "./workout-store"
 export { useUIStore } from "./ui-store"
 export { useNutritionStore } from "./nutrition-store"
 export { useEducationStore } from "./education-store"
+export { useSubscriptionStore } from "./subscription-store"
 
