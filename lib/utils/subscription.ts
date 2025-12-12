@@ -90,8 +90,8 @@ export async function createStudentSubscriptionBilling(
   }
 
   const prices = {
-    monthly: 2990, // R$ 29,90 em centavos
-    annual: 29900, // R$ 299,00 em centavos
+    monthly: 1500, // R$ 15,00 em centavos
+    annual: 15000, // R$ 150,00 em centavos
   };
 
   const billingData: CreateBillingRequest = {

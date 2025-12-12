@@ -603,14 +603,30 @@ export function SubscriptionSection({
             </div>
 
             {/* Plan Cards */}
-            {plans.length > 1 && (
-              <div className="grid grid-cols-3 gap-3">
+            {plans.length > 0 && (
+              <div
+                className={cn(
+                  "grid gap-3",
+                  // Para gym com 3 planos: 2 colunas (basic/premium na primeira linha, enterprise na segunda)
+                  userType === "gym" && plans.length === 3
+                    ? "grid-cols-2"
+                    : plans.length === 1
+                    ? "grid-cols-1"
+                    : "grid-cols-3"
+                )}
+              >
                 {plans.map((plan) => {
                   const isSelected = selectedPlan === plan.id;
                   const planPrice =
                     selectedBillingPeriod === "annual"
                       ? plan.annualPrice
                       : plan.monthlyPrice;
+
+                  // Para gym com 3 planos, enterprise ocupa 2 colunas
+                  const isEnterprise =
+                    userType === "gym" && plan.id === "enterprise";
+                  const shouldSpanFullWidth =
+                    isEnterprise && plans.length === 3;
 
                   return (
                     <DuoCard
@@ -621,7 +637,8 @@ export function SubscriptionSection({
                         "cursor-pointer transition-all relative text-left",
                         isSelected
                           ? "border-duo-green bg-duo-green/10"
-                          : "hover:border-duo-green/50"
+                          : "hover:border-duo-green/50",
+                        shouldSpanFullWidth && "col-span-2"
                       )}
                       onClick={() => setSelectedPlan(plan.id)}
                     >
@@ -630,34 +647,87 @@ export function SubscriptionSection({
                           Popular
                         </span>
                       )}
-                      <div className="mb-2 text-lg font-bold text-duo-text capitalize">
-                        {plan.name}
-                      </div>
-                      <div className="mb-1 text-2xl font-bold text-duo-green">
-                        R$ {Math.round(planPrice).toLocaleString("pt-BR")}
-                      </div>
-                      {selectedBillingPeriod === "annual" ? (
-                        <div className="text-xs text-duo-gray-dark">
-                          Preço fixo anual
+                      {isEnterprise && shouldSpanFullWidth ? (
+                        // Layout especial para Enterprise (2 colunas)
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="mb-2 text-xl font-bold text-duo-text capitalize">
+                              {plan.name}
+                            </div>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <div className="text-3xl font-bold text-duo-green whitespace-nowrap">
+                                R${" "}
+                                {Math.round(planPrice).toLocaleString("pt-BR")}
+                              </div>
+                              <div className="text-sm text-duo-gray-dark whitespace-nowrap">
+                                {selectedBillingPeriod === "annual" ? (
+                                  <span>Preço fixo anual</span>
+                                ) : (
+                                  <span>{finalTexts.perMonth}</span>
+                                )}
+                              </div>
+                              {selectedBillingPeriod === "monthly" &&
+                                userType === "gym" &&
+                                plan.perStudentPrice !== undefined && (
+                                  <div className="text-sm text-duo-gray-dark whitespace-nowrap">
+                                    + R${" "}
+                                    {plan.perStudentPrice.toLocaleString(
+                                      "pt-BR",
+                                      {
+                                        minimumFractionDigits:
+                                          plan.perStudentPrice % 1 === 0
+                                            ? 0
+                                            : 2,
+                                        maximumFractionDigits: 2,
+                                      }
+                                    )}
+                                    /aluno
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                          {isEnterprise && (
+                            <div className="shrink-0">
+                              <span className="inline-flex items-center gap-1 rounded-full bg-duo-green/20 px-3 py-1 text-sm font-semibold text-duo-green">
+                                <Crown className="h-4 w-4" />
+                                Melhor escolha
+                              </span>
+                            </div>
+                          )}
                         </div>
                       ) : (
-                        <div className="text-xs text-duo-gray-dark">
-                          {finalTexts.perMonth}
-                        </div>
-                      )}
-                      {selectedBillingPeriod === "monthly" &&
-                        userType === "gym" &&
-                        plan.perStudentPrice !== undefined && (
-                          <div className="mt-1 text-xs text-duo-gray-dark">
-                            + R${" "}
-                            {plan.perStudentPrice.toLocaleString("pt-BR", {
-                              minimumFractionDigits:
-                                plan.perStudentPrice % 1 === 0 ? 0 : 2,
-                              maximumFractionDigits: 2,
-                            })}
-                            /aluno
+                        // Layout padrão para outros planos
+                        <>
+                          <div className="mb-2 text-lg font-bold text-duo-text capitalize">
+                            {plan.name}
                           </div>
-                        )}
+                          <div className="mb-1 text-2xl font-bold text-duo-green">
+                            R$ {Math.round(planPrice).toLocaleString("pt-BR")}
+                          </div>
+                          {selectedBillingPeriod === "annual" ? (
+                            <div className="text-xs text-duo-gray-dark">
+                              Preço fixo anual
+                            </div>
+                          ) : (
+                            <div className="text-xs text-duo-gray-dark">
+                              {finalTexts.perMonth}
+                            </div>
+                          )}
+                          {selectedBillingPeriod === "monthly" &&
+                            userType === "gym" &&
+                            plan.perStudentPrice !== undefined && (
+                              <div className="mt-1 text-xs text-duo-gray-dark">
+                                + R${" "}
+                                {plan.perStudentPrice.toLocaleString("pt-BR", {
+                                  minimumFractionDigits:
+                                    plan.perStudentPrice % 1 === 0 ? 0 : 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                                /aluno
+                              </div>
+                            )}
+                        </>
+                      )}
                     </DuoCard>
                   );
                 })}

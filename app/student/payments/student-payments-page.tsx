@@ -564,8 +564,8 @@ export function StudentPaymentsPage({
             {
               id: "premium",
               name: "Premium",
-              monthlyPrice: 29.9,
-              annualPrice: 299.0,
+              monthlyPrice: 15,
+              annualPrice: 150.0,
               features: [
                 "Gerador de treinos com IA",
                 "Gerador de dietas com IA",
