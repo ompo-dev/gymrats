@@ -13,7 +13,40 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session?.user?.gym) {
+    if (!session) {
+      return NextResponse.json(
+        { error: "Sessão inválida" },
+        { status: 401 }
+      );
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de gym
+    let gymId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingGym) {
+        const newGym = await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        });
+        gymId = newGym.id;
+      } else {
+        gymId = existingGym.id;
+      }
+    } else if (session.user.gym?.id) {
+      gymId = session.user.gym.id;
+    }
+
+    if (!gymId) {
       return NextResponse.json(
         { error: "Academia não encontrada" },
         { status: 404 }
@@ -21,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     const subscription = await db.gymSubscription.findUnique({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     if (!subscription) {

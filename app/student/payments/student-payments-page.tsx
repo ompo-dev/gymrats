@@ -28,6 +28,7 @@ import {
   mockPaymentMethods,
 } from "@/lib/mock-data";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
@@ -69,6 +70,7 @@ export function StudentPaymentsPage({
   subscription: initialSubscription,
   startTrial,
 }: StudentPaymentsPageProps = {}) {
+  const { toast } = useToast();
   const [subTab, setSubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("memberships")
@@ -107,34 +109,19 @@ export function StudentPaymentsPage({
     }
   }, [subTab]);
 
-  // SEMPRE priorizar store quando há update otimista ativo (id === "temp-trial-id")
-  // Isso garante que o update otimista seja refletido instantaneamente
   const hasOptimisticUpdate = storeSubscription?.id === "temp-trial-id";
 
-  // Se há update otimista, SEMPRE usar o store (prioridade absoluta para mudança instantânea)
-  // Caso contrário, usar subscriptionData se disponível e não null, senão store, senão initialSubscription
-  let subscription: SubscriptionData | null = null;
-
-  if (hasOptimisticUpdate) {
-    // Update otimista tem prioridade absoluta - mudança instantânea
-    subscription = storeSubscription;
-  } else if (subscriptionData !== undefined) {
-    // Dados do React Query (pode ser null ou SubscriptionData)
-    subscription = subscriptionData as SubscriptionData | null;
-  } else {
-    // Fallback: store, initialSubscription ou null
-    subscription =
-      storeSubscription ||
-      (initialSubscription as SubscriptionData | null) ||
-      null;
-  }
-
-  // Sincronizar store quando subscriptionData mudar
-  useEffect(() => {
-    if (subscriptionData !== undefined) {
-      setStoreSubscription(subscriptionData as SubscriptionData | null);
-    }
-  }, [subscriptionData, setStoreSubscription]);
+  const subscription: SubscriptionData | null = hasOptimisticUpdate
+    ? storeSubscription
+    : subscriptionData !== undefined && subscriptionData !== null
+    ? subscriptionData
+    : storeSubscription !== null
+    ? storeSubscription
+    : subscriptionData === null && initialSubscription
+    ? initialSubscription
+    : subscriptionData === null
+    ? null
+    : initialSubscription || null;
 
   // Atualizar daysRemaining quando subscription mudar
   useEffect(() => {
@@ -192,22 +179,38 @@ export function StudentPaymentsPage({
       const result = await startTrialHook();
 
       if (result.error) {
-        alert(result.error);
+        if (result.error.includes("já existe")) {
+          await refetchSubscription();
+          setActiveTab("subscription");
+          setSubTab("subscription");
+          toast({
+            title: "Assinatura encontrada",
+            description: "Você já possui uma assinatura ativa.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Erro ao iniciar trial",
+            description: result.error,
+          });
+        }
         return;
       }
 
       if (result.success) {
-        // Aguardar um pouco para garantir que a invalidação e refetch do hook completem
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        // Refetch adicional para garantir sincronização
-        await refetchSubscription();
-        // Atualizar a aba para mostrar a subscription
         setActiveTab("subscription");
         setSubTab("subscription");
+        toast({
+          title: "Trial iniciado",
+          description: "Seu trial de 14 dias foi iniciado com sucesso!",
+        });
       }
     } catch (error: any) {
-      console.error("Erro ao iniciar trial:", error);
-      alert(error.message || "Erro ao iniciar trial. Tente novamente.");
+      toast({
+        variant: "destructive",
+        title: "Erro ao iniciar trial",
+        description: error.message || "Erro ao iniciar trial. Tente novamente.",
+      });
     }
   };
 
@@ -219,7 +222,11 @@ export function StudentPaymentsPage({
       const result = await createSubscription(billingPeriod);
 
       if (result.error) {
-        alert(result.error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao criar assinatura",
+          description: result.error,
+        });
         return;
       }
 
@@ -227,7 +234,11 @@ export function StudentPaymentsPage({
         window.location.href = result.billingUrl;
       }
     } catch (error: any) {
-      alert(error.message || "Erro ao criar cobrança");
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar cobrança",
+        description: error.message || "Erro ao criar cobrança",
+      });
     }
   };
 
@@ -237,15 +248,29 @@ export function StudentPaymentsPage({
 
   const handleCancelConfirm = async () => {
     setShowCancelDialog(false);
-    // O hook já faz o update otimista no Zustand antes de chamar o backend
+    // O hook já faz o update otimista no Zustand e React Query antes de chamar o backend
+    // A UI já está atualizada instantaneamente
     try {
       const result = await cancelSubscription();
       if (!result.success && result.error) {
-        alert(result.error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao cancelar",
+          description: result.error,
+        });
+      } else {
+        toast({
+          title: "Assinatura cancelada",
+          description: "Sua assinatura foi cancelada com sucesso.",
+        });
       }
       // O hook já invalida e refetch automaticamente no onSuccess
     } catch (error: any) {
-      alert(error.message || "Erro ao cancelar assinatura");
+      toast({
+        variant: "destructive",
+        title: "Erro ao cancelar assinatura",
+        description: error.message || "Erro ao cancelar assinatura",
+      });
     }
   };
 
@@ -551,7 +576,7 @@ export function StudentPaymentsPage({
               ],
             },
           ]}
-          showPlansWhen="no-subscription"
+          showPlansWhen="always"
         />
       )}
 

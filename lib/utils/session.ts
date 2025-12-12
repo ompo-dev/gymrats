@@ -51,6 +51,67 @@ export async function getSession(sessionToken: string) {
     return null
   }
 
+  // Se for ADMIN, garantir que tenha acesso a ambos os perfis
+  if (session.user.role === "ADMIN") {
+    // Verificar e criar perfil de gym se não existir
+    if (!session.user.gym) {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      })
+      
+      if (!existingGym) {
+        await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        })
+      }
+    }
+
+    // Verificar e criar perfil de student se não existir
+    if (!session.user.student) {
+      const existingStudent = await db.student.findUnique({
+        where: { userId: session.user.id },
+      })
+      
+      if (!existingStudent) {
+        await db.student.create({
+          data: {
+            userId: session.user.id,
+          },
+        })
+      }
+    }
+
+    // Recarregar a sessão com os perfis criados
+    const updatedSession = await db.session.findUnique({
+      where: { sessionToken },
+      include: {
+        user: {
+          include: {
+            student: {
+              select: {
+                id: true,
+              },
+            },
+            gym: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    return updatedSession
+  }
+
   return session
 }
 

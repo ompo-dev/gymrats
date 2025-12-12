@@ -13,7 +13,35 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session?.user?.student) {
+    if (!session) {
+      return NextResponse.json(
+        { error: "Sessão inválida" },
+        { status: 401 }
+      );
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de student
+    let studentId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingStudent = await db.student.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingStudent) {
+        const newStudent = await db.student.create({
+          data: {
+            userId: session.user.id,
+          },
+        });
+        studentId = newStudent.id;
+      } else {
+        studentId = existingStudent.id;
+      }
+    } else if (session.user.student?.id) {
+      studentId = session.user.student.id;
+    }
+
+    if (!studentId) {
       return NextResponse.json(
         { error: "Aluno não encontrado" },
         { status: 404 }
@@ -21,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const subscription = await db.subscription.findUnique({
-      where: { studentId: session.user.student.id },
+      where: { studentId },
     });
 
     if (!subscription) {

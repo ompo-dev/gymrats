@@ -21,8 +21,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Sessão inválida ou expirada" }, { status: 401 })
     }
 
-    let userType: "student" | "gym" | null = null
-    if (session.user.role === "STUDENT" || session.user.student) {
+    let userType: "student" | "gym" | "admin" | null = null
+    if (session.user.role === "ADMIN") {
+      userType = "admin"
+    } else if (session.user.role === "STUDENT" || session.user.student) {
       userType = "student"
     } else if (session.user.role === "GYM" || session.user.gym) {
       userType = "gym"
@@ -35,6 +37,8 @@ export async function GET(request: NextRequest) {
         name: session.user.name,
         userType,
         role: session.user.role,
+        hasGym: !!session.user.gym,
+        hasStudent: !!session.user.student,
       },
       session: {
         id: session.id,

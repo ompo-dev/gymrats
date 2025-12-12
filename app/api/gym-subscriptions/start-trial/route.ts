@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, subscription: result.subscription });
   } catch (error: any) {
     console.error("Erro ao iniciar trial:", error);
     return NextResponse.json(

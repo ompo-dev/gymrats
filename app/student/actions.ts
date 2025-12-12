@@ -128,26 +128,61 @@ export async function getStudentSubscription() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.student) {
+    if (!session) {
+      return null;
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de student
+    let studentId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingStudent = await db.student.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingStudent) {
+        const newStudent = await db.student.create({
+          data: {
+            userId: session.user.id,
+          },
+        });
+        studentId = newStudent.id;
+      } else {
+        studentId = existingStudent.id;
+      }
+    } else if (session.user.student?.id) {
+      studentId = session.user.student.id;
+    }
+
+    if (!studentId) {
       return null;
     }
 
     const subscription = await db.subscription.findUnique({
-      where: { studentId: session.user.student.id },
+      where: { studentId },
     });
 
     if (!subscription) {
+      console.log(`[getStudentSubscription] Nenhuma subscription encontrada para studentId: ${studentId}`);
       return null;
     }
 
-    // Se a subscription está cancelada, retornar null para permitir assinar novamente
-    if (subscription.status === "canceled") {
-      return null;
-    }
+    console.log(`[getStudentSubscription] Subscription encontrada:`, {
+      id: subscription.id,
+      status: subscription.status,
+      plan: subscription.plan,
+      trialEnd: subscription.trialEnd,
+    });
 
     const now = new Date();
     const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
     const isTrialActive = trialEndDate ? trialEndDate > now : false;
+
+    // Se a subscription está cancelada mas o trial ainda está ativo, retornar os dados
+    // Só retornar null se estiver cancelada E não houver trial ativo
+    if (subscription.status === "canceled" && !isTrialActive) {
+      console.log(`[getStudentSubscription] Subscription cancelada e trial expirado, retornando null`);
+      return null;
+    }
     const daysRemaining = trialEndDate
       ? Math.max(
           0,
@@ -184,20 +219,76 @@ export async function startStudentTrial() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.student) {
+    if (!session) {
+      return { error: "Sessão inválida" };
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de student
+    let studentId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingStudent = await db.student.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingStudent) {
+        const newStudent = await db.student.create({
+          data: {
+            userId: session.user.id,
+          },
+        });
+        studentId = newStudent.id;
+      } else {
+        studentId = existingStudent.id;
+      }
+    } else if (session.user.student?.id) {
+      studentId = session.user.student.id;
+    }
+
+    if (!studentId) {
       return { error: "Aluno não encontrado" };
     }
 
     const existingSubscription = await db.subscription.findUnique({
-      where: { studentId: session.user.student.id },
+      where: { studentId },
     });
 
     if (existingSubscription) {
-      // Se já existe trial ativo, retornar sucesso com a assinatura existente
-      if (existingSubscription.trialEnd && new Date(existingSubscription.trialEnd) > new Date()) {
+      const now = new Date();
+      const trialEndDate = existingSubscription.trialEnd ? new Date(existingSubscription.trialEnd) : null;
+      const isTrialActive = trialEndDate ? trialEndDate > now : false;
+      
+      // Se está cancelada e o trial expirou, permitir criar nova
+      if (existingSubscription.status === "canceled" && !isTrialActive) {
+        // Deletar a subscription cancelada para permitir criar nova
+        await db.subscription.delete({
+          where: { id: existingSubscription.id },
+        });
+      } else if (existingSubscription.status === "canceled" && isTrialActive) {
+        // Se está cancelada mas trial ainda ativo, reativar
+        const trialEnd = new Date(now);
+        trialEnd.setDate(trialEnd.getDate() + 14);
+        
+        const updatedSubscription = await db.subscription.update({
+          where: { id: existingSubscription.id },
+          data: {
+            status: "trialing",
+            canceledAt: null,
+            cancelAtPeriodEnd: false,
+            trialStart: now,
+            trialEnd: trialEnd,
+            currentPeriodStart: now,
+            currentPeriodEnd: trialEnd,
+          },
+        });
+        
+        return { success: true, subscription: updatedSubscription };
+      } else if (isTrialActive) {
+        // Se já existe trial ativo, retornar sucesso com a assinatura existente
         return { success: true, subscription: existingSubscription };
+      } else {
+        // Se já existe e está ativa, retornar erro
+        return { error: "Você já possui uma assinatura. Gerencie sua assinatura na página de pagamentos." };
       }
-      return { error: "Você já possui uma assinatura. Gerencie sua assinatura na página de pagamentos." };
     }
 
     const now = new Date();
@@ -206,7 +297,7 @@ export async function startStudentTrial() {
 
     const subscription = await db.subscription.create({
       data: {
-        studentId: session.user.student.id,
+        studentId,
         plan: "premium",
         status: "trialing",
         currentPeriodStart: now,

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { WorkoutModal } from "@/components/workout-modal";
 import { AppLayout, TabConfig } from "@/components/app-layout";
 import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
@@ -28,8 +29,15 @@ export function StudentLayoutContent({
   hasProfile,
   initialProgress,
 }: StudentLayoutContentProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Aguardar montagem no cliente antes de usar useQueryState
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
 
   const isOnboarding = pathname.includes("/onboarding");
@@ -41,6 +49,18 @@ export function StudentLayoutContent({
     { id: "profile", icon: User, label: "Perfil" },
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
+
+  // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
+  if (!isMounted) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="mb-4 text-4xl">💪</div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isOnboarding) {
     return <>{children}</>;

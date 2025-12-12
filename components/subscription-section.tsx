@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 export interface SubscriptionPlan {
   id: string;
@@ -116,6 +117,7 @@ export function SubscriptionSection({
   showPlansWhen = "no-subscription",
   trialEndingDays = 3,
 }: SubscriptionSectionProps) {
+  const { toast } = useToast();
   const [selectedPlan, setSelectedPlan] = useState<string>(
     plans.find((p) => p.id === "premium")?.id || plans[0]?.id || ""
   );
@@ -158,40 +160,35 @@ export function SubscriptionSection({
 
   const finalTexts = { ...defaultTexts, ...texts };
 
-  const isLoadingState =
-    isLoading ||
-    isStartingTrial ||
-    isCreatingSubscription ||
-    isCancelingSubscription;
+  const isLoadingState = isLoading || isStartingTrial || isCreatingSubscription;
 
   const hasTrial =
     subscription?.trialEnd && new Date(subscription.trialEnd) > new Date();
+  const isCanceled = subscription?.status === "canceled";
+  // Para student: trial é sempre premium. Para gym: pode ser basic, premium ou enterprise
   const isTrialActive =
-    subscription &&
-    subscription.plan === "premium" &&
-    (subscription.status === "trialing" || hasTrial);
+    subscription && (subscription.status === "trialing" || hasTrial);
   const isPremiumActive =
-    subscription?.plan === "premium" &&
-    subscription.status === "active" &&
-    !hasTrial;
-  const hasNoSubscription = !isLoading && !isStartingTrial && !subscription;
+    subscription && subscription.status === "active" && !hasTrial;
+  const isCanceledAndTrialExpired = isCanceled && !hasTrial;
+  const hasNoSubscription =
+    (!isLoading && !isStartingTrial && !subscription) ||
+    isCanceledAndTrialExpired;
 
   const daysRemaining = subscription?.daysRemaining ?? null;
   const isTrialEnding =
     isTrialActive && daysRemaining !== null && daysRemaining <= trialEndingDays;
 
   // Determinar quando mostrar os planos
-  // IMPORTANTE: Não mostrar planos quando trial está ativo (a menos que seja explicitamente solicitado)
+  // SEMPRE mostrar planos quando há subscription (para permitir upgrade/downgrade)
+  // OU quando não há subscription (para permitir assinar)
   const shouldShowPlans = (() => {
-    // Se há trial ativo e não é para mostrar durante trial, não mostrar
-    if (
-      isTrialActive &&
-      showPlansWhen !== "trial-active" &&
-      showPlansWhen !== "trial-ending"
-    ) {
-      return false;
+    // Se há subscription (ativa, trial ou cancelada), sempre mostrar planos
+    if (subscription) {
+      return true;
     }
 
+    // Se não há subscription, mostrar baseado na configuração
     switch (showPlansWhen) {
       case "always":
         return true;
@@ -239,7 +236,11 @@ export function SubscriptionSection({
       (paymentMethod === "credit-card" || paymentMethod === "debit-card") &&
       (!cardData.number || !cardData.name || !cardData.expiry || !cardData.cvv)
     ) {
-      alert("Por favor, preencha todos os dados do cartão");
+      toast({
+        variant: "destructive",
+        title: "Dados incompletos",
+        description: "Por favor, preencha todos os dados do cartão",
+      });
       return;
     }
 
@@ -318,17 +319,23 @@ export function SubscriptionSection({
                 <div
                   className={cn(
                     "h-12 w-12 rounded-xl flex items-center justify-center",
-                    isTrialActive
+                    isCanceled && hasTrial
+                      ? "bg-duo-orange/20"
+                      : isTrialActive
                       ? "bg-duo-blue/20"
                       : isPremiumActive
                       ? "bg-duo-green/20"
+                      : isCanceled
+                      ? "bg-gray-200"
                       : "bg-gray-200"
                   )}
                 >
                   <Crown
                     className={cn(
                       "h-6 w-6",
-                      isTrialActive
+                      isCanceled && hasTrial
+                        ? "text-duo-orange"
+                        : isTrialActive
                         ? "text-duo-blue"
                         : isPremiumActive
                         ? "text-duo-green"
@@ -341,10 +348,14 @@ export function SubscriptionSection({
                     {subscription.plan}
                   </h3>
                   <p className="text-xs text-duo-gray-dark">
-                    {isTrialActive
+                    {isCanceled && hasTrial
+                      ? "Cancelada (Trial Ativo)"
+                      : isTrialActive
                       ? "Trial Ativo"
                       : isPremiumActive
                       ? "Ativo"
+                      : isCanceled
+                      ? "Cancelada"
                       : "Sem assinatura"}
                   </p>
                 </div>
@@ -352,17 +363,25 @@ export function SubscriptionSection({
               <span
                 className={cn(
                   "px-3 py-1 rounded-lg text-xs font-bold",
-                  isTrialActive
+                  isCanceled && hasTrial
+                    ? "bg-duo-orange/20 text-duo-orange"
+                    : isTrialActive
                     ? "bg-duo-blue/20 text-duo-blue"
                     : isPremiumActive
                     ? "bg-duo-green/20 text-duo-green"
+                    : isCanceled
+                    ? "bg-gray-200 text-gray-600"
                     : "bg-gray-200 text-gray-600"
                 )}
               >
-                {isTrialActive
+                {isCanceled && hasTrial
+                  ? "Cancelada"
+                  : isTrialActive
                   ? "Trial Ativo"
                   : isPremiumActive
                   ? "Ativo"
+                  : isCanceled
+                  ? "Cancelada"
                   : "Free"}
               </span>
             </div>
@@ -370,13 +389,29 @@ export function SubscriptionSection({
             {/* Trial Info */}
             {hasTrial && (
               <>
-                <DuoCard variant="blue" size="default">
+                <DuoCard
+                  variant={isCanceled ? "default" : "blue"}
+                  size="default"
+                >
                   <div className="flex items-center gap-3">
-                    <Gift className="h-8 w-8 text-duo-blue" />
+                    <Gift
+                      className={cn(
+                        "h-8 w-8",
+                        isCanceled ? "text-duo-orange" : "text-duo-blue"
+                      )}
+                    />
                     <div className="flex-1">
                       <h3 className="font-bold text-duo-text">
-                        Trial Gratuito Ativo
+                        {isCanceled
+                          ? "Trial Ativo (Cancelada)"
+                          : "Trial Gratuito Ativo"}
                       </h3>
+                      {isCanceled && (
+                        <p className="text-xs text-duo-orange mt-1 font-bold">
+                          Sua assinatura foi cancelada, mas você ainda pode usar
+                          o trial até o fim do período.
+                        </p>
+                      )}
                       <div className="mt-2 flex items-baseline gap-2">
                         <span className="text-3xl font-black text-duo-blue">
                           {daysRemaining !== null
@@ -422,17 +457,25 @@ export function SubscriptionSection({
                 </DuoCard>
 
                 <div className="pt-3 border-t-2 border-duo-border">
-                  <Button
-                    onClick={onCancel}
-                    variant="outline"
-                    className="w-full"
-                    size="sm"
-                    disabled={isCancelingSubscription}
-                  >
-                    {isCancelingSubscription
-                      ? "Cancelando..."
-                      : finalTexts.cancelTrialButton}
-                  </Button>
+                  {isCanceled ? (
+                    <Button
+                      onClick={onStartTrial}
+                      disabled={isLoadingState}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isLoadingState ? "Reativando..." : "Reativar Trial"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={onCancel}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      {finalTexts.cancelTrialButton}
+                    </Button>
+                  )}
                 </div>
               </>
             )}
@@ -473,17 +516,27 @@ export function SubscriptionSection({
                     )}
                   </span>
                 </div>
-                <Button
-                  onClick={onCancel}
-                  variant="outline"
-                  className="w-full mt-3"
-                  size="sm"
-                  disabled={isCancelingSubscription}
-                >
-                  {isCancelingSubscription
-                    ? "Cancelando..."
-                    : finalTexts.cancelSubscriptionButton}
-                </Button>
+                <div className="mt-3">
+                  {isCanceled ? (
+                    <Button
+                      onClick={onStartTrial}
+                      disabled={isLoadingState}
+                      className="w-full"
+                      size="sm"
+                    >
+                      {isLoadingState ? "Reativando..." : "Reativar Assinatura"}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={onCancel}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      {finalTexts.cancelSubscriptionButton}
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -836,7 +889,10 @@ export function SubscriptionSection({
                   disabled={!couponCode.trim()}
                   onClick={() => {
                     // TODO: Validar cupom
-                    alert("Cupom aplicado com sucesso!");
+                    toast({
+                      title: "Cupom aplicado",
+                      description: "Cupom aplicado com sucesso!",
+                    });
                   }}
                 >
                   Aplicar

@@ -40,12 +40,42 @@ export async function getGymProfile() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockGymProfile;
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de gym
+    let gymId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingGym) {
+        const newGym = await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        });
+        gymId = newGym.id;
+      } else {
+        gymId = existingGym.id;
+      }
+    } else if (session.user.gym?.id) {
+      gymId = session.user.gym.id;
+    }
+
+    if (!gymId) {
       return mockGymProfile;
     }
 
     const gym = await db.gym.findUnique({
-      where: { id: session.user.gym.id },
+      where: { id: gymId },
       include: {
         profile: true,
       },
@@ -865,21 +895,70 @@ export async function getGymSubscription() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return null;
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de gym
+    let gymId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingGym) {
+        const newGym = await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        });
+        gymId = newGym.id;
+      } else {
+        gymId = existingGym.id;
+      }
+    } else if (session.user.gym?.id) {
+      gymId = session.user.gym.id;
+    }
+
+    if (!gymId) {
       return null;
     }
 
     const subscription = await db.gymSubscription.findUnique({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     if (!subscription) {
+      console.log(`[getGymSubscription] Nenhuma subscription encontrada para gymId: ${gymId}`);
+      return null;
+    }
+
+    console.log(`[getGymSubscription] Subscription encontrada:`, {
+      id: subscription.id,
+      status: subscription.status,
+      plan: subscription.plan,
+      trialEnd: subscription.trialEnd,
+    });
+
+    const now = new Date();
+    const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    const isTrialActive = trialEndDate ? trialEndDate > now : false;
+
+    // Se a subscription está cancelada mas o trial ainda está ativo, retornar os dados
+    // Só retornar null se estiver cancelada E não houver trial ativo
+    if (subscription.status === "canceled" && !isTrialActive) {
+      console.log(`[getGymSubscription] Subscription cancelada e trial expirado, retornando null`);
       return null;
     }
 
     const activeStudents = await db.gymMembership.count({
       where: {
-        gymId: session.user.gym.id,
+        gymId,
         status: "active",
       },
     });
@@ -932,21 +1011,83 @@ export async function startGymTrial() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return { error: "Sessão inválida" };
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de gym
+    let gymId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingGym) {
+        const newGym = await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        });
+        gymId = newGym.id;
+      } else {
+        gymId = existingGym.id;
+      }
+    } else if (session.user.gym?.id) {
+      gymId = session.user.gym.id;
+    }
+
+    if (!gymId) {
       return { error: "Academia não encontrada" };
     }
 
     const existingSubscription = await db.gymSubscription.findUnique({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     if (existingSubscription) {
-      return { error: "Assinatura já existe" };
+      const now = new Date();
+      const trialEndDate = existingSubscription.trialEnd ? new Date(existingSubscription.trialEnd) : null;
+      const isTrialActive = trialEndDate ? trialEndDate > now : false;
+      
+      // Se está cancelada e o trial expirou, permitir criar nova
+      if (existingSubscription.status === "canceled" && !isTrialActive) {
+        // Deletar a subscription cancelada para permitir criar nova
+        await db.gymSubscription.delete({
+          where: { id: existingSubscription.id },
+        });
+      } else if (existingSubscription.status === "canceled" && isTrialActive) {
+        // Se está cancelada mas trial ainda ativo, reativar
+        const trialEnd = new Date(now);
+        trialEnd.setDate(trialEnd.getDate() + 14);
+        
+        const updatedSubscription = await db.gymSubscription.update({
+          where: { id: existingSubscription.id },
+          data: {
+            status: "trialing",
+            canceledAt: null,
+            cancelAtPeriodEnd: false,
+            trialStart: now,
+            trialEnd: trialEnd,
+            currentPeriodStart: now,
+            currentPeriodEnd: trialEnd,
+          },
+        });
+        
+        return { success: true, subscription: updatedSubscription };
+      } else {
+        // Se já existe e está ativa, retornar erro
+        return { error: "Assinatura já existe" };
+      }
     }
 
     const activeStudents = await db.gymMembership.count({
       where: {
-        gymId: session.user.gym.id,
+        gymId,
         status: "active",
       },
     });
@@ -965,7 +1106,7 @@ export async function startGymTrial() {
 
     const subscription = await db.gymSubscription.create({
       data: {
-        gymId: session.user.gym.id,
+        gymId,
         plan: "basic",
         billingPeriod: "monthly", // Trial sempre é mensal
         status: "trialing",

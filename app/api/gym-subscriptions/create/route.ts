@@ -14,7 +14,40 @@ export async function POST(request: NextRequest) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session?.user?.gym) {
+    if (!session) {
+      return NextResponse.json(
+        { error: "Sessão inválida" },
+        { status: 401 }
+      );
+    }
+
+    // Se for ADMIN, garantir que tenha perfil de gym
+    let gymId: string | null = null;
+    if (session.user.role === "ADMIN") {
+      const existingGym = await db.gym.findUnique({
+        where: { userId: session.user.id },
+      });
+      
+      if (!existingGym) {
+        const newGym = await db.gym.create({
+          data: {
+            userId: session.user.id,
+            name: session.user.name,
+            address: "",
+            phone: "",
+            email: session.user.email,
+            plan: "basic",
+          },
+        });
+        gymId = newGym.id;
+      } else {
+        gymId = existingGym.id;
+      }
+    } else if (session.user.gym?.id) {
+      gymId = session.user.gym.id;
+    }
+
+    if (!gymId) {
       return NextResponse.json(
         { error: "Academia não encontrada" },
         { status: 404 }
@@ -42,17 +75,69 @@ export async function POST(request: NextRequest) {
 
     const activeStudents = await db.gymMembership.count({
       where: {
-        gymId: session.user.gym.id,
+        gymId,
         status: "active",
       },
     });
 
+    // Verificar se existe subscription com trial ativo
+    const existingSubscription = await db.gymSubscription.findUnique({
+      where: { gymId },
+    });
+
+    const now = new Date();
+    const planPrices = {
+      basic: { base: 150, perStudent: 1.5 },
+      premium: { base: 250, perStudent: 1 },
+      enterprise: { base: 400, perStudent: 0.5 },
+    };
+    const prices = planPrices[plan];
+    
+    // Calcular período
+    const periodEnd = new Date(now);
+    if (billingPeriod === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
+
+    // Se existe subscription com trial, atualizar para desativar trial
+    if (existingSubscription) {
+      await db.gymSubscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          plan,
+          billingPeriod,
+          status: "active", // Mudar para active (o webhook vai confirmar quando pagar)
+          basePrice: prices.base,
+          pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          // Desativar trial
+          trialStart: null,
+          trialEnd: null,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+    }
+
     const billing = await createGymSubscriptionBilling(
-      session.user.gym.id,
+      gymId,
       plan,
       activeStudents,
       billingPeriod
     );
+
+    // Atualizar subscription com billingId
+    if (existingSubscription) {
+      await db.gymSubscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          abacatePayBillingId: billing.id,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,

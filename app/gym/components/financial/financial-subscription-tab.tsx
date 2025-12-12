@@ -1,7 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { SubscriptionSection } from "@/components/subscription-section";
+import { useToast } from "@/hooks/use-toast";
+import { useSubscriptionStore } from "@/stores/subscription-store";
 
 interface FinancialSubscriptionTabProps {
   subscription?: {
@@ -26,6 +29,8 @@ interface FinancialSubscriptionTabProps {
 export function FinancialSubscriptionTab({
   subscription: initialSubscription,
 }: FinancialSubscriptionTabProps) {
+  const { toast } = useToast();
+  const { gymSubscription: storeSubscription } = useSubscriptionStore();
   const {
     subscription: subscriptionData,
     isLoading: isLoadingSubscription,
@@ -43,29 +48,55 @@ export function FinancialSubscriptionTab({
   });
 
   type SubscriptionType = typeof initialSubscription;
+  
   const hasOptimisticUpdate =
-    subscriptionData &&
-    typeof subscriptionData === "object" &&
-    "id" in subscriptionData &&
-    (subscriptionData as any).id === "temp-trial-id";
+    storeSubscription?.id === "temp-trial-id" ||
+    (subscriptionData &&
+      typeof subscriptionData === "object" &&
+      "id" in subscriptionData &&
+      (subscriptionData as any).id === "temp-trial-id");
 
-  const subscription: SubscriptionType = hasOptimisticUpdate
+  const subscription: SubscriptionType = hasOptimisticUpdate && storeSubscription
+    ? (storeSubscription as unknown as SubscriptionType)
+    : subscriptionData !== undefined && subscriptionData !== null
     ? (subscriptionData as unknown as SubscriptionType)
-    : subscriptionData !== undefined
-    ? (subscriptionData as unknown as SubscriptionType)
+    : storeSubscription !== null
+    ? (storeSubscription as unknown as SubscriptionType)
+    : subscriptionData === null && initialSubscription
+    ? initialSubscription
+    : subscriptionData === null
+    ? null
     : initialSubscription;
 
   const handleStartTrial = async () => {
     try {
       const result = await startTrialHook();
       if (result.error) {
-        alert(result.error);
+        if (result.error.includes("já existe")) {
+          await refetchSubscription();
+          toast({
+            title: "Assinatura encontrada",
+            description: "Você já possui uma assinatura ativa.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Erro ao iniciar trial",
+            description: result.error,
+          });
+        }
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        await refetchSubscription();
+        toast({
+          title: "Trial iniciado",
+          description: "Seu trial de 14 dias foi iniciado com sucesso!",
+        });
       }
     } catch (error: any) {
-      alert(error.message || "Erro ao iniciar trial");
+      toast({
+        variant: "destructive",
+        title: "Erro ao iniciar trial",
+        description: error.message || "Erro ao iniciar trial",
+      });
     }
   };
 
@@ -79,32 +110,47 @@ export function FinancialSubscriptionTab({
         billingPeriod
       );
       if (result.error) {
-        alert(result.error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao criar assinatura",
+          description: result.error,
+        });
         return;
       }
       if (result.billingUrl) {
         window.location.href = result.billingUrl;
       }
     } catch (error: any) {
-      alert(error.message || "Erro ao criar cobrança");
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar cobrança",
+        description: error.message || "Erro ao criar cobrança",
+      });
     }
   };
 
   const handleCancel = async () => {
-    if (
-      !confirm("Tem certeza que deseja cancelar sua assinatura?")
-    ) {
-      return;
-    }
     try {
+      // A atualização otimista já acontece no hook, então a UI já está atualizada
       const result = await cancelSubscription();
-      if (result.success) {
-        await refetchSubscription();
+      if (!result.success && result.error) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao cancelar",
+          description: result.error || "Erro ao cancelar assinatura",
+        });
       } else {
-        alert(result.error);
+        toast({
+          title: "Assinatura cancelada",
+          description: "Sua assinatura foi cancelada com sucesso.",
+        });
       }
     } catch (error: any) {
-      alert(error.message || "Erro ao cancelar assinatura");
+      toast({
+        variant: "destructive",
+        title: "Erro ao cancelar assinatura",
+        description: error.message || "Erro ao cancelar assinatura",
+      });
     }
   };
 
@@ -127,28 +173,32 @@ export function FinancialSubscriptionTab({
   // Basic: 5% desconto, Premium: 10% desconto, Enterprise: 15% desconto
   const annualPrices = {
     basic: Math.round(monthlyBasePrices.basic * 12 * 0.95), // 5% desconto
-    premium: Math.round(monthlyBasePrices.premium * 12 * 0.90), // 10% desconto
+    premium: Math.round(monthlyBasePrices.premium * 12 * 0.9), // 10% desconto
     enterprise: Math.round(monthlyBasePrices.enterprise * 12 * 0.85), // 15% desconto
   };
 
   return (
     <SubscriptionSection
       userType="gym"
-      subscription={subscription ? {
-        id: subscription.id,
-        plan: subscription.plan,
-        status: subscription.status,
-        currentPeriodStart: subscription.currentPeriodStart,
-        currentPeriodEnd: subscription.currentPeriodEnd,
-        cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
-        canceledAt: subscription.canceledAt,
-        trialStart: subscription.trialStart,
-        trialEnd: subscription.trialEnd,
-        isTrial: subscription.isTrial,
-        daysRemaining: subscription.daysRemaining,
-        activeStudents: subscription.activeStudents,
-        totalAmount: subscription.totalAmount,
-      } : null}
+      subscription={
+        subscription
+          ? {
+              id: subscription.id,
+              plan: subscription.plan,
+              status: subscription.status,
+              currentPeriodStart: subscription.currentPeriodStart,
+              currentPeriodEnd: subscription.currentPeriodEnd,
+              cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+              canceledAt: subscription.canceledAt,
+              trialStart: subscription.trialStart,
+              trialEnd: subscription.trialEnd,
+              isTrial: subscription.isTrial,
+              daysRemaining: subscription.daysRemaining,
+              activeStudents: subscription.activeStudents,
+              totalAmount: subscription.totalAmount,
+            }
+          : null
+      }
       isLoading={isLoadingSubscription}
       isStartingTrial={isStartingTrial}
       isCreatingSubscription={isCreatingSubscription}
@@ -203,11 +253,12 @@ export function FinancialSubscriptionTab({
           ],
         },
       ]}
-      showPlansWhen="no-subscription"
+      showPlansWhen="always"
       trialEndingDays={3}
       texts={{
         trialTitle: "Experimente 14 dias grátis!",
-        trialDescription: "Teste todas as funcionalidades Premium sem compromisso",
+        trialDescription:
+          "Teste todas as funcionalidades Premium sem compromisso",
         trialButton: "Iniciar Trial Grátis",
         subscriptionStatusTitle: "Status da Assinatura",
         upgradeTitle: "Fazer Upgrade para Premium",
@@ -220,4 +271,3 @@ export function FinancialSubscriptionTab({
     />
   );
 }
-
