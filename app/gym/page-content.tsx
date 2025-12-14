@@ -36,6 +36,7 @@ function GymHomeContent({
   initialFinancialSummary,
   initialRecentCheckIns,
 }: GymHomeContentProps) {
+  // Usar valor padrão para evitar problemas de SSR
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
   return (

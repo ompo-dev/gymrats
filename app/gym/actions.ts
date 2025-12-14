@@ -50,7 +50,7 @@ export async function getGymProfile() {
       const existingGym = await db.gym.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingGym) {
         const newGym = await db.gym.create({
           data: {
@@ -905,7 +905,7 @@ export async function getGymSubscription() {
       const existingGym = await db.gym.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingGym) {
         const newGym = await db.gym.create({
           data: {
@@ -934,7 +934,9 @@ export async function getGymSubscription() {
     });
 
     if (!subscription) {
-      console.log(`[getGymSubscription] Nenhuma subscription encontrada para gymId: ${gymId}`);
+      console.log(
+        `[getGymSubscription] Nenhuma subscription encontrada para gymId: ${gymId}`
+      );
       return null;
     }
 
@@ -942,17 +944,22 @@ export async function getGymSubscription() {
       id: subscription.id,
       status: subscription.status,
       plan: subscription.plan,
+      billingPeriod: subscription.billingPeriod,
       trialEnd: subscription.trialEnd,
     });
 
     const now = new Date();
-    const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    const trialEndDate = subscription.trialEnd
+      ? new Date(subscription.trialEnd)
+      : null;
     const isTrialActive = trialEndDate ? trialEndDate > now : false;
 
     // Se a subscription está cancelada mas o trial ainda está ativo, retornar os dados
     // Só retornar null se estiver cancelada E não houver trial ativo
     if (subscription.status === "canceled" && !isTrialActive) {
-      console.log(`[getGymSubscription] Subscription cancelada e trial expirado, retornando null`);
+      console.log(
+        `[getGymSubscription] Subscription cancelada e trial expirado, retornando null`
+      );
       return null;
     }
 
@@ -988,7 +995,9 @@ export async function getGymSubscription() {
           )
         : null,
       activeStudents,
-      billingPeriod: subscription.billingPeriod || "monthly", // Default para monthly se não existir
+      billingPeriod:
+        (subscription.billingPeriod as "monthly" | "annual" | null) ||
+        "monthly", // Default para monthly se não existir
       totalAmount:
         (subscription.billingPeriod || "monthly") === "annual"
           ? subscription.basePrice // Plano anual: preço fixo, sem cobrança por aluno
@@ -1021,7 +1030,7 @@ export async function startGymTrial() {
       const existingGym = await db.gym.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingGym) {
         const newGym = await db.gym.create({
           data: {
@@ -1051,9 +1060,11 @@ export async function startGymTrial() {
 
     if (existingSubscription) {
       const now = new Date();
-      const trialEndDate = existingSubscription.trialEnd ? new Date(existingSubscription.trialEnd) : null;
+      const trialEndDate = existingSubscription.trialEnd
+        ? new Date(existingSubscription.trialEnd)
+        : null;
       const isTrialActive = trialEndDate ? trialEndDate > now : false;
-      
+
       // Se está cancelada e o trial expirou, permitir criar nova
       if (existingSubscription.status === "canceled" && !isTrialActive) {
         // Deletar a subscription cancelada para permitir criar nova
@@ -1064,7 +1075,7 @@ export async function startGymTrial() {
         // Se está cancelada mas trial ainda ativo, reativar
         const trialEnd = new Date(now);
         trialEnd.setDate(trialEnd.getDate() + 14);
-        
+
         const updatedSubscription = await db.gymSubscription.update({
           where: { id: existingSubscription.id },
           data: {
@@ -1077,7 +1088,7 @@ export async function startGymTrial() {
             currentPeriodEnd: trialEnd,
           },
         });
-        
+
         return { success: true, subscription: updatedSubscription };
       } else {
         // Se já existe e está ativa, retornar erro

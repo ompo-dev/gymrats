@@ -138,7 +138,7 @@ export async function getStudentSubscription() {
       const existingStudent = await db.student.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingStudent) {
         const newStudent = await db.student.create({
           data: {
@@ -162,7 +162,9 @@ export async function getStudentSubscription() {
     });
 
     if (!subscription) {
-      console.log(`[getStudentSubscription] Nenhuma subscription encontrada para studentId: ${studentId}`);
+      console.log(
+        `[getStudentSubscription] Nenhuma subscription encontrada para studentId: ${studentId}`
+      );
       return null;
     }
 
@@ -174,21 +176,38 @@ export async function getStudentSubscription() {
     });
 
     const now = new Date();
-    const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    const trialEndDate = subscription.trialEnd
+      ? new Date(subscription.trialEnd)
+      : null;
     const isTrialActive = trialEndDate ? trialEndDate > now : false;
 
     // Se a subscription está cancelada mas o trial ainda está ativo, retornar os dados
     // Só retornar null se estiver cancelada E não houver trial ativo
     if (subscription.status === "canceled" && !isTrialActive) {
-      console.log(`[getStudentSubscription] Subscription cancelada e trial expirado, retornando null`);
+      console.log(
+        `[getStudentSubscription] Subscription cancelada e trial expirado, retornando null`
+      );
       return null;
     }
     const daysRemaining = trialEndDate
       ? Math.max(
           0,
-          Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+          Math.ceil(
+            (trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          )
         )
       : null;
+
+    // Inferir billingPeriod baseado na diferença entre currentPeriodStart e currentPeriodEnd
+    // Se a diferença for aproximadamente 1 ano (330-370 dias), é anual
+    // Caso contrário, assume mensal (padrão)
+    const periodStart = new Date(subscription.currentPeriodStart);
+    const periodEnd = new Date(subscription.currentPeriodEnd);
+    const daysDiff = Math.ceil(
+      (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const billingPeriod: "monthly" | "annual" =
+      daysDiff >= 330 && daysDiff <= 370 ? "annual" : "monthly";
 
     return {
       id: subscription.id,
@@ -202,6 +221,7 @@ export async function getStudentSubscription() {
       trialEnd: subscription.trialEnd,
       isTrial: isTrialActive,
       daysRemaining,
+      billingPeriod,
     };
   } catch (error) {
     console.error("Erro ao buscar assinatura:", error);
@@ -229,7 +249,7 @@ export async function startStudentTrial() {
       const existingStudent = await db.student.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingStudent) {
         const newStudent = await db.student.create({
           data: {
@@ -254,9 +274,11 @@ export async function startStudentTrial() {
 
     if (existingSubscription) {
       const now = new Date();
-      const trialEndDate = existingSubscription.trialEnd ? new Date(existingSubscription.trialEnd) : null;
+      const trialEndDate = existingSubscription.trialEnd
+        ? new Date(existingSubscription.trialEnd)
+        : null;
       const isTrialActive = trialEndDate ? trialEndDate > now : false;
-      
+
       // Se está cancelada e o trial expirou, permitir criar nova
       if (existingSubscription.status === "canceled" && !isTrialActive) {
         // Deletar a subscription cancelada para permitir criar nova
@@ -267,7 +289,7 @@ export async function startStudentTrial() {
         // Se está cancelada mas trial ainda ativo, reativar
         const trialEnd = new Date(now);
         trialEnd.setDate(trialEnd.getDate() + 14);
-        
+
         const updatedSubscription = await db.subscription.update({
           where: { id: existingSubscription.id },
           data: {
@@ -280,14 +302,17 @@ export async function startStudentTrial() {
             currentPeriodEnd: trialEnd,
           },
         });
-        
+
         return { success: true, subscription: updatedSubscription };
       } else if (isTrialActive) {
         // Se já existe trial ativo, retornar sucesso com a assinatura existente
         return { success: true, subscription: existingSubscription };
       } else {
         // Se já existe e está ativa, retornar erro
-        return { error: "Você já possui uma assinatura. Gerencie sua assinatura na página de pagamentos." };
+        return {
+          error:
+            "Você já possui uma assinatura. Gerencie sua assinatura na página de pagamentos.",
+        };
       }
     }
 

@@ -27,13 +27,15 @@ export default async function GymPage() {
   ]);
 
   return (
-    <GymHome
-      initialProfile={profile}
-      initialStats={stats}
-      initialStudents={students}
-      initialEquipment={equipment}
-      initialFinancialSummary={financialSummary}
-      initialRecentCheckIns={recentCheckIns}
-    />
+    <Suspense fallback={<div className="p-4">Carregando...</div>}>
+      <GymHome
+        initialProfile={profile}
+        initialStats={stats}
+        initialStudents={students}
+        initialEquipment={equipment}
+        initialFinancialSummary={financialSummary}
+        initialRecentCheckIns={recentCheckIns}
+      />
+    </Suspense>
   );
 }

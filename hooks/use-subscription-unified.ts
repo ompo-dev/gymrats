@@ -18,6 +18,7 @@ export interface StudentSubscriptionData {
   trialEnd: Date | null;
   isTrial: boolean;
   daysRemaining: number | null;
+  billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
 }
 
 // Tipo unificado para subscription de gym
@@ -37,6 +38,7 @@ export interface GymSubscriptionData {
   daysRemaining: number | null;
   activeStudents: number;
   totalAmount: number;
+  billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
 }
 
 // Tipo unificado
@@ -378,18 +380,20 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
     onSuccess: async () => {
       // Aguardar um pouco para garantir que o servidor processou
       await new Promise((resolve) => setTimeout(resolve, 300));
-      
+
       // Invalidar e refetch para pegar os dados atualizados do servidor
       await queryClient.invalidateQueries({
         queryKey: [queryKey],
       });
-      
+
       const refetchedData = await queryClient.refetchQueries({
         queryKey: [queryKey],
       });
-      
+
       // Sincronizar com store após refetch
-      const updatedData = queryClient.getQueryData<SubscriptionData | null>([queryKey]);
+      const updatedData = queryClient.getQueryData<SubscriptionData | null>([
+        queryKey,
+      ]);
       if (updatedData !== undefined) {
         if (userType === "student") {
           setSubscription(updatedData as StudentSubscriptionData | null);
