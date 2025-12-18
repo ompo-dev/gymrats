@@ -1,38 +1,43 @@
-import { create } from "zustand"
-import { persist } from "zustand/middleware"
-import type { WorkoutSession, ExerciseLog, SetLog } from "@/lib/types"
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { WorkoutSession, ExerciseLog, SetLog } from "@/lib/types";
 
 interface WorkoutProgress {
-  workoutId: string
-  currentExerciseIndex: number
-  exerciseLogs: ExerciseLog[]
-  skippedExercises: string[] // IDs dos exercícios pulados
-  xpEarned: number // XP total ganho no workout
-  totalVolume: number // Volume total em kg
-  completionPercentage: number // Porcentagem de conclusão
-  startTime: Date
-  lastUpdated: Date
+  workoutId: string;
+  currentExerciseIndex: number;
+  exerciseLogs: ExerciseLog[];
+  skippedExercises: string[]; // IDs dos exercícios pulados
+  selectedAlternatives: Record<string, string>; // exerciseId -> alternativeId
+  xpEarned: number; // XP total ganho no workout
+  totalVolume: number; // Volume total em kg
+  completionPercentage: number; // Porcentagem de conclusão
+  startTime: Date;
+  lastUpdated: Date;
 }
 
 interface WorkoutState {
-  activeWorkout: WorkoutProgress | null
-  workoutProgress: Record<string, WorkoutProgress>
-  completedWorkouts: Set<string> // IDs dos workouts completados
-  openWorkoutId: string | null // ID do workout aberto no modal
-  setActiveWorkout: (workout: WorkoutSession | null) => void
-  setCurrentExerciseIndex: (index: number) => void
-  addExerciseLog: (log: ExerciseLog) => void
-  updateExerciseLog: (exerciseId: string, updates: Partial<ExerciseLog>) => void
-  saveWorkoutProgress: (workoutId: string) => void
-  loadWorkoutProgress: (workoutId: string) => WorkoutProgress | null
-  clearWorkoutProgress: (workoutId: string) => void
-  completeWorkout: (workoutId: string) => void
-  isWorkoutCompleted: (workoutId: string) => boolean
-  isWorkoutInProgress: (workoutId: string) => boolean
-  getWorkoutProgress: (workoutId: string) => number // Retorna % de progresso (0-100)
-  openWorkout: (workoutId: string | null) => void // Abrir/fechar modal
-  skipExercise: (exerciseId: string) => void // Marcar exercício como pulado
-  calculateWorkoutStats: () => void // Calcular estatísticas do workout (XP, volume, %)
+  activeWorkout: WorkoutProgress | null;
+  workoutProgress: Record<string, WorkoutProgress>;
+  completedWorkouts: Set<string>; // IDs dos workouts completados
+  openWorkoutId: string | null; // ID do workout aberto no modal
+  setActiveWorkout: (workout: WorkoutSession | null) => void;
+  setCurrentExerciseIndex: (index: number) => void;
+  addExerciseLog: (log: ExerciseLog) => void;
+  updateExerciseLog: (
+    exerciseId: string,
+    updates: Partial<ExerciseLog>
+  ) => void;
+  saveWorkoutProgress: (workoutId: string) => void;
+  loadWorkoutProgress: (workoutId: string) => WorkoutProgress | null;
+  clearWorkoutProgress: (workoutId: string) => void;
+  completeWorkout: (workoutId: string) => void;
+  isWorkoutCompleted: (workoutId: string) => boolean;
+  isWorkoutInProgress: (workoutId: string) => boolean;
+  getWorkoutProgress: (workoutId: string) => number; // Retorna % de progresso (0-100)
+  openWorkout: (workoutId: string | null) => void; // Abrir/fechar modal
+  skipExercise: (exerciseId: string) => void; // Marcar exercício como pulado
+  calculateWorkoutStats: () => void; // Calcular estatísticas do workout (XP, volume, %)
+  selectAlternative: (exerciseId: string, alternativeId?: string) => void; // Selecionar alternativa
 }
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -50,6 +55,7 @@ export const useWorkoutStore = create<WorkoutState>()(
                 currentExerciseIndex: 0,
                 exerciseLogs: [],
                 skippedExercises: [],
+                selectedAlternatives: {},
                 xpEarned: 0,
                 totalVolume: 0,
                 completionPercentage: 0,
@@ -60,26 +66,23 @@ export const useWorkoutStore = create<WorkoutState>()(
         }),
       setCurrentExerciseIndex: (index) =>
         set((state) => {
-          if (!state.activeWorkout) return state
+          if (!state.activeWorkout) return state;
           return {
             activeWorkout: {
               ...state.activeWorkout,
               currentExerciseIndex: index,
               lastUpdated: new Date(),
             },
-          }
+          };
         }),
       addExerciseLog: (log) =>
         set((state) => {
-          if (!state.activeWorkout) return state
-          const newLogs = [...state.activeWorkout.exerciseLogs, log]
+          if (!state.activeWorkout) return state;
+          const newLogs = [...state.activeWorkout.exerciseLogs, log];
           // Calcular volume do exercício (apenas séries válidas com peso > 0 e reps > 0)
           const exerciseVolume = log.sets
             .filter((set) => set.weight > 0 && set.reps > 0)
-            .reduce(
-              (acc, set) => acc + (set.weight * set.reps),
-              0
-            )
+            .reduce((acc, set) => acc + set.weight * set.reps, 0);
           // Calcular XP do exercício (assumindo XP igual por exercício)
           // Isso será ajustado quando calcularmos as estatísticas
           return {
@@ -89,11 +92,11 @@ export const useWorkoutStore = create<WorkoutState>()(
               totalVolume: state.activeWorkout.totalVolume + exerciseVolume,
               lastUpdated: new Date(),
             },
-          }
+          };
         }),
       updateExerciseLog: (exerciseId, updates) =>
         set((state) => {
-          if (!state.activeWorkout) return state
+          if (!state.activeWorkout) return state;
           return {
             activeWorkout: {
               ...state.activeWorkout,
@@ -102,12 +105,15 @@ export const useWorkoutStore = create<WorkoutState>()(
               ),
               lastUpdated: new Date(),
             },
-          }
+          };
         }),
       saveWorkoutProgress: (workoutId) =>
         set((state) => {
-          if (!state.activeWorkout || state.activeWorkout.workoutId !== workoutId)
-            return state
+          if (
+            !state.activeWorkout ||
+            state.activeWorkout.workoutId !== workoutId
+          )
+            return state;
           // Salva sempre, mesmo sem logs (para rastrear índice atual, exercícios pulados, etc)
           // Garantir que todas as propriedades estejam presentes
           const progressToSave: WorkoutProgress = {
@@ -120,64 +126,65 @@ export const useWorkoutStore = create<WorkoutState>()(
             completionPercentage: state.activeWorkout.completionPercentage || 0,
             startTime: state.activeWorkout.startTime,
             lastUpdated: new Date(),
-          }
+          };
           return {
             workoutProgress: {
               ...state.workoutProgress,
               [workoutId]: progressToSave,
             },
-          }
+          };
         }),
       loadWorkoutProgress: (workoutId) => {
-        const state = get()
-        return state.workoutProgress[workoutId] || null
+        const state = get();
+        return state.workoutProgress[workoutId] || null;
       },
       clearWorkoutProgress: (workoutId) =>
         set((state) => {
-          const newProgress = { ...state.workoutProgress }
-          delete newProgress[workoutId]
-          return { workoutProgress: newProgress }
+          const newProgress = { ...state.workoutProgress };
+          delete newProgress[workoutId];
+          return { workoutProgress: newProgress };
         }),
       completeWorkout: (workoutId) =>
         set((state) => {
           // Marcar como completo mas manter o progresso para permitir reabrir
-          const newCompleted = new Set(state.completedWorkouts)
-          newCompleted.add(workoutId)
+          const newCompleted = new Set(state.completedWorkouts);
+          newCompleted.add(workoutId);
           return {
             activeWorkout: null,
             // NÃO remover do workoutProgress - permite reabrir e fazer novamente
             completedWorkouts: newCompleted,
-          }
+          };
         }),
       isWorkoutCompleted: (workoutId) => {
-        const state = get()
-        return state.completedWorkouts.has(workoutId)
+        const state = get();
+        return state.completedWorkouts.has(workoutId);
       },
       isWorkoutInProgress: (workoutId) => {
-        const state = get()
-        const progress = state.workoutProgress[workoutId]
-        if (!progress) return false
+        const state = get();
+        const progress = state.workoutProgress[workoutId];
+        if (!progress) return false;
         // Considera em progresso se houver logs OU exercícios pulados
-        const hasLogs = progress.exerciseLogs.length > 0
-        const hasSkipped = progress.skippedExercises && progress.skippedExercises.length > 0
-        return hasLogs || hasSkipped
+        const hasLogs = progress.exerciseLogs.length > 0;
+        const hasSkipped =
+          progress.skippedExercises && progress.skippedExercises.length > 0;
+        return hasLogs || hasSkipped;
       },
       getWorkoutProgress: (workoutId) => {
-        const state = get()
-        const progress = state.workoutProgress[workoutId]
-        if (!progress) return 0
+        const state = get();
+        const progress = state.workoutProgress[workoutId];
+        if (!progress) return 0;
         // Retorna o número total de exercícios vistos (completados + pulados)
-        const completedCount = progress.exerciseLogs.length || 0
-        const skippedCount = progress.skippedExercises?.length || 0
-        return completedCount + skippedCount
+        const completedCount = progress.exerciseLogs.length || 0;
+        const skippedCount = progress.skippedExercises?.length || 0;
+        return completedCount + skippedCount;
       },
       openWorkout: (workoutId) => set({ openWorkoutId: workoutId }),
       skipExercise: (exerciseId) =>
         set((state) => {
-          if (!state.activeWorkout) return state
-          const skipped = [...state.activeWorkout.skippedExercises]
+          if (!state.activeWorkout) return state;
+          const skipped = [...state.activeWorkout.skippedExercises];
           if (!skipped.includes(exerciseId)) {
-            skipped.push(exerciseId)
+            skipped.push(exerciseId);
           }
           return {
             activeWorkout: {
@@ -185,35 +192,33 @@ export const useWorkoutStore = create<WorkoutState>()(
               skippedExercises: skipped,
               lastUpdated: new Date(),
             },
-          }
+          };
         }),
       calculateWorkoutStats: () =>
         set((state) => {
-          if (!state.activeWorkout) return state
-          const { exerciseLogs, skippedExercises, workoutId } = state.activeWorkout
-          
+          if (!state.activeWorkout) return state;
+          const { exerciseLogs, skippedExercises, workoutId } =
+            state.activeWorkout;
+
           // Calcular volume total apenas de séries válidas (peso > 0 e reps > 0)
           const totalVolume = exerciseLogs.reduce(
             (acc, log) =>
               acc +
               log.sets
                 .filter((set) => set.weight > 0 && set.reps > 0)
-                .reduce(
-                  (setAcc, set) => setAcc + set.weight * set.reps,
-                  0
-                ),
+                .reduce((setAcc, set) => setAcc + set.weight * set.reps, 0),
             0
-          )
+          );
 
           // Calcular XP (assumindo que cada exercício completo dá XP igual)
           // Isso pode ser ajustado depois com base no workout.xpReward
-          const completedCount = exerciseLogs.length
-          const skippedCount = skippedExercises.length
-          const totalExercises = completedCount + skippedCount
-          
+          const completedCount = exerciseLogs.length;
+          const skippedCount = skippedExercises.length;
+          const totalExercises = completedCount + skippedCount;
+
           // Porcentagem de conclusão baseada em exercícios processados
           // Isso será calculado no componente com base no workout.exercises.length
-          const completionPercentage = 0 // Será calculado no componente
+          const completionPercentage = 0; // Será calculado no componente
 
           return {
             activeWorkout: {
@@ -223,7 +228,26 @@ export const useWorkoutStore = create<WorkoutState>()(
               completionPercentage,
               lastUpdated: new Date(),
             },
+          };
+        }),
+      selectAlternative: (exerciseId, alternativeId) =>
+        set((state) => {
+          if (!state.activeWorkout) return state;
+          const newAlternatives = {
+            ...state.activeWorkout.selectedAlternatives,
+          };
+          if (alternativeId) {
+            newAlternatives[exerciseId] = alternativeId;
+          } else {
+            delete newAlternatives[exerciseId];
           }
+          return {
+            activeWorkout: {
+              ...state.activeWorkout,
+              selectedAlternatives: newAlternatives,
+              lastUpdated: new Date(),
+            },
+          };
         }),
     }),
     {
@@ -241,5 +265,4 @@ export const useWorkoutStore = create<WorkoutState>()(
       }),
     }
   )
-)
-
+);

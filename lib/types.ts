@@ -13,6 +13,14 @@ export type MuscleGroup =
   | "cardio"
   | "funcional";
 
+// Exercício alternativo
+export interface AlternativeExercise {
+  id: string;
+  name: string;
+  reason: string; // Motivo da alternativa (ex: "Equipamento diferente", "Sem equipamento")
+  educationalId?: string; // ID do exercício no banco educacional
+}
+
 // Exercício individual dentro de um treino
 export interface WorkoutExercise {
   id: string;
@@ -23,6 +31,9 @@ export interface WorkoutExercise {
   notes?: string;
   videoUrl?: string;
   completed?: boolean;
+  educationalId?: string; // Referência ao conteúdo educacional
+  alternatives?: AlternativeExercise[]; // Exercícios alternativos
+  selectedAlternative?: string; // ID da alternativa selecionada, se houver
 }
 
 // Sessão de treino (equivalente a uma "lição" do Duolingo)

@@ -227,15 +227,18 @@ function StudentHomeContent({
 
       {tab === "education" && (
         <>
-          {educationView === "menu" && (
-            <EducationPage
-              onSelectView={(view) => {
-                setEducationView(view);
-              }}
-            />
-          )}
+          {educationView === "menu" &&
+            !exerciseId &&
+            !muscleId &&
+            !lessonId && (
+              <EducationPage
+                onSelectView={(view) => {
+                  setEducationView(view);
+                }}
+              />
+            )}
 
-          {educationView === "muscles" && (
+          {(educationView === "muscles" || exerciseId || muscleId) && (
             <MuscleExplorer
               muscleId={muscleId || null}
               exerciseId={exerciseId || null}
@@ -249,7 +252,7 @@ function StudentHomeContent({
             />
           )}
 
-          {educationView === "lessons" && (
+          {educationView === "lessons" && !exerciseId && !muscleId && (
             <EducationalLessons
               lessonId={lessonId || null}
               onLessonSelect={(id) => setLessonId(id)}

@@ -123,7 +123,14 @@ const createWorkoutExercise = (
   sets: number,
   reps: string,
   rest: number,
-  notes?: string
+  notes?: string,
+  educationalId?: string,
+  alternatives?: {
+    id: string;
+    name: string;
+    reason: string;
+    educationalId?: string;
+  }[]
 ): WorkoutExercise => ({
   id,
   name,
@@ -131,6 +138,8 @@ const createWorkoutExercise = (
   reps,
   rest,
   notes,
+  educationalId,
+  alternatives,
 });
 
 // Mock workout sessions
@@ -154,19 +163,145 @@ export const mockWorkouts: WorkoutSession[] = [
         4,
         "12-10-8-8",
         90,
-        "Aumente o peso a cada série"
+        "Aumente o peso a cada série",
+        "supino-reto",
+        [
+          {
+            id: "alt-ex1-1",
+            name: "Supino com Halteres",
+            reason: "Banco de supino ocupado",
+            educationalId: "supino-halteres",
+          },
+          {
+            id: "alt-ex1-2",
+            name: "Flexão de Braço com Carga",
+            reason: "Sem equipamento disponível",
+            educationalId: "flexao-bracos",
+          },
+          {
+            id: "alt-ex1-3",
+            name: "Supino na Máquina",
+            reason: "Alternativa mais segura",
+            educationalId: "supino-maquina",
+          },
+        ]
       ),
-      createWorkoutExercise("ex2", "Supino Inclinado", 3, "12", 90),
+      createWorkoutExercise(
+        "ex2",
+        "Supino Inclinado",
+        3,
+        "12",
+        90,
+        undefined,
+        "supino-inclinado",
+        [
+          {
+            id: "alt-ex2-1",
+            name: "Supino Inclinado com Halteres",
+            reason: "Banco de supino ocupado",
+            educationalId: "supino-inclinado-halteres",
+          },
+          {
+            id: "alt-ex2-2",
+            name: "Flexão Inclinada",
+            reason: "Sem equipamento",
+            educationalId: "flexao-inclinada",
+          },
+          {
+            id: "alt-ex2-3",
+            name: "Crossover Superior",
+            reason: "Foco na porção superior",
+            educationalId: "crossover-superior",
+          },
+        ]
+      ),
       createWorkoutExercise(
         "ex3",
         "Crucifixo",
         3,
         "15",
         60,
-        "Foco na contração"
+        "Foco na contração",
+        "crucifixo",
+        [
+          {
+            id: "alt-ex3-1",
+            name: "Crucifixo com Cabos",
+            reason: "Banco ocupado",
+            educationalId: "crucifixo-cabos",
+          },
+          {
+            id: "alt-ex3-2",
+            name: "Peck Deck",
+            reason: "Maior isolamento",
+            educationalId: "peck-deck",
+          },
+          {
+            id: "alt-ex3-3",
+            name: "Flexão com Abertura",
+            reason: "Sem equipamento",
+            educationalId: "flexao-abertura",
+          },
+        ]
       ),
-      createWorkoutExercise("ex4", "Tríceps Testa", 3, "12", 60),
-      createWorkoutExercise("ex5", "Tríceps Corda", 3, "15", 45),
+      createWorkoutExercise(
+        "ex4",
+        "Tríceps Testa",
+        3,
+        "12",
+        60,
+        undefined,
+        "triceps-testa",
+        [
+          {
+            id: "alt-ex4-1",
+            name: "Tríceps Francês",
+            reason: "Banco ocupado",
+            educationalId: "triceps-frances",
+          },
+          {
+            id: "alt-ex4-2",
+            name: "Tríceps Coice",
+            reason: "Alternativa com halteres",
+            educationalId: "triceps-coice",
+          },
+          {
+            id: "alt-ex4-3",
+            name: "Mergulho no Banco",
+            reason: "Sem equipamento",
+            educationalId: "mergulho-banco",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex5",
+        "Tríceps Corda",
+        3,
+        "15",
+        45,
+        undefined,
+        "triceps-corda",
+        [
+          {
+            id: "alt-ex5-1",
+            name: "Tríceps Barra Reta",
+            reason: "Corda não disponível",
+            educationalId: "triceps-barra",
+          },
+          {
+            id: "alt-ex5-2",
+            name: "Tríceps Unilateral",
+            reason: "Cabo ocupado",
+            educationalId: "triceps-unilateral",
+          },
+          {
+            id: "alt-ex5-3",
+            name: "Paralelas",
+            reason: "Máxima ativação",
+            educationalId: "paralelas",
+          },
+        ]
+      ),
     ],
   },
   {
@@ -186,12 +321,145 @@ export const mockWorkouts: WorkoutSession[] = [
         4,
         "8-10",
         120,
-        "Assistida se necessário"
+        "Assistida se necessário",
+        "barra-fixa",
+        [
+          {
+            id: "alt-ex1-1",
+            name: "Pulldown",
+            reason: "Barra ocupada ou força insuficiente",
+            educationalId: "pulldown",
+          },
+          {
+            id: "alt-ex1-2",
+            name: "Barra Fixa Assistida",
+            reason: "Progressão gradual",
+            educationalId: "barra-fixa-assistida",
+          },
+          {
+            id: "alt-ex1-3",
+            name: "Remada Graviton",
+            reason: "Máquina alternativa",
+            educationalId: "remada-graviton",
+          },
+        ]
       ),
-      createWorkoutExercise("ex2", "Remada Curvada", 4, "12", 90),
-      createWorkoutExercise("ex3", "Pulldown", 3, "12", 60),
-      createWorkoutExercise("ex4", "Rosca Direta", 3, "12", 60),
-      createWorkoutExercise("ex5", "Rosca Martelo", 3, "12", 60),
+      createWorkoutExercise(
+        "ex2",
+        "Remada Curvada",
+        4,
+        "12",
+        90,
+        undefined,
+        "remada-curvada",
+        [
+          {
+            id: "alt-ex2-1",
+            name: "Remada Cavalinho",
+            reason: "Mais estabilidade",
+            educationalId: "remada-cavalinho",
+          },
+          {
+            id: "alt-ex2-2",
+            name: "Remada com Halteres",
+            reason: "Barra ocupada",
+            educationalId: "remada-halteres",
+          },
+          {
+            id: "alt-ex2-3",
+            name: "Remada no Cabo",
+            reason: "Tensão constante",
+            educationalId: "remada-cabo",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex3",
+        "Pulldown",
+        3,
+        "12",
+        60,
+        undefined,
+        "pulldown",
+        [
+          {
+            id: "alt-ex3-1",
+            name: "Pulldown Triângulo",
+            reason: "Pegada diferente",
+            educationalId: "pulldown-triangulo",
+          },
+          {
+            id: "alt-ex3-2",
+            name: "Pullover",
+            reason: "Cabo ocupado",
+            educationalId: "pullover",
+          },
+          {
+            id: "alt-ex3-3",
+            name: "Barra Fixa Pegada Fechada",
+            reason: "Variação com peso corporal",
+            educationalId: "barra-fixa-fechada",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex4",
+        "Rosca Direta",
+        3,
+        "12",
+        60,
+        undefined,
+        "rosca-direta",
+        [
+          {
+            id: "alt-ex4-1",
+            name: "Rosca Alternada",
+            reason: "Barra ocupada",
+            educationalId: "rosca-alternada",
+          },
+          {
+            id: "alt-ex4-2",
+            name: "Rosca Scott",
+            reason: "Maior isolamento",
+            educationalId: "rosca-scott",
+          },
+          {
+            id: "alt-ex4-3",
+            name: "Rosca no Cabo",
+            reason: "Tensão constante",
+            educationalId: "rosca-cabo",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex5",
+        "Rosca Martelo",
+        3,
+        "12",
+        60,
+        undefined,
+        "rosca-martelo",
+        [
+          {
+            id: "alt-ex5-1",
+            name: "Rosca Inversa",
+            reason: "Foco no braquial",
+            educationalId: "rosca-inversa",
+          },
+          {
+            id: "alt-ex5-2",
+            name: "Rosca Concentrada",
+            reason: "Halteres ocupados",
+            educationalId: "rosca-concentrada",
+          },
+          {
+            id: "alt-ex5-3",
+            name: "Rosca com Corda",
+            reason: "Variação com cabo",
+            educationalId: "rosca-corda",
+          },
+        ]
+      ),
     ],
   },
   {
@@ -205,11 +473,151 @@ export const mockWorkouts: WorkoutSession[] = [
     locked: false,
     completed: false,
     exercises: [
-      createWorkoutExercise("ex1", "Agachamento Livre", 4, "12-10-8-8", 120),
-      createWorkoutExercise("ex2", "Leg Press", 4, "15", 90),
-      createWorkoutExercise("ex3", "Cadeira Extensora", 3, "15", 60),
-      createWorkoutExercise("ex4", "Mesa Flexora", 3, "12", 60),
-      createWorkoutExercise("ex5", "Panturrilha", 4, "20", 45),
+      createWorkoutExercise(
+        "ex1",
+        "Agachamento Livre",
+        4,
+        "12-10-8-8",
+        120,
+        undefined,
+        "agachamento-livre",
+        [
+          {
+            id: "alt-ex1-1",
+            name: "Leg Press",
+            reason: "Rack ocupado ou mais seguro",
+            educationalId: "leg-press",
+          },
+          {
+            id: "alt-ex1-2",
+            name: "Agachamento no Smith",
+            reason: "Maior estabilidade",
+            educationalId: "agachamento-smith",
+          },
+          {
+            id: "alt-ex1-3",
+            name: "Agachamento Búlgaro",
+            reason: "Foco unilateral",
+            educationalId: "agachamento-bulgaro",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex2",
+        "Leg Press",
+        4,
+        "15",
+        90,
+        undefined,
+        "leg-press",
+        [
+          {
+            id: "alt-ex2-1",
+            name: "Agachamento Livre",
+            reason: "Leg press ocupado",
+            educationalId: "agachamento-livre",
+          },
+          {
+            id: "alt-ex2-2",
+            name: "Hack Machine",
+            reason: "Máquina alternativa",
+            educationalId: "hack-machine",
+          },
+          {
+            id: "alt-ex2-3",
+            name: "Afundo com Barra",
+            reason: "Exercício funcional",
+            educationalId: "afundo-barra",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex3",
+        "Cadeira Extensora",
+        3,
+        "15",
+        60,
+        undefined,
+        "cadeira-extensora",
+        [
+          {
+            id: "alt-ex3-1",
+            name: "Agachamento Sissy",
+            reason: "Cadeira ocupada",
+            educationalId: "agachamento-sissy",
+          },
+          {
+            id: "alt-ex3-2",
+            name: "Extensão Unilateral",
+            reason: "Foco em cada perna",
+            educationalId: "extensao-unilateral",
+          },
+          {
+            id: "alt-ex3-3",
+            name: "Leg Press Parcial",
+            reason: "Foco no quadríceps",
+            educationalId: "leg-press-parcial",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex4",
+        "Mesa Flexora",
+        3,
+        "12",
+        60,
+        undefined,
+        "mesa-flexora",
+        [
+          {
+            id: "alt-ex4-1",
+            name: "Stiff",
+            reason: "Mesa ocupada",
+            educationalId: "stiff",
+          },
+          {
+            id: "alt-ex4-2",
+            name: "Flexora em Pé",
+            reason: "Variação unilateral",
+            educationalId: "flexora-pe",
+          },
+          {
+            id: "alt-ex4-3",
+            name: "Good Morning",
+            reason: "Trabalho posterior completo",
+            educationalId: "good-morning",
+          },
+        ]
+      ),
+      createWorkoutExercise(
+        "ex5",
+        "Panturrilha",
+        4,
+        "20",
+        45,
+        undefined,
+        "panturrilha",
+        [
+          {
+            id: "alt-ex5-1",
+            name: "Panturrilha no Leg Press",
+            reason: "Máquina ocupada",
+            educationalId: "panturrilha-leg-press",
+          },
+          {
+            id: "alt-ex5-2",
+            name: "Panturrilha Unilateral",
+            reason: "Foco em cada perna",
+            educationalId: "panturrilha-unilateral",
+          },
+          {
+            id: "alt-ex5-3",
+            name: "Elevação de Panturrilha Livre",
+            reason: "Sem equipamento",
+            educationalId: "elevacao-panturrilha",
+          },
+        ]
+      ),
     ],
   },
   {

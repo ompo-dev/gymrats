@@ -2,17 +2,29 @@
 
 import { useState, useEffect } from "react";
 import { mockWorkouts } from "@/lib/mock-data";
-import { X, Heart, Zap, Weight, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  X,
+  Heart,
+  Zap,
+  Weight,
+  CheckCircle2,
+  ArrowRight,
+  RefreshCw,
+  BookOpen,
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { WeightTracker } from "@/components/weight-tracker";
+import { ExerciseAlternativeSelector } from "@/components/exercise-alternative-selector";
 import type { ExerciseLog, WorkoutSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useStudentStore, useUIStore } from "@/stores";
+import { useRouter } from "next/navigation";
 
 export function WorkoutModal() {
+  const router = useRouter();
   const openWorkoutId = useWorkoutStore((state) => state.openWorkoutId);
   const activeWorkout = useWorkoutStore((state) => state.activeWorkout);
   const {
@@ -27,10 +39,12 @@ export function WorkoutModal() {
     skipExercise,
     calculateWorkoutStats,
     isWorkoutCompleted,
+    selectAlternative,
   } = useWorkoutStore();
   const { completeWorkout: completeStudentWorkout, addXP } = useStudentStore();
   const { showWeightTracker, setShowWeightTracker } = useUIStore();
   const [showCompletion, setShowCompletion] = useState(false);
+  const [showAlternativeSelector, setShowAlternativeSelector] = useState(false);
   // Salvar dados do workout completado para mostrar na tela de conclusão
   const [completedWorkoutData, setCompletedWorkoutData] = useState<{
     exerciseLogs: ExerciseLog[];
@@ -77,6 +91,7 @@ export function WorkoutModal() {
           completionPercentage: savedProgress.completionPercentage || 0,
           startTime: savedProgress.startTime || new Date(),
           lastUpdated: new Date(),
+          selectedAlternatives: savedProgress.selectedAlternatives || {},
         },
       });
     } else {
@@ -126,6 +141,23 @@ export function WorkoutModal() {
     activeWorkout?.totalVolume,
   ]);
 
+  // Debug: Log workout data - DEVE ficar ANTES dos returns condicionais
+  useEffect(() => {
+    if (!workout || !activeWorkout) return;
+    const currentExercise =
+      workout.exercises[activeWorkout.currentExerciseIndex];
+    if (currentExercise) {
+      console.log("🏋️ Workout Debug:", {
+        workoutId: workout.id,
+        exerciseName: currentExercise.name,
+        hasAlternatives: !!currentExercise.alternatives,
+        alternativesLength: currentExercise.alternatives?.length,
+        alternatives: currentExercise.alternatives,
+        fullExercise: currentExercise,
+      });
+    }
+  }, [workout, activeWorkout, activeWorkout?.currentExerciseIndex]);
+
   // Não renderizar nada se não houver workout aberto
   // Mas permitir renderizar se estiver mostrando a tela de conclusão
   if (!openWorkoutId || !workout) {
@@ -141,6 +173,44 @@ export function WorkoutModal() {
   const currentExercise = activeWorkout
     ? workout.exercises[activeWorkout.currentExerciseIndex]
     : null;
+
+  // Obter o nome do exercício considerando alternativa selecionada
+  const getCurrentExerciseName = () => {
+    if (!currentExercise || !activeWorkout) return "";
+    const alternativeId =
+      activeWorkout.selectedAlternatives?.[currentExercise.id];
+    if (alternativeId && currentExercise.alternatives) {
+      const alternative = currentExercise.alternatives.find(
+        (alt) => alt.id === alternativeId
+      );
+      return alternative?.name || currentExercise.name;
+    }
+    return currentExercise.name;
+  };
+
+  // Função para navegar para conteúdo educacional
+  const handleViewEducation = (educationalId: string) => {
+    // Salvar progresso antes de navegar
+    if (workout && activeWorkout) {
+      saveWorkoutProgress(workout.id);
+    }
+    // Fechar modal e navegar
+    setShowAlternativeSelector(false);
+    openWorkout(null);
+    router.push(`/student?tab=education&exercise=${educationalId}`);
+  };
+
+  // Função para selecionar alternativa
+  const handleSelectAlternative = (
+    exerciseId: string,
+    alternativeId?: string
+  ) => {
+    selectAlternative(exerciseId, alternativeId);
+    setShowAlternativeSelector(false);
+    if (workout) {
+      saveWorkoutProgress(workout.id);
+    }
+  };
 
   // Calcular progresso baseado no índice atual do exercício
   // O progresso deve refletir quantos exercícios já foram vistos (completados ou pulados)
@@ -534,7 +604,7 @@ export function WorkoutModal() {
           {currentExercise && (
             <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
               <WeightTracker
-                exerciseName={currentExercise.name}
+                exerciseName={getCurrentExerciseName()}
                 exerciseId={currentExercise.id}
                 defaultSets={currentExercise.sets}
                 defaultReps={currentExercise.reps}
@@ -617,9 +687,18 @@ export function WorkoutModal() {
                       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                       className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
                     >
-                      <h1 className="mb-4 sm:mb-6 text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
-                        {currentExercise.name}
-                      </h1>
+                      <div className="mb-4 sm:mb-6">
+                        <h1 className="text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
+                          {getCurrentExerciseName()}
+                        </h1>
+                        {activeWorkout?.selectedAlternatives?.[
+                          currentExercise.id
+                        ] && (
+                          <p className="mt-2 text-center text-sm text-duo-blue font-bold">
+                            ✓ Alternativa selecionada
+                          </p>
+                        )}
+                      </div>
 
                       <div className="space-y-3 sm:space-y-4">
                         <div className="rounded-xl sm:rounded-2xl border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-[#47A302]/10 p-4 sm:p-6 text-center">
@@ -664,6 +743,32 @@ export function WorkoutModal() {
                             </p>
                           </div>
                         )}
+
+                        {/* Link para conteúdo educacional */}
+                        {currentExercise.educationalId && (
+                          <button
+                            onClick={() => {
+                              if (currentExercise.educationalId) {
+                                handleViewEducation(
+                                  currentExercise.educationalId
+                                );
+                              }
+                            }}
+                            className="w-full rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-3 text-left transition-all hover:border-duo-green/50 hover:bg-duo-green/10"
+                          >
+                            <div className="flex items-center gap-2">
+                              <BookOpen className="h-5 w-5 shrink-0 text-duo-green" />
+                              <div className="flex-1">
+                                <div className="text-xs sm:text-sm font-bold text-duo-green">
+                                  Ver técnica detalhada
+                                </div>
+                                <div className="text-xs text-duo-gray-dark">
+                                  Instruções completas, dicas e erros comuns
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        )}
                       </div>
                     </motion.div>
                   </AnimatePresence>
@@ -691,6 +796,29 @@ export function WorkoutModal() {
                       </span>
                       <span className="sm:hidden">SÉRIES E CARGAS</span>
                     </motion.button>
+
+                    {/* Botão de alternativas - VERSÃO ATUALIZADA */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        console.log("👆 Clicou em VER ALTERNATIVAS");
+                        console.log("currentExercise:", currentExercise);
+                        setShowAlternativeSelector(true);
+                      }}
+                      className="w-full rounded-xl sm:rounded-2xl border-2 border-duo-blue bg-duo-blue/10 py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-blue transition-all hover:bg-duo-blue/20 flex items-center justify-center gap-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      <span className="hidden sm:inline">
+                        EQUIPAMENTO OCUPADO? VER ALTERNATIVAS (
+                        {currentExercise?.alternatives?.length || 0})
+                      </span>
+                      <span className="sm:hidden">
+                        VER ALTERNATIVAS (
+                        {currentExercise?.alternatives?.length || 0})
+                      </span>
+                    </motion.button>
+
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       {activeWorkout &&
                         activeWorkout.currentExerciseIndex > 0 && (
@@ -733,6 +861,18 @@ export function WorkoutModal() {
               </div>
             </>
           )}
+
+          {/* Alternative Selector Modal */}
+          <AnimatePresence>
+            {showAlternativeSelector && currentExercise && (
+              <ExerciseAlternativeSelector
+                exercise={currentExercise}
+                onSelect={handleSelectAlternative}
+                onCancel={() => setShowAlternativeSelector(false)}
+                onViewEducation={handleViewEducation}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </AnimatePresence>

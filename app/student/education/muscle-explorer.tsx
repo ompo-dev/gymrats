@@ -81,7 +81,10 @@ export function MuscleExplorer({
   useEffect(() => {
     if (exerciseId) {
       const exercise = exerciseDatabase.find((e) => e.id === exerciseId);
-      if (exercise) setSelectedExercise(exercise);
+      if (exercise) {
+        setSelectedExercise(exercise);
+        setView("exercises"); // Mudar para a view de exercícios
+      }
     } else {
       setSelectedExercise(null);
     }
