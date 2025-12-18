@@ -21,6 +21,7 @@ export function WorkoutNodeButton({
   isCompleted,
   isCurrent,
 }: WorkoutNodeButtonProps) {
+  const activeColor = "#58CC02"; // duo-green
   return (
     <motion.button
       onClick={onClick}
@@ -33,21 +34,20 @@ export function WorkoutNodeButton({
         "relative w-[70px] h-[65px] flex items-center justify-center z-10",
         // Quando bloqueado: tons de cinza
         isLocked && "cursor-not-allowed bg-[#E5E5E5]",
-        // Quando desbloqueado e atual OU em progresso: verde
-        !isLocked && !isCompleted && isCurrent && "bg-[#58CC02]",
         // Quando desbloqueado e completo: dourado
         !isLocked &&
           isCompleted &&
           "bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00]",
-        // Fallback: se não está bloqueado, não está completo e não é current, deve ter cor verde também (em progresso)
-        !isLocked && !isCompleted && !isCurrent && "bg-[#58CC02]"
+        // Quando não completo: cor baseada no tipo (cardio=vermelho, strength=verde)
+        !isLocked && !isCompleted && "transition-colors duration-200"
       )}
       style={{
         borderRadius: "31.75px",
+        backgroundColor: !isLocked && !isCompleted ? activeColor : undefined,
         boxShadow: isLocked
           ? "0px 8px 0px rgba(0, 0, 0, 0.1), 0px 8px 0px #D1D5DB"
           : isCurrent || (!isLocked && !isCompleted)
-          ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #58CC02"
+          ? `0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px ${activeColor}`
           : isCompleted
           ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FFA500"
           : "none",
@@ -68,4 +68,3 @@ export function WorkoutNodeButton({
     </motion.button>
   );
 }
-

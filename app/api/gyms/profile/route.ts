@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const user = await db.user.findUnique({
       where: { id: userId },
       include: {
-        gym: {
+        gyms: {
           include: {
             profile: true,
           },
@@ -30,29 +30,32 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (!user || !user.gym) {
+    if (!user || !user.gyms || user.gyms.length === 0) {
       return NextResponse.json({
         hasProfile: false,
       });
     }
 
+    // Pegar a primeira academia do usuário (ou a ativa se tiver activeGymId no futuro)
+    const gym = user.gyms[0];
+
     const hasProfile =
-      !!user.gym.profile &&
-      user.gym.name !== null &&
-      user.gym.address !== null &&
-      user.gym.phone !== null &&
-      user.gym.email !== null;
+      !!gym.profile &&
+      gym.name !== null &&
+      gym.address !== null &&
+      gym.phone !== null &&
+      gym.email !== null;
 
     return NextResponse.json({
       hasProfile,
-      profile: user.gym.profile
+      profile: gym.profile
         ? {
-            name: user.gym.name,
-            address: user.gym.address,
-            phone: user.gym.phone,
-            email: user.gym.email,
-            cnpj: user.gym.cnpj,
-            equipmentCount: user.gym.profile.equipmentCount,
+            name: gym.name,
+            address: gym.address,
+            phone: gym.phone,
+            email: gym.email,
+            cnpj: gym.cnpj,
+            equipmentCount: gym.profile.equipmentCount,
           }
         : null,
     });

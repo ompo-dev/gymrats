@@ -9,6 +9,7 @@ interface ProgressRingProps {
   showProgress: boolean;
   progressPercent: number;
   className?: string;
+  color?: string; // Cor do progresso (padrão: amarelo)
 }
 
 /**
@@ -20,6 +21,7 @@ export function ProgressRing({
   showProgress,
   progressPercent,
   className,
+  color = "#FFC800", // duo-yellow por padrão
 }: ProgressRingProps) {
   // Estado para animação suave do progresso
   const [animatedProgress, setAnimatedProgress] = useState(0);
@@ -81,7 +83,7 @@ export function ProgressRing({
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `conic-gradient(from 0deg, #FFC800 0deg ${progressDegrees}deg, #E5E5E5 ${progressDegrees}deg 360deg)`,
+          background: `conic-gradient(from 0deg, ${color} 0deg ${progressDegrees}deg, #E5E5E5 ${progressDegrees}deg 360deg)`,
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

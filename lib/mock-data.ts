@@ -148,6 +148,7 @@ export const mockWorkouts: WorkoutSession[] = [
     id: "chest-push-1",
     title: "Peito e Tríceps - Dia A",
     description: "Treino focado em desenvolvimento do peitoral",
+    type: "strength",
     muscleGroup: "peito",
     difficulty: "iniciante",
     xpReward: 50,
@@ -308,6 +309,7 @@ export const mockWorkouts: WorkoutSession[] = [
     id: "back-pull-1",
     title: "Costas e Bíceps - Dia B",
     description: "Desenvolvimento completo das costas",
+    type: "strength",
     muscleGroup: "costas",
     difficulty: "iniciante",
     xpReward: 50,
@@ -466,6 +468,7 @@ export const mockWorkouts: WorkoutSession[] = [
     id: "legs-1",
     title: "Pernas Completo - Dia C",
     description: "Treino intenso de pernas e glúteos",
+    type: "strength",
     muscleGroup: "pernas",
     difficulty: "intermediario",
     xpReward: 75,
@@ -624,6 +627,7 @@ export const mockWorkouts: WorkoutSession[] = [
     id: "shoulders-1",
     title: "Ombros e Trapézio",
     description: "Desenvolvimento completo dos deltóides",
+    type: "strength",
     muscleGroup: "ombros",
     difficulty: "iniciante",
     xpReward: 50,
@@ -631,6 +635,127 @@ export const mockWorkouts: WorkoutSession[] = [
     locked: true,
     completed: false,
     exercises: [],
+  },
+  // Workouts de Cardio
+  {
+    id: "cardio-run-1",
+    title: "Corrida Intervalada",
+    description: "HIIT de corrida para queimar calorias",
+    type: "cardio",
+    muscleGroup: "cardio",
+    difficulty: "intermediario",
+    xpReward: 40,
+    estimatedTime: 25,
+    locked: false,
+    completed: false,
+    exercises: [
+      createWorkoutExercise(
+        "cardio-ex1",
+        "Corrida 6km/h",
+        1,
+        "25min",
+        0,
+        "Ritmo moderado, mantenha conversação",
+        "corrida-moderada",
+        [
+          {
+            id: "alt-cardio-1-1",
+            name: "Caminhada Rápida 5km/h",
+            reason: "Menor impacto nas articulações",
+          },
+          {
+            id: "alt-cardio-1-2",
+            name: "Elíptico",
+            reason: "Esteira ocupada ou problemas no joelho",
+          },
+          {
+            id: "alt-cardio-1-3",
+            name: "Bike Ergométrica",
+            reason: "Sem impacto, mesmo gasto calórico",
+          },
+        ]
+      ),
+    ],
+  },
+  {
+    id: "cardio-bike-1",
+    title: "Bike Resistência",
+    description: "Treino de resistência cardiovascular",
+    type: "cardio",
+    muscleGroup: "cardio",
+    difficulty: "iniciante",
+    xpReward: 35,
+    estimatedTime: 30,
+    locked: false,
+    completed: false,
+    exercises: [
+      createWorkoutExercise(
+        "bike-ex1",
+        "Bike Ergométrica 30min",
+        1,
+        "30min",
+        0,
+        "Resistência média, 70-80% FC máx",
+        "bike-resistencia",
+        [
+          {
+            id: "alt-bike-1-1",
+            name: "Spinning",
+            reason: "Bike ergométrica ocupada",
+          },
+          {
+            id: "alt-bike-1-2",
+            name: "Esteira Inclinada",
+            reason: "Simular subida, mesmo esforço",
+          },
+          {
+            id: "alt-bike-1-3",
+            name: "Remo Ergométrico",
+            reason: "Trabalho cardiovascular completo",
+          },
+        ]
+      ),
+    ],
+  },
+  {
+    id: "cardio-hiit-1",
+    title: "HIIT Completo",
+    description: "Alta intensidade para máxima queima",
+    type: "cardio",
+    muscleGroup: "cardio",
+    difficulty: "avancado",
+    xpReward: 60,
+    estimatedTime: 20,
+    locked: false,
+    completed: false,
+    exercises: [
+      createWorkoutExercise(
+        "hiit-ex1",
+        "HIIT Burpees 20min",
+        1,
+        "20min",
+        0,
+        "40s on / 20s off - Máxima intensidade",
+        "hiit-burpees",
+        [
+          {
+            id: "alt-hiit-1-1",
+            name: "HIIT Bike",
+            reason: "Menor impacto, mesma intensidade",
+          },
+          {
+            id: "alt-hiit-1-2",
+            name: "HIIT Esteira",
+            reason: "Sprint intervals na esteira",
+          },
+          {
+            id: "alt-hiit-1-3",
+            name: "HIIT Remo",
+            reason: "Trabalho completo corpo inteiro",
+          },
+        ]
+      ),
+    ],
   },
 ];
 
@@ -699,7 +824,11 @@ export const mockUnits: Unit[] = [
     id: "unit-1",
     title: "Semana 1",
     description: "Começando sua jornada fitness",
-    workouts: mockWorkouts.slice(0, 2),
+    workouts: [
+      mockWorkouts[0], // Peito e Tríceps
+      mockWorkouts[4], // Cardio - Corrida Intervalada
+      mockWorkouts[1], // Costas e Bíceps
+    ],
     color: "#58CC02",
     icon: "💪",
   },
@@ -707,7 +836,11 @@ export const mockUnits: Unit[] = [
     id: "unit-2",
     title: "Semana 2",
     description: "Aumentando a intensidade",
-    workouts: [mockWorkouts[2]],
+    workouts: [
+      mockWorkouts[2], // Pernas
+      mockWorkouts[5], // Cardio - Bike
+      mockWorkouts[6], // HIIT
+    ],
     color: "#1CB0F6",
     icon: "🔥",
   },
@@ -715,7 +848,7 @@ export const mockUnits: Unit[] = [
     id: "unit-3",
     title: "Semana 3",
     description: "Treino avançado",
-    workouts: [mockWorkouts[3]],
+    workouts: [mockWorkouts[3]], // Ombros (locked)
     color: "#FF9600",
     icon: "⚡",
   },

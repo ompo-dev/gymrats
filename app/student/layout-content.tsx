@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WorkoutModal } from "@/components/workout-modal";
 import { AppLayout, TabConfig } from "@/components/app-layout";
+import { WorkoutModal } from "@/components/workout-modal";
 import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import {
   Home,
@@ -32,7 +32,8 @@ export function StudentLayoutContent({
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  
+
+  // TODOS OS HOOKS DEVEM VIR ANTES DE QUALQUER RETURN
   // Aguardar montagem no cliente antes de usar useQueryState
   useEffect(() => {
     setIsMounted(true);
@@ -78,6 +79,7 @@ export function StudentLayoutContent({
     );
   }
 
+  // Handler para mudança de tabs
   const handleTabChange = async (newTab: string) => {
     if (newTab === "home") {
       await setTab(null);

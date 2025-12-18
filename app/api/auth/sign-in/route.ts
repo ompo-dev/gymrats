@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import bcrypt from "bcryptjs"
-import { createSession } from "@/lib/utils/session"
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import bcrypt from "bcryptjs";
+import { createSession } from "@/lib/utils/session";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
         { error: "Email e senha são obrigatórios" },
         { status: 400 }
-      )
+      );
     }
 
     const user = await db.user.findUnique({
@@ -22,38 +22,38 @@ export async function POST(request: NextRequest) {
             id: true,
           },
         },
-        gym: {
+        gyms: {
           select: {
             id: true,
           },
         },
       },
-    })
+    });
 
     if (!user) {
       return NextResponse.json(
         { error: "Email ou senha incorretos" },
         { status: 401 }
-      )
+      );
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password)
+    const isValidPassword = await bcrypt.compare(password, user.password);
 
     if (!isValidPassword) {
       return NextResponse.json(
         { error: "Email ou senha incorretos" },
         { status: 401 }
-      )
+      );
     }
 
-    let userType: "student" | "gym" | null = null
+    let userType: "student" | "gym" | null = null;
     if (user.role === "STUDENT" || user.student) {
-      userType = "student"
-    } else if (user.role === "GYM" || user.gym) {
-      userType = "gym"
+      userType = "student";
+    } else if (user.role === "GYM" || (user.gyms && user.gyms.length > 0)) {
+      userType = "gym";
     }
 
-    const sessionToken = await createSession(user.id)
+    const sessionToken = await createSession(user.id);
 
     const response = NextResponse.json({
       user: {
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       session: {
         token: sessionToken,
       },
-    })
+    });
 
     response.cookies.set("auth_token", sessionToken, {
       httpOnly: true,
@@ -74,15 +74,20 @@ export async function POST(request: NextRequest) {
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 30,
       path: "/",
-    })
+    });
 
-    return response
+    return response;
   } catch (error: any) {
-    console.error("Erro ao fazer login:", error)
-    const errorMessage = error instanceof Error ? error.message : "Erro ao fazer login"
+    console.error("Erro ao fazer login:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Erro ao fazer login";
     return NextResponse.json(
-      { error: errorMessage, details: process.env.NODE_ENV === "development" ? error.stack : undefined },
+      {
+        error: errorMessage,
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
       { status: 500 }
-    )
+    );
   }
 }

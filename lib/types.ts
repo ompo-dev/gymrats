@@ -41,6 +41,7 @@ export interface WorkoutSession {
   id: string;
   title: string;
   description: string;
+  type: WorkoutType; // Tipo do treino: strength, cardio, flexibility, rest
   muscleGroup: MuscleGroup;
   difficulty: DifficultyLevel;
   exercises: WorkoutExercise[];

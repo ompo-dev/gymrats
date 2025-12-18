@@ -8,6 +8,7 @@ import { StaggerContainer } from "../../../components/animations/stagger-contain
 import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
 import { UnitSectionCard } from "../../../components/ui/unit-section-card";
+import { useRouter } from "next/navigation";
 
 interface LearningPathProps {
   units: Unit[];
@@ -15,13 +16,19 @@ interface LearningPathProps {
 }
 
 export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
+  const router = useRouter();
   const openWorkout = useWorkoutStore((state) => state.openWorkout);
   const openWorkoutId = useWorkoutStore((state) => state.openWorkoutId);
 
-  const handleWorkoutClick = (workoutId: string, locked: boolean) => {
+  const handleWorkoutClick = (
+    workoutId: string,
+    locked: boolean,
+    workoutType?: string
+  ) => {
     if (locked) return;
-    // Sempre fechar primeiro para garantir que o useEffect dispare novamente
-    // Isso permite reabrir o mesmo workout após completá-lo
+
+    // Para qualquer tipo de treino (cardio ou strength), abre o modal
+    // O modal correto será renderizado baseado no tipo
     if (openWorkoutId === workoutId) {
       // Se já está aberto, fechar primeiro e depois reabrir
       openWorkout(null);
@@ -102,7 +109,11 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
                       workout={workout}
                       position={position}
                       onClick={() =>
-                        handleWorkoutClick(workout.id, workout.locked)
+                        handleWorkoutClick(
+                          workout.id,
+                          workout.locked,
+                          workout.type
+                        )
                       }
                       isFirst={isFirstInUnit}
                       previousWorkouts={previousWorkouts}

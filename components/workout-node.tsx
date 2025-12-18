@@ -35,6 +35,7 @@ export function WorkoutNode({
 
   const isCompleted = isWorkoutCompleted(workout.id);
 
+  // Verificar progresso e bloqueio - ATUALIZADO
   // Verificar se todos os workouts anteriores na mesma unidade foram completados
   const allPreviousInUnitCompleted =
     previousWorkouts.length === 0
@@ -163,7 +164,7 @@ export function WorkoutNode({
               }}
             >
               <span
-                className="font-bold text-center uppercase text-[#58CC02]"
+                className="font-bold text-center uppercase text-duo-green"
                 style={{
                   width: "52px",
                   height: "17px",
@@ -204,9 +205,10 @@ export function WorkoutNode({
 
       {shouldShowProgress ? (
         <ProgressRing
-          key={`progress-${workout.id}-${targetProgressPercent}-${hasProgress}`} // Key para forçar atualização
+          key={`progress-${workout.id}-${targetProgressPercent}-${hasProgress}`}
           showProgress={shouldShowProgress}
           progressPercent={targetProgressPercent}
+          color="#58CC02"
         >
           <WorkoutNodeButton
             onClick={onClick}
