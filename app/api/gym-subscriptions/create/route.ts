@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
 
     const session = await getSession(sessionToken);
     if (!session) {
-      return NextResponse.json(
-        { error: "Sessão inválida" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
     }
 
     // Se for ADMIN, garantir que tenha perfil de gym
@@ -27,7 +24,7 @@ export async function POST(request: NextRequest) {
       const existingGym = await db.gym.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingGym) {
         const newGym = await db.gym.create({
           data: {
@@ -60,10 +57,7 @@ export async function POST(request: NextRequest) {
       !plan ||
       (plan !== "basic" && plan !== "premium" && plan !== "enterprise")
     ) {
-      return NextResponse.json(
-        { error: "Plano inválido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
     }
 
     if (billingPeriod !== "monthly" && billingPeriod !== "annual") {
@@ -92,7 +86,7 @@ export async function POST(request: NextRequest) {
       enterprise: { base: 400, perStudent: 0.5 },
     };
     const prices = planPrices[plan];
-    
+
     // Calcular período
     const periodEnd = new Date(now);
     if (billingPeriod === "annual") {
@@ -129,6 +123,14 @@ export async function POST(request: NextRequest) {
       billingPeriod
     );
 
+    // Validar se billing tem as propriedades necessárias
+    if (!billing || !billing.id) {
+      console.error("Billing criado mas sem ID:", billing);
+      throw new Error(
+        "Erro ao criar cobrança: resposta inválida da AbacatePay"
+      );
+    }
+
     // Atualizar subscription com billingId
     if (existingSubscription) {
       await db.gymSubscription.update({
@@ -139,17 +141,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    // Garantir que apenas propriedades serializáveis sejam retornadas
+    const responseData = {
       success: true,
-      billingUrl: billing.url,
-      billingId: billing.id,
-    });
+      billingUrl: String(billing.url || ""),
+      billingId: String(billing.id || ""),
+    };
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("Erro ao criar assinatura:", error);
+    console.error("Stack trace:", error.stack);
     return NextResponse.json(
       { error: error.message || "Erro ao criar assinatura" },
       { status: 500 }
     );
   }
 }
-

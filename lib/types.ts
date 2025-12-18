@@ -520,6 +520,15 @@ export interface GymProfile {
   equipmentCount: number;
   createdAt: Date;
   gamification: GymGamification;
+  isActive?: boolean; // Se a academia está ativa
+  hasActiveSubscription?: boolean; // Se tem assinatura ativa (não trial)
+}
+
+export interface MultipleGymsInfo {
+  gyms: GymProfile[];
+  activeGymId: string | null;
+  canCreateMultipleGyms: boolean; // Se pode criar múltiplas academias (plano ativo)
+  totalGyms: number;
 }
 
 export interface GymGamification {

@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
 
     const session = await getSession(sessionToken);
     if (!session) {
-      return NextResponse.json(
-        { error: "Sessão inválida" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
     }
 
     // Se for ADMIN, garantir que tenha perfil de student
@@ -27,7 +24,7 @@ export async function POST(request: NextRequest) {
       const existingStudent = await db.student.findUnique({
         where: { userId: session.user.id },
       });
-      
+
       if (!existingStudent) {
         const newStudent = await db.student.create({
           data: {
@@ -52,10 +49,7 @@ export async function POST(request: NextRequest) {
     const { plan } = await request.json();
 
     if (!plan || (plan !== "monthly" && plan !== "annual")) {
-      return NextResponse.json(
-        { error: "Plano inválido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
     }
 
     // Verificar se existe subscription com trial ativo
@@ -89,10 +83,15 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const billing = await createStudentSubscriptionBilling(
-      studentId,
-      plan
-    );
+    const billing = await createStudentSubscriptionBilling(studentId, plan);
+
+    // Validar se billing tem as propriedades necessárias
+    if (!billing || !billing.id) {
+      console.error("Billing criado mas sem ID:", billing);
+      throw new Error(
+        "Erro ao criar cobrança: resposta inválida da AbacatePay"
+      );
+    }
 
     // Atualizar subscription com billingId
     if (existingSubscription) {
@@ -104,17 +103,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    // Garantir que apenas propriedades serializáveis sejam retornadas
+    const responseData = {
       success: true,
-      billingUrl: billing.url,
-      billingId: billing.id,
-    });
+      billingUrl: String(billing.url || ""),
+      billingId: String(billing.id || ""),
+    };
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("Erro ao criar assinatura:", error);
+    console.error("Stack trace:", error.stack);
     return NextResponse.json(
       { error: error.message || "Erro ao criar assinatura" },
       { status: 500 }
     );
   }
 }
-

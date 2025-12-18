@@ -165,15 +165,41 @@ class AbacatePayClient {
     data: CreateBillingRequest
   ): Promise<AbacatePayResponse<Billing>> {
     try {
+      console.log("[AbacatePay] Criando billing:", {
+        frequency: data.frequency,
+        methods: data.methods,
+        productsCount: data.products.length,
+        hasCustomer: !!data.customer,
+        hasCustomerId: !!data.customerId,
+      });
+
       const response = await this.client.post<AbacatePayResponse<Billing>>(
         "/billing/create",
         data
       );
+
+      console.log("[AbacatePay] Resposta recebida:", {
+        status: response.status,
+        hasData: !!response.data?.data,
+        hasError: !!response.data?.error,
+        error: response.data?.error,
+      });
+
       return response.data;
     } catch (error: any) {
+      console.error("[AbacatePay] Erro ao criar billing:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        stack: error.stack,
+      });
+
       return {
         data: null,
-        error: error.response?.data?.error || error.message,
+        error:
+          error.response?.data?.error ||
+          error.message ||
+          "Internal Server Error",
       };
     }
   }

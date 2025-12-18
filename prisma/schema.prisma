@@ -26,10 +26,12 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relacionamentos
-  student  Student?
-  gym      Gym?
-  accounts Account[]
-  sessions Session[]
+  student       Student?
+  gyms          Gym[] // Um usuário pode ter várias academias
+  activeGymId   String? // Academia atualmente selecionada
+  accounts      Account[]
+  sessions      Session[]
+  gymPreference GymUserPreference? // Preferências do usuário para academias
 
   @@map("users")
 }
@@ -178,7 +180,7 @@ model StudentProfile {
 
 model Gym {
   id      String  @id @default(cuid())
-  userId  String  @unique
+  userId  String // Removido unique - agora um user pode ter várias gyms
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name    String
   logo    String?
@@ -187,7 +189,8 @@ model Gym {
   email   String
   cnpj    String? @unique
   plan    String  @default("basic") // basic, premium, enterprise
-
+  isActive Boolean @default(true) // Se a academia está ativa
+  
   // Relacionamentos
   profile      GymProfile?
   students     GymMembership[]
@@ -202,6 +205,7 @@ model Gym {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
   @@map("gyms")
 }
 
@@ -444,6 +448,19 @@ model AchievementUnlock {
   unlockedAt    DateTime    @default(now())
 
   @@map("achievement_unlocks")
+}
+
+// Preferências do usuário para múltiplas academias
+model GymUserPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastActiveGymId String? // Última academia acessada
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("gym_user_preferences")
 }
 
 // ============================================

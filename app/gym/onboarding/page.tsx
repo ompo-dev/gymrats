@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   Check,
   Sparkles,
+  ArrowLeft,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Step1 } from "./steps/step1";
@@ -57,6 +58,10 @@ function Confetti() {
 
 export default function GymOnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams?.get("mode"); // "new" para criar nova academia
+  const isNewGymMode = mode === "new";
+
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -110,18 +115,45 @@ export default function GymOnboardingPage() {
     setShowConfetti(true);
 
     try {
-      const { submitGymOnboarding } = await import("./actions");
-      const result = await submitGymOnboarding(formData);
+      if (isNewGymMode) {
+        // Criar nova academia (adicional)
+        const { submitNewGym } = await import("./actions");
+        const result = await submitNewGym(formData);
 
-      if (!result.success) {
-        throw new Error(result.error || "Erro ao salvar perfil");
+        if (!result.success) {
+          throw new Error(result.error || "Erro ao criar nova academia");
+        }
+
+        // Sinalizar que precisa refresh das academias
+        sessionStorage.setItem("refresh-gyms", "true");
+
+        // Forçar revalidação dos dados do servidor
+        router.refresh();
+
+        setTimeout(() => {
+          router.push("/gym/dashboard");
+        }, 1500);
+      } else {
+        // Onboarding original (primeira academia)
+        const { submitGymOnboarding } = await import("./actions");
+        const result = await submitGymOnboarding(formData);
+
+        if (!result.success) {
+          throw new Error(result.error || "Erro ao salvar perfil");
+        }
+
+        // Sinalizar que precisa refresh das academias
+        sessionStorage.setItem("refresh-gyms", "true");
+
+        // Forçar revalidação dos dados do servidor
+        router.refresh();
+
+        setTimeout(() => {
+          router.push("/gym/dashboard");
+        }, 1500);
       }
-
-      setTimeout(() => {
-        router.push("/gym/dashboard");
-      }, 1500);
     } catch (error: any) {
-      alert(error.message || "Erro ao salvar perfil. Tente novamente.");
+      alert(error.message || "Erro ao salvar. Tente novamente.");
       setIsLoading(false);
       setShowConfetti(false);
     }
@@ -149,6 +181,20 @@ export default function GymOnboardingPage() {
     <div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-orange scrollbar-hide">
       {showConfetti && <Confetti />}
 
+      {/* Botão voltar para modo "nova academia" */}
+      {isNewGymMode && (
+        <div className="absolute top-4 left-4 z-50">
+          <Button
+            onClick={() => router.push("/gym/dashboard")}
+            variant="white"
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao Dashboard
+          </Button>
+        </div>
+      )}
+
       <div className="absolute inset-0 overflow-hidden">
         {isMounted &&
           [...Array(20)].map((_, i) => (
@@ -175,6 +221,22 @@ export default function GymOnboardingPage() {
 
       <div className="flex flex-1 items-center justify-center p-4 overflow-y-auto scrollbar-hide">
         <div className="relative mx-auto w-full max-w-2xl">
+          {/* Título diferente para modo "nova academia" */}
+          {isNewGymMode && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 text-center"
+            >
+              <h1 className="text-3xl font-black text-white">
+                🏋️ Nova Academia
+              </h1>
+              <p className="text-lg text-white/90 mt-2">
+                Configure sua nova unidade
+              </p>
+            </motion.div>
+          )}
+
           <AnimatePresence mode="wait">
             {step === 1 && (
               <Step1 formData={formData} setFormData={setFormData} />

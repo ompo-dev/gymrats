@@ -4,6 +4,7 @@ import { Flame, Heart, Trophy, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { StreakModal } from "./streak-modal";
+import { GymSelector } from "./gym-selector";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
@@ -40,13 +41,20 @@ export function AppHeader({
             "flex h-[70px] items-center px-4 container justify-between"
           )}
         >
-          {showLogo && (
-            <Link href="/student" className="flex items-center gap-2">
-              <div className="text-2xl font-black tracking-tight text-duo-green">
-                GymRats
-              </div>
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            {/* Logo apenas para students, Seletor para gyms */}
+            {isGym ? (
+              <GymSelector />
+            ) : (
+              showLogo && (
+                <Link href="/student" className="flex items-center gap-2">
+                  <div className="text-2xl font-black tracking-tight text-duo-green">
+                    GymRats
+                  </div>
+                </Link>
+              )
+            )}
+          </div>
 
           <div className={cn("flex items-center", isGym ? "gap-2" : "gap-3")}>
             {/* Level - only for gyms */}

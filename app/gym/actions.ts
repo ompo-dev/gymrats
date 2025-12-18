@@ -44,31 +44,13 @@ export async function getGymProfile() {
       return mockGymProfile;
     }
 
-    // Se for ADMIN, garantir que tenha perfil de gym
-    let gymId: string | null = null;
-    if (session.user.role === "ADMIN") {
-      const existingGym = await db.gym.findUnique({
-        where: { userId: session.user.id },
-      });
+    // Buscar o usuário com activeGymId
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
 
-      if (!existingGym) {
-        const newGym = await db.gym.create({
-          data: {
-            userId: session.user.id,
-            name: session.user.name,
-            address: "",
-            phone: "",
-            email: session.user.email,
-            plan: "basic",
-          },
-        });
-        gymId = newGym.id;
-      } else {
-        gymId = existingGym.id;
-      }
-    } else if (session.user.gym?.id) {
-      gymId = session.user.gym.id;
-    }
+    const gymId = user?.activeGymId;
 
     if (!gymId) {
       return mockGymProfile;
@@ -129,12 +111,22 @@ export async function getGymStats() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockGymStats;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockGymStats;
     }
 
     const stats = await db.gymStats.findUnique({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     if (!stats) {
@@ -181,12 +173,22 @@ export async function getGymStudents() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockStudents;
+    }
+
+    const gymUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = gymUser?.activeGymId;
+    if (!gymId) {
       return mockStudents;
     }
 
     const memberships = await db.gymMembership.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
       include: {
         student: {
           include: {
@@ -324,12 +326,22 @@ export async function getGymEquipment() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockEquipment;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockEquipment;
     }
 
     const equipment = await db.equipment.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     const equipmentList: Equipment[] = equipment.map((eq) => ({
@@ -376,16 +388,26 @@ export async function getGymFinancialSummary() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockFinancialSummary;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockFinancialSummary;
     }
 
     const payments = await db.payment.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     const expenses = await db.expense.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
     });
 
     const totalRevenue = payments
@@ -431,12 +453,22 @@ export async function getGymRecentCheckIns() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockRecentCheckIns;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockRecentCheckIns;
     }
 
     const checkIns = await db.checkIn.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
       orderBy: { timestamp: "desc" },
       take: 10,
     });
@@ -465,12 +497,22 @@ export async function getGymEquipmentById(equipmentId: string) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockEquipment.find((e) => e.id === equipmentId) || null;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockEquipment.find((e) => e.id === equipmentId) || null;
     }
 
     const equipment = await db.equipment.findUnique({
-      where: { id: equipmentId, gymId: session.user.gym.id },
+      where: { id: equipmentId, gymId },
       include: {
         maintenanceHistory: true,
       },
@@ -538,13 +580,23 @@ export async function getGymStudentById(studentId: string) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockStudents.find((s) => s.id === studentId) || null;
+    }
+
+    const gymUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = gymUser?.activeGymId;
+    if (!gymId) {
       return mockStudents.find((s) => s.id === studentId) || null;
     }
 
     const membership = await db.gymMembership.findFirst({
       where: {
-        gymId: session.user.gym.id,
+        gymId,
         studentId: studentId,
       },
       include: {
@@ -689,13 +741,23 @@ export async function getGymStudentPayments(studentId: string) {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockPayments.filter((p) => p.studentId === studentId);
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockPayments.filter((p) => p.studentId === studentId);
     }
 
     const payments = await db.payment.findMany({
       where: {
-        gymId: session.user.gym.id,
+        gymId,
         studentId: studentId,
       },
       include: {
@@ -737,12 +799,22 @@ export async function getGymPayments() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockPayments;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockPayments;
     }
 
     const payments = await db.payment.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
       orderBy: { dueDate: "desc" },
       include: {
         plan: true,
@@ -781,7 +853,16 @@ export async function getGymCoupons() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockCoupons;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    if (!user?.activeGymId) {
       return mockCoupons;
     }
 
@@ -802,7 +883,16 @@ export async function getGymReferrals() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockReferrals;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    if (!user?.activeGymId) {
       return mockReferrals;
     }
 
@@ -823,12 +913,22 @@ export async function getGymExpenses() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockExpenses;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    const gymId = user?.activeGymId;
+    if (!gymId) {
       return mockExpenses;
     }
 
     const expenses = await db.expense.findMany({
-      where: { gymId: session.user.gym.id },
+      where: { gymId },
       orderBy: { date: "desc" },
     });
 
@@ -874,7 +974,16 @@ export async function getGymMembershipPlans() {
     }
 
     const session = await getSession(sessionToken);
-    if (!session || !session.user.gym) {
+    if (!session) {
+      return mockMembershipPlans;
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
+
+    if (!user?.activeGymId) {
       return mockMembershipPlans;
     }
 
@@ -899,32 +1008,12 @@ export async function getGymSubscription() {
       return null;
     }
 
-    // Se for ADMIN, garantir que tenha perfil de gym
-    let gymId: string | null = null;
-    if (session.user.role === "ADMIN") {
-      const existingGym = await db.gym.findUnique({
-        where: { userId: session.user.id },
-      });
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
 
-      if (!existingGym) {
-        const newGym = await db.gym.create({
-          data: {
-            userId: session.user.id,
-            name: session.user.name,
-            address: "",
-            phone: "",
-            email: session.user.email,
-            plan: "basic",
-          },
-        });
-        gymId = newGym.id;
-      } else {
-        gymId = existingGym.id;
-      }
-    } else if (session.user.gym?.id) {
-      gymId = session.user.gym.id;
-    }
-
+    const gymId = user?.activeGymId;
     if (!gymId) {
       return null;
     }
@@ -1024,32 +1113,12 @@ export async function startGymTrial() {
       return { error: "Sessão inválida" };
     }
 
-    // Se for ADMIN, garantir que tenha perfil de gym
-    let gymId: string | null = null;
-    if (session.user.role === "ADMIN") {
-      const existingGym = await db.gym.findUnique({
-        where: { userId: session.user.id },
-      });
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { activeGymId: true },
+    });
 
-      if (!existingGym) {
-        const newGym = await db.gym.create({
-          data: {
-            userId: session.user.id,
-            name: session.user.name,
-            address: "",
-            phone: "",
-            email: session.user.email,
-            plan: "basic",
-          },
-        });
-        gymId = newGym.id;
-      } else {
-        gymId = existingGym.id;
-      }
-    } else if (session.user.gym?.id) {
-      gymId = session.user.gym.id;
-    }
-
+    const gymId = user?.activeGymId;
     if (!gymId) {
       return { error: "Academia não encontrada" };
     }

@@ -129,12 +129,38 @@ export async function createStudentSubscriptionBilling(
     };
   }
 
+  console.log(
+    "[createStudentSubscriptionBilling] Criando billing na AbacatePay:",
+    {
+      studentId,
+      plan,
+      billingData: {
+        ...billingData,
+        customer: billingData.customer
+          ? { ...billingData.customer, taxId: "***" }
+          : undefined,
+      },
+    }
+  );
+
   const billingResponse = await abacatePay.createBilling(billingData);
 
+  console.log("[createStudentSubscriptionBilling] Resposta da AbacatePay:", {
+    hasError: !!billingResponse.error,
+    error: billingResponse.error,
+    hasData: !!billingResponse.data,
+    dataId: billingResponse.data?.id,
+    dataUrl: billingResponse.data?.url,
+  });
+
   if (billingResponse.error || !billingResponse.data) {
-    throw new Error(
-      billingResponse.error || "Erro ao criar cobrança na AbacatePay"
-    );
+    const errorMessage =
+      billingResponse.error || "Erro ao criar cobrança na AbacatePay";
+    console.error("[createStudentSubscriptionBilling] Erro ao criar billing:", {
+      error: billingResponse.error,
+      response: billingResponse,
+    });
+    throw new Error(errorMessage);
   }
 
   return billingResponse.data;
@@ -250,12 +276,37 @@ export async function createGymSubscriptionBilling(
     };
   }
 
+  console.log("[createGymSubscriptionBilling] Criando billing na AbacatePay:", {
+    gymId,
+    plan,
+    billingPeriod,
+    studentCount,
+    billingData: {
+      ...billingData,
+      customer: billingData.customer
+        ? { ...billingData.customer, taxId: "***" }
+        : undefined,
+    },
+  });
+
   const billingResponse = await abacatePay.createBilling(billingData);
 
+  console.log("[createGymSubscriptionBilling] Resposta da AbacatePay:", {
+    hasError: !!billingResponse.error,
+    error: billingResponse.error,
+    hasData: !!billingResponse.data,
+    dataId: billingResponse.data?.id,
+    dataUrl: billingResponse.data?.url,
+  });
+
   if (billingResponse.error || !billingResponse.data) {
-    throw new Error(
-      billingResponse.error || "Erro ao criar cobrança na AbacatePay"
-    );
+    const errorMessage =
+      billingResponse.error || "Erro ao criar cobrança na AbacatePay";
+    console.error("[createGymSubscriptionBilling] Erro ao criar billing:", {
+      error: billingResponse.error,
+      response: billingResponse,
+    });
+    throw new Error(errorMessage);
   }
 
   return billingResponse.data;

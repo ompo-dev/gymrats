@@ -1,7 +1,9 @@
 "use client";
 
-import { useSubscriptionUnified } from "./use-subscription-unified";
-import type { StudentSubscriptionData } from "./use-subscription-unified";
+import {
+  useSubscriptionUnified,
+  StudentSubscriptionData,
+} from "./use-subscription-unified";
 
 export type SubscriptionData = StudentSubscriptionData;
 
