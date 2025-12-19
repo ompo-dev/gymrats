@@ -280,6 +280,7 @@ model Workout {
   unit          Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
   title         String
   description   String?
+  type          String  @default("strength") // strength, cardio, flexibility, rest
   muscleGroup   String
   difficulty    String
   xpReward      Int     @default(10)

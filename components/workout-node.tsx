@@ -1,4 +1,5 @@
 "use client";
+// ARQUIVO LIMPO - SEM COLORS
 
 import type { WorkoutSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -12,8 +13,8 @@ interface WorkoutNodeProps {
   position: "left" | "center" | "right";
   onClick: () => void;
   isFirst?: boolean;
-  previousWorkouts?: WorkoutSession[]; // Workouts anteriores na mesma unidade
-  previousUnitsWorkouts?: WorkoutSession[]; // Todos os workouts de unidades anteriores
+  previousWorkouts?: WorkoutSession[];
+  previousUnitsWorkouts?: WorkoutSession[];
 }
 
 export function WorkoutNode({
@@ -24,8 +25,6 @@ export function WorkoutNode({
   previousWorkouts = [],
   previousUnitsWorkouts = [],
 }: WorkoutNodeProps) {
-  // Usar o store diretamente para garantir re-renderização quando mudar
-  // Selecionar especificamente o progresso deste workout para forçar re-renderização
   const workoutProgress = useWorkoutStore(
     (state) => state.workoutProgress[workout.id]
   );
@@ -35,8 +34,6 @@ export function WorkoutNode({
 
   const isCompleted = isWorkoutCompleted(workout.id);
 
-  // Verificar progresso e bloqueio - ATUALIZADO
-  // Verificar se todos os workouts anteriores na mesma unidade foram completados
   const allPreviousInUnitCompleted =
     previousWorkouts.length === 0
       ? true
@@ -44,7 +41,6 @@ export function WorkoutNode({
           isWorkoutCompleted(prevWorkout.id)
         );
 
-  // Verificar se todos os workouts de unidades anteriores foram completados
   const allPreviousUnitsCompleted =
     previousUnitsWorkouts.length === 0
       ? true
@@ -52,10 +48,6 @@ export function WorkoutNode({
           isWorkoutCompleted(prevWorkout.id)
         );
 
-  // REGRA DE BLOQUEIO: Um workout está bloqueado se:
-  // 1. Está marcado como locked no mock OU
-  // 2. Não é o primeiro da primeira unidade E nem todos os anteriores na mesma unidade foram completados OU
-  // 3. É o primeiro de uma unidade E nem todos os workouts das unidades anteriores foram completados
   const shouldBeLocked =
     workout.locked ||
     (!isFirst && !allPreviousInUnitCompleted) ||
@@ -63,60 +55,36 @@ export function WorkoutNode({
 
   const isLocked = shouldBeLocked;
 
-  // Só verifica progresso se NÃO está completo
   const hasProgress = !isCompleted && isWorkoutInProgress(workout.id);
-  const totalSeenExercises = !isCompleted
-    ? getWorkoutProgress(workout.id) // Retorna número de exercícios vistos (completados + pulados)
-    : 0;
+  const totalSeenExercises = !isCompleted ? getWorkoutProgress(workout.id) : 0;
   const targetProgressPercent =
     totalSeenExercises > 0 && workout.exercises.length > 0
       ? Math.min(100, (totalSeenExercises / workout.exercises.length) * 100)
       : 0;
 
-  // REGRA PRINCIPAL: Só pode mostrar progresso se:
-  // - É o primeiro da primeira unidade (sem unidades anteriores) OU
-  // - É o primeiro de outra unidade E todos os workouts das unidades anteriores foram completados OU
-  // - Não é o primeiro E todos os anteriores na mesma unidade foram completados
   const canShowProgress =
     (isFirst && previousUnitsWorkouts.length === 0) ||
     (isFirst && allPreviousUnitsCompleted) ||
     (!isFirst && allPreviousInUnitCompleted);
 
-  // Só considerar "em progresso" se pode mostrar E tem progresso salvo E NÃO está completo
   const inProgress = !isCompleted && canShowProgress && hasProgress;
 
-  // isCurrent: está disponível para iniciar (não bloqueado, não completo, não em progresso)
-  // Mas se está em progresso, ainda deve ter cor de fundo (verde)
   const isCurrent = !isLocked && !isCompleted && !inProgress;
 
-  // Estado para o botão: se está em progresso, deve ter cor verde também
   const isInProgressState = inProgress && !isCompleted && !isLocked;
 
-  // Só mostra barra de progresso circular se:
-  // 1. NÃO está completo (se está completo, NUNCA mostra barra) - CRÍTICO
-  // 2. Pode mostrar (é primeiro OU todos anteriores completos)
-  // 3. NÃO está bloqueado (se está bloqueado, não mostra barra)
-  // 4. Tem progresso salvo (hasProgress) OU pode mostrar progresso (está disponível para iniciar)
-  // REGRA: Mostra ring se pode mostrar E NÃO está bloqueado E (tem progresso OU está disponível para iniciar)
   const shouldShowProgress =
-    !isCompleted && // PRIMEIRO: Se está completo, nunca mostra - ABSOLUTO
-    !isLocked && // SEGUNDO: Se está bloqueado, nunca mostra - ABSOLUTO
-    canShowProgress && // Pode mostrar (primeiro OU anteriores completos)
-    (hasProgress || !isLocked); // Mostra se tem progresso OU está desbloqueado (pode iniciar)
+    !isCompleted && !isLocked && canShowProgress && (hasProgress || !isLocked);
 
-  // Forçar re-renderização quando o progresso ou completados mudarem
   useEffect(() => {
-    // Este useEffect garante que o componente re-renderize quando o store mudar
+    // Re-renderizar quando mudar
   }, [workoutProgress, completedWorkouts]);
 
-  // Estado para forçar re-renderização quando o progresso mudar
   const [, forceUpdate] = useState(0);
 
-  // Listener para atualizar quando o progresso mudar (disparado pelo modal)
   useEffect(() => {
     const handleProgressUpdate = (event: CustomEvent) => {
       if (event.detail?.workoutId === workout.id) {
-        // Forçar re-renderização ao receber atualização de progresso
         forceUpdate((prev) => prev + 1);
       }
     };
@@ -146,15 +114,12 @@ export function WorkoutNode({
         getPositionClasses()
       )}
     >
-      {/* START Badge - Estilo Duolingo exato */}
       {isFirst && isCurrent && (
         <div
           className="absolute -top-[72.59px] left-1/2 -translate-x-1/2 z-20"
           style={{ minWidth: "80px" }}
         >
-          {/* Badge Container */}
           <div className="relative">
-            {/* Badge Box - Exatamente como no Figma */}
             <div
               className="flex items-center justify-center bg-white border-2 border-[#E5E5E5] rounded-[10px]"
               style={{
@@ -164,7 +129,7 @@ export function WorkoutNode({
               }}
             >
               <span
-                className="font-bold text-center uppercase text-duo-green"
+                className="font-bold text-center uppercase text-[#58CC02]"
                 style={{
                   width: "52px",
                   height: "17px",
@@ -176,7 +141,6 @@ export function WorkoutNode({
                 START
               </span>
             </div>
-            {/* Seta apontando para baixo - Estilo Duolingo */}
             <div
               className="absolute left-1/2 -translate-x-1/2"
               style={{
@@ -208,7 +172,6 @@ export function WorkoutNode({
           key={`progress-${workout.id}-${targetProgressPercent}-${hasProgress}`}
           showProgress={shouldShowProgress}
           progressPercent={targetProgressPercent}
-          color="#58CC02"
         >
           <WorkoutNodeButton
             onClick={onClick}
@@ -226,7 +189,6 @@ export function WorkoutNode({
         />
       )}
 
-      {/* Workout title and info */}
       <div className="max-w-[200px] text-center">
         <p
           className={cn(

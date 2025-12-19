@@ -13,6 +13,9 @@ interface WorkoutProgress {
   completionPercentage: number; // Porcentagem de conclusão
   startTime: Date;
   lastUpdated: Date;
+  cardioPreference?: "none" | "before" | "after"; // Preferência de cardio
+  cardioDuration?: number; // Duração do cardio em minutos (5, 10, 15, 20)
+  selectedCardioType?: string; // Tipo de cardio selecionado (para manter consistente)
 }
 
 interface WorkoutState {
@@ -38,6 +41,10 @@ interface WorkoutState {
   skipExercise: (exerciseId: string) => void; // Marcar exercício como pulado
   calculateWorkoutStats: () => void; // Calcular estatísticas do workout (XP, volume, %)
   selectAlternative: (exerciseId: string, alternativeId?: string) => void; // Selecionar alternativa
+  setCardioPreference: (
+    preference: "none" | "before" | "after",
+    duration?: number
+  ) => void; // Definir preferência de cardio
 }
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -61,6 +68,9 @@ export const useWorkoutStore = create<WorkoutState>()(
                 completionPercentage: 0,
                 startTime: new Date(),
                 lastUpdated: new Date(),
+                cardioPreference: undefined,
+                cardioDuration: undefined,
+                selectedCardioType: undefined,
               }
             : null,
         }),
@@ -121,11 +131,16 @@ export const useWorkoutStore = create<WorkoutState>()(
             currentExerciseIndex: state.activeWorkout.currentExerciseIndex,
             exerciseLogs: state.activeWorkout.exerciseLogs || [],
             skippedExercises: state.activeWorkout.skippedExercises || [],
+            selectedAlternatives:
+              state.activeWorkout.selectedAlternatives || {},
             xpEarned: state.activeWorkout.xpEarned || 0,
             totalVolume: state.activeWorkout.totalVolume || 0,
             completionPercentage: state.activeWorkout.completionPercentage || 0,
             startTime: state.activeWorkout.startTime,
             lastUpdated: new Date(),
+            cardioPreference: state.activeWorkout.cardioPreference,
+            cardioDuration: state.activeWorkout.cardioDuration,
+            selectedCardioType: state.activeWorkout.selectedCardioType,
           };
           return {
             workoutProgress: {
@@ -245,6 +260,31 @@ export const useWorkoutStore = create<WorkoutState>()(
             activeWorkout: {
               ...state.activeWorkout,
               selectedAlternatives: newAlternatives,
+              lastUpdated: new Date(),
+            },
+          };
+        }),
+      setCardioPreference: (preference, duration) =>
+        set((state) => {
+          if (!state.activeWorkout) return state;
+
+          // Se já tem um cardio selecionado, manter. Senão, gerar novo
+          const cardioTypes = [
+            "corrida",
+            "bicicleta",
+            "eliptico",
+            "pular-corda",
+          ];
+          const selectedCardio =
+            state.activeWorkout.selectedCardioType ||
+            cardioTypes[Math.floor(Math.random() * cardioTypes.length)];
+
+          return {
+            activeWorkout: {
+              ...state.activeWorkout,
+              cardioPreference: preference,
+              cardioDuration: duration,
+              selectedCardioType: selectedCardio,
               lastUpdated: new Date(),
             },
           };

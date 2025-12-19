@@ -2,16 +2,31 @@
 
 import { useState, useEffect, useRef } from "react";
 import { mockWorkouts } from "@/lib/mock-data";
-import { BookOpen } from "lucide-react";
+import {
+  X,
+  Heart,
+  Zap,
+  Weight,
+  CheckCircle2,
+  ArrowRight,
+  RefreshCw,
+  BookOpen,
+  Timer,
+  Flame,
+  Activity,
+  Play,
+  Pause,
+} from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { WeightTracker } from "@/components/weight-tracker";
 import { ExerciseAlternativeSelector } from "@/components/exercise-alternative-selector";
-import { WorkoutHeader } from "@/components/workout/workout-header";
 import { CardioExerciseView } from "@/components/workout/cardio-exercise-view";
 import { StrengthExerciseView } from "@/components/workout/strength-exercise-view";
-import { WorkoutActions } from "@/components/workout/workout-actions";
-import { WorkoutCompletionScreen } from "@/components/workout/workout-completion-screen";
-import type { ExerciseLog } from "@/lib/types";
+import type { ExerciseLog, WorkoutExercise } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
+import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useStudentStore, useUIStore } from "@/stores";
 import { useRouter } from "next/navigation";
 
@@ -32,11 +47,13 @@ export function WorkoutModal() {
     calculateWorkoutStats,
     isWorkoutCompleted,
     selectAlternative,
+    setCardioPreference,
   } = useWorkoutStore();
   const { completeWorkout: completeStudentWorkout, addXP } = useStudentStore();
   const { showWeightTracker, setShowWeightTracker } = useUIStore();
   const [showCompletion, setShowCompletion] = useState(false);
   const [showAlternativeSelector, setShowAlternativeSelector] = useState(false);
+  const [showCardioConfig, setShowCardioConfig] = useState(false);
 
   // Estados específicos de cardio
   const [isRunning, setIsRunning] = useState(false);
@@ -54,8 +71,128 @@ export function WorkoutModal() {
     avgHeartRate?: number;
   } | null>(null);
 
-  const workout = openWorkoutId
+  const workoutBase = openWorkoutId
     ? mockWorkouts.find((w) => w.id === openWorkoutId)
+    : null;
+
+  // Função para criar exercícios de cardio baseado na duração
+  const createCardioExercises = (duration: number): WorkoutExercise[] => {
+    const cardioTypes = {
+      corrida: {
+        name: "Corrida na Esteira",
+        icon: "🏃",
+        alternatives: [
+          {
+            id: "alt-corrida-rua",
+            name: "Corrida ao Ar Livre",
+            reason: "Sem esteira disponível",
+          },
+          {
+            id: "alt-corrida-bike",
+            name: "Bicicleta",
+            reason: "Menor impacto nas articulações",
+          },
+        ],
+      },
+      bicicleta: {
+        name: "Bicicleta Ergométrica",
+        icon: "🚴",
+        alternatives: [
+          {
+            id: "alt-bike-remo",
+            name: "Remo Ergométrico",
+            reason: "Trabalha mais grupos musculares",
+          },
+          {
+            id: "alt-bike-eliptico",
+            name: "Elíptico",
+            reason: "Menor impacto nas articulações",
+          },
+        ],
+      },
+      eliptico: {
+        name: "Elíptico",
+        icon: "🎯",
+        alternatives: [
+          {
+            id: "alt-eliptico-bike",
+            name: "Bicicleta",
+            reason: "Equipamento ocupado",
+          },
+          {
+            id: "alt-eliptico-stair",
+            name: "Escada Ergométrica",
+            reason: "Maior intensidade",
+          },
+        ],
+      },
+      "pular-corda": {
+        name: "Pular Corda",
+        icon: "🪢",
+        alternatives: [
+          {
+            id: "alt-corda-jumping",
+            name: "Jumping Jacks",
+            reason: "Sem corda disponível",
+          },
+          {
+            id: "alt-corda-burpees",
+            name: "Burpees",
+            reason: "Maior intensidade",
+          },
+        ],
+      },
+    };
+
+    // Usar o cardio salvo no activeWorkout ou gerar novo
+    const savedCardioType =
+      activeWorkout?.selectedCardioType as keyof typeof cardioTypes;
+    const cardioTypeKeys = Object.keys(
+      cardioTypes
+    ) as (keyof typeof cardioTypes)[];
+    const selectedType =
+      savedCardioType && cardioTypes[savedCardioType]
+        ? savedCardioType
+        : cardioTypeKeys[0];
+
+    const selected = cardioTypes[selectedType];
+
+    return [
+      {
+        id: `cardio-${selectedType}`,
+        name: `${selected.icon} ${selected.name}`,
+        sets: 1,
+        reps: `${duration} minutos`,
+        rest: 0,
+        notes: `Mantenha uma intensidade moderada. Meta: ${duration} minutos contínuos.`,
+        completed: false,
+        alternatives: selected.alternatives,
+      },
+    ];
+  };
+
+  // Aplicar preferência de cardio ao workout
+  const workout = workoutBase
+    ? (() => {
+        if (
+          !activeWorkout?.cardioPreference ||
+          activeWorkout.cardioPreference === "none"
+        ) {
+          return workoutBase;
+        }
+
+        const cardioExercises = createCardioExercises(
+          activeWorkout.cardioDuration || 10
+        );
+
+        return {
+          ...workoutBase,
+          exercises:
+            activeWorkout.cardioPreference === "before"
+              ? [...cardioExercises, ...workoutBase.exercises]
+              : [...workoutBase.exercises, ...cardioExercises],
+        };
+      })()
     : null;
 
   // Inicializar workout quando abrir
@@ -67,6 +204,7 @@ export function WorkoutModal() {
       setIsRunning(false);
       setElapsedTime(0);
       setCalories(0);
+      setShowCardioConfig(false);
       return;
     }
 
@@ -101,24 +239,41 @@ export function WorkoutModal() {
           startTime: savedProgress.startTime || new Date(),
           lastUpdated: new Date(),
           selectedAlternatives: savedProgress.selectedAlternatives || {},
+          cardioPreference: savedProgress.cardioPreference,
+          cardioDuration: savedProgress.cardioDuration,
+          selectedCardioType: savedProgress.selectedCardioType,
         },
       });
+      // Se tem progresso salvo mas não tem preferência de cardio configurada E é treino de força
+      // Mostrar config de cardio
+      if (
+        workout.type === "strength" &&
+        !savedProgress.cardioPreference &&
+        savedProgress.currentExerciseIndex === 0
+      ) {
+        setShowCardioConfig(true);
+      } else {
+        setShowCardioConfig(false);
+      }
     } else {
       // Inicializar workout novo
       setActiveWorkout(workout);
+      // Mostrar tela de configuração de cardio apenas para treinos de força
+      if (workout.type === "strength") {
+        setShowCardioConfig(true);
+      } else {
+        setShowCardioConfig(false);
+      }
     }
 
     return () => {
       // Limpar cronômetro de cardio
       if (intervalRef.current) clearInterval(intervalRef.current);
-      // Ao fechar, salvar progresso sempre (mesmo sem logs, para manter índice e exercícios pulados)
-      const currentState = useWorkoutStore.getState();
-      if (workout && currentState.activeWorkout) {
-        currentState.saveWorkoutProgress(workout.id);
-      }
+      // NÃO salvar progresso aqui - isso causa loop infinito
+      // O progresso é salvo explicitamente em handleClose()
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openWorkoutId, workout]);
+  }, [openWorkoutId]);
 
   // Cronômetro para exercícios de cardio
   useEffect(() => {
@@ -142,13 +297,12 @@ export function WorkoutModal() {
     };
   }, [isRunning]);
 
-  // Salvar progresso sempre que mudar (incluindo exercícios pulados e mudanças de índice)
+  // Disparar evento customizado para atualizar outros componentes quando há mudanças
   useEffect(() => {
     if (!workout || !activeWorkout) return;
-    // Salva sempre, mesmo sem logs (para rastrear índice atual e exercícios pulados)
-    saveWorkoutProgress(workout.id);
 
-    // Disparar evento customizado para atualizar outros componentes
+    // Apenas disparar evento, NÃO salvar progresso aqui
+    // O progresso é salvo explicitamente em cada ação (completar, pular, fechar, etc)
     window.dispatchEvent(
       new CustomEvent("workoutProgressUpdate", {
         detail: {
@@ -170,8 +324,6 @@ export function WorkoutModal() {
     activeWorkout?.currentExerciseIndex,
     activeWorkout?.exerciseLogs?.length,
     activeWorkout?.skippedExercises?.length,
-    activeWorkout?.xpEarned,
-    activeWorkout?.totalVolume,
   ]);
 
   // Debug: Log workout data - DEVE ficar ANTES dos returns condicionais
@@ -247,8 +399,11 @@ export function WorkoutModal() {
 
   // Verificar se o exercício atual é cardio
   const isCurrentExerciseCardio = () => {
+    // Verifica se é um exercício de cardio baseado no ID (cardio-xxx)
+    // ou se o workout inteiro é do tipo cardio
     return (
       workout?.type === "cardio" ||
+      currentExercise?.id?.startsWith("cardio-") ||
       currentExercise?.name?.toLowerCase().includes("cardio")
     );
   };
@@ -367,17 +522,20 @@ export function WorkoutModal() {
 
     // Criar log do exercício de cardio
     const cardioLog: ExerciseLog = {
+      id: `cardio-${Date.now()}`,
+      workoutId: workout.id,
       exerciseId: currentExercise?.id || "",
       exerciseName: getCurrentExerciseName(),
       sets: [
         {
-          set: 1,
+          setNumber: 1,
           reps: parseInt(currentExercise?.reps || "0"),
           weight: 0,
           completed: true,
         },
       ],
-      timestamp: new Date(),
+      date: new Date(),
+      difficulty: "ideal",
     };
 
     // Adicionar dados específicos de cardio ao completedWorkoutData se for o último
@@ -475,6 +633,15 @@ export function WorkoutModal() {
   };
 
   const handleClose = () => {
+    // Se está na tela de config de cardio e o usuário fechar sem escolher
+    // Não salvar progresso para que a tela apareça novamente
+    if (showCardioConfig) {
+      openWorkout(null);
+      setShowCardioConfig(false);
+      setActiveWorkout(null);
+      return;
+    }
+
     // Salvar progresso antes de fechar (sempre, mesmo sem logs)
     if (workout && activeWorkout) {
       saveWorkoutProgress(workout.id);
@@ -484,6 +651,129 @@ export function WorkoutModal() {
     setShowCompletion(false);
     setShowWeightTracker(false);
   };
+
+  // Tela de Configuração de Cardio
+  if (showCardioConfig && workout && activeWorkout) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleClose();
+            }
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-duo-border bg-white p-6 sm:p-8 shadow-2xl"
+          >
+            <button
+              onClick={handleClose}
+              className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-gray-100"
+            >
+              <X className="h-5 w-5 text-duo-gray-dark" />
+            </button>
+
+            <div className="mb-6 text-center">
+              <div className="mb-4 text-6xl">🏃‍♂️</div>
+              <h2 className="mb-2 text-2xl font-black text-duo-text">
+                Adicionar Cardio?
+              </h2>
+              <p className="text-sm text-duo-gray-dark">
+                Escolha quando fazer cardio hoje
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* Não fazer cardio */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setCardioPreference("none", undefined);
+                  setShowCardioConfig(false);
+                }}
+                className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">❌</div>
+                  <div className="flex-1">
+                    <div className="font-bold text-duo-text">
+                      Não Fazer Cardio
+                    </div>
+                    <div className="text-sm text-duo-gray-dark">
+                      Apenas treino de força hoje
+                    </div>
+                  </div>
+                </div>
+              </motion.button>
+
+              {/* Cardio ANTES */}
+              <div className="space-y-2">
+                <div className="text-sm font-bold text-duo-text">
+                  ⏱️ Cardio ANTES do Treino
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 20].map((duration) => (
+                    <motion.button
+                      key={`before-${duration}`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setCardioPreference("before", duration);
+                        setShowCardioConfig(false);
+                      }}
+                      className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
+                    >
+                      <div className="text-xl font-black text-duo-blue">
+                        {duration}
+                      </div>
+                      <div className="text-xs text-duo-gray-dark">min</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Cardio DEPOIS */}
+              <div className="space-y-2">
+                <div className="text-sm font-bold text-duo-text">
+                  ⏱️ Cardio DEPOIS do Treino
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {[5, 10, 15, 20].map((duration) => (
+                    <motion.button
+                      key={`after-${duration}`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setCardioPreference("after", duration);
+                        setShowCardioConfig(false);
+                      }}
+                      className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
+                    >
+                      <div className="text-xl font-black text-duo-orange">
+                        {duration}
+                      </div>
+                      <div className="text-xs text-duo-gray-dark">min</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   if (showCompletion) {
     // Usar dados salvos ou dados do activeWorkout (se ainda existir)

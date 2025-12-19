@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { AppLayout, TabConfig } from "@/components/app-layout";
 import { WorkoutModal } from "@/components/workout-modal";
-import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import {
   Home,
   Dumbbell,
@@ -11,7 +10,6 @@ import {
   UtensilsCrossed,
   MoreHorizontal,
 } from "lucide-react";
-import { useStudentStore } from "@/stores";
 import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 
