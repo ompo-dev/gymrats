@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "start": "next start",
     "generate:secret": "node scripts/generate-secret.js",
+    "generate:icons": "node scripts/generate-icons.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -87,6 +88,7 @@
     "@types/react-dom": "^19",
     "concurrently": "^9.2.1",
     "postcss": "^8.5",
+    "sharp": "^0.33.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
     "typescript": "^5"
