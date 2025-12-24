@@ -3,10 +3,12 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { PWARegister } from "./pwa-register";
+import { Suspense } from "react";
 import { PWAProtection } from "./pwa-protection";
 import { PerformanceOptimizer } from "../components/performance-optimizer";
 import { QueryProvider } from "../components/providers/query-provider";
+import { AppUpdatingScreenWrapper } from "../components/app-updating-screen-wrapper";
+import { PWAUpdateBanner } from "../components/pwa-update-banner";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -75,7 +77,10 @@ export default function RootLayout({
           <QueryProvider>
             <PerformanceOptimizer />
             {children}
-            <PWARegister />
+            <Suspense fallback={null}>
+              <AppUpdatingScreenWrapper />
+              <PWAUpdateBanner />
+            </Suspense>
             <PWAProtection />
             <Analytics />
           </QueryProvider>

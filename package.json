@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "prisma generate && next build",
-    "dev": "next dev",
+    "build": "npm run version:sync && prisma generate && next build",
+    "dev": "node scripts/dev.js",
+    "dev:webpack": "node scripts/dev.js --webpack",
     "dev:server": "json-server --watch db.json --port 3001",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "lint": "eslint .",
     "start": "next start",
     "generate:secret": "node scripts/generate-secret.js",
     "generate:icons": "node scripts/generate-icons.js",
+    "version:sync": "node scripts/sync-version.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {

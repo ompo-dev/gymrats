@@ -1,7 +1,7 @@
 // Service Worker para PWA - GymRats
-// IMPORTANTE: Alterar a versão do cache quando houver atualizações significativas
-// Esta versão deve ser mantida sincronizada com lib/constants/version.ts
-const CACHE_VERSION = "v1.0.0";
+// IMPORTANTE: Esta versão é atualizada automaticamente pelo script sync-version.js
+// Para alterar, edite apenas o package.json e execute: npm run version:sync
+const CACHE_VERSION = "v0.1.0";
 const CACHE_NAME = `gymrats-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `gymrats-runtime-${CACHE_VERSION}`;
 
