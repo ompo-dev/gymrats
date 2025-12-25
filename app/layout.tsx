@@ -9,6 +9,7 @@ import { PerformanceOptimizer } from "../components/performance-optimizer";
 import { QueryProvider } from "../components/providers/query-provider";
 import { AppUpdatingScreenWrapper } from "../components/app-updating-screen-wrapper";
 import { PWAUpdateBanner } from "../components/pwa-update-banner";
+import { ErrorBoundary } from "../components/error-boundary";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -74,16 +75,18 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <NuqsAdapter>
-          <QueryProvider>
-            <PerformanceOptimizer />
-            {children}
-            <Suspense fallback={null}>
-              <AppUpdatingScreenWrapper />
-              <PWAUpdateBanner />
-            </Suspense>
-            <PWAProtection />
-            <Analytics />
-          </QueryProvider>
+          <ErrorBoundary>
+            <QueryProvider>
+              <PerformanceOptimizer />
+              {children}
+              <Suspense fallback={null}>
+                <AppUpdatingScreenWrapper />
+                <PWAUpdateBanner />
+              </Suspense>
+              <PWAProtection />
+              <Analytics />
+            </QueryProvider>
+          </ErrorBoundary>
         </NuqsAdapter>
       </body>
     </html>
