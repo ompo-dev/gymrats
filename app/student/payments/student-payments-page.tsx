@@ -27,6 +27,7 @@ import {
   mockStudentPayments,
   mockPaymentMethods,
 } from "@/lib/mock-data";
+import { useQuery } from "@tanstack/react-query";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { useToast } from "@/hooks/use-toast";
 import { SectionCard } from "@/components/ui/section-card";
@@ -163,9 +164,93 @@ export function StudentPaymentsPage({
     }
   }, [subscription?.trialEnd, subscription?.daysRemaining]);
 
-  const memberships = mockStudentMemberships;
-  const payments = mockStudentPayments;
-  const paymentMethods = mockPaymentMethods;
+  // Buscar dados das APIs
+  const {
+    data: membershipsData,
+    isLoading: isLoadingMemberships,
+  } = useQuery({
+    queryKey: ["memberships"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/memberships");
+        if (!response.ok) {
+          throw new Error("Erro ao buscar memberships");
+        }
+        const data = await response.json();
+        // Converter datas de string para Date
+        return (data.memberships || []).map((m: any) => ({
+          ...m,
+          startDate: m.startDate ? new Date(m.startDate) : new Date(),
+          nextBillingDate: m.nextBillingDate
+            ? new Date(m.nextBillingDate)
+            : undefined,
+        }));
+      } catch (error) {
+        console.error("Erro ao buscar memberships:", error);
+        return mockStudentMemberships;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    retry: 2,
+  });
+
+  const {
+    data: paymentsData,
+    isLoading: isLoadingPayments,
+  } = useQuery({
+    queryKey: ["payments"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/payments");
+        if (!response.ok) {
+          throw new Error("Erro ao buscar pagamentos");
+        }
+        const data = await response.json();
+        // Converter datas de string para Date
+        return (data.payments || []).map((p: any) => ({
+          ...p,
+          date: p.date ? new Date(p.date) : new Date(),
+          dueDate: p.dueDate ? new Date(p.dueDate) : new Date(),
+        }));
+      } catch (error) {
+        console.error("Erro ao buscar pagamentos:", error);
+        return mockStudentPayments;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    retry: 2,
+  });
+
+  const {
+    data: paymentMethodsData,
+    isLoading: isLoadingPaymentMethods,
+    refetch: refetchPaymentMethods,
+  } = useQuery({
+    queryKey: ["payment-methods"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/payment-methods");
+        if (!response.ok) {
+          throw new Error("Erro ao buscar métodos de pagamento");
+        }
+        const data = await response.json();
+        return data.paymentMethods || [];
+      } catch (error) {
+        console.error("Erro ao buscar métodos de pagamento:", error);
+        return mockPaymentMethods;
+      }
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    retry: 2,
+  });
+
+  // Usar dados das APIs ou fallback para mock
+  const memberships = membershipsData || mockStudentMemberships;
+  const payments = paymentsData || mockStudentPayments;
+  const paymentMethods = paymentMethodsData || mockPaymentMethods;
+
+  const isLoadingData =
+    isLoadingMemberships || isLoadingPayments || isLoadingPaymentMethods;
 
   const pendingPayments = payments.filter(
     (p) => p.status === "pending" || p.status === "overdue"
@@ -427,7 +512,16 @@ export function StudentPaymentsPage({
 
       {activeTab === "payments" && (
         <div className="space-y-3">
-          {payments.map((payment) => (
+          {isLoadingPayments ? (
+            <div className="text-center py-8 text-duo-gray-dark">
+              Carregando pagamentos...
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="text-center py-8 text-duo-gray-dark">
+              Nenhum pagamento encontrado
+            </div>
+          ) : (
+            payments.map((payment) => (
             <div key={payment.id}>
               <DuoCard variant="default" size="default">
                 <div className="flex items-start justify-between">
@@ -493,13 +587,23 @@ export function StudentPaymentsPage({
                 </div>
               </DuoCard>
             </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {activeTab === "methods" && (
         <div className="space-y-3">
-          {paymentMethods.map((method) => (
+          {isLoadingPaymentMethods ? (
+            <div className="text-center py-8 text-duo-gray-dark">
+              Carregando métodos de pagamento...
+            </div>
+          ) : paymentMethods.length === 0 ? (
+            <div className="text-center py-8 text-duo-gray-dark">
+              Nenhum método de pagamento cadastrado
+            </div>
+          ) : (
+            paymentMethods.map((method) => (
             <div key={method.id}>
               <DuoCard variant="default" size="default">
                 <div className="flex items-center gap-3">
@@ -532,7 +636,8 @@ export function StudentPaymentsPage({
                 </div>
               </DuoCard>
             </div>
-          ))}
+            ))
+          )}
 
           <DuoCard
             variant="default"

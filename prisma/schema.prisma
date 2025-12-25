@@ -107,6 +107,7 @@ model Student {
   diets        DietPlanCompletion[]
   achievements AchievementUnlock[]
   weightHistory WeightHistory[]
+  dailyNutrition DailyNutrition[]
 
   // Academias
   memberships GymMembership[]
@@ -461,6 +462,87 @@ model DietPlanCompletion {
   completed  Boolean  @default(false)
 
   @@map("diet_plan_completions")
+}
+
+// ============================================
+// NUTRIÇÃO DIÁRIA
+// ============================================
+
+model DailyNutrition {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  waterIntake Int      @default(0) // ml
+
+  meals       NutritionMeal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, date])
+  @@index([studentId, date])
+  @@map("daily_nutrition")
+}
+
+model NutritionMeal {
+  id               String          @id @default(cuid())
+  dailyNutritionId String
+  dailyNutrition   DailyNutrition  @relation(fields: [dailyNutritionId], references: [id], onDelete: Cascade)
+  name             String
+  type             String          // breakfast, lunch, dinner, snack
+  calories         Int
+  protein          Float
+  carbs            Float
+  fats             Float
+  time             String?
+  completed        Boolean         @default(false)
+
+  foods            NutritionFoodItem[]
+
+  order            Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("nutrition_meals")
+}
+
+model NutritionFoodItem {
+  id              String        @id @default(cuid())
+  nutritionMealId String
+  nutritionMeal   NutritionMeal @relation(fields: [nutritionMealId], references: [id], onDelete: Cascade)
+  foodId          String?       // Referência a food database
+  foodName        String
+  servings        Float
+  calories        Int
+  protein         Float
+  carbs           Float
+  fats            Float
+  servingSize     String
+
+  createdAt DateTime @default(now())
+
+  @@map("nutrition_food_items")
+}
+
+model FoodItem {
+  id          String   @id @default(cuid())
+  name        String
+  calories    Int      // por 100g ou por porção padrão
+  protein     Float
+  carbs       Float
+  fats        Float
+  servingSize String   // "100g" ou "1 unidade (50g)"
+  category    String   // protein, carbs, vegetables, fruits, fats, dairy, snacks
+  image       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([category])
+  @@map("food_items")
 }
 
 // ============================================

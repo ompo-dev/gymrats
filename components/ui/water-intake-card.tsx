@@ -19,6 +19,9 @@ export function WaterIntakeCard({
   ...props
 }: WaterIntakeCardProps) {
   const progress = (current / target) * 100
+  // Calcular número de copos baseado no target (cada copo = 250ml)
+  // Sempre mostrar 12 copos para suportar até 3000ml (3000 / 250 = 12)
+  const totalGlasses = 12
 
   return (
     <SectionCard
@@ -40,7 +43,7 @@ export function WaterIntakeCard({
       </div>
 
       <div className="grid grid-cols-6 gap-2">
-        {Array.from({ length: 12 }).map((_, i) => (
+        {Array.from({ length: totalGlasses }).map((_, i) => (
           <button
             key={i}
             onClick={() => onToggleGlass(i)}

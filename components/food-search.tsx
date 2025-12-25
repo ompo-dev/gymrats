@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { mockFoodDatabase } from "@/lib/mock-data";
 import type { FoodItem, Meal } from "@/lib/types";
 import { Search, Plus, Minus } from "lucide-react";
@@ -50,6 +50,8 @@ export function FoodSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
   const [foodServings, setFoodServings] = useState<Record<string, number>>({});
+  const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Se selectedMealId está definido, não permite seleção múltipla - adiciona direto naquela refeição
   const isSpecificMeal = !!selectedMealId;
@@ -57,9 +59,51 @@ export function FoodSearch({
     selectedMealId ? new Set([selectedMealId]) : new Set()
   );
 
-  const filteredFoods = mockFoodDatabase.filter((food) =>
-    food.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Buscar alimentos do backend
+  useEffect(() => {
+    const searchFoods = async () => {
+      if (searchQuery.length < 2) {
+        // Se query muito curta, usar mock ou lista vazia
+        setFoods([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `/api/foods/search?q=${encodeURIComponent(searchQuery)}&limit=20`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setFoods(data.foods || []);
+        } else {
+          // Fallback para mock em caso de erro
+          const filtered = mockFoodDatabase.filter((food) =>
+            food.name.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          setFoods(filtered);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar alimentos:", error);
+        // Fallback para mock
+        const filtered = mockFoodDatabase.filter((food) =>
+          food.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        setFoods(filtered);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Debounce da busca
+    const timeoutId = setTimeout(() => {
+      searchFoods();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const filteredFoods = foods;
 
   const getMealIcon = (type: string, name?: string) => {
     // Se o tipo for snack, tenta determinar pelo nome
@@ -314,13 +358,23 @@ export function FoodSearch({
             className="flex-1 overflow-y-auto p-6"
             style={{ maxHeight: "50vh" }}
           >
-            {filteredFoods.length === 0 ? (
+            {isLoading ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-8 text-center text-gray-600"
               >
-                Nenhum alimento encontrado
+                Buscando alimentos...
+              </motion.div>
+            ) : filteredFoods.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="py-8 text-center text-gray-600"
+              >
+                {searchQuery.length < 2
+                  ? "Digite pelo menos 2 caracteres para buscar"
+                  : "Nenhum alimento encontrado"}
               </motion.div>
             ) : (
               <OptionSelector

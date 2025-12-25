@@ -121,6 +121,37 @@ at gym-map.tsx:185
 
 ---
 
+### 5. PrismaClientKnownRequestError: Tabela `daily_nutrition` não existe
+
+**Erro:**
+```
+The table `public.daily_nutrition` does not exist in the current database.
+```
+
+**Causa:**
+- A migration `apply-nutrition-migration.js` não foi aplicada ao banco de dados
+- A API `/api/nutrition/daily` estava tentando acessar a tabela sem tratamento de erro
+
+**Solução Aplicada:**
+- Adicionado try-catch em `GET /api/nutrition/daily` para tratar erro quando tabela não existe
+- Retorna dados vazios quando tabela não existe (similar ao weight_history)
+- Adicionado try-catch em `POST /api/nutrition/daily` para retornar erro informativo
+- Adicionado try-catch em `GET /api/foods/search` para retornar array vazio
+- Adicionado try-catch em `GET /api/foods/[id]` para retornar 404
+
+**Para Corrigir Completamente:**
+1. Execute a migration:
+   ```bash
+   node scripts/apply-nutrition-migration.js
+   ```
+
+2. Regenerar Prisma Client:
+   ```bash
+   npx prisma generate
+   ```
+
+---
+
 **Status:** ✅ Erros Corrigidos com Fallback para Mock e Validações
 **Data:** 2025-01-XX
 
