@@ -32,6 +32,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   gymPreference GymUserPreference? // Preferências do usuário para academias
+  paymentMethods PaymentMethod[] // Métodos de pagamento salvos
 
   @@map("users")
 }
@@ -105,6 +106,7 @@ model Student {
   records      PersonalRecord[]
   diets        DietPlanCompletion[]
   achievements AchievementUnlock[]
+  weightHistory WeightHistory[]
 
   // Academias
   memberships GymMembership[]
@@ -148,7 +150,7 @@ model StudentProfile {
   studentId              String  @unique
   student                Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   height                 Float? // cm
-  weight                 Float? // kg
+  weight                 Float? // kg (peso atual - último registro de WeightHistory)
   fitnessLevel           String? // iniciante, intermediario, avancado
   weeklyWorkoutFrequency Int?
   workoutDuration        Int? // minutos
@@ -174,6 +176,21 @@ model StudentProfile {
   @@map("student_profiles")
 }
 
+model WeightHistory {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  weight    Float    // kg
+  date      DateTime @default(now())
+  notes     String?  // Anotações opcionais
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([studentId, date])
+  @@map("weight_history")
+}
+
 // ============================================
 // ACADEMIAS (GYMS)
 // ============================================
@@ -191,6 +208,16 @@ model Gym {
   plan    String  @default("basic") // basic, premium, enterprise
   isActive Boolean @default(true) // Se a academia está ativa
   
+  // Novos campos para localização e informações
+  latitude    Float?   // Latitude
+  longitude   Float?   // Longitude
+  rating      Float?   @default(0) // Rating médio (0-5)
+  totalReviews Int     @default(0) // Total de avaliações
+  amenities   String?  // JSON array de amenidades
+  openingHours String? // JSON: { open: "06:00", close: "23:00", days: ["monday", "tuesday", ...] }
+  photos      String?  // JSON array de URLs de fotos
+  isPartner   Boolean  @default(false) // Se está cadastrado como parceiro no GymRats
+  
   // Relacionamentos
   profile      GymProfile?
   students     GymMembership[]
@@ -206,6 +233,7 @@ model Gym {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([latitude, longitude]) // Para busca por localização
   @@map("gyms")
 }
 
@@ -298,18 +326,36 @@ model Workout {
 }
 
 model WorkoutExercise {
-  id        String  @id @default(cuid())
-  workoutId String
-  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  name      String
-  sets      Int
-  reps      String // "12" ou "12-15" ou "30s"
-  rest      Int // segundos
-  notes     String?
-  videoUrl  String?
-  order     Int     @default(0)
+  id            String              @id @default(cuid())
+  workoutId     String
+  workout       Workout             @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  name          String
+  sets          Int
+  reps          String // "12" ou "12-15" ou "30s"
+  rest          Int // segundos
+  notes         String?
+  videoUrl      String?
+  educationalId String? // Referência ao conteúdo educacional
+  order         Int                 @default(0)
+
+  alternatives AlternativeExercise[]
 
   @@map("workout_exercises")
+}
+
+model AlternativeExercise {
+  id              String          @id @default(cuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  name            String
+  reason          String // Motivo da alternativa (ex: "Equipamento diferente", "Sem equipamento")
+  educationalId   String? // Referência ao conteúdo educacional
+  order           Int             @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("alternative_exercises")
 }
 
 model WorkoutHistory {
@@ -618,6 +664,27 @@ model Expense {
   createdAt DateTime @default(now())
 
   @@map("expenses")
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // credit-card, debit-card, pix
+  isDefault   Boolean  @default(false)
+  cardBrand   String?  // visa, mastercard, elo, etc
+  last4       String?  // Últimos 4 dígitos do cartão
+  expiryMonth Int?
+  expiryYear  Int?
+  holderName  String?
+  pixKey      String?  // Chave PIX (CPF, email, telefone, chave aleatória)
+  pixKeyType  String?  // cpf, email, phone, random
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("payment_methods")
 }
 
 // ============================================

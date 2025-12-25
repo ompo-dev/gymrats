@@ -35,8 +35,10 @@ export async function getStudentProfileData() {
       };
     }
 
+    const studentId = session.user.student.id;
+
     const progress = await db.studentProgress.findUnique({
-      where: { studentId: session.user.student.id },
+      where: { studentId: studentId },
     });
 
     const userProgress: UserProgress = progress
@@ -55,11 +57,162 @@ export async function getStudentProfileData() {
         }
       : mockUserProgress;
 
+    // Buscar histórico de workouts do database
+    const workoutHistoryData = await db.workoutHistory.findMany({
+      where: {
+        studentId: studentId,
+      },
+      include: {
+        workout: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        exercises: {
+          orderBy: {
+            id: "asc",
+          },
+        },
+      },
+      orderBy: {
+        date: "desc",
+      },
+      take: 10,
+    });
+
+    // Transformar workout history
+    const formattedWorkoutHistory = workoutHistoryData.map((wh) => {
+      // Calcular volume total
+      let calculatedVolume = 0;
+      if (wh.exercises && wh.exercises.length > 0) {
+        calculatedVolume = wh.exercises.reduce((acc, el) => {
+          try {
+            const sets = JSON.parse(el.sets);
+            if (Array.isArray(sets)) {
+              return (
+                acc +
+                sets.reduce((setAcc: number, set: any) => {
+                  if (set.weight && set.reps && set.completed) {
+                    return setAcc + set.weight * set.reps;
+                  }
+                  return setAcc;
+                }, 0)
+              );
+            }
+          } catch (e) {
+            // Ignorar erro de parse
+          }
+          return acc;
+        }, 0);
+      }
+
+      // Parse bodyPartsFatigued
+      let bodyPartsFatigued: string[] = [];
+      if (wh.bodyPartsFatigued) {
+        try {
+          bodyPartsFatigued = JSON.parse(wh.bodyPartsFatigued);
+        } catch (e) {
+          // Ignorar erro de parse
+        }
+      }
+
+      return {
+        date: wh.date,
+        workoutId: wh.workoutId,
+        workoutName: wh.workout.title,
+        duration: wh.duration,
+        totalVolume: wh.totalVolume || calculatedVolume,
+        exercises: wh.exercises.map((el) => {
+          let sets: any[] = [];
+          try {
+            sets = JSON.parse(el.sets);
+          } catch (e) {
+            // Ignorar erro de parse
+          }
+
+          return {
+            id: el.id,
+            exerciseId: el.exerciseId,
+            exerciseName: el.exerciseName,
+            workoutId: wh.workoutId,
+            date: wh.date,
+            sets: sets,
+            notes: el.notes || undefined,
+            formCheckScore: el.formCheckScore || undefined,
+            difficulty: el.difficulty || undefined,
+          };
+        }),
+        overallFeedback:
+          (wh.overallFeedback as
+            | "excelente"
+            | "bom"
+            | "regular"
+            | "ruim") || undefined,
+        bodyPartsFatigued: bodyPartsFatigued,
+      };
+    });
+
+    // Buscar recordes pessoais do database
+    const personalRecordsData = await db.personalRecord.findMany({
+      where: {
+        studentId: studentId,
+      },
+      orderBy: {
+        date: "desc",
+      },
+      take: 10,
+    });
+
+    const formattedPersonalRecords = personalRecordsData.map((pr) => ({
+      exerciseId: pr.exerciseId,
+      exerciseName: pr.exerciseName,
+      type: pr.type as "max-weight" | "max-reps" | "max-volume",
+      value: pr.value,
+      date: pr.date,
+      previousBest: pr.previousBest || undefined,
+    }));
+
+    // Buscar histórico de peso do database
+    // Se a tabela não existir (migration não aplicada), usar mock
+    let formattedWeightHistory = mockWeightHistory;
+    try {
+      const weightHistoryData = await db.weightHistory.findMany({
+        where: {
+          studentId: studentId,
+        },
+        orderBy: {
+          date: "desc",
+        },
+        take: 30, // Últimos 30 registros
+      });
+
+      formattedWeightHistory = weightHistoryData.map((wh) => ({
+        date: wh.date,
+        weight: wh.weight,
+      }));
+    } catch (error: any) {
+      // Se a tabela não existir, usar mock
+      if (
+        error.message?.includes("does not exist") ||
+        error.message?.includes("Unknown table")
+      ) {
+        console.log(
+          "Tabela weight_history não existe ainda. Usando mock. Execute: node scripts/apply-weight-history-migration.js"
+        );
+        formattedWeightHistory = mockWeightHistory;
+      } else {
+        // Outro erro, logar e usar mock
+        console.error("Erro ao buscar weight history:", error);
+        formattedWeightHistory = mockWeightHistory;
+      }
+    }
+
     return {
       progress: userProgress,
-      workoutHistory: mockWorkoutHistory.slice(0, 3),
-      personalRecords: mockPersonalRecords,
-      weightHistory: mockWeightHistory,
+      workoutHistory: formattedWorkoutHistory.slice(0, 3),
+      personalRecords: formattedPersonalRecords,
+      weightHistory: formattedWeightHistory,
     };
   } catch (error) {
     console.error("Erro ao buscar dados do perfil:", error);

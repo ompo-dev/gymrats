@@ -118,13 +118,73 @@ export async function getStudentProgress() {
       return mockUserProgress;
     }
 
+    const studentId = session.user.student.id;
+
     const progress = await db.studentProgress.findUnique({
-      where: { studentId: session.user.student.id },
+      where: { studentId: studentId },
     });
 
     if (!progress) {
       return mockUserProgress;
     }
+
+    // Buscar achievements desbloqueados
+    const achievementUnlocks = await db.achievementUnlock.findMany({
+      where: {
+        studentId: studentId,
+      },
+      include: {
+        achievement: true,
+      },
+      orderBy: {
+        unlockedAt: "desc",
+      },
+    });
+
+    const achievements = achievementUnlocks.map((unlock) => ({
+      id: unlock.achievement.id,
+      title: unlock.achievement.title,
+      description: unlock.achievement.description || "",
+      icon: unlock.achievement.icon || "🏆",
+      unlockedAt: unlock.unlockedAt,
+      progress: unlock.progress || undefined,
+      target: unlock.achievement.target || undefined,
+      category: unlock.achievement.category as
+        | "streak"
+        | "workouts"
+        | "xp"
+        | "perfect"
+        | "special",
+      level: unlock.achievement.level || undefined,
+      color: unlock.achievement.color || "#58CC02",
+    }));
+
+    // Calcular weeklyXP (últimos 7 dias)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const workoutHistory = await db.workoutHistory.findMany({
+      where: {
+        studentId: studentId,
+        date: {
+          gte: sevenDaysAgo,
+        },
+      },
+      include: {
+        workout: {
+          select: {
+            xpReward: true,
+          },
+        },
+      },
+    });
+
+    // Agrupar XP por dia da semana (0 = domingo, 6 = sábado)
+    const weeklyXP = [0, 0, 0, 0, 0, 0, 0];
+    workoutHistory.forEach((wh) => {
+      const dayOfWeek = wh.date.getDay();
+      weeklyXP[dayOfWeek] += wh.workout.xpReward;
+    });
 
     return {
       currentStreak: progress.currentStreak || 0,
@@ -134,6 +194,12 @@ export async function getStudentProgress() {
       xpToNextLevel: progress.xpToNextLevel || 0,
       workoutsCompleted: progress.workoutsCompleted || 0,
       todayXP: progress.todayXP || 0,
+      achievements: achievements,
+      lastActivityDate: progress.lastActivityDate
+        ? progress.lastActivityDate.toISOString()
+        : new Date().toISOString(),
+      dailyGoalXP: progress.dailyGoalXP || 50,
+      weeklyXP: weeklyXP,
     };
   } catch (error) {
     console.error("Erro ao buscar progresso:", error);
@@ -142,11 +208,304 @@ export async function getStudentProgress() {
 }
 
 export async function getStudentUnits() {
-  return mockUnits;
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("auth_token")?.value;
+
+    if (!sessionToken) {
+      // Se não autenticado, retornar mock (para preview/demo)
+      return mockUnits;
+    }
+
+    const session = await getSession(sessionToken);
+    if (!session || !session.user.student) {
+      return mockUnits;
+    }
+
+    // Buscar units do database
+    const studentId = session.user.student.id;
+
+    const units = await db.unit.findMany({
+      orderBy: { order: "asc" },
+      include: {
+        workouts: {
+          orderBy: { order: "asc" },
+          include: {
+            exercises: {
+              orderBy: { order: "asc" },
+              include: {
+                alternatives: {
+                  orderBy: { order: "asc" },
+                },
+              },
+            },
+            completions: {
+              where: {
+                studentId: studentId,
+              },
+              orderBy: {
+                date: "desc",
+              },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    // Buscar IDs de workouts completados
+    const completedWorkoutIds = await db.workoutHistory.findMany({
+      where: {
+        studentId: studentId,
+      },
+      select: {
+        workoutId: true,
+      },
+      distinct: ["workoutId"],
+    });
+
+    const completedIdsSet = new Set(
+      completedWorkoutIds.map((wh) => wh.workoutId)
+    );
+
+    // Transformar para formato esperado
+    const formattedUnits = units.map((unit) => ({
+      id: unit.id,
+      title: unit.title,
+      description: unit.description || "",
+      color: unit.color || "#58CC02",
+      icon: unit.icon || "💪",
+      workouts: unit.workouts.map((workout) => {
+        const isCompleted = completedIdsSet.has(workout.id);
+        const lastCompletion = workout.completions[0];
+
+        // Calcular locked
+        // Um workout está locked se:
+        // 1. Está marcado como locked no DB, OU
+        // 2. Não é o primeiro workout da primeira unit E não completou o anterior
+        let isLocked = workout.locked;
+        
+        if (!isLocked) {
+          // Encontrar índice do workout na unit
+          const workoutIndex = unit.workouts.findIndex(
+            (w) => w.id === workout.id
+          );
+          
+          // Encontrar índice da unit no array
+          const unitIndex = units.findIndex((u) => u.id === unit.id);
+          
+          // Se não é o primeiro workout da primeira unit
+          if (unitIndex > 0 || workoutIndex > 0) {
+            let previousWorkout = null;
+            
+            if (workoutIndex > 0) {
+              // Workout anterior na mesma unit
+              previousWorkout = unit.workouts[workoutIndex - 1];
+            } else if (unitIndex > 0) {
+              // Último workout da unit anterior
+              const previousUnit = units[unitIndex - 1];
+              if (previousUnit.workouts.length > 0) {
+                previousWorkout =
+                  previousUnit.workouts[previousUnit.workouts.length - 1];
+              }
+            }
+            
+            // Se tem workout anterior, verificar se foi completado
+            if (previousWorkout) {
+              isLocked = !completedIdsSet.has(previousWorkout.id);
+            }
+          }
+        }
+
+        // Calcular stars
+        let stars: number | undefined = undefined;
+        if (lastCompletion) {
+          if (lastCompletion.overallFeedback === "excelente") {
+            stars = 3;
+          } else if (lastCompletion.overallFeedback === "bom") {
+            stars = 2;
+          } else if (lastCompletion.overallFeedback === "regular") {
+            stars = 1;
+          } else {
+            stars = 0;
+          }
+        }
+
+        return {
+          id: workout.id,
+          title: workout.title,
+          description: workout.description || "",
+          type: workout.type as "strength" | "cardio" | "flexibility" | "rest",
+          muscleGroup: workout.muscleGroup,
+          difficulty: workout.difficulty as
+            | "iniciante"
+            | "intermediario"
+            | "avancado",
+          exercises: workout.exercises.map((exercise) => ({
+            id: exercise.id,
+            name: exercise.name,
+            sets: exercise.sets,
+            reps: exercise.reps,
+            rest: exercise.rest,
+            notes: exercise.notes || undefined,
+            videoUrl: exercise.videoUrl || undefined,
+            educationalId: exercise.educationalId || undefined,
+            alternatives:
+              exercise.alternatives.length > 0
+                ? exercise.alternatives.map((alt) => ({
+                    id: alt.id,
+                    name: alt.name,
+                    reason: alt.reason,
+                    educationalId: alt.educationalId || undefined,
+                  }))
+                : undefined,
+          })),
+          xpReward: workout.xpReward,
+          estimatedTime: workout.estimatedTime,
+          locked: isLocked,
+          completed: isCompleted,
+          stars: stars,
+          completedAt: lastCompletion?.date || undefined,
+        };
+      }),
+    }));
+
+    return formattedUnits;
+  } catch (error) {
+    console.error("Erro ao buscar units do database:", error);
+    // Em caso de erro, retornar mock como fallback
+    return mockUnits;
+  }
 }
 
 export async function getGymLocations() {
-  return mockGymLocations;
+  try {
+    // Buscar academias parceiras e ativas
+    // Nota: isPartner pode não existir ainda se migration não foi aplicada
+    const whereClause: any = {
+      isActive: true,
+    };
+    
+    // Tentar adicionar isPartner se o campo existir (após migration)
+    // Por enquanto, buscar todas as academias ativas
+    // TODO: Descomentar após aplicar migration: whereClause.isPartner = true;
+    
+    const gyms = await db.gym.findMany({
+      where: whereClause,
+      include: {
+        plans: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            price: "asc",
+          },
+        },
+      },
+      orderBy: {
+        rating: "desc",
+      },
+    });
+
+    // Transformar para formato esperado
+    const formattedGyms = gyms.map((gym) => {
+      // Parse amenities
+      let amenities: string[] = [];
+      if (gym.amenities) {
+        try {
+          amenities = JSON.parse(gym.amenities);
+        } catch (e) {
+          // Ignorar erro de parse
+        }
+      }
+
+      // Parse openingHours
+      let openingHours: { open: string; close: string; days?: string[] } | null =
+        null;
+      if (gym.openingHours) {
+        try {
+          openingHours = JSON.parse(gym.openingHours);
+        } catch (e) {
+          // Ignorar erro de parse
+        }
+      }
+
+      // Parse photos
+      let photos: string[] = [];
+      if (gym.photos) {
+        try {
+          photos = JSON.parse(gym.photos);
+        } catch (e) {
+          // Ignorar erro de parse
+        }
+      }
+
+      // Calcular se está aberto agora
+      const now = new Date();
+      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const currentDayName = dayNames[now.getDay()];
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      let openNow = true;
+
+      if (openingHours) {
+        if (openingHours.days && openingHours.days.length > 0) {
+          if (!openingHours.days.includes(currentDayName)) {
+            openNow = false;
+          }
+        }
+
+        if (openNow) {
+          const [openHour, openMin] = openingHours.open.split(":").map(Number);
+          const [closeHour, closeMin] = openingHours.close.split(":").map(Number);
+          const openTime = openHour * 60 + openMin;
+          const closeTime = closeHour * 60 + closeMin;
+          openNow = currentTime >= openTime && currentTime <= closeTime;
+        }
+      }
+
+      // Organizar plans por tipo
+      const plansByType: {
+        daily?: number;
+        weekly?: number;
+        monthly?: number;
+      } = {};
+
+      gym.plans.forEach((plan) => {
+        if (plan.type === "daily") {
+          plansByType.daily = plan.price;
+        } else if (plan.type === "weekly") {
+          plansByType.weekly = plan.price;
+        } else if (plan.type === "monthly") {
+          plansByType.monthly = plan.price;
+        }
+      });
+
+      return {
+        id: gym.id,
+        name: gym.name,
+        logo: gym.logo || undefined,
+        address: gym.address,
+        coordinates: {
+          lat: gym.latitude || 0,
+          lng: gym.longitude || 0,
+        },
+        rating: gym.rating || 0,
+        totalReviews: gym.totalReviews || 0,
+        plans: plansByType,
+        amenities: amenities,
+        openNow: openNow,
+        openingHours: openingHours || undefined,
+        photos: photos.length > 0 ? photos : undefined,
+        isPartner: (gym as any).isPartner || false, // Type assertion temporário até migration ser aplicada
+      };
+    });
+
+    return formattedGyms;
+  } catch (error) {
+    console.error("Erro ao buscar academias do database:", error);
+    // Em caso de erro, retornar mock como fallback
+    return mockGymLocations;
+  }
 }
 
 export async function getStudentSubscription() {

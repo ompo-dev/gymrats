@@ -485,6 +485,74 @@ export function WorkoutModal() {
         });
       }
 
+      // Calcular duração do workout
+      const workoutDuration = finalActiveWorkout?.startTime
+        ? Math.round(
+            (new Date().getTime() -
+              new Date(finalActiveWorkout.startTime).getTime()) /
+              60000
+          )
+        : workout.estimatedTime;
+
+      // Calcular volume total
+      const totalVolume = finalActiveWorkout?.totalVolume || 0;
+
+      // Determinar feedback baseado em performance
+      let overallFeedback: "excelente" | "bom" | "regular" | "ruim" =
+        "bom";
+      const completedExercises = finalActiveWorkout?.exerciseLogs?.length || 0;
+      const totalExercises = workout.exercises.length;
+      const completionRate = completedExercises / totalExercises;
+
+      if (completionRate >= 0.9 && totalVolume > 0) {
+        overallFeedback = "excelente";
+      } else if (completionRate >= 0.7) {
+        overallFeedback = "bom";
+      } else if (completionRate >= 0.5) {
+        overallFeedback = "regular";
+      } else {
+        overallFeedback = "ruim";
+      }
+
+      // Determinar partes do corpo fatigadas baseado no muscleGroup
+      const bodyPartsFatigued = [workout.muscleGroup];
+
+      // Salvar workout no backend
+      const saveWorkoutToBackend = async () => {
+        try {
+          const response = await fetch(`/api/workouts/${workout.id}/complete`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              exerciseLogs: finalActiveWorkout?.exerciseLogs || [],
+              duration: workoutDuration,
+              totalVolume: totalVolume,
+              overallFeedback: overallFeedback,
+              bodyPartsFatigued: bodyPartsFatigued,
+              xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
+              startTime: finalActiveWorkout?.startTime || new Date(),
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error("Erro ao salvar workout:", error);
+            // Continuar mesmo se falhar (dados já estão no store)
+          } else {
+            const data = await response.json();
+            console.log("Workout salvo com sucesso:", data);
+          }
+        } catch (error) {
+          console.error("Erro ao salvar workout no backend:", error);
+          // Continuar mesmo se falhar
+        }
+      };
+
+      // Salvar no backend (não bloquear UI)
+      saveWorkoutToBackend();
+
       // Adicionar XP
       if (finalActiveWorkout && finalActiveWorkout.xpEarned > 0) {
         addXP(finalActiveWorkout.xpEarned);
@@ -602,6 +670,70 @@ export function WorkoutModal() {
         exerciseLogs: updatedWorkout.exerciseLogs || [],
         xpEarned: updatedWorkout.xpEarned || 0,
       });
+
+      // Calcular duração do workout
+      const workoutDuration = updatedWorkout?.startTime
+        ? Math.round(
+            (new Date().getTime() -
+              new Date(updatedWorkout.startTime).getTime()) /
+              60000
+          )
+        : workout.estimatedTime;
+
+      // Calcular volume total
+      const totalVolume = updatedWorkout?.totalVolume || 0;
+
+      // Determinar feedback baseado em performance
+      let overallFeedback: "excelente" | "bom" | "regular" | "ruim" = "regular";
+      const completedExercises = updatedWorkout?.exerciseLogs?.length || 0;
+      const completionRate = completedExercises / totalExercises;
+
+      if (completionRate >= 0.9 && totalVolume > 0) {
+        overallFeedback = "excelente";
+      } else if (completionRate >= 0.7) {
+        overallFeedback = "bom";
+      } else if (completionRate >= 0.5) {
+        overallFeedback = "regular";
+      } else {
+        overallFeedback = "ruim";
+      }
+
+      // Determinar partes do corpo fatigadas
+      const bodyPartsFatigued = [workout.muscleGroup];
+
+      // Salvar workout no backend
+      const saveWorkoutToBackend = async () => {
+        try {
+          const response = await fetch(`/api/workouts/${workout.id}/complete`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              exerciseLogs: updatedWorkout?.exerciseLogs || [],
+              duration: workoutDuration,
+              totalVolume: totalVolume,
+              overallFeedback: overallFeedback,
+              bodyPartsFatigued: bodyPartsFatigued,
+              xpEarned: updatedWorkout?.xpEarned || 0,
+              startTime: updatedWorkout?.startTime || new Date(),
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error("Erro ao salvar workout:", error);
+          } else {
+            const data = await response.json();
+            console.log("Workout salvo com sucesso:", data);
+          }
+        } catch (error) {
+          console.error("Erro ao salvar workout no backend:", error);
+        }
+      };
+
+      // Salvar no backend (não bloquear UI)
+      saveWorkoutToBackend();
 
       // Marcar treino como completo
       completeWorkout(workout.id);
