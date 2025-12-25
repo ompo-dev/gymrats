@@ -15,10 +15,11 @@ export interface ProfileHeaderProps
     streak: number;
   };
   quickStats: Array<{
-    value: string | number;
+    value: string | number | React.ReactNode;
     label: string;
     highlighted?: boolean;
   }>;
+  quickStatsButtons?: React.ReactNode;
 }
 
 export function ProfileHeader({
@@ -28,6 +29,7 @@ export function ProfileHeader({
   memberSince,
   stats,
   quickStats,
+  quickStatsButtons,
   className,
   ...props
 }: ProfileHeaderProps) {
@@ -68,7 +70,7 @@ export function ProfileHeader({
         </div>
       </div>
 
-      <div className="mt-6 grid sm:grid-cols-4 grid-cols-2 gap-3">
+      <div className="mt-6 grid sm:grid-cols-2 grid-cols-2 gap-3">
         {quickStats.map((stat, index) => (
           <StatCard
             key={index}
@@ -77,6 +79,7 @@ export function ProfileHeader({
             variant={stat.highlighted ? "highlighted" : "default"}
           />
         ))}
+        {quickStatsButtons}
       </div>
     </DuoCard>
   );

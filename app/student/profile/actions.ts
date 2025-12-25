@@ -22,6 +22,11 @@ export async function getStudentProfileData() {
         workoutHistory: mockWorkoutHistory.slice(0, 3),
         personalRecords: mockPersonalRecords,
         weightHistory: mockWeightHistory,
+        userInfo: null,
+        weeklyWorkouts: 0,
+        weightGain: null,
+        ranking: null,
+        hasWeightLossGoal: false,
       };
     }
 
@@ -32,10 +37,45 @@ export async function getStudentProfileData() {
         workoutHistory: mockWorkoutHistory.slice(0, 3),
         personalRecords: mockPersonalRecords,
         weightHistory: mockWeightHistory,
+        userInfo: null,
+        weeklyWorkouts: 0,
+        weightGain: null,
+        ranking: null,
+        hasWeightLossGoal: false,
       };
     }
 
     const studentId = session.user.student.id;
+    const userId = session.userId;
+
+    // Buscar dados do usuário
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        name: true,
+        email: true,
+        createdAt: true,
+      },
+    });
+
+    // Buscar perfil do aluno
+    const student = await db.student.findUnique({
+      where: { id: studentId },
+      include: {
+        profile: true,
+      },
+    });
+
+    // Buscar objetivos do aluno para determinar se perda de peso é positiva
+    let hasWeightLossGoal = false;
+    if (student?.profile?.goals) {
+      try {
+        const goals = JSON.parse(student.profile.goals);
+        hasWeightLossGoal = Array.isArray(goals) && goals.includes("perder-peso");
+      } catch (e) {
+        // Ignorar erro de parse
+      }
+    }
 
     const progress = await db.studentProgress.findUnique({
       where: { studentId: studentId },
@@ -209,11 +249,103 @@ export async function getStudentProfileData() {
       }
     }
 
+    // Calcular workouts da semana (últimos 7 dias)
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const weeklyWorkouts = await db.workoutHistory.count({
+      where: {
+        studentId: studentId,
+        date: {
+          gte: oneWeekAgo,
+        },
+      },
+    });
+
+    // Calcular ganho/perda de peso (último mês)
+    let weightGain: number | null = null;
+    if (formattedWeightHistory.length > 0) {
+      const currentWeight = formattedWeightHistory[0].weight;
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      // Buscar peso de 1 mês atrás
+      try {
+        const weightOneMonthAgo = await db.weightHistory.findFirst({
+          where: {
+            studentId: studentId,
+            date: {
+              lte: oneMonthAgo,
+            },
+          },
+          orderBy: {
+            date: "desc",
+          },
+        });
+
+        if (weightOneMonthAgo) {
+          weightGain = currentWeight - weightOneMonthAgo.weight;
+        }
+      } catch (error) {
+        // Ignorar erro
+      }
+    }
+
+    // Calcular ranking (percentil baseado em totalXP)
+    // Ranking = quantos alunos têm MAIS XP que você
+    let ranking: number | null = null;
+    try {
+      const studentsWithMoreXP = await db.studentProgress.count({
+        where: {
+          totalXP: {
+            gt: userProgress.totalXP,
+          },
+        },
+      });
+
+      const totalStudentsWithProgress = await db.studentProgress.count();
+      
+      if (totalStudentsWithProgress > 0) {
+        // Percentil = (alunos com mais XP / total) * 100
+        // Se você está no top 15%, significa que 15% dos alunos têm mais XP
+        ranking = Math.round((studentsWithMoreXP / totalStudentsWithProgress) * 100);
+      }
+    } catch (error) {
+      // Ignorar erro
+    }
+
+    // Gerar username do email
+    const username = user?.email
+      ? `@${user.email.split("@")[0].toLowerCase()}`
+      : "@usuario";
+
+    // Formatar memberSince
+    const memberSince = user?.createdAt
+      ? new Date(user.createdAt).toLocaleDateString("pt-BR", {
+          month: "short",
+          year: "numeric",
+        })
+      : "Jan 2025";
+
+    // Peso atual (último registro de WeightHistory ou do perfil)
+    const currentWeight = formattedWeightHistory.length > 0 
+      ? formattedWeightHistory[0].weight 
+      : (student?.profile?.weight || null);
+
     return {
       progress: userProgress,
       workoutHistory: formattedWorkoutHistory.slice(0, 3),
       personalRecords: formattedPersonalRecords,
       weightHistory: formattedWeightHistory,
+      userInfo: {
+        name: user?.name || "Usuário",
+        username: username,
+        memberSince: memberSince,
+      },
+      currentWeight: currentWeight,
+      weightGain: weightGain,
+      weeklyWorkouts: weeklyWorkouts,
+      ranking: ranking,
+      hasWeightLossGoal: hasWeightLossGoal,
     };
   } catch (error) {
     console.error("Erro ao buscar dados do perfil:", error);
@@ -222,6 +354,12 @@ export async function getStudentProfileData() {
       workoutHistory: mockWorkoutHistory.slice(0, 3),
       personalRecords: mockPersonalRecords,
       weightHistory: mockWeightHistory,
+      userInfo: null,
+      weeklyWorkouts: 0,
+      weightGain: null,
+      ranking: null,
+      currentWeight: null,
+      hasWeightLossGoal: false,
     };
   }
 }

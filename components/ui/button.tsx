@@ -16,16 +16,16 @@ const buttonVariants = cva(
         "light-blue":
           "bg-[#1CB0F6] text-white font-bold uppercase tracking-wider shadow-[0_4px_0_#1899D6] hover:bg-[#1CB0F6]/90 active:shadow-none active:translate-y-[4px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         disabled:
-          "bg-[#E5E5E5] text-[#AFAFAF] font-bold uppercase tracking-wider cursor-not-allowed rounded-2xl text-[13px] leading-[18px]",
+          "bg-[#E5E5E5] text-[#AFAFAF] font-bold uppercase tracking-wider shadow-none cursor-not-allowed rounded-2xl text-[13px] leading-[18px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         destructive:
           "bg-red-50 text-red-600 border-2 border-red-300 font-bold uppercase tracking-wider shadow-[0_4px_0_#FCA5A5] hover:bg-red-100 active:shadow-none active:translate-y-[4px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border-2 border-gray-300 bg-white text-gray-900 font-bold uppercase tracking-wider shadow-[0_4px_0_#D1D5DB] hover:bg-gray-50 active:shadow-none active:translate-y-[4px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-gray-200 text-gray-900 font-bold uppercase tracking-wider shadow-[0_4px_0_#D1D5DB] hover:bg-gray-300 active:shadow-none active:translate-y-[4px] transition-all disabled:bg-[#E5E5E5] disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-transparent text-gray-900 font-bold uppercase tracking-wider shadow-none hover:bg-gray-100 active:shadow-none active:translate-y-0 transition-all disabled:bg-transparent disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
+        link: "bg-transparent text-duo-blue font-bold uppercase tracking-wider shadow-none hover:underline active:shadow-none active:translate-y-0 transition-all disabled:bg-transparent disabled:text-[#AFAFAF] disabled:shadow-none disabled:cursor-not-allowed",
       },
       size: {
         default: "h-[50px] rounded-2xl text-[13.2px] leading-[18px] px-4",

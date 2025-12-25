@@ -33,6 +33,16 @@ interface ProfileData {
   workoutHistory: WorkoutHistory[];
   personalRecords: PersonalRecord[];
   weightHistory: Array<{ date: Date | string; weight: number }>;
+  userInfo?: {
+    name: string;
+    username: string;
+    memberSince: string;
+  } | null;
+  currentWeight?: number | null;
+  weightGain?: number | null;
+  weeklyWorkouts?: number;
+  ranking?: number | null;
+  hasWeightLossGoal?: boolean;
 }
 
 interface StudentHomeContentProps {
@@ -70,8 +80,13 @@ function StudentHomeContent({
   userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
   // Debug: verificar o que está chegando
-  console.log("[StudentHomeContent] userInfo recebido:", userInfo, "JSON:", JSON.stringify(userInfo));
-  
+  console.log(
+    "[StudentHomeContent] userInfo recebido:",
+    userInfo,
+    "JSON:",
+    JSON.stringify(userInfo)
+  );
+
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [educationView, setEducationView] = useQueryState(
@@ -277,6 +292,12 @@ function StudentHomeContent({
           personalRecords={profileData.personalRecords}
           weightHistory={profileData.weightHistory}
           userInfo={userInfo}
+          profileUserInfo={profileData.userInfo}
+          currentWeight={profileData.currentWeight}
+          weightGain={profileData.weightGain}
+          weeklyWorkouts={profileData.weeklyWorkouts}
+          ranking={profileData.ranking}
+          hasWeightLossGoal={profileData.hasWeightLossGoal}
         />
       )}
 
@@ -294,8 +315,13 @@ export default function StudentHome({
   userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
   // Debug: verificar o que está chegando no wrapper
-  console.log("[StudentHome] userInfo recebido:", userInfo, "JSON:", JSON.stringify(userInfo));
-  
+  console.log(
+    "[StudentHome] userInfo recebido:",
+    userInfo,
+    "JSON:",
+    JSON.stringify(userInfo)
+  );
+
   return (
     <Suspense
       fallback={

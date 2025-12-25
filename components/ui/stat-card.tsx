@@ -1,12 +1,13 @@
-import * as React from "react"
-import { DuoCard } from "./duo-card"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { DuoCard } from "./duo-card";
+import { cn } from "@/lib/utils";
 
-export interface StatCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  value: string | number
-  label: string
-  variant?: "default" | "highlighted" | "blue" | "orange" | "yellow"
-  size?: "sm" | "md" | "lg"
+export interface StatCardProps {
+  value: string | number | React.ReactNode;
+  label: string;
+  variant?: "default" | "highlighted" | "blue" | "orange" | "yellow";
+  size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
 export function StatCard({
@@ -15,31 +16,33 @@ export function StatCard({
   variant = "default",
   size = "sm",
   className,
-  ...props
 }: StatCardProps) {
-  const isHighlighted = variant === "highlighted"
-  
+  const isHighlighted = variant === "highlighted";
+
   return (
     <DuoCard
       variant={variant === "default" ? "small" : variant}
       size={size}
       className={cn("text-center", className)}
-      {...props}
     >
-      <div className={cn(
-        "mb-1 font-bold",
-        size === "sm" ? "text-xl" : size === "md" ? "text-2xl" : "text-3xl",
-        isHighlighted ? "text-duo-green" : "text-gray-900"
-      )}>
+      <div
+        className={cn(
+          "mb-1 font-bold",
+          size === "sm" ? "text-xl" : size === "md" ? "text-2xl" : "text-3xl",
+          isHighlighted ? "text-duo-green" : "text-gray-900"
+        )}
+      >
         {value}
       </div>
-      <div className={cn(
-        "font-semibold",
-        size === "sm" ? "text-xs" : "text-sm",
-        isHighlighted ? "text-duo-green" : "text-gray-600"
-      )}>
+      <div
+        className={cn(
+          "font-semibold",
+          size === "sm" ? "text-xs" : "text-sm",
+          isHighlighted ? "text-duo-green" : "text-gray-600"
+        )}
+      >
         {label}
       </div>
     </DuoCard>
-  )
+  );
 }

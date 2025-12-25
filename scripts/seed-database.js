@@ -1097,11 +1097,229 @@ async function seedDatabase() {
       }
     }
 
+    // ============================================
+    // 4. DADOS DO USUÁRIO MAICON PEREIRA BARBOSA
+    // ============================================
+    console.log("\n👤 Populando dados do usuário Maicon Pereira Barbosa...");
+
+    // Buscar ou criar usuário
+    const userEmail = "maicon@gmail.com"; // Ajuste o email se necessário
+    let user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: {
+        student: {
+          include: {
+            profile: true,
+            progress: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      // Criar usuário se não existir
+      user = await prisma.user.create({
+        data: {
+          email: userEmail,
+          name: "Maicon Pereira Barbosa",
+          password: "hashed_password_placeholder", // Em produção, deve ser hash
+          role: "ADMIN", // ADMIN com acesso a ambos os perfis
+          student: {
+            create: {},
+          },
+        },
+        include: {
+          student: {
+            include: {
+              profile: true,
+              progress: true,
+            },
+          },
+        },
+      });
+      console.log(`  ✅ Usuário "${user.name}" criado como ADMIN`);
+    } else {
+      // Atualizar nome e role se necessário
+      const updates = {};
+      if (user.name !== "Maicon Pereira Barbosa") {
+        updates.name = "Maicon Pereira Barbosa";
+      }
+      if (user.role !== "ADMIN") {
+        updates.role = "ADMIN";
+      }
+
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updates,
+          include: {
+            student: {
+              include: {
+                profile: true,
+                progress: true,
+              },
+            },
+          },
+        });
+        console.log(`  ✅ Usuário atualizado (nome e/ou role)`);
+      } else {
+        console.log(`  ✅ Usuário "${user.name}" já existe como ADMIN`);
+      }
+    }
+
+    // Garantir que tenha Student
+    let student = user.student;
+    if (!student) {
+      student = await prisma.student.create({
+        data: {
+          userId: user.id,
+        },
+        include: {
+          profile: true,
+          progress: true,
+        },
+      });
+      console.log(`  ✅ Perfil de student criado`);
+    }
+
+    // Garantir que tenha Gym (ADMIN pode ter ambos os perfis)
+    let gym = await prisma.gym.findFirst({
+      where: { userId: user.id },
+    });
+
+    if (!gym) {
+      gym = await prisma.gym.create({
+        data: {
+          userId: user.id,
+          name: "Academia Admin",
+          address: "Endereço da academia",
+          phone: "(00) 00000-0000",
+          email: userEmail,
+          plan: "premium",
+          isActive: true,
+        },
+      });
+      console.log(`  ✅ Perfil de gym criado para ADMIN`);
+    } else {
+      console.log(`  ✅ Perfil de gym já existe`);
+    }
+
+    // Criar ou atualizar StudentProfile
+    const profileData = {
+      height: 187, // 1.87m em cm
+      weight: 91.5, // kg atual
+      fitnessLevel: "intermediario",
+      goals: JSON.stringify(["perder-peso"]), // Objetivo: perder peso
+      weeklyWorkoutFrequency: 4,
+      workoutDuration: 60,
+    };
+
+    if (student.profile) {
+      await prisma.studentProfile.update({
+        where: { studentId: student.id },
+        data: profileData,
+      });
+      console.log(
+        `  ✅ Perfil atualizado (${profileData.height}cm, ${profileData.weight}kg)`
+      );
+    } else {
+      await prisma.studentProfile.create({
+        data: {
+          studentId: student.id,
+          ...profileData,
+        },
+      });
+      console.log(
+        `  ✅ Perfil criado (${profileData.height}cm, ${profileData.weight}kg)`
+      );
+    }
+
+    // Criar StudentProgress se não existir
+    if (!student.progress) {
+      await prisma.studentProgress.create({
+        data: {
+          studentId: student.id,
+          currentLevel: 1,
+          totalXP: 0,
+          xpToNextLevel: 100,
+        },
+      });
+      console.log(`  ✅ Progresso inicial criado`);
+    }
+
+    // Criar histórico de peso (mostrando perda de 2-3kg no último mês)
+    const today = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+
+    // Verificar se já existe histórico
+    const existingWeightHistory = await prisma.weightHistory.findMany({
+      where: { studentId: student.id },
+      orderBy: { date: "desc" },
+      take: 1,
+    });
+
+    if (existingWeightHistory.length === 0) {
+      // Criar histórico de peso (perda de 2-3kg)
+      const weightHistoryData = [
+        {
+          studentId: student.id,
+          weight: 94.5, // Peso há 2 meses
+          date: twoMonthsAgo,
+          notes: "Peso inicial",
+        },
+        {
+          studentId: student.id,
+          weight: 93.5, // Peso há 1 mês
+          date: oneMonthAgo,
+          notes: "Em progresso",
+        },
+        {
+          studentId: student.id,
+          weight: 91.5, // Peso atual
+          date: today,
+          notes: "Meta alcançada - perda de 3kg",
+        },
+      ];
+
+      for (const weightData of weightHistoryData) {
+        await prisma.weightHistory.create({
+          data: weightData,
+        });
+      }
+      console.log(`  ✅ Histórico de peso criado (perda de 3kg no último mês)`);
+    } else {
+      // Atualizar último registro se necessário
+      const lastWeight = existingWeightHistory[0];
+      if (lastWeight.weight !== 91.5) {
+        await prisma.weightHistory.update({
+          where: { id: lastWeight.id },
+          data: {
+            weight: 91.5,
+            date: today,
+            notes: "Peso atualizado",
+          },
+        });
+        console.log(`  ✅ Último registro de peso atualizado para 91.5kg`);
+      } else {
+        console.log(`  ✅ Histórico de peso já existe e está atualizado`);
+      }
+    }
+
     console.log("\n✅ Seed concluído com sucesso!");
     console.log("\n📝 Próximos passos:");
     console.log("   1. Execute: npx prisma generate");
     console.log("   2. Verifique os dados no banco");
     console.log("   3. Teste as funcionalidades da aplicação");
+    console.log("\n👤 Dados do usuário Maicon:");
+    console.log(`   - Nome: Maicon Pereira Barbosa`);
+    console.log(`   - Email: ${userEmail}`);
+    console.log(`   - Altura: 187cm (1.87m)`);
+    console.log(`   - Peso atual: 91.5kg`);
+    console.log(`   - Objetivo: Perder peso`);
+    console.log(`   - Perda no último mês: 3kg`);
   } catch (error) {
     console.error("❌ Erro ao executar seed:", error);
     process.exit(1);
