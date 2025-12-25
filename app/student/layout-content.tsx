@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppLayout, TabConfig } from "@/components/app-layout";
 import { WorkoutModal } from "@/components/workout-modal";
+import { LoadingScreen } from "@/components/loading-screen";
 import {
   Home,
   Dumbbell,
@@ -51,14 +52,7 @@ export function StudentLayoutContent({
 
   // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
   if (!isMounted) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="mb-4 text-4xl">💪</div>
-          <p className="text-gray-600">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen variant="student" />;
   }
 
   if (isOnboarding) {
@@ -67,14 +61,7 @@ export function StudentLayoutContent({
 
   if (!hasProfile && !isOnboarding) {
     router.push("/student/onboarding");
-    return (
-      <div className="h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="mb-4 text-4xl">💪</div>
-          <p className="text-gray-600">Redirecionando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen variant="student" message="Redirecionando..." />;
   }
 
   // Handler para mudança de tabs

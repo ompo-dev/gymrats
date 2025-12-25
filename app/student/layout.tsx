@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import { StudentLayoutContent } from "./layout-content";
 import { getStudentProfile, getStudentProgress } from "./actions";
+import { LoadingScreen } from "@/components/loading-screen";
 
 export const dynamic = "force-dynamic";
 
@@ -35,16 +36,7 @@ export default function StudentLayout({
 }) {
   return (
     <SwipeDirectionProvider>
-      <Suspense
-        fallback={
-          <div className="h-screen flex items-center justify-center">
-            <div className="text-center">
-              <div className="mb-4 text-4xl">💪</div>
-              <p className="text-gray-600">Carregando...</p>
-            </div>
-          </div>
-        }
-      >
+      <Suspense fallback={<LoadingScreen variant="student" />}>
         <StudentLayoutWrapper>{children}</StudentLayoutWrapper>
       </Suspense>
     </SwipeDirectionProvider>

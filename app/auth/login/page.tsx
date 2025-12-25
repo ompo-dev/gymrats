@@ -13,7 +13,7 @@ import { authApi } from "@/lib/api/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setAuthenticated, setUserId, setUserMode, setUserProfile } =
+  const { setAuthenticated, setUserId, setUserMode, setUserProfile, setUserRole } =
     useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,11 +33,14 @@ export default function LoginPage() {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userEmail", response.user.email);
       localStorage.setItem("userId", response.user.id);
+      localStorage.setItem("userRole", response.user.role || "");
+      localStorage.setItem("isAdmin", response.user.role === "ADMIN" ? "true" : "false");
 
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
       setUserMode(response.user.userType as "student" | "gym" | null);
+      setUserRole(response.user.role || null);
       setUserProfile({
         id: response.user.id,
         name: response.user.name,

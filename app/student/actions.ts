@@ -7,6 +7,37 @@ import { mockUnits } from "@/lib/mock-data";
 import { mockGymLocations } from "@/lib/gym-mock-data";
 import { mockUserProgress } from "@/lib/mock-data";
 
+export async function getCurrentUserInfo() {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("auth_token")?.value;
+
+    if (!sessionToken) {
+      console.log("[getCurrentUserInfo] Sem token de sessão");
+      return { isAdmin: false, role: null };
+    }
+
+    const session = await getSession(sessionToken);
+    if (!session) {
+      console.log("[getCurrentUserInfo] Sessão não encontrada");
+      return { isAdmin: false, role: null };
+    }
+
+    const isAdmin = session.user.role === "ADMIN";
+    const role = session.user.role;
+    
+    console.log("[getCurrentUserInfo] User role:", role, "isAdmin:", isAdmin);
+
+    return {
+      isAdmin,
+      role,
+    };
+  } catch (error) {
+    console.error("[getCurrentUserInfo] Erro ao buscar informações do usuário:", error);
+    return { isAdmin: false, role: null };
+  }
+}
+
 export async function getStudentProfile() {
   try {
     const cookieStore = await cookies();

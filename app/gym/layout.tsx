@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import { GymLayoutContent } from "./layout-content";
 import { getGymProfile } from "./actions";
+import { LoadingScreen } from "@/components/loading-screen";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +26,7 @@ async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
 export default function GymLayout({ children }: { children: React.ReactNode }) {
   return (
     <SwipeDirectionProvider>
-      <Suspense
-        fallback={
-          <div className="h-screen flex items-center justify-center">
-            Carregando...
-          </div>
-        }
-      >
+      <Suspense fallback={<LoadingScreen variant="gym" />}>
         <GymLayoutWrapper>{children}</GymLayoutWrapper>
       </Suspense>
     </SwipeDirectionProvider>

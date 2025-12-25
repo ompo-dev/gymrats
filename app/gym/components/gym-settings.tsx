@@ -16,6 +16,8 @@ import {
   Edit2,
   Plus,
   Trash2,
+  LogOut,
+  ArrowRightLeft,
 } from "lucide-react";
 import { SectionCard } from "@/components/ui/section-card";
 import { DuoCard } from "@/components/ui/duo-card";
@@ -24,17 +26,70 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { getUserInfoFromStorage } from "@/lib/utils/user-info";
+import { useEffect, useState } from "react";
 
+// Nota: useUserSession foi removido - usando apenas dados do servidor (SSR)
 interface GymSettingsPageProps {
   profile: GymProfile;
+  userInfo?: { isAdmin: boolean; role: string | null };
 }
 
-export function GymSettingsPage({ profile }: GymSettingsPageProps) {
+export function GymSettingsPage({ profile, userInfo = { isAdmin: false, role: null } }: GymSettingsPageProps) {
+  const router = useRouter();
+  const [actualIsAdmin, setActualIsAdmin] = useState(false);
+  
+  // Buscar do localStorage primeiro (rápido, sem delay)
+  const storageInfo = getUserInfoFromStorage();
+  
+  // Buscar dados atualizados da API no cliente (confiável)
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const response = await fetch("/api/auth/session");
+        if (response.ok) {
+          const data = await response.json();
+          const isAdminFromAPI = data.user?.role === "ADMIN" || data.user?.userType === "admin";
+          setActualIsAdmin(isAdminFromAPI);
+          console.log("[GymSettingsPage] Dados da API:", data.user, "isAdminFromAPI:", isAdminFromAPI);
+        }
+      } catch (error) {
+        console.error("[GymSettingsPage] Erro ao buscar sessão:", error);
+      }
+    }
+    
+    fetchUserInfo();
+  }, []);
+  
+  // Usar dados da API como fonte principal, localStorage e userInfo como fallback
+  const isAdmin = actualIsAdmin || storageInfo.isAdmin || userInfo?.role === "ADMIN" || userInfo?.isAdmin;
+  
+  console.log("[GymSettingsPage] actualIsAdmin:", actualIsAdmin, "storageInfo.isAdmin:", storageInfo.isAdmin, "userInfo?.role:", userInfo?.role, "isAdmin final:", isAdmin);
   const operatingHours = [
     { day: "Segunda a Sexta", hours: "06:00 - 22:00" },
     { day: "Sábado", hours: "08:00 - 20:00" },
     { day: "Domingo", hours: "09:00 - 14:00" },
   ];
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/sign-out", {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        router.push("/auth/login");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
+
+  const handleSwitchToStudent = () => {
+    router.push("/student");
+  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6  ">
@@ -244,6 +299,56 @@ export function GymSettingsPage({ profile }: GymSettingsPageProps) {
                 </DuoCard>
               </motion.div>
             ))}
+          </div>
+        </SectionCard>
+      </SlideIn>
+
+      <SlideIn delay={0.5}>
+        <SectionCard title="Conta" icon={Shield} variant="red">
+          <div className="space-y-3">
+            {/* Verificar todas as fontes possíveis para garantir que funcione */}
+            {(isAdmin || userInfo?.role === "ADMIN") && (
+              <DuoCard
+                variant="default"
+                size="default"
+                className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
+                onClick={handleSwitchToStudent}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-duo-blue/10 p-3">
+                    <ArrowRightLeft className="h-5 w-5 text-duo-blue" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-bold text-duo-text">
+                      Trocar para Perfil de Aluno
+                    </div>
+                    <div className="text-xs text-duo-gray-dark">
+                      Acessar como estudante
+                    </div>
+                  </div>
+                </div>
+              </DuoCard>
+            )}
+            <DuoCard
+              variant="default"
+              size="default"
+              className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
+              onClick={handleLogout}
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-red-50 p-3">
+                  <LogOut className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-bold text-duo-text">
+                    Sair
+                  </div>
+                  <div className="text-xs text-duo-gray-dark">
+                    Fazer logout da conta
+                  </div>
+                </div>
+              </div>
+            </DuoCard>
           </div>
         </SectionCard>
       </SlideIn>

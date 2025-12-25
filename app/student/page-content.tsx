@@ -58,6 +58,7 @@ interface StudentHomeContentProps {
     isTrial: boolean;
     daysRemaining: number | null;
   } | null;
+  userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 function StudentHomeContent({
@@ -66,7 +67,11 @@ function StudentHomeContent({
   initialProgress,
   profileData,
   subscription,
+  userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
+  // Debug: verificar o que está chegando
+  console.log("[StudentHomeContent] userInfo recebido:", userInfo, "JSON:", JSON.stringify(userInfo));
+  
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [educationView, setEducationView] = useQueryState(
@@ -271,6 +276,7 @@ function StudentHomeContent({
           workoutHistory={profileData.workoutHistory}
           personalRecords={profileData.personalRecords}
           weightHistory={profileData.weightHistory}
+          userInfo={userInfo}
         />
       )}
 
@@ -285,7 +291,11 @@ export default function StudentHome({
   initialProgress,
   profileData,
   subscription,
+  userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
+  // Debug: verificar o que está chegando no wrapper
+  console.log("[StudentHome] userInfo recebido:", userInfo, "JSON:", JSON.stringify(userInfo));
+  
   return (
     <Suspense
       fallback={

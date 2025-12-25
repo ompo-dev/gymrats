@@ -29,13 +29,10 @@ export function GymLayoutContent({
 
   // Usar valores padrão para evitar problemas de hidratação
   // O nuqs vai atualizar os valores no cliente após a hidratação
-  const [studentId] = useQueryState(
-    "studentId",
-    parseAsString.withDefault(null)
-  );
+  const [studentId] = useQueryState("studentId", parseAsString.withDefault(""));
   const [equipmentId] = useQueryState(
     "equipmentId",
-    parseAsString.withDefault(null)
+    parseAsString.withDefault("")
   );
   const isInDetailPage = !!studentId || !!equipmentId;
 

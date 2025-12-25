@@ -1,8 +1,9 @@
 import { GymSettingsPage } from "../components/gym-settings";
-import { getGymProfile } from "../actions";
+import { getGymProfile, getCurrentUserInfo } from "../actions";
 
 export default async function SettingsPage() {
   const profile = await getGymProfile();
+  const userInfo = await getCurrentUserInfo();
 
-  return <GymSettingsPage profile={profile} />;
+  return <GymSettingsPage profile={profile} userInfo={userInfo} />;
 }

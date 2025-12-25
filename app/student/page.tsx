@@ -4,19 +4,24 @@ import {
   getGymLocations,
   getStudentProgress,
   getStudentSubscription,
+  getCurrentUserInfo,
 } from "./actions";
 import { getStudentProfileData } from "./profile/actions";
 
 export default async function StudentPage() {
-  const [units, gymLocations, progress, profileData, subscription] =
+  const [units, gymLocations, progress, profileData, subscription, userInfo] =
     await Promise.all([
       getStudentUnits(),
       getGymLocations(),
       getStudentProgress(),
       getStudentProfileData(),
       getStudentSubscription(),
+      getCurrentUserInfo(),
     ]);
 
+  // Debug: verificar o que está sendo retornado do servidor
+  console.log("[StudentPage] userInfo do servidor:", userInfo, "JSON:", JSON.stringify(userInfo));
+  
   return (
     <StudentHome
       units={units}
@@ -29,6 +34,7 @@ export default async function StudentPage() {
       }}
       profileData={profileData}
       subscription={subscription}
+      userInfo={userInfo}
     />
   );
 }

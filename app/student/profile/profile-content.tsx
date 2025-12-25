@@ -1,12 +1,16 @@
 "use client";
 
-import { Trophy, Flame, Zap, TrendingUp, Calendar, Award } from "lucide-react";
+import { Trophy, Flame, Zap, TrendingUp, Calendar, Award, LogOut, ArrowRightLeft, Shield } from "lucide-react";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { SectionCard } from "@/components/ui/section-card";
 import { HistoryCard } from "@/components/ui/history-card";
 import { RecordCard } from "@/components/ui/record-card";
+import { DuoCard } from "@/components/ui/duo-card";
 import type { UserProgress, WorkoutHistory, PersonalRecord } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { getUserInfoFromStorage } from "@/lib/utils/user-info";
+import { useEffect, useState } from "react";
 
 interface WeightHistoryItem {
   date: Date | string;
@@ -18,6 +22,7 @@ interface ProfilePageContentProps {
   workoutHistory: WorkoutHistory[];
   personalRecords: PersonalRecord[];
   weightHistory: WeightHistoryItem[];
+  userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 export function ProfilePageContent({
@@ -25,7 +30,57 @@ export function ProfilePageContent({
   workoutHistory,
   personalRecords,
   weightHistory,
+  userInfo = { isAdmin: false, role: null },
 }: ProfilePageContentProps) {
+  const router = useRouter();
+  const [actualIsAdmin, setActualIsAdmin] = useState(false);
+  
+  // Buscar do localStorage primeiro (rápido, sem delay)
+  const storageInfo = getUserInfoFromStorage();
+  
+  // Buscar dados atualizados da API no cliente (confiável)
+  useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const response = await fetch("/api/auth/session");
+        if (response.ok) {
+          const data = await response.json();
+          const isAdminFromAPI = data.user?.role === "ADMIN" || data.user?.userType === "admin";
+          setActualIsAdmin(isAdminFromAPI);
+          console.log("[ProfilePageContent] Dados da API:", data.user, "isAdminFromAPI:", isAdminFromAPI);
+        }
+      } catch (error) {
+        console.error("[ProfilePageContent] Erro ao buscar sessão:", error);
+      }
+    }
+    
+    fetchUserInfo();
+  }, []);
+  
+  // Usar dados da API como fonte principal, localStorage e userInfo como fallback
+  const isAdmin = actualIsAdmin || storageInfo.isAdmin || userInfo?.role === "ADMIN" || userInfo?.isAdmin;
+  
+  console.log("[ProfilePageContent] actualIsAdmin:", actualIsAdmin, "storageInfo.isAdmin:", storageInfo.isAdmin, "userInfo?.role:", userInfo?.role, "isAdmin final:", isAdmin);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/auth/sign-out", {
+        method: "POST",
+      });
+      
+      if (response.ok) {
+        router.push("/auth/login");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
+  };
+
+  const handleSwitchToGym = () => {
+    router.push("/gym");
+  };
+
   return (
     <div className="mx-auto max-w-4xl space-y-6  ">
       <ProfileHeader
@@ -155,6 +210,55 @@ export function ProfilePageContent({
           </div>
         </SectionCard>
       </div>
+
+      <SectionCard title="Conta" icon={Shield} variant="red">
+        <div className="space-y-3">
+          {/* Mostrar botão de trocar apenas se for admin */}
+          {/* Verificar todas as fontes possíveis para garantir que funcione */}
+          {(isAdmin || userInfo?.role === "ADMIN") && (
+            <DuoCard
+              variant="default"
+              size="default"
+              className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
+              onClick={handleSwitchToGym}
+            >
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-duo-blue/10 p-3">
+                  <ArrowRightLeft className="h-5 w-5 text-duo-blue" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm font-bold text-duo-text">
+                    Trocar para Perfil de Academia
+                  </div>
+                  <div className="text-xs text-duo-gray-dark">
+                    Acessar como academia
+                  </div>
+                </div>
+              </div>
+            </DuoCard>
+          )}
+          <DuoCard
+            variant="default"
+            size="default"
+            className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
+            onClick={handleLogout}
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-xl bg-red-50 p-3">
+                <LogOut className="h-5 w-5 text-red-600" />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-sm font-bold text-duo-text">
+                  Sair
+                </div>
+                <div className="text-xs text-duo-gray-dark">
+                  Fazer logout da conta
+                </div>
+              </div>
+            </div>
+          </DuoCard>
+        </div>
+      </SectionCard>
     </div>
   );
 }

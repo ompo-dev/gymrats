@@ -81,7 +81,6 @@ export function GymSelector() {
       variant="default"
       size="default"
       placeholder="Selecione uma academia"
-      className="min-w-[280px]"
     />
   );
 }
