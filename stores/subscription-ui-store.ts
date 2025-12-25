@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SubscriptionPlan } from "@/components/subscription-section";
+import type { SubscriptionPlan } from "@/components/organisms/sections/subscription-section";
 
 interface SubscriptionUIState {
   // Estado da seleção de planos

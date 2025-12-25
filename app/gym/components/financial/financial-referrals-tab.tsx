@@ -2,8 +2,8 @@
 
 import type { Referral } from "@/lib/types";
 import { UsersIcon } from "lucide-react";
-import { SectionCard } from "@/components/ui/section-card";
-import { DuoCard } from "@/components/ui/duo-card";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { cn } from "@/lib/utils";
 
 interface FinancialReferralsTabProps {

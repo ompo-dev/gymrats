@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
 import { GymLayoutContent } from "./layout-content";
 import { getGymProfile } from "./actions";
-import { LoadingScreen } from "@/components/loading-screen";
+import { LoadingScreen } from "@/components/organisms/loading-screen";
 
 export const dynamic = "force-dynamic";
 

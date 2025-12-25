@@ -10,7 +10,7 @@ import type {
   CheckIn,
 } from "@/lib/types";
 import { Users, Dumbbell } from "lucide-react";
-import { RelativeTime } from "@/components/relative-time";
+import { RelativeTime } from "@/components/molecules/relative-time";
 
 interface GymDashboardPageProps {
   profile: GymProfile;

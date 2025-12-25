@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { CardioTracker } from "../../../components/cardio-tracker";
-import { FunctionalWorkout } from "../../../components/functional-workout";
+import { CardioTracker } from "@/components/organisms/trackers/cardio-tracker";
+import { FunctionalWorkout } from "@/components/organisms/workout/functional-workout";
 import { Heart, Target, TrendingUp } from "lucide-react";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
-import { SectionCard } from "@/components/ui/section-card";
-import { DuoCard } from "@/components/ui/duo-card";
+import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { BackButton } from "@/components/back-button";
+import { BackButton } from "@/components/organisms/navigation/back-button";
 
 export function CardioFunctionalPage() {
   const [view, setView] = useState<"menu" | "cardio" | "functional">("menu");

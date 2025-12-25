@@ -99,7 +99,11 @@ export function ExerciseAlternativeSelector({
               >
                 <DuoCard
                   variant={
-                    isSelected ? (option.isMain ? "green" : "blue") : "default"
+                    isSelected
+                      ? option.isMain
+                        ? "highlighted"
+                        : "blue"
+                      : "default"
                   }
                   size="md"
                   onClick={() => setSelectedId(option.id)}

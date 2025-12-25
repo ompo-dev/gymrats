@@ -1,6 +1,6 @@
 "use client";
 
-import { AppLayout, TabConfig } from "@/components/app-layout";
+import { AppLayout, TabConfig } from "@/components/templates/layouts/app-layout";
 import {
   LayoutDashboard,
   Users,

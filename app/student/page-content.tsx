@@ -6,23 +6,26 @@ import { parseAsString, useQueryState } from "nuqs";
 import { PersonalizationPage } from "@/app/student/personalization/personalization-page";
 import { CardioFunctionalPage } from "@/app/student/cardio/cardio-functional-page";
 import { DietPage } from "@/app/student/diet/diet-page";
-import { EducationPage } from "@/app/student/education/education-page";
+import { EducationPage } from "@/components/organisms/education/education-page";
 import { ProfilePage } from "@/app/student/profile/profile-page";
 import { StudentPaymentsPage } from "@/app/student/payments/student-payments-page";
 import { LearningPath } from "@/app/student/learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/more/student-more-menu";
-import { MuscleExplorer } from "@/app/student/education/muscle-explorer";
-import { EducationalLessons } from "@/app/student/education/educational-lessons";
+import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
+import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 
-import { GymMap } from "@/components/gym-map";
-import { Heart, Flame, Zap } from "lucide-react";
+import { GymMap } from "@/components/organisms/sections/gym-map";
+import { Heart, Flame, Zap, Trophy, TrendingUp, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { motion } from "motion/react";
-import { useStudentStore } from "@/stores";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
-import { SectionCard } from "@/components/ui/section-card";
-import { ShopCard } from "@/components/shop-card";
+import { useStudent } from "@/hooks/use-student";
+import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { ShopCard } from "@/components/organisms/sections/shop-card";
+import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
+import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
+import { LevelProgressCard } from "@/components/organisms/home/home/level-progress-card";
 import type { Unit } from "@/lib/types";
 import type { GymLocation } from "@/lib/types";
 
@@ -79,14 +82,6 @@ function StudentHomeContent({
   subscription,
   userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
-  // Debug: verificar o que está chegando
-  console.log(
-    "[StudentHomeContent] userInfo recebido:",
-    userInfo,
-    "JSON:",
-    JSON.stringify(userInfo)
-  );
-
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [educationView, setEducationView] = useQueryState(
@@ -96,26 +91,75 @@ function StudentHomeContent({
   const [muscleId, setMuscleId] = useQueryState("muscle", parseAsString);
   const [exerciseId, setExerciseId] = useQueryState("exercise", parseAsString);
   const [lessonId, setLessonId] = useQueryState("lesson", parseAsString);
-  const { dayPasses, addDayPass } = useStudentStore();
+
+  // Usar hook unificado
+  const {
+    progress: storeProgress,
+    user: storeUser,
+    units: storeUnits,
+    gymLocations: storeGymLocations,
+    dayPasses: storeDayPasses,
+    workoutHistory: storeWorkoutHistory,
+    weightHistory: storeWeightHistory,
+    weightGain: storeWeightGain,
+    profile: storeProfile,
+  } = useStudent(
+    "progress",
+    "user",
+    "units",
+    "gymLocations",
+    "dayPasses",
+    "workoutHistory",
+    "weightHistory",
+    "weightGain",
+    "profile"
+  );
+  const { addDayPass } = useStudent("actions");
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const progress = useStudentStore((state) => state.progress);
+  // Usar dados do store com fallback para props (SSR)
   const displayProgress = {
-    currentStreak: progress.currentStreak || initialProgress.currentStreak,
-    longestStreak: progress.longestStreak || initialProgress.longestStreak,
-    totalXP: progress.totalXP || initialProgress.totalXP,
-    todayXP: progress.todayXP || initialProgress.todayXP,
+    currentStreak:
+      storeProgress?.currentStreak || initialProgress.currentStreak,
+    longestStreak:
+      storeProgress?.longestStreak || initialProgress.longestStreak,
+    totalXP: storeProgress?.totalXP || initialProgress.totalXP,
+    todayXP: storeProgress?.todayXP || initialProgress.todayXP,
+    currentLevel:
+      storeProgress?.currentLevel || profileData?.progress.currentLevel || 1,
+    xpToNextLevel:
+      storeProgress?.xpToNextLevel ?? profileData?.progress.xpToNextLevel ?? 0,
+    workoutsCompleted:
+      storeProgress?.workoutsCompleted ||
+      profileData?.progress.workoutsCompleted ||
+      0,
   };
+
+  // Usar dados do store ou props
+  const currentUnits = storeUnits && storeUnits.length > 0 ? storeUnits : units;
+  const currentGymLocations =
+    storeGymLocations && storeGymLocations.length > 0
+      ? storeGymLocations
+      : gymLocations;
+  const currentDayPasses = storeDayPasses || [];
+  const currentUser = storeUser || profileData?.userInfo;
+  const currentWorkoutHistory =
+    storeWorkoutHistory || profileData?.workoutHistory || [];
+  const currentWeightHistory =
+    storeWeightHistory || profileData?.weightHistory || [];
+  const currentWeightGain = storeWeightGain ?? profileData?.weightGain ?? null;
+  const currentWeight = storeProfile?.weight || profileData?.currentWeight;
+  const currentRanking = profileData?.ranking; // TODO: Adicionar ao store
 
   const handleLessonSelect = (_lessonId: string) => {
     // Lesson selection handled by workout store
   };
 
   const handlePurchaseDayPass = (gymId: string) => {
-    const gym = gymLocations.find((g) => g.id === gymId);
+    const gym = currentGymLocations.find((g: GymLocation) => g.id === gymId);
     if (!gym) return;
 
     const newPass = {
@@ -147,7 +191,9 @@ function StudentHomeContent({
           <FadeIn>
             <div className="text-center">
               <h1 className="mb-2 text-3xl font-bold text-duo-text">
-                Olá, Atleta!
+                {currentUser?.name
+                  ? `Olá, ${currentUser.name.split(" ")[0]}!`
+                  : "Olá, Atleta!"}
               </h1>
               <p className="text-sm text-duo-gray-dark">
                 Continue sua jornada fitness de hoje
@@ -155,6 +201,7 @@ function StudentHomeContent({
             </div>
           </FadeIn>
 
+          {/* Cards de Estatísticas Principais */}
           <div className="grid grid-cols-2 gap-4">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -183,9 +230,81 @@ function StudentHomeContent({
                 iconColor="duo-yellow"
               />
             </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
+            >
+              <StatCardLarge
+                icon={Trophy}
+                value={`#${displayProgress.currentLevel}`}
+                label="nível atual"
+                subtitle={
+                  currentRanking !== null && currentRanking !== undefined
+                    ? `Top ${currentRanking}% global`
+                    : "Continue treinando"
+                }
+                iconColor="duo-blue"
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.4 }}
+            >
+              <StatCardLarge
+                icon={Dumbbell}
+                value={displayProgress.workoutsCompleted}
+                label="treinos completos"
+                subtitle={
+                  profileData?.weeklyWorkouts && profileData.weeklyWorkouts > 0
+                    ? `+${profileData.weeklyWorkouts} esta semana`
+                    : "Nenhum esta semana"
+                }
+                iconColor="duo-green"
+              />
+            </motion.div>
           </div>
 
-          <WhileInView delay={0.4}>
+          {/* Card de Progresso de Nível */}
+          {storeProgress && (
+            <WhileInView delay={0.3}>
+              <LevelProgressCard
+                currentLevel={storeProgress.currentLevel}
+                totalXP={storeProgress.totalXP}
+                xpToNextLevel={storeProgress.xpToNextLevel}
+                ranking={currentRanking ?? null}
+              />
+            </WhileInView>
+          )}
+
+          {/* Card de Evolução de Peso */}
+          {currentWeight && (
+            <WhileInView delay={0.35}>
+              <WeightProgressCard
+                currentWeight={currentWeight}
+                weightGain={currentWeightGain}
+                hasWeightLossGoal={
+                  storeProfile?.hasWeightLossGoal ||
+                  profileData?.hasWeightLossGoal ||
+                  false
+                }
+                weightHistory={currentWeightHistory}
+              />
+            </WhileInView>
+          )}
+
+          {/* Card de Treinos Recentes */}
+          {currentWorkoutHistory.length > 0 && (
+            <WhileInView delay={0.4}>
+              <RecentWorkoutsCard workoutHistory={currentWorkoutHistory} />
+            </WhileInView>
+          )}
+
+          {/* Personalização com IA */}
+          <WhileInView delay={0.45}>
             <SectionCard
               icon={Heart}
               title="Personalização com IA"
@@ -198,18 +317,19 @@ function StudentHomeContent({
             </SectionCard>
           </WhileInView>
 
+          {/* Loja de Recursos */}
           <WhileInView delay={0.5}>
-            <ShopCard />
+            <ShopCard totalXP={displayProgress.totalXP} />
           </WhileInView>
         </div>
       )}
 
       {tab === "learn" && (
         <div className="pb-8" key="learn-tab">
-          {units && units.length > 0 ? (
+          {currentUnits && currentUnits.length > 0 ? (
             <LearningPath
               key="learning-path"
-              units={units}
+              units={currentUnits}
               onLessonSelect={handleLessonSelect}
             />
           ) : (
@@ -228,19 +348,21 @@ function StudentHomeContent({
         <StudentPaymentsPage
           subscription={subscription}
           startTrial={async () => {
-            const response = await fetch("/api/subscriptions/start-trial", {
-              method: "POST",
-            });
-            const data = await response.json();
-            return data;
+            // Usar axios client (API → Zustand → Component)
+            const { apiClient } = await import("@/lib/api/client");
+            const response = await apiClient.post<{
+              error?: string;
+              success?: boolean;
+            }>("/api/subscriptions/start-trial");
+            return response.data;
           }}
         />
       )}
 
       {tab === "gyms" && (
         <GymMap
-          gyms={gymLocations}
-          dayPasses={dayPasses}
+          gyms={currentGymLocations}
+          dayPasses={currentDayPasses}
           onPurchaseDayPass={handlePurchaseDayPass}
         />
       )}
@@ -314,14 +436,6 @@ export default function StudentHome({
   subscription,
   userInfo = { isAdmin: false, role: null },
 }: StudentHomeContentProps) {
-  // Debug: verificar o que está chegando no wrapper
-  console.log(
-    "[StudentHome] userInfo recebido:",
-    userInfo,
-    "JSON:",
-    JSON.stringify(userInfo)
-  );
-
   return (
     <Suspense
       fallback={
@@ -336,6 +450,7 @@ export default function StudentHome({
         initialProgress={initialProgress}
         profileData={profileData}
         subscription={subscription}
+        userInfo={userInfo}
       />
     </Suspense>
   );

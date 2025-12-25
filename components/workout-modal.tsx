@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { mockWorkouts } from "@/lib/mock-data";
+import type { WorkoutSession, AlternativeExercise, Unit } from "@/lib/types";
 import {
   X,
   Heart,
@@ -27,7 +28,8 @@ import type { ExerciseLog, WorkoutExercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
-import { useWorkoutStore, useStudentStore, useUIStore } from "@/stores";
+import { useWorkoutStore, useUIStore } from "@/stores";
+import { useStudent } from "@/hooks/use-student";
 import { useRouter } from "next/navigation";
 
 export function WorkoutModal() {
@@ -49,7 +51,19 @@ export function WorkoutModal() {
     selectAlternative,
     setCardioPreference,
   } = useWorkoutStore();
-  const { completeWorkout: completeStudentWorkout, addXP } = useStudentStore();
+  const { completeWorkout: completeStudentWorkout, updateProgress } =
+    useStudent("actions");
+  const { progress: studentProgress } = useStudent("progress");
+
+  // Helper para adicionar XP (atualiza progress)
+  const addXP = async (amount: number) => {
+    if (studentProgress) {
+      await updateProgress({
+        totalXP: (studentProgress.totalXP || 0) + amount,
+        todayXP: (studentProgress.todayXP || 0) + amount,
+      });
+    }
+  };
   const { showWeightTracker, setShowWeightTracker } = useUIStore();
   const [showCompletion, setShowCompletion] = useState(false);
   const [showAlternativeSelector, setShowAlternativeSelector] = useState(false);
@@ -76,9 +90,11 @@ export function WorkoutModal() {
     // Importar dinamicamente para evitar circular dependency
     try {
       const { getCachedUnits } = require("@/app/student/learn/learning-path");
-      const cachedUnits = getCachedUnits();
+      const cachedUnits = getCachedUnits() as Unit[];
       for (const unit of cachedUnits) {
-        const workout = unit.workouts.find((w) => w.id === workoutId);
+        const workout = unit.workouts.find(
+          (w: WorkoutSession) => w.id === workoutId
+        );
         if (workout) return workout;
       }
     } catch (e) {
@@ -383,7 +399,7 @@ export function WorkoutModal() {
       activeWorkout.selectedAlternatives?.[currentExercise.id];
     if (alternativeId && currentExercise.alternatives) {
       const alternative = currentExercise.alternatives.find(
-        (alt) => alt.id === alternativeId
+        (alt: AlternativeExercise) => alt.id === alternativeId
       );
       return alternative?.name || currentExercise.name;
     }
@@ -450,7 +466,7 @@ export function WorkoutModal() {
   const seenByLogs = completedCount + skippedCount; // Exercícios realmente completados/pulados
   const totalSeen = Math.max(seenByIndex, seenByLogs);
 
-  const progress =
+  const workoutProgress =
     totalExercises > 0
       ? Math.min(
           100,
@@ -515,8 +531,7 @@ export function WorkoutModal() {
       const totalVolume = finalActiveWorkout?.totalVolume || 0;
 
       // Determinar feedback baseado em performance
-      let overallFeedback: "excelente" | "bom" | "regular" | "ruim" =
-        "bom";
+      let overallFeedback: "excelente" | "bom" | "regular" | "ruim" = "bom";
       const completedExercises = finalActiveWorkout?.exerciseLogs?.length || 0;
       const totalExercises = workout.exercises.length;
       const completionRate = completedExercises / totalExercises;
@@ -537,12 +552,11 @@ export function WorkoutModal() {
       // Salvar workout no backend
       const saveWorkoutToBackend = async () => {
         try {
-          const response = await fetch(`/api/workouts/${workout.id}/complete`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
+          // Usar axios client (API → Zustand → Component)
+          const { apiClient } = await import("@/lib/api/client");
+          const response = await apiClient.post(
+            `/api/workouts/${workout.id}/complete`,
+            {
               exerciseLogs: finalActiveWorkout?.exerciseLogs || [],
               duration: workoutDuration,
               totalVolume: totalVolume,
@@ -550,19 +564,14 @@ export function WorkoutModal() {
               bodyPartsFatigued: bodyPartsFatigued,
               xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
               startTime: finalActiveWorkout?.startTime || new Date(),
-            }),
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            console.error("Erro ao salvar workout:", error);
-            // Continuar mesmo se falhar (dados já estão no store)
-          } else {
-            const data = await response.json();
-            console.log("Workout salvo com sucesso:", data);
-          }
-        } catch (error) {
-          console.error("Erro ao salvar workout no backend:", error);
+            }
+          );
+          console.log("Workout salvo com sucesso:", response.data);
+        } catch (error: any) {
+          console.error(
+            "Erro ao salvar workout no backend:",
+            error?.message || error
+          );
           // Continuar mesmo se falhar
         }
       };
@@ -570,16 +579,13 @@ export function WorkoutModal() {
       // Salvar no backend (não bloquear UI)
       saveWorkoutToBackend();
 
-      // Adicionar XP
-      if (finalActiveWorkout && finalActiveWorkout.xpEarned > 0) {
-        addXP(finalActiveWorkout.xpEarned);
-      } else {
-        addXP(workout.xpReward);
-      }
+      // Marcar como completo e atualizar XP/streak (otimisticamente)
+      // completeStudentWorkout já atualiza XP, nível, workoutsCompleted e streak
+      const xpEarned = finalActiveWorkout?.xpEarned || workout.xpReward;
+      completeStudentWorkout(workout.id, xpEarned);
 
-      // Marcar como completo mas manter o progresso para permitir reabrir
+      // Marcar como completo no workout store
       completeWorkout(workout.id);
-      completeStudentWorkout(workout.id, workout.xpReward);
 
       // Disparar evento de conclusão
       window.dispatchEvent(
@@ -721,12 +727,11 @@ export function WorkoutModal() {
       // Salvar workout no backend
       const saveWorkoutToBackend = async () => {
         try {
-          const response = await fetch(`/api/workouts/${workout.id}/complete`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
+          // Usar axios client (API → Zustand → Component)
+          const { apiClient } = await import("@/lib/api/client");
+          const response = await apiClient.post(
+            `/api/workouts/${workout.id}/complete`,
+            {
               exerciseLogs: updatedWorkout?.exerciseLogs || [],
               duration: workoutDuration,
               totalVolume: totalVolume,
@@ -734,24 +739,14 @@ export function WorkoutModal() {
               bodyPartsFatigued: bodyPartsFatigued,
               xpEarned: updatedWorkout?.xpEarned || 0,
               startTime: updatedWorkout?.startTime || new Date(),
-            }),
-          });
-
-          if (!response.ok) {
-            let errorMessage = "Erro desconhecido";
-            try {
-              const error = await response.json();
-              errorMessage = error.error || error.message || JSON.stringify(error);
-            } catch (e) {
-              errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
             }
-            console.error("Erro ao salvar workout:", errorMessage);
-          } else {
-            const data = await response.json();
-            console.log("Workout salvo com sucesso:", data);
-          }
+          );
+          console.log("Workout salvo com sucesso:", response.data);
         } catch (error: any) {
-          console.error("Erro ao salvar workout no backend:", error?.message || error);
+          console.error(
+            "Erro ao salvar workout no backend:",
+            error?.message || error
+          );
         }
       };
 
@@ -1217,10 +1212,10 @@ export function WorkoutModal() {
               <div className="w-6" />
             </div>
             <Progress
-              key={`progress-weight-${progress}-${currentIndex}-${
+              key={`progress-weight-${workoutProgress}-${currentIndex}-${
                 activeWorkout?.exerciseLogs?.length || 0
               }-${activeWorkout?.skippedExercises?.length || 0}`}
-              value={progress}
+              value={workoutProgress}
               className="h-3"
             />
           </div>
@@ -1285,13 +1280,13 @@ export function WorkoutModal() {
                   de {workout.exercises.length}
                 </span>
               </div>
-              <span>{Math.round(progress)}%</span>
+              <span>{Math.round(workoutProgress)}%</span>
             </div>
             <Progress
-              key={`progress-main-${progress}-${
+              key={`progress-main-${workoutProgress}-${
                 activeWorkout?.exerciseLogs?.length || 0
               }`}
-              value={progress}
+              value={workoutProgress}
               className="h-2 sm:h-3"
             />
           </div>

@@ -25,6 +25,7 @@ import type { UserProgress, WorkoutHistory, PersonalRecord } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { getUserInfoFromStorage } from "@/lib/utils/user-info";
 import { useEffect, useState } from "react";
+import { useStudent } from "@/hooks/use-student";
 
 interface WeightHistoryItem {
   date: Date | string;
@@ -66,49 +67,62 @@ export function ProfilePageContent({
   const [actualIsAdmin, setActualIsAdmin] = useState(false);
   const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
   const [newWeight, setNewWeight] = useState<string>("");
-  const [localCurrentWeight, setLocalCurrentWeight] = useState<number | null>(
-    currentWeight ?? null
-  );
-  const [localWeightGain, setLocalWeightGain] = useState<number | null>(
-    weightGain ?? null
-  );
-  const [weightHistoryLocal, setWeightHistoryLocal] =
-    useState<WeightHistoryItem[]>(weightHistory);
+
+  // Usar hook unificado
+  const {
+    progress: storeProgress,
+    weightHistory: storeWeightHistory,
+    weightGain: storeWeightGain,
+    profile: storeProfile,
+    user: storeUser,
+  } = useStudent("progress", "weightHistory", "weightGain", "profile", "user");
+  const { addWeight } = useStudent("actions");
+
+  // Usar dados do store com fallback para props
+  const localCurrentWeight = storeProfile?.weight || currentWeight;
+  const localWeightGain = storeWeightGain ?? weightGain ?? null;
+  const weightHistoryLocal =
+    storeWeightHistory.length > 0 ? storeWeightHistory : weightHistory;
+  const displayProgress = storeProgress || progress;
+
+  // Carregar dados do store ao montar
+  const { loadUser, loadProgress, loadWeightHistory } = useStudent("loaders");
+
+  useEffect(() => {
+    // Carregar dados se não tiver no store
+    if (!storeUser) {
+      loadUser();
+    }
+    if (!storeProgress) {
+      loadProgress();
+    }
+    if (!storeWeightHistory || storeWeightHistory.length === 0) {
+      loadWeightHistory();
+    }
+  }, [
+    storeUser,
+    storeProgress,
+    storeWeightHistory,
+    loadUser,
+    loadProgress,
+    loadWeightHistory,
+  ]);
 
   // Buscar do localStorage primeiro (rápido, sem delay)
   const storageInfo = getUserInfoFromStorage();
 
-  // Buscar dados atualizados da API no cliente (confiável)
+  // Usar dados do store para isAdmin
   useEffect(() => {
-    async function fetchUserInfo() {
-      try {
-        const response = await fetch("/api/auth/session");
-        if (response.ok) {
-          const data = await response.json();
-          const isAdminFromAPI =
-            data.user?.role === "ADMIN" || data.user?.userType === "admin";
-          setActualIsAdmin(isAdminFromAPI);
-          console.log(
-            "[ProfilePageContent] Dados da API:",
-            data.user,
-            "isAdminFromAPI:",
-            isAdminFromAPI
-          );
-        }
-      } catch (error) {
-        console.error("[ProfilePageContent] Erro ao buscar sessão:", error);
-      }
+    if (storeUser) {
+      const isAdminFromStore =
+        storeUser.role === "ADMIN" || storeUser.role === "admin";
+      setActualIsAdmin(isAdminFromStore);
+    } else if (userInfo) {
+      setActualIsAdmin(userInfo.isAdmin);
     }
+  }, [storeUser, userInfo]);
 
-    fetchUserInfo();
-  }, []);
-
-  // Sincronizar valores locais com props
-  useEffect(() => {
-    setLocalCurrentWeight(currentWeight ?? null);
-    setLocalWeightGain(weightGain ?? null);
-    setWeightHistoryLocal(weightHistory);
-  }, [currentWeight, weightGain, weightHistory]);
+  // displayProgress já está definido acima usando hook
 
   // Usar dados da API como fonte principal, localStorage e userInfo como fallback
   const isAdmin =
@@ -130,14 +144,12 @@ export function ProfilePageContent({
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/auth/sign-out", {
-        method: "POST",
-      });
+      // Usar axios client para logout (API → Zustand → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      await apiClient.post("/api/auth/sign-out");
 
-      if (response.ok) {
-        router.push("/auth/login");
-        router.refresh();
-      }
+      router.push("/auth/login");
+      router.refresh();
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
@@ -160,120 +172,15 @@ export function ProfilePageContent({
       return;
     }
 
-    // Atualização otimista - fechar modal e atualizar estado imediatamente
-    const previousWeight = localCurrentWeight;
-    const previousGain = localWeightGain;
-
-    // Calcular ganho/perda otimista comparando com peso de 1 mês atrás
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-    // Encontrar peso de 1 mês atrás no histórico local
-    const sortedHistory = [...weightHistoryLocal].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    const weightOneMonthAgo = sortedHistory.find((entry) => {
-      const entryDate = new Date(entry.date);
-      return entryDate <= oneMonthAgo;
-    });
-
-    // Calcular ganho/perda otimista
-    let optimisticGain: number | null = null;
-    if (weightOneMonthAgo) {
-      optimisticGain = weightValue - weightOneMonthAgo.weight;
-    } else if (
-      sortedHistory.length > 0 &&
-      sortedHistory[sortedHistory.length - 1] !== sortedHistory[0]
-    ) {
-      // Se não há registro de 1 mês atrás, usar o mais antigo disponível
-      const oldestEntry = sortedHistory[sortedHistory.length - 1];
-      optimisticGain = weightValue - oldestEntry.weight;
-    } else if (previousWeight) {
-      // Fallback: comparar com peso anterior
-      optimisticGain = weightValue - previousWeight;
-    }
-
-    // Atualizar estado local imediatamente
-    setLocalCurrentWeight(weightValue);
-    if (optimisticGain !== null) {
-      setLocalWeightGain(optimisticGain);
-    }
-
-    // Adicionar novo peso ao histórico local otimisticamente
-    const newWeightEntry: WeightHistoryItem = {
-      date: new Date(),
-      weight: weightValue,
-    };
-    setWeightHistoryLocal((prev) => [newWeightEntry, ...prev].slice(0, 30));
-
     // Fechar modal imediatamente
     setIsWeightModalOpen(false);
     setNewWeight("");
 
-    // Fazer requisição em background
-    try {
-      const response = await fetch("/api/students/weight", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          weight: weightValue,
-          date: new Date().toISOString(),
-        }),
-      });
+    // Usar action do store (já faz optimistic update e sync)
+    await addWeight(weightValue);
 
-      if (response.ok) {
-        // Buscar histórico atualizado para recalcular weightGain corretamente
-        const historyResponse = await fetch("/api/students/weight?limit=30");
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
-          if (historyData.history && historyData.history.length > 0) {
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-            const sortedHistory = [...historyData.history].sort(
-              (a: any, b: any) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
-            const weightOneMonthAgo = sortedHistory.find((entry: any) => {
-              const entryDate = new Date(entry.date);
-              return entryDate <= oneMonthAgo;
-            });
-
-            if (weightOneMonthAgo) {
-              const gain = weightValue - weightOneMonthAgo.weight;
-              setLocalWeightGain(gain);
-            } else {
-              const oldestEntry = sortedHistory[sortedHistory.length - 1];
-              if (oldestEntry && oldestEntry !== sortedHistory[0]) {
-                const gain = weightValue - oldestEntry.weight;
-                setLocalWeightGain(gain);
-              }
-            }
-          }
-        }
-
-        // Recarregar dados do servidor em background
-        router.refresh();
-      } else {
-        // Reverter estado otimista em caso de erro
-        setLocalCurrentWeight(previousWeight);
-        setLocalWeightGain(previousGain);
-
-        const error = await response.json();
-        alert(error.error || "Erro ao salvar peso. Tente novamente.");
-      }
-    } catch (error) {
-      // Reverter estado otimista em caso de erro
-      setLocalCurrentWeight(previousWeight);
-      setLocalWeightGain(previousGain);
-
-      console.error("Erro ao salvar peso:", error);
-      alert("Erro ao salvar peso. Tente novamente.");
-    }
+    // Recarregar dados do servidor em background
+    router.refresh();
   };
 
   return (
@@ -283,9 +190,9 @@ export function ProfilePageContent({
         username={profileUserInfo?.username || "@usuario"}
         memberSince={profileUserInfo?.memberSince || "Jan 2025"}
         stats={{
-          workouts: progress.workoutsCompleted,
+          workouts: displayProgress.workoutsCompleted,
           friends: 12, // TODO: Implementar contagem de amigos
-          streak: progress.currentStreak,
+          streak: displayProgress.currentStreak,
         }}
         quickStats={[
           {
@@ -333,23 +240,23 @@ export function ProfilePageContent({
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCardLarge
           icon={Flame}
-          value={progress.currentStreak}
+          value={displayProgress.currentStreak}
           label="Dias seguidos"
-          subtitle={`Recorde: ${progress.longestStreak}`}
+          subtitle={`Recorde: ${displayProgress.longestStreak}`}
           iconColor="duo-orange"
         />
         <StatCardLarge
           icon={Zap}
-          value={progress.totalXP}
+          value={displayProgress.totalXP}
           label="XP Total"
-          subtitle={`${progress.xpToNextLevel} até nível ${
-            progress.currentLevel + 1
+          subtitle={`${displayProgress.xpToNextLevel} até nível ${
+            displayProgress.currentLevel + 1
           }`}
           iconColor="duo-yellow"
         />
         <StatCardLarge
           icon={Trophy}
-          value={`#${progress.currentLevel}`}
+          value={`#${displayProgress.currentLevel}`}
           label="Nível atual"
           subtitle={
             ranking !== null ? `Top ${ranking}% global` : "Calculando..."
@@ -358,7 +265,7 @@ export function ProfilePageContent({
         />
         <StatCardLarge
           icon={TrendingUp}
-          value={progress.workoutsCompleted}
+          value={displayProgress.workoutsCompleted}
           label="Treinos"
           subtitle={
             weeklyWorkouts > 0
@@ -409,27 +316,29 @@ export function ProfilePageContent({
         }
       >
         <div className="space-y-3">
-          {weightHistory.map((record, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="text-sm text-duo-gray-dark">
-                {new Date(record.date).toLocaleDateString("pt-BR")}
-              </div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-2 flex-1 rounded-full bg-duo-border"
-                  style={{ width: `${record.weight}px` }}
-                >
+          {weightHistoryLocal.map(
+            (record: WeightHistoryItem, index: number) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="text-sm text-duo-gray-dark">
+                  {new Date(record.date).toLocaleDateString("pt-BR")}
+                </div>
+                <div className="flex items-center gap-3">
                   <div
-                    className="h-full rounded-full bg-duo-green"
-                    style={{ width: `${(record.weight / 85) * 100}%` }}
-                  />
-                </div>
-                <div className="w-16 text-right font-bold text-duo-text">
-                  {record.weight}kg
+                    className="h-2 flex-1 rounded-full bg-duo-border"
+                    style={{ width: `${record.weight}px` }}
+                  >
+                    <div
+                      className="h-full rounded-full bg-duo-green"
+                      style={{ width: `${(record.weight / 85) * 100}%` }}
+                    />
+                  </div>
+                  <div className="w-16 text-right font-bold text-duo-text">
+                    {record.weight}kg
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </SectionCard>
 
@@ -531,7 +440,7 @@ export function ProfilePageContent({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+            className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
             onClick={() => setIsWeightModalOpen(false)}
           >
             <motion.div

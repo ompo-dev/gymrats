@@ -59,7 +59,7 @@ export function FoodSearch({
     selectedMealId ? new Set([selectedMealId]) : new Set()
   );
 
-  // Buscar alimentos do backend
+  // Buscar alimentos do backend usando axios (API → Component)
   useEffect(() => {
     const searchFoods = async () => {
       if (searchQuery.length < 2) {
@@ -70,25 +70,18 @@ export function FoodSearch({
 
       try {
         setIsLoading(true);
-        const response = await fetch(
+        // Usar axios client para buscar alimentos
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{ foods: any[] }>(
           `/api/foods/search?q=${encodeURIComponent(searchQuery)}&limit=20`
         );
-        if (response.ok) {
-          const data = await response.json();
-          setFoods(data.foods || []);
-        } else {
-          // Fallback para mock em caso de erro
-          const filtered = mockFoodDatabase.filter((food) =>
-            food.name.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-          setFoods(filtered);
-        }
+        setFoods(response.data.foods || []);
       } catch (error) {
         console.error("Erro ao buscar alimentos:", error);
         // Fallback para mock
         const filtered = mockFoodDatabase.filter((food) =>
-    food.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+          food.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
         setFoods(filtered);
       } finally {
         setIsLoading(false);
@@ -213,7 +206,7 @@ export function FoodSearch({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+        className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
         onClick={onClose}
       >
         <motion.div

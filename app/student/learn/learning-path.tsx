@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import type { Unit } from "@/lib/types";
+import type { Unit, WorkoutSession } from "@/lib/types";
 import { WorkoutNode } from "../../../components/workout-node";
 import { Lock } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
+import { useStudent } from "@/hooks/use-student";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
@@ -30,57 +31,62 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
   const openWorkout = useWorkoutStore((state) => state.openWorkout);
   const openWorkoutId = useWorkoutStore((state) => state.openWorkoutId);
 
+  // Usar hook unificado para units
+  const { units: storeUnits } = useStudent("units");
+  const { completeWorkout } = useStudent("actions");
+
   // Estado para forçar re-render quando units mudarem
   const [unitsKey, setUnitsKey] = useState(0);
   const [reloadedUnits, setReloadedUnits] = useState<Unit[] | null>(null);
-  const currentUnits = useMemo(() => reloadedUnits || units, [unitsKey, reloadedUnits, units]);
+
+  // Usar units do store com fallback para props
+  const currentUnits = useMemo(
+    () =>
+      reloadedUnits ||
+      (storeUnits && storeUnits.length > 0 ? storeUnits : units),
+    [unitsKey, reloadedUnits, storeUnits, units]
+  );
 
   // Cachear units para uso no modal
   useEffect(() => {
     setCachedUnits(currentUnits);
   }, [currentUnits]);
 
+  // Carregar units do store ao montar
+  const { loadWorkouts } = useStudent("loaders");
+
+  useEffect(() => {
+    // Carregar units se não tiver no store
+    if (!storeUnits || storeUnits.length === 0) {
+      loadWorkouts();
+    }
+  }, [storeUnits, loadWorkouts]);
+
   // Recarregar units quando um workout é completado
   useEffect(() => {
-    const handleWorkoutCompleted = async (event: CustomEvent) => {
-      const { workoutId } = event.detail || {};
-      
+    const handleWorkoutCompleted = async (event: Event) => {
+      const customEvent = event as CustomEvent<{ workoutId?: string }>;
+      const { workoutId } = customEvent.detail || {};
+
       if (!workoutId) return;
 
       // Marcar como completo no store local imediatamente (optimistic update)
       const store = useWorkoutStore.getState();
       store.completeWorkout(workoutId);
 
-      // Recarregar units via API para obter dados atualizados do servidor
-      try {
-        const response = await fetch("/api/workouts/units");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.units && Array.isArray(data.units)) {
-            setReloadedUnits(data.units);
-            setCachedUnits(data.units);
-            setUnitsKey(prev => prev + 1);
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao recarregar units:", error);
-        // Em caso de erro, apenas recarregar a página
-        router.refresh();
-      }
+      // Recarregar units do store unificado (que sincroniza com API via axios)
+      await loadWorkouts();
+
+      // Atualizar estado local para forçar re-render
+      setUnitsKey((prev) => prev + 1);
     };
 
-    window.addEventListener(
-      "workoutCompleted",
-      handleWorkoutCompleted as EventListener
-    );
+    window.addEventListener("workoutCompleted", handleWorkoutCompleted);
 
     return () => {
-      window.removeEventListener(
-        "workoutCompleted",
-        handleWorkoutCompleted as EventListener
-      );
+      window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
     };
-  }, [router]);
+  }, [router, loadWorkouts]);
 
   const handleWorkoutClick = (
     workoutId: string,
@@ -88,15 +94,19 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
     workoutType?: string
   ) => {
     // Debug: verificar se está bloqueado
-    console.log("[DEBUG] handleWorkoutClick:", { workoutId, locked, workoutType });
-    
+    console.log("[DEBUG] handleWorkoutClick:", {
+      workoutId,
+      locked,
+      workoutType,
+    });
+
     if (locked) {
       console.log("[DEBUG] Workout está bloqueado, não abrindo modal");
       return;
     }
 
     console.log("[DEBUG] Abrindo workout:", workoutId);
-    
+
     // Para qualquer tipo de treino (cardio ou strength), abre o modal
     // O modal correto será renderizado baseado no tipo
     if (openWorkoutId === workoutId) {
@@ -123,7 +133,7 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
 
   return (
     <div className="relative mx-auto max-w-2xl py-8">
-      {currentUnits.map((unit, unitIndex) => {
+      {currentUnits.map((unit: Unit, unitIndex: number) => {
         return (
           <motion.div
             key={unit.id}
@@ -143,91 +153,99 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
 
             {/* Workouts Path - Sem linhas de conexão */}
             <StaggerContainer className="relative flex flex-col items-center space-y-6">
-              {unit.workouts.map((workout, workoutIndex) => {
-                const isFirstInUnit = workoutIndex === 0;
-                // Pegar todos os workouts anteriores:
-                // 1. Todos os workouts de unidades anteriores
-                // 2. Workouts anteriores na mesma unidade
-                // IMPORTANTE: Usar currentUnits (que inclui reloadedUnits) em vez de units
-                const previousUnitsWorkouts = currentUnits
-                  .slice(0, unitIndex)
-                  .flatMap((u) => u.workouts);
-                const previousWorkoutsInSameUnit = unit.workouts.slice(
-                  0,
-                  workoutIndex
-                );
-                const previousWorkouts = [
-                  ...previousUnitsWorkouts,
-                  ...previousWorkoutsInSameUnit,
-                ];
+              {unit.workouts.map(
+                (workout: WorkoutSession, workoutIndex: number) => {
+                  const isFirstInUnit = workoutIndex === 0;
+                  // Pegar todos os workouts anteriores:
+                  // 1. Todos os workouts de unidades anteriores
+                  // 2. Workouts anteriores na mesma unidade
+                  // IMPORTANTE: Usar currentUnits (que inclui reloadedUnits) em vez de units
+                  const previousUnitsWorkouts = currentUnits
+                    .slice(0, unitIndex)
+                    .flatMap((u: Unit) => u.workouts);
+                  const previousWorkoutsInSameUnit = unit.workouts.slice(
+                    0,
+                    workoutIndex
+                  );
+                  const previousWorkouts = [
+                    ...previousUnitsWorkouts,
+                    ...previousWorkoutsInSameUnit,
+                  ];
 
-                const positions = [
-                  "center",
-                  "left",
-                  "right",
-                  "center",
-                  "left",
-                  "right",
-                ];
-                const position = positions[workoutIndex % positions.length] as
-                  | "left"
-                  | "center"
-                  | "right";
+                  const positions = [
+                    "center",
+                    "left",
+                    "right",
+                    "center",
+                    "left",
+                    "right",
+                  ];
+                  const position = positions[
+                    workoutIndex % positions.length
+                  ] as "left" | "center" | "right";
 
-                return (
-                  <StaggerItem key={workout.id} className="relative w-full">
-                    <WorkoutNode
-                      workout={workout}
-                      position={position}
-                      onClick={() => {
-                        // Calcular isLocked dinamicamente no momento do clique
-                        // IMPORTANTE: Usar a mesma lógica otimista do WorkoutNode
-                        const store = useWorkoutStore.getState();
-                        
-                        const allPreviousInUnitCompleted =
-                          previousWorkoutsInSameUnit.length === 0
-                            ? true
-                            : previousWorkoutsInSameUnit.every((prevWorkout) =>
-                                store.isWorkoutCompleted(prevWorkout.id)
-                              );
+                  return (
+                    <StaggerItem key={workout.id} className="relative w-full">
+                      <WorkoutNode
+                        workout={workout}
+                        position={position}
+                        onClick={() => {
+                          // Calcular isLocked dinamicamente no momento do clique
+                          // IMPORTANTE: Usar a mesma lógica otimista do WorkoutNode
+                          const store = useWorkoutStore.getState();
 
-                        const allPreviousUnitsCompleted =
-                          previousUnitsWorkouts.length === 0
-                            ? true
-                            : previousUnitsWorkouts.every((prevWorkout) =>
-                                store.isWorkoutCompleted(prevWorkout.id)
-                              );
+                          const allPreviousInUnitCompleted =
+                            previousWorkoutsInSameUnit.length === 0
+                              ? true
+                              : previousWorkoutsInSameUnit.every(
+                                  (prevWorkout: WorkoutSession) =>
+                                    store.isWorkoutCompleted(prevWorkout.id)
+                                );
 
-                        // Priorizar estado otimista do store sobre workout.locked do backend
-                        const allPreviousCompleted = isFirstInUnit
-                          ? (previousUnitsWorkouts.length === 0 || allPreviousUnitsCompleted)
-                          : allPreviousInUnitCompleted;
+                          const allPreviousUnitsCompleted =
+                            previousUnitsWorkouts.length === 0
+                              ? true
+                              : previousUnitsWorkouts.every(
+                                  (prevWorkout: WorkoutSession) =>
+                                    store.isWorkoutCompleted(prevWorkout.id)
+                                );
 
-                        // Se todos os workouts anteriores foram completados no store, desbloquear
-                        // independente do workout.locked do backend
-                        const shouldBeLocked = allPreviousCompleted
-                          ? false // Se todos anteriores estão completos no store, desbloquear
-                          : workout.locked || // Caso contrário, usar locked do backend
-                            (!isFirstInUnit && !allPreviousInUnitCompleted) ||
-                            (isFirstInUnit &&
-                              previousUnitsWorkouts.length > 0 &&
-                              !allPreviousUnitsCompleted);
+                          // Priorizar estado otimista do store sobre workout.locked do backend
+                          const allPreviousCompleted = isFirstInUnit
+                            ? previousUnitsWorkouts.length === 0 ||
+                              allPreviousUnitsCompleted
+                            : allPreviousInUnitCompleted;
 
-                        // Se é o primeiro workout da primeira unit, nunca deve estar locked
-                        const isLocked =
-                          unitIndex === 0 && workoutIndex === 0
-                            ? false
-                            : shouldBeLocked;
+                          // Se todos os workouts anteriores foram completados no store, desbloquear
+                          // independente do workout.locked do backend
+                          const shouldBeLocked = allPreviousCompleted
+                            ? false // Se todos anteriores estão completos no store, desbloquear
+                            : workout.locked || // Caso contrário, usar locked do backend
+                              (!isFirstInUnit && !allPreviousInUnitCompleted) ||
+                              (isFirstInUnit &&
+                                previousUnitsWorkouts.length > 0 &&
+                                !allPreviousUnitsCompleted);
 
-                        handleWorkoutClick(workout.id, isLocked, workout.type);
-                      }}
-                      isFirst={isFirstInUnit}
-                      previousWorkouts={previousWorkoutsInSameUnit}
-                      previousUnitsWorkouts={previousUnitsWorkouts}
-                    />
-                  </StaggerItem>
-                );
-              })}
+                          // Se é o primeiro workout da primeira unit, nunca deve estar locked
+                          const isLocked =
+                            unitIndex === 0 && workoutIndex === 0
+                              ? false
+                              : shouldBeLocked;
+
+                          handleWorkoutClick(
+                            workout.id,
+                            isLocked,
+                            workout.type
+                          );
+                        }}
+                        isFirst={isFirstInUnit}
+                        previousWorkouts={previousWorkoutsInSameUnit}
+                        previousUnitsWorkouts={previousUnitsWorkouts}
+                      />
+                    </StaggerItem>
+                  );
+                }
+              )}
             </StaggerContainer>
           </motion.div>
         );

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { AIWorkoutGenerator } from "../../../components/ai-workout-generator";
-import { AIDietGenerator } from "../../../components/ai-diet-generator";
+import { AIWorkoutGenerator } from "@/components/organisms/generators/ai-workout-generator";
+import { AIDietGenerator } from "@/components/organisms/generators/ai-diet-generator";
 import { Dumbbell, UtensilsCrossed, Sparkles } from "lucide-react";
-import { SectionCard } from "../../../components/ui/section-card";
-import { BackButton } from "@/components/back-button";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { BackButton } from "@/components/organisms/navigation/back-button";
 
 export function PersonalizationPage() {
   const [activeView, setActiveView] = useState<"menu" | "workout" | "diet">(

@@ -4,15 +4,15 @@ import { useState, useEffect, useMemo } from "react";
 import { muscleDatabase, exerciseDatabase } from "@/lib/educational-data";
 import type { MuscleInfo, ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { Book } from "lucide-react";
-import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
+import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { SectionCard } from "@/components/molecules/cards/section-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { MuscleDetail } from "./components/muscle/muscle-detail";
-import { ExerciseDetail } from "./components/muscle/exercise-detail";
-import { MuscleList } from "./components/muscle/muscle-list";
-import { ExerciseList } from "./components/muscle/exercise-list";
-import { SearchBar } from "./components/muscle/search-bar";
+import { MuscleDetail } from "@/components/organisms/education/components/muscle/muscle-detail";
+import { ExerciseDetail } from "@/components/organisms/education/components/muscle/exercise-detail";
+import { MuscleList } from "@/components/organisms/education/components/muscle/muscle-list";
+import { ExerciseList } from "@/components/organisms/education/components/muscle/exercise-list";
+import { SearchBar } from "@/components/organisms/education/components/muscle/search-bar";
 
 interface MuscleExplorerProps {
   muscleId?: string | null;

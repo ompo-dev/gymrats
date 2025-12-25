@@ -80,7 +80,12 @@ export async function submitOnboarding(formData: OnboardingData) {
       update: profileData,
     });
 
-    if (!student.progress) {
+    // Verificar se já existe progresso, se não, criar
+    const existingProgress = await db.studentProgress.findUnique({
+      where: { studentId: student.id },
+    });
+
+    if (!existingProgress) {
       await db.studentProgress.create({
         data: {
           studentId: student.id,

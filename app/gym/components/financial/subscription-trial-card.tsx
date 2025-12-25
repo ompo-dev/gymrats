@@ -1,8 +1,8 @@
 "use client";
 
 import { Gift } from "lucide-react";
-import { DuoCard } from "@/components/ui/duo-card";
-import { Button } from "@/components/ui/button";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { Button } from "@/components/atoms/buttons/button";
 
 interface SubscriptionTrialCardProps {
   onStartTrial: () => Promise<void>;

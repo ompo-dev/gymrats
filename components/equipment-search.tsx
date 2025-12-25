@@ -99,7 +99,7 @@ export function EquipmentSearch({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 sm:items-center"
+        className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
         onClick={onClose}
       >
         <motion.div

@@ -15,7 +15,7 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
-import { RelativeTime } from "@/components/relative-time";
+import { RelativeTime } from "@/components/molecules/relative-time";
 
 interface GymDashboardPageProps {
   profile: GymProfile;

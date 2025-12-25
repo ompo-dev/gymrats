@@ -36,36 +36,62 @@ interface GymSettingsPageProps {
   userInfo?: { isAdmin: boolean; role: string | null };
 }
 
-export function GymSettingsPage({ profile, userInfo = { isAdmin: false, role: null } }: GymSettingsPageProps) {
+export function GymSettingsPage({
+  profile,
+  userInfo = { isAdmin: false, role: null },
+}: GymSettingsPageProps) {
   const router = useRouter();
   const [actualIsAdmin, setActualIsAdmin] = useState(false);
-  
+
   // Buscar do localStorage primeiro (rápido, sem delay)
   const storageInfo = getUserInfoFromStorage();
-  
+
   // Buscar dados atualizados da API no cliente (confiável)
   useEffect(() => {
     async function fetchUserInfo() {
       try {
-        const response = await fetch("/api/auth/session");
-        if (response.ok) {
-          const data = await response.json();
-          const isAdminFromAPI = data.user?.role === "ADMIN" || data.user?.userType === "admin";
+        // Usar axios client (API → Component)
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{
+          user?: { role?: string; userType?: string };
+        }>("/api/auth/session");
+        if (response.data.user) {
+          const isAdminFromAPI =
+            response.data.user.role === "ADMIN" ||
+            response.data.user.userType === "admin";
           setActualIsAdmin(isAdminFromAPI);
-          console.log("[GymSettingsPage] Dados da API:", data.user, "isAdminFromAPI:", isAdminFromAPI);
+          console.log(
+            "[GymSettingsPage] Dados da API:",
+            response.data.user,
+            "isAdminFromAPI:",
+            isAdminFromAPI
+          );
         }
       } catch (error) {
         console.error("[GymSettingsPage] Erro ao buscar sessão:", error);
       }
     }
-    
+
     fetchUserInfo();
   }, []);
-  
+
   // Usar dados da API como fonte principal, localStorage e userInfo como fallback
-  const isAdmin = actualIsAdmin || storageInfo.isAdmin || userInfo?.role === "ADMIN" || userInfo?.isAdmin;
-  
-  console.log("[GymSettingsPage] actualIsAdmin:", actualIsAdmin, "storageInfo.isAdmin:", storageInfo.isAdmin, "userInfo?.role:", userInfo?.role, "isAdmin final:", isAdmin);
+  const isAdmin =
+    actualIsAdmin ||
+    storageInfo.isAdmin ||
+    userInfo?.role === "ADMIN" ||
+    userInfo?.isAdmin;
+
+  console.log(
+    "[GymSettingsPage] actualIsAdmin:",
+    actualIsAdmin,
+    "storageInfo.isAdmin:",
+    storageInfo.isAdmin,
+    "userInfo?.role:",
+    userInfo?.role,
+    "isAdmin final:",
+    isAdmin
+  );
   const operatingHours = [
     { day: "Segunda a Sexta", hours: "06:00 - 22:00" },
     { day: "Sábado", hours: "08:00 - 20:00" },
@@ -74,14 +100,12 @@ export function GymSettingsPage({ profile, userInfo = { isAdmin: false, role: nu
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/auth/sign-out", {
-        method: "POST",
-      });
-      
-      if (response.ok) {
-        router.push("/auth/login");
-        router.refresh();
-      }
+      // Usar axios client (API → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      await apiClient.post("/api/auth/sign-out");
+
+      router.push("/auth/login");
+      router.refresh();
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
@@ -304,7 +328,7 @@ export function GymSettingsPage({ profile, userInfo = { isAdmin: false, role: nu
       </SlideIn>
 
       <SlideIn delay={0.5}>
-        <SectionCard title="Conta" icon={Shield} variant="red">
+        <SectionCard title="Conta" icon={Shield}>
           <div className="space-y-3">
             {/* Verificar todas as fontes possíveis para garantir que funcione */}
             {(isAdmin || userInfo?.role === "ADMIN") && (
@@ -340,9 +364,7 @@ export function GymSettingsPage({ profile, userInfo = { isAdmin: false, role: nu
                   <LogOut className="h-5 w-5 text-red-600" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-bold text-duo-text">
-                    Sair
-                  </div>
+                  <div className="text-sm font-bold text-duo-text">Sair</div>
                   <div className="text-xs text-duo-gray-dark">
                     Fazer logout da conta
                   </div>

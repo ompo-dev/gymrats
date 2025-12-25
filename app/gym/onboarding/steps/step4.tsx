@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { StepCard } from "@/components/ui/step-card";
-import { EquipmentSearch } from "@/components/equipment-search";
+import { StepCard } from "@/components/molecules/cards/step-card";
+import { EquipmentSearch } from "@/components/organisms/modals/equipment-search";
 import { Plus, Minus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/atoms/buttons/button";
 import type { StepProps } from "./types";
 import type { EquipmentItem } from "@/lib/equipment-database";
 

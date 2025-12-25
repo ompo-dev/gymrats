@@ -1,9 +1,9 @@
 "use client";
 
 import { Crown, Gift, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
+import { Button } from "@/components/atoms/buttons/button";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { SectionCard } from "@/components/molecules/cards/section-card";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusCardProps {

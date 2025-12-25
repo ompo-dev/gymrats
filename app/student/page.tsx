@@ -19,9 +19,6 @@ export default async function StudentPage() {
       getCurrentUserInfo(),
     ]);
 
-  // Debug: verificar o que está sendo retornado do servidor
-  console.log("[StudentPage] userInfo do servidor:", userInfo, "JSON:", JSON.stringify(userInfo));
-  
   return (
     <StudentHome
       units={units}

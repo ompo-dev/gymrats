@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import { StepCard } from "@/components/ui/step-card";
-import { FormInput } from "@/components/ui/form-input";
+import { StepCard } from "@/components/molecules/cards/step-card";
+import { FormInput } from "@/components/molecules/forms/form-input";
 import type { StepProps } from "./types";
 
 export function Step3({ formData, setFormData }: StepProps) {

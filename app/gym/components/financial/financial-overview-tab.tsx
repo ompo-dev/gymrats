@@ -8,9 +8,9 @@ import {
   CreditCard,
   AlertCircle,
 } from "lucide-react";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
-import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
+import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { SectionCard } from "@/components/molecules/cards/section-card";
 
 interface FinancialOverviewTabProps {
   financialSummary: FinancialSummary;

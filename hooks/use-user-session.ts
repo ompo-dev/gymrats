@@ -20,11 +20,17 @@ export function useUserSession() {
   useEffect(() => {
     async function fetchSession() {
       try {
-        const response = await fetch("/api/auth/session");
-        if (response.ok) {
-          const data = await response.json();
-          setUserSession(data.user);
-          setIsAdmin(data.user?.role === "ADMIN" || data.user?.userType === "admin");
+        // Usar axios client (API → Component)
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{ user: UserSession | null }>(
+          "/api/auth/session"
+        );
+        if (response.data.user) {
+          setUserSession(response.data.user);
+          setIsAdmin(
+            response.data.user?.role === "ADMIN" ||
+              response.data.user?.userType === "admin"
+          );
         } else {
           setUserSession(null);
           setIsAdmin(false);

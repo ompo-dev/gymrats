@@ -18,7 +18,7 @@ import {
   QrCode,
 } from "lucide-react";
 import Link from "next/link";
-import { RelativeTime } from "@/components/relative-time";
+import { RelativeTime } from "@/components/molecules/relative-time";
 
 interface EquipmentDetailPageProps {
   equipment: Equipment | null;

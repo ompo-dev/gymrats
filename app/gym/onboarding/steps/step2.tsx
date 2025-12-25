@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
-import { StepCard } from "@/components/ui/step-card";
-import { FormInput } from "@/components/ui/form-input";
+import { StepCard } from "@/components/molecules/cards/step-card";
+import { FormInput } from "@/components/molecules/forms/form-input";
 import type { StepProps } from "./types";
 
 interface ViaCepResponse {

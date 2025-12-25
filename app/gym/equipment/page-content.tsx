@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { RelativeTime } from "@/components/relative-time";
+import { RelativeTime } from "@/components/molecules/relative-time";
 
 interface GymEquipmentPageProps {
   equipment: Equipment[];

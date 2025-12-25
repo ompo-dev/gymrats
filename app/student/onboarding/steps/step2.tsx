@@ -1,6 +1,6 @@
 "use client";
 
-import { StepCard } from "@/components/ui/step-card";
+import { StepCard } from "@/components/molecules/cards/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { RangeSlider } from "@/components/ui/range-slider";
 import type { StepProps } from "./types";

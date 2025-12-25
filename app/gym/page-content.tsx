@@ -9,7 +9,7 @@ import { GymFinancialPage } from "./components/gym-financial";
 import { GymStatsPage } from "./components/gym-stats";
 import { GymSettingsPage } from "./components/gym-settings";
 import { GymGamificationPage } from "./components/gym-gamification";
-import { GymMoreMenu } from "@/components/gym-more-menu";
+import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
 import type {
   GymProfile,
   GymStats,

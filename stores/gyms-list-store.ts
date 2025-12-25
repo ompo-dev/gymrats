@@ -65,13 +65,10 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
   setActiveGymId: async (gymId: string) => {
     set({ activeGymId: gymId });
 
-    // Atualizar no backend em background
+    // Atualizar no backend em background usando axios (API → Zustand → Component)
     try {
-      await fetch("/api/gyms/set-active", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gymId }),
-      });
+      const { apiClient } = await import("@/lib/api/client");
+      await apiClient.post("/api/gyms/set-active", { gymId });
     } catch (error) {
       console.error("Erro ao salvar academia ativa:", error);
     }
@@ -82,10 +79,17 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
     try {
       set({ isLoading: true });
 
-      const response = await fetch("/api/gyms/list", {
-        cache: "no-store",
+      // Usar axios client (API → Zustand → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.get<{
+        gyms: GymData[];
+        canCreateMultipleGyms?: boolean;
+      }>("/api/gyms/list", {
+        headers: {
+          "Cache-Control": "no-store",
+        },
       });
-      const data = await response.json();
+      const data = response.data;
 
       if (data.gyms && Array.isArray(data.gyms)) {
         // Converter array para Record<id, GymData>

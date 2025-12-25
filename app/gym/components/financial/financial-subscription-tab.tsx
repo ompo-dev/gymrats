@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
-import { SubscriptionSection } from "@/components/subscription-section";
+import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 

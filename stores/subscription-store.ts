@@ -1,29 +1,48 @@
+/**
+ * Subscription Store (Stub para Gym)
+ * 
+ * Este store mantém apenas a funcionalidade de subscription para GYM.
+ * Para STUDENT, use useStudent('subscription') do hook unificado.
+ * 
+ * @deprecated Para student, use useStudent('subscription') from "@/hooks/use-student"
+ */
+
 import { create } from "zustand";
-import type { SubscriptionData } from "@/hooks/use-subscription";
-import type { GymSubscriptionData } from "@/hooks/use-subscription-unified";
+
+interface GymSubscription {
+  id: string;
+  plan: string;
+  status: string;
+  basePrice: number;
+  pricePerStudent: number;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+  canceledAt: Date | null;
+  trialStart: Date | null;
+  trialEnd: Date | null;
+  isTrial: boolean;
+  daysRemaining: number | null;
+  activeStudents: number;
+  totalAmount: number;
+  billingPeriod?: "monthly" | "annual";
+}
 
 interface SubscriptionState {
-  subscription: SubscriptionData | null;
-  gymSubscription: GymSubscriptionData | null;
-  setSubscription: (subscription: SubscriptionData | null) => void;
-  setGymSubscription: (subscription: GymSubscriptionData | null) => void;
-  updateSubscription: (updates: Partial<SubscriptionData>) => void;
-  clearSubscription: () => void;
-  clearGymSubscription: () => void;
+  // Gym subscription (mantido para compatibilidade)
+  gymSubscription: GymSubscription | null;
+  setGymSubscription: (subscription: GymSubscription | null) => void;
+  
+  // Student subscription (DEPRECATED - usar useStudent('subscription'))
+  subscription: any | null;
+  setSubscription: (subscription: any | null) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set) => ({
-  subscription: null,
   gymSubscription: null,
-  setSubscription: (subscription) => set({ subscription }),
   setGymSubscription: (subscription) => set({ gymSubscription: subscription }),
-  updateSubscription: (updates) =>
-    set((state) => ({
-      subscription: state.subscription
-        ? { ...state.subscription, ...updates }
-        : null,
-    })),
-  clearSubscription: () => set({ subscription: null }),
-  clearGymSubscription: () => set({ gymSubscription: null }),
+  
+  subscription: null,
+  setSubscription: (subscription) => set({ subscription }),
 }));
 

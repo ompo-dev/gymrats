@@ -53,16 +53,15 @@ export function AcademiasPageContent() {
     setCreateError("");
 
     try {
-      const response = await fetch("/api/gyms/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      // Usar axios client (API → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.post<{ error?: string }>(
+        "/api/gyms/create",
+        formData
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erro ao criar academia");
+      if (response.data.error) {
+        throw new Error(response.data.error || "Erro ao criar academia");
       }
 
       // Limpar formulário

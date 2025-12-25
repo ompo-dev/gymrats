@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { StepCard } from "@/components/ui/step-card";
+import { StepCard } from "@/components/molecules/cards/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { FormInput } from "@/components/ui/form-input";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";

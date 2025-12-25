@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { mockUnits } from "@/lib/mock-data";
 import { mockGymLocations } from "@/lib/gym-mock-data";
 import { mockUserProgress } from "@/lib/mock-data";
+import type { MuscleGroup } from "@/lib/types";
 
 export async function getCurrentUserInfo() {
   try {
@@ -339,7 +340,7 @@ export async function getStudentUnits() {
           title: workout.title,
           description: workout.description || "",
           type: workout.type as "strength" | "cardio" | "flexibility" | "rest",
-          muscleGroup: workout.muscleGroup,
+          muscleGroup: workout.muscleGroup as MuscleGroup,
           difficulty: workout.difficulty as
             | "iniciante"
             | "intermediario"
@@ -494,10 +495,20 @@ export async function getGymLocations() {
         },
         rating: gym.rating || 0,
         totalReviews: gym.totalReviews || 0,
-        plans: plansByType,
+        plans: {
+          daily: plansByType.daily ?? 0,
+          weekly: plansByType.weekly ?? 0,
+          monthly: plansByType.monthly ?? 0,
+        },
         amenities: amenities,
         openNow: openNow,
-        openingHours: openingHours || undefined,
+        openingHours: openingHours ? {
+          open: openingHours.open,
+          close: openingHours.close,
+        } : {
+          open: "06:00",
+          close: "22:00",
+        },
         photos: photos.length > 0 ? photos : undefined,
         isPartner: (gym as any).isPartner || false, // Type assertion temporário até migration ser aplicada
       };

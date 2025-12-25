@@ -5,11 +5,11 @@ import { Analytics } from "@vercel/analytics/next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Suspense } from "react";
 import { PWAProtection } from "./pwa-protection";
-import { PerformanceOptimizer } from "../components/performance-optimizer";
-import { QueryProvider } from "../components/providers/query-provider";
-import { AppUpdatingScreenWrapper } from "../components/app-updating-screen-wrapper";
-import { PWAUpdateBanner } from "../components/pwa-update-banner";
-import { ErrorBoundary } from "../components/error-boundary";
+import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { AppUpdatingScreenWrapper } from "@/components/organisms/pwa/app-updating-screen-wrapper";
+import { PWAUpdateBanner } from "@/components/organisms/pwa/pwa-update-banner";
+import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import "./globals.css";
 
 const dmSans = DM_Sans({

@@ -2,9 +2,9 @@
 
 import type { Expense } from "@/lib/types";
 import { Receipt, Plus } from "lucide-react";
-import { SectionCard } from "@/components/ui/section-card";
-import { DuoCard } from "@/components/ui/duo-card";
-import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { Button } from "@/components/atoms/buttons/button";
 
 interface FinancialExpensesTabProps {
   expenses: Expense[];

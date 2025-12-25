@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppLayout, TabConfig } from "@/components/app-layout";
-import { WorkoutModal } from "@/components/workout-modal";
-import { LoadingScreen } from "@/components/loading-screen";
+import { AppLayout, TabConfig } from "@/components/templates/layouts/app-layout";
+import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
+import { LoadingScreen } from "@/components/organisms/loading-screen";
 import {
   Home,
   Dumbbell,

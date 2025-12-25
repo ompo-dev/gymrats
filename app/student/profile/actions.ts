@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/utils/session";
 import { db } from "@/lib/db";
-import type { UserProgress } from "@/lib/types";
+import type { UserProgress, MuscleGroup } from "@/lib/types";
 import {
   mockUserProgress,
   mockWorkoutHistory,
@@ -148,10 +148,16 @@ export async function getStudentProfileData() {
       }
 
       // Parse bodyPartsFatigued
-      let bodyPartsFatigued: string[] = [];
+      let bodyPartsFatigued: MuscleGroup[] = [];
       if (wh.bodyPartsFatigued) {
         try {
-          bodyPartsFatigued = JSON.parse(wh.bodyPartsFatigued);
+          const parsed = JSON.parse(wh.bodyPartsFatigued);
+          if (Array.isArray(parsed)) {
+            bodyPartsFatigued = parsed.filter((item): item is MuscleGroup => 
+              typeof item === "string" && 
+              ["peito", "costas", "pernas", "ombros", "bracos", "core", "gluteos", "cardio", "funcional"].includes(item)
+            );
+          }
         } catch (e) {
           // Ignorar erro de parse
         }
@@ -180,7 +186,9 @@ export async function getStudentProfileData() {
             sets: sets,
             notes: el.notes || undefined,
             formCheckScore: el.formCheckScore || undefined,
-            difficulty: el.difficulty || undefined,
+            difficulty: (el.difficulty && ["muito-facil", "facil", "ideal", "dificil", "muito-dificil"].includes(el.difficulty))
+              ? (el.difficulty as "muito-facil" | "facil" | "ideal" | "dificil" | "muito-dificil")
+              : "ideal",
           };
         }),
         overallFeedback:
@@ -333,7 +341,7 @@ export async function getStudentProfileData() {
 
     return {
       progress: userProgress,
-      workoutHistory: formattedWorkoutHistory.slice(0, 3),
+      workoutHistory: formattedWorkoutHistory.slice(0, 3) as any,
       personalRecords: formattedPersonalRecords,
       weightHistory: formattedWeightHistory,
       userInfo: {

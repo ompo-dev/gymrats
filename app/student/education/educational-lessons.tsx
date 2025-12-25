@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { educationalLessons } from "@/lib/educational-data";
 import type { EducationalLesson } from "@/lib/types";
 import { FadeIn } from "@/components/animations/fade-in";
-import { LessonQuiz } from "./components/lesson-quiz";
-import { LessonDetail } from "./components/lesson-detail";
-import { LessonList } from "./components/lesson-list";
-import { LessonFilters } from "./components/lesson-filters";
+import { LessonQuiz } from "@/components/organisms/education/components/lesson-quiz";
+import { LessonDetail } from "@/components/organisms/education/components/lesson-detail";
+import { LessonList } from "@/components/organisms/education/components/lesson-list";
+import { LessonFilters } from "@/components/organisms/education/components/lesson-filters";
 import {
   useEducationCategories,
   useCategoryHelpers,

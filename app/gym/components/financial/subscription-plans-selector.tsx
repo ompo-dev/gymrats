@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Sparkles, CheckCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SectionCard } from "@/components/ui/section-card";
-import { DuoCard } from "@/components/ui/duo-card";
+import { Button } from "@/components/atoms/buttons/button";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionPlansSelectorProps {

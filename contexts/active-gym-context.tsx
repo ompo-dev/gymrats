@@ -43,10 +43,17 @@ export function ActiveGymProvider({ children }: { children: React.ReactNode }) {
   const refreshGyms = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/gyms/list", {
-        cache: "no-store",
+      // Usar axios client (API → Zustand → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.get<{
+        gyms: GymInfo[];
+        canCreateMultipleGyms?: boolean;
+      }>("/api/gyms/list", {
+        headers: {
+          "Cache-Control": "no-store",
+        },
       });
-      const data = await response.json();
+      const data = response.data;
 
       if (data.gyms) {
         setGyms(data.gyms);
@@ -80,16 +87,9 @@ export function ActiveGymProvider({ children }: { children: React.ReactNode }) {
   // Função para alterar academia ativa
   const setActiveGymId = async (gymId: string) => {
     try {
-      // Atualizar no backend
-      const response = await fetch("/api/gyms/set-active", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gymId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao alterar academia ativa");
-      }
+      // Atualizar no backend usando axios (API → Zustand → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      await apiClient.post("/api/gyms/set-active", { gymId });
 
       // Atualizar estado local
       setActiveGymIdState(gymId);

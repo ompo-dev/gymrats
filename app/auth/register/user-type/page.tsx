@@ -17,19 +17,12 @@ export default function UserTypePage() {
 
   const checkStudentProfile = async () => {
     try {
-      const token = localStorage.getItem("auth_token");
-      if (!token) return false;
-
-      const response = await fetch("/api/students/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      return data.hasProfile === true;
+      // Usar axios client (API → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.get<{ hasProfile: boolean }>(
+        "/api/students/profile"
+      );
+      return response.data.hasProfile === true;
     } catch (error) {
       console.error("Erro ao verificar perfil:", error);
       return false;
@@ -38,19 +31,12 @@ export default function UserTypePage() {
 
   const checkGymProfile = async () => {
     try {
-      const token = localStorage.getItem("auth_token");
-      if (!token) return false;
-
-      const response = await fetch("/api/gyms/profile", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) return false;
-
-      const data = await response.json();
-      return data.hasProfile === true;
+      // Usar axios client (API → Component)
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.get<{ hasProfile: boolean }>(
+        "/api/gyms/profile"
+      );
+      return response.data.hasProfile === true;
     } catch (error) {
       console.error("Erro ao verificar perfil:", error);
       return false;
@@ -66,21 +52,19 @@ export default function UserTypePage() {
       const currentUserId = userId || localStorage.getItem("userId");
 
       if (currentUserId) {
-        const response = await fetch("/api/users/update-role", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        // Usar axios client (API → Component)
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.post<{ error?: string }>(
+          "/api/users/update-role",
+          {
             userId: currentUserId,
             userType: type,
-          }),
-        });
+          }
+        );
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (response.data.error) {
           throw new Error(
-            errorData.error || "Erro ao atualizar tipo de usuário"
+            response.data.error || "Erro ao atualizar tipo de usuário"
           );
         }
       }
