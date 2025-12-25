@@ -180,33 +180,33 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
                     {selectedGym?.id === gym.id && (
                       <div className="mt-4 space-y-4 border-t-2 border-duo-border pt-4">
                         {gym.openingHours && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-duo-blue" />
-                            <span className="font-bold text-duo-gray-dark">
-                              {gym.openingHours.open === "24h"
-                                ? "Aberto 24 horas"
-                                : `${gym.openingHours.open} - ${gym.openingHours.close}`}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-duo-blue" />
+                          <span className="font-bold text-duo-gray-dark">
+                            {gym.openingHours.open === "24h"
+                              ? "Aberto 24 horas"
+                              : `${gym.openingHours.open} - ${gym.openingHours.close}`}
+                          </span>
+                        </div>
                         )}
 
                         {gym.amenities && gym.amenities.length > 0 && (
-                          <div>
-                            <p className="mb-2 text-xs font-bold text-duo-gray-dark">
-                              Comodidades:
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {gym.amenities.map((amenity) => (
-                                <span
-                                  key={amenity}
-                                  className="rounded-full border-2 border-duo-border bg-duo-blue/10 px-2 py-1 text-xs font-bold text-duo-blue"
-                                >
-                                  <Check className="mr-1 inline h-3 w-3" />
-                                  {amenity}
-                                </span>
-                              ))}
-                            </div>
+                        <div>
+                          <p className="mb-2 text-xs font-bold text-duo-gray-dark">
+                            Comodidades:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {gym.amenities.map((amenity) => (
+                              <span
+                                key={amenity}
+                                className="rounded-full border-2 border-duo-border bg-duo-blue/10 px-2 py-1 text-xs font-bold text-duo-blue"
+                              >
+                                <Check className="mr-1 inline h-3 w-3" />
+                                {amenity}
+                              </span>
+                            ))}
                           </div>
+                        </div>
                         )}
 
                         <div>

@@ -194,6 +194,7 @@ export async function getStudentProfileData() {
     } catch (error: any) {
       // Se a tabela não existir, usar mock
       if (
+        error.code === "P2021" ||
         error.message?.includes("does not exist") ||
         error.message?.includes("Unknown table")
       ) {

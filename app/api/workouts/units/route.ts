@@ -86,15 +86,18 @@ export async function GET(request: NextRequest) {
         // 2. Não é o primeiro workout da primeira unit E não completou o anterior
         let isLocked = workout.locked;
 
-        if (!isLocked) {
-          // Encontrar índice do workout na unit
-          const workoutIndex = unit.workouts.findIndex(
-            (w) => w.id === workout.id
-          );
+        // Encontrar índice do workout na unit
+        const workoutIndex = unit.workouts.findIndex(
+          (w) => w.id === workout.id
+        );
 
-          // Encontrar índice da unit no array
-          const unitIndex = units.findIndex((u) => u.id === unit.id);
+        // Encontrar índice da unit no array
+        const unitIndex = units.findIndex((u) => u.id === unit.id);
 
+        // Se é o primeiro workout da primeira unit, NUNCA deve estar locked
+        if (unitIndex === 0 && workoutIndex === 0) {
+          isLocked = false;
+        } else if (!isLocked) {
           // Se não é o primeiro workout da primeira unit
           if (unitIndex > 0 || workoutIndex > 0) {
             let previousWorkout = null;

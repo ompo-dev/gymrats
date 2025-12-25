@@ -126,15 +126,25 @@ export function useNutritionHandlers() {
     mealIds: string[]
   ) => {
     if (mealIds.length > 0 && foods.length > 0) {
+      // Atualizar o store IMMEDIATAMENTE (optimistic update)
       mealIds.forEach((mealId) => {
         foods.forEach(({ food, servings }) => {
           addFoodToMeal(mealId, food, servings);
         });
       });
-      setSelectedMealId(null);
-      setShowFoodSearch(false);
-      // Sincronizar com backend
-      await syncToBackend();
+      
+      // Fechar modal e limpar seleções DEPOIS do update otimista
+      // Usar setTimeout para garantir que o render aconteça primeiro
+      setTimeout(() => {
+        setSelectedMealId(null);
+        setShowFoodSearch(false);
+      }, 0);
+      
+      // Sincronizar com backend em background (não bloquear UI)
+      syncToBackend().catch((error) => {
+        console.error("Erro ao sincronizar nutrição:", error);
+        // Em caso de erro, os dados já estão no store local (optimistic update)
+      });
     }
   };
 

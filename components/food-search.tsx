@@ -87,8 +87,8 @@ export function FoodSearch({
         console.error("Erro ao buscar alimentos:", error);
         // Fallback para mock
         const filtered = mockFoodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+    food.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
         setFoods(filtered);
       } finally {
         setIsLoading(false);
@@ -157,7 +157,12 @@ export function FoodSearch({
     if (selectedFoodIds.length > 0 && selectedMealIds.size > 0) {
       const foodsToAdd = selectedFoodIds
         .map((foodId) => {
-          const food = mockFoodDatabase.find((f) => f.id === foodId);
+          // Primeiro tentar encontrar no array foods (do backend)
+          let food = foods.find((f) => f.id === foodId);
+          // Se não encontrar, tentar no mock
+          if (!food) {
+            food = mockFoodDatabase.find((f) => f.id === foodId);
+          }
           if (!food) return null;
           return {
             food,
@@ -168,6 +173,9 @@ export function FoodSearch({
 
       if (foodsToAdd.length > 0) {
         onAddFood(foodsToAdd, Array.from(selectedMealIds));
+        // Resetar seleções
+        setSelectedFoodIds([]);
+        setFoodServings({});
         onClose();
       }
     }
@@ -416,9 +424,12 @@ export function FoodSearch({
                   >
                     <AnimatePresence>
                       {selectedFoodIds.map((foodId, index) => {
-                        const food = mockFoodDatabase.find(
-                          (f) => f.id === foodId
-                        );
+                        // Primeiro tentar encontrar no array foods (do backend)
+                        let food = foods.find((f) => f.id === foodId);
+                        // Se não encontrar, tentar no mock
+                        if (!food) {
+                          food = mockFoodDatabase.find((f) => f.id === foodId);
+                        }
                         if (!food) return null;
                         const servings = foodServings[foodId] || 1;
                         return (

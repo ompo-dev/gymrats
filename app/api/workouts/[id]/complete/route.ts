@@ -6,9 +6,22 @@ import type { ExerciseLog } from "@/lib/types";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
+    // No Next.js 16+, params pode ser uma Promise
+    const resolvedParams = await Promise.resolve(params);
+    const workoutId = resolvedParams.id;
+    
+    console.log("[DEBUG] workoutId recebido:", workoutId);
+
+    if (!workoutId) {
+      return NextResponse.json(
+        { error: "ID do workout não fornecido" },
+        { status: 400 }
+      );
+    }
+
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("auth_token")?.value;
 
@@ -23,8 +36,6 @@ export async function POST(
         { status: 401 }
       );
     }
-
-    const workoutId = params.id;
     const studentId = session.user.student.id;
 
     // Verificar se o workout existe

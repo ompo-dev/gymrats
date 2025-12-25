@@ -38,8 +38,8 @@ async function applyMigration() {
         "holderName" TEXT,
         "pixKey" TEXT,
         "pixKeyType" TEXT,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "payment_methods_userId_fkey" 
           FOREIGN KEY ("userId") 
           REFERENCES "users" ("id") 

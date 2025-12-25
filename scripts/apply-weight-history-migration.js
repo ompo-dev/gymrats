@@ -17,10 +17,10 @@ async function applyMigration() {
         "id" TEXT NOT NULL PRIMARY KEY,
         "studentId" TEXT NOT NULL,
         "weight" REAL NOT NULL,
-        "date" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "notes" TEXT,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "weight_history_studentId_fkey" 
           FOREIGN KEY ("studentId") 
           REFERENCES "students" ("id") 

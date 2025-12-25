@@ -71,8 +71,25 @@ export function WorkoutModal() {
     avgHeartRate?: number;
   } | null>(null);
 
+  // Buscar workout das units carregadas (do backend) ou do mock como fallback
+  const findWorkoutInUnits = (workoutId: string) => {
+    // Importar dinamicamente para evitar circular dependency
+    try {
+      const { getCachedUnits } = require("@/app/student/learn/learning-path");
+      const cachedUnits = getCachedUnits();
+      for (const unit of cachedUnits) {
+        const workout = unit.workouts.find((w) => w.id === workoutId);
+        if (workout) return workout;
+      }
+    } catch (e) {
+      // Ignorar se não conseguir importar
+    }
+    return null;
+  };
+
   const workoutBase = openWorkoutId
-    ? mockWorkouts.find((w) => w.id === openWorkoutId)
+    ? findWorkoutInUnits(openWorkoutId) ||
+      mockWorkouts.find((w) => w.id === openWorkoutId)
     : null;
 
   // Função para criar exercícios de cardio baseado na duração
@@ -721,21 +738,28 @@ export function WorkoutModal() {
           });
 
           if (!response.ok) {
-            const error = await response.json();
-            console.error("Erro ao salvar workout:", error);
+            let errorMessage = "Erro desconhecido";
+            try {
+              const error = await response.json();
+              errorMessage = error.error || error.message || JSON.stringify(error);
+            } catch (e) {
+              errorMessage = `Erro HTTP ${response.status}: ${response.statusText}`;
+            }
+            console.error("Erro ao salvar workout:", errorMessage);
           } else {
             const data = await response.json();
             console.log("Workout salvo com sucesso:", data);
           }
-        } catch (error) {
-          console.error("Erro ao salvar workout no backend:", error);
+        } catch (error: any) {
+          console.error("Erro ao salvar workout no backend:", error?.message || error);
         }
       };
 
       // Salvar no backend (não bloquear UI)
       saveWorkoutToBackend();
 
-      // Marcar treino como completo
+      // IMPORTANTE: Atualizar Zustand ANTES de disparar eventos (estado otimista)
+      // Isso garante que o próximo workout seja desbloqueado imediatamente
       completeWorkout(workout.id);
       completeStudentWorkout(workout.id, workout.xpReward);
 
@@ -745,10 +769,18 @@ export function WorkoutModal() {
         addXP(xpEarned);
       }
 
-      // Disparar evento de conclusão
+      // Disparar evento de conclusão IMEDIATAMENTE após atualizar o store
+      // Isso garante que os WorkoutNodes sejam atualizados na hora
       window.dispatchEvent(
         new CustomEvent("workoutCompleted", {
           detail: { workoutId: workout.id },
+        })
+      );
+
+      // Disparar evento customizado para atualizar o estado de completed workouts no store
+      window.dispatchEvent(
+        new CustomEvent("workoutProgressUpdate", {
+          detail: { workoutId: workout.id, completed: true },
         })
       );
 
