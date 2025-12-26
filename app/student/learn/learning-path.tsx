@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import type { Unit, WorkoutSession } from "@/lib/types";
-import { WorkoutNode } from "../../../components/workout-node";
+import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { Lock } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { useStudent } from "@/hooks/use-student";

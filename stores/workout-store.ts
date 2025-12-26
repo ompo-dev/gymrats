@@ -89,6 +89,13 @@ export const useWorkoutStore = create<WorkoutState>()(
         set((state) => {
           if (!state.activeWorkout) return state;
           const newLogs = [...state.activeWorkout.exerciseLogs, log];
+          console.log("📝 addExerciseLog:", {
+            exerciseName: log.exerciseName,
+            logId: log.id,
+            totalLogsBefore: state.activeWorkout.exerciseLogs.length,
+            totalLogsAfter: newLogs.length,
+            allExercises: newLogs.map((l) => l.exerciseName),
+          });
           // Calcular volume do exercício (apenas séries válidas com peso > 0 e reps > 0)
           const exerciseVolume = log.sets
             .filter((set) => set.weight > 0 && set.reps > 0)

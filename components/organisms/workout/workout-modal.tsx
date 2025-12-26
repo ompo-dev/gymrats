@@ -23,7 +23,13 @@ import { WeightTracker } from "../trackers/weight-tracker";
 import { ExerciseAlternativeSelector } from "../modals/exercise-alternative-selector";
 import { CardioExerciseView } from "./workout/cardio-exercise-view";
 import { StrengthExerciseView } from "./workout/strength-exercise-view";
-import type { ExerciseLog, WorkoutExercise, WorkoutSession, AlternativeExercise, Unit } from "@/lib/types";
+import type {
+  ExerciseLog,
+  WorkoutExercise,
+  WorkoutSession,
+  AlternativeExercise,
+  Unit,
+} from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -50,9 +56,10 @@ export function WorkoutModal() {
     selectAlternative,
     setCardioPreference,
   } = useWorkoutStore();
-  const { completeWorkout: completeStudentWorkout, updateProgress } = useStudent("actions");
+  const { completeWorkout: completeStudentWorkout, updateProgress } =
+    useStudent("actions");
   const { progress: studentProgress } = useStudent("progress");
-  
+
   // Helper para adicionar XP (atualiza progress)
   const addXP = async (amount: number) => {
     if (studentProgress) {
@@ -81,6 +88,7 @@ export function WorkoutModal() {
     totalTime?: number;
     totalCalories?: number;
     avgHeartRate?: number;
+    skippedExercises?: string[]; // IDs dos exercícios pulados
   } | null>(null);
 
   // Buscar workout das units carregadas (do backend) ou do mock como fallback
@@ -90,7 +98,9 @@ export function WorkoutModal() {
       const { getCachedUnits } = require("@/app/student/learn/learning-path");
       const cachedUnits = getCachedUnits() as Unit[];
       for (const unit of cachedUnits) {
-        const workout = unit.workouts.find((w: WorkoutSession) => w.id === workoutId);
+        const workout = unit.workouts.find(
+          (w: WorkoutSession) => w.id === workoutId
+        );
         if (workout) return workout;
       }
     } catch (e) {
@@ -472,8 +482,28 @@ export function WorkoutModal() {
   const hearts = 5;
 
   const handleExerciseComplete = (log: ExerciseLog) => {
+    console.log("🚀 handleExerciseComplete CHAMADO:", {
+      exerciseName: log.exerciseName,
+      logId: log.id,
+      currentIndex: activeWorkout?.currentExerciseIndex,
+      totalExercises: workout?.exercises.length,
+    });
+
     // Adicionar log do exercício
     addExerciseLog(log);
+    console.log(
+      "✅ Exercício completado:",
+      log.exerciseName,
+      "| Log ID:",
+      log.id,
+      "| Tipo:",
+      log.exerciseName.toLowerCase().includes("cardio") ||
+        log.exerciseName.toLowerCase().includes("bicicleta") ||
+        log.exerciseName.toLowerCase().includes("corrida") ||
+        log.exerciseName.toLowerCase().includes("pular")
+        ? "CARDIO"
+        : "FORÇA"
+    );
     setShowWeightTracker(false);
 
     // Calcular estatísticas atualizadas
@@ -502,95 +532,172 @@ export function WorkoutModal() {
     if (!activeWorkout) return;
 
     if (activeWorkout.currentExerciseIndex + 1 >= workout.exercises.length) {
-      // Obter estado final antes de limpar
-      const finalState = useWorkoutStore.getState();
-      const finalActiveWorkout = finalState.activeWorkout;
+      console.log("🔚 Último exercício completado! Salvando dados...", {
+        currentIndex: activeWorkout.currentExerciseIndex,
+        totalExercises: workout.exercises.length,
+        logId: log.id,
+        logName: log.exerciseName,
+      });
 
-      // Salvar dados para a tela de conclusão ANTES de limpar o activeWorkout
-      if (finalActiveWorkout) {
-        setCompletedWorkoutData({
-          exerciseLogs: finalActiveWorkout.exerciseLogs || [],
-          xpEarned: finalActiveWorkout.xpEarned || 0,
+      // Aguardar um tick para garantir que o estado foi atualizado
+      setTimeout(() => {
+        // Obter estado final DEPOIS de adicionar o log
+        const finalState = useWorkoutStore.getState();
+        const finalActiveWorkout = finalState.activeWorkout;
+
+        console.log("🔍 Estado do store ao salvar (força - último):", {
+          hasActiveWorkout: !!finalActiveWorkout,
+          exerciseLogsCount: finalActiveWorkout?.exerciseLogs?.length || 0,
+          exerciseLogs:
+            finalActiveWorkout?.exerciseLogs?.map((l) => ({
+              name: l.exerciseName,
+              id: l.id,
+            })) || [],
+          currentLogId: log.id,
         });
-      }
 
-      // Calcular duração do workout
-      const workoutDuration = finalActiveWorkout?.startTime
-        ? Math.round(
-            (new Date().getTime() -
-              new Date(finalActiveWorkout.startTime).getTime()) /
-              60000
-          )
-        : workout.estimatedTime;
-
-      // Calcular volume total
-      const totalVolume = finalActiveWorkout?.totalVolume || 0;
-
-      // Determinar feedback baseado em performance
-      let overallFeedback: "excelente" | "bom" | "regular" | "ruim" =
-        "bom";
-      const completedExercises = finalActiveWorkout?.exerciseLogs?.length || 0;
-      const totalExercises = workout.exercises.length;
-      const completionRate = completedExercises / totalExercises;
-
-      if (completionRate >= 0.9 && totalVolume > 0) {
-        overallFeedback = "excelente";
-      } else if (completionRate >= 0.7) {
-        overallFeedback = "bom";
-      } else if (completionRate >= 0.5) {
-        overallFeedback = "regular";
-      } else {
-        overallFeedback = "ruim";
-      }
-
-      // Determinar partes do corpo fatigadas baseado no muscleGroup
-      const bodyPartsFatigued = [workout.muscleGroup];
-
-      // Salvar workout no backend
-      const saveWorkoutToBackend = async () => {
-        try {
-          // Usar axios client (API → Zustand → Component)
-          const { apiClient } = await import("@/lib/api/client");
-          const response = await apiClient.post(
-            `/api/workouts/${workout.id}/complete`,
-            {
-              exerciseLogs: finalActiveWorkout?.exerciseLogs || [],
-              duration: workoutDuration,
-              totalVolume: totalVolume,
-              overallFeedback: overallFeedback,
-              bodyPartsFatigued: bodyPartsFatigued,
-              xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
-              startTime: finalActiveWorkout?.startTime || new Date(),
-            }
+        // Salvar dados para a tela de conclusão ANTES de limpar o activeWorkout
+        // Incluir o log atual que acabou de ser adicionado
+        if (!finalActiveWorkout) {
+          console.error(
+            "❌ finalActiveWorkout é null! Não é possível salvar dados."
           );
-          console.log("Workout salvo com sucesso:", response.data);
-        } catch (error: any) {
-          console.error("Erro ao salvar workout no backend:", error?.message || error);
-          // Continuar mesmo se falhar
+          return;
         }
-      };
 
-      // Salvar no backend (não bloquear UI)
-      saveWorkoutToBackend();
+        // Garantir que o log atual está incluído (pode não estar ainda no array)
+        const allLogs = finalActiveWorkout.exerciseLogs || [];
+        const logExists = allLogs.some((l) => l.id === log.id);
+        const finalLogs = logExists ? allLogs : [...allLogs, log];
 
-      // Marcar como completo e atualizar XP/streak (otimisticamente)
-      // completeStudentWorkout já atualiza XP, nível, workoutsCompleted e streak
-      const xpEarned = finalActiveWorkout?.xpEarned || workout.xpReward;
-      completeStudentWorkout(workout.id, xpEarned);
-      
-      // Marcar como completo no workout store
-      completeWorkout(workout.id);
+        console.log("📊 Salvando dados de conclusão (força - último):", {
+          totalLogs: finalLogs.length,
+          logs: finalLogs.map((l) => ({
+            name: l.exerciseName,
+            id: l.id,
+            type:
+              l.exerciseName.toLowerCase().includes("cardio") ||
+              l.exerciseName.toLowerCase().includes("bicicleta") ||
+              l.exerciseName.toLowerCase().includes("corrida") ||
+              l.exerciseName.toLowerCase().includes("pular")
+                ? "CARDIO"
+                : "FORÇA",
+          })),
+          storeLogs: allLogs.length,
+          currentLogId: log.id,
+          logExists,
+        });
 
-      // Disparar evento de conclusão
-      window.dispatchEvent(
-        new CustomEvent("workoutCompleted", {
-          detail: { workoutId: workout.id },
-        })
-      );
+        setCompletedWorkoutData({
+          exerciseLogs: finalLogs,
+          xpEarned: finalActiveWorkout.xpEarned || 0,
+          skippedExercises: finalActiveWorkout.skippedExercises || [],
+        });
 
-      // Mostrar tela de conclusão
-      setShowCompletion(true);
+        console.log("✅ setCompletedWorkoutData chamado com:", {
+          exerciseLogsCount: finalLogs.length,
+          exerciseLogs: finalLogs.map((l) => l.exerciseName),
+        });
+
+        // Calcular duração do workout
+        const workoutDuration = finalActiveWorkout.startTime
+          ? Math.round(
+              (new Date().getTime() -
+                new Date(finalActiveWorkout.startTime).getTime()) /
+                60000
+            )
+          : workout.estimatedTime;
+
+        // Calcular volume total
+        const totalVolume = finalActiveWorkout.totalVolume || 0;
+
+        // Determinar feedback baseado em performance
+        let overallFeedback: "excelente" | "bom" | "regular" | "ruim" = "bom";
+        const completedExercises = finalLogs.length;
+        const totalExercises = workout.exercises.length;
+        const completionRate = completedExercises / totalExercises;
+
+        if (completionRate >= 0.9 && totalVolume > 0) {
+          overallFeedback = "excelente";
+        } else if (completionRate >= 0.7) {
+          overallFeedback = "bom";
+        } else if (completionRate >= 0.5) {
+          overallFeedback = "regular";
+        } else {
+          overallFeedback = "ruim";
+        }
+
+        // Determinar partes do corpo fatigadas baseado no muscleGroup
+        const bodyPartsFatigued = [workout.muscleGroup];
+
+        // Salvar workout no backend
+        const saveWorkoutToBackend = async () => {
+          try {
+            // Usar axios client (API → Zustand → Component)
+            const { apiClient } = await import("@/lib/api/client");
+            const response = await apiClient.post(
+              `/api/workouts/${workout.id}/complete`,
+              {
+                exerciseLogs: finalLogs,
+                duration: workoutDuration,
+                totalVolume: totalVolume,
+                overallFeedback: overallFeedback,
+                bodyPartsFatigued: bodyPartsFatigued,
+                xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
+                startTime: finalActiveWorkout?.startTime || new Date(),
+              }
+            );
+            console.log("Workout salvo com sucesso:", response.data);
+          } catch (error: any) {
+            console.error(
+              "Erro ao salvar workout no backend:",
+              error?.message || error
+            );
+            // Continuar mesmo se falhar
+          }
+        };
+
+        // Salvar no backend (não bloquear UI)
+        saveWorkoutToBackend();
+
+        // Marcar como completo e atualizar XP/streak (otimisticamente)
+        // completeWorkout espera um objeto WorkoutCompletionData
+        const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
+        completeStudentWorkout({
+          workoutId: workout.id,
+          exercises: finalLogs,
+          duration: workoutDuration,
+          totalVolume: totalVolume,
+          overallFeedback: overallFeedback,
+          bodyPartsFatigued: bodyPartsFatigued,
+        });
+
+        // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
+        // Vamos chamar depois de mostrar a tela de conclusão
+        // completeWorkout(workout.id);
+
+        // Disparar evento de conclusão
+        window.dispatchEvent(
+          new CustomEvent("workoutCompleted", {
+            detail: { workoutId: workout.id },
+          })
+        );
+
+        // Mostrar tela de conclusão
+        setShowCompletion(true);
+
+        // Limpar activeWorkout DEPOIS de salvar os dados
+        setTimeout(() => {
+          completeWorkout(workout.id);
+        }, 100);
+      }, 0);
     } else {
+      console.log("➡️ Avançando para próximo exercício:", {
+        currentIndex: activeWorkout.currentExerciseIndex,
+        nextIndex: activeWorkout.currentExerciseIndex + 1,
+        totalExercises: workout.exercises.length,
+        exerciseLogsCount: activeWorkout.exerciseLogs.length,
+      });
       if (activeWorkout) {
         setCurrentExerciseIndex(activeWorkout.currentExerciseIndex + 1);
       }
@@ -623,19 +730,198 @@ export function WorkoutModal() {
       difficulty: "ideal",
     };
 
-    // Adicionar dados específicos de cardio ao completedWorkoutData se for o último
-    if (activeWorkout.currentExerciseIndex + 1 >= workout.exercises.length) {
-      setCompletedWorkoutData({
-        exerciseLogs: [...(activeWorkout.exerciseLogs || []), cardioLog],
-        xpEarned: workout.xpReward,
-        totalTime: elapsedTime,
-        totalCalories: Math.round(calories),
-        avgHeartRate: Math.round(heartRate),
-      });
-    }
+    // Verificar se é o último exercício ANTES de chamar handleExerciseComplete
+    const isLastExercise =
+      activeWorkout.currentExerciseIndex + 1 >= workout.exercises.length;
 
-    // Usar a mesma função de conclusão de exercício
-    handleExerciseComplete(cardioLog);
+    // Se for o último exercício e for cardio, não chamar handleExerciseComplete
+    // porque ele já vai chamar setCompletedWorkoutData, e vamos adicionar os dados de cardio depois
+    if (isLastExercise) {
+      // Adicionar log manualmente ao store
+      addExerciseLog(cardioLog);
+      console.log(
+        "✅ Cardio completado (último):",
+        cardioLog.exerciseName,
+        "Log ID:",
+        cardioLog.id
+      );
+
+      // Aguardar um tick para garantir que o estado foi atualizado
+      // Usar requestAnimationFrame para garantir que o estado foi atualizado após o addExerciseLog
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const finalState = useWorkoutStore.getState();
+          const finalActiveWorkout = finalState.activeWorkout;
+
+          console.log("🔍 Estado do store ANTES de salvar (cardio último):", {
+            hasActiveWorkout: !!finalActiveWorkout,
+            exerciseLogsCount: finalActiveWorkout?.exerciseLogs?.length || 0,
+            exerciseLogs:
+              finalActiveWorkout?.exerciseLogs?.map((l) => ({
+                name: l.exerciseName,
+                id: l.id,
+                type:
+                  l.exerciseName.toLowerCase().includes("cardio") ||
+                  l.exerciseName.toLowerCase().includes("bicicleta") ||
+                  l.exerciseName.toLowerCase().includes("corrida") ||
+                  l.exerciseName.toLowerCase().includes("pular")
+                    ? "CARDIO"
+                    : "FORÇA",
+              })) || [],
+            cardioLogId: cardioLog.id,
+          });
+
+          if (finalActiveWorkout) {
+            // Garantir que o cardioLog está incluído
+            const allLogs = finalActiveWorkout.exerciseLogs || [];
+            const logExists = allLogs.some((l) => l.id === cardioLog.id);
+            const finalLogs = logExists ? allLogs : [...allLogs, cardioLog];
+
+            console.log(
+              "🔍 Estado do store DEPOIS de verificar (cardio último):",
+              {
+                allLogsCount: allLogs.length,
+                logExists,
+                finalLogsCount: finalLogs.length,
+                finalLogs: finalLogs.map((l) => ({
+                  name: l.exerciseName,
+                  id: l.id,
+                  type:
+                    l.exerciseName.toLowerCase().includes("cardio") ||
+                    l.exerciseName.toLowerCase().includes("bicicleta") ||
+                    l.exerciseName.toLowerCase().includes("corrida") ||
+                    l.exerciseName.toLowerCase().includes("pular")
+                      ? "CARDIO"
+                      : "FORÇA",
+                })),
+              }
+            );
+
+            console.log("📊 Salvando dados de conclusão (cardio - último):", {
+              totalLogs: finalLogs.length,
+              logs: finalLogs.map((l) => ({
+                name: l.exerciseName,
+                id: l.id,
+                type:
+                  l.exerciseName.toLowerCase().includes("cardio") ||
+                  l.exerciseName.toLowerCase().includes("bicicleta") ||
+                  l.exerciseName.toLowerCase().includes("corrida") ||
+                  l.exerciseName.toLowerCase().includes("pular")
+                    ? "CARDIO"
+                    : "FORÇA",
+              })),
+              storeLogs: allLogs.length,
+              currentLogId: cardioLog.id,
+              storeState: {
+                exerciseLogsCount: finalActiveWorkout.exerciseLogs?.length || 0,
+                exerciseLogs:
+                  finalActiveWorkout.exerciseLogs?.map((l) => l.exerciseName) ||
+                  [],
+              },
+            });
+
+            setCompletedWorkoutData({
+              exerciseLogs: finalLogs,
+              xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
+              totalTime: elapsedTime,
+              totalCalories: Math.round(calories),
+              avgHeartRate: Math.round(heartRate),
+              skippedExercises: finalActiveWorkout.skippedExercises || [],
+            });
+
+            // Calcular duração do workout
+            const workoutDuration = finalActiveWorkout.startTime
+              ? Math.round(
+                  (new Date().getTime() -
+                    new Date(finalActiveWorkout.startTime).getTime()) /
+                    60000
+                )
+              : workout.estimatedTime;
+
+            // Calcular volume total
+            const totalVolume = finalActiveWorkout.totalVolume || 0;
+
+            // Determinar feedback baseado em performance
+            let overallFeedback: "excelente" | "bom" | "regular" | "ruim" =
+              "bom";
+            const completedExercises = finalLogs.length;
+            const totalExercises = workout.exercises.length;
+            const completionRate = completedExercises / totalExercises;
+
+            if (completionRate >= 0.9 && totalVolume > 0) {
+              overallFeedback = "excelente";
+            } else if (completionRate >= 0.7) {
+              overallFeedback = "bom";
+            } else if (completionRate >= 0.5) {
+              overallFeedback = "regular";
+            } else {
+              overallFeedback = "ruim";
+            }
+
+            // Determinar partes do corpo fatigadas baseado no muscleGroup
+            const bodyPartsFatigued = [workout.muscleGroup];
+
+            // Salvar workout no backend
+            const saveWorkoutToBackend = async () => {
+              try {
+                const { apiClient } = await import("@/lib/api/client");
+                const response = await apiClient.post(
+                  `/api/workouts/${workout.id}/complete`,
+                  {
+                    exerciseLogs: finalLogs,
+                    duration: workoutDuration,
+                    totalVolume: totalVolume,
+                    overallFeedback: overallFeedback,
+                    bodyPartsFatigued: bodyPartsFatigued,
+                    xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
+                    startTime: finalActiveWorkout.startTime || new Date(),
+                  }
+                );
+                console.log("Workout salvo com sucesso:", response.data);
+              } catch (error: any) {
+                console.error(
+                  "Erro ao salvar workout no backend:",
+                  error?.message || error
+                );
+              }
+            };
+
+            saveWorkoutToBackend();
+
+            // Marcar como completo
+            const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
+            completeStudentWorkout({
+              workoutId: workout.id,
+              exercises: finalLogs,
+              duration: workoutDuration,
+              totalVolume: totalVolume,
+              overallFeedback: overallFeedback,
+              bodyPartsFatigued: bodyPartsFatigued,
+            });
+
+            // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
+            // Vamos chamar depois de mostrar a tela de conclusão
+            // completeWorkout(workout.id);
+
+            window.dispatchEvent(
+              new CustomEvent("workoutCompleted", {
+                detail: { workoutId: workout.id },
+              })
+            );
+
+            setShowCompletion(true);
+
+            // Limpar activeWorkout DEPOIS de salvar os dados
+            setTimeout(() => {
+              completeWorkout(workout.id);
+            }, 100);
+          }
+        }, 0);
+      });
+    } else {
+      // Se não for o último, usar a função normal
+      handleExerciseComplete(cardioLog);
+    }
 
     // Resetar contadores para o próximo exercício
     setElapsedTime(0);
@@ -645,6 +931,14 @@ export function WorkoutModal() {
 
   const handleSkip = () => {
     if (!activeWorkout) return;
+
+    console.log("⏭️ handleSkip CHAMADO:", {
+      currentIndex: activeWorkout.currentExerciseIndex,
+      totalExercises: workout.exercises.length,
+      currentExerciseName: workout.exercises[activeWorkout.currentExerciseIndex]?.name,
+      exerciseLogsCount: activeWorkout.exerciseLogs.length,
+      skippedExercisesCount: activeWorkout.skippedExercises?.length || 0,
+    });
 
     // Se for cardio, resetar cronômetro
     if (isCurrentExerciseCardio()) {
@@ -666,12 +960,24 @@ export function WorkoutModal() {
     const currentState = useWorkoutStore.getState();
     const updatedWorkout = currentState.activeWorkout;
 
-    if (!updatedWorkout) return;
+    if (!updatedWorkout) {
+      console.error("❌ updatedWorkout é null após skipExercise!");
+      return;
+    }
 
     const totalExercises = workout.exercises.length;
     const completedCount = updatedWorkout.exerciseLogs.length || 0;
     const skippedCount = updatedWorkout.skippedExercises?.length || 0;
     const totalSeen = completedCount + skippedCount;
+
+    console.log("📊 Estado após pular:", {
+      completedCount,
+      skippedCount,
+      totalSeen,
+      totalExercises,
+      exerciseLogs: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
+      skippedExercises: updatedWorkout.skippedExercises,
+    });
 
     // Salvar progresso
     saveWorkoutProgress(workout.id);
@@ -680,12 +986,34 @@ export function WorkoutModal() {
     const isLastExercise =
       updatedWorkout.currentExerciseIndex + 1 >= totalExercises;
 
+    console.log("🔍 Verificando conclusão:", {
+      isLastExercise,
+      totalSeen,
+      totalExercises,
+      condition: isLastExercise && totalSeen >= totalExercises,
+    });
+
     // Se todos os exercícios foram vistos (completados ou pulados), marcar como completo
     if (isLastExercise && totalSeen >= totalExercises) {
+      console.log("✅ Todos os exercícios foram vistos. Salvando dados de conclusão...");
+      console.log("📋 Dados que serão salvos:", {
+        exerciseLogsCount: updatedWorkout.exerciseLogs.length,
+        exerciseLogs: updatedWorkout.exerciseLogs.map((l) => ({
+          name: l.exerciseName,
+          id: l.id,
+        })),
+        skippedCount: updatedWorkout.skippedExercises?.length || 0,
+        skippedExercises: updatedWorkout.skippedExercises,
+        xpEarned: updatedWorkout.xpEarned,
+      });
+
       // Salvar dados para a tela de conclusão ANTES de limpar o activeWorkout
+      // IMPORTANTE: Mostrar tela de conclusão sempre, mesmo se todos os exercícios foram pulados
+      // Salvar também os exercícios pulados para mostrar no resumo
       setCompletedWorkoutData({
         exerciseLogs: updatedWorkout.exerciseLogs || [],
         xpEarned: updatedWorkout.xpEarned || 0,
+        skippedExercises: updatedWorkout.skippedExercises || [],
       });
 
       // Calcular duração do workout
@@ -737,17 +1065,39 @@ export function WorkoutModal() {
           );
           console.log("Workout salvo com sucesso:", response.data);
         } catch (error: any) {
-          console.error("Erro ao salvar workout no backend:", error?.message || error);
+          console.error(
+            "Erro ao salvar workout no backend:",
+            error?.message || error
+          );
         }
       };
 
       // Salvar no backend (não bloquear UI)
       saveWorkoutToBackend();
 
+      // IMPORTANTE: Salvar dados ANTES de limpar o activeWorkout
+      // Salvar dados para a tela de conclusão
+      setCompletedWorkoutData({
+        exerciseLogs: updatedWorkout.exerciseLogs || [],
+        xpEarned: updatedWorkout.xpEarned || 0,
+        skippedExercises: updatedWorkout.skippedExercises || [],
+      });
+
       // IMPORTANTE: Atualizar Zustand ANTES de disparar eventos (estado otimista)
       // Isso garante que o próximo workout seja desbloqueado imediatamente
-      completeWorkout(workout.id);
-      completeStudentWorkout(workout.id, workout.xpReward);
+      // Mas NÃO limpar o activeWorkout ainda - vamos fazer depois
+      // completeWorkout(workout.id);
+      console.log("🔄 Chamando completeStudentWorkout com:", {
+        workoutId: workout.id,
+        exercisesCount: updatedWorkout.exerciseLogs.length,
+        exercises: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
+        duration: 0,
+      });
+      completeStudentWorkout({
+        workoutId: workout.id,
+        exercises: updatedWorkout.exerciseLogs || [],
+        duration: 0,
+      });
 
       // Adicionar XP se houver (mesmo que seja 0 se todos foram pulados)
       const xpEarned = updatedWorkout.xpEarned || 0;
@@ -771,6 +1121,11 @@ export function WorkoutModal() {
       );
 
       setShowCompletion(true);
+
+      // Limpar activeWorkout DEPOIS de salvar os dados
+      setTimeout(() => {
+        completeWorkout(workout.id);
+      }, 100);
     } else if (isLastExercise) {
       // Se chegou no último mas ainda não completou todos, mostrar conclusão mesmo assim
       setShowCompletion(true);
@@ -930,7 +1285,53 @@ export function WorkoutModal() {
     const workoutData = completedWorkoutData || {
       exerciseLogs: activeWorkout?.exerciseLogs || [],
       xpEarned: activeWorkout?.xpEarned || 0,
+      skippedExercises: activeWorkout?.skippedExercises || [],
     };
+
+    // Criar lista combinada de exercícios completados e pulados
+    const completedExerciseIds = new Set(
+      workoutData.exerciseLogs.map((log) => log.exerciseId)
+    );
+    const skippedExerciseIds = new Set(
+      workoutData.skippedExercises || activeWorkout?.skippedExercises || []
+    );
+
+    // Criar lista de todos os exercícios do workout com status
+    const allExercises = workout.exercises.map((exercise) => {
+      const isCompleted = completedExerciseIds.has(exercise.id);
+      const isSkipped = skippedExerciseIds.has(exercise.id);
+      const exerciseLog = workoutData.exerciseLogs.find(
+        (log) => log.exerciseId === exercise.id
+      );
+
+      return {
+        id: exercise.id,
+        name: exercise.name,
+        isCompleted,
+        isSkipped,
+        exerciseLog, // null se foi pulado
+      };
+    });
+
+    // Debug: Verificar dados que serão exibidos
+    console.log("🎯 Dados para tela de conclusão:", {
+      hasCompletedWorkoutData: !!completedWorkoutData,
+      totalLogs: workoutData.exerciseLogs.length,
+      skippedCount: skippedExerciseIds.size,
+      totalExercises: allExercises.length,
+      logs: workoutData.exerciseLogs.map((l) => ({
+        name: l.exerciseName,
+        id: l.id,
+        type:
+          l.exerciseName.toLowerCase().includes("cardio") ||
+          l.exerciseName.toLowerCase().includes("bicicleta") ||
+          l.exerciseName.toLowerCase().includes("corrida") ||
+          l.exerciseName.toLowerCase().includes("pular")
+            ? "CARDIO"
+            : "FORÇA",
+      })),
+      activeWorkoutLogs: activeWorkout?.exerciseLogs?.length || 0,
+    });
 
     // Calcular volume total apenas de séries válidas (peso > 0 e reps > 0)
     const totalVolume = workoutData.exerciseLogs.reduce(
@@ -1093,47 +1494,70 @@ export function WorkoutModal() {
               )}
             </div>
 
-            {workoutData.exerciseLogs.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-                className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
-              >
-                <h3 className="text-base sm:text-lg font-bold text-duo-text">
-                  Resumo do Treino
-                </h3>
-                {workoutData.exerciseLogs.map((log, index) => (
+            {/* Mostrar resumo com todos os exercícios (completados e pulados) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
+            >
+              <h3 className="text-base sm:text-lg font-bold text-duo-text">
+                Resumo do Treino ({allExercises.length} exercícios)
+              </h3>
+              {allExercises.map((exercise, index) => {
+                const isCompleted = exercise.isCompleted;
+                const isSkipped = exercise.isSkipped;
+                const log = exercise.exerciseLog;
+
+                return (
                   <motion.div
-                    key={log.id}
+                    key={exercise.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
                     whileHover={{ scale: 1.02, x: 5 }}
-                    className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
+                    className={cn(
+                      "rounded-xl border-2 p-3 sm:p-4 shadow-sm transition-all hover:shadow-md",
+                      isCompleted
+                        ? "border-duo-green bg-white"
+                        : isSkipped
+                        ? "border-duo-orange bg-white opacity-75"
+                        : "border-duo-border bg-white"
+                    )}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
-                        {log.exerciseName}
+                        {exercise.name}
                       </div>
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
+                      {isCompleted ? (
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
+                      ) : isSkipped ? (
+                        <X className="h-4 w-4 sm:h-5 sm:w-5 text-duo-orange shrink-0" />
+                      ) : null}
                     </div>
-                    <div className="text-xs sm:text-sm text-duo-gray-dark">
-                      {
-                        log.sets.filter((set) => set.weight > 0 && set.reps > 0)
-                          .length
-                      }{" "}
-                      séries •{" "}
-                      {log.sets
-                        .filter((set) => set.weight > 0 && set.reps > 0)
-                        .reduce((acc, set) => acc + set.weight * set.reps, 0)
-                        .toFixed(0)}
-                      kg volume
-                    </div>
+                    {isCompleted && log ? (
+                      <div className="text-xs sm:text-sm text-duo-gray-dark">
+                        {
+                          log.sets.filter(
+                            (set) => set.weight > 0 && set.reps > 0
+                          ).length
+                        }{" "}
+                        séries •{" "}
+                        {log.sets
+                          .filter((set) => set.weight > 0 && set.reps > 0)
+                          .reduce((acc, set) => acc + set.weight * set.reps, 0)
+                          .toFixed(0)}
+                        kg volume
+                      </div>
+                    ) : isSkipped ? (
+                      <div className="text-xs sm:text-sm text-duo-orange font-medium">
+                        Exercício pulado
+                      </div>
+                    ) : null}
                   </motion.div>
-                ))}
-              </motion.div>
-            )}
+                );
+              })}
+            </motion.div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}

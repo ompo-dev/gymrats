@@ -2,8 +2,8 @@ import * as React from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DuoCard } from "./duo-card";
-import { FoodItemCard } from "./food-item-card";
-import { Button } from "./button";
+import { FoodItemCard } from "@/components/ui/food-item-card";
+import { Button } from "@/components/atoms/buttons/button";
 import { cn } from "@/lib/utils";
 import type { Meal } from "@/lib/types";
 

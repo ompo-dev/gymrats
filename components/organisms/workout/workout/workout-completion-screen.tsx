@@ -33,6 +33,23 @@ export function WorkoutCompletionScreen({
   onClose,
   onRepeat,
 }: WorkoutCompletionScreenProps) {
+  // Debug: Log dos dados recebidos
+  console.log("🎯 WorkoutCompletionScreen recebeu:", {
+    totalLogs: workoutData.exerciseLogs.length,
+    logs: workoutData.exerciseLogs.map((l) => ({
+      name: l.exerciseName,
+      id: l.id,
+      sets: l.sets.length,
+      type:
+        l.exerciseName.toLowerCase().includes("cardio") ||
+        l.exerciseName.toLowerCase().includes("bicicleta") ||
+        l.exerciseName.toLowerCase().includes("corrida") ||
+        l.exerciseName.toLowerCase().includes("pular")
+          ? "CARDIO"
+          : "FORÇA",
+    })),
+  });
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -213,37 +230,51 @@ export function WorkoutCompletionScreen({
               className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
             >
               <h3 className="text-base sm:text-lg font-bold text-duo-text">
-                Resumo do Treino
+                Resumo do Treino ({workoutData.exerciseLogs.length} exercícios)
               </h3>
-              {workoutData.exerciseLogs.map((log, index) => (
-                <motion.div
-                  key={log.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                  whileHover={{ scale: 1.02, x: 5 }}
-                  className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
-                      {log.exerciseName}
+              {workoutData.exerciseLogs.map((log, index) => {
+                console.log(`📋 Renderizando exercício ${index + 1}:`, {
+                  name: log.exerciseName,
+                  id: log.id,
+                  sets: log.sets.length,
+                  type:
+                    log.exerciseName.toLowerCase().includes("cardio") ||
+                    log.exerciseName.toLowerCase().includes("bicicleta") ||
+                    log.exerciseName.toLowerCase().includes("corrida") ||
+                    log.exerciseName.toLowerCase().includes("pular")
+                      ? "CARDIO"
+                      : "FORÇA",
+                });
+                return (
+                  <motion.div
+                    key={log.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                    whileHover={{ scale: 1.02, x: 5 }}
+                    className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
+                        {log.exerciseName}
+                      </div>
+                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
                     </div>
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
-                  </div>
-                  <div className="text-xs sm:text-sm text-duo-gray-dark">
-                    {
-                      log.sets.filter((set) => set.weight > 0 && set.reps > 0)
-                        .length
-                    }{" "}
-                    séries •{" "}
-                    {log.sets
-                      .filter((set) => set.weight > 0 && set.reps > 0)
-                      .reduce((acc, set) => acc + set.weight * set.reps, 0)
-                      .toFixed(0)}
-                    kg volume
-                  </div>
-                </motion.div>
-              ))}
+                    <div className="text-xs sm:text-sm text-duo-gray-dark">
+                      {
+                        log.sets.filter((set) => set.weight > 0 && set.reps > 0)
+                          .length
+                      }{" "}
+                      séries •{" "}
+                      {log.sets
+                        .filter((set) => set.weight > 0 && set.reps > 0)
+                        .reduce((acc, set) => acc + set.weight * set.reps, 0)
+                        .toFixed(0)}
+                      kg volume
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
 

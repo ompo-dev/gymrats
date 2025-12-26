@@ -1,9 +1,9 @@
 /**
  * Store Unificado para Student
- * 
+ *
  * Este store consolida todos os dados do student em um único lugar,
  * substituindo múltiplos stores fragmentados.
- * 
+ *
  * Uso: Prefira usar o hook useStudent() em vez de acessar o store diretamente
  */
 
@@ -16,19 +16,15 @@ import type {
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
 import { transformStudentData } from "@/lib/utils/student-transformers";
-import type {
-  UserProgress,
-  PersonalRecord,
-  DailyNutrition,
-  WeightHistoryItem,
-} from "@/lib/types";
+import type { UserProgress, PersonalRecord, DailyNutrition } from "@/lib/types";
+import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { apiClient } from "@/lib/api/client";
 
 // ============================================
 // INTERFACE DO STORE
 // ============================================
 
-interface StudentUnifiedState {
+export interface StudentUnifiedState {
   // === DADOS ===
   data: StudentData;
 
@@ -49,6 +45,7 @@ interface StudentUnifiedState {
   loadDayPasses: () => Promise<void>;
   loadFriends: () => Promise<void>;
   loadGymLocations: () => Promise<void>;
+  loadFoodDatabase: () => Promise<void>;
 
   // === ACTIONS - ATUALIZAR DADOS ===
   updateProgress: (progress: Partial<UserProgress>) => Promise<void>;
@@ -64,9 +61,7 @@ interface StudentUnifiedState {
 
   // === ACTIONS - WORKOUT PROGRESS ===
   setActiveWorkout: (workoutId: string | null) => void;
-  updateActiveWorkout: (
-    updates: Partial<StudentData["activeWorkout"]>
-  ) => void;
+  updateActiveWorkout: (updates: Partial<StudentData["activeWorkout"]>) => void;
   saveWorkoutProgress: (workoutId: string) => void;
   clearActiveWorkout: () => void;
 
@@ -102,8 +97,10 @@ async function loadSection(
     return { [section]: response.data[section] || null };
   } catch (error: any) {
     // Tratamento específico para timeout
-    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      console.warn(`Timeout ao carregar ${section}. Continuando com dados existentes.`);
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      console.warn(
+        `Timeout ao carregar ${section}. Continuando com dados existentes.`
+      );
       return {};
     }
     console.error(`Erro ao carregar ${section}:`, error);
@@ -117,7 +114,12 @@ async function loadSection(
 async function loadAllData(): Promise<StudentData> {
   try {
     const response = await apiClient.get<StudentData>("/api/students/all");
-    return transformStudentData(response.data);
+    const transformedData = transformStudentData(response.data);
+    // Mesclar com initialStudentData para garantir que todos os campos estejam presentes
+    return {
+      ...initialStudentData,
+      ...transformedData,
+    } as StudentData;
   } catch (error) {
     console.error("Erro ao carregar todos os dados:", error);
     return initialStudentData;
@@ -240,8 +242,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         set((state) => ({
           data: {
             ...state.data,
-            workoutHistory:
-              section.workoutHistory || state.data.workoutHistory,
+            workoutHistory: section.workoutHistory || state.data.workoutHistory,
           },
         }));
       },
@@ -277,9 +278,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }>("/api/nutrition/daily", {
             timeout: 30000, // 30 segundos
           });
-          
+
           const data = response.data;
-          
+
           // Transformar dados para o formato do store
           set((state) => ({
             data: {
@@ -302,13 +303,16 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }));
         } catch (error: any) {
           // Tratar timeout especificamente
-          if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+          if (
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("timeout")
+          ) {
             console.warn(
               "⚠️ Timeout ao carregar nutrição. Continuando com dados atuais do store."
             );
             return; // Manter dados atuais do store
           }
-          
+
           // Se a migration não foi aplicada, não mostrar erro
           if (error.response?.data?.code === "MIGRATION_REQUIRED") {
             console.log(
@@ -316,7 +320,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             );
             return; // Manter dados atuais do store
           }
-          
+
           console.error("Erro ao carregar nutrição:", error);
           // Manter dados atuais do store em caso de erro
         }
@@ -357,8 +361,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         set((state) => ({
           data: {
             ...state.data,
-            paymentMethods:
-              section.paymentMethods || state.data.paymentMethods,
+            paymentMethods: section.paymentMethods || state.data.paymentMethods,
           },
         }));
       },
@@ -391,6 +394,53 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             gymLocations: section.gymLocations || state.data.gymLocations,
           },
         }));
+      },
+
+      loadFoodDatabase: async () => {
+        try {
+          // Buscar todos os alimentos da API (sem query para pegar todos)
+          const response = await apiClient.get<{ foods: any[] }>(
+            "/api/foods/search?limit=1000",
+            {
+              timeout: 30000, // 30 segundos
+            }
+          );
+
+          const foods = response.data.foods || [];
+
+          // Armazenar no store
+          set((state) => ({
+            data: {
+              ...state.data,
+              foodDatabase: foods,
+            },
+          }));
+        } catch (error: any) {
+          // Tratamento específico para timeout
+          if (
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("timeout")
+          ) {
+            console.warn(
+              "⚠️ Timeout ao carregar alimentos. Continuando com dados existentes."
+            );
+            return;
+          }
+
+          // Se a tabela não existir, não mostrar erro
+          if (
+            error.response?.status === 500 ||
+            error.message?.includes("does not exist")
+          ) {
+            console.log(
+              "⚠️ Tabela de alimentos não existe. Execute: node scripts/apply-nutrition-migration.js"
+            );
+            return;
+          }
+
+          console.error("Erro ao carregar alimentos:", error);
+          // Manter dados atuais do store em caso de erro
+        }
       },
 
       // === ACTIONS - ATUALIZAR DADOS ===
@@ -517,10 +567,46 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         const previousNutrition = get().data.dailyNutrition;
         let updatedNutrition: any;
         set((state) => {
+          const currentNutrition = state.data.dailyNutrition;
+          const updatedMeals =
+            updates.meals !== undefined
+              ? updates.meals
+              : currentNutrition.meals;
+
+          // Recalcular totais automaticamente se meals foram atualizados
+          let calculatedTotals = {};
+          if (updates.meals !== undefined) {
+            const totalCalories = updatedMeals.reduce(
+              (sum: number, meal: any) => sum + (meal.calories || 0),
+              0
+            );
+            const totalProtein = updatedMeals.reduce(
+              (sum: number, meal: any) => sum + (meal.protein || 0),
+              0
+            );
+            const totalCarbs = updatedMeals.reduce(
+              (sum: number, meal: any) => sum + (meal.carbs || 0),
+              0
+            );
+            const totalFats = updatedMeals.reduce(
+              (sum: number, meal: any) => sum + (meal.fats || 0),
+              0
+            );
+
+            calculatedTotals = {
+              totalCalories,
+              totalProtein,
+              totalCarbs,
+              totalFats,
+            };
+          }
+
           updatedNutrition = {
-            ...state.data.dailyNutrition,
+            ...currentNutrition,
             ...updates,
+            ...calculatedTotals, // Sobrescrever totais calculados se meals foram atualizados
           };
+
           return {
             data: {
               ...state.data,
@@ -533,28 +619,31 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           // Formatar dados para API (formato esperado: { date, meals, waterIntake })
           const apiPayload = {
-            date: updatedNutrition.date || new Date().toISOString().split("T")[0],
-            meals: (updatedNutrition.meals || []).map((meal: any, index: number) => ({
-              name: meal.name,
-              type: meal.type,
-              calories: meal.calories || 0,
-              protein: meal.protein || 0,
-              carbs: meal.carbs || 0,
-              fats: meal.fats || 0,
-              time: meal.time || null,
-              completed: meal.completed || false,
-              order: index,
-              foods: (meal.foods || []).map((food: any) => ({
-                foodId: food.foodId || null,
-                foodName: food.foodName,
-                servings: food.servings || 1,
-                calories: food.calories || 0,
-                protein: food.protein || 0,
-                carbs: food.carbs || 0,
-                fats: food.fats || 0,
-                servingSize: food.servingSize || "100g",
-              })),
-            })),
+            date:
+              updatedNutrition.date || new Date().toISOString().split("T")[0],
+            meals: (updatedNutrition.meals || []).map(
+              (meal: any, index: number) => ({
+                name: meal.name,
+                type: meal.type,
+                calories: meal.calories || 0,
+                protein: meal.protein || 0,
+                carbs: meal.carbs || 0,
+                fats: meal.fats || 0,
+                time: meal.time || null,
+                completed: meal.completed || false,
+                order: index,
+                foods: (meal.foods || []).map((food: any) => ({
+                  foodId: food.foodId || null,
+                  foodName: food.foodName,
+                  servings: food.servings || 1,
+                  calories: food.calories || 0,
+                  protein: food.protein || 0,
+                  carbs: food.carbs || 0,
+                  fats: food.fats || 0,
+                  servingSize: food.servingSize || "100g",
+                })),
+              })
+            ),
             waterIntake: updatedNutrition.waterIntake || 0,
           };
 
@@ -686,4 +775,3 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
     }
   )
 );
-

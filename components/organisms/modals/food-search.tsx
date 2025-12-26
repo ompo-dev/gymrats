@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { mockFoodDatabase } from "@/lib/mock-data";
 import type { FoodItem, Meal } from "@/lib/types";
 import { Search, Plus, Minus } from "lucide-react";
@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { Button } from "@/components/atoms/buttons/button";
 import { cn } from "@/lib/utils";
+import { useStudent } from "@/hooks/use-student";
 
 interface FoodSearchProps {
   onAddFood: (
@@ -50,8 +51,6 @@ export function FoodSearch({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
   const [foodServings, setFoodServings] = useState<Record<string, number>>({});
-  const [foods, setFoods] = useState<FoodItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Se selectedMealId está definido, não permite seleção múltipla - adiciona direto naquela refeição
   const isSpecificMeal = !!selectedMealId;
@@ -59,42 +58,32 @@ export function FoodSearch({
     selectedMealId ? new Set([selectedMealId]) : new Set()
   );
 
-  // Buscar alimentos do backend usando axios (API → Component)
-  useEffect(() => {
-    const searchFoods = async () => {
-      if (searchQuery.length < 2) {
-        // Se query muito curta, usar mock ou lista vazia
-        setFoods([]);
-        return;
-      }
+  // Usar alimentos do store unificado (API → Zustand → Component)
+  const { foodDatabase: storeFoodDatabase } = useStudent("foodDatabase");
 
-      try {
-        setIsLoading(true);
-        // Usar axios client para buscar alimentos
-        const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{ foods: any[] }>(
-          `/api/foods/search?q=${encodeURIComponent(searchQuery)}&limit=20`
-        );
-        setFoods(response.data.foods || []);
-      } catch (error) {
-        console.error("Erro ao buscar alimentos:", error);
-        // Fallback para mock
-        const filtered = mockFoodDatabase.filter((food) =>
-          food.name.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setFoods(filtered);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Filtrar e ordenar alimentos do store baseado na busca (filtro local)
+  const foods = useMemo(() => {
+    // Usar alimentos do store ou fallback para mock
+    const allFoods =
+      storeFoodDatabase && storeFoodDatabase.length > 0
+        ? storeFoodDatabase
+        : mockFoodDatabase;
 
-    // Debounce da busca
-    const timeoutId = setTimeout(() => {
-      searchFoods();
-    }, 300);
+    // Se não tiver query, retornar todos ordenados alfabeticamente
+    if (!searchQuery || searchQuery.trim().length === 0) {
+      return [...allFoods].sort((a: FoodItem, b: FoodItem) =>
+        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
+      );
+    }
 
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+    // Se tiver query, filtrar e ordenar
+    const query = searchQuery.toLowerCase().trim();
+    return allFoods
+      .filter((food: FoodItem) => food.name.toLowerCase().includes(query))
+      .sort((a: FoodItem, b: FoodItem) =>
+        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
+      );
+  }, [searchQuery, storeFoodDatabase]);
 
   const filteredFoods = foods;
 
@@ -151,10 +140,10 @@ export function FoodSearch({
       const foodsToAdd = selectedFoodIds
         .map((foodId) => {
           // Primeiro tentar encontrar no array foods (do backend)
-          let food = foods.find((f) => f.id === foodId);
+          let food = foods.find((f: FoodItem) => f.id === foodId);
           // Se não encontrar, tentar no mock
           if (!food) {
-            food = mockFoodDatabase.find((f) => f.id === foodId);
+            food = mockFoodDatabase.find((f: FoodItem) => f.id === foodId);
           }
           if (!food) return null;
           return {
@@ -193,7 +182,7 @@ export function FoodSearch({
   const hasSelectedFoods = selectedFoodIds.length > 0;
 
   // Prepara opções para o OptionSelector
-  const foodOptions = filteredFoods.map((food) => ({
+  const foodOptions = filteredFoods.map((food: FoodItem) => ({
     value: food.id,
     label: food.name,
     description: `${food.calories} cal • P: ${food.protein}g • C: ${food.carbs}g • G: ${food.fats}g • ${food.servingSize}`,
@@ -359,23 +348,13 @@ export function FoodSearch({
             className="flex-1 overflow-y-auto p-6"
             style={{ maxHeight: "50vh" }}
           >
-            {isLoading ? (
+            {filteredFoods.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-8 text-center text-gray-600"
               >
-                Buscando alimentos...
-              </motion.div>
-            ) : filteredFoods.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="py-8 text-center text-gray-600"
-              >
-                {searchQuery.length < 2
-                  ? "Digite pelo menos 2 caracteres para buscar"
-                  : "Nenhum alimento encontrado"}
+                Nenhum alimento encontrado
               </motion.div>
             ) : (
               <OptionSelector
@@ -418,10 +397,12 @@ export function FoodSearch({
                     <AnimatePresence>
                       {selectedFoodIds.map((foodId, index) => {
                         // Primeiro tentar encontrar no array foods (do backend)
-                        let food = foods.find((f) => f.id === foodId);
+                        let food = foods.find((f: FoodItem) => f.id === foodId);
                         // Se não encontrar, tentar no mock
                         if (!food) {
-                          food = mockFoodDatabase.find((f) => f.id === foodId);
+                          food = mockFoodDatabase.find(
+                            (f: FoodItem) => f.id === foodId
+                          );
                         }
                         if (!food) return null;
                         const servings = foodServings[foodId] || 1;

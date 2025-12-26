@@ -2,7 +2,7 @@ import * as React from "react";
 import { ChevronDown, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { DuoCard } from "./duo-card";
-import { Button } from "./button";
+import { Button } from "@/components/atoms/buttons/button";
 import { cn } from "@/lib/utils";
 import type { MealFoodItem } from "@/lib/types";
 

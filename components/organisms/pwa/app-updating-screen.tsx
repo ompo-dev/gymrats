@@ -17,7 +17,7 @@ export function AppUpdatingScreen({ isVisible }: AppUpdatingScreenProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className={cn(
-        "fixed inset-0 z-9999 flex items-center justify-center",
+        "fixed inset-0 z-[9999] flex items-center justify-center",
         "bg-background backdrop-blur-3xl"
       )}
     >

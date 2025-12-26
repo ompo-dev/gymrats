@@ -2,7 +2,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Book, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Button } from "./button";
+import { Button } from "@/components/atoms/buttons/button";
 
 export interface UnitSectionCardProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {

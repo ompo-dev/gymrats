@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import type { FoodItem } from "@/lib/types";
 import type { DailyNutrition } from "@/lib/types/student-unified";
 
 export function useNutritionHandlers() {
-  // Usar hook unificado
-  const { dailyNutrition: storeNutrition } = useStudent("dailyNutrition");
+  // Usar hook unificado com seletor direto do Zustand para garantir reatividade
+  const storeNutrition = useStudent("dailyNutrition");
   const { updateNutrition } = useStudent("actions");
   
   // Fallback para dados iniciais se store ainda não carregou
-  const dailyNutrition = storeNutrition || {
+  // Usar useMemo para garantir que o objeto seja recriado quando storeNutrition mudar
+  const dailyNutrition = useMemo(() => storeNutrition || {
     date: new Date().toISOString().split("T")[0],
     meals: [],
     totalCalories: 0,
@@ -25,7 +26,7 @@ export function useNutritionHandlers() {
     targetCarbs: 250,
     targetFats: 65,
     targetWater: 2000,
-  };
+  }, [storeNutrition]);
   const { setShowFoodSearch } = useUIStore();
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMealModal, setShowAddMealModal] = useState(false);

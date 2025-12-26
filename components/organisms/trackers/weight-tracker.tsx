@@ -76,11 +76,18 @@ export function WeightTracker({
 
   // Finalizar exercício - filtrar séries vazias
   const handleFinish = () => {
+    console.log("🏋️ WeightTracker handleFinish CHAMADO:", {
+      exerciseName,
+      totalSets: sets.length,
+      validSets: sets.filter((set) => set.weight > 0 && set.reps > 0).length,
+    });
+
     // Filtrar apenas séries válidas (com peso E reps preenchidos)
     const validSets = sets.filter((set) => set.weight > 0 && set.reps > 0);
 
     // Se não houver nenhuma série válida, não permite finalizar
     if (validSets.length === 0) {
+      console.warn("⚠️ Nenhuma série válida! Não é possível finalizar.");
       return;
     }
 
@@ -100,6 +107,16 @@ export function WeightTracker({
       notes,
       difficulty: "ideal",
     };
+    console.log("🏋️ WeightTracker chamando onComplete:", {
+      exerciseName: log.exerciseName,
+      logId: log.id,
+      sets: log.sets.length,
+      setsDetails: log.sets.map((s) => ({
+        setNumber: s.setNumber,
+        weight: s.weight,
+        reps: s.reps,
+      })),
+    });
     onComplete(log);
   };
 

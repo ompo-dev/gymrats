@@ -65,9 +65,14 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Garantir que temos um objeto Error válido desde o início
+    const safeError = error instanceof Error 
+      ? error 
+      : new Error(String(error || "Erro desconhecido"));
+
     // Ignora erros relacionados à atualização do Service Worker
-    const errorMessage = error.message || "";
-    const errorStack = error.stack || "";
+    const errorMessage = safeError.message || "";
+    const errorStack = safeError.stack || "";
 
     if (
       errorMessage.includes("ServiceWorker") ||
@@ -79,33 +84,42 @@ export class ErrorBoundary extends Component<
       // Durante atualização do SW, apenas loga e não mostra tela de erro
       console.log(
         "ℹ️ Erro relacionado à atualização do Service Worker (ignorado):",
-        error.message
+        safeError.message
       );
       return;
     }
 
-    // Log completo do erro
-    const errorDetails = {
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-      componentStack: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      route: typeof window !== "undefined" ? window.location.pathname : "",
-      url: typeof window !== "undefined" ? window.location.href : "",
-      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
-      state: this.state,
-    };
+    // Log completo do erro - serializar de forma segura
+    try {
+      const errorDetails = {
+        error: {
+          name: safeError.name || "Unknown",
+          message: safeError.message || "Erro desconhecido",
+          stack: safeError.stack || "Stack trace não disponível",
+        },
+        componentStack: errorInfo?.componentStack || "Component stack não disponível",
+        timestamp: new Date().toISOString(),
+        route: typeof window !== "undefined" ? window.location.pathname : "",
+        url: typeof window !== "undefined" ? window.location.href : "",
+        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      };
 
-    console.error("🚨 Error Boundary capturou um erro:", errorDetails);
+      console.error("🚨 Error Boundary capturou um erro:", errorDetails);
+    } catch (serializationError) {
+      // Se houver erro ao serializar, logar de forma mais simples
+      console.error("🚨 Error Boundary capturou um erro (não serializável):", {
+        errorMessage: safeError.message || "Erro desconhecido",
+        errorName: safeError.name || "Error",
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // Atualiza o estado com informações completas
+
     this.setState({
-      error,
+      error: safeError,
       errorInfo,
-      componentStack: errorInfo.componentStack || "",
+      componentStack: errorInfo?.componentStack || "",
     });
 
     // Envia para um serviço de logging (opcional)
@@ -210,7 +224,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
         this.state;
 
       return (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-background p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

@@ -1,14 +1,40 @@
 "use client";
 
-import { NutritionTracker } from "../../../components/nutrition-tracker";
-import { FoodSearch } from "../../../components/food-search";
-import { AddMealModal } from "../../../components/add-meal-modal";
+import { useEffect } from "react";
+import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
+import { FoodSearch } from "@/components/organisms/modals/food-search";
+import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { Calendar, TrendingUp } from "lucide-react";
 import { useUIStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
+import { useStudent } from "@/hooks/use-student";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export function DietPage() {
+  // Carregar alimentos automaticamente ao entrar na página
+  const foodDatabase = useStudent("foodDatabase");
+  const store = useStudentUnifiedStore();
+
+  useEffect(() => {
+    // Carregar alimentos se não tiver no store ou se estiver vazio
+    if (!foodDatabase || foodDatabase.length === 0) {
+      // Acessar a função diretamente do store para evitar problemas com cache do HMR
+      const loadFoodDatabase = store.loadFoodDatabase;
+      
+      // Verificar se a função existe antes de chamar
+      if (loadFoodDatabase && typeof loadFoodDatabase === "function") {
+        loadFoodDatabase().catch((error) => {
+          console.error("Erro ao carregar alimentos:", error);
+        });
+      } else {
+        console.warn(
+          "⚠️ loadFoodDatabase não está disponível. O cache do HMR pode estar desatualizado. Tente reiniciar o servidor de desenvolvimento."
+        );
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [foodDatabase]);
   const {
     dailyNutrition,
     selectedMealId,
