@@ -1,6 +1,6 @@
 {
   "name": "gymrats",
-  "version": "6.2.5",
+  "version": "7.0.0",
   "private": true,
   "scripts": {
     "build": "npm run version:sync && prisma generate && next build",
@@ -60,6 +60,7 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
     "eslint-config-next": "^16.0.7",
+    "idb": "^8.0.3",
     "input-otp": "1.4.1",
     "json-server": "^1.0.0-beta.3",
     "lucide-react": "^0.454.0",

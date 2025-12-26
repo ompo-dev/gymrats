@@ -19,6 +19,7 @@ import { transformStudentData } from "@/lib/utils/student-transformers";
 import type { UserProgress, PersonalRecord, DailyNutrition } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { apiClient } from "@/lib/api/client";
+import { salvadorOff } from "@/lib/offline/salvador-off";
 
 // ============================================
 // INTERFACE DO STORE
@@ -454,18 +455,48 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           },
         }));
 
-        // Sync with backend em background usando axios
+        // Sync with backend usando salvadorOff (gerencia offline/online automaticamente)
         try {
-          await apiClient.put("/api/students/progress", updates);
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const result = await salvadorOff({
+            url: "/api/students/progress",
+            method: "PUT",
+            body: updates,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            priority: "high",
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, não reverte (será sincronizado depois)
+          if (result.queued) {
+            console.log(
+              "✅ Progresso salvo offline. Sincronizará quando online."
+            );
+            return;
+          }
         } catch (error: any) {
-          // Reverter em caso de erro
-          console.error("Erro ao atualizar progresso:", error);
-          set((state) => ({
-            data: {
-              ...state.data,
-              progress: previousProgress,
-            },
-          }));
+          // Reverter apenas se erro não for de rede (offline)
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (!isNetworkError) {
+            console.error("Erro ao atualizar progresso:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                progress: previousProgress,
+              },
+            }));
+          }
         }
       },
 
@@ -479,18 +510,44 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           },
         }));
 
-        // Sync with backend em background
+        // Sync with backend usando salvadorOff
         try {
-          await apiClient.post("/api/students/profile", updates);
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const result = await salvadorOff({
+            url: "/api/students/profile",
+            method: "POST",
+            body: updates,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            priority: "normal",
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          if (result.queued) {
+            console.log("✅ Perfil salvo offline. Sincronizará quando online.");
+            return;
+          }
         } catch (error: any) {
-          // Reverter em caso de erro
-          console.error("Erro ao atualizar perfil:", error);
-          set((state) => ({
-            data: {
-              ...state.data,
-              profile: previousProfile,
-            },
-          }));
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (!isNetworkError) {
+            console.error("Erro ao atualizar perfil:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                profile: previousProfile,
+              },
+            }));
+          }
         }
       },
 
@@ -515,26 +572,52 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           },
         }));
 
-        // Sync with backend em background
+        // Sync with backend usando salvadorOff
         try {
-          await apiClient.post("/api/students/weight", {
-            weight,
-            date: date.toISOString(),
-            notes,
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const result = await salvadorOff({
+            url: "/api/students/weight",
+            method: "POST",
+            body: {
+              weight,
+              date: date.toISOString(),
+              notes,
+            },
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            priority: "high",
           });
 
-          // Recarregar weightHistory para obter dados atualizados (incluindo weightGain)
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          if (result.queued) {
+            console.log("✅ Peso salvo offline. Sincronizará quando online.");
+            return;
+          }
+
+          // Se online e sucesso, recarregar weightHistory
           await get().loadWeightHistory();
         } catch (error: any) {
-          // Reverter em caso de erro
-          console.error("Erro ao adicionar peso:", error);
-          set((state) => ({
-            data: {
-              ...state.data,
-              weightHistory: previousWeightHistory,
-              profile: previousProfile,
-            },
-          }));
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (!isNetworkError) {
+            console.error("Erro ao adicionar peso:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                weightHistory: previousWeightHistory,
+                profile: previousProfile,
+              },
+            }));
+          }
         }
       },
 
@@ -627,7 +710,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           };
         });
 
-        // Sync with backend em background usando axios
+        // Sync with backend usando salvadorOff
         try {
           // Formatar dados para API (formato esperado: { date, meals, waterIntake })
           const apiPayload = {
@@ -659,23 +742,53 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             waterIntake: updatedNutrition.waterIntake || 0,
           };
 
-          await apiClient.post("/api/nutrition/daily", apiPayload);
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const result = await salvadorOff({
+            url: "/api/nutrition/daily",
+            method: "POST",
+            body: apiPayload,
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            priority: "normal",
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          if (result.queued) {
+            console.log(
+              "✅ Nutrição salva offline. Sincronizará quando online."
+            );
+            return;
+          }
         } catch (error: any) {
           // Se a migration não foi aplicada, não mostrar erro
           if (error.response?.data?.code === "MIGRATION_REQUIRED") {
             console.log(
               "⚠️ Tabela de nutrição não existe. Execute: node scripts/apply-nutrition-migration.js"
             );
-            return; // Não tentar sincronizar se a migration não foi aplicada
+            return;
           }
-          console.error("Erro ao atualizar nutrição:", error);
-          // Reverter mudança otimista em caso de erro
-          set((state) => ({
-            data: {
-              ...state.data,
-              dailyNutrition: previousNutrition,
-            },
-          }));
+
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (!isNetworkError) {
+            console.error("Erro ao atualizar nutrição:", error);
+            // Reverter mudança otimista em caso de erro
+            set((state) => ({
+              data: {
+                ...state.data,
+                dailyNutrition: previousNutrition,
+              },
+            }));
+          }
         }
       },
 
