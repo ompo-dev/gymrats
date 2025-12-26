@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { parseAsString, useQueryState } from "nuqs";
+import { useModalState } from "@/hooks/use-modal-state";
 import {
   CreditCard,
   DollarSign,
@@ -99,7 +100,7 @@ export function StudentPaymentsPage({
     includeDaysRemaining: true,
     includeTrialInfo: true,
   });
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const cancelDialogModal = useModalState("cancel-subscription");
 
   const [activeTab, setActiveTab] = useState<
     "memberships" | "payments" | "methods" | "subscription"
@@ -319,11 +320,11 @@ export function StudentPaymentsPage({
   };
 
   const handleCancelClick = () => {
-    setShowCancelDialog(true);
+    cancelDialogModal.open();
   };
 
   const handleCancelConfirm = async () => {
-    setShowCancelDialog(false);
+    cancelDialogModal.close();
     // O hook já faz o update otimista no Zustand e React Query antes de chamar o backend
     // A UI já está atualizada instantaneamente
     try {
@@ -680,8 +681,14 @@ export function StudentPaymentsPage({
       )}
 
       <SubscriptionCancelDialog
-        open={showCancelDialog}
-        onOpenChange={setShowCancelDialog}
+        open={cancelDialogModal.isOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            cancelDialogModal.open();
+          } else {
+            cancelDialogModal.close();
+          }
+        }}
         onConfirm={handleCancelConfirm}
         isTrial={!!isTrialActive}
         isLoading={isCancelingSubscription}

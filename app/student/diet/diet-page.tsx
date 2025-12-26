@@ -5,16 +5,20 @@ import { NutritionTracker } from "@/components/organisms/trackers/nutrition-trac
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { Calendar, TrendingUp } from "lucide-react";
-import { useUIStore } from "@/stores";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 import { useStudent } from "@/hooks/use-student";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 
 export function DietPage() {
   // Carregar alimentos automaticamente ao entrar na página
   const foodDatabase = useStudent("foodDatabase");
   const store = useStudentUnifiedStore();
+
+  // Modais controlados por search params
+  const addMealModal = useModalState("add-meal");
+  const foodSearchModal = useModalStateWithParam("food-search", "mealId");
 
   useEffect(() => {
     // Carregar alimentos se não tiver no store ou se estiver vazio
@@ -38,19 +42,38 @@ export function DietPage() {
   const {
     dailyNutrition,
     selectedMealId,
-    showAddMealModal,
-    setShowAddMealModal,
     handleMealComplete,
     handleAddFoodToMeal,
     handleAddFood,
     handleToggleWaterGlass,
-    handleCloseFoodSearch,
     handleAddMealSubmit,
     setSelectedMealId,
     removeMeal,
     removeFoodFromMeal,
   } = useNutritionHandlers();
-  const { showFoodSearch } = useUIStore();
+
+  // Sincronizar selectedMealId com search param
+  useEffect(() => {
+    if (selectedMealId && !foodSearchModal.paramValue) {
+      foodSearchModal.setParamValue(selectedMealId);
+    }
+  }, [selectedMealId, foodSearchModal]);
+
+  // Handler para abrir food search com mealId
+  const handleOpenFoodSearch = (mealId?: string) => {
+    if (mealId) {
+      setSelectedMealId(mealId);
+      foodSearchModal.open(mealId);
+    } else {
+      foodSearchModal.open();
+    }
+  };
+
+  // Handler para fechar food search
+  const handleCloseFoodSearch = () => {
+    foodSearchModal.close();
+    setSelectedMealId(null);
+  };
 
   const completedMeals = dailyNutrition.meals.filter((m) => m.completed).length;
   const totalMeals = dailyNutrition.meals.length;
@@ -85,27 +108,33 @@ export function DietPage() {
       <NutritionTracker
         nutrition={dailyNutrition}
         onMealComplete={handleMealComplete}
-        onAddMeal={() => setShowAddMealModal(true)}
-        onAddFoodToMeal={handleAddFoodToMeal}
+        onAddMeal={addMealModal.open}
+        onAddFoodToMeal={handleOpenFoodSearch}
         onDeleteMeal={removeMeal}
         onDeleteFood={removeFoodFromMeal}
         onToggleWaterGlass={handleToggleWaterGlass}
       />
 
-      {showAddMealModal && (
+      {addMealModal.isOpen && (
         <AddMealModal
-          onClose={() => setShowAddMealModal(false)}
-          onAddMeal={handleAddMealSubmit}
+          onClose={addMealModal.close}
+          onAddMeal={(mealsData) => {
+            handleAddMealSubmit(mealsData);
+            addMealModal.close();
+          }}
         />
       )}
 
-      {showFoodSearch && (
+      {foodSearchModal.isOpen && (
         <FoodSearch
           onAddFood={handleAddFood}
           onClose={handleCloseFoodSearch}
-          selectedMealId={selectedMealId}
+          selectedMealId={foodSearchModal.paramValue || selectedMealId}
           meals={dailyNutrition.meals}
-          onSelectMeal={setSelectedMealId}
+          onSelectMeal={(mealId) => {
+            setSelectedMealId(mealId);
+            foodSearchModal.setParamValue(mealId);
+          }}
         />
       )}
     </div>

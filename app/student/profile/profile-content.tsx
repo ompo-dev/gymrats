@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { getUserInfoFromStorage } from "@/lib/utils/user-info";
 import { useEffect, useState } from "react";
 import { useStudent } from "@/hooks/use-student";
+import { useModalState } from "@/hooks/use-modal-state";
 
 interface WeightHistoryItem {
   date: Date | string;
@@ -65,7 +66,7 @@ export function ProfilePageContent({
 }: ProfilePageContentProps) {
   const router = useRouter();
   const [actualIsAdmin, setActualIsAdmin] = useState(false);
-  const [isWeightModalOpen, setIsWeightModalOpen] = useState(false);
+  const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
 
   // Usar hook unificado
@@ -161,7 +162,7 @@ export function ProfilePageContent({
 
   const handleOpenWeightModal = () => {
     setNewWeight(localCurrentWeight?.toFixed(1) || "");
-    setIsWeightModalOpen(true);
+    weightModal.open();
   };
 
   const handleSaveWeight = async () => {
@@ -173,7 +174,7 @@ export function ProfilePageContent({
     }
 
     // Fechar modal imediatamente
-    setIsWeightModalOpen(false);
+    weightModal.close();
     setNewWeight("");
 
     // Usar action do store (já faz optimistic update e sync)
@@ -434,14 +435,14 @@ export function ProfilePageContent({
 
       {/* Modal para editar peso */}
       <AnimatePresence>
-        {isWeightModalOpen && (
+        {weightModal.isOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
-            onClick={() => setIsWeightModalOpen(false)}
+            onClick={weightModal.close}
           >
             <motion.div
               initial={{ y: "100%", opacity: 0 }}
@@ -469,7 +470,7 @@ export function ProfilePageContent({
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsWeightModalOpen(false)}
+                    onClick={weightModal.close}
                     className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
                   >
                     <X className="h-5 w-5" />
@@ -563,7 +564,7 @@ export function ProfilePageContent({
                 >
                   <div className="flex gap-3">
                     <Button
-                      onClick={() => setIsWeightModalOpen(false)}
+                      onClick={weightModal.close}
                       variant="white"
                       className="flex-1"
                     >

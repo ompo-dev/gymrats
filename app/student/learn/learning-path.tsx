@@ -11,6 +11,8 @@ import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
 import { UnitSectionCard } from "../../../components/ui/unit-section-card";
 import { useRouter } from "next/navigation";
+import { useModalStateWithParam } from "@/hooks/use-modal-state";
+import { parseAsInteger, useQueryState } from "nuqs";
 
 // Store simples para armazenar units carregadas (para uso no modal)
 let cachedUnits: Unit[] = [];
@@ -28,8 +30,11 @@ interface LearningPathProps {
 
 export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
   const router = useRouter();
-  const openWorkout = useWorkoutStore((state) => state.openWorkout);
-  const openWorkoutId = useWorkoutStore((state) => state.openWorkoutId);
+  const workoutModal = useModalStateWithParam("workout", "workoutId");
+  const [, setExerciseIndexParam] = useQueryState(
+    "exerciseIndex",
+    parseAsInteger
+  );
 
   // Usar hook unificado para units
   const { units: storeUnits } = useStudent("units");
@@ -91,13 +96,15 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
   const handleWorkoutClick = (
     workoutId: string,
     locked: boolean,
-    workoutType?: string
+    workoutType?: string,
+    exerciseIndex?: number
   ) => {
     // Debug: verificar se está bloqueado
     console.log("[DEBUG] handleWorkoutClick:", {
       workoutId,
       locked,
       workoutType,
+      exerciseIndex,
     });
 
     if (locked) {
@@ -109,16 +116,22 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
 
     // Para qualquer tipo de treino (cardio ou strength), abre o modal
     // O modal correto será renderizado baseado no tipo
-    if (openWorkoutId === workoutId) {
+    if (workoutModal.paramValue === workoutId) {
       // Se já está aberto, fechar primeiro e depois reabrir
-      openWorkout(null);
+      workoutModal.close();
       // Usar setTimeout para garantir que o estado seja atualizado
       setTimeout(() => {
-        openWorkout(workoutId);
+        workoutModal.open(workoutId);
+        if (exerciseIndex !== undefined) {
+          setExerciseIndexParam(exerciseIndex);
+        }
         onLessonSelect(workoutId);
       }, 0);
     } else {
-      openWorkout(workoutId);
+      workoutModal.open(workoutId);
+      if (exerciseIndex !== undefined) {
+        setExerciseIndexParam(exerciseIndex);
+      }
       onLessonSelect(workoutId);
     }
   };

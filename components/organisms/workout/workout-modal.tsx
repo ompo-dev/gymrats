@@ -36,11 +36,72 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import { useRouter } from "next/navigation";
+import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
+import { parseAsInteger, useQueryState } from "nuqs";
 
 export function WorkoutModal() {
   const router = useRouter();
-  const openWorkoutId = useWorkoutStore((state) => state.openWorkoutId);
+  const workoutModal = useModalStateWithParam("workout", "workoutId");
+  const openWorkoutId = workoutModal.paramValue;
+  const [exerciseIndexParam, setExerciseIndexParam] = useQueryState(
+    "exerciseIndex",
+    parseAsInteger
+  );
   const activeWorkout = useWorkoutStore((state) => state.activeWorkout);
+
+  // Estado para forçar re-render quando workout for encontrado
+  const [, forceUpdate] = useState(0);
+
+  // Se há workoutId na URL mas modal não está aberto, abrir automaticamente
+  // OU se modal=workout está na URL mas não há workoutId, garantir que workoutId está presente
+  useEffect(() => {
+    if (openWorkoutId && !workoutModal.isOpen) {
+      // Adicionar modal=workout à URL se não estiver presente
+      workoutModal.open(openWorkoutId);
+    } else if (workoutModal.isOpen && !openWorkoutId) {
+      // Se modal está aberto mas não tem workoutId, fechar o modal
+      workoutModal.close();
+    }
+  }, [openWorkoutId, workoutModal]);
+
+  // Buscar workout das units carregadas (do backend) ou do mock como fallback
+  const findWorkoutInUnits = (workoutId: string) => {
+    // Importar dinamicamente para evitar circular dependency
+    try {
+      const { getCachedUnits } = require("@/app/student/learn/learning-path");
+      const cachedUnits = getCachedUnits() as Unit[];
+      for (const unit of cachedUnits) {
+        const workout = unit.workouts.find(
+          (w: WorkoutSession) => w.id === workoutId
+        );
+        if (workout) return workout;
+      }
+    } catch (e) {
+      // Ignorar se não conseguir importar
+    }
+    return null;
+  };
+
+  const workoutBase = openWorkoutId
+    ? findWorkoutInUnits(openWorkoutId) ||
+      mockWorkouts.find((w) => w.id === openWorkoutId)
+    : null;
+
+  // Tentar buscar workout periodicamente se não foi encontrado ainda
+  useEffect(() => {
+    if (openWorkoutId && !workoutBase) {
+      // Tentar buscar novamente após um pequeno delay
+      const timer = setTimeout(() => {
+        const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
+          mockWorkouts.find((w) => w.id === openWorkoutId);
+        if (retryWorkout) {
+          forceUpdate((prev) => prev + 1);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [openWorkoutId, workoutBase]);
   const {
     setActiveWorkout,
     setCurrentExerciseIndex,
@@ -69,10 +130,14 @@ export function WorkoutModal() {
       });
     }
   };
-  const { showWeightTracker, setShowWeightTracker } = useUIStore();
+  // Sub-modais controlados por search params
+  const weightTrackerModal = useModalState("weight-tracker");
+  const alternativeSelectorModal = useModalState("alternative-selector");
+  const cardioConfigModal = useModalState("cardio-config");
   const [showCompletion, setShowCompletion] = useState(false);
-  const [showAlternativeSelector, setShowAlternativeSelector] = useState(false);
-  const [showCardioConfig, setShowCardioConfig] = useState(false);
+  
+  // Manter compatibilidade com UIStore temporariamente
+  const { showWeightTracker } = useUIStore();
 
   // Estados específicos de cardio
   const [isRunning, setIsRunning] = useState(false);
@@ -90,29 +155,6 @@ export function WorkoutModal() {
     avgHeartRate?: number;
     skippedExercises?: string[]; // IDs dos exercícios pulados
   } | null>(null);
-
-  // Buscar workout das units carregadas (do backend) ou do mock como fallback
-  const findWorkoutInUnits = (workoutId: string) => {
-    // Importar dinamicamente para evitar circular dependency
-    try {
-      const { getCachedUnits } = require("@/app/student/learn/learning-path");
-      const cachedUnits = getCachedUnits() as Unit[];
-      for (const unit of cachedUnits) {
-        const workout = unit.workouts.find(
-          (w: WorkoutSession) => w.id === workoutId
-        );
-        if (workout) return workout;
-      }
-    } catch (e) {
-      // Ignorar se não conseguir importar
-    }
-    return null;
-  };
-
-  const workoutBase = openWorkoutId
-    ? findWorkoutInUnits(openWorkoutId) ||
-      mockWorkouts.find((w) => w.id === openWorkoutId)
-    : null;
 
   // Função para criar exercícios de cardio baseado na duração
   const createCardioExercises = (duration: number): WorkoutExercise[] => {
@@ -234,22 +276,67 @@ export function WorkoutModal() {
       })()
     : null;
 
-  // Inicializar workout quando abrir
+  // Inicializar workout quando abrir ou quando workoutId mudar
   useEffect(() => {
-    if (!workout || !openWorkoutId) {
+    // Se não tem workoutId, limpar tudo
+    if (!openWorkoutId) {
       setActiveWorkout(null);
       setShowCompletion(false);
-      setShowWeightTracker(false);
+      weightTrackerModal.close();
       setIsRunning(false);
       setElapsedTime(0);
       setCalories(0);
-      setShowCardioConfig(false);
+      cardioConfigModal.close();
+      // Limpar exerciseIndex da URL
+      setExerciseIndexParam(null);
+      return;
+    }
+
+    // Se tem workoutId mas não tem workout ainda, tentar buscar novamente
+    if (!workout) {
+      // Tentar buscar o workout (pode estar carregando)
+      const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
+        mockWorkouts.find((w) => w.id === openWorkoutId);
+      
+      // Se ainda não encontrou, aguardar próximo render (workout pode estar carregando)
+      if (!retryWorkout) {
+        return;
+      }
+      
+      // Se encontrou, usar esse workout para inicializar
+      // Mas não podemos modificar workout aqui, então vamos continuar
+      // O workout será recalculado no próximo render
+    }
+
+    // Se não tem workout ainda após tentar buscar, aguardar e tentar novamente
+    if (!workout) {
+      // Se modal está aberto, tentar buscar novamente após um delay
+      // Isso é útil quando acessado diretamente pela URL e as units ainda não foram carregadas
+      if (workoutModal.isOpen) {
+        // Tentar buscar novamente após um delay
+        const retryTimer = setTimeout(() => {
+          const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
+            mockWorkouts.find((w) => w.id === openWorkoutId);
+          
+          if (retryWorkout) {
+            // Se encontrou, forçar re-render para inicializar
+            forceUpdate((prev) => prev + 1);
+          } else {
+            // Se ainda não encontrou, tentar mais uma vez após outro delay
+            const secondRetryTimer = setTimeout(() => {
+              forceUpdate((prev) => prev + 1);
+            }, 1000);
+            return () => clearTimeout(secondRetryTimer);
+          }
+        }, 500);
+        return () => clearTimeout(retryTimer);
+      }
       return;
     }
 
     // Sempre resetar tela de conclusão quando abrir
     setShowCompletion(false);
-    setShowWeightTracker(false);
+    weightTrackerModal.close();
     setCompletedWorkoutData(null);
     setIsRunning(false);
     setElapsedTime(0);
@@ -259,17 +346,28 @@ export function WorkoutModal() {
     const savedProgress = loadWorkoutProgress(workout.id);
     const isCompleted = isWorkoutCompleted(workout.id);
 
+    // Determinar índice inicial do exercício
+    // Prioridade: 1) exerciseIndex da URL, 2) progresso salvo, 3) 0
+    let initialExerciseIndex = 0;
+    if (exerciseIndexParam !== null && exerciseIndexParam !== undefined) {
+      // Se há exerciseIndex na URL, usar ele (validar se está dentro do range)
+      initialExerciseIndex = Math.max(
+        0,
+        Math.min(exerciseIndexParam, workout.exercises.length - 1)
+      );
+    } else if (savedProgress && !isCompleted) {
+      // Se não há exerciseIndex na URL mas tem progresso salvo, usar o índice salvo
+      initialExerciseIndex = savedProgress.currentExerciseIndex;
+    }
+
     // Inicializar workout com dados salvos se existirem
     if (savedProgress) {
       // Restaurar workout completo com todos os dados salvos
-      // Se o workout estava completo, resetar o índice para o início para permitir refazer
-      // Caso contrário, manter o índice salvo para continuar de onde parou
+      // Usar o índice determinado acima (da URL ou salvo)
       useWorkoutStore.setState({
         activeWorkout: {
           workoutId: workout.id,
-          currentExerciseIndex: isCompleted
-            ? 0
-            : savedProgress.currentExerciseIndex,
+          currentExerciseIndex: initialExerciseIndex,
           exerciseLogs: savedProgress.exerciseLogs || [],
           skippedExercises: savedProgress.skippedExercises || [],
           xpEarned: savedProgress.xpEarned || 0,
@@ -284,24 +382,27 @@ export function WorkoutModal() {
         },
       });
       // Se tem progresso salvo mas não tem preferência de cardio configurada E é treino de força
-      // Mostrar config de cardio
+      // Mostrar config de cardio (apenas se estiver no primeiro exercício)
       if (
         workout.type === "strength" &&
         !savedProgress.cardioPreference &&
-        savedProgress.currentExerciseIndex === 0
+        initialExerciseIndex === 0
       ) {
-        setShowCardioConfig(true);
+        cardioConfigModal.open();
       } else {
-        setShowCardioConfig(false);
+        cardioConfigModal.close();
       }
     } else {
-      // Inicializar workout novo
+      // Inicializar workout novo com o índice da URL se disponível
       setActiveWorkout(workout);
+      if (initialExerciseIndex > 0) {
+        setCurrentExerciseIndex(initialExerciseIndex);
+      }
       // Mostrar tela de configuração de cardio apenas para treinos de força
       if (workout.type === "strength") {
-        setShowCardioConfig(true);
+        cardioConfigModal.open();
       } else {
-        setShowCardioConfig(false);
+        cardioConfigModal.close();
       }
     }
 
@@ -312,7 +413,7 @@ export function WorkoutModal() {
       // O progresso é salvo explicitamente em handleClose()
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openWorkoutId]);
+  }, [openWorkoutId, exerciseIndexParam]);
 
   // Cronômetro para exercícios de cardio
   useEffect(() => {
@@ -382,19 +483,73 @@ export function WorkoutModal() {
     }
   }, [workout, activeWorkout, activeWorkout?.currentExerciseIndex]);
 
-  // Não renderizar nada se não houver workout aberto
+  // Não renderizar nada se não houver workoutId na URL ou se modal não está aberto
   // Mas permitir renderizar se estiver mostrando a tela de conclusão
-  if (!openWorkoutId || !workout) {
+  // Verificar se modal está aberto OU se há workoutId na URL (para abrir automaticamente)
+  const shouldRender = workoutModal.isOpen || openWorkoutId;
+  if (!shouldRender) {
     return null;
   }
 
-  // Se não está mostrando conclusão e não tem activeWorkout, não renderizar
+  // Se modal está aberto mas não tem workoutId, não renderizar
+  if (workoutModal.isOpen && !openWorkoutId) {
+    return null;
+  }
+
+  // Aplicar preferência de cardio ao workout (definir workout antes de usar)
+  // Usar workout já definido acima (linha 247)
+  // Se não tem workout ainda mas tem workoutId, tentar buscar novamente
+  // Isso pode acontecer se as units ainda não foram carregadas
+  // MAS: se modal está aberto, renderizar mesmo sem workout (mostrar loading)
+  if (!workout && openWorkoutId && !workoutModal.isOpen) {
+    // Se não tem modal=workout na URL, não renderizar até ter workout
+    return null;
+  }
+
+  // Se não está mostrando conclusão e não tem activeWorkout, verificar se tem workoutId
+  // Se tem workoutId, aguardar inicialização (não retornar null imediatamente)
   if (!showCompletion && !activeWorkout) {
+    // Se não tem workoutId, não renderizar
+    if (!openWorkoutId) {
+      return null;
+    }
+    // Se tem workoutId mas não tem workout ainda E modal está aberto, renderizar (mostrar loading)
+    // Se modal não está aberto, aguardar workout antes de renderizar
+    if (!workout && !workoutModal.isOpen) {
+      return null;
+    }
+  }
+
+  // Se não tem workout, mas modal está aberto, aguardar carregamento
+  // Se modal não está aberto e não tem workout, não renderizar
+  if (!workout) {
+    // Se modal está aberto, renderizar um loading ou aguardar
+    // O useEffect vai tentar buscar o workout
+    if (workoutModal.isOpen && openWorkoutId) {
+      // Renderizar um estado de loading enquanto busca o workout
+      // Isso permite que o modal seja visível mesmo quando o workout ainda não foi encontrado
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-xl bg-white p-8">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-blue border-t-transparent" />
+              <p className="text-sm text-duo-gray-dark">Carregando treino...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  // Verificar se workout tem exercises antes de continuar
+  if (!workout.exercises || workout.exercises.length === 0) {
     return null;
   }
 
   // Se está mostrando conclusão, não precisa do currentExercise
-  const currentExercise = activeWorkout
+  // Verificar se workout existe antes de acessar exercises
+  const currentExercise = activeWorkout && workout && workout.exercises
     ? workout.exercises[activeWorkout.currentExerciseIndex]
     : null;
 
@@ -419,8 +574,8 @@ export function WorkoutModal() {
       saveWorkoutProgress(workout.id);
     }
     // Fechar modal e navegar
-    setShowAlternativeSelector(false);
-    openWorkout(null);
+    alternativeSelectorModal.close();
+    workoutModal.close();
     router.push(`/student?tab=education&exercise=${educationalId}`);
   };
 
@@ -430,7 +585,7 @@ export function WorkoutModal() {
     alternativeId?: string
   ) => {
     selectAlternative(exerciseId, alternativeId);
-    setShowAlternativeSelector(false);
+    alternativeSelectorModal.close();
     if (workout) {
       saveWorkoutProgress(workout.id);
     }
@@ -699,7 +854,10 @@ export function WorkoutModal() {
         exerciseLogsCount: activeWorkout.exerciseLogs.length,
       });
       if (activeWorkout) {
-        setCurrentExerciseIndex(activeWorkout.currentExerciseIndex + 1);
+        const newIndex = activeWorkout.currentExerciseIndex + 1;
+        setCurrentExerciseIndex(newIndex);
+        // Sincronizar exerciseIndex na URL
+        setExerciseIndexParam(newIndex);
       }
       // Salvar progresso após avançar
       saveWorkoutProgress(workout.id);
@@ -1131,7 +1289,10 @@ export function WorkoutModal() {
       setShowCompletion(true);
     } else {
       // Avançar para próximo exercício
-      setCurrentExerciseIndex(updatedWorkout.currentExerciseIndex + 1);
+      const newIndex = updatedWorkout.currentExerciseIndex + 1;
+      setCurrentExerciseIndex(newIndex);
+      // Sincronizar exerciseIndex na URL
+      setExerciseIndexParam(newIndex);
       // Salvar progresso após avançar
       saveWorkoutProgress(workout.id);
     }
@@ -1140,10 +1301,12 @@ export function WorkoutModal() {
   const handleClose = () => {
     // Se está na tela de config de cardio e o usuário fechar sem escolher
     // Não salvar progresso para que a tela apareça novamente
-    if (showCardioConfig) {
-      openWorkout(null);
-      setShowCardioConfig(false);
+    if (cardioConfigModal.isOpen) {
+      workoutModal.close();
+      cardioConfigModal.close();
       setActiveWorkout(null);
+      // Limpar exerciseIndex da URL
+      setExerciseIndexParam(null);
       return;
     }
 
@@ -1152,13 +1315,15 @@ export function WorkoutModal() {
       saveWorkoutProgress(workout.id);
     }
     // Fechar modal
-    openWorkout(null);
+    workoutModal.close();
     setShowCompletion(false);
-    setShowWeightTracker(false);
+    weightTrackerModal.close();
+    // Limpar exerciseIndex da URL
+    setExerciseIndexParam(null);
   };
 
   // Tela de Configuração de Cardio
-  if (showCardioConfig && workout && activeWorkout) {
+  if (cardioConfigModal.isOpen && workout && activeWorkout) {
     return (
       <AnimatePresence>
         <motion.div
@@ -1205,7 +1370,7 @@ export function WorkoutModal() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   setCardioPreference("none", undefined);
-                  setShowCardioConfig(false);
+                  cardioConfigModal.close();
                 }}
                 className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
               >
@@ -1235,7 +1400,7 @@ export function WorkoutModal() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setCardioPreference("before", duration);
-                        setShowCardioConfig(false);
+                        cardioConfigModal.close();
                       }}
                       className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
                     >
@@ -1261,7 +1426,7 @@ export function WorkoutModal() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         setCardioPreference("after", duration);
-                        setShowCardioConfig(false);
+                        cardioConfigModal.close();
                       }}
                       className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
                     >
@@ -1600,7 +1765,7 @@ export function WorkoutModal() {
     );
   }
 
-  if (showWeightTracker) {
+  if (weightTrackerModal.isOpen) {
     return (
       <AnimatePresence>
         <motion.div
@@ -1612,7 +1777,7 @@ export function WorkoutModal() {
           <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <button
-                onClick={() => setShowWeightTracker(false)}
+                onClick={weightTrackerModal.close}
                 className="rounded-xl p-2 transition-colors hover:bg-gray-100"
               >
                 <X className="h-6 w-6 text-duo-gray-dark" />
@@ -1888,7 +2053,7 @@ export function WorkoutModal() {
                       <motion.button
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setShowWeightTracker(true)}
+                        onClick={weightTrackerModal.open}
                         className="duo-button-green w-full flex items-center justify-center gap-2 text-sm sm:text-base lg:text-lg py-3 sm:py-4"
                       >
                         <Weight className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -1906,7 +2071,7 @@ export function WorkoutModal() {
                       onClick={() => {
                         console.log("👆 Clicou em VER ALTERNATIVAS");
                         console.log("currentExercise:", currentExercise);
-                        setShowAlternativeSelector(true);
+                        alternativeSelectorModal.open();
                       }}
                       className="w-full rounded-xl sm:rounded-2xl border-2 border-duo-blue bg-duo-blue/10 py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-blue transition-all hover:bg-duo-blue/20 flex items-center justify-center gap-2"
                     >
@@ -1942,9 +2107,10 @@ export function WorkoutModal() {
                             whileTap={{ scale: 0.98 }}
                             onClick={() => {
                               if (activeWorkout) {
-                                setCurrentExerciseIndex(
-                                  activeWorkout.currentExerciseIndex - 1
-                                );
+                                const newIndex = activeWorkout.currentExerciseIndex - 1;
+                                setCurrentExerciseIndex(newIndex);
+                                // Sincronizar exerciseIndex na URL
+                                setExerciseIndexParam(newIndex);
                                 saveWorkoutProgress(workout.id);
                               }
                             }}
@@ -1979,11 +2145,11 @@ export function WorkoutModal() {
 
           {/* Alternative Selector Modal */}
           <AnimatePresence>
-            {showAlternativeSelector && currentExercise && (
+            {alternativeSelectorModal.isOpen && currentExercise && (
               <ExerciseAlternativeSelector
                 exercise={currentExercise}
                 onSelect={handleSelectAlternative}
-                onCancel={() => setShowAlternativeSelector(false)}
+                onCancel={alternativeSelectorModal.close}
                 onViewEducation={handleViewEducation}
               />
             )}
