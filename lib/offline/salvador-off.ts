@@ -35,6 +35,11 @@ export interface SalvadorOffOptions {
   body?: any;
   headers?: Record<string, string>;
   priority?: 'high' | 'normal' | 'low';
+  /**
+   * Idempotency Key - OBRIGATÓRIO para operações que modificam dados
+   * Se não fornecido, será gerado automaticamente
+   * Garante que a mesma ação não seja executada duas vezes
+   */
   idempotencyKey?: string;
   retries?: number;
 }
@@ -107,7 +112,17 @@ export async function salvadorOff(
     retries = 0,
   } = options;
 
+  // IdempotencyKey é OBRIGATÓRIO para métodos que modificam dados
+  // Gera automaticamente se não fornecido
   const key = idempotencyKey || generateIdempotencyKey();
+  
+  // Para métodos que modificam dados, sempre gerar key se não fornecido
+  const requiresIdempotency = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+  if (requiresIdempotency && !idempotencyKey) {
+    console.warn(
+      `[salvadorOff] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`
+    );
+  }
 
   // Se estiver online, tenta enviar imediatamente
   if (isOnline()) {

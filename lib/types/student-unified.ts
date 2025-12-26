@@ -143,11 +143,20 @@ export interface FriendsData {
 // METADATA
 // ============================================
 
+export interface PendingAction {
+  id: string;
+  type: string;
+  queueId?: string;
+  createdAt: Date;
+  retries: number;
+}
+
 export interface StudentMetadata {
   lastSync: Date | null;
   isLoading: boolean;
   isInitialized: boolean;
   errors: Record<string, string | null>;
+  pendingActions: PendingAction[]; // Ações pendentes de sincronização
 }
 
 // ============================================
@@ -269,6 +278,7 @@ export const initialStudentData: StudentData = {
     isLoading: false,
     isInitialized: false,
     errors: {},
+    pendingActions: [],
   },
 };
 

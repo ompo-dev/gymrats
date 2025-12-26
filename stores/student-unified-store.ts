@@ -20,6 +20,12 @@ import type { UserProgress, PersonalRecord, DailyNutrition } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { apiClient } from "@/lib/api/client";
 import { salvadorOff } from "@/lib/offline/salvador-off";
+import { createIndexedDBStorage, migrateFromLocalStorage } from "@/lib/offline/indexeddb-storage";
+import {
+  addPendingAction,
+  removePendingActionByQueueId,
+} from "@/lib/offline/pending-actions";
+import { createCommand, commandToSalvadorOff } from "@/lib/offline/command-pattern";
 
 // ============================================
 // INTERFACE DO STORE
@@ -31,14 +37,19 @@ export interface StudentUnifiedState {
 
   // === ACTIONS - CARREGAR DADOS ===
   loadAll: () => Promise<void>;
+  // Carregamento incremental (melhor performance)
+  loadEssential: () => Promise<void>; // User + Progress básico
+  loadStudentCore: () => Promise<void>; // Profile + Weight
+  loadWorkouts: () => Promise<void>; // Workouts + History
+  loadNutrition: () => Promise<void>; // Nutrition
+  loadFinancial: () => Promise<void>; // Subscription + Payments
+  // Métodos individuais (mantidos para compatibilidade)
   loadUser: () => Promise<void>;
   loadProgress: () => Promise<void>;
   loadProfile: () => Promise<void>;
   loadWeightHistory: () => Promise<void>;
-  loadWorkouts: () => Promise<void>;
   loadWorkoutHistory: () => Promise<void>;
   loadPersonalRecords: () => Promise<void>;
-  loadNutrition: () => Promise<void>;
   loadSubscription: () => Promise<void>;
   loadMemberships: () => Promise<void>;
   loadPayments: () => Promise<void>;
@@ -70,6 +81,7 @@ export interface StudentUnifiedState {
   syncAll: () => Promise<void>;
   syncProgress: () => Promise<void>;
   syncNutrition: () => Promise<void>;
+  syncPendingActions: () => Promise<void>; // Sincroniza ações pendentes
 
   // === ACTIONS - RESET ===
   reset: () => void;
@@ -447,13 +459,17 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       // === ACTIONS - ATUALIZAR DADOS ===
       updateProgress: async (updates) => {
         // Optimistic update - atualiza UI imediatamente
-        const previousProgress = get().data.progress;
         set((state) => ({
           data: {
             ...state.data,
             progress: { ...state.data.progress, ...updates },
           },
         }));
+
+        // Criar command explícito
+        const command = createCommand("UPDATE_PROGRESS", updates, {
+          optimistic: true,
+        });
 
         // Sync with backend usando salvadorOff (gerencia offline/online automaticamente)
         try {
@@ -462,11 +478,15 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               ? localStorage.getItem("auth_token")
               : null;
 
+          const options = commandToSalvadorOff(
+            command,
+            "/api/students/progress",
+            "PUT",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
           const result = await salvadorOff({
-            url: "/api/students/progress",
-            method: "PUT",
-            body: updates,
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            ...options,
             priority: "high",
           });
 
@@ -474,26 +494,85 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             throw result.error;
           }
 
-          // Se foi enfileirado, não reverte (será sincronizado depois)
-          if (result.queued) {
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_PROGRESS",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
             console.log(
               "✅ Progresso salvo offline. Sincronizará quando online."
             );
             return;
           }
+
+          // Se sincronizado com sucesso, remover de pendentes se existir
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) => action.type !== "UPDATE_PROGRESS" || action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
         } catch (error: any) {
-          // Reverter apenas se erro não for de rede (offline)
+          // NÃO reverter UI - marcar como pendente se for erro de rede
           const isNetworkError =
             error.code === "ECONNABORTED" ||
             error.message?.includes("Network Error") ||
             !navigator.onLine;
 
-          if (!isNetworkError) {
-            console.error("Erro ao atualizar progresso:", error);
+          if (isNetworkError) {
+            // Marcar como pendente sem reverter UI
             set((state) => ({
               data: {
                 ...state.data,
-                progress: previousProgress,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_PROGRESS",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Progresso será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - pode ser validação, etc. Ainda não reverte
+            console.error("Erro ao atualizar progresso:", error);
+            // Marcar erro no metadata
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  errors: {
+                    ...state.data.metadata.errors,
+                    updateProgress: error.message || "Erro ao atualizar progresso",
+                  },
+                },
               },
             }));
           }
@@ -875,6 +954,42 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         await get().loadNutrition();
       },
 
+      syncPendingActions: async () => {
+        // Sincroniza ações pendentes quando volta online
+        const { pendingActions } = get().data.metadata;
+        
+        if (pendingActions.length === 0) {
+          return;
+        }
+
+        // Verificar se está online
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          console.log("📡 Ainda offline - ações pendentes serão sincronizadas quando voltar online");
+          return;
+        }
+
+        console.log(`🔄 Sincronizando ${pendingActions.length} ação(ões) pendente(s)...`);
+
+        // Tentar sincronizar cada ação pendente
+        // Nota: A sincronização real acontece automaticamente via salvadorOff
+        // quando a fila offline é processada. Esta função apenas marca como sincronizadas
+        // após verificar que não há mais ações na fila.
+        
+        // Por enquanto, apenas limpa ações antigas (mais de 1 hora)
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        set((state) => ({
+          data: {
+            ...state.data,
+            metadata: {
+              ...state.data.metadata,
+              pendingActions: state.data.metadata.pendingActions.filter(
+                (action) => action.createdAt > oneHourAgo
+              ),
+            },
+          },
+        }));
+      },
+
       // === ACTIONS - RESET ===
       reset: () => {
         set({ data: initialStudentData });
@@ -888,6 +1003,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
     }),
     {
       name: "student-unified-storage",
+      storage: createIndexedDBStorage(), // Usa IndexedDB ao invés de localStorage (suporta dados grandes)
       partialize: (state) => ({
         data: {
           ...state.data,
@@ -897,6 +1013,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           },
         },
       }),
+      // Migra dados do localStorage para IndexedDB na primeira vez
+      onRehydrateStorage: () => {
+        return async (state) => {
+          if (typeof window !== 'undefined' && state) {
+            await migrateFromLocalStorage('student-unified-storage');
+          }
+        };
+      },
     }
   )
 );
