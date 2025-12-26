@@ -199,12 +199,9 @@ export function useStudent<T extends StudentSelector>(
     (state) => state.loadFoodDatabase
   );
 
-  // Carregar dados na primeira vez se não estiver inicializado
-  useEffect(() => {
-    if (!data.metadata.isInitialized && !data.metadata.isLoading) {
-      loadAll();
-    }
-  }, [data.metadata.isInitialized, data.metadata.isLoading, loadAll]);
+  // NOTA: O carregamento automático foi movido para useStudentInitializer
+  // para centralizar a lógica de inicialização. Use useStudentInitializer
+  // em layouts ou providers para carregar dados automaticamente.
 
   // Se nenhum seletor, retorna tudo
   if (selectors.length === 0) {

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AppLayout, TabConfig } from "@/components/templates/layouts/app-layout";
+import {
+  AppLayout,
+  TabConfig,
+} from "@/components/templates/layouts/app-layout";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
 import {
@@ -13,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
+import { useStudentInitializer } from "@/hooks/use-student-initializer";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
@@ -37,6 +41,12 @@ export function StudentLayoutContent({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Inicializar dados do student automaticamente quando o layout carregar
+  // Não bloquear renderização - dados carregam em background
+  useStudentInitializer({
+    autoLoad: true,
+  });
 
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
 

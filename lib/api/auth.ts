@@ -17,7 +17,7 @@ export interface AuthResponse {
     id: string
     email: string
     name: string
-    userType?: "student" | "gym"
+    role: "STUDENT" | "GYM" | "ADMIN"
   }
   session: {
     id: string

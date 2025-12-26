@@ -541,7 +541,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       completeWorkout: async (data) => {
         // O workout já foi salvo no backend pelo workout-modal
         // Aqui apenas atualizamos o store local para refletir a conclusão
-        
+
         // Atualizar progresso (XP, streak, etc) se fornecido
         if (data.xpEarned) {
           const currentProgress = get().data.progress;

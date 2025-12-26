@@ -10,11 +10,20 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { useAuthStore } from "@/stores";
 import { authApi } from "@/lib/api/auth";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setAuthenticated, setUserId, setUserMode, setUserProfile, setUserRole } =
-    useAuthStore();
+  const {
+    setAuthenticated,
+    setUserId,
+    setUserMode,
+    setUserProfile,
+    setUserRole,
+  } = useAuthStore();
+  const { loadAll } = useStudentUnifiedStore((state) => ({
+    loadAll: state.loadAll,
+  }));
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,21 +37,27 @@ export default function LoginPage() {
     try {
       const response = await authApi.login({ email, password });
 
+      // Type assertion para garantir que role está presente
+      const userRole =
+        (response.user as { role: "STUDENT" | "GYM" | "ADMIN" }).role ||
+        response.user.role;
+
       // Salvar token e dados
       localStorage.setItem("auth_token", response.session.token);
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userEmail", response.user.email);
       localStorage.setItem("userId", response.user.id);
-      localStorage.setItem("userRole", response.user.role || "");
-      localStorage.setItem("isAdmin", response.user.role === "ADMIN" ? "true" : "false");
+      localStorage.setItem("userRole", userRole || "");
+      localStorage.setItem("isAdmin", userRole === "ADMIN" ? "true" : "false");
 
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
       // Converter role para userMode (compatibilidade)
-      const userMode = response.user.role === "STUDENT" ? "student" : response.user.role === "GYM" ? "gym" : null;
+      const userMode =
+        userRole === "STUDENT" ? "student" : userRole === "GYM" ? "gym" : null;
       setUserMode(userMode);
-      setUserRole(response.user.role || null);
+      setUserRole(userRole || null);
       setUserProfile({
         id: response.user.id,
         name: response.user.name,
@@ -62,10 +77,15 @@ export default function LoginPage() {
         restTime: "medio",
       });
 
-      // Redirecionar baseado no role
-      if (response.user.role === "STUDENT" || response.user.role === "ADMIN") {
+      // Carregar dados do student se for STUDENT ou ADMIN
+      if (userRole === "STUDENT" || userRole === "ADMIN") {
+        // Carregar todos os dados do student em background
+        loadAll().catch((err) => {
+          console.error("Erro ao carregar dados do student após login:", err);
+          // Não bloquear o redirecionamento em caso de erro
+        });
         router.push("/student");
-      } else if (response.user.role === "GYM") {
+      } else if (userRole === "GYM") {
         router.push("/gym");
       } else {
         router.push("/select-mode");
