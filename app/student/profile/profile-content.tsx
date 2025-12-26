@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import type { UserProgress, WorkoutHistory, PersonalRecord } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { getUserInfoFromStorage } from "@/lib/utils/user-info";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useStudent } from "@/hooks/use-student";
 import { useModalState } from "@/hooks/use-modal-state";
 
@@ -89,24 +89,35 @@ export function ProfilePageContent({
   // Carregar dados do store ao montar
   const { loadUser, loadProgress, loadWeightHistory } = useStudent("loaders");
 
+  // Flag para evitar múltiplas chamadas simultâneas
+  const loadingRef = useRef({ user: false, progress: false, weight: false });
+
   useEffect(() => {
-    // Carregar dados se não tiver no store
-    if (!storeUser) {
-      loadUser();
+    // Carregar dados se não tiver no store (apenas uma vez)
+    if (!storeUser && !loadingRef.current.user) {
+      loadingRef.current.user = true;
+      loadUser().finally(() => {
+        loadingRef.current.user = false;
+      });
     }
-    if (!storeProgress) {
-      loadProgress();
+    if (!storeProgress && !loadingRef.current.progress) {
+      loadingRef.current.progress = true;
+      loadProgress().finally(() => {
+        loadingRef.current.progress = false;
+      });
     }
-    if (!storeWeightHistory || storeWeightHistory.length === 0) {
-      loadWeightHistory();
+    if ((!storeWeightHistory || storeWeightHistory.length === 0) && !loadingRef.current.weight) {
+      loadingRef.current.weight = true;
+      loadWeightHistory().finally(() => {
+        loadingRef.current.weight = false;
+      });
     }
   }, [
     storeUser,
     storeProgress,
     storeWeightHistory,
-    loadUser,
-    loadProgress,
-    loadWeightHistory,
+    // Remover funções das dependências para evitar loop infinito
+    // loadUser, loadProgress, loadWeightHistory,
   ]);
 
   // Buscar do localStorage primeiro (rápido, sem delay)

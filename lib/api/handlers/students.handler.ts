@@ -14,6 +14,7 @@ import {
 } from "../utils/response.utils";
 import { getAllStudentData } from "@/app/student/actions-unified";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import type { MuscleGroup } from "@/lib/types";
 
 /**
  * GET /api/students/all
@@ -446,5 +447,289 @@ export async function getWeightHistoryFilteredHandler(
   } catch (error: any) {
     console.error("[getWeightHistoryFilteredHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar histórico", error);
+  }
+}
+
+/**
+ * GET /api/students/progress
+ * Busca progresso do student (XP, streaks, achievements, etc.)
+ */
+export async function getStudentProgressHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    const progress = await db.studentProgress.findUnique({
+      where: { studentId },
+    });
+
+    if (!progress) {
+      return successResponse({
+        currentStreak: 0,
+        longestStreak: 0,
+        totalXP: 0,
+        currentLevel: 1,
+        xpToNextLevel: 100,
+        workoutsCompleted: 0,
+        todayXP: 0,
+        achievements: [],
+        lastActivityDate: new Date().toISOString(),
+        dailyGoalXP: 50,
+        weeklyXP: [0, 0, 0, 0, 0, 0, 0],
+      });
+    }
+
+    // Buscar achievements
+    const achievementUnlocks = await db.achievementUnlock.findMany({
+      where: { studentId },
+      include: { achievement: true },
+      orderBy: { unlockedAt: "desc" },
+    });
+
+    const achievements = achievementUnlocks.map((unlock) => ({
+      id: unlock.achievement.id,
+      title: unlock.achievement.title,
+      description: unlock.achievement.description || "",
+      icon: unlock.achievement.icon || "🏆",
+      unlockedAt: unlock.unlockedAt,
+      progress: unlock.progress || undefined,
+      target: unlock.achievement.target || undefined,
+      category: unlock.achievement.category as
+        | "streak"
+        | "workouts"
+        | "xp"
+        | "perfect"
+        | "special",
+      level: unlock.achievement.level || undefined,
+      color: unlock.achievement.color || "#58CC02",
+    }));
+
+    // Calcular weeklyXP
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const workoutHistoryForXP = await db.workoutHistory.findMany({
+      where: {
+        studentId,
+        date: { gte: sevenDaysAgo },
+      },
+      include: {
+        workout: { select: { xpReward: true } },
+      },
+    });
+
+    const weeklyXP = [0, 0, 0, 0, 0, 0, 0];
+    workoutHistoryForXP.forEach((wh) => {
+      const dayOfWeek = wh.date.getDay();
+      weeklyXP[dayOfWeek] += wh.workout.xpReward;
+    });
+
+    return successResponse({
+      currentStreak: progress.currentStreak || 0,
+      longestStreak: progress.longestStreak || 0,
+      totalXP: progress.totalXP || 0,
+      currentLevel: progress.currentLevel || 1,
+      xpToNextLevel: progress.xpToNextLevel || 100,
+      workoutsCompleted: progress.workoutsCompleted || 0,
+      todayXP: progress.todayXP || 0,
+      achievements,
+      lastActivityDate: progress.lastActivityDate
+        ? progress.lastActivityDate.toISOString()
+        : new Date().toISOString(),
+      dailyGoalXP: progress.dailyGoalXP || 50,
+      weeklyXP,
+    });
+  } catch (error: any) {
+    console.error("[getStudentProgressHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar progresso", error);
+  }
+}
+
+/**
+ * GET /api/students/student
+ * Busca informações básicas do student
+ */
+export async function getStudentInfoHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    const student = await db.student.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        age: true,
+        gender: true,
+        phone: true,
+        avatar: true,
+      },
+    });
+
+    if (!student) {
+      return successResponse({
+        id: studentId,
+        age: null,
+        gender: null,
+        phone: null,
+        avatar: null,
+      });
+    }
+
+    return successResponse({
+      id: student.id,
+      age: student.age,
+      gender: student.gender,
+      phone: student.phone,
+      avatar: student.avatar,
+    });
+  } catch (error: any) {
+    console.error("[getStudentInfoHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar informações do student", error);
+  }
+}
+
+/**
+ * GET /api/students/personal-records
+ * Busca personal records do student
+ */
+export async function getPersonalRecordsHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    const personalRecords = await db.personalRecord.findMany({
+      where: { studentId },
+      orderBy: { date: "desc" },
+      take: 50,
+    });
+
+    const formattedRecords = personalRecords.map((pr) => ({
+      exerciseId: pr.exerciseId,
+      exerciseName: pr.exerciseName,
+      type: pr.type as "max-weight" | "max-reps" | "max-volume",
+      value: pr.value,
+      date: pr.date,
+      previousBest: pr.previousBest || undefined,
+    }));
+
+    return successResponse({
+      records: formattedRecords,
+      total: formattedRecords.length,
+    });
+  } catch (error: any) {
+    console.error("[getPersonalRecordsHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar personal records", error);
+  }
+}
+
+/**
+ * GET /api/students/day-passes
+ * Busca day passes do student
+ */
+export async function getDayPassesHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    const dayPasses = await db.dayPass.findMany({
+      where: { studentId },
+      orderBy: { purchaseDate: "desc" },
+      take: 50,
+    });
+
+    const formattedDayPasses = dayPasses.map((dp) => ({
+      id: dp.id,
+      gymId: dp.gymId,
+      gymName: dp.gymName,
+      purchaseDate: dp.purchaseDate,
+      validDate: dp.validDate,
+      price: dp.price,
+      status: dp.status,
+      qrCode: dp.qrCode || undefined,
+    }));
+
+    return successResponse({
+      dayPasses: formattedDayPasses,
+      total: formattedDayPasses.length,
+    });
+  } catch (error: any) {
+    console.error("[getDayPassesHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar day passes", error);
+  }
+}
+
+/**
+ * GET /api/students/friends
+ * Busca amigos do student
+ */
+export async function getFriendsHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    const friendships = await db.friendship.findMany({
+      where: {
+        userId: studentId,
+        status: "accepted",
+      },
+      include: {
+        friend: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const friends = {
+      count: friendships.length,
+      list: friendships.map((f) => ({
+        id: f.friend.id,
+        name: f.friend.user.name,
+        avatar: f.friend.user.image || undefined,
+        username: undefined, // Pode ser adicionado depois
+      })),
+    };
+
+    return successResponse(friends);
+  } catch (error: any) {
+    console.error("[getFriendsHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar amigos", error);
   }
 }

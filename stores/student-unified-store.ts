@@ -103,44 +103,47 @@ export interface StudentUnifiedState {
  * Se não tiver rota específica, usa null e será carregado via /api/students/all?sections=...
  */
 const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
-  // Rotas específicas que existem
+  // TODAS as rotas específicas - NÃO usar mais /api/students/all
+  user: "/api/auth/session", // User vem da sessão
+  student: "/api/students/student", // Informações básicas do student
+  progress: "/api/students/progress", // Progresso (XP, streaks, achievements)
   profile: "/api/students/profile",
   weightHistory: "/api/students/weight",
   units: "/api/workouts/units",
   workoutHistory: "/api/workouts/history",
+  personalRecords: "/api/students/personal-records",
   subscription: "/api/subscriptions/current",
   memberships: "/api/memberships",
   payments: "/api/payments",
   paymentMethods: "/api/payment-methods",
+  dayPasses: "/api/students/day-passes",
+  friends: "/api/students/friends",
   gymLocations: "/api/gyms/locations",
-  dailyNutrition: "/api/nutrition/daily", // Já carregado separadamente
+  dailyNutrition: "/api/nutrition/daily",
   
-  // Seções que não têm rota específica - usarão /api/students/all?sections=...
-  // user, student, progress, personalRecords, dayPasses, friends
+  // NOTA: Todas as seções agora têm rotas específicas!
+  // O /api/students/all ainda existe para compatibilidade, mas não é mais usado
 };
 
+/**
+ * Carrega uma seção específica dos dados
+ * TODAS as seções agora têm rotas específicas - não usa mais /api/students/all
+ */
 async function loadSection(
   section: StudentDataSection
 ): Promise<Partial<StudentData>> {
   try {
     const route = SECTION_ROUTES[section];
     
-    let response: any;
-
-    if (route) {
-      // Usar rota específica (mais rápida e eficiente)
-      response = await apiClient.get<any>(route, {
-        timeout: 30000, // 30 segundos para rotas específicas
-      });
-    } else {
-      // Fallback: usar /api/students/all?sections=... para seções sem rota específica
-      response = await apiClient.get<Partial<StudentData>>(
-        `/api/students/all?sections=${section}`,
-        {
-          timeout: 30000,
-        }
-      );
+    if (!route) {
+      console.warn(`⚠️ Seção ${section} não tem rota específica mapeada`);
+      return {};
     }
+
+    // Usar rota específica (mais rápida e eficiente)
+    const response = await apiClient.get<any>(route, {
+      timeout: 30000, // 30 segundos para rotas específicas
+    });
 
     // Transformar resposta da rota específica para formato do store
     return transformSectionResponse(section, response.data);
@@ -166,17 +169,25 @@ function transformSectionResponse(
 ): Partial<StudentData> {
   switch (section) {
     case "user":
-      // User vem de /api/auth/session como { user: {...} }
-      return { user: data.user || data };
+      // User vem de /api/auth/session como { user: {...}, session: {...} }
+      // Extrair apenas os dados do user
+      if (data.user) {
+        return { user: data.user };
+      }
+      // Se vier direto do /api/students/all
+      return { user: data };
     
     case "student":
+      // Student vem direto da rota /api/students/student
+      return { student: data };
+    
     case "profile":
       // Profile vem direto
-      return { [section]: data };
+      return { profile: data };
     
     case "progress":
-      // Progress pode vir direto ou dentro de um objeto
-      return { progress: data.progress || data };
+      // Progress vem direto da rota /api/students/progress
+      return { progress: data };
     
     case "weightHistory":
       // Weight history vem como array
@@ -191,8 +202,8 @@ function transformSectionResponse(
       return { workoutHistory: Array.isArray(data) ? data : data.workoutHistory || [] };
     
     case "personalRecords":
-      // Personal records vem como array
-      return { personalRecords: Array.isArray(data) ? data : data.personalRecords || [] };
+      // Personal records vem como { records: [...], total: number }
+      return { personalRecords: data.records || data.personalRecords || [] };
     
     case "subscription":
       // Subscription pode ser null
@@ -211,12 +222,12 @@ function transformSectionResponse(
       return { paymentMethods: Array.isArray(data) ? data : data.paymentMethods || [] };
     
     case "dayPasses":
-      // Day passes vem como array
-      return { dayPasses: Array.isArray(data) ? data : data.dayPasses || [] };
+      // Day passes vem como { dayPasses: [...], total: number }
+      return { dayPasses: data.dayPasses || [] };
     
     case "friends":
-      // Friends pode vir como objeto com count e list
-      return { friends: data.friends || data };
+      // Friends vem como { count: number, list: [...] }
+      return { friends: data };
     
     case "gymLocations":
       // Gym locations vem como array
@@ -233,7 +244,7 @@ function transformSectionResponse(
  */
 async function loadAllData(): Promise<StudentData> {
   try {
-    // Lista de todas as seções para carregar
+    // TODAS as seções agora têm rotas específicas - carregar todas em paralelo
     const sections: StudentDataSection[] = [
       "user",
       "student",
@@ -252,7 +263,7 @@ async function loadAllData(): Promise<StudentData> {
       "gymLocations",
     ];
 
-    // Carregar todas as seções em paralelo (mais rápido e evita timeout)
+    // Carregar todas as seções em paralelo (todas têm rotas específicas agora!)
     const sectionPromises = sections.map((section) =>
       loadSection(section).catch((error) => {
         console.warn(`[loadAllData] Erro ao carregar seção ${section}:`, error);
@@ -260,7 +271,7 @@ async function loadAllData(): Promise<StudentData> {
       })
     );
 
-    // Aguardar todas as requisições (paralelas)
+    // Aguardar todas as requisições em paralelo
     const sectionResults = await Promise.all(sectionPromises);
 
     // Juntar todos os resultados em um único objeto
@@ -999,8 +1010,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             return;
           }
 
-          // Se online e sucesso, recarregar weightHistory
-          await get().loadWeightHistory();
+          // Se online e sucesso, atualizar weightHistory localmente (já foi feito optimistic update)
+          // Não precisa recarregar do servidor, o optimistic update já está correto
+          // await get().loadWeightHistory(); // Removido para evitar requisições desnecessárias
         } catch (error: any) {
           const isNetworkError =
             error.code === "ECONNABORTED" ||

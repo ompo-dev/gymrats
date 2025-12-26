@@ -556,6 +556,202 @@ export async function GET() {
           },
         },
       },
+      "/api/students/progress": {
+        get: {
+          tags: ["Students"],
+          summary: "Buscar progresso do student",
+          description: "Retorna progresso completo (XP, streaks, achievements, weeklyXP)",
+          operationId: "getStudentProgress",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Progresso do student",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      currentStreak: { type: "integer" },
+                      longestStreak: { type: "integer" },
+                      totalXP: { type: "integer" },
+                      currentLevel: { type: "integer" },
+                      xpToNextLevel: { type: "integer" },
+                      workoutsCompleted: { type: "integer" },
+                      todayXP: { type: "integer" },
+                      achievements: {
+                        type: "array",
+                        items: { type: "object" },
+                      },
+                      lastActivityDate: { type: "string", format: "date-time" },
+                      dailyGoalXP: { type: "integer" },
+                      weeklyXP: {
+                        type: "array",
+                        items: { type: "integer" },
+                        maxItems: 7,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
+      "/api/students/student": {
+        get: {
+          tags: ["Students"],
+          summary: "Buscar informações básicas do student",
+          description: "Retorna informações básicas (id, age, gender, phone, avatar)",
+          operationId: "getStudentInfo",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Informações do student",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      age: { type: "integer", nullable: true },
+                      gender: { type: "string", nullable: true },
+                      phone: { type: "string", nullable: true },
+                      avatar: { type: "string", nullable: true },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
+      "/api/students/personal-records": {
+        get: {
+          tags: ["Students"],
+          summary: "Buscar personal records",
+          description: "Retorna os personal records do student",
+          operationId: "getPersonalRecords",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Personal records",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      records: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            exerciseId: { type: "string" },
+                            exerciseName: { type: "string" },
+                            type: {
+                              type: "string",
+                              enum: ["max-weight", "max-reps", "max-volume"],
+                            },
+                            value: { type: "number" },
+                            date: { type: "string", format: "date-time" },
+                            previousBest: { type: "number", nullable: true },
+                          },
+                        },
+                      },
+                      total: { type: "integer" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
+      "/api/students/day-passes": {
+        get: {
+          tags: ["Students"],
+          summary: "Buscar day passes",
+          description: "Retorna os day passes do student",
+          operationId: "getDayPasses",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Day passes",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      dayPasses: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            gymId: { type: "string" },
+                            gymName: { type: "string" },
+                            purchaseDate: { type: "string", format: "date-time" },
+                            validDate: { type: "string", format: "date-time" },
+                            price: { type: "number" },
+                            status: { type: "string" },
+                            qrCode: { type: "string", nullable: true },
+                          },
+                        },
+                      },
+                      total: { type: "integer" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
+      "/api/students/friends": {
+        get: {
+          tags: ["Students"],
+          summary: "Buscar amigos",
+          description: "Retorna a lista de amigos do student",
+          operationId: "getFriends",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Lista de amigos",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      count: { type: "integer" },
+                      list: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string" },
+                            avatar: { type: "string", nullable: true },
+                            username: { type: "string", nullable: true },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
       // ============================================
       // GYMS ENDPOINTS
       // ============================================
