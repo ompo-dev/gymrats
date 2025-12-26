@@ -21,24 +21,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Sessão inválida ou expirada" }, { status: 401 })
     }
 
-    let userType: "student" | "gym" | "admin" | null = null
-    if (session.user.role === "ADMIN") {
-      userType = "admin"
-    } else if (session.user.role === "STUDENT" || session.user.student) {
-      userType = "student"
-    } else if (session.user.role === "GYM" || session.user.gym) {
-      userType = "gym"
-    }
+    // ADMIN tem acesso completo: tem tanto student quanto gym
+    const isAdmin = session.user.role === "ADMIN"
+    const hasGym = isAdmin || (session.user.gyms && session.user.gyms.length > 0)
+    const hasStudent = isAdmin || !!session.user.student
 
     return NextResponse.json({
       user: {
         id: session.user.id,
         email: session.user.email,
         name: session.user.name,
-        userType,
-        role: session.user.role,
-        hasGym: !!session.user.gym,
-        hasStudent: !!session.user.student,
+        role: session.user.role, // Fonte da verdade: STUDENT, GYM ou ADMIN
+        hasGym,
+        hasStudent,
       },
       session: {
         id: session.id,

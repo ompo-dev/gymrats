@@ -3,11 +3,30 @@ import { db } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, role, userType } = await request.json()
+    const { userId, role } = await request.json()
+
+    if (!userId || !role) {
+      return NextResponse.json(
+        { error: "userId e role são obrigatórios" },
+        { status: 400 }
+      )
+    }
+
+    // Verificar se o role é válido
+    if (!["STUDENT", "GYM", "ADMIN"].includes(role)) {
+      return NextResponse.json(
+        { error: "Role inválido. Deve ser STUDENT, GYM ou ADMIN" },
+        { status: 400 }
+      )
+    }
 
     // Verificar se o usuário existe
     const user = await db.user.findUnique({
       where: { id: userId },
+      include: {
+        student: true,
+        gyms: true,
+      },
     })
 
     if (!user) {
@@ -21,13 +40,12 @@ export async function POST(request: NextRequest) {
     const updatedUser = await db.user.update({
       where: { id: userId },
       data: {
-        role: role === "student" ? "STUDENT" : "GYM",
+        role: role as "STUDENT" | "GYM" | "ADMIN",
       },
     })
 
-    // Criar Student ou Gym se necessário
-    if (userType === "student" && !user.student) {
-      // Verificar se já existe Student
+    // Criar Student ou Gym se necessário baseado no role
+    if (role === "STUDENT" && !user.student) {
       const existingStudent = await db.student.findUnique({
         where: { userId },
       })
@@ -39,9 +57,8 @@ export async function POST(request: NextRequest) {
           },
         })
       }
-    } else if (userType === "gym" && !user.gym) {
-      // Verificar se já existe Gym
-      const existingGym = await db.gym.findUnique({
+    } else if (role === "GYM" && (!user.gyms || user.gyms.length === 0)) {
+      const existingGym = await db.gym.findFirst({
         where: { userId },
       })
 
@@ -53,6 +70,8 @@ export async function POST(request: NextRequest) {
             address: "",
             phone: "",
             email: user.email,
+            plan: "basic",
+            isActive: true,
           },
         })
       }
@@ -63,7 +82,6 @@ export async function POST(request: NextRequest) {
       user: {
         id: updatedUser.id,
         role: updatedUser.role,
-        userType,
       },
     })
   } catch (error: any) {

@@ -8,40 +8,10 @@
  * GET /api/students/all?sections=progress,profile,workouts
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAllStudentData } from "@/app/student/actions-unified";
+import { NextRequest } from "next/server";
+import { getAllStudentDataHandler } from "@/lib/api/handlers/students.handler";
 
 export async function GET(request: NextRequest) {
-  try {
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const sectionsParam = searchParams.get("sections");
-
-    // Parse sections se fornecido
-    let sections: string[] | undefined = undefined;
-    if (sectionsParam) {
-      sections = sectionsParam.split(",").map((s) => s.trim());
-    }
-
-    // Buscar dados
-    const data = await getAllStudentData(sections);
-
-    return NextResponse.json(data, {
-      status: 200,
-      headers: {
-        "Cache-Control": "private, no-cache, no-store, must-revalidate",
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (error: any) {
-    console.error("[GET /api/students/all] Erro:", error);
-    return NextResponse.json(
-      {
-        error: "Erro ao buscar dados do student",
-        message: error.message || "Erro desconhecido",
-      },
-      { status: 500 }
-    );
-  }
+  return getAllStudentDataHandler(request);
 }
 

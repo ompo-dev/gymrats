@@ -33,12 +33,37 @@ export default function ApiDocsPage() {
           filter: true,
           tryItOutEnabled: true,
           persistAuthorization: true,
+          supportedSubmitMethods: ["get", "post", "put", "delete", "patch"],
           requestInterceptor: (request: any) => {
-            const token = localStorage.getItem("auth_token");
+            // Tentar pegar token do cookie primeiro
+            const cookies = document.cookie.split(";");
+            let token = null;
+            for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split("=");
+              if (name === "auth_token") {
+                token = value;
+                break;
+              }
+            }
+            
+            // Se não encontrou no cookie, tentar localStorage
+            if (!token) {
+              token = localStorage.getItem("auth_token");
+            }
+            
             if (token && request.headers) {
               request.headers.Authorization = `Bearer ${token}`;
             }
+            
+            // Garantir que cookies sejam enviados
+            request.credentials = "include";
+            
             return request;
+          },
+          responseInterceptor: (response: any) => {
+            // Log de respostas para debug
+            console.log("[Swagger] Response:", response);
+            return response;
           },
         });
 

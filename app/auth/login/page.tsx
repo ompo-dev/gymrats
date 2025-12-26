@@ -39,7 +39,9 @@ export default function LoginPage() {
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
-      setUserMode(response.user.userType as "student" | "gym" | null);
+      // Converter role para userMode (compatibilidade)
+      const userMode = response.user.role === "STUDENT" ? "student" : response.user.role === "GYM" ? "gym" : null;
+      setUserMode(userMode);
       setUserRole(response.user.role || null);
       setUserProfile({
         id: response.user.id,
@@ -60,10 +62,10 @@ export default function LoginPage() {
         restTime: "medio",
       });
 
-      // Redirecionar
-      if (response.user.userType === "student") {
+      // Redirecionar baseado no role
+      if (response.user.role === "STUDENT" || response.user.role === "ADMIN") {
         router.push("/student");
-      } else if (response.user.userType === "gym") {
+      } else if (response.user.role === "GYM") {
         router.push("/gym");
       } else {
         router.push("/select-mode");

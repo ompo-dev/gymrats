@@ -58,7 +58,7 @@ export default function UserTypePage() {
           "/api/users/update-role",
           {
             userId: currentUserId,
-            userType: type,
+            role: type === "student" ? "STUDENT" : "GYM",
           }
         );
 

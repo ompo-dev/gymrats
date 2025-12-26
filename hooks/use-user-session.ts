@@ -6,8 +6,7 @@ interface UserSession {
   id: string;
   email: string;
   name: string;
-  userType: "student" | "gym" | "admin" | null;
-  role: string;
+  role: "STUDENT" | "GYM" | "ADMIN";
   hasGym: boolean;
   hasStudent: boolean;
 }
@@ -27,10 +26,7 @@ export function useUserSession() {
         );
         if (response.data.user) {
           setUserSession(response.data.user);
-          setIsAdmin(
-            response.data.user?.role === "ADMIN" ||
-              response.data.user?.userType === "admin"
-          );
+          setIsAdmin(response.data.user?.role === "ADMIN");
         } else {
           setUserSession(null);
           setIsAdmin(false);
@@ -52,7 +48,6 @@ export function useUserSession() {
     isAdmin,
     isLoading,
     role: userSession?.role || null,
-    userType: userSession?.userType || null,
   };
 }
 

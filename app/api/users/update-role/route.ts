@@ -4,25 +4,30 @@ import { initializeStudentTrial, initializeGymTrial } from "@/lib/utils/auto-tri
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, userType } = await request.json()
+    const { userId, role } = await request.json()
 
-    if (!userId || !userType) {
+    if (!userId || !role) {
       return NextResponse.json(
-        { error: "userId e userType são obrigatórios" },
+        { error: "userId e role são obrigatórios" },
         { status: 400 }
       )
     }
 
-    // Atualizar role do usuário
-    const role = userType === "student" ? "STUDENT" : "GYM"
+    // Validar role
+    if (!["STUDENT", "GYM"].includes(role)) {
+      return NextResponse.json(
+        { error: "Role inválido. Deve ser STUDENT ou GYM" },
+        { status: 400 }
+      )
+    }
 
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data: { role },
+      data: { role: role as "STUDENT" | "GYM" },
     })
 
     // Criar Student ou Gym se necessário e inicializar trial
-    if (userType === "student") {
+    if (role === "STUDENT") {
       const existingStudent = await db.student.findUnique({
         where: { userId },
       })
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
       if (student) {
         await initializeStudentTrial(student.id)
       }
-    } else if (userType === "gym") {
+    } else if (role === "GYM") {
       const existingGym = await db.gym.findUnique({
         where: { userId },
       })
@@ -71,7 +76,6 @@ export async function POST(request: NextRequest) {
       user: {
         id: updatedUser.id,
         role: updatedUser.role,
-        userType,
       },
     })
   } catch (error: any) {

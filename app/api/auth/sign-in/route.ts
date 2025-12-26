@@ -46,13 +46,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let userType: "student" | "gym" | null = null;
-    if (user.role === "STUDENT" || user.student) {
-      userType = "student";
-    } else if (user.role === "GYM" || (user.gyms && user.gyms.length > 0)) {
-      userType = "gym";
-    }
-
     const sessionToken = await createSession(user.id);
 
     const response = NextResponse.json({
@@ -60,7 +53,6 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        userType,
         role: user.role,
       },
       session: {
