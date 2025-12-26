@@ -58,10 +58,9 @@ export function WorkoutModal() {
     if (openWorkoutId && !workoutModal.isOpen) {
       // Adicionar modal=workout à URL se não estiver presente
       workoutModal.open(openWorkoutId);
-    } else if (workoutModal.isOpen && !openWorkoutId) {
-      // Se modal está aberto mas não tem workoutId, fechar o modal
-      workoutModal.close();
     }
+    // NÃO fechar o modal automaticamente - deixar o usuário fechar manualmente
+    // Isso permite reabrir workouts completados
   }, [openWorkoutId, workoutModal]);
 
   // Buscar workout das units carregadas (do backend) ou do mock como fallback
@@ -92,7 +91,8 @@ export function WorkoutModal() {
     if (openWorkoutId && !workoutBase) {
       // Tentar buscar novamente após um pequeno delay
       const timer = setTimeout(() => {
-        const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
+        const retryWorkout =
+          findWorkoutInUnits(openWorkoutId) ||
           mockWorkouts.find((w) => w.id === openWorkoutId);
         if (retryWorkout) {
           forceUpdate((prev) => prev + 1);
@@ -135,7 +135,7 @@ export function WorkoutModal() {
   const alternativeSelectorModal = useModalState("alternative-selector");
   const cardioConfigModal = useModalState("cardio-config");
   const [showCompletion, setShowCompletion] = useState(false);
-  
+
   // Manter compatibilidade com UIStore temporariamente
   const { showWeightTracker } = useUIStore();
 
@@ -278,133 +278,145 @@ export function WorkoutModal() {
 
   // Inicializar workout quando abrir ou quando workoutId mudar
   useEffect(() => {
-    // Se não tem workoutId, limpar tudo
-    if (!openWorkoutId) {
-      setActiveWorkout(null);
+    // Função assíncrona para inicializar workout
+    const initializeWorkout = async () => {
+      // Se não tem workoutId, limpar tudo
+      if (!openWorkoutId) {
+        setActiveWorkout(null);
+        setShowCompletion(false);
+        weightTrackerModal.close();
+        setIsRunning(false);
+        setElapsedTime(0);
+        setCalories(0);
+        cardioConfigModal.close();
+        // Limpar exerciseIndex da URL
+        setExerciseIndexParam(null);
+        return;
+      }
+
+      // Se tem workoutId mas não tem workout ainda, tentar buscar novamente
+      if (!workout) {
+        // Tentar buscar o workout (pode estar carregando)
+        const retryWorkout =
+          findWorkoutInUnits(openWorkoutId) ||
+          mockWorkouts.find((w) => w.id === openWorkoutId);
+
+        // Se ainda não encontrou, aguardar próximo render (workout pode estar carregando)
+        if (!retryWorkout) {
+          return;
+        }
+
+        // Se encontrou, usar esse workout para inicializar
+        // Mas não podemos modificar workout aqui, então vamos continuar
+        // O workout será recalculado no próximo render
+      }
+
+      // Se não tem workout ainda após tentar buscar, aguardar e tentar novamente
+      if (!workout) {
+        // Se modal está aberto, tentar buscar novamente após um delay
+        // Isso é útil quando acessado diretamente pela URL e as units ainda não foram carregadas
+        if (workoutModal.isOpen) {
+          // Tentar buscar novamente após um delay
+          const retryTimer = setTimeout(() => {
+            const retryWorkout =
+              findWorkoutInUnits(openWorkoutId) ||
+              mockWorkouts.find((w) => w.id === openWorkoutId);
+
+            if (retryWorkout) {
+              // Se encontrou, forçar re-render para inicializar
+              forceUpdate((prev) => prev + 1);
+            } else {
+              // Se ainda não encontrou, tentar mais uma vez após outro delay
+              const secondRetryTimer = setTimeout(() => {
+                forceUpdate((prev) => prev + 1);
+              }, 1000);
+              return () => clearTimeout(secondRetryTimer);
+            }
+          }, 500);
+          return () => clearTimeout(retryTimer);
+        }
+        return;
+      }
+
+      // Sempre resetar tela de conclusão quando abrir
       setShowCompletion(false);
       weightTrackerModal.close();
+      setCompletedWorkoutData(null);
       setIsRunning(false);
       setElapsedTime(0);
       setCalories(0);
-      cardioConfigModal.close();
-      // Limpar exerciseIndex da URL
-      setExerciseIndexParam(null);
-      return;
-    }
 
-    // Se tem workoutId mas não tem workout ainda, tentar buscar novamente
-    if (!workout) {
-      // Tentar buscar o workout (pode estar carregando)
-      const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
-        mockWorkouts.find((w) => w.id === openWorkoutId);
-      
-      // Se ainda não encontrou, aguardar próximo render (workout pode estar carregando)
-      if (!retryWorkout) {
-        return;
+      // Carregar progresso salvo do localStorage (Zustand persist)
+      // Não fazer GET - dados já estão no store
+      const savedProgress = loadWorkoutProgress(workout.id);
+      const isCompleted = isWorkoutCompleted(workout.id);
+
+      // Determinar índice inicial do exercício
+      // Prioridade: 1) exerciseIndex da URL, 2) progresso salvo, 3) 0
+      let initialExerciseIndex = 0;
+      if (exerciseIndexParam !== null && exerciseIndexParam !== undefined) {
+        // Se há exerciseIndex na URL, usar ele (validar se está dentro do range)
+        initialExerciseIndex = Math.max(
+          0,
+          Math.min(exerciseIndexParam, workout.exercises.length - 1)
+        );
+      } else if (savedProgress) {
+        // Se não há exerciseIndex na URL mas tem progresso salvo, usar o índice salvo
+        // Permitir reabrir workouts completados - usar o índice salvo mesmo se completo
+        initialExerciseIndex = savedProgress.currentExerciseIndex;
       }
-      
-      // Se encontrou, usar esse workout para inicializar
-      // Mas não podemos modificar workout aqui, então vamos continuar
-      // O workout será recalculado no próximo render
-    }
 
-    // Se não tem workout ainda após tentar buscar, aguardar e tentar novamente
-    if (!workout) {
-      // Se modal está aberto, tentar buscar novamente após um delay
-      // Isso é útil quando acessado diretamente pela URL e as units ainda não foram carregadas
-      if (workoutModal.isOpen) {
-        // Tentar buscar novamente após um delay
-        const retryTimer = setTimeout(() => {
-          const retryWorkout = findWorkoutInUnits(openWorkoutId) ||
-            mockWorkouts.find((w) => w.id === openWorkoutId);
-          
-          if (retryWorkout) {
-            // Se encontrou, forçar re-render para inicializar
-            forceUpdate((prev) => prev + 1);
-          } else {
-            // Se ainda não encontrou, tentar mais uma vez após outro delay
-            const secondRetryTimer = setTimeout(() => {
-              forceUpdate((prev) => prev + 1);
-            }, 1000);
-            return () => clearTimeout(secondRetryTimer);
-          }
-        }, 500);
-        return () => clearTimeout(retryTimer);
-      }
-      return;
-    }
-
-    // Sempre resetar tela de conclusão quando abrir
-    setShowCompletion(false);
-    weightTrackerModal.close();
-    setCompletedWorkoutData(null);
-    setIsRunning(false);
-    setElapsedTime(0);
-    setCalories(0);
-
-    // Carregar progresso salvo primeiro
-    const savedProgress = loadWorkoutProgress(workout.id);
-    const isCompleted = isWorkoutCompleted(workout.id);
-
-    // Determinar índice inicial do exercício
-    // Prioridade: 1) exerciseIndex da URL, 2) progresso salvo, 3) 0
-    let initialExerciseIndex = 0;
-    if (exerciseIndexParam !== null && exerciseIndexParam !== undefined) {
-      // Se há exerciseIndex na URL, usar ele (validar se está dentro do range)
-      initialExerciseIndex = Math.max(
-        0,
-        Math.min(exerciseIndexParam, workout.exercises.length - 1)
-      );
-    } else if (savedProgress && !isCompleted) {
-      // Se não há exerciseIndex na URL mas tem progresso salvo, usar o índice salvo
-      initialExerciseIndex = savedProgress.currentExerciseIndex;
-    }
-
-    // Inicializar workout com dados salvos se existirem
-    if (savedProgress) {
-      // Restaurar workout completo com todos os dados salvos
-      // Usar o índice determinado acima (da URL ou salvo)
-      useWorkoutStore.setState({
-        activeWorkout: {
-          workoutId: workout.id,
-          currentExerciseIndex: initialExerciseIndex,
-          exerciseLogs: savedProgress.exerciseLogs || [],
-          skippedExercises: savedProgress.skippedExercises || [],
-          xpEarned: savedProgress.xpEarned || 0,
-          totalVolume: savedProgress.totalVolume || 0,
-          completionPercentage: savedProgress.completionPercentage || 0,
-          startTime: savedProgress.startTime || new Date(),
-          lastUpdated: new Date(),
-          selectedAlternatives: savedProgress.selectedAlternatives || {},
-          cardioPreference: savedProgress.cardioPreference,
-          cardioDuration: savedProgress.cardioDuration,
-          selectedCardioType: savedProgress.selectedCardioType,
-        },
-      });
-      // Se tem progresso salvo mas não tem preferência de cardio configurada E é treino de força
-      // Mostrar config de cardio (apenas se estiver no primeiro exercício)
-      if (
-        workout.type === "strength" &&
-        !savedProgress.cardioPreference &&
-        initialExerciseIndex === 0
-      ) {
-        cardioConfigModal.open();
+      // Inicializar workout com dados salvos se existirem
+      // Permitir reabrir workouts completados - sempre restaurar progresso se existir
+      if (savedProgress) {
+        // Restaurar workout completo com todos os dados salvos
+        // Usar o índice determinado acima (da URL ou salvo)
+        useWorkoutStore.setState({
+          activeWorkout: {
+            workoutId: workout.id,
+            currentExerciseIndex: initialExerciseIndex,
+            exerciseLogs: savedProgress.exerciseLogs || [],
+            skippedExercises: savedProgress.skippedExercises || [],
+            xpEarned: savedProgress.xpEarned || 0,
+            totalVolume: savedProgress.totalVolume || 0,
+            completionPercentage: savedProgress.completionPercentage || 0,
+            startTime: savedProgress.startTime || new Date(),
+            lastUpdated: new Date(),
+            selectedAlternatives: savedProgress.selectedAlternatives || {},
+            cardioPreference: savedProgress.cardioPreference,
+            cardioDuration: savedProgress.cardioDuration,
+            selectedCardioType: savedProgress.selectedCardioType,
+          },
+        });
+        // Se tem progresso salvo mas não tem preferência de cardio configurada E é treino de força
+        // Mostrar config de cardio (apenas se estiver no primeiro exercício e não estiver completo)
+        if (
+          workout.type === "strength" &&
+          !savedProgress.cardioPreference &&
+          initialExerciseIndex === 0 &&
+          !isCompleted
+        ) {
+          cardioConfigModal.open();
+        } else {
+          cardioConfigModal.close();
+        }
       } else {
-        cardioConfigModal.close();
+        // Inicializar workout novo com o índice da URL se disponível
+        setActiveWorkout(workout);
+        if (initialExerciseIndex > 0) {
+          setCurrentExerciseIndex(initialExerciseIndex);
+        }
+        // Mostrar tela de configuração de cardio apenas para treinos de força
+        if (workout.type === "strength") {
+          cardioConfigModal.open();
+        } else {
+          cardioConfigModal.close();
+        }
       }
-    } else {
-      // Inicializar workout novo com o índice da URL se disponível
-      setActiveWorkout(workout);
-      if (initialExerciseIndex > 0) {
-        setCurrentExerciseIndex(initialExerciseIndex);
-      }
-      // Mostrar tela de configuração de cardio apenas para treinos de força
-      if (workout.type === "strength") {
-        cardioConfigModal.open();
-      } else {
-        cardioConfigModal.close();
-      }
-    }
+    };
+
+    // Executar inicialização
+    initializeWorkout();
 
     return () => {
       // Limpar cronômetro de cardio
@@ -549,9 +561,10 @@ export function WorkoutModal() {
 
   // Se está mostrando conclusão, não precisa do currentExercise
   // Verificar se workout existe antes de acessar exercises
-  const currentExercise = activeWorkout && workout && workout.exercises
-    ? workout.exercises[activeWorkout.currentExerciseIndex]
-    : null;
+  const currentExercise =
+    activeWorkout && workout && workout.exercises
+      ? workout.exercises[activeWorkout.currentExerciseIndex]
+      : null;
 
   // Obter o nome do exercício considerando alternativa selecionada
   const getCurrentExerciseName = () => {
@@ -568,10 +581,12 @@ export function WorkoutModal() {
   };
 
   // Função para navegar para conteúdo educacional
-  const handleViewEducation = (educationalId: string) => {
-    // Salvar progresso antes de navegar
+  const handleViewEducation = async (educationalId: string) => {
+    // Salvar progresso em background antes de navegar (não bloquear)
     if (workout && activeWorkout) {
-      saveWorkoutProgress(workout.id);
+      saveWorkoutProgress(workout.id).catch((error) => {
+        console.error("Erro ao salvar progresso em background:", error);
+      });
     }
     // Fechar modal e navegar
     alternativeSelectorModal.close();
@@ -580,14 +595,19 @@ export function WorkoutModal() {
   };
 
   // Função para selecionar alternativa
-  const handleSelectAlternative = (
+  const handleSelectAlternative = async (
     exerciseId: string,
     alternativeId?: string
   ) => {
+    // OTIMISTIC UPDATE: Atualizar Zustand primeiro (instantâneo)
     selectAlternative(exerciseId, alternativeId);
     alternativeSelectorModal.close();
+
+    // Salvar progresso em background (não bloquear UI)
     if (workout) {
-      saveWorkoutProgress(workout.id);
+      saveWorkoutProgress(workout.id).catch((error) => {
+        console.error("Erro ao salvar progresso em background:", error);
+      });
     }
   };
 
@@ -636,7 +656,7 @@ export function WorkoutModal() {
       : 0;
   const hearts = 5;
 
-  const handleExerciseComplete = (log: ExerciseLog) => {
+  const handleExerciseComplete = async (log: ExerciseLog) => {
     console.log("🚀 handleExerciseComplete CHAMADO:", {
       exerciseName: log.exerciseName,
       logId: log.id,
@@ -659,7 +679,7 @@ export function WorkoutModal() {
         ? "CARDIO"
         : "FORÇA"
     );
-    setShowWeightTracker(false);
+    weightTrackerModal.close();
 
     // Calcular estatísticas atualizadas
     calculateWorkoutStats();
@@ -681,8 +701,10 @@ export function WorkoutModal() {
       });
     }
 
-    // Salvar progresso
-    saveWorkoutProgress(workout.id);
+    // Salvar progresso em background (não bloquear UI)
+    saveWorkoutProgress(workout.id).catch((error) => {
+      console.error("Erro ao salvar progresso em background:", error);
+    });
 
     if (!activeWorkout) return;
 
@@ -842,8 +864,8 @@ export function WorkoutModal() {
         setShowCompletion(true);
 
         // Limpar activeWorkout DEPOIS de salvar os dados
-        setTimeout(() => {
-          completeWorkout(workout.id);
+        setTimeout(async () => {
+          await completeWorkout(workout.id);
         }, 100);
       }, 0);
     } else {
@@ -855,16 +877,19 @@ export function WorkoutModal() {
       });
       if (activeWorkout) {
         const newIndex = activeWorkout.currentExerciseIndex + 1;
+        // OTIMISTIC UPDATE: Atualizar Zustand e URL primeiro (instantâneo)
         setCurrentExerciseIndex(newIndex);
-        // Sincronizar exerciseIndex na URL
         setExerciseIndexParam(newIndex);
+
+        // Salvar progresso em background (não bloquear UI)
+        saveWorkoutProgress(workout.id).catch((error) => {
+          console.error("Erro ao salvar progresso em background:", error);
+        });
       }
-      // Salvar progresso após avançar
-      saveWorkoutProgress(workout.id);
     }
   };
 
-  const handleCardioComplete = () => {
+  const handleCardioComplete = async () => {
     if (!activeWorkout) return;
 
     // Pausar cronômetro
@@ -1078,7 +1103,7 @@ export function WorkoutModal() {
       });
     } else {
       // Se não for o último, usar a função normal
-      handleExerciseComplete(cardioLog);
+      await handleExerciseComplete(cardioLog);
     }
 
     // Resetar contadores para o próximo exercício
@@ -1087,13 +1112,14 @@ export function WorkoutModal() {
     setHeartRate(120);
   };
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     if (!activeWorkout) return;
 
     console.log("⏭️ handleSkip CHAMADO:", {
       currentIndex: activeWorkout.currentExerciseIndex,
       totalExercises: workout.exercises.length,
-      currentExerciseName: workout.exercises[activeWorkout.currentExerciseIndex]?.name,
+      currentExerciseName:
+        workout.exercises[activeWorkout.currentExerciseIndex]?.name,
       exerciseLogsCount: activeWorkout.exerciseLogs.length,
       skippedExercisesCount: activeWorkout.skippedExercises?.length || 0,
     });
@@ -1137,8 +1163,10 @@ export function WorkoutModal() {
       skippedExercises: updatedWorkout.skippedExercises,
     });
 
-    // Salvar progresso
-    saveWorkoutProgress(workout.id);
+    // Salvar progresso em background (não bloquear UI)
+    saveWorkoutProgress(workout.id).catch((error) => {
+      console.error("Erro ao salvar progresso em background:", error);
+    });
 
     // Verificar se chegou no último exercício
     const isLastExercise =
@@ -1153,7 +1181,9 @@ export function WorkoutModal() {
 
     // Se todos os exercícios foram vistos (completados ou pulados), marcar como completo
     if (isLastExercise && totalSeen >= totalExercises) {
-      console.log("✅ Todos os exercícios foram vistos. Salvando dados de conclusão...");
+      console.log(
+        "✅ Todos os exercícios foram vistos. Salvando dados de conclusão..."
+      );
       console.log("📋 Dados que serão salvos:", {
         exerciseLogsCount: updatedWorkout.exerciseLogs.length,
         exerciseLogs: updatedWorkout.exerciseLogs.map((l) => ({
@@ -1290,15 +1320,18 @@ export function WorkoutModal() {
     } else {
       // Avançar para próximo exercício
       const newIndex = updatedWorkout.currentExerciseIndex + 1;
+      // OTIMISTIC UPDATE: Atualizar Zustand e URL primeiro (instantâneo)
       setCurrentExerciseIndex(newIndex);
-      // Sincronizar exerciseIndex na URL
       setExerciseIndexParam(newIndex);
-      // Salvar progresso após avançar
-      saveWorkoutProgress(workout.id);
+
+      // Salvar progresso em background (não bloquear UI)
+      saveWorkoutProgress(workout.id).catch((error) => {
+        console.error("Erro ao salvar progresso em background:", error);
+      });
     }
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
     // Se está na tela de config de cardio e o usuário fechar sem escolher
     // Não salvar progresso para que a tela apareça novamente
     if (cardioConfigModal.isOpen) {
@@ -1310,9 +1343,11 @@ export function WorkoutModal() {
       return;
     }
 
-    // Salvar progresso antes de fechar (sempre, mesmo sem logs)
+    // Salvar progresso em background antes de fechar (não bloquear fechamento)
     if (workout && activeWorkout) {
-      saveWorkoutProgress(workout.id);
+      saveWorkoutProgress(workout.id).catch((error) => {
+        console.error("Erro ao salvar progresso em background:", error);
+      });
     }
     // Fechar modal
     workoutModal.close();
@@ -2107,11 +2142,21 @@ export function WorkoutModal() {
                             whileTap={{ scale: 0.98 }}
                             onClick={() => {
                               if (activeWorkout) {
-                                const newIndex = activeWorkout.currentExerciseIndex - 1;
+                                const newIndex =
+                                  activeWorkout.currentExerciseIndex - 1;
+                                // OTIMISTIC UPDATE: Atualizar Zustand e URL primeiro (instantâneo)
                                 setCurrentExerciseIndex(newIndex);
-                                // Sincronizar exerciseIndex na URL
                                 setExerciseIndexParam(newIndex);
-                                saveWorkoutProgress(workout.id);
+
+                                // Salvar progresso em background (não bloquear UI)
+                                saveWorkoutProgress(workout.id).catch(
+                                  (error) => {
+                                    console.error(
+                                      "Erro ao salvar progresso em background:",
+                                      error
+                                    );
+                                  }
+                                );
                               }
                             }}
                             className="rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50"

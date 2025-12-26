@@ -539,9 +539,21 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       completeWorkout: async (data) => {
-        // Esta action será implementada quando integrarmos com a API de workouts
-        // Por enquanto, apenas atualiza o store local
-        console.log("Completar workout:", data);
+        // O workout já foi salvo no backend pelo workout-modal
+        // Aqui apenas atualizamos o store local para refletir a conclusão
+        
+        // Atualizar progresso (XP, streak, etc) se fornecido
+        if (data.xpEarned) {
+          const currentProgress = get().data.progress;
+          await get().updateProgress({
+            totalXP: currentProgress.totalXP + data.xpEarned,
+            todayXP: currentProgress.todayXP + data.xpEarned,
+            workoutsCompleted: currentProgress.workoutsCompleted + 1,
+          });
+        }
+
+        // Recarregar workouts para atualizar status de locked/completed
+        await get().loadWorkouts();
       },
 
       addPersonalRecord: (record) => {

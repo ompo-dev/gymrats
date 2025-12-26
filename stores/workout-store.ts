@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { WorkoutSession, ExerciseLog, SetLog } from "@/lib/types";
+import { apiClient } from "@/lib/api/client";
 
 interface WorkoutProgress {
   workoutId: string;
@@ -30,10 +31,10 @@ interface WorkoutState {
     exerciseId: string,
     updates: Partial<ExerciseLog>
   ) => void;
-  saveWorkoutProgress: (workoutId: string) => void;
+  saveWorkoutProgress: (workoutId: string) => Promise<void>;
   loadWorkoutProgress: (workoutId: string) => WorkoutProgress | null;
   clearWorkoutProgress: (workoutId: string) => void;
-  completeWorkout: (workoutId: string) => void;
+  completeWorkout: (workoutId: string) => Promise<void>;
   isWorkoutCompleted: (workoutId: string) => boolean;
   isWorkoutInProgress: (workoutId: string) => boolean;
   getWorkoutProgress: (workoutId: string) => number; // Retorna % de progresso (0-100)
@@ -124,39 +125,71 @@ export const useWorkoutStore = create<WorkoutState>()(
             },
           };
         }),
-      saveWorkoutProgress: (workoutId) =>
-        set((state) => {
-          if (
-            !state.activeWorkout ||
-            state.activeWorkout.workoutId !== workoutId
-          )
-            return state;
-          // Salva sempre, mesmo sem logs (para rastrear índice atual, exercícios pulados, etc)
-          // Garantir que todas as propriedades estejam presentes
-          const progressToSave: WorkoutProgress = {
-            workoutId: state.activeWorkout.workoutId,
-            currentExerciseIndex: state.activeWorkout.currentExerciseIndex,
-            exerciseLogs: state.activeWorkout.exerciseLogs || [],
-            skippedExercises: state.activeWorkout.skippedExercises || [],
-            selectedAlternatives:
-              state.activeWorkout.selectedAlternatives || {},
-            xpEarned: state.activeWorkout.xpEarned || 0,
-            totalVolume: state.activeWorkout.totalVolume || 0,
-            completionPercentage: state.activeWorkout.completionPercentage || 0,
-            startTime: state.activeWorkout.startTime,
-            lastUpdated: new Date(),
-            cardioPreference: state.activeWorkout.cardioPreference,
-            cardioDuration: state.activeWorkout.cardioDuration,
-            selectedCardioType: state.activeWorkout.selectedCardioType,
-          };
-          return {
-            workoutProgress: {
-              ...state.workoutProgress,
-              [workoutId]: progressToSave,
-            },
-          };
-        }),
+      saveWorkoutProgress: async (workoutId) => {
+        const state = get();
+        if (
+          !state.activeWorkout ||
+          state.activeWorkout.workoutId !== workoutId
+        )
+          return;
+        
+        // Salva sempre, mesmo sem logs (para rastrear índice atual, exercícios pulados, etc)
+        // Garantir que todas as propriedades estejam presentes
+        const progressToSave: WorkoutProgress = {
+          workoutId: state.activeWorkout.workoutId,
+          currentExerciseIndex: state.activeWorkout.currentExerciseIndex,
+          exerciseLogs: state.activeWorkout.exerciseLogs || [],
+          skippedExercises: state.activeWorkout.skippedExercises || [],
+          selectedAlternatives:
+            state.activeWorkout.selectedAlternatives || {},
+          xpEarned: state.activeWorkout.xpEarned || 0,
+          totalVolume: state.activeWorkout.totalVolume || 0,
+          completionPercentage: state.activeWorkout.completionPercentage || 0,
+          startTime: state.activeWorkout.startTime,
+          lastUpdated: new Date(),
+          cardioPreference: state.activeWorkout.cardioPreference,
+          cardioDuration: state.activeWorkout.cardioDuration,
+          selectedCardioType: state.activeWorkout.selectedCardioType,
+        };
+
+        // Salvar no localStorage (otimistic update)
+        set({
+          workoutProgress: {
+            ...state.workoutProgress,
+            [workoutId]: progressToSave,
+          },
+        });
+
+        // Sincronizar com backend em background
+        try {
+          await apiClient.post(`/api/workouts/${workoutId}/progress`, {
+            currentExerciseIndex: progressToSave.currentExerciseIndex,
+            exerciseLogs: progressToSave.exerciseLogs,
+            skippedExercises: progressToSave.skippedExercises,
+            selectedAlternatives: progressToSave.selectedAlternatives,
+            xpEarned: progressToSave.xpEarned,
+            totalVolume: progressToSave.totalVolume,
+            completionPercentage: progressToSave.completionPercentage,
+            startTime: progressToSave.startTime,
+            cardioPreference: progressToSave.cardioPreference,
+            cardioDuration: progressToSave.cardioDuration,
+            selectedCardioType: progressToSave.selectedCardioType,
+          });
+        } catch (error: any) {
+          // Se a migration não foi aplicada, apenas logar e continuar
+          if (error.response?.data?.code === "MIGRATION_REQUIRED") {
+            console.log(
+              "⚠️ Tabela workout_progress não existe. Execute: node scripts/migration/apply-workout-progress-migration.js"
+            );
+          } else {
+            console.error("Erro ao sincronizar progresso com backend:", error);
+          }
+          // Não reverter mudanças locais - manter otimistic update
+        }
+      },
       loadWorkoutProgress: (workoutId) => {
+        // Usar apenas localStorage (Zustand persist) - dados já estão no store
+        // Não fazer GET - os dados já foram carregados no loadAll do student-unified-store
         const state = get();
         return state.workoutProgress[workoutId] || null;
       },
@@ -166,17 +199,29 @@ export const useWorkoutStore = create<WorkoutState>()(
           delete newProgress[workoutId];
           return { workoutProgress: newProgress };
         }),
-      completeWorkout: (workoutId) =>
-        set((state) => {
-          // Marcar como completo mas manter o progresso para permitir reabrir
-          const newCompleted = new Set(state.completedWorkouts);
-          newCompleted.add(workoutId);
-          return {
-            activeWorkout: null,
-            // NÃO remover do workoutProgress - permite reabrir e fazer novamente
-            completedWorkouts: newCompleted,
-          };
-        }),
+      completeWorkout: async (workoutId) => {
+        const state = get();
+        // Marcar como completo mas manter o progresso para permitir reabrir
+        const newCompleted = new Set(state.completedWorkouts);
+        newCompleted.add(workoutId);
+        
+        set({
+          activeWorkout: null,
+          // NÃO remover do workoutProgress - permite reabrir e fazer novamente
+          completedWorkouts: newCompleted,
+        });
+
+        // Limpar progresso parcial do backend (já foi salvo como completo)
+        // O endpoint /complete já faz isso, mas garantimos aqui também
+        try {
+          await apiClient.delete(`/api/workouts/${workoutId}/progress`);
+        } catch (error: any) {
+          // Ignorar erro se a migration não foi aplicada
+          if (error.response?.data?.code !== "MIGRATION_REQUIRED") {
+            console.error("Erro ao limpar progresso parcial:", error);
+          }
+        }
+      },
       isWorkoutCompleted: (workoutId) => {
         const state = get();
         return state.completedWorkouts.has(workoutId);

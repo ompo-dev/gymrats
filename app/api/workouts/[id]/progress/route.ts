@@ -54,10 +54,6 @@ export async function POST(
       selectedCardioType,
     } = body;
 
-    // Por enquanto, vamos salvar o progresso no localStorage via Zustand
-    // Mas podemos criar uma tabela de WorkoutProgress se necessário no futuro
-    // Por enquanto, apenas validar e retornar sucesso
-
     // Validar dados
     if (
       typeof currentExerciseIndex !== "number" ||
@@ -81,16 +77,67 @@ export async function POST(
       );
     }
 
-    // Progresso parcial é salvo no localStorage (Zustand)
-    // Esta API apenas valida e confirma que está tudo ok
-    // No futuro, podemos criar uma tabela WorkoutProgress para salvar no DB
+    // Salvar ou atualizar progresso no banco de dados
+    const progressData = {
+      studentId,
+      workoutId,
+      currentExerciseIndex,
+      exerciseLogs: JSON.stringify(exerciseLogs || []),
+      skippedExercises: skippedExercises
+        ? JSON.stringify(skippedExercises)
+        : null,
+      selectedAlternatives: selectedAlternatives
+        ? JSON.stringify(selectedAlternatives)
+        : null,
+      xpEarned: xpEarned || 0,
+      totalVolume: totalVolume || 0,
+      completionPercentage: completionPercentage || 0,
+      startTime: startTime ? new Date(startTime) : new Date(),
+      cardioPreference: cardioPreference || null,
+      cardioDuration: cardioDuration || null,
+      selectedCardioType: selectedCardioType || null,
+    };
+
+    // Usar upsert para criar ou atualizar
+    const progress = await db.workoutProgress.upsert({
+      where: {
+        studentId_workoutId: {
+          studentId,
+          workoutId,
+        },
+      },
+      create: progressData,
+      update: progressData,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "Progresso salvo localmente",
+      message: "Progresso salvo com sucesso",
+      progress: {
+        id: progress.id,
+        currentExerciseIndex: progress.currentExerciseIndex,
+        xpEarned: progress.xpEarned,
+        totalVolume: progress.totalVolume,
+        completionPercentage: progress.completionPercentage,
+      },
     });
   } catch (error: any) {
     console.error("Erro ao salvar progresso:", error);
+    
+    // Se a tabela não existir, informar que precisa rodar a migration
+    if (
+      error.message?.includes("does not exist") ||
+      error.message?.includes("workout_progress")
+    ) {
+      return NextResponse.json(
+        {
+          error: "Tabela workout_progress não existe. Execute: node scripts/migration/apply-workout-progress-migration.js",
+          code: "MIGRATION_REQUIRED",
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: error.message || "Erro ao salvar progresso" },
       { status: 500 }
@@ -100,7 +147,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
     const cookieStore = await cookies();
@@ -121,19 +168,144 @@ export async function GET(
       );
     }
 
-    const workoutId = params.id;
+    const studentId = session.user.student.id;
+    const resolvedParams = await Promise.resolve(params);
+    const workoutId = resolvedParams.id;
 
-    // Por enquanto, progresso parcial é gerenciado pelo Zustand (localStorage)
-    // Esta API retorna vazio, mas pode ser usada no futuro para buscar progresso do DB
+    if (!workoutId) {
+      return NextResponse.json(
+        { error: "ID do workout não fornecido" },
+        { status: 400 }
+      );
+    }
+
+    // Buscar progresso do banco de dados
+    const progress = await db.workoutProgress.findUnique({
+      where: {
+        studentId_workoutId: {
+          studentId,
+          workoutId,
+        },
+      },
+    });
+
+    if (!progress) {
+      return NextResponse.json({
+        progress: null,
+        message: "Nenhum progresso encontrado",
+      });
+    }
+
+    // Parsear JSON strings
+    const exerciseLogs = JSON.parse(progress.exerciseLogs || "[]");
+    const skippedExercises = progress.skippedExercises
+      ? JSON.parse(progress.skippedExercises)
+      : [];
+    const selectedAlternatives = progress.selectedAlternatives
+      ? JSON.parse(progress.selectedAlternatives)
+      : {};
 
     return NextResponse.json({
-      progress: null,
-      message: "Progresso parcial é gerenciado localmente",
+      progress: {
+        id: progress.id,
+        workoutId: progress.workoutId,
+        currentExerciseIndex: progress.currentExerciseIndex,
+        exerciseLogs,
+        skippedExercises,
+        selectedAlternatives,
+        xpEarned: progress.xpEarned,
+        totalVolume: progress.totalVolume,
+        completionPercentage: progress.completionPercentage,
+        startTime: progress.startTime,
+        cardioPreference: progress.cardioPreference,
+        cardioDuration: progress.cardioDuration,
+        selectedCardioType: progress.selectedCardioType,
+        lastUpdated: progress.updatedAt,
+      },
     });
   } catch (error: any) {
     console.error("Erro ao buscar progresso:", error);
+    
+    // Se a tabela não existir, retornar null sem erro
+    if (
+      error.message?.includes("does not exist") ||
+      error.message?.includes("workout_progress")
+    ) {
+      return NextResponse.json({
+        progress: null,
+        message: "Tabela workout_progress não existe. Execute: node scripts/migration/apply-workout-progress-migration.js",
+      });
+    }
+
     return NextResponse.json(
       { error: error.message || "Erro ao buscar progresso" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const resolvedParams = await Promise.resolve(params);
+    const workoutId = resolvedParams.id;
+
+    if (!workoutId) {
+      return NextResponse.json(
+        { error: "ID do workout não fornecido" },
+        { status: 400 }
+      );
+    }
+
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("auth_token")?.value;
+
+    if (!sessionToken) {
+      return NextResponse.json(
+        { error: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    const session = await getSession(sessionToken);
+    if (!session || !session.user.student) {
+      return NextResponse.json(
+        { error: "Sessão inválida ou usuário não é aluno" },
+        { status: 401 }
+      );
+    }
+    const studentId = session.user.student.id;
+
+    // Deletar progresso parcial
+    await db.workoutProgress.deleteMany({
+      where: {
+        studentId,
+        workoutId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Progresso parcial removido",
+    });
+  } catch (error: any) {
+    console.error("Erro ao deletar progresso:", error);
+    
+    // Se a tabela não existir, retornar sucesso (não há nada para deletar)
+    if (
+      error.message?.includes("does not exist") ||
+      error.message?.includes("workout_progress")
+    ) {
+      return NextResponse.json({
+        success: true,
+        message: "Tabela não existe, nada para deletar",
+      });
+    }
+
+    return NextResponse.json(
+      { error: error.message || "Erro ao deletar progresso" },
       { status: 500 }
     );
   }

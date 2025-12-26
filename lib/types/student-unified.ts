@@ -301,6 +301,7 @@ export interface WorkoutCompletionData {
   exercises: ExerciseLog[];
   overallFeedback?: "excelente" | "bom" | "regular" | "ruim";
   bodyPartsFatigued?: string[];
+  xpEarned?: number; // XP ganho no workout
   cardioData?: {
     duration: number;
     calories: number;

@@ -108,6 +108,24 @@ export async function POST(
       );
     }
 
+    // Limpar progresso parcial após completar o workout
+    try {
+      await db.workoutProgress.deleteMany({
+        where: {
+          studentId,
+          workoutId,
+        },
+      });
+    } catch (error: any) {
+      // Ignorar erro se a tabela não existir (migration não aplicada)
+      if (
+        !error.message?.includes("does not exist") &&
+        !error.message?.includes("workout_progress")
+      ) {
+        console.error("Erro ao limpar progresso parcial:", error);
+      }
+    }
+
     // Atualizar StudentProgress
     const progress = await db.studentProgress.findUnique({
       where: { studentId: studentId },
