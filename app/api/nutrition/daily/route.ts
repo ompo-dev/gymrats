@@ -11,3 +11,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return updateDailyNutritionHandler(request);
 }
+
+export async function PUT(request: NextRequest) {
+  return updateDailyNutritionHandler(request);
+}
+
+export async function PATCH(request: NextRequest) {
+  return updateDailyNutritionHandler(request);
+}

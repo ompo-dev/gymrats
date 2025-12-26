@@ -1,6 +1,6 @@
 /**
  * Server Actions Unificadas para Student
- * 
+ *
  * Esta função consolida todas as buscas de dados do student em uma única chamada,
  * otimizando queries e reduzindo round-trips ao banco de dados.
  */
@@ -24,7 +24,10 @@ import { mockGymLocations } from "@/lib/gym-mock-data";
 // HELPER: Obter Student ID
 // ============================================
 
-async function getStudentId(): Promise<{ studentId: string | null; userId: string | null }> {
+async function getStudentId(): Promise<{
+  studentId: string | null;
+  userId: string | null;
+}> {
   try {
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("auth_token")?.value;
@@ -230,9 +233,7 @@ export async function getAllStudentData(sections?: string[]) {
           fitnessLevel: student.profile.fitnessLevel,
           weeklyWorkoutFrequency: student.profile.weeklyWorkoutFrequency,
           workoutDuration: student.profile.workoutDuration,
-          goals: student.profile.goals
-            ? JSON.parse(student.profile.goals)
-            : [],
+          goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
           injuries: student.profile.injuries
             ? JSON.parse(student.profile.injuries)
             : [],
@@ -540,14 +541,14 @@ export async function getAllStudentData(sections?: string[]) {
               notes: el.notes || undefined,
               formCheckScore: el.formCheckScore || undefined,
               difficulty:
-                (el.difficulty &&
-                  [
-                    "muito-facil",
-                    "facil",
-                    "ideal",
-                    "dificil",
-                    "muito-dificil",
-                  ].includes(el.difficulty))
+                el.difficulty &&
+                [
+                  "muito-facil",
+                  "facil",
+                  "ideal",
+                  "dificil",
+                  "muito-dificil",
+                ].includes(el.difficulty)
                   ? (el.difficulty as
                       | "muito-facil"
                       | "facil"
@@ -558,11 +559,8 @@ export async function getAllStudentData(sections?: string[]) {
             };
           }),
           overallFeedback:
-            (wh.overallFeedback as
-              | "excelente"
-              | "bom"
-              | "regular"
-              | "ruim") || undefined,
+            (wh.overallFeedback as "excelente" | "bom" | "regular" | "ruim") ||
+            undefined,
           bodyPartsFatigued: bodyPartsFatigued,
         };
       });
@@ -589,11 +587,11 @@ export async function getAllStudentData(sections?: string[]) {
     // === DAILY NUTRITION ===
     if (!requestedSections || requestedSections.includes("dailyNutrition")) {
       try {
+        // Normalizar data para UTC (evitar problemas de timezone)
         const today = new Date();
-        const startOfDay = new Date(today);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(today);
-        endOfDay.setHours(23, 59, 59, 999);
+        const dateStr = today.toISOString().split("T")[0]; // YYYY-MM-DD
+        const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+        const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
         const profile = await db.studentProfile.findUnique({
           where: { studentId },
@@ -605,18 +603,25 @@ export async function getAllStudentData(sections?: string[]) {
           },
         });
 
-        const dailyNutrition = await db.dailyNutrition.findUnique({
+        // Usar findFirst com range de datas (igual ao handler de nutrition)
+        // Isso garante que encontre mesmo se a data foi salva com horas zeradas
+        const dailyNutrition = await db.dailyNutrition.findFirst({
           where: {
-            studentId_date: {
-              studentId,
-              date: today,
+            studentId: studentId,
+            date: {
+              gte: startOfDay,
+              lte: endOfDay,
             },
           },
           include: {
             meals: {
               orderBy: { order: "asc" },
               include: {
-                foods: true,
+                foods: {
+                  orderBy: {
+                    createdAt: "asc",
+                  },
+                },
               },
             },
           },
@@ -1113,4 +1118,3 @@ function getMockData() {
     },
   };
 }
-

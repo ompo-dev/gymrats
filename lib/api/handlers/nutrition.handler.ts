@@ -1,6 +1,6 @@
 /**
  * Handler de Nutrition
- * 
+ *
  * Centraliza toda a lógica das rotas relacionadas a nutrição e alimentos
  */
 
@@ -33,11 +33,10 @@ export async function getDailyNutritionHandler(
     const dateParam = searchParams.get("date");
     const date = dateParam ? new Date(dateParam) : new Date();
 
-    // Normalizar data
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Normalizar data para UTC (evitar problemas de timezone)
+    const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
+    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
     // Buscar perfil para targets
     const profile = await db.studentProfile.findUnique({
@@ -78,10 +77,7 @@ export async function getDailyNutritionHandler(
       });
     } catch (error: any) {
       // Se a tabela não existir, retornar dados vazios
-      if (
-        error.code === "P2021" ||
-        error.message?.includes("does not exist")
-      ) {
+      if (error.code === "P2021" || error.message?.includes("does not exist")) {
         return successResponse({
           date: date.toISOString(),
           meals: [],
@@ -198,12 +194,11 @@ export async function updateDailyNutritionHandler(
     const body = await request.json();
     const { date, meals, waterIntake } = body;
 
-    // Normalizar data
+    // Normalizar data para UTC (evitar problemas de timezone)
     const nutritionDate = date ? new Date(date) : new Date();
-    const startOfDay = new Date(nutritionDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(nutritionDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    const dateStr = nutritionDate.toISOString().split("T")[0]; // YYYY-MM-DD
+    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
     try {
       // Buscar ou criar daily nutrition
@@ -282,13 +277,11 @@ export async function updateDailyNutritionHandler(
 
       return successResponse({
         dailyNutritionId: dailyNutrition.id,
+        date: dailyNutrition.date.toISOString(),
       });
     } catch (error: any) {
       // Se a tabela não existir, retornar erro informativo
-      if (
-        error.code === "P2021" ||
-        error.message?.includes("does not exist")
-      ) {
+      if (error.code === "P2021" || error.message?.includes("does not exist")) {
         return badRequestResponse(
           "Tabela de nutrição não existe. Execute a migration: node scripts/apply-nutrition-migration.js",
           { code: "MIGRATION_REQUIRED" }
@@ -341,10 +334,7 @@ export async function searchFoodsHandler(
       });
     } catch (error: any) {
       // Se a tabela não existir, retornar array vazio
-      if (
-        error.code === "P2021" ||
-        error.message?.includes("does not exist")
-      ) {
+      if (error.code === "P2021" || error.message?.includes("does not exist")) {
         return successResponse({
           foods: [],
         });
@@ -428,4 +418,3 @@ export async function getFoodByIdHandler(
     return internalErrorResponse("Erro ao buscar alimento", error);
   }
 }
-
