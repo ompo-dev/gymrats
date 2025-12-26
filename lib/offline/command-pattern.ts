@@ -39,16 +39,33 @@ export interface Command {
     idempotencyKey: string;
     createdAt: number;
     userId?: string;
-    version?: string;
+    version: number; // OBRIGATÓRIO - versão do comando para migração
+    dependsOn?: string[]; // IDs de comandos que devem ser executados antes
   };
   status: 'pending' | 'syncing' | 'synced' | 'failed';
   retries: number;
   error?: string;
+  errorDetails?: any; // Detalhes serializados do erro para debug
 }
 
 // ============================================
 // FUNÇÕES
 // ============================================
+
+/**
+ * Versões dos comandos por tipo
+ * Incrementar quando o payload mudar
+ */
+const COMMAND_VERSIONS: Record<CommandType, number> = {
+  UPDATE_PROGRESS: 1,
+  UPDATE_PROFILE: 1,
+  ADD_WEIGHT: 1,
+  UPDATE_NUTRITION: 1,
+  COMPLETE_WORKOUT: 1,
+  ADD_PERSONAL_RECORD: 1,
+  UPDATE_SUBSCRIPTION: 1,
+  CUSTOM: 1,
+};
 
 /**
  * Cria um Command explícito
@@ -60,7 +77,8 @@ export function createCommand(
     idempotencyKey?: string;
     optimistic?: boolean;
     userId?: string;
-    version?: string;
+    version?: number; // Versão específica (opcional, usa padrão se não fornecido)
+    dependsOn?: string[]; // IDs de comandos que devem ser executados antes
   }
 ): Command {
   return {
@@ -72,7 +90,8 @@ export function createCommand(
       idempotencyKey: options?.idempotencyKey || generateUUID(),
       createdAt: Date.now(),
       userId: options?.userId,
-      version: options?.version || '1.0.0',
+      version: options?.version ?? COMMAND_VERSIONS[type] ?? 1, // Versão obrigatória
+      dependsOn: options?.dependsOn || [],
     },
     status: 'pending',
     retries: 0,
@@ -97,6 +116,8 @@ export function commandToSalvadorOff(
       'X-Idempotency-Key': command.meta.idempotencyKey,
       'X-Command-Id': command.id,
       'X-Command-Type': command.type,
+      'X-Command-Version': String(command.meta.version), // Versão do comando
+      'X-Command-DependsOn': command.meta.dependsOn?.join(',') || '', // Dependências
     },
     priority: 'high' as const,
     idempotencyKey: command.meta.idempotencyKey,

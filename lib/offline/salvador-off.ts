@@ -24,6 +24,7 @@ import {
   type OfflineQueueItem,
 } from './offline-queue';
 import { apiClient } from '@/lib/api/client';
+import { logCommand, updateCommandStatus } from './command-logger';
 
 // ============================================
 // TIPOS
@@ -153,6 +154,11 @@ export async function salvadorOff(
           break;
       }
 
+      // Log comando como sincronizado
+      if (options.commandId) {
+        await updateCommandStatus(options.commandId, 'synced');
+      }
+
       return {
         success: true,
         queued: false,
@@ -170,6 +176,11 @@ export async function salvadorOff(
       }
 
       // Erro não relacionado a rede, retorna erro
+      // Log comando como falhado
+      if (options.commandId) {
+        await updateCommandStatus(options.commandId, 'failed', error);
+      }
+
       return {
         success: false,
         queued: false,
@@ -201,6 +212,11 @@ async function queueRequest(
 
     // Registra Background Sync
     await registerBackgroundSync();
+
+    // Log comando como enfileirado
+    if (options.commandId) {
+      await updateCommandStatus(options.commandId, 'pending');
+    }
 
     console.log(`[salvadorOff] ✅ Ação salva na fila offline (ID: ${queueId})`);
 

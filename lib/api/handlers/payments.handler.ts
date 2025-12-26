@@ -257,8 +257,8 @@ export async function getMembershipsHandler(
 
     const studentId = auth.user.student.id;
 
-    // Buscar memberships
-    const memberships = await db.membership.findMany({
+    // Buscar memberships (modelo é GymMembership no Prisma)
+    const memberships = await db.gymMembership.findMany({
       where: {
         studentId: studentId,
       },
@@ -291,9 +291,10 @@ export async function getMembershipsHandler(
       gymName: membership.gym.name,
       planName: membership.plan?.name || undefined,
       startDate: membership.startDate,
-      endDate: membership.endDate,
-      status: membership.status as "active" | "expired" | "canceled",
+      endDate: membership.nextBillingDate || undefined, // GymMembership usa nextBillingDate, não endDate
+      status: membership.status as "active" | "expired" | "canceled" | "suspended" | "pending",
       autoRenew: membership.autoRenew,
+      amount: membership.amount,
     }));
 
     return successResponse({ memberships: formattedMemberships });

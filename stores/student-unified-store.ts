@@ -97,44 +97,235 @@ export interface StudentUnifiedState {
 /**
  * Carrega uma seção específica dos dados
  */
+/**
+ * Mapeamento de seções para rotas específicas
+ * Usa rotas dedicadas ao invés de /api/students/all?sections=...
+ * Se não tiver rota específica, usa null e será carregado via /api/students/all?sections=...
+ */
+const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
+  // Rotas específicas que existem
+  profile: "/api/students/profile",
+  weightHistory: "/api/students/weight",
+  units: "/api/workouts/units",
+  workoutHistory: "/api/workouts/history",
+  subscription: "/api/subscriptions/current",
+  memberships: "/api/memberships",
+  payments: "/api/payments",
+  paymentMethods: "/api/payment-methods",
+  gymLocations: "/api/gyms/locations",
+  dailyNutrition: "/api/nutrition/daily", // Já carregado separadamente
+  
+  // Seções que não têm rota específica - usarão /api/students/all?sections=...
+  // user, student, progress, personalRecords, dayPasses, friends
+};
+
 async function loadSection(
   section: StudentDataSection
 ): Promise<Partial<StudentData>> {
   try {
-    const response = await apiClient.get<Partial<StudentData>>(
-      `/api/students/all?sections=${section}`,
-      {
-        timeout: 30000, // 30 segundos para requisições de seções
-      }
-    );
-    return { [section]: response.data[section] || null };
+    const route = SECTION_ROUTES[section];
+    
+    let response: any;
+
+    if (route) {
+      // Usar rota específica (mais rápida e eficiente)
+      response = await apiClient.get<any>(route, {
+        timeout: 30000, // 30 segundos para rotas específicas
+      });
+    } else {
+      // Fallback: usar /api/students/all?sections=... para seções sem rota específica
+      response = await apiClient.get<Partial<StudentData>>(
+        `/api/students/all?sections=${section}`,
+        {
+          timeout: 30000,
+        }
+      );
+    }
+
+    // Transformar resposta da rota específica para formato do store
+    return transformSectionResponse(section, response.data);
   } catch (error: any) {
     // Tratamento específico para timeout
     if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
       console.warn(
-        `Timeout ao carregar ${section}. Continuando com dados existentes.`
+        `⏱️ Timeout ao carregar ${section}. Continuando com dados existentes.`
       );
       return {};
     }
-    console.error(`Erro ao carregar ${section}:`, error);
+    console.error(`❌ Erro ao carregar ${section}:`, error);
     return {};
   }
 }
 
 /**
- * Carrega todos os dados de uma vez
+ * Transforma resposta da rota específica para formato do store
+ */
+function transformSectionResponse(
+  section: StudentDataSection,
+  data: any
+): Partial<StudentData> {
+  switch (section) {
+    case "user":
+      // User vem de /api/auth/session como { user: {...} }
+      return { user: data.user || data };
+    
+    case "student":
+    case "profile":
+      // Profile vem direto
+      return { [section]: data };
+    
+    case "progress":
+      // Progress pode vir direto ou dentro de um objeto
+      return { progress: data.progress || data };
+    
+    case "weightHistory":
+      // Weight history vem como array
+      return { weightHistory: Array.isArray(data) ? data : data.weightHistory || [] };
+    
+    case "units":
+      // Units vem como array
+      return { units: Array.isArray(data) ? data : data.units || [] };
+    
+    case "workoutHistory":
+      // Workout history vem como array
+      return { workoutHistory: Array.isArray(data) ? data : data.workoutHistory || [] };
+    
+    case "personalRecords":
+      // Personal records vem como array
+      return { personalRecords: Array.isArray(data) ? data : data.personalRecords || [] };
+    
+    case "subscription":
+      // Subscription pode ser null
+      return { subscription: data.subscription || data || null };
+    
+    case "memberships":
+      // Memberships vem como array
+      return { memberships: Array.isArray(data) ? data : data.memberships || [] };
+    
+    case "payments":
+      // Payments vem como array
+      return { payments: Array.isArray(data) ? data : data.payments || [] };
+    
+    case "paymentMethods":
+      // Payment methods vem como array
+      return { paymentMethods: Array.isArray(data) ? data : data.paymentMethods || [] };
+    
+    case "dayPasses":
+      // Day passes vem como array
+      return { dayPasses: Array.isArray(data) ? data : data.dayPasses || [] };
+    
+    case "friends":
+      // Friends pode vir como objeto com count e list
+      return { friends: data.friends || data };
+    
+    case "gymLocations":
+      // Gym locations vem como array
+      return { gymLocations: Array.isArray(data) ? data : data.gymLocations || [] };
+    
+    default:
+      return { [section]: data };
+  }
+}
+
+/**
+ * Carrega todos os dados fazendo múltiplas requisições separadas
+ * e depois junta os resultados. Isso evita timeouts e melhora performance.
  */
 async function loadAllData(): Promise<StudentData> {
   try {
-    const response = await apiClient.get<StudentData>("/api/students/all");
-    const transformedData = transformStudentData(response.data);
+    // Lista de todas as seções para carregar
+    const sections: StudentDataSection[] = [
+      "user",
+      "student",
+      "progress",
+      "profile",
+      "weightHistory",
+      "units",
+      "workoutHistory",
+      "personalRecords",
+      "subscription",
+      "memberships",
+      "payments",
+      "paymentMethods",
+      "dayPasses",
+      "friends",
+      "gymLocations",
+    ];
+
+    // Carregar todas as seções em paralelo (mais rápido e evita timeout)
+    const sectionPromises = sections.map((section) =>
+      loadSection(section).catch((error) => {
+        console.warn(`[loadAllData] Erro ao carregar seção ${section}:`, error);
+        return {}; // Retorna objeto vazio se falhar, não quebra tudo
+      })
+    );
+
+    // Aguardar todas as requisições (paralelas)
+    const sectionResults = await Promise.all(sectionPromises);
+
+    // Juntar todos os resultados em um único objeto
+    const mergedData = sectionResults.reduce((acc, sectionData) => {
+      return {
+        ...acc,
+        ...sectionData,
+      };
+    }, {} as Partial<StudentData>);
+
+    // Carregar nutrição separadamente (pode demorar mais)
+    let nutritionData: Partial<StudentData> = {};
+    try {
+      const nutritionResponse = await apiClient.get<{
+        date: string;
+        meals: any[];
+        totalCalories: number;
+        totalProtein: number;
+        totalCarbs: number;
+        totalFats: number;
+        waterIntake: number;
+        targetCalories: number;
+        targetProtein: number;
+        targetCarbs: number;
+        targetFats: number;
+        targetWater: number;
+      }>("/api/nutrition/daily", {
+        timeout: 30000,
+      });
+
+      nutritionData = {
+        dailyNutrition: {
+          date: nutritionResponse.data.date || new Date().toISOString().split("T")[0],
+          meals: nutritionResponse.data.meals || [],
+          totalCalories: nutritionResponse.data.totalCalories || 0,
+          totalProtein: nutritionResponse.data.totalProtein || 0,
+          totalCarbs: nutritionResponse.data.totalCarbs || 0,
+          totalFats: nutritionResponse.data.totalFats || 0,
+          waterIntake: nutritionResponse.data.waterIntake || 0,
+          targetCalories: nutritionResponse.data.targetCalories || 2000,
+          targetProtein: nutritionResponse.data.targetProtein || 150,
+          targetCarbs: nutritionResponse.data.targetCarbs || 250,
+          targetFats: nutritionResponse.data.targetFats || 65,
+          targetWater: nutritionResponse.data.targetWater || 2000,
+        },
+      };
+    } catch (error) {
+      console.warn("[loadAllData] Erro ao carregar nutrição:", error);
+    }
+
+    // Transformar e mesclar todos os dados
+    const allData = {
+      ...mergedData,
+      ...nutritionData,
+    };
+
+    const transformedData = transformStudentData(allData as StudentData);
+
     // Mesclar com initialStudentData para garantir que todos os campos estejam presentes
     return {
       ...initialStudentData,
       ...transformedData,
     } as StudentData;
   } catch (error) {
-    console.error("Erro ao carregar todos os dados:", error);
+    console.error("[loadAllData] Erro ao carregar todos os dados:", error);
     return initialStudentData;
   }
 }
@@ -185,6 +376,49 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             },
           });
         } catch (error: any) {
+          console.error("[loadAll] Erro ao carregar dados:", error);
+          
+          // Se for timeout, tentar carregamento incremental como fallback
+          if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+            console.warn("[loadAll] Timeout detectado, tentando carregamento incremental...");
+            
+            try {
+              // Carregar dados essenciais primeiro
+              await get().loadEssential();
+              await get().loadStudentCore();
+              
+              // Tentar carregar o resto em background
+              Promise.all([
+                get().loadWorkouts(),
+                get().loadWorkoutHistory(),
+                get().loadPersonalRecords(),
+                get().loadNutrition(),
+                get().loadFinancial(),
+              ]).catch((err) => {
+                console.error("[loadAll] Erro ao carregar dados adicionais:", err);
+              });
+              
+              set((state) => ({
+                data: {
+                  ...state.data,
+                  metadata: {
+                    ...state.data.metadata,
+                    isLoading: false,
+                    isInitialized: true,
+                    lastSync: new Date(),
+                    errors: {
+                      loadAll: "Timeout - dados carregados incrementalmente",
+                    },
+                  },
+                },
+              }));
+              
+              return;
+            } catch (incrementalError) {
+              console.error("[loadAll] Erro no carregamento incremental:", incrementalError);
+            }
+          }
+          
           set((state) => ({
             data: {
               ...state.data,
@@ -200,6 +434,82 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }
       },
 
+      // === CARREGAMENTO INCREMENTAL (Melhor Performance) ===
+      loadEssential: async () => {
+        // Carrega dados essenciais primeiro (User + Progress básico)
+        try {
+          set((state) => ({
+            data: {
+              ...state.data,
+              metadata: {
+                ...state.data.metadata,
+                isLoading: true,
+              },
+            },
+          }));
+
+          await Promise.all([
+            get().loadUser(),
+            get().loadProgress(),
+          ]);
+
+          set((state) => ({
+            data: {
+              ...state.data,
+              metadata: {
+                ...state.data.metadata,
+                isLoading: false,
+                isInitialized: true,
+                lastSync: new Date(),
+              },
+            },
+          }));
+        } catch (error) {
+          console.error("[loadEssential] Erro:", error);
+          set((state) => ({
+            data: {
+              ...state.data,
+              metadata: {
+                ...state.data.metadata,
+                isLoading: false,
+                errors: {
+                  ...state.data.metadata.errors,
+                  loadEssential: error instanceof Error ? error.message : "Erro ao carregar dados essenciais",
+                },
+              },
+            },
+          }));
+        }
+      },
+
+      loadStudentCore: async () => {
+        // Carrega dados do student (Profile + Weight)
+        try {
+          await Promise.all([
+            get().loadProfile(),
+            get().loadWeightHistory(),
+          ]);
+        } catch (error) {
+          console.error("[loadStudentCore] Erro:", error);
+        }
+      },
+
+      loadFinancial: async () => {
+        // Carrega dados financeiros (Subscription + Payments)
+        try {
+          await Promise.all([
+            get().loadSubscription(),
+            get().loadPayments(),
+            get().loadMemberships(),
+            get().loadPaymentMethods(),
+            get().loadDayPasses(),
+          ]);
+        } catch (error) {
+          console.error("[loadFinancial] Erro:", error);
+        }
+      },
+
+      // === MÉTODOS INDIVIDUAIS (Mantidos para compatibilidade) ===
       loadUser: async () => {
         const section = await loadSection("user");
         set((state) => ({
@@ -471,6 +781,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           optimistic: true,
         });
 
+        // Log comando para observabilidade
+        await logCommand(command);
+
+        // Migrar comando se necessário (para versões antigas)
+        const migratedCommand = migrateCommand(command);
+
         // Sync with backend usando salvadorOff (gerencia offline/online automaticamente)
         try {
           const token =
@@ -479,11 +795,15 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               : null;
 
           const options = commandToSalvadorOff(
-            command,
+            migratedCommand,
             "/api/students/progress",
             "PUT",
             token ? { Authorization: `Bearer ${token}` } : {}
           );
+          
+          // Adicionar commandId e dependsOn
+          options.commandId = migratedCommand.id;
+          options.dependsOn = migratedCommand.meta.dependsOn;
 
           const result = await salvadorOff({
             ...options,
