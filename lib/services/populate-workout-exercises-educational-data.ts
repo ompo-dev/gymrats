@@ -13,25 +13,56 @@ import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
 
 /**
- * Popula todos os WorkoutExercises existentes com dados do educational database
+ * Popula WorkoutExercises existentes com dados do educational database
+ * 
+ * @param studentId - ID do aluno. Se fornecido, atualiza apenas exercícios dos workouts deste aluno.
+ *                    Se não fornecido, atualiza todos os exercícios (uso administrativo).
  */
-export async function populateWorkoutExercisesWithEducationalData(): Promise<{
+export async function populateWorkoutExercisesWithEducationalData(
+  studentId?: string
+): Promise<{
   updated: number;
   notFound: number;
   errors: number;
 }> {
   try {
-    console.log("🔄 Iniciando população de WorkoutExercises com dados educacionais...\n");
+    const scope = studentId ? `do aluno ${studentId}` : "de todos os alunos";
+    console.log(`🔄 Iniciando população de WorkoutExercises ${scope} com dados educacionais...\n`);
 
-    // Buscar todos os exercícios do banco
+    // Construir where clause baseado em studentId
+    const whereClause: any = {
+      OR: [
+        { primaryMuscles: null },
+        { secondaryMuscles: null },
+        { difficulty: null },
+      ],
+    };
+
+    // Se studentId fornecido, filtrar apenas exercícios dos workouts deste aluno
+    if (studentId) {
+      // Buscar todos os workouts deste aluno
+      const units = await db.unit.findMany({
+        where: { studentId },
+        include: {
+          workouts: {
+            select: { id: true },
+          },
+        },
+      });
+
+      const workoutIds = units.flatMap((unit) => unit.workouts.map((w) => w.id));
+
+      if (workoutIds.length === 0) {
+        console.log(`⚠️  Nenhum workout encontrado para o aluno ${studentId}`);
+        return { updated: 0, notFound: 0, errors: 0 };
+      }
+
+      whereClause.workoutId = { in: workoutIds };
+    }
+
+    // Buscar exercícios do banco
     const workoutExercises = await db.workoutExercise.findMany({
-      where: {
-        OR: [
-          { primaryMuscles: null },
-          { secondaryMuscles: null },
-          { difficulty: null },
-        ],
-      },
+      where: whereClause,
     });
 
     console.log(`📊 Encontrados ${workoutExercises.length} exercícios para atualizar\n`);

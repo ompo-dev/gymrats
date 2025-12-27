@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { mockFoodDatabase } from "@/lib/mock-data";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { FoodItem, Meal } from "@/lib/types";
-import { Search, Plus, Minus } from "lucide-react";
+import { Search, Plus, Minus, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { Button } from "@/components/atoms/buttons/button";
 import { cn } from "@/lib/utils";
 import { useStudent } from "@/hooks/use-student";
+import { apiClient } from "@/lib/api/client";
 
 interface FoodSearchProps {
   onAddFood: (
@@ -41,6 +41,19 @@ const mealTimes: Record<string, string> = {
   "post-workout": "Pós Treino",
 };
 
+const categories = [
+  { value: "", label: "Todas", icon: "🍽️" },
+  { value: "protein", label: "Proteínas", icon: "🥩" },
+  { value: "carbs", label: "Carboidratos", icon: "🍞" },
+  { value: "vegetables", label: "Vegetais", icon: "🥬" },
+  { value: "fruits", label: "Frutas", icon: "🍎" },
+  { value: "fats", label: "Gorduras", icon: "🥑" },
+  { value: "dairy", label: "Laticínios", icon: "🥛" },
+  { value: "snacks", label: "Snacks", icon: "🍪" },
+] as const;
+
+const ITEMS_PER_PAGE = 40;
+
 export function FoodSearch({
   onAddFood,
   onClose,
@@ -49,8 +62,16 @@ export function FoodSearch({
   onSelectMeal,
 }: FoodSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedFoodIds, setSelectedFoodIds] = useState<string[]>([]);
   const [foodServings, setFoodServings] = useState<Record<string, number>>({});
+  const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Se selectedMealId está definido, não permite seleção múltipla - adiciona direto naquela refeição
   const isSpecificMeal = !!selectedMealId;
@@ -58,34 +79,111 @@ export function FoodSearch({
     selectedMealId ? new Set([selectedMealId]) : new Set()
   );
 
-  // Usar alimentos do store unificado (API → Zustand → Component)
-  const { foodDatabase: storeFoodDatabase } = useStudent("foodDatabase");
+  // Debounce da busca (aguarda 500ms após parar de digitar)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500);
 
-  // Filtrar e ordenar alimentos do store baseado na busca (filtro local)
-  const foods = useMemo(() => {
-    // Usar alimentos do store ou fallback para mock
-    const allFoods =
-      storeFoodDatabase && storeFoodDatabase.length > 0
-        ? storeFoodDatabase
-        : mockFoodDatabase;
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-    // Se não tiver query, retornar todos ordenados alfabeticamente
-    if (!searchQuery || searchQuery.trim().length === 0) {
-      return [...allFoods].sort((a: FoodItem, b: FoodItem) =>
-        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
-      );
+  // Resetar paginação quando query ou categoria mudar
+  useEffect(() => {
+    setCurrentPage(0);
+    setFoods([]);
+    setHasMore(true);
+  }, [debouncedQuery, selectedCategory]);
+
+  // Buscar alimentos da API
+  const fetchFoods = useCallback(
+    async (page: number, reset: boolean = false) => {
+      // Prevenir múltiplas chamadas simultâneas
+      if (isLoading || isLoadingMore) return;
+
+      try {
+        if (page === 0) {
+          setIsLoading(true);
+        } else {
+          setIsLoadingMore(true);
+        }
+
+        const params = new URLSearchParams();
+        if (debouncedQuery.trim()) {
+          params.append("q", debouncedQuery.trim());
+        }
+        if (selectedCategory) {
+          params.append("category", selectedCategory);
+        }
+        params.append("limit", ITEMS_PER_PAGE.toString());
+
+        const response = await apiClient.get<{ foods: FoodItem[] }>(
+          `/api/foods/search?${params.toString()}`
+        );
+
+        const newFoods = response.data.foods || [];
+
+        if (reset || page === 0) {
+          setFoods(newFoods);
+        } else {
+          setFoods((prev) => [...prev, ...newFoods]);
+        }
+
+        // Se retornou menos que o limite, não há mais páginas
+        setHasMore(newFoods.length === ITEMS_PER_PAGE);
+      } catch (error) {
+        console.error("[FoodSearch] Erro ao buscar alimentos:", error);
+        if (page === 0) {
+          setFoods([]);
+        }
+        setHasMore(false);
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      }
+    },
+    [debouncedQuery, selectedCategory, isLoading, isLoadingMore]
+  );
+
+  // Carregar primeira página quando query ou categoria mudar
+  useEffect(() => {
+    fetchFoods(0, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQuery, selectedCategory]);
+
+  // Carregar próxima página quando currentPage mudar (exceto página 0)
+  useEffect(() => {
+    if (currentPage > 0) {
+      fetchFoods(currentPage, false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
-    // Se tiver query, filtrar e ordenar
-    const query = searchQuery.toLowerCase().trim();
-    return allFoods
-      .filter((food: FoodItem) => food.name.toLowerCase().includes(query))
-      .sort((a: FoodItem, b: FoodItem) =>
-        a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
-      );
-  }, [searchQuery, storeFoodDatabase]);
+  // Scroll infinito - detectar quando está perto do final
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !hasMore || isLoadingMore || isLoading) return;
 
-  const filteredFoods = foods;
+    let isFetching = false;
+
+    const handleScroll = () => {
+      if (isFetching) return;
+
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      // Carregar mais quando estiver a 200px do final
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        isFetching = true;
+        setCurrentPage((prev) => prev + 1);
+        // O useEffect acima vai chamar fetchFoods quando currentPage mudar
+        setTimeout(() => {
+          isFetching = false;
+        }, 1000); // Prevenir múltiplas chamadas rápidas
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, [hasMore, isLoadingMore, isLoading]);
 
   const getMealIcon = (type: string, name?: string) => {
     // Se o tipo for snack, tenta determinar pelo nome
@@ -139,12 +237,8 @@ export function FoodSearch({
     if (selectedFoodIds.length > 0 && selectedMealIds.size > 0) {
       const foodsToAdd = selectedFoodIds
         .map((foodId) => {
-          // Primeiro tentar encontrar no array foods (do backend)
-          let food = foods.find((f: FoodItem) => f.id === foodId);
-          // Se não encontrar, tentar no mock
-          if (!food) {
-            food = mockFoodDatabase.find((f: FoodItem) => f.id === foodId);
-          }
+          // Buscar alimento no array foods (vindos da API)
+          const food = foods.find((f: FoodItem) => f.id === foodId);
           if (!food) return null;
           return {
             food,
@@ -182,7 +276,7 @@ export function FoodSearch({
   const hasSelectedFoods = selectedFoodIds.length > 0;
 
   // Prepara opções para o OptionSelector
-  const foodOptions = filteredFoods.map((food: FoodItem) => ({
+  const foodOptions = foods.map((food: FoodItem) => ({
     value: food.id,
     label: food.name,
     description: `${food.calories} cal • P: ${food.protein}g • C: ${food.carbs}g • G: ${food.fats}g • ${food.servingSize}`,
@@ -329,6 +423,33 @@ export function FoodSearch({
               </motion.div>
             )}
 
+            {/* Filtros por categoria */}
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-bold text-gray-600">
+                Categoria:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <motion.button
+                    key={category.value}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedCategory(category.value)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
+                      selectedCategory === category.value
+                        ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-duo-green/50"
+                    )}
+                  >
+                    <span>{category.icon}</span>
+                    <span>{category.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Campo de busca */}
             <div className="relative">
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-600" />
               <input
@@ -341,33 +462,71 @@ export function FoodSearch({
             </div>
           </motion.div>
 
+          {/* Lista de alimentos com scroll infinito */}
           <motion.div
+            ref={scrollContainerRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.25, duration: 0.3 }}
             className="flex-1 overflow-y-auto p-6"
             style={{ maxHeight: "50vh" }}
           >
-            {filteredFoods.length === 0 ? (
+            {isLoading ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex flex-col items-center justify-center py-8 text-gray-600"
+              >
+                <Loader2 className="mb-2 h-8 w-8 animate-spin text-duo-green" />
+                <div className="text-sm font-bold">Carregando alimentos...</div>
+              </motion.div>
+            ) : foods.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="py-8 text-center text-gray-600"
               >
-                Nenhum alimento encontrado
+                {debouncedQuery || selectedCategory
+                  ? `Nenhum alimento encontrado${
+                      debouncedQuery ? ` para "${debouncedQuery}"` : ""
+                    }${selectedCategory ? ` na categoria selecionada` : ""}`
+                  : "Digite algo para buscar ou selecione uma categoria"}
               </motion.div>
             ) : (
-              <OptionSelector
-                options={foodOptions}
-                value={selectedFoodIds}
-                onChange={handleFoodSelection}
-                multiple={true}
-                layout="list"
-                size="md"
-                textAlign="left"
-                animate={true}
-                delay={0.3}
-              />
+              <>
+                <OptionSelector
+                  options={foodOptions}
+                  value={selectedFoodIds}
+                  onChange={handleFoodSelection}
+                  multiple={true}
+                  layout="list"
+                  size="md"
+                  textAlign="left"
+                  animate={true}
+                  delay={0.3}
+                />
+                {isLoadingMore && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-center justify-center py-4"
+                  >
+                    <Loader2 className="h-6 w-6 animate-spin text-duo-green" />
+                    <span className="ml-2 text-sm text-gray-600">
+                      Carregando mais alimentos...
+                    </span>
+                  </motion.div>
+                )}
+                {!hasMore && foods.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="py-4 text-center text-xs text-gray-500"
+                  >
+                    Todos os alimentos foram carregados ({foods.length} total)
+                  </motion.div>
+                )}
+              </>
             )}
           </motion.div>
 
@@ -396,14 +555,10 @@ export function FoodSearch({
                   >
                     <AnimatePresence>
                       {selectedFoodIds.map((foodId, index) => {
-                        // Primeiro tentar encontrar no array foods (do backend)
-                        let food = foods.find((f: FoodItem) => f.id === foodId);
-                        // Se não encontrar, tentar no mock
-                        if (!food) {
-                          food = mockFoodDatabase.find(
-                            (f: FoodItem) => f.id === foodId
-                          );
-                        }
+                        // Buscar alimento no array foods (vindos da API)
+                        const food = foods.find(
+                          (f: FoodItem) => f.id === foodId
+                        );
                         if (!food) return null;
                         const servings = foodServings[foodId] || 1;
                         return (

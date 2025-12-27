@@ -900,10 +900,10 @@ export async function updateExercisesWithAlternatives(studentId: string): Promis
  * Verifica se o aluno já tem treinos personalizados
  */
 export async function hasPersonalizedWorkouts(studentId: string): Promise<boolean> {
-  // Verificar se há units criadas para este aluno
-  // Por enquanto, vamos verificar se há units no sistema
-  // Futuramente, podemos adicionar um campo studentId em Unit
-  const unitsCount = await db.unit.count();
+  // Verificar se há units criadas para este aluno específico
+  const unitsCount = await db.unit.count({
+    where: { studentId: studentId },
+  });
   return unitsCount > 0;
 }
 

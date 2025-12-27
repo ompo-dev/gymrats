@@ -1,6 +1,6 @@
 {
   "name": "gymrats",
-  "version": "10.5.0",
+  "version": "11.0.0",
   "private": true,
   "scripts": {
     "build": "npm run version:sync && prisma generate && next build",
@@ -57,6 +57,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
+    "csv-parse": "^6.1.0",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
     "eslint-config-next": "^16.0.7",

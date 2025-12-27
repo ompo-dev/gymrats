@@ -36,11 +36,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se já existem treinos personalizados
-    const existingUnits = await db.unit.count();
+    // Verificar se já existem treinos personalizados para este aluno
+    const existingUnits = await db.unit.count({
+      where: { studentId: studentId },
+    });
     if (existingUnits > 0) {
-      // Deletar treinos antigos para gerar novos
-      await db.unit.deleteMany({});
+      // Deletar apenas os treinos antigos DESTE aluno para gerar novos
+      await db.unit.deleteMany({
+        where: { studentId: studentId },
+      });
     }
 
            // Preparar dados do perfil (incluindo preferências do onboarding)
@@ -80,8 +84,9 @@ export async function POST(request: NextRequest) {
            await updateExercisesWithAlternatives(studentId);
            
            // Popular exercícios com dados educacionais (músculos, instruções, dicas, etc)
+           // IMPORTANTE: Passar studentId para atualizar apenas exercícios deste aluno
            const { populateWorkoutExercisesWithEducationalData } = await import("@/lib/services/populate-workout-exercises-educational-data");
-           await populateWorkoutExercisesWithEducationalData();
+           await populateWorkoutExercisesWithEducationalData(studentId);
 
     return successResponse({
       message: "Treinos personalizados gerados com sucesso",

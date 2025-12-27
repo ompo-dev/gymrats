@@ -2456,6 +2456,99 @@ export async function GET() {
           },
         },
       },
+      "/api/foods/upload": {
+        post: {
+          tags: ["Foods"],
+          summary: "Upload de alimentos do CSV TACO",
+          description:
+            "Faz upload de alimentos a partir do CSV da Tabela Brasileira de Composição de Alimentos (TACO). Requer autenticação ADMIN. Pode enviar um arquivo CSV ou usar o arquivo padrão (public/alimentos.csv).",
+          operationId: "uploadFoods",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            content: {
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    file: {
+                      type: "string",
+                      format: "binary",
+                      description: "Arquivo CSV com os alimentos (opcional, usa public/alimentos.csv se não fornecido)",
+                    },
+                    skipDuplicates: {
+                      type: "boolean",
+                      description: "Se true, não atualiza alimentos existentes (apenas cria novos)",
+                      default: false,
+                    },
+                    batchSize: {
+                      type: "integer",
+                      description: "Tamanho do lote para inserção (1-500)",
+                      default: 100,
+                      minimum: 1,
+                      maximum: 500,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Upload concluído com sucesso",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: { type: "string" },
+                      total: {
+                        type: "integer",
+                        description: "Total de alimentos processados",
+                      },
+                      created: {
+                        type: "integer",
+                        description: "Alimentos criados",
+                      },
+                      updated: {
+                        type: "integer",
+                        description: "Alimentos atualizados",
+                      },
+                      skipped: {
+                        type: "integer",
+                        description: "Alimentos ignorados (duplicados)",
+                      },
+                      errors: {
+                        type: "integer",
+                        description: "Erros durante o processamento",
+                      },
+                    },
+                  },
+                  example: {
+                    message: "Upload de alimentos concluído",
+                    total: 598,
+                    created: 550,
+                    updated: 48,
+                    skipped: 0,
+                    errors: 0,
+                  },
+                },
+              },
+            },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "403": {
+              description: "Acesso negado - requer permissão ADMIN",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
+                  example: { error: "Acesso negado. Requer permissão ADMIN" },
+                },
+              },
+            },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+      },
       "/api/foods/{id}": {
         get: {
           tags: ["Foods"],

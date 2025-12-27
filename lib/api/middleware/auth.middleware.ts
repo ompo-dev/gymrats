@@ -161,3 +161,31 @@ export async function requireGym(
   return auth;
 }
 
+/**
+ * Valida se o usuário é um ADMIN
+ * Apenas usuários com role ADMIN têm acesso
+ */
+export async function requireAdmin(
+  request: NextRequest
+): Promise<AuthResult | AuthError> {
+  const auth = await requireAuth(request);
+
+  if ("error" in auth) {
+    return auth;
+  }
+
+  const isAdmin = auth.user?.role === "ADMIN";
+
+  if (!isAdmin) {
+    return {
+      response: NextResponse.json(
+        { error: "Acesso negado: requer role ADMIN" },
+        { status: 403 }
+      ),
+      error: "Acesso negado: requer role ADMIN",
+    };
+  }
+
+  return auth;
+}
+
