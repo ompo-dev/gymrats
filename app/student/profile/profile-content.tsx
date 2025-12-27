@@ -31,7 +31,12 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { useWorkoutStore } from "@/stores/workout-store";
-import type { WorkoutHistory, PersonalRecord } from "@/lib/types";
+import type {
+  WorkoutHistory,
+  PersonalRecord,
+  Unit,
+  WorkoutSession,
+} from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 
 /**
@@ -52,10 +57,11 @@ export function ProfilePageContent() {
   const router = useRouter();
   const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
-  
+
   // Carregar weightHistory, profile, progress e user se não estiverem carregados
-  const { loadWeightHistory, loadProfile, loadProgress, loadUser } = useStudent("loaders");
-  
+  const { loadWeightHistory, loadProfile, loadProgress, loadUser } =
+    useStudent("loaders");
+
   useEffect(() => {
     // Garantir que weightHistory, profile, progress e user sejam carregados
     const loadData = async () => {
@@ -66,7 +72,10 @@ export function ProfilePageContent() {
       if (!state.data.profile) {
         await loadProfile();
       }
-      if (!state.data.progress || state.data.progress.workoutsCompleted === undefined) {
+      if (
+        !state.data.progress ||
+        state.data.progress.workoutsCompleted === undefined
+      ) {
         await loadProgress();
       }
       if (!state.data.user || !state.data.user.email) {
@@ -147,13 +156,14 @@ export function ProfilePageContent() {
   };
 
   const weightHistoryLocal = storeWeightHistory || [];
-  
+
   // Peso atual: priorizar weightHistory (último registro) sobre profile.weight
   // weightHistory é mais confiável pois é atualizado sempre que um novo peso é adicionado
   // Se não houver histórico, usar o peso do perfil (pode ser do onboarding)
-  const currentWeight = weightHistoryLocal.length > 0 
-    ? weightHistoryLocal[0].weight 
-    : (storeProfile?.weight ?? null);
+  const currentWeight =
+    weightHistoryLocal.length > 0
+      ? weightHistoryLocal[0].weight
+      : storeProfile?.weight ?? null;
 
   // Calcular weightGain se não estiver calculado mas houver weightHistory
   let weightGain = storeWeightGain ?? null;
@@ -184,63 +194,71 @@ export function ProfilePageContent() {
   const workoutHistory = storeWorkoutHistory || [];
   const personalRecords = storePersonalRecords || [];
   const units = storeUnits || [];
-  
+
   // Calcular número total de treinos completados baseado em units
   // Contar quantos workouts têm completed: true em todas as units
-  const totalWorkoutsCompleted = units.reduce((total, unit) => {
+  const totalWorkoutsCompleted = units.reduce((total: number, unit: Unit) => {
     if (!unit.workouts || !Array.isArray(unit.workouts)) return total;
-    const completedInUnit = unit.workouts.filter((workout) => workout.completed === true).length;
+    const completedInUnit = unit.workouts.filter(
+      (workout: WorkoutSession) => workout.completed === true
+    ).length;
     return total + completedInUnit;
   }, 0);
-  
+
   // Buscar workoutProgress do store para encontrar último workout iniciado
   const workoutProgress = useWorkoutStore((state) => state.workoutProgress);
-  
+
   // Encontrar o último workout com pelo menos 1 exercício feito
   const lastInProgressWorkout = (() => {
     const progressEntries = Object.entries(workoutProgress);
-    
+
     // Filtrar apenas workouts com pelo menos 1 exercício feito
     const workoutsWithProgress = progressEntries
       .filter(([_, progress]) => progress.exerciseLogs.length > 0)
       .map(([workoutId, progress]) => ({
         workoutId,
         progress,
-        lastUpdated: progress.lastUpdated ? new Date(progress.lastUpdated) : progress.startTime,
+        lastUpdated: progress.lastUpdated
+          ? new Date(progress.lastUpdated)
+          : progress.startTime,
       }))
       .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
-    
+
     if (workoutsWithProgress.length === 0) return null;
-    
+
     const lastProgress = workoutsWithProgress[0];
-    
+
     // Buscar informações do workout nos units
     const workout = units
-      .flatMap((unit) => unit.workouts)
-      .find((w) => w.id === lastProgress.workoutId);
-    
+      .flatMap((unit: Unit) => unit.workouts)
+      .find((w: WorkoutSession) => w.id === lastProgress.workoutId);
+
     if (!workout) return null;
-    
+
     return {
       workout,
       progress: lastProgress.progress,
     };
   })();
-  
+
   // Criar histórico customizado mostrando apenas exercícios do último workout iniciado
   const recentWorkoutHistory = lastInProgressWorkout
     ? [
         {
-          date: lastInProgressWorkout.progress.startTime instanceof Date 
-            ? lastInProgressWorkout.progress.startTime 
-            : new Date(lastInProgressWorkout.progress.startTime),
+          date:
+            lastInProgressWorkout.progress.startTime instanceof Date
+              ? lastInProgressWorkout.progress.startTime
+              : new Date(lastInProgressWorkout.progress.startTime),
           workoutId: lastInProgressWorkout.workout.id,
           workoutName: lastInProgressWorkout.workout.title,
           duration: Math.round(
-            (new Date().getTime() - 
+            (new Date().getTime() -
               (lastInProgressWorkout.progress.startTime instanceof Date
                 ? lastInProgressWorkout.progress.startTime.getTime()
-                : new Date(lastInProgressWorkout.progress.startTime).getTime())) / 60000
+                : new Date(
+                    lastInProgressWorkout.progress.startTime
+                  ).getTime())) /
+              60000
           ),
           totalVolume: lastInProgressWorkout.progress.totalVolume || 0,
           exercises: lastInProgressWorkout.progress.exerciseLogs.map((log) => ({
@@ -248,15 +266,21 @@ export function ProfilePageContent() {
             exerciseId: log.exerciseId,
             exerciseName: log.exerciseName,
             workoutId: lastInProgressWorkout.workout.id,
-            date: lastInProgressWorkout.progress.startTime instanceof Date
-              ? lastInProgressWorkout.progress.startTime
-              : new Date(lastInProgressWorkout.progress.startTime),
+            date:
+              lastInProgressWorkout.progress.startTime instanceof Date
+                ? lastInProgressWorkout.progress.startTime
+                : new Date(lastInProgressWorkout.progress.startTime),
             sets: log.sets || [],
             notes: log.notes,
             formCheckScore: log.formCheckScore,
             difficulty: log.difficulty || "medio",
           })),
-          overallFeedback: undefined as "excelente" | "bom" | "regular" | "ruim" | undefined,
+          overallFeedback: undefined as
+            | "excelente"
+            | "bom"
+            | "regular"
+            | "ruim"
+            | undefined,
           bodyPartsFatigued: [],
         },
       ]
@@ -288,10 +312,11 @@ export function ProfilePageContent() {
   const isAdmin = storeIsAdmin || storeRole === "ADMIN";
 
   // Obter o primeiro workout disponível para CTAs
-  const firstWorkout = units.length > 0 && units[0]?.workouts?.length > 0
-    ? units[0].workouts[0]
-    : null;
-  
+  const firstWorkout =
+    units.length > 0 && units[0]?.workouts?.length > 0
+      ? units[0].workouts[0]
+      : null;
+
   const firstWorkoutUrl = firstWorkout
     ? `/student?tab=learn&modal=workout&workoutId=${firstWorkout.id}`
     : "/student?tab=learn";
@@ -481,31 +506,31 @@ export function ProfilePageContent() {
         }
       >
         {weightHistoryLocal.length > 0 ? (
-        <div className="space-y-3">
-          {weightHistoryLocal.map(
-            (record: WeightHistoryItem, index: number) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="text-sm text-duo-gray-dark">
-                  {new Date(record.date).toLocaleDateString("pt-BR")}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="h-2 flex-1 rounded-full bg-duo-border"
-                    style={{ width: `${record.weight}px` }}
-                  >
+          <div className="space-y-3">
+            {weightHistoryLocal.map(
+              (record: WeightHistoryItem, index: number) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="text-sm text-duo-gray-dark">
+                    {new Date(record.date).toLocaleDateString("pt-BR")}
+                  </div>
+                  <div className="flex items-center gap-3">
                     <div
-                      className="h-full rounded-full bg-duo-green"
-                      style={{ width: `${(record.weight / 85) * 100}%` }}
-                    />
-                  </div>
-                  <div className="w-16 text-right font-bold text-duo-text">
-                    {record.weight}kg
+                      className="h-2 flex-1 rounded-full bg-duo-border"
+                      style={{ width: `${record.weight}px` }}
+                    >
+                      <div
+                        className="h-full rounded-full bg-duo-green"
+                        style={{ width: `${(record.weight / 85) * 100}%` }}
+                      />
+                    </div>
+                    <div className="w-16 text-right font-bold text-duo-text">
+                      {record.weight}kg
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          )}
-        </div>
+              )
+            )}
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -517,7 +542,8 @@ export function ProfilePageContent() {
               Comece sua jornada!
             </h3>
             <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
-              Registre seu peso para acompanhar sua evolução e ver seu progresso ao longo do tempo.
+              Registre seu peso para acompanhar sua evolução e ver seu progresso
+              ao longo do tempo.
             </p>
             <Button
               onClick={handleOpenWeightModal}
@@ -534,53 +560,57 @@ export function ProfilePageContent() {
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard icon={Calendar} title="Histórico Recente">
           {recentWorkoutHistory.length > 0 ? (
-          <div className="space-y-3">
-            {recentWorkoutHistory.map((workout: WorkoutHistory, index: number) => (
-              <div key={index}>
-                <HistoryCard
-                  title={workout.workoutName}
-                  date={workout.date}
-                  status={
-                    workout.overallFeedback === "excelente"
-                      ? "excelente"
-                      : workout.overallFeedback === "bom"
-                      ? "bom"
-                      : "regular"
-                  }
-                  metadata={[
-                    { icon: "⏱️", label: `${workout.duration} min` },
-                    {
-                      icon: "💪",
-                      label: `${workout.totalVolume.toLocaleString()} kg`,
-                    },
-                    {
-                      icon: "🏋️",
-                      label: `${workout.exercises.length} exercício${workout.exercises.length !== 1 ? "s" : ""}`,
-                    },
-                  ]}
-                />
-                {/* Mostrar apenas os exercícios do último workout iniciado */}
-                {lastInProgressWorkout && workout.exercises.length > 0 && (
-                  <div className="mt-2 ml-4 space-y-1">
-                    {workout.exercises.map((exercise, exIndex) => (
-                      <div
-                        key={exIndex}
-                        className="text-sm text-duo-gray-dark flex items-center gap-2"
-                      >
-                        <span className="text-duo-green">✓</span>
-                        <span>{exercise.exerciseName}</span>
-                        {exercise.sets && exercise.sets.length > 0 && (
-                          <span className="text-xs text-duo-gray">
-                            ({exercise.sets.length} séries)
-                          </span>
-                        )}
+            <div className="space-y-3">
+              {recentWorkoutHistory.map(
+                (workout: WorkoutHistory, index: number) => (
+                  <div key={index}>
+                    <HistoryCard
+                      title={workout.workoutName}
+                      date={workout.date}
+                      status={
+                        workout.overallFeedback === "excelente"
+                          ? "excelente"
+                          : workout.overallFeedback === "bom"
+                          ? "bom"
+                          : "regular"
+                      }
+                      metadata={[
+                        { icon: "⏱️", label: `${workout.duration} min` },
+                        {
+                          icon: "💪",
+                          label: `${workout.totalVolume.toLocaleString()} kg`,
+                        },
+                        {
+                          icon: "🏋️",
+                          label: `${workout.exercises.length} exercício${
+                            workout.exercises.length !== 1 ? "s" : ""
+                          }`,
+                        },
+                      ]}
+                    />
+                    {/* Mostrar apenas os exercícios do último workout iniciado */}
+                    {lastInProgressWorkout && workout.exercises.length > 0 && (
+                      <div className="mt-2 ml-4 space-y-1">
+                        {workout.exercises.map((exercise, exIndex) => (
+                          <div
+                            key={exIndex}
+                            className="text-sm text-duo-gray-dark flex items-center gap-2"
+                          >
+                            <span className="text-duo-green">✓</span>
+                            <span>{exercise.exerciseName}</span>
+                            {exercise.sets && exercise.sets.length > 0 && (
+                              <span className="text-xs text-duo-gray">
+                                ({exercise.sets.length} séries)
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                )
+              )}
+            </div>
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -592,7 +622,8 @@ export function ProfilePageContent() {
                 Hora de começar!
               </h3>
               <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
-                Complete seu primeiro treino para ver seu histórico aqui. Vamos começar com algo fácil e tranquilo!
+                Complete seu primeiro treino para ver seu histórico aqui. Vamos
+                começar com algo fácil e tranquilo!
               </p>
               <Button
                 onClick={() => router.push(firstWorkoutUrl)}
@@ -600,8 +631,7 @@ export function ProfilePageContent() {
                 className="w-full max-w-xs"
               >
                 <Play className="h-4 w-4 mr-2" />
-                Começar Primeiro Treino
-                <ArrowRight className="h-4 w-4 ml-2" />
+                Primeiro Treino
               </Button>
             </motion.div>
           )}
@@ -609,18 +639,18 @@ export function ProfilePageContent() {
 
         <SectionCard icon={Award} title="Recordes Pessoais">
           {personalRecords.length > 0 ? (
-          <div className="space-y-3">
-            {personalRecords.map((record: PersonalRecord, index: number) => (
-              <RecordCard
-                key={index}
-                exerciseName={record.exerciseName}
-                date={record.date}
-                value={record.value}
-                unit={record.type === "max-weight" ? "kg" : " reps"}
-                previousBest={record.previousBest}
-              />
-            ))}
-          </div>
+            <div className="space-y-3">
+              {personalRecords.map((record: PersonalRecord, index: number) => (
+                <RecordCard
+                  key={index}
+                  exerciseName={record.exerciseName}
+                  date={record.date}
+                  value={record.value}
+                  unit={record.type === "max-weight" ? "kg" : " reps"}
+                  previousBest={record.previousBest}
+                />
+              ))}
+            </div>
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -632,7 +662,8 @@ export function ProfilePageContent() {
                 Seus recordes estão esperando!
               </h3>
               <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
-                Complete treinos e quebre seus próprios recordes. Cada treino é uma oportunidade de superar seus limites!
+                Complete treinos e quebre seus próprios recordes. Cada treino é
+                uma oportunidade de superar seus limites!
               </p>
               <Button
                 onClick={() => router.push(firstWorkoutUrl)}
@@ -640,8 +671,7 @@ export function ProfilePageContent() {
                 className="w-full max-w-xs"
               >
                 <Play className="h-4 w-4 mr-2" />
-                Começar Primeiro Treino
-                <ArrowRight className="h-4 w-4 ml-2" />
+                Primeiro Treino
               </Button>
             </motion.div>
           )}
