@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DuoButton } from "@/components/ui/duo-button";
 import { Users, Building2, Dumbbell, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,43 @@ export default function UserTypePage() {
     null
   );
   const [isLoading, setIsLoading] = useState(false);
+
+  // VERSÃO BETA: Redirecionar automaticamente se já for STUDENT
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      // Verificar localStorage primeiro (mais rápido)
+      const userMode = localStorage.getItem("userMode");
+      const userRole = localStorage.getItem("userRole");
+
+      if (userMode === "student" || userRole === "STUDENT") {
+        // Já é student, redirecionar para onboarding
+        router.replace("/student/onboarding");
+        return;
+      }
+
+      // Se não tiver no localStorage, verificar na sessão
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{
+          user: { role: string };
+        }>("/api/auth/session");
+
+        if (response.data.user.role === "STUDENT") {
+          // Atualizar localStorage e redirecionar
+          localStorage.setItem("userMode", "student");
+          localStorage.setItem("userRole", "STUDENT");
+          setUserMode("student");
+          router.replace("/student/onboarding");
+        }
+      } catch (error) {
+        // Se der erro (usuário não autenticado), continuar normalmente
+        // O usuário pode escolher o tipo
+        console.error("Erro ao verificar sessão:", error);
+      }
+    };
+
+    checkAndRedirect();
+  }, [router, userId, setUserMode]);
 
   const checkStudentProfile = async () => {
     try {

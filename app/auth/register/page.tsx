@@ -53,16 +53,17 @@ export default function RegisterPage() {
       localStorage.setItem("userId", response.user.id);
 
       // VERSÃO BETA: Automaticamente definir como STUDENT
-      // Atualizar role no banco de dados
+      // O role já é definido como STUDENT no backend durante o registro
+      // Mas vamos garantir que está atualizado usando a rota correta
       try {
         const { apiClient } = await import("@/lib/api/client");
-        await apiClient.post("/api/auth/update-role", {
+        await apiClient.post("/api/users/update-role", {
           userId: response.user.id,
           role: "STUDENT",
         });
       } catch (roleError: any) {
         console.error("Erro ao definir role como STUDENT:", roleError);
-        // Continuar mesmo se falhar - pode ser que já esteja definido
+        // Continuar mesmo se falhar - o role já foi definido no sign-up
       }
 
       // Atualizar store
@@ -88,29 +89,15 @@ export default function RegisterPage() {
         restTime: "medio",
       });
 
-      // Salvar userMode no localStorage
+      // Salvar userMode no localStorage ANTES de redirecionar
       localStorage.setItem("userMode", "student");
       localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userRole", "STUDENT");
 
-      // Verificar se tem perfil de student e redirecionar adequadamente
-      try {
-        const { apiClient } = await import("@/lib/api/client");
-        const profileResponse = await apiClient.get<{ hasProfile: boolean }>(
-          "/api/students/profile"
-        );
-
-        if (!profileResponse.data.hasProfile) {
-          // Não tem perfil, ir para onboarding
-          router.push("/student/onboarding");
-        } else {
-          // Já tem perfil, ir para home do student
-          router.push("/student");
-        }
-      } catch (profileError: any) {
-        console.error("Erro ao verificar perfil:", profileError);
-        // Se der erro, assumir que não tem perfil e ir para onboarding
-        router.push("/student/onboarding");
-      }
+      // VERSÃO BETA: Redirecionar diretamente para onboarding do student
+      // Não verificar perfil, pois acabou de criar a conta e não tem perfil ainda
+      // Usar replace para evitar que o usuário volte para a página de registro
+      router.replace("/student/onboarding");
     } catch (err: any) {
       setError(err.message || "Erro ao criar conta");
     } finally {
