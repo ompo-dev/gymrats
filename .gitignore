@@ -9,8 +9,8 @@ node_modules
 /lib/generated/prisma
 
 # Prisma
-prisma/migrations
-prisma/schema.prisma
+# prisma/migrations - migrations devem estar no repositório se necessário para deploy
+# prisma/schema.prisma - O schema DEVE estar no repositório para o build funcionar
 
 # Database
 db.json
