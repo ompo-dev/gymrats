@@ -1,13 +1,100 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { FormInput } from "@/components/ui/form-input";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import type { StepProps, DifficultyLevel } from "./types";
+import { validateStep1, step1Schema } from "../schemas";
+import type { z } from "zod";
 
-export function Step1({ formData, setFormData }: StepProps) {
+export function Step1({ formData, setFormData, forceValidation }: StepProps) {
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof z.infer<typeof step1Schema>, string>>
+  >({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof z.infer<typeof step1Schema>, boolean>>
+  >({});
+
+  // Valida apenas campos que foram tocados ou quando tenta avançar
+  const validateField = (field: keyof z.infer<typeof step1Schema>) => {
+    const validation = validateStep1({
+      age: typeof formData.age === "number" ? formData.age : undefined,
+      gender: formData.gender || undefined,
+      isTrans: formData.isTrans,
+      usesHormones: formData.usesHormones,
+      hormoneType: formData.hormoneType || undefined,
+      height: typeof formData.height === "number" ? formData.height : undefined,
+      weight: typeof formData.weight === "number" ? formData.weight : undefined,
+      fitnessLevel: formData.fitnessLevel || undefined,
+    });
+
+    if (!validation.success) {
+      const fieldError = validation.error.errors.find(
+        (err) => err.path[0] === field
+      );
+      if (fieldError) {
+        setErrors((prev) => ({ ...prev, [field]: fieldError.message }));
+      } else {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[field];
+          return newErrors;
+        });
+      }
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Marca todos os campos como touched quando forceValidation é true
+  useEffect(() => {
+    if (forceValidation) {
+      setTouched({
+        age: true,
+        height: true,
+        weight: true,
+        gender: true,
+        fitnessLevel: true,
+      });
+    }
+  }, [forceValidation]);
+
+  // Valida apenas campos que foram tocados
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const validation = validateStep1({
+        age: typeof formData.age === "number" ? formData.age : undefined,
+        gender: formData.gender || undefined,
+        isTrans: formData.isTrans,
+        usesHormones: formData.usesHormones,
+        hormoneType: formData.hormoneType || undefined,
+        height: typeof formData.height === "number" ? formData.height : undefined,
+        weight: typeof formData.weight === "number" ? formData.weight : undefined,
+        fitnessLevel: formData.fitnessLevel || undefined,
+      });
+
+      if (!validation.success) {
+        const fieldErrors: typeof errors = {};
+        validation.error.errors.forEach((err) => {
+          const path = err.path[0] as keyof typeof fieldErrors;
+          if (path && touched[path]) {
+            fieldErrors[path] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({});
+      }
+    }
+  }, [formData, touched]);
+
   return (
     <StepCard
       title="Informações Pessoais"
@@ -19,33 +106,54 @@ export function Step1({ formData, setFormData }: StepProps) {
           type="number"
           placeholder="25"
           value={formData.age}
-          onChange={(value) =>
-            setFormData({ ...formData, age: value as number | "" })
-          }
+          onChange={(value) => {
+            setFormData({ ...formData, age: value as number | "" });
+          }}
+          onBlur={() => {
+            setTouched((prev) => ({ ...prev, age: true }));
+            validateField("age");
+          }}
           required
+          error={touched.age ? errors.age : undefined}
           delay={0.3}
+          min={13}
+          max={120}
         />
         <FormInput
           label="Altura (cm)"
           type="number"
           placeholder="170"
           value={formData.height}
-          onChange={(value) =>
-            setFormData({ ...formData, height: value as number | "" })
-          }
+          onChange={(value) => {
+            setFormData({ ...formData, height: value as number | "" });
+          }}
+          onBlur={() => {
+            setTouched((prev) => ({ ...prev, height: true }));
+            validateField("height");
+          }}
           required
+          error={touched.height ? errors.height : undefined}
           delay={0.4}
+          min={100}
+          max={250}
         />
         <FormInput
           label="Peso (kg)"
           type="number"
           placeholder="70"
           value={formData.weight}
-          onChange={(value) =>
-            setFormData({ ...formData, weight: value as number | "" })
-          }
+          onChange={(value) => {
+            setFormData({ ...formData, weight: value as number | "" });
+          }}
+          onBlur={() => {
+            setTouched((prev) => ({ ...prev, weight: true }));
+            validateField("weight");
+          }}
           required
+          error={touched.weight ? errors.weight : undefined}
           delay={0.5}
+          min={30}
+          max={300}
         />
 
         <div className="space-y-4">

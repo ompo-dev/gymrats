@@ -67,7 +67,7 @@ const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
   diet: ["dailyNutrition", "progress"],
   profile: ["profile", "weightHistory", "progress", "personalRecords"],
   payments: ["subscription", "payments", "paymentMethods", "memberships"],
-  home: ["progress", "workoutHistory", "profile"],
+  home: ["progress", "workoutHistory", "profile", "units", "dailyNutrition"],
   default: ["progress", "units", "profile"],
 };
 

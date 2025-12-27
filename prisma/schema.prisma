@@ -94,6 +94,10 @@ model Student {
   gender String?
   phone  String?
   avatar String?
+  // Informações sobre identidade de gênero e terapia hormonal
+  isTrans              Boolean? // Se a pessoa é transgênero
+  usesHormones         Boolean? // Se faz uso de terapia hormonal
+  hormoneType          String?  // "testosterone" | "estrogen" | "none"
 
   // Progresso
   progress StudentProgress?
@@ -109,6 +113,9 @@ model Student {
   achievements AchievementUnlock[]
   weightHistory WeightHistory[]
   dailyNutrition DailyNutrition[]
+  
+  // Treinos personalizados
+  units        Unit[]
 
   // Academias
   memberships GymMembership[]
@@ -171,6 +178,21 @@ model StudentProfile {
   targetCarbs            Float?
   targetFats             Float?
   mealsPerDay            Int?
+  // Valores metabólicos calculados
+  bmr                    Float? // Taxa metabólica basal (Basal Metabolic Rate)
+  tdee                   Float? // Gasto energético total diário (Total Daily Energy Expenditure)
+  // Nível de atividade física (1-10) baseado em Harris-Benedict
+  activityLevel          Int? // 1-10
+  // Tempo de tratamento hormonal (meses)
+  hormoneTreatmentDuration Int? // Meses de tratamento hormonal
+  // Limitações separadas (JSON arrays)
+  physicalLimitations    String? // JSON array de limitações físicas
+  motorLimitations       String? // JSON array de limitações motoras
+  medicalConditions      String? // JSON array de condições médicas
+  // Detalhes adicionais das limitações (JSON object)
+  limitationDetails      String? // JSON object: { "limitationKey": "detailValue" }
+  // Horas disponíveis por dia para treino (para planejamento de treino mensal)
+  dailyAvailableHours    Float?  // 0.5, 1, 1.5, 2, etc (horas por dia)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -289,12 +311,14 @@ model GymStats {
 // ============================================
 
 model Unit {
-  id          String  @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   description String?
   color       String?
   icon        String?
-  order       Int     @default(0)
+  order       Int      @default(0)
+  studentId   String?  // Se null, é um treino global; se preenchido, é personalizado para o aluno
+  student     Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   workouts Workout[]
 
@@ -340,8 +364,22 @@ model WorkoutExercise {
   videoUrl      String?
   educationalId String? // Referência ao conteúdo educacional
   order         Int                 @default(0)
+  
+  // Dados do educational database
+  primaryMuscles    String? // JSON array de músculos primários
+  secondaryMuscles  String? // JSON array de músculos secundários
+  difficulty        String? // "iniciante" | "intermediario" | "avancado"
+  equipment         String? // JSON array de equipamentos necessários
+  instructions      String? // JSON array de instruções passo a passo
+  tips              String? // JSON array de dicas
+  commonMistakes    String? // JSON array de erros comuns
+  benefits          String? // JSON array de benefícios
+  scientificEvidence String? // Texto com evidência científica
 
   alternatives AlternativeExercise[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("workout_exercises")
 }

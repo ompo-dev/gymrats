@@ -184,17 +184,60 @@ export async function GET() {
         StudentProfile: {
           type: "object",
           properties: {
-            height: { type: "number", description: "Altura em cm" },
-            weight: { type: "number", description: "Peso em kg" },
+            height: { type: "number", description: "Altura em cm", nullable: true },
+            weight: { type: "number", description: "Peso em kg", nullable: true },
             fitnessLevel: {
               type: "string",
               enum: ["iniciante", "intermediario", "avancado"],
+              nullable: true,
             },
             weeklyWorkoutFrequency: {
               type: "number",
               description: "Frequência semanal de treinos",
+              nullable: true,
             },
-            goals: { type: "array", items: { type: "string" } },
+            workoutDuration: {
+              type: "number",
+              description: "Duração do treino em minutos",
+              nullable: true,
+            },
+            goals: { type: "array", items: { type: "string" }, nullable: true },
+            gymType: { type: "string", nullable: true },
+            preferredSets: { type: "number", nullable: true },
+            preferredRepRange: { type: "string", nullable: true },
+            restTime: { type: "string", nullable: true },
+            // Valores metabólicos calculados
+            bmr: { type: "number", description: "Taxa metabólica basal (kcal/dia)", nullable: true },
+            tdee: { type: "number", description: "Gasto energético total diário (kcal/dia)", nullable: true },
+            targetCalories: { type: "number", description: "Calorias alvo diárias", nullable: true },
+            targetProtein: { type: "number", description: "Proteína alvo (gramas)", nullable: true },
+            targetCarbs: { type: "number", description: "Carboidratos alvo (gramas)", nullable: true },
+            targetFats: { type: "number", description: "Gorduras alvo (gramas)", nullable: true },
+            // Nível de atividade e tratamento hormonal
+            activityLevel: { type: "number", description: "Nível de atividade física (1-10)", minimum: 1, maximum: 10, nullable: true },
+            hormoneTreatmentDuration: { type: "number", description: "Tempo de tratamento hormonal (meses)", nullable: true },
+            // Limitações
+            physicalLimitations: { type: "array", items: { type: "string" }, description: "Limitações físicas", nullable: true },
+            motorLimitations: { type: "array", items: { type: "string" }, description: "Limitações motoras", nullable: true },
+            medicalConditions: { type: "array", items: { type: "string" }, description: "Condições médicas", nullable: true },
+            limitationDetails: { type: "object", description: "Detalhes das limitações (JSON object)", nullable: true },
+            // Horas disponíveis por dia para treino
+            dailyAvailableHours: { type: "number", description: "Horas disponíveis por dia para treino (0.5-24)", nullable: true },
+            // Compatibilidade com campo antigo
+            injuries: { type: "array", items: { type: "string" }, description: "Lesões/limitações (campo legado)", nullable: true },
+          },
+        },
+        Student: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            age: { type: "number", nullable: true },
+            gender: { type: "string", nullable: true },
+            phone: { type: "string", nullable: true },
+            avatar: { type: "string", nullable: true },
+            isTrans: { type: "boolean", description: "Se a pessoa é transgênero", nullable: true },
+            usesHormones: { type: "boolean", description: "Se faz uso de terapia hormonal", nullable: true },
+            hormoneType: { type: "string", enum: ["testosterone", "estrogen", "none"], description: "Tipo de hormônio usado", nullable: true },
           },
         },
         WeightHistory: {
@@ -221,10 +264,12 @@ export async function GET() {
           properties: {
             id: { type: "string" },
             title: { type: "string" },
+            description: { type: "string", nullable: true },
             type: {
               type: "string",
               enum: ["strength", "cardio", "flexibility", "rest"],
             },
+            muscleGroup: { type: "string", nullable: true },
             difficulty: {
               type: "string",
               enum: ["iniciante", "intermediario", "avancado"],
@@ -234,6 +279,53 @@ export async function GET() {
               type: "number",
               description: "Tempo estimado em minutos",
             },
+            locked: { type: "boolean" },
+            completed: { type: "boolean" },
+            exercises: {
+              type: "array",
+              items: { $ref: "#/components/schemas/WorkoutExercise" },
+            },
+          },
+        },
+        WorkoutExercise: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string" },
+            sets: { type: "number", description: "Número de séries (baseado em preferredSets do onboarding)" },
+            reps: { type: "string", description: "Faixa de repetições (baseado em preferredRepRange do onboarding)" },
+            rest: { type: "number", description: "Tempo de descanso em segundos (baseado em restTime do onboarding)" },
+            notes: { type: "string", nullable: true },
+            videoUrl: { type: "string", nullable: true },
+            educationalId: { type: "string", nullable: true, description: "ID do exercício no educational database" },
+            order: { type: "number" },
+            // Dados do educational database
+            primaryMuscles: { type: "array", items: { type: "string" }, nullable: true, description: "Músculos primários (JSON array)" },
+            secondaryMuscles: { type: "array", items: { type: "string" }, nullable: true, description: "Músculos secundários (JSON array)" },
+            difficulty: { type: "string", enum: ["iniciante", "intermediario", "avancado"], nullable: true, description: "Nível de dificuldade" },
+            equipment: { type: "array", items: { type: "string" }, nullable: true, description: "Equipamentos necessários (JSON array)" },
+            instructions: { type: "array", items: { type: "string" }, nullable: true, description: "Instruções passo a passo (JSON array)" },
+            tips: { type: "array", items: { type: "string" }, nullable: true, description: "Dicas de execução (JSON array)" },
+            commonMistakes: { type: "array", items: { type: "string" }, nullable: true, description: "Erros comuns (JSON array)" },
+            benefits: { type: "array", items: { type: "string" }, nullable: true, description: "Benefícios do exercício (JSON array)" },
+            scientificEvidence: { type: "string", nullable: true, description: "Evidência científica" },
+            alternatives: {
+              type: "array",
+              items: { $ref: "#/components/schemas/AlternativeExercise" },
+              nullable: true,
+              description: "Exercícios alternativos para este exercício",
+            },
+            createdAt: { type: "string", format: "date-time", nullable: true },
+            updatedAt: { type: "string", format: "date-time", nullable: true },
+          },
+        },
+        AlternativeExercise: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            name: { type: "string", description: "Nome do exercício alternativo" },
+            reason: { type: "string", description: "Motivo da alternativa (ex: 'Sem equipamento disponível', 'Menor impacto nas articulações')" },
+            educationalId: { type: "string", nullable: true, description: "ID do exercício no database educacional" },
           },
         },
         Subscription: {
@@ -457,6 +549,7 @@ export async function GET() {
                     type: "object",
                     properties: {
                       hasProfile: { type: "boolean" },
+                      student: { $ref: "#/components/schemas/Student" },
                       profile: { $ref: "#/components/schemas/StudentProfile" },
                     },
                   },
@@ -613,13 +706,16 @@ export async function GET() {
                 "application/json": {
                   schema: {
                     type: "object",
-                    properties: {
-                      id: { type: "string" },
-                      age: { type: "integer", nullable: true },
-                      gender: { type: "string", nullable: true },
-                      phone: { type: "string", nullable: true },
-                      avatar: { type: "string", nullable: true },
-                    },
+                      properties: {
+                        id: { type: "string" },
+                        age: { type: "integer", nullable: true },
+                        gender: { type: "string", nullable: true },
+                        phone: { type: "string", nullable: true },
+                        avatar: { type: "string", nullable: true },
+                        isTrans: { type: "boolean", description: "Se a pessoa é transgênero", nullable: true },
+                        usesHormones: { type: "boolean", description: "Se faz uso de terapia hormonal", nullable: true },
+                        hormoneType: { type: "string", enum: ["testosterone", "estrogen", "none"], description: "Tipo de hormônio usado", nullable: true },
+                      },
                   },
                 },
               },
@@ -962,6 +1058,9 @@ export async function GET() {
                           properties: {
                             id: { type: "string" },
                             title: { type: "string" },
+                            description: { type: "string", nullable: true },
+                            color: { type: "string", nullable: true },
+                            icon: { type: "string", nullable: true },
                             workouts: {
                               type: "array",
                               items: { $ref: "#/components/schemas/Workout" },
@@ -975,6 +1074,75 @@ export async function GET() {
               },
             },
             "401": { $ref: "#/components/responses/UnauthorizedError" },
+          },
+        },
+      },
+      "/api/workouts/generate": {
+        post: {
+          tags: ["Workouts"],
+          summary: "Gerar treinos personalizados",
+          description:
+            "Gera treinos personalizados para o aluno baseado em seus dados do onboarding. Cria um plano mensal (4 semanas) com workouts personalizados considerando objetivos, limitações, equipamentos disponíveis e preferências.",
+          operationId: "generatePersonalizedWorkouts",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Treinos personalizados gerados com sucesso",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": {
+              description: "Perfil do aluno não encontrado",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      error: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "500": { $ref: "#/components/responses/InternalError" },
+          },
+        },
+        patch: {
+          tags: ["Workouts"],
+          summary: "Atualizar exercícios com alternativas",
+          description:
+            "Atualiza exercícios existentes nos treinos do aluno adicionando alternativas. Útil para adicionar alternativas a treinos que foram gerados antes da implementação de alternativas automáticas.",
+          operationId: "updateExercisesWithAlternatives",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          responses: {
+            "200": {
+              description: "Alternativas adicionadas aos exercícios com sucesso",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      success: { type: "boolean" },
+                      message: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "500": { $ref: "#/components/responses/InternalError" },
           },
         },
       },

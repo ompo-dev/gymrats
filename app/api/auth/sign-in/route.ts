@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { createSession } from "@/lib/utils/session";
+import { signInSchema } from "@/lib/api/schemas";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email e senha são obrigatórios" },
-        { status: 400 }
-      );
+    // Validar body com Zod
+    const validation = await validateBody(request, signInSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { email, password } = validation.data;
 
     const user = await db.user.findUnique({
       where: { email },

@@ -12,6 +12,9 @@ import {
   Shield,
   Edit,
   X,
+  Play,
+  ArrowRight,
+  Target,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { ProfileHeader } from "@/components/ui/profile-header";
@@ -22,10 +25,11 @@ import { RecordCard } from "@/components/ui/record-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import type { WorkoutHistory, PersonalRecord } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 
@@ -47,6 +51,23 @@ export function ProfilePageContent() {
   const router = useRouter();
   const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
+  
+  // Carregar weightHistory e profile se não estiverem carregados
+  const { loadWeightHistory, loadProfile } = useStudent("loaders");
+  
+  useEffect(() => {
+    // Garantir que weightHistory e profile sejam carregados
+    const loadData = async () => {
+      const state = useStudentUnifiedStore.getState();
+      if (!state.data.weightHistory || state.data.weightHistory.length === 0) {
+        await loadWeightHistory();
+      }
+      if (!state.data.profile) {
+        await loadProfile();
+      }
+    };
+    loadData();
+  }, [loadWeightHistory, loadProfile]);
 
   // ============================================
   // DADOS DO STORE UNIFICADO (Offline-First)
@@ -65,6 +86,7 @@ export function ProfilePageContent() {
     user: storeUser,
     workoutHistory: storeWorkoutHistory,
     personalRecords: storePersonalRecords,
+    units: storeUnits,
     isAdmin: storeIsAdmin,
     role: storeRole,
   } = useStudent(
@@ -75,6 +97,7 @@ export function ProfilePageContent() {
     "user",
     "workoutHistory",
     "personalRecords",
+    "units",
     "isAdmin",
     "role"
   );
@@ -102,8 +125,14 @@ export function ProfilePageContent() {
     weeklyXP: [0, 0, 0, 0, 0, 0, 0],
   };
 
-  const currentWeight = storeProfile?.weight;
   const weightHistoryLocal = storeWeightHistory || [];
+  
+  // Peso atual: priorizar weightHistory (último registro) sobre profile.weight
+  // weightHistory é mais confiável pois é atualizado sempre que um novo peso é adicionado
+  // Se não houver histórico, usar o peso do perfil (pode ser do onboarding)
+  const currentWeight = weightHistoryLocal.length > 0 
+    ? weightHistoryLocal[0].weight 
+    : (storeProfile?.weight ?? null);
 
   // Calcular weightGain se não estiver calculado mas houver weightHistory
   let weightGain = storeWeightGain ?? null;
@@ -133,6 +162,7 @@ export function ProfilePageContent() {
   }
   const workoutHistory = storeWorkoutHistory || [];
   const personalRecords = storePersonalRecords || [];
+  const units = storeUnits || [];
   const profileUserInfo = storeUser
     ? {
         name: storeUser.name || "Usuário",
@@ -142,6 +172,15 @@ export function ProfilePageContent() {
     : null;
 
   const isAdmin = storeIsAdmin || storeRole === "ADMIN";
+
+  // Obter o primeiro workout disponível para CTAs
+  const firstWorkout = units.length > 0 && units[0]?.workouts?.length > 0
+    ? units[0].workouts[0]
+    : null;
+  
+  const firstWorkoutUrl = firstWorkout
+    ? `/student?tab=learn&modal=workout&workoutId=${firstWorkout.id}`
+    : "/student?tab=learn";
 
   // Calcular weeklyWorkouts do workoutHistory
   const oneWeekAgo = new Date();
@@ -328,6 +367,7 @@ export function ProfilePageContent() {
           ) : null
         }
       >
+        {weightHistoryLocal.length > 0 ? (
         <div className="space-y-3">
           {weightHistoryLocal.map(
             (record: WeightHistoryItem, index: number) => (
@@ -353,10 +393,34 @@ export function ProfilePageContent() {
             )
           )}
         </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-8 px-4 text-center"
+          >
+            <Target className="h-12 w-12 text-duo-gray-dark mb-4 opacity-50" />
+            <h3 className="text-lg font-bold text-duo-text mb-2">
+              Comece sua jornada!
+            </h3>
+            <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
+              Registre seu peso para acompanhar sua evolução e ver seu progresso ao longo do tempo.
+            </p>
+            <Button
+              onClick={handleOpenWeightModal}
+              variant="light-blue"
+              className="w-full max-w-xs"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Registrar Peso Inicial
+            </Button>
+          </motion.div>
+        )}
       </SectionCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard icon={Calendar} title="Histórico Recente">
+          {workoutHistory.length > 0 ? (
           <div className="space-y-3">
             {workoutHistory.map((workout: WorkoutHistory, index: number) => (
               <HistoryCard
@@ -380,9 +444,34 @@ export function ProfilePageContent() {
               />
             ))}
           </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-8 px-4 text-center"
+            >
+              <Play className="h-12 w-12 text-duo-gray-dark mb-4 opacity-50" />
+              <h3 className="text-lg font-bold text-duo-text mb-2">
+                Hora de começar!
+              </h3>
+              <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
+                Complete seu primeiro treino para ver seu histórico aqui. Vamos começar com algo fácil e tranquilo!
+              </p>
+              <Button
+                onClick={() => router.push(firstWorkoutUrl)}
+                variant="light-blue"
+                className="w-full max-w-xs"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Começar Primeiro Treino
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </motion.div>
+          )}
         </SectionCard>
 
         <SectionCard icon={Award} title="Recordes Pessoais">
+          {personalRecords.length > 0 ? (
           <div className="space-y-3">
             {personalRecords.map((record: PersonalRecord, index: number) => (
               <RecordCard
@@ -395,6 +484,30 @@ export function ProfilePageContent() {
               />
             ))}
           </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-8 px-4 text-center"
+            >
+              <Trophy className="h-12 w-12 text-duo-gray-dark mb-4 opacity-50" />
+              <h3 className="text-lg font-bold text-duo-text mb-2">
+                Seus recordes estão esperando!
+              </h3>
+              <p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
+                Complete treinos e quebre seus próprios recordes. Cada treino é uma oportunidade de superar seus limites!
+              </p>
+              <Button
+                onClick={() => router.push(firstWorkoutUrl)}
+                variant="light-blue"
+                className="w-full max-w-xs"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Começar Primeiro Treino
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </motion.div>
+          )}
         </SectionCard>
       </div>
 

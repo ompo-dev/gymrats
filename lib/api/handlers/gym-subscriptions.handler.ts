@@ -16,6 +16,8 @@ import {
 import { getGymSubscription } from "@/app/gym/actions";
 import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
 import { startGymTrial } from "@/app/gym/actions";
+import { createGymSubscriptionSchema } from "../schemas";
+import { validateBody } from "../middleware/validation.middleware";
 
 /**
  * GET /api/gym-subscriptions/current
@@ -88,18 +90,13 @@ export async function createGymSubscriptionHandler(
       return notFoundResponse("Academia não encontrada");
     }
 
-    const { plan, billingPeriod = "monthly" } = await request.json();
-
-    if (
-      !plan ||
-      (plan !== "basic" && plan !== "premium" && plan !== "enterprise")
-    ) {
-      return badRequestResponse("Plano inválido");
+    // Validar body com Zod
+    const validation = await validateBody(request, createGymSubscriptionSchema);
+    if (!validation.success) {
+      return validation.response;
     }
 
-    if (billingPeriod !== "monthly" && billingPeriod !== "annual") {
-      return badRequestResponse("Período de cobrança inválido");
-    }
+    const { plan, billingPeriod = "monthly" } = validation.data;
 
     const activeStudents = await db.gymMembership.count({
       where: {

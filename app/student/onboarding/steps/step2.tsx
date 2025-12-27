@@ -1,53 +1,104 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { RangeSlider } from "@/components/ui/range-slider";
 import type { StepProps } from "./types";
+import { validateStep2, step2Schema } from "../schemas";
+import type { z } from "zod";
 
-export function Step2({ formData, setFormData }: StepProps) {
+export function Step2({ formData, setFormData, forceValidation }: StepProps) {
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof z.infer<typeof step2Schema>, string>>
+  >({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof z.infer<typeof step2Schema>, boolean>>
+  >({});
+
+  // Marca todos os campos como touched quando forceValidation é true
+  useEffect(() => {
+    if (forceValidation) {
+      setTouched({
+        goals: true,
+        weeklyWorkoutFrequency: true,
+        workoutDuration: true,
+      });
+    }
+  }, [forceValidation]);
+
+  // Valida apenas campos que foram tocados
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const validation = validateStep2({
+        goals: formData.goals,
+        weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency,
+        workoutDuration: formData.workoutDuration,
+      });
+
+      if (!validation.success) {
+        const fieldErrors: typeof errors = {};
+        validation.error.errors.forEach((err) => {
+          const path = err.path[0] as keyof typeof fieldErrors;
+          if (path && touched[path]) {
+            fieldErrors[path] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({});
+      }
+    }
+  }, [formData.goals, formData.weeklyWorkoutFrequency, formData.workoutDuration, touched]);
+
   return (
     <StepCard title="Objetivos" description="O que você quer alcançar?">
       <div className="space-y-6">
-        <OptionSelector
-          options={[
-            {
-              value: "perder-peso",
-              label: "Perder Peso",
-              emoji: "⚖️",
-            },
-            {
-              value: "ganhar-massa",
-              label: "Ganhar Massa",
-              emoji: "💪",
-            },
-            {
-              value: "definir",
-              label: "Definir Músculos",
-              emoji: "✨",
-            },
-            { value: "saude", label: "Saúde Geral", emoji: "❤️" },
-            { value: "forca", label: "Ganhar Força", emoji: "🏋️" },
-            {
-              value: "resistencia",
-              label: "Resistência",
-              emoji: "🏃",
-            },
-          ]}
-          value={formData.goals}
-          onChange={(value) => {
-            const goals = formData.goals.includes(value)
-              ? formData.goals.filter((g) => g !== value)
-              : [...formData.goals, value];
-            setFormData({ ...formData, goals });
-          }}
-          multiple
-          layout="grid"
-          columns={2}
-          size="md"
-          delay={0.3}
-          label="Selecione seus objetivos"
-        />
+        <div>
+          <OptionSelector
+            options={[
+              {
+                value: "perder-peso",
+                label: "Perder Peso",
+                emoji: "⚖️",
+              },
+              {
+                value: "ganhar-massa",
+                label: "Ganhar Massa",
+                emoji: "💪",
+              },
+              {
+                value: "definir",
+                label: "Definir Músculos",
+                emoji: "✨",
+              },
+              { value: "saude", label: "Saúde Geral", emoji: "❤️" },
+              { value: "forca", label: "Ganhar Força", emoji: "🏋️" },
+              {
+                value: "resistencia",
+                label: "Resistência",
+                emoji: "🏃",
+              },
+            ]}
+            value={formData.goals}
+            onChange={(value) => {
+              const goals = formData.goals.includes(value)
+                ? formData.goals.filter((g) => g !== value)
+                : [...formData.goals, value];
+              setFormData({ ...formData, goals });
+              setTouched((prev) => ({ ...prev, goals: true }));
+            }}
+            multiple
+            layout="grid"
+            columns={2}
+            size="md"
+            delay={0.3}
+            label="Selecione seus objetivos"
+          />
+          {touched.goals && errors.goals && (
+            <p className="mt-2 text-sm font-bold text-red-500">{errors.goals}</p>
+          )}
+        </div>
 
         <OptionSelector
           options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
@@ -55,12 +106,13 @@ export function Step2({ formData, setFormData }: StepProps) {
             label: String(num),
           }))}
           value={String(formData.weeklyWorkoutFrequency)}
-          onChange={(value) =>
+          onChange={(value) => {
             setFormData({
               ...formData,
               weeklyWorkoutFrequency: parseInt(value),
-            })
-          }
+            });
+            setTouched((prev) => ({ ...prev, weeklyWorkoutFrequency: true }));
+          }}
           layout="grid"
           columns={7}
           size="sm"
@@ -75,12 +127,13 @@ export function Step2({ formData, setFormData }: StepProps) {
             max={120}
             step={10}
             value={formData.workoutDuration}
-            onChange={(value) =>
+            onChange={(value) => {
               setFormData({
                 ...formData,
                 workoutDuration: value,
-              })
-            }
+              });
+              setTouched((prev) => ({ ...prev, workoutDuration: true }));
+            }}
             label="Duração preferida por treino"
             unit="min"
             size="lg"

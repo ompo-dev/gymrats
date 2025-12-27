@@ -46,6 +46,10 @@ export interface StudentInfo {
   gender?: string;
   phone?: string;
   avatar?: string;
+  // Informações sobre identidade de gênero e terapia hormonal
+  isTrans?: boolean;
+  usesHormones?: boolean;
+  hormoneType?: "testosterone" | "estrogen" | "none";
 }
 
 // ============================================
@@ -74,6 +78,20 @@ export interface StudentProfileData {
   targetFats?: number;
   mealsPerDay?: number;
   hasWeightLossGoal?: boolean;
+  // Horas disponíveis por dia para treino (para planejamento de treino mensal)
+  dailyAvailableHours?: number; // 0.5, 1, 1.5, 2, etc (horas por dia)
+  // Valores metabólicos calculados
+  bmr?: number; // Taxa metabólica basal (Basal Metabolic Rate)
+  tdee?: number; // Gasto energético total diário (Total Daily Energy Expenditure)
+  // Nível de atividade física (1-10) baseado em Harris-Benedict
+  activityLevel?: number; // 1-10
+  // Tempo de tratamento hormonal (meses)
+  hormoneTreatmentDuration?: number; // Meses de tratamento hormonal
+  // Limitações separadas (JSON arrays)
+  physicalLimitations?: string[]; // Limitações físicas
+  motorLimitations?: string[]; // Limitações motoras
+  medicalConditions?: string[]; // Condições médicas
+  limitationDetails?: Record<string, string | string[]>; // Detalhes das limitações
 }
 
 // ============================================

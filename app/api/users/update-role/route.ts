@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { initializeStudentTrial, initializeGymTrial } from "@/lib/utils/auto-trial"
+import { updateUserRoleSchema } from "@/lib/api/schemas"
+import { validateBody } from "@/lib/api/middleware/validation.middleware"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, role } = await request.json()
-
-    if (!userId || !role) {
-      return NextResponse.json(
-        { error: "userId e role são obrigatórios" },
-        { status: 400 }
-      )
+    // Validar body com Zod
+    const validation = await validateBody(request, updateUserRoleSchema)
+    if (!validation.success) {
+      return validation.response
     }
 
-    // Validar role
-    if (!["STUDENT", "GYM"].includes(role)) {
-      return NextResponse.json(
-        { error: "Role inválido. Deve ser STUDENT ou GYM" },
-        { status: 400 }
-      )
-    }
+    const { userId, role } = validation.data
 
     const updatedUser = await db.user.update({
       where: { id: userId },

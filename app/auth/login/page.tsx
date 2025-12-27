@@ -21,9 +21,9 @@ export default function LoginPage() {
     setUserProfile,
     setUserRole,
   } = useAuthStore();
-  const { loadAll } = useStudentUnifiedStore((state) => ({
-    loadAll: state.loadAll,
-  }));
+  // IMPORTANTE: Selecionar diretamente a função, não criar objeto
+  // Criar objeto causa loop infinito porque cria nova referência a cada render
+  const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);

@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import bcrypt from "bcryptjs"
 import { createSession } from "@/lib/utils/session"
+import { signUpSchema } from "@/lib/api/schemas"
+import { validateBody } from "@/lib/api/middleware/validation.middleware"
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password } = await request.json()
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "Nome, email e senha são obrigatórios" },
-        { status: 400 }
-      )
+    // Validar body com Zod
+    const validation = await validateBody(request, signUpSchema)
+    if (!validation.success) {
+      return validation.response
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "A senha deve ter no mínimo 8 caracteres" },
-        { status: 400 }
-      )
-    }
+    const { name, email, password } = validation.data
 
     const existingUser = await db.user.findUnique({
       where: { email },

@@ -12,6 +12,12 @@ import {
   badRequestResponse,
   internalErrorResponse,
 } from "../utils/response.utils";
+import {
+  updateDailyNutritionSchema,
+  dailyNutritionQuerySchema,
+  searchFoodsQuerySchema,
+} from "../schemas";
+import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
  * GET /api/nutrition/daily
@@ -28,9 +34,13 @@ export async function getDailyNutritionHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, dailyNutritionQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const dateParam = queryValidation.data.date;
     const date = dateParam ? new Date(dateParam) : new Date();
 
     // Normalizar data para UTC (evitar problemas de timezone)
@@ -191,8 +201,13 @@ export async function updateDailyNutritionHandler(
 
     const studentId = auth.user.student.id;
 
-    const body = await request.json();
-    const { date, meals, waterIntake } = body;
+    // Validar body com Zod
+    const validation = await validateBody(request, updateDailyNutritionSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const { date, meals, waterIntake } = validation.data;
 
     // Normalizar data para UTC (evitar problemas de timezone)
     // Aceita tanto YYYY-MM-DD quanto ISO string
@@ -355,10 +370,15 @@ export async function searchFoodsHandler(
   request: NextRequest
 ): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(request.url);
-    const query = searchParams.get("q") || "";
-    const category = searchParams.get("category");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, searchFoodsQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const query = queryValidation.data.q || "";
+    const category = queryValidation.data.category;
+    const limit = queryValidation.data.limit || 20;
 
     // Construir filtros
     const where: any = {};

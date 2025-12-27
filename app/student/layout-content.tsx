@@ -60,6 +60,13 @@ export function StudentLayoutContent({
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
 
+  // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
+  useEffect(() => {
+    if (isMounted && !hasProfile && !isOnboarding) {
+      router.push("/student/onboarding");
+    }
+  }, [isMounted, hasProfile, isOnboarding, router]);
+
   // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
   if (!isMounted) {
     return <LoadingScreen variant="student" />;
@@ -69,8 +76,8 @@ export function StudentLayoutContent({
     return <>{children}</>;
   }
 
+  // Mostrar loading enquanto redireciona para onboarding
   if (!hasProfile && !isOnboarding) {
-    router.push("/student/onboarding");
     return <LoadingScreen variant="student" message="Redirecionando..." />;
   }
 

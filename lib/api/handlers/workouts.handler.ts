@@ -13,6 +13,13 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from "../utils/response.utils";
+import {
+  completeWorkoutSchema,
+  saveWorkoutProgressSchema,
+  workoutHistoryQuerySchema,
+  updateExerciseLogSchema,
+} from "../schemas";
+import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
  * GET /api/workouts/units
@@ -29,8 +36,9 @@ export async function getUnitsHandler(
 
     const studentId = auth.user.student.id;
 
-    // Buscar units com workouts e exercícios
-    const units = await db.unit.findMany({
+    // Buscar units personalizadas do aluno primeiro, se não houver, buscar treinos globais
+    let units = await db.unit.findMany({
+      where: { studentId: studentId }, // Treinos personalizados do aluno
       orderBy: { order: "asc" },
       include: {
         workouts: {
@@ -57,6 +65,38 @@ export async function getUnitsHandler(
         },
       },
     });
+
+    // Se não houver treinos personalizados, buscar treinos globais (fallback)
+    if (units.length === 0) {
+      units = await db.unit.findMany({
+        where: { studentId: null }, // Treinos globais
+        orderBy: { order: "asc" },
+        include: {
+          workouts: {
+            orderBy: { order: "asc" },
+            include: {
+              exercises: {
+                orderBy: { order: "asc" },
+                include: {
+                  alternatives: {
+                    orderBy: { order: "asc" },
+                  },
+                },
+              },
+              completions: {
+                where: {
+                  studentId: studentId,
+                },
+                orderBy: {
+                  date: "desc",
+                },
+                take: 1,
+              },
+            },
+          },
+        },
+      });
+    }
 
     // Buscar histórico de workouts completados
     const completedWorkoutIds = await db.workoutHistory.findMany({
@@ -144,6 +184,16 @@ export async function getUnitsHandler(
             notes: exercise.notes || undefined,
             videoUrl: exercise.videoUrl || undefined,
             educationalId: exercise.educationalId || undefined,
+            // Dados educacionais
+            primaryMuscles: exercise.primaryMuscles ? JSON.parse(exercise.primaryMuscles) : undefined,
+            secondaryMuscles: exercise.secondaryMuscles ? JSON.parse(exercise.secondaryMuscles) : undefined,
+            difficulty: exercise.difficulty || undefined,
+            equipment: exercise.equipment ? JSON.parse(exercise.equipment) : undefined,
+            instructions: exercise.instructions ? JSON.parse(exercise.instructions) : undefined,
+            tips: exercise.tips ? JSON.parse(exercise.tips) : undefined,
+            commonMistakes: exercise.commonMistakes ? JSON.parse(exercise.commonMistakes) : undefined,
+            benefits: exercise.benefits ? JSON.parse(exercise.benefits) : undefined,
+            scientificEvidence: exercise.scientificEvidence || undefined,
             alternatives:
               exercise.alternatives.length > 0
                 ? exercise.alternatives.map((alt) => ({
@@ -200,7 +250,12 @@ export async function completeWorkoutHandler(
       return notFoundResponse("Workout não encontrado");
     }
 
-    const body = await request.json();
+    // Validar body com Zod
+    const validation = await validateBody(request, completeWorkoutSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
     const {
       exerciseLogs,
       duration,
@@ -208,7 +263,7 @@ export async function completeWorkoutHandler(
       overallFeedback,
       bodyPartsFatigued,
       startTime,
-    } = body;
+    } = validation.data;
 
     // Calcular duração
     const workoutDuration =
@@ -300,7 +355,12 @@ export async function saveWorkoutProgressHandler(
       return badRequestResponse("ID do workout não fornecido");
     }
 
-    const body = await request.json();
+    // Validar body com Zod
+    const validation = await validateBody(request, saveWorkoutProgressSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
     const {
       currentExerciseIndex,
       exerciseLogs,
@@ -313,14 +373,7 @@ export async function saveWorkoutProgressHandler(
       cardioPreference,
       cardioDuration,
       selectedCardioType,
-    } = body;
-
-    if (
-      typeof currentExerciseIndex !== "number" ||
-      currentExerciseIndex < 0
-    ) {
-      return badRequestResponse("currentExerciseIndex inválido");
-    }
+    } = validation.data;
 
     // Verificar se o workout existe
     const workout = await db.workout.findUnique({
@@ -517,10 +570,14 @@ export async function getWorkoutHistoryHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, workoutHistoryQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const limit = queryValidation.data.limit || 10;
+    const offset = queryValidation.data.offset || 0;
 
     // Buscar histórico
     const workoutHistory = await db.workoutHistory.findMany({
@@ -686,16 +743,18 @@ export async function updateExerciseLogHandler(
       return notFoundResponse("Exercício não encontrado neste workout");
     }
 
-    const body = await request.json();
-    const { sets, notes, formCheckScore, difficulty } = body;
+    // Validar body com Zod
+    const validation = await validateBody(request, updateExerciseLogSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const { sets, notes, formCheckScore, difficulty } = validation.data;
 
     // Preparar dados para atualização
     const updateData: any = {};
 
     if (sets !== undefined) {
-      if (!Array.isArray(sets)) {
-        return badRequestResponse("sets deve ser um array");
-      }
       updateData.sets = JSON.stringify(sets);
     }
 
@@ -816,8 +875,13 @@ export async function updateWorkoutProgressExerciseHandler(
       return notFoundResponse("Progresso do workout não encontrado");
     }
 
-    const body = await request.json();
-    const { sets, notes, formCheckScore, difficulty } = body;
+    // Validar body com Zod
+    const validation = await validateBody(request, updateExerciseLogSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const { sets, notes, formCheckScore, difficulty } = validation.data;
 
     // Parsear exerciseLogs atual
     let exerciseLogs: any[] = [];
@@ -838,9 +902,6 @@ export async function updateWorkoutProgressExerciseHandler(
 
     // Atualizar dados do exercício
     if (sets !== undefined) {
-      if (!Array.isArray(sets)) {
-        return badRequestResponse("sets deve ser um array");
-      }
       exerciseLogs[exerciseIndex].sets = sets;
     }
 

@@ -12,6 +12,11 @@ import {
   badRequestResponse,
   internalErrorResponse,
 } from "../utils/response.utils";
+import {
+  paymentsQuerySchema,
+  addPaymentMethodSchema,
+} from "../schemas";
+import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
  * GET /api/payments
@@ -28,10 +33,14 @@ export async function getPaymentsHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "20");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, paymentsQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const limit = queryValidation.data.limit || 20;
+    const offset = queryValidation.data.offset || 0;
 
     // Buscar pagamentos
     const payments = await db.payment.findMany({
@@ -162,7 +171,12 @@ export async function addPaymentMethodHandler(
 
     const userId = auth.userId;
 
-    const body = await request.json();
+    // Validar body com Zod
+    const validation = await validateBody(request, addPaymentMethodSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
     const {
       type,
       isDefault,
@@ -173,26 +187,7 @@ export async function addPaymentMethodHandler(
       holderName,
       pixKey,
       pixKeyType,
-    } = body;
-
-    // Validar dados
-    if (!type || !["credit-card", "debit-card", "pix"].includes(type)) {
-      return badRequestResponse("Tipo de pagamento inválido");
-    }
-
-    // Se for cartão, validar campos obrigatórios
-    if (type === "credit-card" || type === "debit-card") {
-      if (!last4 || !cardBrand) {
-        return badRequestResponse("Campos obrigatórios faltando para cartão");
-      }
-    }
-
-    // Se for PIX, validar campos obrigatórios
-    if (type === "pix") {
-      if (!pixKey || !pixKeyType) {
-        return badRequestResponse("Campos obrigatórios faltando para PIX");
-      }
-    }
+    } = validation.data;
 
     // Se for marcado como padrão, desmarcar outros
     if (isDefault) {

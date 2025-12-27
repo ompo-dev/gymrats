@@ -16,6 +16,8 @@ import {
 import { getStudentSubscription } from "@/app/student/actions";
 import { createStudentSubscriptionBilling } from "@/lib/utils/subscription";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import { createSubscriptionSchema } from "../schemas";
+import { validateBody } from "../middleware/validation.middleware";
 
 /**
  * GET /api/subscriptions/current
@@ -73,11 +75,13 @@ export async function createSubscriptionHandler(
       return notFoundResponse("Aluno não encontrado");
     }
 
-    const { plan } = await request.json();
-
-    if (!plan || (plan !== "monthly" && plan !== "annual")) {
-      return badRequestResponse("Plano inválido");
+    // Validar body com Zod
+    const validation = await validateBody(request, createSubscriptionSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { plan } = validation.data;
 
     // Verificar se existe subscription
     const existingSubscription = await db.subscription.findUnique({

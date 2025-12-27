@@ -162,15 +162,47 @@ export const useWorkoutStore = create<WorkoutState>()(
 
         // Sincronizar com backend em background
         try {
+          // Transformar exerciseLogs para o formato esperado pelo schema
+          const transformedExerciseLogs = progressToSave.exerciseLogs.map((log) => ({
+            exerciseId: log.exerciseId,
+            exerciseName: log.exerciseName,
+            sets: log.sets?.map((set) => ({
+              weight: set.weight ?? null,
+              reps: set.reps ?? null,
+              completed: set.completed ?? false,
+              notes: set.notes ?? null,
+            })) ?? [],
+            notes: log.notes ?? null,
+            formCheckScore: log.formCheckScore ?? null,
+            // Converter enum de difficulty para o formato esperado pelo schema
+            difficulty: log.difficulty
+              ? (log.difficulty
+                  .replace("-", "_")
+                  .replace("ideal", "medio") as
+                  | "muito_facil"
+                  | "facil"
+                  | "medio"
+                  | "dificil"
+                  | "muito_dificil")
+              : null,
+          }));
+
           await apiClient.post(`/api/workouts/${workoutId}/progress`, {
             currentExerciseIndex: progressToSave.currentExerciseIndex,
-            exerciseLogs: progressToSave.exerciseLogs,
+            exerciseLogs: transformedExerciseLogs,
             skippedExercises: progressToSave.skippedExercises,
             selectedAlternatives: progressToSave.selectedAlternatives,
             xpEarned: progressToSave.xpEarned,
             totalVolume: progressToSave.totalVolume,
             completionPercentage: progressToSave.completionPercentage,
-            startTime: progressToSave.startTime,
+            // Converter Date para ISO string se necessário
+            startTime: progressToSave.startTime instanceof Date
+              ? progressToSave.startTime.toISOString()
+              : typeof progressToSave.startTime === "string"
+              ? progressToSave.startTime
+              : progressToSave.startTime
+              ? new Date(progressToSave.startTime).toISOString()
+              : undefined,
             cardioPreference: progressToSave.cardioPreference,
             cardioDuration: progressToSave.cardioDuration,
             selectedCardioType: progressToSave.selectedCardioType,

@@ -15,7 +15,6 @@ import type {
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
-import { transformStudentData } from "@/lib/utils/student-transformers";
 import type { UserProgress, PersonalRecord, DailyNutrition } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { apiClient } from "@/lib/api/client";
@@ -235,7 +234,12 @@ function transformSectionResponse(
       return { student: data };
 
     case "profile":
-      // Profile vem direto
+      // Profile vem de /api/students/profile como { success: true, hasProfile: true, profile: {...}, student: {...} }
+      // ou pode vir como objeto direto do /api/students/all
+      if (data.profile) {
+        return { profile: data.profile };
+      }
+      // Se vier direto (sem wrapper)
       return { profile: data };
 
     case "progress":

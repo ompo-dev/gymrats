@@ -27,6 +27,8 @@ import { ShopCard } from "@/components/organisms/sections/shop-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { LevelProgressCard } from "@/components/organisms/home/home/level-progress-card";
+import { ContinueWorkoutCard } from "@/components/organisms/home/home/continue-workout-card";
+import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
 import type { GymLocation } from "@/lib/types";
 
 /**
@@ -74,6 +76,8 @@ function StudentHomeContent() {
     profile: storeProfile,
     subscription: storeSubscription,
     personalRecords: storePersonalRecords,
+    units: storeUnits,
+    dailyNutrition: storeDailyNutrition,
     isAdmin: storeIsAdmin,
     role: storeRole,
   } = useStudent(
@@ -87,6 +91,8 @@ function StudentHomeContent() {
     "profile",
     "subscription",
     "personalRecords",
+    "units",
+    "dailyNutrition",
     "isAdmin",
     "role"
   );
@@ -178,6 +184,18 @@ function StudentHomeContent() {
             </div>
           </FadeIn>
 
+          {/* Card de Progresso de Nível */}
+          {storeProgress && (
+            <WhileInView delay={0.4}>
+              <LevelProgressCard
+                currentLevel={storeProgress.currentLevel}
+                totalXP={storeProgress.totalXP}
+                xpToNextLevel={storeProgress.xpToNextLevel}
+                ranking={currentRanking ?? null}
+              />
+            </WhileInView>
+          )}
+
           {/* Cards de Estatísticas Principais */}
           <div className="grid grid-cols-2 gap-4">
             <motion.div
@@ -245,21 +263,9 @@ function StudentHomeContent() {
             </motion.div>
           </div>
 
-          {/* Card de Progresso de Nível */}
-          {storeProgress && (
-            <WhileInView delay={0.3}>
-              <LevelProgressCard
-                currentLevel={storeProgress.currentLevel}
-                totalXP={storeProgress.totalXP}
-                xpToNextLevel={storeProgress.xpToNextLevel}
-                ranking={currentRanking ?? null}
-              />
-            </WhileInView>
-          )}
-
           {/* Card de Evolução de Peso */}
           {currentWeight && (
-            <WhileInView delay={0.35}>
+            <WhileInView delay={0.45}>
               <WeightProgressCard
                 currentWeight={currentWeight}
                 weightGain={currentWeightGain}
@@ -269,31 +275,25 @@ function StudentHomeContent() {
             </WhileInView>
           )}
 
+          {/* Card: Continue seu Treino */}
+          <WhileInView delay={0.3}>
+            <ContinueWorkoutCard
+              units={storeUnits || []}
+              workoutHistory={currentWorkoutHistory}
+            />
+          </WhileInView>
+
+          {/* Card: Status de Nutrição */}
+          <WhileInView delay={0.35}>
+            <NutritionStatusCard dailyNutrition={storeDailyNutrition} />
+          </WhileInView>
+
           {/* Card de Treinos Recentes */}
           {currentWorkoutHistory.length > 0 && (
-            <WhileInView delay={0.4}>
+            <WhileInView delay={0.5}>
               <RecentWorkoutsCard workoutHistory={currentWorkoutHistory} />
             </WhileInView>
           )}
-
-          {/* Personalização com IA */}
-          <WhileInView delay={0.45}>
-            <SectionCard
-              icon={Heart}
-              title="Personalização com IA"
-              className="space-y-4"
-            >
-              <p className="text-sm text-duo-gray-dark">
-                Crie treinos e dietas personalizados
-              </p>
-              <PersonalizationPage />
-            </SectionCard>
-          </WhileInView>
-
-          {/* Loja de Recursos */}
-          <WhileInView delay={0.5}>
-            <ShopCard totalXP={displayProgress.totalXP} />
-          </WhileInView>
         </div>
       )}
 
@@ -378,9 +378,7 @@ function StudentHomeContent() {
         </>
       )}
 
-      {tab === "profile" && (
-        <ProfilePage />
-      )}
+      {tab === "profile" && <ProfilePage />}
 
       {tab === "more" && <StudentMoreMenu />}
     </motion.div>

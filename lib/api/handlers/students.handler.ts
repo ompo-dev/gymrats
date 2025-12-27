@@ -15,6 +15,13 @@ import {
 import { getAllStudentData } from "@/app/student/actions-unified";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import type { MuscleGroup } from "@/lib/types";
+import {
+  updateStudentProfileSchema,
+  addWeightSchema,
+  weightHistoryQuerySchema,
+  studentSectionsQuerySchema,
+} from "../schemas";
+import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
  * GET /api/students/all
@@ -29,11 +36,13 @@ export async function getAllStudentDataHandler(
       return auth.response;
     }
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const sectionsParam = searchParams.get("sections");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, studentSectionsQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
 
-    // Parse sections se fornecido
+    const sectionsParam = queryValidation.data.sections;
     let sections: string[] | undefined = undefined;
     if (sectionsParam) {
       sections = sectionsParam.split(",").map((s) => s.trim());
@@ -95,6 +104,15 @@ export async function getStudentProfileHandler(
 
     return successResponse({
       hasProfile,
+      // Incluir informações do Student também (isTrans, usesHormones, hormoneType)
+      student: {
+        id: user.student.id,
+        age: user.student.age,
+        gender: user.student.gender,
+        isTrans: user.student.isTrans ?? false,
+        usesHormones: user.student.usesHormones ?? false,
+        hormoneType: user.student.hormoneType || null,
+      },
       profile: user.student.profile
         ? {
             height: user.student.profile.height,
@@ -113,6 +131,35 @@ export async function getStudentProfileHandler(
             preferredSets: user.student.profile.preferredSets,
             preferredRepRange: user.student.profile.preferredRepRange,
             restTime: user.student.profile.restTime,
+            // Valores metabólicos
+            bmr: user.student.profile.bmr,
+            tdee: user.student.profile.tdee,
+            targetCalories: user.student.profile.targetCalories,
+            targetProtein: user.student.profile.targetProtein,
+            targetCarbs: user.student.profile.targetCarbs,
+            targetFats: user.student.profile.targetFats,
+            // Nível de atividade e tratamento hormonal
+            activityLevel: user.student.profile.activityLevel,
+            hormoneTreatmentDuration: user.student.profile.hormoneTreatmentDuration,
+            // Limitações
+            physicalLimitations: user.student.profile.physicalLimitations
+              ? JSON.parse(user.student.profile.physicalLimitations)
+              : [],
+            motorLimitations: user.student.profile.motorLimitations
+              ? JSON.parse(user.student.profile.motorLimitations)
+              : [],
+            medicalConditions: user.student.profile.medicalConditions
+              ? JSON.parse(user.student.profile.medicalConditions)
+              : [],
+            limitationDetails: user.student.profile.limitationDetails
+              ? JSON.parse(user.student.profile.limitationDetails)
+              : null,
+            // Horas disponíveis por dia para treino
+            dailyAvailableHours: user.student.profile.dailyAvailableHours,
+            // Manter compatibilidade com campo antigo
+            injuries: user.student.profile.injuries
+              ? JSON.parse(user.student.profile.injuries)
+              : [],
           }
         : null,
     });
@@ -136,7 +183,14 @@ export async function updateStudentProfileHandler(
     }
 
     const userId = auth.userId;
-    const data = await request.json();
+    
+    // Validar body com Zod
+    const validation = await validateBody(request, updateStudentProfileSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+    
+    const data = validation.data;
 
     const user = await db.user.findUnique({
       where: { id: userId },
@@ -158,6 +212,10 @@ export async function updateStudentProfileHandler(
           userId,
           age: data.age,
           gender: data.gender,
+          // Informações sobre identidade de gênero e terapia hormonal
+          isTrans: data.isTrans ?? false,
+          usesHormones: data.usesHormones ?? false,
+          hormoneType: data.hormoneType || null,
         },
       });
     } else {
@@ -166,6 +224,10 @@ export async function updateStudentProfileHandler(
         data: {
           age: data.age,
           gender: data.gender,
+          // Informações sobre identidade de gênero e terapia hormonal
+          isTrans: data.isTrans ?? undefined,
+          usesHormones: data.usesHormones ?? undefined,
+          hormoneType: data.hormoneType || null,
         },
       });
     }
@@ -232,6 +294,49 @@ export async function updateStudentProfileHandler(
           : parseFloat(String(data.targetFats))
         : null,
       mealsPerDay: data.mealsPerDay ? parseInt(String(data.mealsPerDay)) : null,
+      // Valores metabólicos calculados
+      bmr: data.bmr
+        ? typeof data.bmr === "number"
+          ? data.bmr
+          : parseFloat(String(data.bmr))
+        : null,
+      tdee: data.tdee
+        ? typeof data.tdee === "number"
+          ? data.tdee
+          : parseFloat(String(data.tdee))
+        : null,
+      // Nível de atividade física (1-10)
+      activityLevel: data.activityLevel
+        ? parseInt(String(data.activityLevel))
+        : null,
+      // Tempo de tratamento hormonal (meses)
+      hormoneTreatmentDuration: data.hormoneTreatmentDuration
+        ? parseInt(String(data.hormoneTreatmentDuration))
+        : null,
+      // Limitações separadas
+      physicalLimitations:
+        data.physicalLimitations && Array.isArray(data.physicalLimitations)
+          ? JSON.stringify(data.physicalLimitations)
+          : null,
+      motorLimitations:
+        data.motorLimitations && Array.isArray(data.motorLimitations)
+          ? JSON.stringify(data.motorLimitations)
+          : null,
+      medicalConditions:
+        data.medicalConditions && Array.isArray(data.medicalConditions)
+          ? JSON.stringify(data.medicalConditions)
+          : null,
+      // Detalhes das limitações
+      limitationDetails:
+        data.limitationDetails && typeof data.limitationDetails === "object"
+          ? JSON.stringify(data.limitationDetails)
+          : null,
+      // Horas disponíveis por dia para treino
+      dailyAvailableHours: data.dailyAvailableHours
+        ? typeof data.dailyAvailableHours === "number"
+          ? data.dailyAvailableHours
+          : parseFloat(String(data.dailyAvailableHours))
+        : null,
     };
 
     await db.studentProfile.upsert({
@@ -280,10 +385,14 @@ export async function getWeightHistoryHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "30");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, weightHistoryQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const limit = queryValidation.data.limit || 30;
+    const offset = queryValidation.data.offset || 0;
 
     // Buscar histórico de peso
     const weightHistory = await db.weightHistory.findMany({
@@ -338,16 +447,13 @@ export async function addWeightHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler dados do body
-    const body = await request.json();
-    const { weight, date, notes } = body;
-
-    // Validar dados
-    if (!weight || typeof weight !== "number" || weight <= 0) {
-      return badRequestResponse(
-        "Peso inválido. Deve ser um número maior que zero."
-      );
+    // Validar body com Zod
+    const validation = await validateBody(request, addWeightSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { weight, date, notes } = validation.data;
 
     // Criar entrada de peso
     const weightEntry = await db.weightHistory.create({
@@ -394,12 +500,16 @@ export async function getWeightHistoryFilteredHandler(
 
     const studentId = auth.user.student.id;
 
-    // Ler query params
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get("limit") || "30");
-    const offset = parseInt(searchParams.get("offset") || "0");
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, weightHistoryQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const limit = queryValidation.data.limit || 30;
+    const offset = queryValidation.data.offset || 0;
+    const startDate = queryValidation.data.startDate;
+    const endDate = queryValidation.data.endDate;
 
     // Construir filtros
     const where: any = {
@@ -574,6 +684,10 @@ export async function getStudentInfoHandler(
         gender: true,
         phone: true,
         avatar: true,
+        // Informações sobre identidade de gênero e terapia hormonal
+        isTrans: true,
+        usesHormones: true,
+        hormoneType: true,
       },
     });
 
@@ -593,6 +707,9 @@ export async function getStudentInfoHandler(
       gender: student.gender,
       phone: student.phone,
       avatar: student.avatar,
+      isTrans: student.isTrans ?? false,
+      usesHormones: student.usesHormones ?? false,
+      hormoneType: student.hormoneType || null,
     });
   } catch (error: any) {
     console.error("[getStudentInfoHandler] Erro:", error);

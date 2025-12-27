@@ -242,6 +242,7 @@ export function useStudent<T extends StudentSelector>(
     if (selector === "loaders") {
       return getLoaders({
         loadAll,
+        loadAllPrioritized,
         loadUser,
         loadProgress,
         loadProfile,
@@ -296,6 +297,7 @@ export function useStudent<T extends StudentSelector>(
     } else if (selector === "loaders") {
       result.loaders = getLoaders({
         loadAll,
+        loadAllPrioritized,
         loadUser,
         loadProgress,
         loadProfile,

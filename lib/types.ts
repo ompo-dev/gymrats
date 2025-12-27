@@ -25,15 +25,28 @@ export interface AlternativeExercise {
 export interface WorkoutExercise {
   id: string;
   name: string;
-  sets: number;
-  reps: string; // "12" ou "12-15" ou "30s"
-  rest: number; // segundos
+  sets: number; // Baseado em preferredSets do onboarding
+  reps: string; // "12" ou "12-15" ou "30s" - Baseado em preferredRepRange do onboarding
+  rest: number; // segundos - Baseado em restTime do onboarding
   notes?: string;
   videoUrl?: string;
   completed?: boolean;
   educationalId?: string; // Referência ao conteúdo educacional
   alternatives?: AlternativeExercise[]; // Exercícios alternativos
   selectedAlternative?: string; // ID da alternativa selecionada, se houver
+  // Dados do educational database
+  primaryMuscles?: string[]; // Músculos primários
+  secondaryMuscles?: string[]; // Músculos secundários
+  difficulty?: "iniciante" | "intermediario" | "avancado"; // Nível de dificuldade
+  equipment?: string[]; // Equipamentos necessários
+  instructions?: string[]; // Instruções passo a passo
+  tips?: string[]; // Dicas de execução
+  commonMistakes?: string[]; // Erros comuns
+  benefits?: string[]; // Benefícios do exercício
+  scientificEvidence?: string; // Evidência científica
+  order?: number; // Ordem do exercício no workout
+  createdAt?: Date | string; // Data de criação
+  updatedAt?: Date | string; // Data de atualização
 }
 
 // Sessão de treino (equivalente a uma "lição" do Duolingo)

@@ -15,7 +15,19 @@ import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
 import { Step4 } from "./steps/step4";
+import { Step5 } from "./steps/step5";
+import { Step6 } from "./steps/step6";
+import { Step7 } from "./steps/step7";
 import type { OnboardingData } from "./steps/types";
+import {
+  validateStep1,
+  validateStep2,
+  validateStep3,
+  validateStep4,
+  validateStep5,
+  validateStep6,
+  validateStep7,
+} from "./schemas";
 
 function Confetti() {
   if (typeof window === "undefined") return null;
@@ -61,10 +73,16 @@ export default function StudentOnboardingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [forceValidation, setForceValidation] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Reseta forceValidation quando o step muda
+  useEffect(() => {
+    setForceValidation(false);
+  }, [step]);
 
   const [formData, setFormData] = useState<OnboardingData>({
     age: "",
@@ -82,19 +100,33 @@ export default function StudentOnboardingPage() {
     preferredSets: 3,
     preferredRepRange: "hipertrofia",
     restTime: "medio",
+    activityLevel: 4,
+    dailyAvailableHours: 1,
+    physicalLimitations: [],
+    motorLimitations: [],
+    medicalConditions: [],
   });
 
   const handleNext = () => {
+    // Força validação de todos os campos
+    setForceValidation(true);
+    
+    // Valida todos os campos antes de avançar
     if (canProceed()) {
+      setForceValidation(false); // Reseta para o próximo step
       setShowConfetti(true);
       setTimeout(() => {
         setShowConfetti(false);
         setStep(step + 1);
       }, 800);
+    } else {
+      // Se não pode prosseguir, os erros já serão exibidos pelos componentes dos steps
+      // Mantém forceValidation true para mostrar os erros
     }
   };
 
   const handleBack = () => {
+    setForceValidation(false); // Reseta validação ao voltar
     setStep(step - 1);
   };
 
@@ -104,7 +136,8 @@ export default function StudentOnboardingPage() {
       !formData.gender ||
       !formData.height ||
       !formData.weight ||
-      !formData.fitnessLevel
+      !formData.fitnessLevel ||
+      !formData.targetCalories
     ) {
       return;
     }
@@ -132,22 +165,55 @@ export default function StudentOnboardingPage() {
 
   const canProceed = () => {
     if (step === 1) {
-      return (
-        formData.age &&
-        formData.gender &&
-        formData.height &&
-        formData.weight &&
-        formData.fitnessLevel
-      );
+      const validation = validateStep1({
+        age: typeof formData.age === "number" ? formData.age : undefined,
+        gender: formData.gender || undefined,
+        isTrans: formData.isTrans,
+        usesHormones: formData.usesHormones,
+        hormoneType: formData.hormoneType || undefined,
+        height: typeof formData.height === "number" ? formData.height : undefined,
+        weight: typeof formData.weight === "number" ? formData.weight : undefined,
+        fitnessLevel: formData.fitnessLevel || undefined,
+      });
+      return validation.success;
     }
     if (step === 2) {
-      return formData.goals.length > 0;
+      const validation = validateStep2({
+        goals: formData.goals,
+        weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency,
+        workoutDuration: formData.workoutDuration,
+      });
+      return validation.success;
     }
     if (step === 3) {
-      return true;
+      const validation = validateStep3({
+        preferredSets: formData.preferredSets,
+        preferredRepRange: formData.preferredRepRange,
+        restTime: formData.restTime,
+      });
+      return validation.success;
     }
     if (step === 4) {
-      return formData.gymType;
+      const validation = validateStep4({
+        gymType: formData.gymType || undefined,
+      });
+      return validation.success;
+    }
+    if (step === 5) {
+      // Step 5 - Nível de atividade física
+      const validation = validateStep5({
+        activityLevel: formData.activityLevel,
+        hormoneTreatmentDuration: formData.hormoneTreatmentDuration,
+      });
+      return validation.success;
+    }
+    if (step === 6) {
+      // Step 6 sempre pode prosseguir (valores calculados automaticamente)
+      return true;
+    }
+    if (step === 7) {
+      // Step 7 sempre pode prosseguir (limitações são opcionais)
+      return true;
     }
     return false;
   };
@@ -185,16 +251,25 @@ export default function StudentOnboardingPage() {
         <div className="relative mx-auto w-full max-w-2xl">
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <Step1 formData={formData} setFormData={setFormData} />
+              <Step1 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
             )}
             {step === 2 && (
-              <Step2 formData={formData} setFormData={setFormData} />
+              <Step2 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
             )}
             {step === 3 && (
-              <Step3 formData={formData} setFormData={setFormData} />
+              <Step3 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
             )}
             {step === 4 && (
-              <Step4 formData={formData} setFormData={setFormData} />
+              <Step4 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+            )}
+            {step === 5 && (
+              <Step6 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+            )}
+            {step === 6 && (
+              <Step5 formData={formData} setFormData={setFormData} />
+            )}
+            {step === 7 && (
+              <Step7 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
             )}
           </AnimatePresence>
         </div>
@@ -220,7 +295,7 @@ export default function StudentOnboardingPage() {
                 </Button>
               </div>
             )}
-            {step < 4 ? (
+            {step < 7 ? (
               <div className="flex-1">
                 <Button
                   onClick={handleNext}

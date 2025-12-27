@@ -13,6 +13,12 @@ import {
   notFoundResponse,
   internalErrorResponse,
 } from "../utils/response.utils";
+import {
+  createGymSchema,
+  setActiveGymSchema,
+  gymLocationsQuerySchema,
+} from "../schemas";
+import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
  * GET /api/gyms/list
@@ -108,15 +114,14 @@ export async function createGymHandler(
     }
 
     const userId = auth.userId;
-    const body = await request.json();
-    const { name, address, phone, email, cnpj } = body;
-
-    // Validar campos obrigatórios
-    if (!name || !address || !phone || !email) {
-      return badRequestResponse(
-        "Todos os campos obrigatórios devem ser preenchidos"
-      );
+    
+    // Validar body com Zod
+    const validation = await validateBody(request, createGymSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { name, address, phone, email, cnpj } = validation.data;
 
     // Buscar academias existentes do usuário
     const existingGyms = await db.gym.findMany({
@@ -296,11 +301,14 @@ export async function setActiveGymHandler(
     }
 
     const userId = auth.userId;
-    const { gymId } = await request.json();
-
-    if (!gymId) {
-      return badRequestResponse("gymId é obrigatório");
+    
+    // Validar body com Zod
+    const validation = await validateBody(request, setActiveGymSchema);
+    if (!validation.success) {
+      return validation.response;
     }
+
+    const { gymId } = validation.data;
 
     // Verificar se a academia pertence ao usuário
     const gym = await db.gym.findFirst({
@@ -349,10 +357,15 @@ export async function getGymLocationsHandler(
 ): Promise<NextResponse> {
   try {
     // Esta rota pode ser pública (não requer autenticação)
-    const { searchParams } = new URL(request.url);
-    const lat = searchParams.get("lat");
-    const lng = searchParams.get("lng");
-    const isPartner = searchParams.get("isPartner") === "true";
+    // Validar query params com Zod
+    const queryValidation = await validateQuery(request, gymLocationsQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const lat = queryValidation.data.lat;
+    const lng = queryValidation.data.lng;
+    const isPartner = queryValidation.data.isPartner;
 
     // Construir filtros
     const where: any = {

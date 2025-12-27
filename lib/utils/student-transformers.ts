@@ -48,6 +48,10 @@ export function transformStudentData(apiData: any): Partial<StudentData> {
       gender: apiData.student.gender,
       phone: apiData.student.phone,
       avatar: apiData.student.avatar,
+      // Informações sobre identidade de gênero e terapia hormonal
+      isTrans: apiData.student.isTrans ?? false,
+      usesHormones: apiData.student.usesHormones ?? false,
+      hormoneType: apiData.student.hormoneType || undefined,
     };
   }
 
@@ -194,6 +198,42 @@ function transformProfile(profile: any): StudentData["profile"] {
     targetFats: profile.targetFats,
     mealsPerDay: profile.mealsPerDay,
     hasWeightLossGoal: profile.hasWeightLossGoal || false,
+    // Horas disponíveis por dia para treino
+    dailyAvailableHours: profile.dailyAvailableHours
+      ? parseFloat(String(profile.dailyAvailableHours))
+      : undefined,
+    // Valores metabólicos calculados
+    bmr: profile.bmr ? parseFloat(String(profile.bmr)) : undefined,
+    tdee: profile.tdee ? parseFloat(String(profile.tdee)) : undefined,
+    // Nível de atividade física (1-10)
+    activityLevel: profile.activityLevel
+      ? parseInt(String(profile.activityLevel))
+      : undefined,
+    // Tempo de tratamento hormonal (meses)
+    hormoneTreatmentDuration: profile.hormoneTreatmentDuration
+      ? parseInt(String(profile.hormoneTreatmentDuration))
+      : undefined,
+    // Limitações separadas
+    physicalLimitations: Array.isArray(profile.physicalLimitations)
+      ? profile.physicalLimitations
+      : profile.physicalLimitations
+      ? JSON.parse(profile.physicalLimitations)
+      : [],
+    motorLimitations: Array.isArray(profile.motorLimitations)
+      ? profile.motorLimitations
+      : profile.motorLimitations
+      ? JSON.parse(profile.motorLimitations)
+      : [],
+    medicalConditions: Array.isArray(profile.medicalConditions)
+      ? profile.medicalConditions
+      : profile.medicalConditions
+      ? JSON.parse(profile.medicalConditions)
+      : [],
+    limitationDetails: profile.limitationDetails
+      ? typeof profile.limitationDetails === "string"
+        ? JSON.parse(profile.limitationDetails)
+        : profile.limitationDetails
+      : undefined,
   };
 }
 
@@ -202,7 +242,55 @@ function transformUnit(unit: any): Unit {
     id: unit.id,
     title: unit.title,
     description: unit.description || "",
-    workouts: unit.workouts || [],
+    workouts: (unit.workouts || []).map((workout: any) => ({
+      ...workout,
+      exercises: (workout.exercises || []).map((exercise: any) => ({
+        ...exercise,
+        // Parse campos JSON do educational database
+        primaryMuscles: exercise.primaryMuscles
+          ? typeof exercise.primaryMuscles === "string"
+            ? JSON.parse(exercise.primaryMuscles)
+            : exercise.primaryMuscles
+          : undefined,
+        secondaryMuscles: exercise.secondaryMuscles
+          ? typeof exercise.secondaryMuscles === "string"
+            ? JSON.parse(exercise.secondaryMuscles)
+            : exercise.secondaryMuscles
+          : undefined,
+        equipment: exercise.equipment
+          ? typeof exercise.equipment === "string"
+            ? JSON.parse(exercise.equipment)
+            : exercise.equipment
+          : undefined,
+        instructions: exercise.instructions
+          ? typeof exercise.instructions === "string"
+            ? JSON.parse(exercise.instructions)
+            : exercise.instructions
+          : undefined,
+        tips: exercise.tips
+          ? typeof exercise.tips === "string"
+            ? JSON.parse(exercise.tips)
+            : exercise.tips
+          : undefined,
+        commonMistakes: exercise.commonMistakes
+          ? typeof exercise.commonMistakes === "string"
+            ? JSON.parse(exercise.commonMistakes)
+            : exercise.commonMistakes
+          : undefined,
+        benefits: exercise.benefits
+          ? typeof exercise.benefits === "string"
+            ? JSON.parse(exercise.benefits)
+            : exercise.benefits
+          : undefined,
+        // Campos de data
+        createdAt: exercise.createdAt
+          ? new Date(exercise.createdAt)
+          : undefined,
+        updatedAt: exercise.updatedAt
+          ? new Date(exercise.updatedAt)
+          : undefined,
+      })),
+    })),
     color: unit.color || "#58CC02",
     icon: unit.icon || "💪",
   };
