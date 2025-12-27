@@ -31,6 +31,11 @@ interface ZustandStorageDB extends DBSchema {
 let dbInstance: IDBPDatabase<ZustandStorageDB> | null = null;
 
 async function getDB(): Promise<IDBPDatabase<ZustandStorageDB>> {
+  // Verificar se está no navegador antes de usar IndexedDB
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+    throw new Error('IndexedDB is not available (server-side rendering)');
+  }
+
   if (dbInstance) {
     return dbInstance;
   }
@@ -55,8 +60,25 @@ async function getDB(): Promise<IDBPDatabase<ZustandStorageDB>> {
  *   name: 'student-unified-storage',
  *   storage: createIndexedDBStorage(),
  * })
+ * 
+ * Retorna um storage noop (sem operação) quando executado no servidor (SSR)
  */
 export function createIndexedDBStorage() {
+  // Se estiver no servidor, retornar um storage noop (sem operação)
+  if (typeof window === 'undefined' || typeof indexedDB === 'undefined') {
+    return {
+      getItem: async (): Promise<string | null> => {
+        return null;
+      },
+      setItem: async (): Promise<void> => {
+        // Noop no servidor
+      },
+      removeItem: async (): Promise<void> => {
+        // Noop no servidor
+      },
+    };
+  }
+
   return {
     getItem: async (name: string): Promise<string | null> => {
       try {
