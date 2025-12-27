@@ -1,14 +1,14 @@
 /**
  * Middleware Offline para apiClient
  * 
- * Intercepta requisições e usa salvadorOff automaticamente
+ * Intercepta requisições e usa syncManager automaticamente
  */
 
-import { salvadorOff } from '@/lib/offline/salvador-off';
+import { syncManager } from '@/lib/offline/sync-manager';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 /**
- * Wrapper para apiClient que usa salvadorOff automaticamente
+ * Wrapper para apiClient que usa syncManager automaticamente
  */
 export async function apiClientOffline<T = any>(
   config: AxiosRequestConfig
@@ -32,8 +32,8 @@ export async function apiClientOffline<T = any>(
     requestHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  // Usa salvadorOff
-  const result = await salvadorOff({
+  // Usa syncManager
+  const result = await syncManager({
     url,
     method: method.toUpperCase() as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     body: data,

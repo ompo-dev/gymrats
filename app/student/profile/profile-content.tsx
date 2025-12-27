@@ -21,138 +21,137 @@ import { HistoryCard } from "@/components/ui/history-card";
 import { RecordCard } from "@/components/ui/record-card";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Button } from "@/components/ui/button";
-import type { UserProgress, WorkoutHistory, PersonalRecord } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { getUserInfoFromStorage } from "@/lib/utils/user-info";
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
 import { useStudent } from "@/hooks/use-student";
+import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
+import type { WorkoutHistory, PersonalRecord } from "@/lib/types";
+import type { WeightHistoryItem } from "@/lib/types/student-unified";
 
-interface WeightHistoryItem {
-  date: Date | string;
-  weight: number;
-}
+/**
+ * Componente de Conteúdo do Perfil
+ *
+ * Arquitetura Offline-First:
+ * - Usa apenas dados do store unificado (via useStudent hook)
+ * - Não recebe props SSR (dados vêm do store)
+ * - Funciona offline com dados em cache
+ * - Sincronização automática via syncManager
+ */
 
-interface ProfilePageContentProps {
-  progress: UserProgress;
-  workoutHistory: WorkoutHistory[];
-  personalRecords: PersonalRecord[];
-  weightHistory: WeightHistoryItem[];
-  userInfo?: { isAdmin: boolean; role: string | null };
-  profileUserInfo?: {
-    name: string;
-    username: string;
-    memberSince: string;
-  } | null;
-  currentWeight?: number | null;
-  weightGain?: number | null;
-  weeklyWorkouts?: number;
-  ranking?: number | null;
-  hasWeightLossGoal?: boolean;
-}
+export function ProfilePageContent() {
+  // Carregamento prioritizado: profile, weightHistory, progress, personalRecords aparecem primeiro
+  // Se dados já existem no store, só carrega o que falta
+  useLoadPrioritized({ context: "profile" });
 
-export function ProfilePageContent({
-  progress,
-  workoutHistory,
-  personalRecords,
-  weightHistory,
-  userInfo = { isAdmin: false, role: null },
-  profileUserInfo,
-  currentWeight,
-  weightGain,
-  weeklyWorkouts = 0,
-  ranking,
-  hasWeightLossGoal = false,
-}: ProfilePageContentProps) {
   const router = useRouter();
-  const [actualIsAdmin, setActualIsAdmin] = useState(false);
   const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
 
-  // Usar hook unificado
+  // ============================================
+  // DADOS DO STORE UNIFICADO (Offline-First)
+  // ============================================
+  // Todos os dados vêm do store unificado, que:
+  // - É carregado automaticamente pelo useStudentInitializer no layout
+  // - Persiste em IndexedDB (funciona offline)
+  // - Sincroniza automaticamente via syncManager
+  // - Usa rotas específicas otimizadas (3-5x mais rápido)
+
   const {
     progress: storeProgress,
     weightHistory: storeWeightHistory,
     weightGain: storeWeightGain,
     profile: storeProfile,
     user: storeUser,
-  } = useStudent("progress", "weightHistory", "weightGain", "profile", "user");
+    workoutHistory: storeWorkoutHistory,
+    personalRecords: storePersonalRecords,
+    isAdmin: storeIsAdmin,
+    role: storeRole,
+  } = useStudent(
+    "progress",
+    "weightHistory",
+    "weightGain",
+    "profile",
+    "user",
+    "workoutHistory",
+    "personalRecords",
+    "isAdmin",
+    "role"
+  );
+
   const { addWeight } = useStudent("actions");
 
-  // Usar dados do store com fallback para props
-  const localCurrentWeight = storeProfile?.weight || currentWeight;
-  const localWeightGain = storeWeightGain ?? weightGain ?? null;
-  const weightHistoryLocal =
-    storeWeightHistory.length > 0 ? storeWeightHistory : weightHistory;
-  const displayProgress = storeProgress || progress;
+  // ============================================
+  // DADOS DISPLAY (Apenas do Store)
+  // ============================================
+  // Não usamos mais fallback para props SSR.
+  // Todos os dados vêm do store unificado.
+  // Se não houver dados ainda, o useStudentInitializer está carregando.
 
-  // Carregar dados do store ao montar
-  const { loadUser, loadProgress, loadWeightHistory } = useStudent("loaders");
+  const displayProgress = storeProgress || {
+    currentStreak: 0,
+    longestStreak: 0,
+    totalXP: 0,
+    currentLevel: 1,
+    xpToNextLevel: 100,
+    workoutsCompleted: 0,
+    todayXP: 0,
+    achievements: [],
+    lastActivityDate: new Date().toISOString(),
+    dailyGoalXP: 50,
+    weeklyXP: [0, 0, 0, 0, 0, 0, 0],
+  };
 
-  // Flag para evitar múltiplas chamadas simultâneas
-  const loadingRef = useRef({ user: false, progress: false, weight: false });
+  const currentWeight = storeProfile?.weight;
+  const weightHistoryLocal = storeWeightHistory || [];
 
-  useEffect(() => {
-    // Carregar dados se não tiver no store (apenas uma vez)
-    if (!storeUser && !loadingRef.current.user) {
-      loadingRef.current.user = true;
-      loadUser().finally(() => {
-        loadingRef.current.user = false;
-      });
+  // Calcular weightGain se não estiver calculado mas houver weightHistory
+  let weightGain = storeWeightGain ?? null;
+  if (weightGain === null && weightHistoryLocal.length > 0) {
+    const currentWeightFromHistory = weightHistoryLocal[0]?.weight;
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    // Encontrar peso mais próximo de 1 mês atrás
+    const weightOneMonthAgo = weightHistoryLocal.find(
+      (wh: WeightHistoryItem) => {
+        const whDate = new Date(wh.date);
+        return whDate <= oneMonthAgo;
+      }
+    );
+
+    if (weightOneMonthAgo && currentWeightFromHistory) {
+      weightGain = currentWeightFromHistory - weightOneMonthAgo.weight;
+    } else if (weightHistoryLocal.length > 1 && currentWeightFromHistory) {
+      // Se não houver dados de 1 mês atrás, usar o primeiro registro disponível
+      const oldestWeight =
+        weightHistoryLocal[weightHistoryLocal.length - 1]?.weight;
+      if (oldestWeight) {
+        weightGain = currentWeightFromHistory - oldestWeight;
+      }
     }
-    if (!storeProgress && !loadingRef.current.progress) {
-      loadingRef.current.progress = true;
-      loadProgress().finally(() => {
-        loadingRef.current.progress = false;
-      });
-    }
-    if ((!storeWeightHistory || storeWeightHistory.length === 0) && !loadingRef.current.weight) {
-      loadingRef.current.weight = true;
-      loadWeightHistory().finally(() => {
-        loadingRef.current.weight = false;
-      });
-    }
-  }, [
-    storeUser,
-    storeProgress,
-    storeWeightHistory,
-    // Remover funções das dependências para evitar loop infinito
-    // loadUser, loadProgress, loadWeightHistory,
-  ]);
+  }
+  const workoutHistory = storeWorkoutHistory || [];
+  const personalRecords = storePersonalRecords || [];
+  const profileUserInfo = storeUser
+    ? {
+        name: storeUser.name || "Usuário",
+        username: storeUser.username || "@usuario",
+        memberSince: storeUser.memberSince || "Jan 2025",
+      }
+    : null;
 
-  // Buscar do localStorage primeiro (rápido, sem delay)
-  const storageInfo = getUserInfoFromStorage();
+  const isAdmin = storeIsAdmin || storeRole === "ADMIN";
 
-  // Usar dados do store para isAdmin
-  useEffect(() => {
-    if (storeUser) {
-      const isAdminFromStore =
-        storeUser.role === "ADMIN" || storeUser.role === "admin";
-      setActualIsAdmin(isAdminFromStore);
-    } else if (userInfo) {
-      setActualIsAdmin(userInfo.isAdmin);
-    }
-  }, [storeUser, userInfo]);
+  // Calcular weeklyWorkouts do workoutHistory
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const weeklyWorkouts = workoutHistory.filter(
+    (w: WorkoutHistory) => new Date(w.date) >= oneWeekAgo
+  ).length;
 
-  // displayProgress já está definido acima usando hook
-
-  // Usar dados da API como fonte principal, localStorage e userInfo como fallback
-  const isAdmin =
-    actualIsAdmin ||
-    storageInfo.isAdmin ||
-    userInfo?.role === "ADMIN" ||
-    userInfo?.isAdmin;
-
-  console.log(
-    "[ProfilePageContent] actualIsAdmin:",
-    actualIsAdmin,
-    "storageInfo.isAdmin:",
-    storageInfo.isAdmin,
-    "userInfo?.role:",
-    userInfo?.role,
-    "isAdmin final:",
-    isAdmin
-  );
+  const hasWeightLossGoal = storeProfile?.hasWeightLossGoal || false;
+  const ranking = null; // TODO: Adicionar ao store se necessário
 
   const handleLogout = async () => {
     try {
@@ -172,7 +171,7 @@ export function ProfilePageContent({
   };
 
   const handleOpenWeightModal = () => {
-    setNewWeight(localCurrentWeight?.toFixed(1) || "");
+    setNewWeight(currentWeight?.toFixed(1) || "");
     weightModal.open();
   };
 
@@ -188,11 +187,13 @@ export function ProfilePageContent({
     weightModal.close();
     setNewWeight("");
 
-    // Usar action do store (já faz optimistic update e sync)
+    // Usar action do store (já faz optimistic update e sync via syncManager)
+    // syncManager gerencia offline/online automaticamente:
+    // - Se online: envia para API imediatamente
+    // - Se offline: salva na fila e sincroniza quando online
     await addWeight(weightValue);
 
-    // Recarregar dados do servidor em background
-    router.refresh();
+    // Não precisa de router.refresh() - o store já atualiza automaticamente!
   };
 
   return (
@@ -209,21 +210,21 @@ export function ProfilePageContent({
         quickStats={[
           {
             value:
-              localWeightGain !== null && localWeightGain !== undefined
-                ? `${localWeightGain > 0 ? "+" : ""}${localWeightGain.toFixed(
-                    1
-                  )}`
-                : "N/A",
+              weightGain !== null && weightGain !== undefined
+                ? `${weightGain > 0 ? "+" : ""}${weightGain.toFixed(1)}`
+                : "0.0",
             label:
-              localWeightGain !== null && localWeightGain !== undefined
-                ? localWeightGain < 0
+              weightGain !== null && weightGain !== undefined
+                ? weightGain < 0
                   ? "kg Perdidos"
-                  : "kg Ganhos"
+                  : weightGain > 0
+                  ? "kg Ganhos"
+                  : "Sem mudança"
                 : "kg",
             highlighted:
-              localWeightGain !== null &&
-              localWeightGain !== undefined &&
-              localWeightGain !== 0,
+              weightGain !== null &&
+              weightGain !== undefined &&
+              weightGain !== 0,
           },
         ]}
         quickStatsButtons={
@@ -234,9 +235,9 @@ export function ProfilePageContent({
           >
             <div className="flex items-center justify-center gap-1 flex-col">
               <div className="mb-1 text-xl font-bold">
-                {localCurrentWeight ? (
+                {currentWeight ? (
                   <div className="flex items-center justify-center gap-1">
-                    <span>{localCurrentWeight.toFixed(1)}</span>
+                    <span>{currentWeight.toFixed(1)}</span>
                     <Edit className="h-3 w-3 opacity-60" />
                   </div>
                 ) : (
@@ -292,7 +293,7 @@ export function ProfilePageContent({
         icon={TrendingUp}
         title="Evolução de Peso"
         headerAction={
-          localWeightGain !== null && localWeightGain !== undefined ? (
+          weightGain !== null && weightGain !== undefined ? (
             <div className="text-right">
               <div
                 className={`text-2xl font-bold ${
@@ -300,25 +301,25 @@ export function ProfilePageContent({
                   // Se objetivo é ganhar massa, ganho é positivo (verde)
                   // Caso contrário, neutro (azul)
                   hasWeightLossGoal
-                    ? localWeightGain < 0
+                    ? weightGain < 0
                       ? "text-duo-green"
-                      : localWeightGain > 0
+                      : weightGain > 0
                       ? "text-duo-blue"
                       : "text-duo-gray-dark"
-                    : localWeightGain > 0
+                    : weightGain > 0
                     ? "text-duo-green"
-                    : localWeightGain < 0
+                    : weightGain < 0
                     ? "text-duo-blue"
                     : "text-duo-gray-dark"
                 }`}
               >
-                {localWeightGain > 0 ? "+" : ""}
-                {localWeightGain.toFixed(1)}kg
+                {weightGain > 0 ? "+" : ""}
+                {weightGain.toFixed(1)}kg
               </div>
               <div className="text-xs text-duo-gray-dark">
-                {localWeightGain < 0
+                {weightGain < 0
                   ? "Perda"
-                  : localWeightGain > 0
+                  : weightGain > 0
                   ? "Ganho"
                   : "Sem mudança"}{" "}
                 no último mês
@@ -357,7 +358,7 @@ export function ProfilePageContent({
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard icon={Calendar} title="Histórico Recente">
           <div className="space-y-3">
-            {workoutHistory.map((workout, index) => (
+            {workoutHistory.map((workout: WorkoutHistory, index: number) => (
               <HistoryCard
                 key={index}
                 title={workout.workoutName}
@@ -383,7 +384,7 @@ export function ProfilePageContent({
 
         <SectionCard icon={Award} title="Recordes Pessoais">
           <div className="space-y-3">
-            {personalRecords.map((record, index) => (
+            {personalRecords.map((record: PersonalRecord, index: number) => (
               <RecordCard
                 key={index}
                 exerciseName={record.exerciseName}
@@ -401,7 +402,7 @@ export function ProfilePageContent({
         <div className="space-y-3">
           {/* Mostrar botão de trocar apenas se for admin */}
           {/* Verificar todas as fontes possíveis para garantir que funcione */}
-          {(isAdmin || userInfo?.role === "ADMIN") && (
+          {isAdmin && (
             <DuoCard
               variant="default"
               size="default"
@@ -518,7 +519,7 @@ export function ProfilePageContent({
                   </div>
 
                   <AnimatePresence>
-                    {localCurrentWeight && (
+                    {currentWeight && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -529,22 +530,22 @@ export function ProfilePageContent({
                         <p className="text-sm text-gray-600">
                           Peso anterior:{" "}
                           <span className="font-bold text-gray-900">
-                            {localCurrentWeight.toFixed(1)}kg
+                            {currentWeight.toFixed(1)}kg
                           </span>
                         </p>
                         {newWeight &&
                           !isNaN(parseFloat(newWeight)) &&
-                          parseFloat(newWeight) !== localCurrentWeight && (
+                          parseFloat(newWeight) !== currentWeight && (
                             <motion.p
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               className="text-sm mt-2 font-bold"
                             >
-                              {parseFloat(newWeight) > localCurrentWeight ? (
+                              {parseFloat(newWeight) > currentWeight ? (
                                 <span className="text-duo-blue">
                                   Ganho: +
                                   {(
-                                    parseFloat(newWeight) - localCurrentWeight
+                                    parseFloat(newWeight) - currentWeight
                                   ).toFixed(1)}
                                   kg
                                 </span>
@@ -552,7 +553,7 @@ export function ProfilePageContent({
                                 <span className="text-duo-green">
                                   Perda:{" "}
                                   {(
-                                    parseFloat(newWeight) - localCurrentWeight
+                                    parseFloat(newWeight) - currentWeight
                                   ).toFixed(1)}
                                   kg
                                 </span>

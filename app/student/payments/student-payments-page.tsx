@@ -42,6 +42,7 @@ import {
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useStudent } from "@/hooks/use-student";
+import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 
 // Constante fora do componente para garantir que seja sempre o mesmo entre servidor e cliente
 const TAB_OPTIONS = [
@@ -72,6 +73,10 @@ export function StudentPaymentsPage({
   subscription: initialSubscription,
   startTrial,
 }: StudentPaymentsPageProps = {}) {
+  // Carregamento prioritizado: subscription, payments, paymentMethods, memberships aparecem primeiro
+  // Se dados já existem no store, só carrega o que falta
+  useLoadPrioritized({ context: "payments" });
+
   const { toast } = useToast();
   const [subTab, setSubTab] = useQueryState(
     "subTab",

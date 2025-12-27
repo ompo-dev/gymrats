@@ -25,48 +25,50 @@ export function WorkoutNode({
   previousWorkouts = [],
   previousUnitsWorkouts = [],
 }: WorkoutNodeProps) {
+  // Usar useWorkoutStore apenas para progresso local durante execução
   const workoutProgress = useWorkoutStore(
     (state) => state.workoutProgress[workout.id]
   );
-  const completedWorkouts = useWorkoutStore((state) => state.completedWorkouts);
   const { isWorkoutCompleted, isWorkoutInProgress, getWorkoutProgress } =
     useWorkoutStore();
 
-  const isCompleted = isWorkoutCompleted(workout.id);
+  // Priorizar workout.completed do store unificado (vem do backend)
+  // Mas também verificar estado otimista do useWorkoutStore para feedback imediato
+  const isCompletedFromStore = workout.completed || false;
+  const isCompletedOptimistic = isWorkoutCompleted(workout.id);
+  const isCompleted = isCompletedFromStore || isCompletedOptimistic;
 
+  // Verificar se workouts anteriores estão completos
+  // Priorizar workout.completed do store unificado, com fallback para estado otimista
   const allPreviousInUnitCompleted =
     previousWorkouts.length === 0
       ? true
-      : previousWorkouts.every((prevWorkout) =>
-          isWorkoutCompleted(prevWorkout.id)
-        );
+      : previousWorkouts.every((prevWorkout) => {
+          const prevCompleted = prevWorkout.completed || false;
+          const prevOptimistic = isWorkoutCompleted(prevWorkout.id);
+          return prevCompleted || prevOptimistic;
+        });
 
   const allPreviousUnitsCompleted =
     previousUnitsWorkouts.length === 0
       ? true
-      : previousUnitsWorkouts.every((prevWorkout) =>
-          isWorkoutCompleted(prevWorkout.id)
-        );
+      : previousUnitsWorkouts.every((prevWorkout) => {
+          const prevCompleted = prevWorkout.completed || false;
+          const prevOptimistic = isWorkoutCompleted(prevWorkout.id);
+          return prevCompleted || prevOptimistic;
+        });
 
-  // IMPORTANTE: Para estado otimista, priorizar o Zustand store sobre workout.locked do backend
-  // Se o workout anterior foi completado no store (otimista), desbloquear imediatamente
-  // Primeiro verificar se os workouts anteriores foram completados no store
+  // Calcular se está locked baseado em workouts anteriores completos
+  // Priorizar estado otimista: se anteriores estão completos no store local, desbloquear
   const allPreviousCompleted = isFirst
-    ? (previousUnitsWorkouts.length === 0 || allPreviousUnitsCompleted)
+    ? previousUnitsWorkouts.length === 0 || allPreviousUnitsCompleted
     : allPreviousInUnitCompleted;
 
-  // Se todos os workouts anteriores foram completados no store, ignorar workout.locked do backend
-  // e desbloquear imediatamente (estado otimista)
-  // Caso contrário, verificar workout.locked do backend
-  const shouldBeLocked = allPreviousCompleted
-    ? false // Se todos anteriores estão completos no store, desbloquear independente do backend
-    : workout.locked || // Se não completou todos anteriores, usar locked do backend
-      (!isFirst && !allPreviousInUnitCompleted) ||
-      (isFirst && previousUnitsWorkouts.length > 0 && !allPreviousUnitsCompleted);
-
-  // Se é o primeiro workout da primeira unit, nunca deve estar locked
-  // Para outros workouts, se o anterior está completo no store, desbloquear
-  const isLocked = shouldBeLocked;
+  // Se todos os workouts anteriores foram completados (otimista ou do backend), desbloquear
+  // Caso contrário, usar workout.locked do backend
+  const isLocked = allPreviousCompleted
+    ? false // Desbloquear se todos anteriores estão completos
+    : workout.locked; // Usar locked do backend caso contrário
 
   const hasProgress = !isCompleted && isWorkoutInProgress(workout.id);
   const totalSeenExercises = !isCompleted ? getWorkoutProgress(workout.id) : 0;
@@ -91,30 +93,26 @@ export function WorkoutNode({
 
   const [, forceUpdate] = useState(0);
 
-  // Re-renderizar quando completedWorkouts ou workoutProgress mudarem
+  // Re-renderizar quando workoutProgress mudar (progresso local durante execução)
   useEffect(() => {
     forceUpdate((prev) => prev + 1);
-  }, [workoutProgress, completedWorkouts]);
+  }, [workoutProgress]);
 
-  // Escutar eventos de workout completado para atualizar imediatamente (estado otimista)
+  // Escutar eventos de workout completado para atualizar UI imediatamente (estado otimista)
+  // O store unificado será atualizado via loadWorkouts() no learning-path
   useEffect(() => {
     const handleWorkoutCompleted = (event: CustomEvent) => {
       const { workoutId } = event.detail || {};
       if (!workoutId) return;
-      
-      // Se qualquer workout anterior foi completado, re-renderizar imediatamente
+
+      // Se qualquer workout anterior foi completado, re-renderizar para desbloquear
       const previousWorkoutIds = [
         ...previousWorkouts.map((w) => w.id),
         ...previousUnitsWorkouts.map((w) => w.id),
       ];
-      
-      if (previousWorkoutIds.includes(workoutId)) {
-        // Forçar re-render imediatamente para desbloquear o próximo workout
-        forceUpdate((prev) => prev + 1);
-      }
-      
-      // Se este workout foi completado, também re-renderizar
-      if (workoutId === workout.id) {
+
+      if (previousWorkoutIds.includes(workoutId) || workoutId === workout.id) {
+        // Forçar re-render imediatamente para atualizar UI
         forceUpdate((prev) => prev + 1);
       }
     };
@@ -133,7 +131,7 @@ export function WorkoutNode({
       "workoutProgressUpdate",
       handleProgressUpdate as EventListener
     );
-    
+
     return () => {
       window.removeEventListener(
         "workoutCompleted",

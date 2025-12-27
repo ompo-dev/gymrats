@@ -1,3 +1,14 @@
+/**
+ * Página de Dieta/Nutrição do Student
+ * 
+ * Arquitetura Offline-First:
+ * - Usa apenas dados do store unificado (via useStudent hook)
+ * - Não recebe props SSR (dados vêm do store)
+ * - Funciona offline com dados em cache
+ * - Sincronização automática via syncManager
+ * - Dados carregados automaticamente pelo useStudentInitializer no layout
+ */
+
 "use client";
 
 import { useEffect } from "react";
@@ -8,34 +19,38 @@ import { Calendar, TrendingUp } from "lucide-react";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 import { useStudent } from "@/hooks/use-student";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 
 export function DietPage() {
-  // Carregar alimentos automaticamente ao entrar na página
+  // Carregamento prioritizado: dailyNutrition e progress aparecem primeiro
+  // Se dados já existem no store, só carrega o que falta
+  useLoadPrioritized({ context: "diet" });
+
+  // ============================================
+  // DADOS DO STORE UNIFICADO (Offline-First)
+  // ============================================
+  // Todos os dados vêm do store unificado, que:
+  // - É carregado automaticamente pelo useStudentInitializer no layout
+  // - Persiste em IndexedDB (funciona offline)
+  // - Sincroniza automaticamente via syncManager
+  // - Usa rotas específicas otimizadas (3-5x mais rápido)
+  
   const foodDatabase = useStudent("foodDatabase");
-  const store = useStudentUnifiedStore();
+  const { loadFoodDatabase } = useStudent("loaders");
 
   // Modais controlados por search params
   const addMealModal = useModalState("add-meal");
   const foodSearchModal = useModalStateWithParam("food-search", "mealId");
 
+  // Carregar foodDatabase apenas se não estiver no store
+  // O useStudentInitializer já carrega a maioria dos dados, mas foodDatabase
+  // pode não ser carregado automaticamente (é grande e opcional)
   useEffect(() => {
-    // Carregar alimentos se não tiver no store ou se estiver vazio
     if (!foodDatabase || foodDatabase.length === 0) {
-      // Acessar a função diretamente do store para evitar problemas com cache do HMR
-      const loadFoodDatabase = store.loadFoodDatabase;
-      
-      // Verificar se a função existe antes de chamar
-      if (loadFoodDatabase && typeof loadFoodDatabase === "function") {
-        loadFoodDatabase().catch((error) => {
-          console.error("Erro ao carregar alimentos:", error);
-        });
-      } else {
-        console.warn(
-          "⚠️ loadFoodDatabase não está disponível. O cache do HMR pode estar desatualizado. Tente reiniciar o servidor de desenvolvimento."
-        );
-      }
+      loadFoodDatabase().catch((error) => {
+        console.error("[DietPage] Erro ao carregar foodDatabase:", error);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foodDatabase]);

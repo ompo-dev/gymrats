@@ -216,8 +216,13 @@ export const useWorkoutStore = create<WorkoutState>()(
         try {
           await apiClient.delete(`/api/workouts/${workoutId}/progress`);
         } catch (error: any) {
-          // Ignorar erro se a migration não foi aplicada
-          if (error.response?.data?.code !== "MIGRATION_REQUIRED") {
+          // Ignorar erros:
+          // - 404: Progresso não existe (já foi deletado ou nunca existiu) - estado desejado
+          // - MIGRATION_REQUIRED: Migration não aplicada ainda
+          const status = error.response?.status;
+          const code = error.response?.data?.code;
+          
+          if (status !== 404 && code !== "MIGRATION_REQUIRED") {
             console.error("Erro ao limpar progresso parcial:", error);
           }
         }

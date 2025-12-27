@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect } from "react";
 import type { Unit, WorkoutSession } from "@/lib/types";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { Lock } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { useStudent } from "@/hooks/use-student";
+import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
@@ -14,21 +15,11 @@ import { useRouter } from "next/navigation";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
 
-// Store simples para armazenar units carregadas (para uso no modal)
-let cachedUnits: Unit[] = [];
-export function setCachedUnits(units: Unit[]) {
-  cachedUnits = units;
-}
-export function getCachedUnits(): Unit[] {
-  return cachedUnits;
-}
-
 interface LearningPathProps {
-  units: Unit[];
   onLessonSelect: (lessonId: string) => void;
 }
 
-export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
+export function LearningPath({ onLessonSelect }: LearningPathProps) {
   const router = useRouter();
   const workoutModal = useModalStateWithParam("workout", "workoutId");
   const [, setExerciseIndexParam] = useQueryState(
@@ -36,38 +27,17 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
     parseAsInteger
   );
 
-  // Usar hook unificado para units
-  const { units: storeUnits } = useStudent("units");
-  const { completeWorkout } = useStudent("actions");
+  // Carregamento prioritizado: units e progress aparecem primeiro
+  // Se dados já existem no store, só carrega o que falta
+  useLoadPrioritized({ context: "learn" });
 
-  // Estado para forçar re-render quando units mudarem
-  const [unitsKey, setUnitsKey] = useState(0);
-  const [reloadedUnits, setReloadedUnits] = useState<Unit[] | null>(null);
-
-  // Usar units do store com fallback para props
-  const currentUnits = useMemo(
-    () =>
-      reloadedUnits ||
-      (storeUnits && storeUnits.length > 0 ? storeUnits : units),
-    [unitsKey, reloadedUnits, storeUnits, units]
-  );
-
-  // Cachear units para uso no modal
-  useEffect(() => {
-    setCachedUnits(currentUnits);
-  }, [currentUnits]);
-
-  // Carregar units do store ao montar
+  // Usar hook unificado - fonte única da verdade
+  // Dados são carregados automaticamente pelo useStudentInitializer no layout
+  const units = useStudent("units");
   const { loadWorkouts } = useStudent("loaders");
 
-  useEffect(() => {
-    // Carregar units se não tiver no store
-    if (!storeUnits || storeUnits.length === 0) {
-      loadWorkouts();
-    }
-  }, [storeUnits, loadWorkouts]);
-
-  // Recarregar units quando um workout é completado
+  // Recarregar units quando um workout é completado (optimistic update já feito)
+  // Isso atualiza o status locked/completed dos workouts no backend
   useEffect(() => {
     const handleWorkoutCompleted = async (event: Event) => {
       const customEvent = event as CustomEvent<{ workoutId?: string }>;
@@ -79,11 +49,9 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
       const store = useWorkoutStore.getState();
       store.completeWorkout(workoutId);
 
-      // Recarregar units do store unificado (que sincroniza com API via axios)
+      // Recarregar units do store unificado para sincronizar com backend
+      // Isso atualiza o status locked/completed dos workouts
       await loadWorkouts();
-
-      // Atualizar estado local para forçar re-render
-      setUnitsKey((prev) => prev + 1);
     };
 
     window.addEventListener("workoutCompleted", handleWorkoutCompleted);
@@ -91,7 +59,7 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
     return () => {
       window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
     };
-  }, [router, loadWorkouts]);
+  }, [loadWorkouts]);
 
   const handleWorkoutClick = (
     workoutId: string,
@@ -146,7 +114,7 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
 
   return (
     <div className="relative mx-auto max-w-2xl py-8">
-      {currentUnits.map((unit: Unit, unitIndex: number) => {
+      {units.map((unit: Unit, unitIndex: number) => {
         return (
           <motion.div
             key={unit.id}
@@ -172,8 +140,7 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
                   // Pegar todos os workouts anteriores:
                   // 1. Todos os workouts de unidades anteriores
                   // 2. Workouts anteriores na mesma unidade
-                  // IMPORTANTE: Usar currentUnits (que inclui reloadedUnits) em vez de units
-                  const previousUnitsWorkouts = currentUnits
+                  const previousUnitsWorkouts = units
                     .slice(0, unitIndex)
                     .flatMap((u: Unit) => u.workouts);
                   const previousWorkoutsInSameUnit = unit.workouts.slice(
@@ -203,51 +170,11 @@ export function LearningPath({ units, onLessonSelect }: LearningPathProps) {
                         workout={workout}
                         position={position}
                         onClick={() => {
-                          // Calcular isLocked dinamicamente no momento do clique
-                          // IMPORTANTE: Usar a mesma lógica otimista do WorkoutNode
-                          const store = useWorkoutStore.getState();
-
-                          const allPreviousInUnitCompleted =
-                            previousWorkoutsInSameUnit.length === 0
-                              ? true
-                              : previousWorkoutsInSameUnit.every(
-                                  (prevWorkout: WorkoutSession) =>
-                                    store.isWorkoutCompleted(prevWorkout.id)
-                                );
-
-                          const allPreviousUnitsCompleted =
-                            previousUnitsWorkouts.length === 0
-                              ? true
-                              : previousUnitsWorkouts.every(
-                                  (prevWorkout: WorkoutSession) =>
-                                    store.isWorkoutCompleted(prevWorkout.id)
-                                );
-
-                          // Priorizar estado otimista do store sobre workout.locked do backend
-                          const allPreviousCompleted = isFirstInUnit
-                            ? previousUnitsWorkouts.length === 0 ||
-                              allPreviousUnitsCompleted
-                            : allPreviousInUnitCompleted;
-
-                          // Se todos os workouts anteriores foram completados no store, desbloquear
-                          // independente do workout.locked do backend
-                          const shouldBeLocked = allPreviousCompleted
-                            ? false // Se todos anteriores estão completos no store, desbloquear
-                            : workout.locked || // Caso contrário, usar locked do backend
-                              (!isFirstInUnit && !allPreviousInUnitCompleted) ||
-                              (isFirstInUnit &&
-                                previousUnitsWorkouts.length > 0 &&
-                                !allPreviousUnitsCompleted);
-
-                          // Se é o primeiro workout da primeira unit, nunca deve estar locked
-                          const isLocked =
-                            unitIndex === 0 && workoutIndex === 0
-                              ? false
-                              : shouldBeLocked;
-
+                          // Usar workout.locked do store unificado (já calculado pelo backend)
+                          // WorkoutNode também verifica estado otimista do useWorkoutStore
                           handleWorkoutClick(
                             workout.id,
-                            isLocked,
+                            workout.locked,
                             workout.type
                           );
                         }}

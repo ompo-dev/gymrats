@@ -1,3 +1,14 @@
+/**
+ * Hook para Gerenciar Nutrição Diária
+ * 
+ * Arquitetura Offline-First:
+ * - Usa dados do store unificado (Zustand + IndexedDB)
+ * - Optimistic updates automáticos (UI instantânea)
+ * - Sincronização automática via syncManager (offline/online)
+ * - Funciona offline com dados em cache
+ * - Dados carregados automaticamente pelo useStudentInitializer
+ */
+
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -31,6 +42,7 @@ export function useNutritionHandlers() {
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMealModal, setShowAddMealModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasLoadedNutrition, setHasLoadedNutrition] = useState(false); // Flag para evitar loop infinito
 
   // Helpers para atualizar nutrição usando store unificado
   const toggleMealComplete = (mealId: string) => {
@@ -161,19 +173,11 @@ export function useNutritionHandlers() {
   };
 
   // Sincronização agora é feita automaticamente pelo updateNutrition do store
+  // que usa syncManager para gerenciar offline/online automaticamente
 
-  // Carregar nutrição do dia do backend ao montar usando o store
-  const { loadNutrition } = useStudent("loaders");
-  
-  useEffect(() => {
-    // Só carregar se não tiver dados no store
-    if (!storeNutrition || storeNutrition.meals.length === 0) {
-      setIsLoading(true);
-      loadNutrition().finally(() => {
-        setIsLoading(false);
-      });
-    }
-  }, [storeNutrition, loadNutrition]);
+  // NOTA: Carregamento de nutrição agora é feito pelo useLoadPrioritized na página diet
+  // Não precisamos mais carregar aqui para evitar duplicação de requisições
+  // O useStudentInitializer no layout e useLoadPrioritized nas páginas já cuidam disso
 
   const handleMealComplete = async (mealId: string) => {
     toggleMealComplete(mealId);

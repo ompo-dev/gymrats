@@ -122,3 +122,49 @@ export function useModalStateWithParam(
   };
 }
 
+/**
+ * Hook para sub-modais que podem abrir dentro de outros modais
+ * Usa search param "subModal" ao invés de "modal" para não fechar o modal principal
+ * 
+ * @param subModalName - Nome do sub-modal (ex: "weight-tracker", "alternative-selector")
+ * @returns Objeto com estado e funções para controlar o sub-modal
+ * 
+ * @example
+ * ```tsx
+ * const { isOpen, open, close } = useSubModalState("weight-tracker");
+ * 
+ * // Abrir sub-modal (não fecha o modal principal)
+ * <Button onClick={open}>Abrir Sub-modal</Button>
+ * 
+ * // Renderizar dentro do modal principal
+ * {isOpen && <SubModal onClose={close} />}
+ * ```
+ */
+export function useSubModalState(subModalName: string) {
+  const [subModal, setSubModal] = useQueryState("subModal", parseAsString);
+  const isOpen = subModal === subModalName;
+
+  const open = useCallback(() => {
+    setSubModal(subModalName);
+  }, [subModalName, setSubModal]);
+
+  const close = useCallback(() => {
+    setSubModal(null);
+  }, [setSubModal]);
+
+  const toggle = useCallback(() => {
+    if (isOpen) {
+      close();
+    } else {
+      open();
+    }
+  }, [isOpen, open, close]);
+
+  return {
+    isOpen,
+    open,
+    close,
+    toggle,
+  };
+}
+

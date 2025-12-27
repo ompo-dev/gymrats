@@ -195,8 +195,24 @@ export async function updateDailyNutritionHandler(
     const { date, meals, waterIntake } = body;
 
     // Normalizar data para UTC (evitar problemas de timezone)
-    const nutritionDate = date ? new Date(date) : new Date();
-    const dateStr = nutritionDate.toISOString().split("T")[0]; // YYYY-MM-DD
+    // Aceita tanto YYYY-MM-DD quanto ISO string
+    let dateStr: string;
+    if (date) {
+      if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        // Já está no formato YYYY-MM-DD
+        dateStr = date;
+      } else {
+        // É ISO string ou outro formato, converter
+        const nutritionDate = new Date(date);
+        if (isNaN(nutritionDate.getTime())) {
+          return badRequestResponse("Data inválida fornecida");
+        }
+        dateStr = nutritionDate.toISOString().split("T")[0];
+      }
+    } else {
+      dateStr = new Date().toISOString().split("T")[0];
+    }
+    
     const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
     const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
@@ -239,38 +255,60 @@ export async function updateDailyNutritionHandler(
 
         // Criar novas refeições
         for (const meal of meals) {
-          const nutritionMeal = await db.nutritionMeal.create({
-            data: {
-              dailyNutritionId: dailyNutrition.id,
-              name: meal.name,
-              type: meal.type,
-              calories: meal.calories || 0,
-              protein: meal.protein || 0,
-              carbs: meal.carbs || 0,
-              fats: meal.fats || 0,
-              time: meal.time || null,
-              completed: meal.completed || false,
-              order: meal.order || 0,
-            },
-          });
+          // Validar campos obrigatórios
+          if (!meal.name || !meal.type) {
+            console.warn("[updateDailyNutritionHandler] Meal sem name ou type, pulando:", meal);
+            continue; // Pular meal inválido
+          }
 
-          // Adicionar alimentos se fornecidos
-          if (meal.foods && Array.isArray(meal.foods)) {
-            for (const food of meal.foods) {
-              await db.nutritionFoodItem.create({
-                data: {
-                  nutritionMealId: nutritionMeal.id,
-                  foodId: food.foodId || null,
-                  foodName: food.foodName,
-                  servings: food.servings || 1,
-                  calories: food.calories || 0,
-                  protein: food.protein || 0,
-                  carbs: food.carbs || 0,
-                  fats: food.fats || 0,
-                  servingSize: food.servingSize || "100g",
-                },
-              });
+          try {
+            const nutritionMeal = await db.nutritionMeal.create({
+              data: {
+                dailyNutritionId: dailyNutrition.id,
+                name: meal.name,
+                type: meal.type,
+                calories: meal.calories || 0,
+                protein: meal.protein || 0,
+                carbs: meal.carbs || 0,
+                fats: meal.fats || 0,
+                time: meal.time || null,
+                completed: meal.completed || false,
+                order: meal.order !== undefined ? meal.order : 0,
+              },
+            });
+
+            // Adicionar alimentos se fornecidos
+            if (meal.foods && Array.isArray(meal.foods)) {
+              for (const food of meal.foods) {
+                // Validar campos obrigatórios
+                if (!food.foodName) {
+                  console.warn("[updateDailyNutritionHandler] Food sem foodName, pulando:", food);
+                  continue; // Pular food inválido
+                }
+
+                try {
+                  await db.nutritionFoodItem.create({
+                    data: {
+                      nutritionMealId: nutritionMeal.id,
+                      foodId: food.foodId || null,
+                      foodName: food.foodName,
+                      servings: food.servings || 1,
+                      calories: food.calories || 0,
+                      protein: food.protein || 0,
+                      carbs: food.carbs || 0,
+                      fats: food.fats || 0,
+                      servingSize: food.servingSize || "100g",
+                    },
+                  });
+                } catch (foodError: any) {
+                  console.error("[updateDailyNutritionHandler] Erro ao criar food:", foodError);
+                  // Continuar com próximo food mesmo se este falhar
+                }
+              }
             }
+          } catch (mealError: any) {
+            console.error("[updateDailyNutritionHandler] Erro ao criar meal:", mealError);
+            // Continuar com próximo meal mesmo se este falhar
           }
         }
       }
@@ -287,10 +325,24 @@ export async function updateDailyNutritionHandler(
           { code: "MIGRATION_REQUIRED" }
         );
       }
+      
+      // Log detalhado do erro para debug
+      console.error("[updateDailyNutritionHandler] Erro ao processar nutrição:", {
+        error: error.message,
+        code: error.code,
+        meta: error.meta,
+        stack: error.stack,
+      });
+      
       throw error;
     }
   } catch (error: any) {
-    console.error("[updateDailyNutritionHandler] Erro:", error);
+    console.error("[updateDailyNutritionHandler] Erro geral:", {
+      error: error.message,
+      code: error.code,
+      response: error.response?.data,
+      stack: error.stack,
+    });
     return internalErrorResponse("Erro ao salvar nutrição", error);
   }
 }

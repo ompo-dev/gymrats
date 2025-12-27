@@ -1,7 +1,7 @@
 /**
  * Hook para Ações Offline
  * 
- * Encapsula salvadorOff() para uso fácil em componentes
+ * Encapsula syncManager() para uso fácil em componentes
  * 
  * Exemplo:
  * const updateXp = useOfflineAction('PUT', '/api/students/progress');
@@ -11,7 +11,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { salvadorOff, type SalvadorOffOptions, type SalvadorOffResult } from "@/lib/offline/salvador-off";
+import { syncManager, type SyncManagerOptions, type SyncManagerResult } from "@/lib/offline/sync-manager";
 import { apiClient } from "@/lib/api/client";
 
 // ============================================
@@ -45,7 +45,7 @@ export function useOfflineAction<T = any>(
   const { method, url, priority, onSuccess, onError, onQueued } = options;
 
   const action = useCallback(
-    async (body?: T, customHeaders?: Record<string, string>): Promise<SalvadorOffResult> => {
+    async (body?: T, customHeaders?: Record<string, string>): Promise<SyncManagerResult> => {
       // Obtém token de autenticação
       const token = typeof window !== 'undefined' 
         ? localStorage.getItem('auth_token') 
@@ -59,8 +59,8 @@ export function useOfflineAction<T = any>(
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Executa salvadorOff
-      const result = await salvadorOff({
+      // Executa syncManager
+      const result = await syncManager({
         url,
         method,
         body,

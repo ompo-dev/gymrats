@@ -20,68 +20,30 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { motion } from "motion/react";
 import { useStudent } from "@/hooks/use-student";
+import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { ShopCard } from "@/components/organisms/sections/shop-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { LevelProgressCard } from "@/components/organisms/home/home/level-progress-card";
-import type { Unit } from "@/lib/types";
 import type { GymLocation } from "@/lib/types";
 
-import type { UserProgress, WorkoutHistory, PersonalRecord } from "@/lib/types";
+/**
+ * Componente de Conteúdo da Home do Student
+ *
+ * Arquitetura Offline-First:
+ * - Usa apenas dados do store unificado (via useStudent hook)
+ * - Não recebe props SSR (dados vêm do store)
+ * - Funciona offline com dados em cache
+ * - Sincronização automática via syncManager
+ */
 
-interface ProfileData {
-  progress: UserProgress;
-  workoutHistory: WorkoutHistory[];
-  personalRecords: PersonalRecord[];
-  weightHistory: Array<{ date: Date | string; weight: number }>;
-  userInfo?: {
-    name: string;
-    username: string;
-    memberSince: string;
-  } | null;
-  currentWeight?: number | null;
-  weightGain?: number | null;
-  weeklyWorkouts?: number;
-  ranking?: number | null;
-  hasWeightLossGoal?: boolean;
-}
+function StudentHomeContent() {
+  // Carregamento prioritizado: progress, workoutHistory, profile aparecem primeiro
+  // Se dados já existem no store, só carrega o que falta
+  useLoadPrioritized({ context: "home" });
 
-interface StudentHomeContentProps {
-  units: Unit[];
-  gymLocations: GymLocation[];
-  initialProgress: {
-    currentStreak: number;
-    longestStreak: number;
-    totalXP: number;
-    todayXP: number;
-  };
-  profileData?: ProfileData;
-  subscription?: {
-    id: string;
-    plan: string;
-    status: string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-    canceledAt: Date | null;
-    trialStart: Date | null;
-    trialEnd: Date | null;
-    isTrial: boolean;
-    daysRemaining: number | null;
-  } | null;
-  userInfo?: { isAdmin: boolean; role: string | null };
-}
-
-function StudentHomeContent({
-  units,
-  gymLocations,
-  initialProgress,
-  profileData,
-  subscription,
-  userInfo = { isAdmin: false, role: null },
-}: StudentHomeContentProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [educationView, setEducationView] = useQueryState(
@@ -92,67 +54,82 @@ function StudentHomeContent({
   const [exerciseId, setExerciseId] = useQueryState("exercise", parseAsString);
   const [lessonId, setLessonId] = useQueryState("lesson", parseAsString);
 
-  // Usar hook unificado
+  // ============================================
+  // DADOS DO STORE UNIFICADO (Offline-First)
+  // ============================================
+  // Todos os dados vêm do store unificado, que:
+  // - É carregado automaticamente pelo useStudentInitializer no layout
+  // - Persiste em IndexedDB (funciona offline)
+  // - Sincroniza automaticamente via syncManager
+  // - Usa rotas específicas otimizadas (3-5x mais rápido)
+
   const {
     progress: storeProgress,
     user: storeUser,
-    units: storeUnits,
     gymLocations: storeGymLocations,
     dayPasses: storeDayPasses,
     workoutHistory: storeWorkoutHistory,
     weightHistory: storeWeightHistory,
     weightGain: storeWeightGain,
     profile: storeProfile,
+    subscription: storeSubscription,
+    personalRecords: storePersonalRecords,
+    isAdmin: storeIsAdmin,
+    role: storeRole,
   } = useStudent(
     "progress",
     "user",
-    "units",
     "gymLocations",
     "dayPasses",
     "workoutHistory",
     "weightHistory",
     "weightGain",
-    "profile"
+    "profile",
+    "subscription",
+    "personalRecords",
+    "isAdmin",
+    "role"
   );
+
   const { addDayPass } = useStudent("actions");
+  const { loadSubscription } = useStudent("loaders");
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Usar dados do store com fallback para props (SSR)
+  // ============================================
+  // DADOS DISPLAY (Apenas do Store)
+  // ============================================
+  // Não usamos mais fallback para props SSR.
+  // Todos os dados vêm do store unificado.
+  // Se não houver dados ainda, o useStudentInitializer está carregando.
+
   const displayProgress = {
-    currentStreak:
-      storeProgress?.currentStreak || initialProgress.currentStreak,
-    longestStreak:
-      storeProgress?.longestStreak || initialProgress.longestStreak,
-    totalXP: storeProgress?.totalXP || initialProgress.totalXP,
-    todayXP: storeProgress?.todayXP || initialProgress.todayXP,
-    currentLevel:
-      storeProgress?.currentLevel || profileData?.progress.currentLevel || 1,
-    xpToNextLevel:
-      storeProgress?.xpToNextLevel ?? profileData?.progress.xpToNextLevel ?? 0,
-    workoutsCompleted:
-      storeProgress?.workoutsCompleted ||
-      profileData?.progress.workoutsCompleted ||
-      0,
+    currentStreak: storeProgress?.currentStreak || 0,
+    longestStreak: storeProgress?.longestStreak || 0,
+    totalXP: storeProgress?.totalXP || 0,
+    todayXP: storeProgress?.todayXP || 0,
+    currentLevel: storeProgress?.currentLevel || 1,
+    xpToNextLevel: storeProgress?.xpToNextLevel || 100,
+    workoutsCompleted: storeProgress?.workoutsCompleted || 0,
   };
 
-  // Usar dados do store ou props
-  const currentUnits = storeUnits && storeUnits.length > 0 ? storeUnits : units;
-  const currentGymLocations =
-    storeGymLocations && storeGymLocations.length > 0
-      ? storeGymLocations
-      : gymLocations;
+  // Dados do store (sem fallback SSR)
+  const currentGymLocations = storeGymLocations || [];
   const currentDayPasses = storeDayPasses || [];
-  const currentUser = storeUser || profileData?.userInfo;
-  const currentWorkoutHistory =
-    storeWorkoutHistory || profileData?.workoutHistory || [];
-  const currentWeightHistory =
-    storeWeightHistory || profileData?.weightHistory || [];
-  const currentWeightGain = storeWeightGain ?? profileData?.weightGain ?? null;
-  const currentWeight = storeProfile?.weight || profileData?.currentWeight;
-  const currentRanking = profileData?.ranking; // TODO: Adicionar ao store
+  const currentUser = storeUser;
+  const currentWorkoutHistory = storeWorkoutHistory || [];
+  const currentWeightHistory = storeWeightHistory || [];
+  const currentWeightGain = storeWeightGain ?? null;
+  const currentWeight = storeProfile?.weight;
+  const currentSubscription = storeSubscription;
+  const currentPersonalRecords = storePersonalRecords || [];
+  const currentRanking = null; // TODO: Adicionar ao store se necessário
+  const userInfo = {
+    isAdmin: storeIsAdmin || false,
+    role: storeRole || null,
+  };
 
   const handleLessonSelect = (_lessonId: string) => {
     // Lesson selection handled by workout store
@@ -259,9 +236,9 @@ function StudentHomeContent({
                 value={displayProgress.workoutsCompleted}
                 label="treinos completos"
                 subtitle={
-                  profileData?.weeklyWorkouts && profileData.weeklyWorkouts > 0
-                    ? `+${profileData.weeklyWorkouts} esta semana`
-                    : "Nenhum esta semana"
+                  currentWorkoutHistory.length > 0
+                    ? `${currentWorkoutHistory.length} treinos registrados`
+                    : "Nenhum treino ainda"
                 }
                 iconColor="duo-green"
               />
@@ -286,11 +263,7 @@ function StudentHomeContent({
               <WeightProgressCard
                 currentWeight={currentWeight}
                 weightGain={currentWeightGain}
-                hasWeightLossGoal={
-                  storeProfile?.hasWeightLossGoal ||
-                  profileData?.hasWeightLossGoal ||
-                  false
-                }
+                hasWeightLossGoal={storeProfile?.hasWeightLossGoal || false}
                 weightHistory={currentWeightHistory}
               />
             </WhileInView>
@@ -326,17 +299,10 @@ function StudentHomeContent({
 
       {tab === "learn" && (
         <div className="pb-8" key="learn-tab">
-          {currentUnits && currentUnits.length > 0 ? (
-            <LearningPath
-              key="learning-path"
-              units={currentUnits}
-              onLessonSelect={handleLessonSelect}
-            />
-          ) : (
-            <div className="flex items-center justify-center p-8">
-              <p className="text-duo-gray-dark">Carregando treinos...</p>
-            </div>
-          )}
+          <LearningPath
+            key="learning-path"
+            onLessonSelect={handleLessonSelect}
+          />
         </div>
       )}
 
@@ -346,14 +312,19 @@ function StudentHomeContent({
 
       {tab === "payments" && (
         <StudentPaymentsPage
-          subscription={subscription}
+          subscription={currentSubscription}
           startTrial={async () => {
-            // Usar axios client (API → Zustand → Component)
+            // Usar axios client (API → syncManager → Store)
+            // syncManager gerencia offline/online automaticamente
             const { apiClient } = await import("@/lib/api/client");
             const response = await apiClient.post<{
               error?: string;
               success?: boolean;
             }>("/api/subscriptions/start-trial");
+            // Após sucesso, recarregar subscription do store
+            if (response.data.success) {
+              await loadSubscription();
+            }
             return response.data;
           }}
         />
@@ -407,20 +378,8 @@ function StudentHomeContent({
         </>
       )}
 
-      {tab === "profile" && profileData && (
-        <ProfilePage
-          progress={profileData.progress}
-          workoutHistory={profileData.workoutHistory}
-          personalRecords={profileData.personalRecords}
-          weightHistory={profileData.weightHistory}
-          userInfo={userInfo}
-          profileUserInfo={profileData.userInfo}
-          currentWeight={profileData.currentWeight}
-          weightGain={profileData.weightGain}
-          weeklyWorkouts={profileData.weeklyWorkouts}
-          ranking={profileData.ranking}
-          hasWeightLossGoal={profileData.hasWeightLossGoal}
-        />
+      {tab === "profile" && (
+        <ProfilePage />
       )}
 
       {tab === "more" && <StudentMoreMenu />}
@@ -428,30 +387,25 @@ function StudentHomeContent({
   );
 }
 
-export default function StudentHome({
-  units,
-  gymLocations,
-  initialProgress,
-  profileData,
-  subscription,
-  userInfo = { isAdmin: false, role: null },
-}: StudentHomeContentProps) {
+export default function StudentHome() {
+  // Componente wrapper que não recebe mais props SSR
+  // Todos os dados vêm do store unificado via useStudent hook
+  // useStudentInitializer no layout carrega tudo automaticamente
+
   return (
     <Suspense
       fallback={
         <div className="flex items-center justify-center p-8">
-          Carregando...
+          <div className="text-center">
+            <p className="text-duo-gray-dark">Carregando dados...</p>
+            <p className="mt-2 text-sm text-duo-gray">
+              Dados sendo carregados do cache ou servidor
+            </p>
+          </div>
         </div>
       }
     >
-      <StudentHomeContent
-        units={units}
-        gymLocations={gymLocations}
-        initialProgress={initialProgress}
-        profileData={profileData}
-        subscription={subscription}
-        userInfo={userInfo}
-      />
+      <StudentHomeContent />
     </Suspense>
   );
 }

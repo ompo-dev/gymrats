@@ -99,9 +99,9 @@ export function createCommand(
 }
 
 /**
- * Converte Command para formato de salvadorOff
+ * Converte Command para formato de syncManager
  */
-export function commandToSalvadorOff(
+export function commandToSyncManager(
   command: Command,
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',

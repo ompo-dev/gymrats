@@ -1,14 +1,14 @@
 /**
- * SalvadorOff - Gerencia Offline/Online Automaticamente
+ * SyncManager - Gerenciador de Sincronização Offline/Online
  *
- * Esta função automaticamente:
+ * Gerencia automaticamente requisições HTTP adaptando-se ao estado da rede:
  * - Detecta se está online/offline
  * - Se online: envia para API imediatamente
  * - Se offline: salva na fila para sincronizar depois
  * - Registra Background Sync quando offline
  *
  * Uso:
- * const result = await salvadorOff({
+ * const result = await syncManager({
  *   url: '/api/students/progress',
  *   method: 'PUT',
  *   body: { totalXP: 1500 },
@@ -30,7 +30,7 @@ import { logCommand, updateCommandStatus } from "./command-logger";
 // TIPOS
 // ============================================
 
-export interface SalvadorOffOptions {
+export interface SyncManagerOptions {
   url: string;
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: any;
@@ -49,7 +49,7 @@ export interface SalvadorOffOptions {
   commandId?: string;
 }
 
-export interface SalvadorOffResult {
+export interface SyncManagerResult {
   success: boolean;
   queued: boolean;
   queueId?: string;
@@ -72,7 +72,7 @@ function isOnline(): boolean {
 /**
  * Gera idempotency key único
  */
-function generateIdempotencyKey(): string {
+export function generateIdempotencyKey(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
@@ -111,16 +111,16 @@ async function registerBackgroundSync(): Promise<void> {
     // Tenta registrar Background Sync
     if ("sync" in registration && registration.sync) {
       await (registration.sync as any).register("sync-queue");
-      console.log("[salvadorOff] ✅ Background Sync registrado");
+      console.log("[syncManager] ✅ Background Sync registrado");
     } else {
       // Fallback: agenda sincronização manual quando online
       console.warn(
-        "[salvadorOff] ⚠️ Background Sync não disponível, usando fallback"
+        "[syncManager] ⚠️ Background Sync não disponível, usando fallback"
       );
       scheduleManualSync(registration);
     }
   } catch (error) {
-    console.warn("[salvadorOff] Erro ao registrar Background Sync:", error);
+    console.warn("[syncManager] Erro ao registrar Background Sync:", error);
 
     // Fallback: tenta sincronização manual
     try {
@@ -128,7 +128,7 @@ async function registerBackgroundSync(): Promise<void> {
       scheduleManualSync(registration);
     } catch (fallbackError) {
       console.error(
-        "[salvadorOff] Erro no fallback de sincronização:",
+        "[syncManager] Erro no fallback de sincronização:",
         fallbackError
       );
     }
@@ -140,14 +140,14 @@ async function registerBackgroundSync(): Promise<void> {
 // ============================================
 
 /**
- * SalvadorOff - Gerencia offline/online automaticamente
+ * SyncManager - Gerencia offline/online automaticamente
  *
  * @param options - Opções da requisição
  * @returns Resultado da operação
  */
-export async function salvadorOff(
-  options: SalvadorOffOptions
-): Promise<SalvadorOffResult> {
+export async function syncManager(
+  options: SyncManagerOptions
+): Promise<SyncManagerResult> {
   const {
     url,
     method,
@@ -168,7 +168,7 @@ export async function salvadorOff(
   );
   if (requiresIdempotency && !idempotencyKey) {
     console.warn(
-      `[salvadorOff] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`
+      `[syncManager] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`
     );
   }
 
@@ -250,9 +250,9 @@ export async function salvadorOff(
  * Salva requisição na fila offline
  */
 async function queueRequest(
-  options: SalvadorOffOptions,
+  options: SyncManagerOptions,
   idempotencyKey: string
-): Promise<SalvadorOffResult> {
+): Promise<SyncManagerResult> {
   try {
     const queueId = await addToQueue({
       url: options.url,
@@ -271,7 +271,7 @@ async function queueRequest(
       await updateCommandStatus(options.commandId, "pending");
     }
 
-    console.log(`[salvadorOff] ✅ Ação salva na fila offline (ID: ${queueId})`);
+    console.log(`[syncManager] ✅ Ação salva na fila offline (ID: ${queueId})`);
 
     return {
       success: true,
@@ -279,7 +279,7 @@ async function queueRequest(
       queueId,
     };
   } catch (error) {
-    console.error("[salvadorOff] Erro ao salvar na fila:", error);
+    console.error("[syncManager] Erro ao salvar na fila:", error);
     return {
       success: false,
       queued: false,
@@ -345,7 +345,7 @@ export async function syncQueue(): Promise<{
       await removeFromQueue(item.id);
       synced++;
 
-      console.log(`[salvadorOff] ✅ Sincronizado: ${item.url}`);
+      console.log(`[syncManager] ✅ Sincronizado: ${item.url}`);
     } catch (error: any) {
       // Erro: incrementa retries
       const newRetries = await incrementRetries(item.id);
@@ -354,10 +354,10 @@ export async function syncQueue(): Promise<{
         // Muitas tentativas: move para failed
         await moveToFailed(item, error.message || "Erro ao sincronizar");
         failed++;
-        console.error(`[salvadorOff] ❌ Falhou após 5 tentativas: ${item.url}`);
+        console.error(`[syncManager] ❌ Falhou após 5 tentativas: ${item.url}`);
       } else {
         console.warn(
-          `[salvadorOff] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url}`
+          `[syncManager] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url}`
         );
       }
     }
@@ -365,3 +365,4 @@ export async function syncQueue(): Promise<{
 
   return { synced, failed };
 }
+

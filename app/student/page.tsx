@@ -1,37 +1,23 @@
+/**
+ * Página Principal do Student
+ *
+ * Arquitetura Offline-First:
+ * - Não faz server-side fetching (dados vêm do store via useStudentInitializer)
+ * - useStudentInitializer carrega todos os dados automaticamente no layout
+ * - Componente usa apenas dados do store unificado (Zustand + IndexedDB)
+ * - Funciona offline com dados em cache
+ */
+
 import StudentHome from "./page-content";
-import {
-  getStudentUnits,
-  getGymLocations,
-  getStudentProgress,
-  getStudentSubscription,
-  getCurrentUserInfo,
-} from "./actions";
-import { getStudentProfileData } from "./profile/actions";
 
-export default async function StudentPage() {
-  const [units, gymLocations, progress, profileData, subscription, userInfo] =
-    await Promise.all([
-      getStudentUnits(),
-      getGymLocations(),
-      getStudentProgress(),
-      getStudentProfileData(),
-      getStudentSubscription(),
-      getCurrentUserInfo(),
-    ]);
+export default function StudentPage() {
+  // Não fazemos server-side fetching aqui!
+  // Todos os dados são carregados automaticamente pelo useStudentInitializer
+  // no layout e ficam disponíveis no store unificado.
+  // Isso permite:
+  // - Offline-first (dados em cache)
+  // - Performance (dados já carregados)
+  // - Sincronização automática
 
-  return (
-    <StudentHome
-      units={units}
-      gymLocations={gymLocations}
-      initialProgress={{
-        currentStreak: progress.currentStreak,
-        longestStreak: progress.longestStreak,
-        totalXP: progress.totalXP,
-        todayXP: progress.todayXP,
-      }}
-      profileData={profileData}
-      subscription={subscription}
-      userInfo={userInfo}
-    />
-  );
+  return <StudentHome />;
 }

@@ -128,6 +128,9 @@ export function useStudent<T extends StudentSelector>(
     (state) => state.data.dailyNutrition
   );
   const loadAll = useStudentUnifiedStore((state) => state.loadAll);
+  const loadAllPrioritized = useStudentUnifiedStore(
+    (state) => state.loadAllPrioritized
+  );
 
   // Extrair actions usando seletores para garantir reatividade
   const updateProgress = useStudentUnifiedStore(
@@ -373,6 +376,7 @@ function getActions(actions: {
  */
 function getLoaders(actions: {
   loadAll: StudentUnifiedState["loadAll"];
+  loadAllPrioritized: StudentUnifiedState["loadAllPrioritized"];
   loadUser: StudentUnifiedState["loadUser"];
   loadProgress: StudentUnifiedState["loadProgress"];
   loadProfile: StudentUnifiedState["loadProfile"];
@@ -392,6 +396,7 @@ function getLoaders(actions: {
 }) {
   return {
     loadAll: actions.loadAll,
+    loadAllPrioritized: actions.loadAllPrioritized,
     loadUser: actions.loadUser,
     loadProgress: actions.loadProgress,
     loadProfile: actions.loadProfile,

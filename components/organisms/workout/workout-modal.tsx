@@ -36,7 +36,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import { useRouter } from "next/navigation";
-import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
+import { useModalState, useModalStateWithParam, useSubModalState } from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
 
 export function WorkoutModal() {
@@ -52,6 +52,10 @@ export function WorkoutModal() {
   // Estado para forçar re-render quando workout for encontrado
   const [, forceUpdate] = useState(0);
 
+  // Buscar units do store unificado (fonte única da verdade)
+  // Dados são carregados automaticamente pelo useStudentInitializer no layout
+  const units = useStudent("units");
+
   // Se há workoutId na URL mas modal não está aberto, abrir automaticamente
   // OU se modal=workout está na URL mas não há workoutId, garantir que workoutId está presente
   useEffect(() => {
@@ -63,32 +67,28 @@ export function WorkoutModal() {
     // Isso permite reabrir workouts completados
   }, [openWorkoutId, workoutModal]);
 
-  // Buscar workout das units carregadas (do backend) ou do mock como fallback
-  const findWorkoutInUnits = (workoutId: string) => {
-    // Importar dinamicamente para evitar circular dependency
-    try {
-      const { getCachedUnits } = require("@/app/student/learn/learning-path");
-      const cachedUnits = getCachedUnits() as Unit[];
-      for (const unit of cachedUnits) {
-        const workout = unit.workouts.find(
-          (w: WorkoutSession) => w.id === workoutId
-        );
-        if (workout) return workout;
-      }
-    } catch (e) {
-      // Ignorar se não conseguir importar
+  // Buscar workout das units do store unificado ou do mock como fallback
+  const findWorkoutInUnits = (workoutId: string): WorkoutSession | null => {
+    if (!units || units.length === 0) return null;
+    
+    for (const unit of units) {
+      const workout = unit.workouts.find(
+        (w: WorkoutSession) => w.id === workoutId
+      );
+      if (workout) return workout;
     }
     return null;
   };
 
   const workoutBase = openWorkoutId
     ? findWorkoutInUnits(openWorkoutId) ||
-      mockWorkouts.find((w) => w.id === openWorkoutId)
+      mockWorkouts.find((w) => w.id === openWorkoutId) ||
+      null
     : null;
 
   // Tentar buscar workout periodicamente se não foi encontrado ainda
   useEffect(() => {
-    if (openWorkoutId && !workoutBase) {
+    if (openWorkoutId && !workoutBase && units && units.length > 0) {
       // Tentar buscar novamente após um pequeno delay
       const timer = setTimeout(() => {
         const retryWorkout =
@@ -101,7 +101,7 @@ export function WorkoutModal() {
 
       return () => clearTimeout(timer);
     }
-  }, [openWorkoutId, workoutBase]);
+  }, [openWorkoutId, workoutBase, units]);
   const {
     setActiveWorkout,
     setCurrentExerciseIndex,
@@ -130,10 +130,10 @@ export function WorkoutModal() {
       });
     }
   };
-  // Sub-modais controlados por search params
-  const weightTrackerModal = useModalState("weight-tracker");
-  const alternativeSelectorModal = useModalState("alternative-selector");
-  const cardioConfigModal = useModalState("cardio-config");
+  // Sub-modais controlados por search params (usam subModal para não fechar o modal principal)
+  const weightTrackerModal = useSubModalState("weight-tracker");
+  const alternativeSelectorModal = useSubModalState("alternative-selector");
+  const cardioConfigModal = useSubModalState("cardio-config");
   const [showCompletion, setShowCompletion] = useState(false);
 
   // Manter compatibilidade com UIStore temporariamente
@@ -1357,129 +1357,7 @@ export function WorkoutModal() {
     setExerciseIndexParam(null);
   };
 
-  // Tela de Configuração de Cardio
-  if (cardioConfigModal.isOpen && workout && activeWorkout) {
-    return (
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              handleClose();
-            }
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-duo-border bg-white p-6 sm:p-8 shadow-2xl"
-          >
-            <button
-              onClick={handleClose}
-              className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-gray-100"
-            >
-              <X className="h-5 w-5 text-duo-gray-dark" />
-            </button>
-
-            <div className="mb-6 text-center">
-              <div className="mb-4 text-6xl">🏃‍♂️</div>
-              <h2 className="mb-2 text-2xl font-black text-duo-text">
-                Adicionar Cardio?
-              </h2>
-              <p className="text-sm text-duo-gray-dark">
-                Escolha quando fazer cardio hoje
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {/* Não fazer cardio */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  setCardioPreference("none", undefined);
-                  cardioConfigModal.close();
-                }}
-                className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl">❌</div>
-                  <div className="flex-1">
-                    <div className="font-bold text-duo-text">
-                      Não Fazer Cardio
-                    </div>
-                    <div className="text-sm text-duo-gray-dark">
-                      Apenas treino de força hoje
-                    </div>
-                  </div>
-                </div>
-              </motion.button>
-
-              {/* Cardio ANTES */}
-              <div className="space-y-2">
-                <div className="text-sm font-bold text-duo-text">
-                  ⏱️ Cardio ANTES do Treino
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[5, 10, 15, 20].map((duration) => (
-                    <motion.button
-                      key={`before-${duration}`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setCardioPreference("before", duration);
-                        cardioConfigModal.close();
-                      }}
-                      className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
-                    >
-                      <div className="text-xl font-black text-duo-blue">
-                        {duration}
-                      </div>
-                      <div className="text-xs text-duo-gray-dark">min</div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Cardio DEPOIS */}
-              <div className="space-y-2">
-                <div className="text-sm font-bold text-duo-text">
-                  ⏱️ Cardio DEPOIS do Treino
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {[5, 10, 15, 20].map((duration) => (
-                    <motion.button
-                      key={`after-${duration}`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        setCardioPreference("after", duration);
-                        cardioConfigModal.close();
-                      }}
-                      className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
-                    >
-                      <div className="text-xl font-black text-duo-orange">
-                        {duration}
-                      </div>
-                      <div className="text-xs text-duo-gray-dark">min</div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
-
+  // Verificar se deve mostrar tela de conclusão
   if (showCompletion) {
     // Usar dados salvos ou dados do activeWorkout (se ainda existir)
     const workoutData = completedWorkoutData || {
@@ -1800,59 +1678,8 @@ export function WorkoutModal() {
     );
   }
 
-  if (weightTrackerModal.isOpen) {
-    return (
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex h-screen flex-col bg-white overflow-hidden"
-        >
-          <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <button
-                onClick={weightTrackerModal.close}
-                className="rounded-xl p-2 transition-colors hover:bg-gray-100"
-              >
-                <X className="h-6 w-6 text-duo-gray-dark" />
-              </button>
-              <div className="text-sm font-bold text-duo-gray-dark">
-                Exercício{" "}
-                {activeWorkout?.currentExerciseIndex !== undefined
-                  ? activeWorkout.currentExerciseIndex + 1
-                  : 0}
-                /{workout.exercises.length}
-              </div>
-              <div className="w-6" />
-            </div>
-            <Progress
-              key={`progress-weight-${workoutProgress}-${currentIndex}-${
-                activeWorkout?.exerciseLogs?.length || 0
-              }-${activeWorkout?.skippedExercises?.length || 0}`}
-              value={workoutProgress}
-              className="h-3"
-            />
-          </div>
-
-          {currentExercise && (
-            <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
-              <WeightTracker
-                exerciseName={getCurrentExerciseName()}
-                exerciseId={currentExercise.id}
-                defaultSets={currentExercise.sets}
-                defaultReps={currentExercise.reps}
-                onComplete={handleExerciseComplete}
-              />
-            </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
-
   // Se não está mostrando conclusão, precisa ter activeWorkout e currentExercise
-  if (!showCompletion && (!activeWorkout || !currentExercise)) {
+  if (!activeWorkout || !currentExercise) {
     return null;
   }
 
@@ -1867,6 +1694,178 @@ export function WorkoutModal() {
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-50 flex h-screen flex-col bg-white overflow-hidden"
         >
+          {/* Weight Tracker Modal Overlay (sub-modal dentro do workout) */}
+          {weightTrackerModal.isOpen && (
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-[60] flex h-screen flex-col bg-white overflow-hidden"
+              >
+                <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm shrink-0">
+                  <div className="mb-3 flex items-center justify-between">
+                    <button
+                      onClick={weightTrackerModal.close}
+                      className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+                    >
+                      <X className="h-6 w-6 text-duo-gray-dark" />
+                    </button>
+                    <div className="text-sm font-bold text-duo-gray-dark">
+                      Exercício{" "}
+                      {activeWorkout?.currentExerciseIndex !== undefined
+                        ? activeWorkout.currentExerciseIndex + 1
+                        : 0}
+                      /{workout.exercises.length}
+                    </div>
+                    <div className="w-6" />
+                  </div>
+                  <Progress
+                    key={`progress-weight-${workoutProgress}-${currentIndex}-${
+                      activeWorkout?.exerciseLogs?.length || 0
+                    }-${activeWorkout?.skippedExercises?.length || 0}`}
+                    value={workoutProgress}
+                    className="h-3"
+                  />
+                </div>
+
+                {currentExercise && (
+                  <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
+                    <WeightTracker
+                      exerciseName={getCurrentExerciseName()}
+                      exerciseId={currentExercise.id}
+                      defaultSets={currentExercise.sets}
+                      defaultReps={currentExercise.reps}
+                      onComplete={handleExerciseComplete}
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          )}
+
+          {/* Cardio Config Modal Overlay (sub-modal dentro do workout) */}
+          {cardioConfigModal.isOpen && workout && activeWorkout && (
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    cardioConfigModal.close();
+                  }
+                }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-duo-border bg-white p-6 sm:p-8 shadow-2xl"
+                >
+                  <button
+                    onClick={cardioConfigModal.close}
+                    className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-gray-100"
+                  >
+                    <X className="h-5 w-5 text-duo-gray-dark" />
+                  </button>
+
+                  <div className="mb-6 text-center">
+                    <div className="mb-4 text-6xl">🏃‍♂️</div>
+                    <h2 className="mb-2 text-2xl font-black text-duo-text">
+                      Adicionar Cardio?
+                    </h2>
+                    <p className="text-sm text-duo-gray-dark">
+                      Escolha quando fazer cardio hoje
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Não fazer cardio */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setCardioPreference("none", undefined);
+                        cardioConfigModal.close();
+                      }}
+                      className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">❌</div>
+                        <div className="flex-1">
+                          <div className="font-bold text-duo-text">
+                            Não Fazer Cardio
+                          </div>
+                          <div className="text-sm text-duo-gray-dark">
+                            Apenas treino de força hoje
+                          </div>
+                        </div>
+                      </div>
+                    </motion.button>
+
+                    {/* Cardio ANTES */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-bold text-duo-text">
+                        ⏱️ Cardio ANTES do Treino
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[5, 10, 15, 20].map((duration) => (
+                          <motion.button
+                            key={`before-${duration}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setCardioPreference("before", duration);
+                              cardioConfigModal.close();
+                            }}
+                            className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
+                          >
+                            <div className="text-xl font-black text-duo-blue">
+                              {duration}
+                            </div>
+                            <div className="text-xs text-duo-gray-dark">min</div>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Cardio DEPOIS */}
+                    <div className="space-y-2">
+                      <div className="text-sm font-bold text-duo-text">
+                        ⏱️ Cardio DEPOIS do Treino
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[5, 10, 15, 20].map((duration) => (
+                          <motion.button
+                            key={`after-${duration}`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setCardioPreference("after", duration);
+                              cardioConfigModal.close();
+                            }}
+                            className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
+                          >
+                            <div className="text-xl font-black text-duo-orange">
+                              {duration}
+                            </div>
+                            <div className="text-xs text-duo-gray-dark">min</div>
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
+          )}
+
           {/* Header Estilo Duolingo */}
           <div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
             <div className="mb-2 sm:mb-3 flex items-center justify-between">
