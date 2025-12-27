@@ -25,13 +25,14 @@ const exerciseLogSchema = z.object({
 
 export const completeWorkoutSchema = z.object({
   exerciseLogs: z.array(exerciseLogSchema).optional(),
-  duration: z.number().int().positive().optional(),
+  duration: z.number().int().nonnegative().optional(), // Permite 0 (não-negativo em vez de positivo)
   totalVolume: z.number().nonnegative().optional(),
   overallFeedback: z
     .enum(["excelente", "bom", "regular", "ruim"])
     .optional(),
   bodyPartsFatigued: z.array(z.string()).optional(),
-  startTime: z.string().datetime().optional(),
+  startTime: z.string().optional(), // Aceita qualquer string ISO datetime (será validado no handler)
+  xpEarned: z.number().nonnegative().optional(), // Adicionado para consistência (já está sendo enviado)
 });
 
 export const saveWorkoutProgressSchema = z.object({

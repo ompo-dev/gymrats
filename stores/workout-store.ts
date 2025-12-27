@@ -245,19 +245,22 @@ export const useWorkoutStore = create<WorkoutState>()(
 
         // Limpar progresso parcial do backend (já foi salvo como completo)
         // O endpoint /complete já faz isso, mas garantimos aqui também
-        try {
-          await apiClient.delete(`/api/workouts/${workoutId}/progress`);
-        } catch (error: any) {
+        // Fazer de forma não-bloqueante para evitar timeout
+        apiClient.delete(`/api/workouts/${workoutId}/progress`, {
+          timeout: 5000, // Timeout menor para operação de limpeza
+        }).catch((error: any) => {
           // Ignorar erros:
           // - 404: Progresso não existe (já foi deletado ou nunca existiu) - estado desejado
           // - MIGRATION_REQUIRED: Migration não aplicada ainda
+          // - Timeout: Não crítico, pode ser limpo depois
           const status = error.response?.status;
           const code = error.response?.data?.code;
+          const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
           
-          if (status !== 404 && code !== "MIGRATION_REQUIRED") {
+          if (status !== 404 && code !== "MIGRATION_REQUIRED" && !isTimeout) {
             console.error("Erro ao limpar progresso parcial:", error);
           }
-        }
+        });
       },
       isWorkoutCompleted: (workoutId) => {
         const state = get();

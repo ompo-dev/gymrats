@@ -36,7 +36,11 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import { useRouter } from "next/navigation";
-import { useModalState, useModalStateWithParam, useSubModalState } from "@/hooks/use-modal-state";
+import {
+  useModalState,
+  useModalStateWithParam,
+  useSubModalState,
+} from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
 
 export function WorkoutModal() {
@@ -69,8 +73,8 @@ export function WorkoutModal() {
 
   // Buscar workout das units do store unificado ou do mock como fallback
   const findWorkoutInUnits = (workoutId: string): WorkoutSession | null => {
-    if (!units || units.length === 0) return null;
-    
+    if (!units || !Array.isArray(units) || units.length === 0) return null;
+
     for (const unit of units) {
       const workout = unit.workouts.find(
         (w: WorkoutSession) => w.id === workoutId
@@ -582,16 +586,32 @@ export function WorkoutModal() {
 
   // Função para navegar para conteúdo educacional
   const handleViewEducation = async (educationalId: string) => {
+    console.log("[DEBUG] handleViewEducation chamado:", {
+      educationalId,
+      workoutId: workout?.id,
+      hasActiveWorkout: !!activeWorkout,
+    });
+
     // Salvar progresso em background antes de navegar (não bloquear)
     if (workout && activeWorkout) {
       saveWorkoutProgress(workout.id).catch((error) => {
         console.error("Erro ao salvar progresso em background:", error);
       });
     }
-    // Fechar modal e navegar
+
+    // Fechar modais antes de navegar
     alternativeSelectorModal.close();
     workoutModal.close();
-    router.push(`/student?tab=education&exercise=${educationalId}`);
+
+    // Pequeno delay para garantir que os modais fechem antes de navegar
+    setTimeout(() => {
+      // Navegar para página de educação com exercício específico
+      // Usar window.location para garantir que a navegação seja completa
+      // Isso força uma navegação completa e garante que os query params sejam lidos
+      const url = `/student?tab=education&view=muscles&exercise=${educationalId}`;
+      console.log("[DEBUG] Navegando para:", url);
+      window.location.href = url;
+    }, 100);
   };
 
   // Função para selecionar alternativa
@@ -1239,6 +1259,16 @@ export function WorkoutModal() {
         try {
           // Usar axios client (API → Zustand → Component)
           const { apiClient } = await import("@/lib/api/client");
+
+          // Converter startTime para ISO string se for Date object
+          const startTimeValue = updatedWorkout?.startTime || new Date();
+          const startTimeISO =
+            startTimeValue instanceof Date
+              ? startTimeValue.toISOString()
+              : typeof startTimeValue === "string"
+              ? startTimeValue
+              : new Date(startTimeValue).toISOString();
+
           const response = await apiClient.post(
             `/api/workouts/${workout.id}/complete`,
             {
@@ -1248,15 +1278,25 @@ export function WorkoutModal() {
               overallFeedback: overallFeedback,
               bodyPartsFatigued: bodyPartsFatigued,
               xpEarned: updatedWorkout?.xpEarned || 0,
-              startTime: updatedWorkout?.startTime || new Date(),
+              startTime: startTimeISO,
             }
           );
           console.log("Workout salvo com sucesso:", response.data);
         } catch (error: any) {
-          console.error(
-            "Erro ao salvar workout no backend:",
-            error?.message || error
-          );
+          // Log detalhado do erro para debug
+          const errorMessage =
+            error?.response?.data?.error ||
+            error?.message ||
+            "Erro desconhecido";
+          const errorDetails =
+            error?.response?.data?.details || error?.response?.data;
+
+          console.error("Erro ao salvar workout no backend:", {
+            message: errorMessage,
+            status: error?.response?.status,
+            details: errorDetails,
+            fullError: error,
+          });
         }
       };
 
@@ -1829,7 +1869,9 @@ export function WorkoutModal() {
                             <div className="text-xl font-black text-duo-blue">
                               {duration}
                             </div>
-                            <div className="text-xs text-duo-gray-dark">min</div>
+                            <div className="text-xs text-duo-gray-dark">
+                              min
+                            </div>
                           </motion.button>
                         ))}
                       </div>
@@ -1855,7 +1897,9 @@ export function WorkoutModal() {
                             <div className="text-xl font-black text-duo-orange">
                               {duration}
                             </div>
-                            <div className="text-xs text-duo-gray-dark">min</div>
+                            <div className="text-xs text-duo-gray-dark">
+                              min
+                            </div>
                           </motion.button>
                         ))}
                       </div>

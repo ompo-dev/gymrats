@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, Heart, Trophy, TrendingUp } from "lucide-react";
+import { Flame, Trophy, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { StreakModal } from "../modals/streak-modal";
@@ -92,14 +92,6 @@ export function AppHeader({
                 >
                   {stats.streak}
                 </span>
-              </button>
-            )}
-
-            {/* Hearts - only for students */}
-            {!isGym && (
-              <button className="flex items-center gap-2 rounded-2xl border-2 border-duo-red bg-white px-4 py-2 transition-all hover:bg-red-50">
-                <Heart className="h-5 w-5 fill-duo-red text-duo-red" />
-                <span className="text-sm font-bold text-duo-red">∞</span>
               </button>
             )}
 

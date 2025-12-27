@@ -30,6 +30,7 @@ import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import { useWorkoutStore } from "@/stores/workout-store";
 import type { WorkoutHistory, PersonalRecord } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 
@@ -163,6 +164,75 @@ export function ProfilePageContent() {
   const workoutHistory = storeWorkoutHistory || [];
   const personalRecords = storePersonalRecords || [];
   const units = storeUnits || [];
+  
+  // Buscar workoutProgress do store para encontrar último workout iniciado
+  const workoutProgress = useWorkoutStore((state) => state.workoutProgress);
+  
+  // Encontrar o último workout com pelo menos 1 exercício feito
+  const lastInProgressWorkout = (() => {
+    const progressEntries = Object.entries(workoutProgress);
+    
+    // Filtrar apenas workouts com pelo menos 1 exercício feito
+    const workoutsWithProgress = progressEntries
+      .filter(([_, progress]) => progress.exerciseLogs.length > 0)
+      .map(([workoutId, progress]) => ({
+        workoutId,
+        progress,
+        lastUpdated: progress.lastUpdated ? new Date(progress.lastUpdated) : progress.startTime,
+      }))
+      .sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
+    
+    if (workoutsWithProgress.length === 0) return null;
+    
+    const lastProgress = workoutsWithProgress[0];
+    
+    // Buscar informações do workout nos units
+    const workout = units
+      .flatMap((unit) => unit.workouts)
+      .find((w) => w.id === lastProgress.workoutId);
+    
+    if (!workout) return null;
+    
+    return {
+      workout,
+      progress: lastProgress.progress,
+    };
+  })();
+  
+  // Criar histórico customizado mostrando apenas exercícios do último workout iniciado
+  const recentWorkoutHistory = lastInProgressWorkout
+    ? [
+        {
+          date: lastInProgressWorkout.progress.startTime instanceof Date 
+            ? lastInProgressWorkout.progress.startTime 
+            : new Date(lastInProgressWorkout.progress.startTime),
+          workoutId: lastInProgressWorkout.workout.id,
+          workoutName: lastInProgressWorkout.workout.title,
+          duration: Math.round(
+            (new Date().getTime() - 
+              (lastInProgressWorkout.progress.startTime instanceof Date
+                ? lastInProgressWorkout.progress.startTime.getTime()
+                : new Date(lastInProgressWorkout.progress.startTime).getTime())) / 60000
+          ),
+          totalVolume: lastInProgressWorkout.progress.totalVolume || 0,
+          exercises: lastInProgressWorkout.progress.exerciseLogs.map((log) => ({
+            id: log.exerciseId,
+            exerciseId: log.exerciseId,
+            exerciseName: log.exerciseName,
+            workoutId: lastInProgressWorkout.workout.id,
+            date: lastInProgressWorkout.progress.startTime instanceof Date
+              ? lastInProgressWorkout.progress.startTime
+              : new Date(lastInProgressWorkout.progress.startTime),
+            sets: log.sets || [],
+            notes: log.notes,
+            formCheckScore: log.formCheckScore,
+            difficulty: log.difficulty || "medio",
+          })),
+          overallFeedback: undefined as "excelente" | "bom" | "regular" | "ruim" | undefined,
+          bodyPartsFatigued: [],
+        },
+      ]
+    : workoutHistory.slice(0, 1); // Se não houver workout em progresso, mostrar último completo
   const profileUserInfo = storeUser
     ? {
         name: storeUser.name || "Usuário",
@@ -420,28 +490,52 @@ export function ProfilePageContent() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionCard icon={Calendar} title="Histórico Recente">
-          {workoutHistory.length > 0 ? (
+          {recentWorkoutHistory.length > 0 ? (
           <div className="space-y-3">
-            {workoutHistory.map((workout: WorkoutHistory, index: number) => (
-              <HistoryCard
-                key={index}
-                title={workout.workoutName}
-                date={workout.date}
-                status={
-                  workout.overallFeedback === "excelente"
-                    ? "excelente"
-                    : workout.overallFeedback === "bom"
-                    ? "bom"
-                    : "regular"
-                }
-                metadata={[
-                  { icon: "⏱️", label: `${workout.duration} min` },
-                  {
-                    icon: "💪",
-                    label: `${workout.totalVolume.toLocaleString()} kg`,
-                  },
-                ]}
-              />
+            {recentWorkoutHistory.map((workout: WorkoutHistory, index: number) => (
+              <div key={index}>
+                <HistoryCard
+                  title={workout.workoutName}
+                  date={workout.date}
+                  status={
+                    workout.overallFeedback === "excelente"
+                      ? "excelente"
+                      : workout.overallFeedback === "bom"
+                      ? "bom"
+                      : "regular"
+                  }
+                  metadata={[
+                    { icon: "⏱️", label: `${workout.duration} min` },
+                    {
+                      icon: "💪",
+                      label: `${workout.totalVolume.toLocaleString()} kg`,
+                    },
+                    {
+                      icon: "🏋️",
+                      label: `${workout.exercises.length} exercício${workout.exercises.length !== 1 ? "s" : ""}`,
+                    },
+                  ]}
+                />
+                {/* Mostrar apenas os exercícios do último workout iniciado */}
+                {lastInProgressWorkout && workout.exercises.length > 0 && (
+                  <div className="mt-2 ml-4 space-y-1">
+                    {workout.exercises.map((exercise, exIndex) => (
+                      <div
+                        key={exIndex}
+                        className="text-sm text-duo-gray-dark flex items-center gap-2"
+                      >
+                        <span className="text-duo-green">✓</span>
+                        <span>{exercise.exerciseName}</span>
+                        {exercise.sets && exercise.sets.length > 0 && (
+                          <span className="text-xs text-duo-gray">
+                            ({exercise.sets.length} séries)
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
           ) : (

@@ -22,9 +22,20 @@ export function WorkoutNodeButton({
   isCurrent,
 }: WorkoutNodeButtonProps) {
   const activeColor = "#58CC02"; // duo-green
+  
+  const handleClick = (e: React.MouseEvent) => {
+    // Não chamar onClick se estiver bloqueado
+    if (isLocked) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onClick();
+  };
+  
   return (
     <motion.button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={isLocked}
       whileHover={!isLocked && !isCompleted ? { scale: 1.05, y: -5 } : {}}
       whileTap={!isLocked && !isCompleted ? { scale: 0.95, y: -3 } : {}}

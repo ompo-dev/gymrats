@@ -16,7 +16,7 @@ import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 
 import { GymMap } from "@/components/organisms/sections/gym-map";
-import { Heart, Flame, Zap, Trophy, TrendingUp, Dumbbell } from "lucide-react";
+import { Flame, Zap, Trophy, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { motion } from "motion/react";
@@ -78,6 +78,25 @@ function StudentHomeContent() {
   const [muscleId, setMuscleId] = useQueryState("muscle", parseAsString);
   const [exerciseId, setExerciseId] = useQueryState("exercise", parseAsString);
   const [lessonId, setLessonId] = useQueryState("lesson", parseAsString);
+
+  // Garantir que quando há exerciseId, o view seja "muscles" para renderizar o MuscleExplorer
+  useEffect(() => {
+    if (exerciseId && educationView !== "muscles") {
+      setEducationView("muscles");
+    }
+  }, [exerciseId, educationView, setEducationView]);
+
+  // Debug: verificar se tab e exerciseId estão sendo lidos corretamente
+  useEffect(() => {
+    if (tab === "education") {
+      console.log("[DEBUG] Education tab ativo:", {
+        tab,
+        educationView,
+        exerciseId,
+        muscleId,
+      });
+    }
+  }, [tab, educationView, exerciseId, muscleId]);
 
   // ============================================
   // DADOS DO STORE UNIFICADO (Offline-First)
@@ -365,7 +384,7 @@ function StudentHomeContent() {
         </AdminOnly>
       )}
 
-      {tab === "education" && (
+      {(tab === "education" || exerciseId) && (
         <>
           {educationView === "menu" &&
             !exerciseId &&

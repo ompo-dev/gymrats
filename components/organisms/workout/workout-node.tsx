@@ -11,7 +11,7 @@ import { WorkoutNodeButton } from "@/components/ui/workout-node-button";
 interface WorkoutNodeProps {
   workout: WorkoutSession;
   position: "left" | "center" | "right";
-  onClick: () => void;
+  onClick: (isLocked: boolean) => void; // Passa isLocked calculado
   isFirst?: boolean;
   previousWorkouts?: WorkoutSession[];
   previousUnitsWorkouts?: WorkoutSession[];
@@ -217,7 +217,7 @@ export function WorkoutNode({
           progressPercent={targetProgressPercent}
         >
           <WorkoutNodeButton
-            onClick={onClick}
+            onClick={() => onClick(isLocked)}
             isLocked={isLocked}
             isCompleted={isCompleted}
             isCurrent={isCurrent || isInProgressState}
@@ -225,7 +225,7 @@ export function WorkoutNode({
         </ProgressRing>
       ) : (
         <WorkoutNodeButton
-          onClick={onClick}
+          onClick={() => onClick(isLocked)}
           isLocked={isLocked}
           isCompleted={isCompleted}
           isCurrent={isCurrent}

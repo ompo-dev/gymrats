@@ -21,9 +21,40 @@ export function HistoryCard({
   className,
   ...props
 }: HistoryCardProps) {
-  const formattedDate = typeof date === "string" 
-    ? date 
-    : new Date(date).toLocaleDateString("pt-BR")
+  // Formatar data de forma amigável: "Hoje", "Ontem" ou data formatada
+  const formatDate = (dateValue: string | Date): string => {
+    const d = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+    
+    // Verificar se a data é válida
+    if (isNaN(d.getTime())) {
+      return "Data inválida";
+    }
+    
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    // Resetar horas para comparar apenas as datas
+    const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+    
+    if (dateOnly.getTime() === todayOnly.getTime()) {
+      return "Hoje";
+    }
+    if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+      return "Ontem";
+    }
+    
+    // Formatar data: "27 de dez" ou "27 de dez de 2025"
+    const day = d.getDate();
+    const month = d.toLocaleDateString("pt-BR", { month: "short" });
+    const year = d.getFullYear() !== today.getFullYear() ? ` de ${d.getFullYear()}` : "";
+    
+    return `${day} de ${month}${year}`;
+  };
+  
+  const formattedDate = formatDate(date);
 
   return (
     <DuoCard

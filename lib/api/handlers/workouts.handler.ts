@@ -266,13 +266,15 @@ export async function completeWorkoutHandler(
     } = validation.data;
 
     // Calcular duração
+    // Se duration for 0 ou não fornecido, calcular a partir do startTime ou usar estimatedTime
     const workoutDuration =
-      duration ||
-      (startTime
+      duration !== undefined && duration !== null
+        ? duration
+        : startTime
         ? Math.round(
             (new Date().getTime() - new Date(startTime).getTime()) / 60000
           )
-        : workout.estimatedTime);
+        : workout.estimatedTime;
 
     // Criar WorkoutHistory
     const workoutHistory = await db.workoutHistory.create({
@@ -323,6 +325,25 @@ export async function completeWorkoutHandler(
               : progress.longestStreak,
         },
       });
+    }
+
+    // Limpar progresso parcial do workout (já foi salvo como completo)
+    // Fazer de forma não-bloqueante - ignorar erros 404 (progresso pode não existir)
+    try {
+      await db.workoutProgress.delete({
+        where: {
+          studentId_workoutId: {
+            studentId: studentId,
+            workoutId: workoutId,
+          },
+        },
+      });
+    } catch (error: any) {
+      // Ignorar erro se progresso não existir (P2025 = Record not found)
+      if (error.code !== "P2025") {
+        console.error("[completeWorkoutHandler] Erro ao limpar progresso:", error);
+        // Não falhar a requisição por causa disso
+      }
     }
 
     return successResponse({

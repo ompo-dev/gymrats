@@ -55,7 +55,7 @@ export interface StudentUnifiedState {
   // Carregamento incremental (melhor performance)
   loadEssential: () => Promise<void>; // User + Progress básico
   loadStudentCore: () => Promise<void>; // Profile + Weight
-  loadWorkouts: () => Promise<void>; // Workouts + History
+  loadWorkouts: (force?: boolean) => Promise<void>; // Workouts + History
   loadNutrition: () => Promise<void>; // Nutrition
   loadFinancial: () => Promise<void>; // Subscription + Payments
   // Métodos individuais (mantidos para compatibilidade)
@@ -929,12 +929,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         });
       },
 
-      loadWorkouts: async () => {
+      loadWorkouts: async (force = false) => {
         const currentState = get();
 
         // Evitar múltiplas chamadas simultâneas
-        // Se já está carregando (via loadAll), não fazer nada
-        if (currentState.data.metadata.isLoading) {
+        // Mas permitir forçar o carregamento quando necessário (ex: após completar workout)
+        if (!force && currentState.data.metadata.isLoading) {
           return;
         }
 

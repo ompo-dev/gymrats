@@ -45,13 +45,21 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
       if (!workoutId) return;
 
+      console.log("[DEBUG] Workout completado, recarregando units:", workoutId);
+
       // Marcar como completo no store local imediatamente (optimistic update)
       const store = useWorkoutStore.getState();
       store.completeWorkout(workoutId);
 
       // Recarregar units do store unificado para sincronizar com backend
       // Isso atualiza o status locked/completed dos workouts
-      await loadWorkouts();
+      // Forçar carregamento mesmo se loadAll estiver em progresso
+      try {
+        await loadWorkouts(true); // force = true para garantir atualização
+        console.log("[DEBUG] Units recarregados após completar workout");
+      } catch (error) {
+        console.error("[DEBUG] Erro ao recarregar units:", error);
+      }
     };
 
     window.addEventListener("workoutCompleted", handleWorkoutCompleted);
@@ -63,20 +71,21 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
   const handleWorkoutClick = (
     workoutId: string,
-    locked: boolean,
+    isLocked: boolean, // Recebe isLocked calculado do WorkoutNode
     workoutType?: string,
     exerciseIndex?: number
   ) => {
     // Debug: verificar se está bloqueado
     console.log("[DEBUG] handleWorkoutClick:", {
       workoutId,
-      locked,
+      isLocked,
       workoutType,
       exerciseIndex,
     });
 
-    if (locked) {
-      console.log("[DEBUG] Workout está bloqueado, não abrindo modal");
+    // Se está bloqueado (calculado pelo WorkoutNode), não abrir
+    if (isLocked) {
+      console.log("[DEBUG] Workout está bloqueado (calculado pelo WorkoutNode), não abrindo modal");
       return;
     }
 
@@ -169,12 +178,12 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
                       <WorkoutNode
                         workout={workout}
                         position={position}
-                        onClick={() => {
-                          // Usar workout.locked do store unificado (já calculado pelo backend)
-                          // WorkoutNode também verifica estado otimista do useWorkoutStore
+                        onClick={(isLocked) => {
+                          // WorkoutNode passa isLocked calculado (considera estado otimista)
+                          // handleWorkoutClick usa esse valor para decidir se abre o modal
                           handleWorkoutClick(
                             workout.id,
-                            workout.locked,
+                            isLocked,
                             workout.type
                           );
                         }}

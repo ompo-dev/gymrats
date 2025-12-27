@@ -149,6 +149,11 @@ export function ExerciseAlternativeSelector({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            console.log("[DEBUG] Clicou em Ver técnica no modal de alternativas:", {
+                              educationalId: option.educationalId,
+                              optionName: option.name,
+                            });
+                            // Chamar onViewEducation que já fecha os modais e navega
                             onViewEducation(option.educationalId!);
                           }}
                           className="mt-2 flex items-center gap-1 text-xs font-bold text-duo-blue transition-colors hover:text-duo-blue/80"
