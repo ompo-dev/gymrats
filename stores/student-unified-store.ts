@@ -1414,21 +1414,23 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               : currentNutrition.meals;
 
           // Recalcular totais automaticamente se meals foram atualizados
+          // IMPORTANTE: Calcular apenas refeições completadas (completed: true)
           let calculatedTotals = {};
           if (updates.meals !== undefined) {
-            const totalCalories = updatedMeals.reduce(
+            const completedMeals = updatedMeals.filter((meal: any) => meal.completed === true);
+            const totalCalories = completedMeals.reduce(
               (sum: number, meal: any) => sum + (meal.calories || 0),
               0
             );
-            const totalProtein = updatedMeals.reduce(
+            const totalProtein = completedMeals.reduce(
               (sum: number, meal: any) => sum + (meal.protein || 0),
               0
             );
-            const totalCarbs = updatedMeals.reduce(
+            const totalCarbs = completedMeals.reduce(
               (sum: number, meal: any) => sum + (meal.carbs || 0),
               0
             );
-            const totalFats = updatedMeals.reduce(
+            const totalFats = completedMeals.reduce(
               (sum: number, meal: any) => sum + (meal.fats || 0),
               0
             );

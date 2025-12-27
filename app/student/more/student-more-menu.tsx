@@ -6,6 +6,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { useQueryState, parseAsString } from "nuqs";
 import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
+import { useStudent } from "@/hooks/use-student";
 
 interface MoreMenuItem {
   id: string;
@@ -59,8 +60,25 @@ export function StudentMoreMenu() {
     "subTab",
     parseAsString.withDefault("memberships")
   );
+  
+  const { isAdmin, role } = useStudent("isAdmin", "role");
+  const userIsAdmin = isAdmin || role === "ADMIN";
+  
+  // Rotas bloqueadas para não-admin (versão beta)
+  const blockedItems = ["cardio", "gyms", "payments", "subscription"];
+  
+  // Filtrar itens bloqueados se não for admin
+  const visibleMenuItems = userIsAdmin 
+    ? moreMenuItems 
+    : moreMenuItems.filter(item => !blockedItems.includes(item.id));
 
   const handleItemClick = async (itemId: string) => {
+    // Bloquear acesso se não for admin e item estiver bloqueado
+    if (!userIsAdmin && blockedItems.includes(itemId)) {
+      alert("Esta funcionalidade está disponível apenas para administradores durante a versão beta.");
+      return;
+    }
+    
     if (itemId === "subscription") {
       await setTab("payments");
       await setSubTab("subscription");
@@ -82,7 +100,7 @@ export function StudentMoreMenu() {
 
       <SlideIn delay={0.1}>
         <div className="grid gap-4">
-          {moreMenuItems.map((item, index) => (
+          {visibleMenuItems.map((item, index) => (
             <motion.div
               key={item.id}
               initial={{ opacity: 0, y: 20 }}

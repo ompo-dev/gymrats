@@ -56,8 +56,8 @@ export function NutritionTracker({
     [nutrition.waterIntake]
   );
 
-  // Progresso calculado automaticamente baseado nos totais de TODAS as refeições
-  // Os totais são atualizados automaticamente quando alimentos são adicionados
+  // Progresso calculado baseado nos totais de refeições COMPLETADAS (com check)
+  // Os totais são atualizados automaticamente quando refeições são marcadas como completadas
   const caloriesProgress =
     (nutrition.totalCalories / nutrition.targetCalories) * 100;
   const proteinProgress =

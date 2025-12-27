@@ -32,13 +32,22 @@ export function MacroCard({
 }: MacroCardProps) {
   // Arredonda valores para exibição mais limpa
   const displayCurrent = unit === "kcal" ? Math.round(current) : Math.round(current * 10) / 10
+  const hasExcess = current > target
+  const excess = hasExcess ? (unit === "kcal" ? Math.round(current - target) : Math.round((current - target) * 10) / 10) : 0
   
   return (
     <DuoCard variant="default" size="sm" className={cn(className)} {...props}>
       <div className="mb-2 text-xs font-bold uppercase text-duo-gray-dark">{label}</div>
-      <div className="mb-2 text-2xl font-bold text-duo-text">
-        {displayCurrent}
-        <span className="text-base text-duo-gray-dark">/{target}</span>
+      <div className="mb-2 flex items-center justify-between text-2xl font-bold text-duo-text">
+        <span>
+          {displayCurrent}
+          <span className="text-base text-duo-gray-dark">/{target}</span>
+        </span>
+        {hasExcess && (
+          <span className="text-sm font-bold text-duo-red">
+            +{excess} {unit}
+          </span>
+        )}
       </div>
       <div className="mb-1 h-2 overflow-hidden rounded-full bg-gray-200">
         <div

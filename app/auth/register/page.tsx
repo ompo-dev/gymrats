@@ -52,10 +52,23 @@ export default function RegisterPage() {
       localStorage.setItem("userName", name);
       localStorage.setItem("userId", response.user.id);
 
+      // VERSÃO BETA: Automaticamente definir como STUDENT
+      // Atualizar role no banco de dados
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        await apiClient.post("/api/auth/update-role", {
+          userId: response.user.id,
+          role: "STUDENT",
+        });
+      } catch (roleError: any) {
+        console.error("Erro ao definir role como STUDENT:", roleError);
+        // Continuar mesmo se falhar - pode ser que já esteja definido
+      }
+
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
-      setUserMode(null); // Ainda não tem tipo definido
+      setUserMode("student"); // Definir como student automaticamente
       setUserProfile({
         id: response.user.id,
         name: response.user.name,
@@ -75,8 +88,29 @@ export default function RegisterPage() {
         restTime: "medio",
       });
 
-      // Manter usuário logado e ir para seleção de tipo
-      router.push("/auth/register/user-type");
+      // Salvar userMode no localStorage
+      localStorage.setItem("userMode", "student");
+      localStorage.setItem("isAuthenticated", "true");
+
+      // Verificar se tem perfil de student e redirecionar adequadamente
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        const profileResponse = await apiClient.get<{ hasProfile: boolean }>(
+          "/api/students/profile"
+        );
+
+        if (!profileResponse.data.hasProfile) {
+          // Não tem perfil, ir para onboarding
+          router.push("/student/onboarding");
+        } else {
+          // Já tem perfil, ir para home do student
+          router.push("/student");
+        }
+      } catch (profileError: any) {
+        console.error("Erro ao verificar perfil:", profileError);
+        // Se der erro, assumir que não tem perfil e ir para onboarding
+        router.push("/student/onboarding");
+      }
     } catch (err: any) {
       setError(err.message || "Erro ao criar conta");
     } finally {

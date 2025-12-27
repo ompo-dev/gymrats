@@ -124,20 +124,21 @@ export async function getDailyNutritionHandler(
       });
     }
 
-    // Calcular totais
-    const totalCalories = dailyNutrition.meals.reduce(
+    // Calcular totais apenas de refeições completadas (completed: true)
+    const completedMeals = dailyNutrition.meals.filter((meal) => meal.completed === true);
+    const totalCalories = completedMeals.reduce(
       (sum, meal) => sum + meal.calories,
       0
     );
-    const totalProtein = dailyNutrition.meals.reduce(
+    const totalProtein = completedMeals.reduce(
       (sum, meal) => sum + meal.protein,
       0
     );
-    const totalCarbs = dailyNutrition.meals.reduce(
+    const totalCarbs = completedMeals.reduce(
       (sum, meal) => sum + meal.carbs,
       0
     );
-    const totalFats = dailyNutrition.meals.reduce(
+    const totalFats = completedMeals.reduce(
       (sum, meal) => sum + meal.fats,
       0
     );

@@ -9,7 +9,9 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useStudent } from "@/hooks/use-student";
 
 interface GymLayoutContentProps {
   children: React.ReactNode;
@@ -26,6 +28,19 @@ export function GymLayoutContent({
   initialStats,
 }: GymLayoutContentProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  
+  // Verificar se é admin (versão beta: apenas admin pode acessar /gym)
+  const { isAdmin, role } = useStudent("isAdmin", "role");
+  const userIsAdmin = isAdmin || role === "ADMIN";
+  
+  // Bloquear acesso se não for admin
+  useEffect(() => {
+    if (!userIsAdmin) {
+      console.warn("[GymLayoutContent] Acesso negado a /gym. Apenas admin pode acessar na versão beta.");
+      router.push("/student");
+    }
+  }, [userIsAdmin, router]);
 
   // Usar valores padrão para evitar problemas de hidratação
   // O nuqs vai atualizar os valores no cliente após a hidratação
@@ -38,6 +53,18 @@ export function GymLayoutContent({
 
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
+  
+  // Não renderizar nada se não for admin
+  if (!userIsAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h1>
+          <p className="text-gray-600">Esta área está disponível apenas para administradores durante a versão beta.</p>
+        </div>
+      </div>
+    );
+  }
 
   const gymTabs: TabConfig[] = [
     { id: "dashboard", icon: LayoutDashboard, label: "Início" },

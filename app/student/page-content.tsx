@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect } from "react";
 import { parseAsString, useQueryState } from "nuqs";
+import { useRouter } from "next/navigation";
 
 import { PersonalizationPage } from "@/app/student/personalization/personalization-page";
 import { CardioFunctionalPage } from "@/app/student/cardio/cardio-functional-page";
@@ -29,6 +30,11 @@ import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-work
 import { LevelProgressCard } from "@/components/organisms/home/home/level-progress-card";
 import { ContinueWorkoutCard } from "@/components/organisms/home/home/continue-workout-card";
 import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
+import { AdminOnly } from "@/components/admin/admin-only";
+import {
+  useAdminRouteGuard,
+  shouldBlockRoute,
+} from "@/lib/utils/admin-route-guard";
 import type { GymLocation } from "@/lib/types";
 
 /**
@@ -46,8 +52,25 @@ function StudentHomeContent() {
   // Se dados já existem no store, só carrega o que falta
   useLoadPrioritized({ context: "home" });
 
+  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
+
+  // Verificar se é admin
+  const { isAdmin, role } = useStudent("isAdmin", "role");
+  const userIsAdmin = isAdmin || role === "ADMIN";
+
+  // Proteger rotas bloqueadas (versão beta)
+  const blockedTabs = ["cardio", "gyms", "payments"];
+  const isBlockedTab = tab && blockedTabs.includes(tab) && !userIsAdmin;
+
+  // Redirecionar se tentar acessar rota bloqueada
+  useEffect(() => {
+    if (isBlockedTab) {
+      // Redirecionar para home se tentar acessar rota bloqueada
+      router.push("/student?tab=home");
+    }
+  }, [isBlockedTab, router]);
   const [educationView, setEducationView] = useQueryState(
     "view",
     parseAsString.withDefault("menu")
@@ -311,31 +334,35 @@ function StudentHomeContent() {
       {tab === "diet" && <DietPage />}
 
       {tab === "payments" && (
-        <StudentPaymentsPage
-          subscription={currentSubscription}
-          startTrial={async () => {
-            // Usar axios client (API → syncManager → Store)
-            // syncManager gerencia offline/online automaticamente
-            const { apiClient } = await import("@/lib/api/client");
-            const response = await apiClient.post<{
-              error?: string;
-              success?: boolean;
-            }>("/api/subscriptions/start-trial");
-            // Após sucesso, recarregar subscription do store
-            if (response.data.success) {
-              await loadSubscription();
-            }
-            return response.data;
-          }}
-        />
+        <AdminOnly>
+          <StudentPaymentsPage
+            subscription={currentSubscription}
+            startTrial={async () => {
+              // Usar axios client (API → syncManager → Store)
+              // syncManager gerencia offline/online automaticamente
+              const { apiClient } = await import("@/lib/api/client");
+              const response = await apiClient.post<{
+                error?: string;
+                success?: boolean;
+              }>("/api/subscriptions/start-trial");
+              // Após sucesso, recarregar subscription do store
+              if (response.data.success) {
+                await loadSubscription();
+              }
+              return response.data;
+            }}
+          />
+        </AdminOnly>
       )}
 
       {tab === "gyms" && (
-        <GymMap
-          gyms={currentGymLocations}
-          dayPasses={currentDayPasses}
-          onPurchaseDayPass={handlePurchaseDayPass}
-        />
+        <AdminOnly>
+          <GymMap
+            gyms={currentGymLocations}
+            dayPasses={currentDayPasses}
+            onPurchaseDayPass={handlePurchaseDayPass}
+          />
+        </AdminOnly>
       )}
 
       {tab === "education" && (

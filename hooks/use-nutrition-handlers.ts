@@ -44,12 +44,24 @@ export function useNutritionHandlers() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedNutrition, setHasLoadedNutrition] = useState(false); // Flag para evitar loop infinito
 
+  // Helper para calcular totais apenas de refeições completadas
+  const calculateTotalsFromCompletedMeals = (meals: any[]) => {
+    const completedMeals = meals.filter((m) => m.completed === true);
+    return {
+      totalCalories: completedMeals.reduce((sum, m) => sum + (m.calories || 0), 0),
+      totalProtein: completedMeals.reduce((sum, m) => sum + (m.protein || 0), 0),
+      totalCarbs: completedMeals.reduce((sum, m) => sum + (m.carbs || 0), 0),
+      totalFats: completedMeals.reduce((sum, m) => sum + (m.fats || 0), 0),
+    };
+  };
+
   // Helpers para atualizar nutrição usando store unificado
   const toggleMealComplete = (mealId: string) => {
     const updatedMeals = dailyNutrition.meals.map((meal) =>
       meal.id === mealId ? { ...meal, completed: !meal.completed } : meal
     );
-    updateNutrition({ meals: updatedMeals });
+    const totals = calculateTotalsFromCompletedMeals(updatedMeals);
+    updateNutrition({ meals: updatedMeals, ...totals });
   };
 
   const addFoodToMeal = (
@@ -83,16 +95,10 @@ export function useNutritionHandlers() {
       }
       return meal;
     });
-    const totalCalories = updatedMeals.reduce((sum, m) => sum + m.calories, 0);
-    const totalProtein = updatedMeals.reduce((sum, m) => sum + m.protein, 0);
-    const totalCarbs = updatedMeals.reduce((sum, m) => sum + m.carbs, 0);
-    const totalFats = updatedMeals.reduce((sum, m) => sum + m.fats, 0);
+    const totals = calculateTotalsFromCompletedMeals(updatedMeals);
     updateNutrition({
       meals: updatedMeals,
-      totalCalories,
-      totalProtein,
-      totalCarbs,
-      totalFats,
+      ...totals,
     });
   };
 
@@ -120,16 +126,10 @@ export function useNutritionHandlers() {
 
   const removeMeal = (mealId: string) => {
     const updatedMeals = dailyNutrition.meals.filter((m) => m.id !== mealId);
-    const totalCalories = updatedMeals.reduce((sum, m) => sum + m.calories, 0);
-    const totalProtein = updatedMeals.reduce((sum, m) => sum + m.protein, 0);
-    const totalCarbs = updatedMeals.reduce((sum, m) => sum + m.carbs, 0);
-    const totalFats = updatedMeals.reduce((sum, m) => sum + m.fats, 0);
+    const totals = calculateTotalsFromCompletedMeals(updatedMeals);
     updateNutrition({
       meals: updatedMeals,
-      totalCalories,
-      totalProtein,
-      totalCarbs,
-      totalFats,
+      ...totals,
     });
   };
 
@@ -151,16 +151,10 @@ export function useNutritionHandlers() {
       }
       return meal;
     });
-    const totalCalories = updatedMeals.reduce((sum, m) => sum + m.calories, 0);
-    const totalProtein = updatedMeals.reduce((sum, m) => sum + m.protein, 0);
-    const totalCarbs = updatedMeals.reduce((sum, m) => sum + m.carbs, 0);
-    const totalFats = updatedMeals.reduce((sum, m) => sum + m.fats, 0);
+    const totals = calculateTotalsFromCompletedMeals(updatedMeals);
     updateNutrition({
       meals: updatedMeals,
-      totalCalories,
-      totalProtein,
-      totalCarbs,
-      totalFats,
+      ...totals,
     });
   };
 
@@ -194,15 +188,55 @@ export function useNutritionHandlers() {
     mealIds: string[]
   ) => {
     if (mealIds.length > 0 && foods.length > 0) {
-      // Atualizar o store IMMEDIATAMENTE (optimistic update)
+      // IMPORTANTE: Adicionar TODOS os alimentos de uma vez antes de sincronizar
+      // Isso evita múltiplas requisições que criam refeições duplicadas
+      const updatedMeals = [...dailyNutrition.meals];
+      
       mealIds.forEach((mealId) => {
-        foods.forEach(({ food, servings }) => {
-          addFoodToMeal(mealId, food, servings);
-        });
+        const mealIndex = updatedMeals.findIndex((m) => m.id === mealId);
+        if (mealIndex !== -1) {
+          const meal = updatedMeals[mealIndex];
+          
+          // Adicionar todos os alimentos de uma vez
+          const newFoods = foods.map(({ food, servings }) => ({
+            id: `food-${Date.now()}-${Math.random()}`,
+            foodId: food.id,
+            foodName: food.name,
+            servings,
+            calories: food.calories * servings,
+            protein: food.protein * servings,
+            carbs: food.carbs * servings,
+            fats: food.fats * servings,
+            servingSize: food.servingSize,
+          }));
+          
+          const updatedFoods = [...(meal.foods || []), ...newFoods];
+          const totalNewCalories = newFoods.reduce((sum, f) => sum + f.calories, 0);
+          const totalNewProtein = newFoods.reduce((sum, f) => sum + f.protein, 0);
+          const totalNewCarbs = newFoods.reduce((sum, f) => sum + f.carbs, 0);
+          const totalNewFats = newFoods.reduce((sum, f) => sum + f.fats, 0);
+          
+          updatedMeals[mealIndex] = {
+            ...meal,
+            foods: updatedFoods,
+            calories: meal.calories + totalNewCalories,
+            protein: meal.protein + totalNewProtein,
+            carbs: meal.carbs + totalNewCarbs,
+            fats: meal.fats + totalNewFats,
+          };
+        }
+      });
+      
+      // Calcular totais apenas de refeições completadas
+      const totals = calculateTotalsFromCompletedMeals(updatedMeals);
+      
+      // Atualizar store UMA ÚNICA VEZ com todos os alimentos
+      updateNutrition({
+        meals: updatedMeals,
+        ...totals,
       });
       
       // Fechar modal e limpar seleções DEPOIS do update otimista
-      // Usar setTimeout para garantir que o render aconteça primeiro
       setTimeout(() => {
         setSelectedMealId(null);
         setShowFoodSearch(false);
