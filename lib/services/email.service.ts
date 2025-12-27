@@ -66,11 +66,11 @@ function getWelcomeEmailTemplate(userName: string): string {
                     <!-- Header com gradiente verde -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #58CC02 0%, #47A302 100%); padding: 40px 24px; text-align: center;">
-                            <div style="background-color: #FFFFFF; width: 80px; height: 80px; border-radius: 24px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                            <div style="background-color: #FFFFFF; width: 110px; height: 110px; border-radius: 24px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                                 <img src="${
                                   process.env.NEXT_PUBLIC_APP_URL ||
                                   "https://gym-rats-testes.vercel.app"
-                                }/icon-512.png" alt="Gym Rats Logo" width="46" height="46" style="display: block; width: 46px; height: 46px;" />
+                                }/icon-512.png" alt="Gym Rats Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; margin: 0 auto;" />
                             </div>
                             <h1 style="margin: 0; color: #FFFFFF; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 Bem-vindo, ${firstName}!
@@ -101,7 +101,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <a href="${
                                           process.env.NEXT_PUBLIC_APP_URL ||
                                           "https://gym-rats-testes.vercel.app"
-                                        }/student/onboarding" 
+                                        }/student" 
                                            style="display: inline-block; background-color: #58CC02; color: #FFFFFF; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; padding: 16px 32px; border-radius: 16px; box-shadow: 0 4px 0 #58A700; font-size: 13.2px; line-height: 18px;">
                                             Começar minha jornada
                                         </a>
