@@ -17,6 +17,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useStudentInitializer } from "@/hooks/use-student-initializer";
+import { useStudent } from "@/hooks/use-student";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
@@ -47,6 +48,11 @@ export function StudentLayoutContent({
   useStudentInitializer({
     autoLoad: true,
   });
+
+  // Buscar progresso do store para atualizar header dinamicamente
+  const { progress: storeProgress } = useStudent("progress");
+  const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
+  const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
 
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
 
@@ -99,8 +105,8 @@ export function StudentLayoutContent({
       basePath="/student"
       showLogo={true}
       stats={{
-        streak: initialProgress.streak,
-        xp: initialProgress.xp,
+        streak: currentStreak,
+        xp: currentXP,
       }}
       shouldDisableSwipe={(path) =>
         path.includes("/workout") ||

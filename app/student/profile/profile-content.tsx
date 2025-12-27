@@ -53,11 +53,11 @@ export function ProfilePageContent() {
   const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
   
-  // Carregar weightHistory e profile se não estiverem carregados
-  const { loadWeightHistory, loadProfile } = useStudent("loaders");
+  // Carregar weightHistory, profile, progress e user se não estiverem carregados
+  const { loadWeightHistory, loadProfile, loadProgress, loadUser } = useStudent("loaders");
   
   useEffect(() => {
-    // Garantir que weightHistory e profile sejam carregados
+    // Garantir que weightHistory, profile, progress e user sejam carregados
     const loadData = async () => {
       const state = useStudentUnifiedStore.getState();
       if (!state.data.weightHistory || state.data.weightHistory.length === 0) {
@@ -66,9 +66,29 @@ export function ProfilePageContent() {
       if (!state.data.profile) {
         await loadProfile();
       }
+      if (!state.data.progress || state.data.progress.workoutsCompleted === undefined) {
+        await loadProgress();
+      }
+      if (!state.data.user || !state.data.user.email) {
+        await loadUser();
+      }
     };
     loadData();
-  }, [loadWeightHistory, loadProfile]);
+  }, [loadWeightHistory, loadProfile, loadProgress, loadUser]);
+
+  // Recarregar progresso quando um workout é completado
+  useEffect(() => {
+    const handleWorkoutCompleted = async () => {
+      console.log("[Profile] Workout completado, recarregando progresso...");
+      await loadProgress();
+    };
+
+    window.addEventListener("workoutCompleted", handleWorkoutCompleted);
+
+    return () => {
+      window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
+    };
+  }, [loadProgress]);
 
   // ============================================
   // DADOS DO STORE UNIFICADO (Offline-First)
@@ -165,6 +185,14 @@ export function ProfilePageContent() {
   const personalRecords = storePersonalRecords || [];
   const units = storeUnits || [];
   
+  // Calcular número total de treinos completados baseado em units
+  // Contar quantos workouts têm completed: true em todas as units
+  const totalWorkoutsCompleted = units.reduce((total, unit) => {
+    if (!unit.workouts || !Array.isArray(unit.workouts)) return total;
+    const completedInUnit = unit.workouts.filter((workout) => workout.completed === true).length;
+    return total + completedInUnit;
+  }, 0);
+  
   // Buscar workoutProgress do store para encontrar último workout iniciado
   const workoutProgress = useWorkoutStore((state) => state.workoutProgress);
   
@@ -233,10 +261,26 @@ export function ProfilePageContent() {
         },
       ]
     : workoutHistory.slice(0, 1); // Se não houver workout em progresso, mostrar último completo
+  // Extrair username do email (parte antes do @)
+  // O username já vem do backend formatado como @username, mas vamos garantir
+  const getUsernameFromEmail = (user: typeof storeUser): string => {
+    if (!user) return "@usuario";
+    // Se já tem username formatado, usar ele
+    if (user.username && user.username.startsWith("@")) {
+      return user.username;
+    }
+    // Caso contrário, extrair do email
+    if (user.email) {
+      const username = user.email.split("@")[0];
+      return `@${username}`;
+    }
+    return "@usuario";
+  };
+
   const profileUserInfo = storeUser
     ? {
         name: storeUser.name || "Usuário",
-        username: storeUser.username || "@usuario",
+        username: getUsernameFromEmail(storeUser),
         memberSince: storeUser.memberSince || "Jan 2025",
       }
     : null;
@@ -312,8 +356,7 @@ export function ProfilePageContent() {
         username={profileUserInfo?.username || "@usuario"}
         memberSince={profileUserInfo?.memberSince || "Jan 2025"}
         stats={{
-          workouts: displayProgress.workoutsCompleted,
-          friends: 12, // TODO: Implementar contagem de amigos
+          workouts: totalWorkoutsCompleted, // Usar workoutHistory.length em vez de displayProgress.workoutsCompleted
           streak: displayProgress.currentStreak,
         }}
         quickStats={[

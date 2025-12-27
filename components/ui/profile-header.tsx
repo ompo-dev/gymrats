@@ -11,7 +11,6 @@ export interface ProfileHeaderProps
   memberSince: string;
   stats: {
     workouts: number;
-    friends: number;
     streak: number;
   };
   quickStats: Array<{
@@ -55,11 +54,6 @@ export function ProfileHeader({
             <div>
               <span className="font-bold text-gray-900">{stats.workouts}</span>
               <span className="text-gray-600"> Treinos</span>
-            </div>
-            <div className="h-4 w-px bg-gray-300 hidden sm:block" />
-            <div>
-              <span className="font-bold text-gray-900">{stats.friends}</span>
-              <span className="text-gray-600"> Amigos</span>
             </div>
             <div className="h-4 w-px bg-gray-300 hidden sm:block" />
             <div>

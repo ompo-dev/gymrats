@@ -22,6 +22,47 @@ import {
 import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
 /**
+ * Calcula o streak baseado em dias consecutivos de treino
+ * @param studentId ID do estudante
+ * @returns Número de dias consecutivos que o estudante treinou
+ */
+async function calculateStreak(studentId: string): Promise<number> {
+  // Buscar todos os workouts do histórico
+  const allWorkoutHistory = await db.workoutHistory.findMany({
+    where: { studentId },
+    select: { date: true },
+    orderBy: { date: "desc" },
+  });
+
+  // Agrupar por dia (ignorar hora)
+  const workoutDays = new Set<string>();
+  allWorkoutHistory.forEach((wh) => {
+    const dateOnly = new Date(wh.date);
+    dateOnly.setHours(0, 0, 0, 0);
+    workoutDays.add(dateOnly.toISOString().split("T")[0]);
+  });
+
+  // Calcular dias consecutivos desde hoje para trás
+  let currentStreak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let checkDate = new Date(today);
+
+  while (true) {
+    const dateStr = checkDate.toISOString().split("T")[0];
+    if (workoutDays.has(dateStr)) {
+      currentStreak++;
+      // Ir para o dia anterior
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return currentStreak;
+}
+
+/**
  * GET /api/workouts/units
  * Busca units com workouts e exercícios
  */
@@ -308,21 +349,33 @@ export async function completeWorkoutHandler(
       }
     }
 
+    // Calcular streak baseado em dias consecutivos
+    // Nota: O workoutHistory já foi criado acima, então o calculateStreak
+    // já vai incluir o dia de hoje automaticamente
+    const currentStreak = await calculateStreak(studentId);
+
     // Atualizar StudentProgress
     const progress = await db.studentProgress.findUnique({
       where: { studentId: studentId },
     });
 
     if (progress) {
+      const longestStreak = Math.max(
+        currentStreak,
+        progress.longestStreak || 0
+      );
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       await db.studentProgress.update({
         where: { studentId: studentId },
         data: {
           totalXP: progress.totalXP + (workout.xpReward || 0),
-          currentStreak: progress.currentStreak + 1,
-          longestStreak:
-            progress.currentStreak + 1 > progress.longestStreak
-              ? progress.currentStreak + 1
-              : progress.longestStreak,
+          currentStreak: currentStreak,
+          longestStreak: longestStreak,
+          workoutsCompleted: progress.workoutsCompleted + 1,
+          lastActivityDate: today,
         },
       });
     }

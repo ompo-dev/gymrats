@@ -640,9 +640,57 @@ export async function getStudentProgressHandler(
       weeklyXP[dayOfWeek] += wh.workout.xpReward;
     });
 
+    // Recalcular streak baseado em dias consecutivos
+    const allWorkoutHistory = await db.workoutHistory.findMany({
+      where: { studentId },
+      select: { date: true },
+      orderBy: { date: "desc" },
+    });
+
+    // Agrupar por dia (ignorar hora)
+    const workoutDays = new Set<string>();
+    allWorkoutHistory.forEach((wh) => {
+      const dateOnly = new Date(wh.date);
+      dateOnly.setHours(0, 0, 0, 0);
+      workoutDays.add(dateOnly.toISOString().split("T")[0]);
+    });
+
+    // Calcular dias consecutivos desde hoje para trás
+    let calculatedStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let checkDate = new Date(today);
+
+    while (true) {
+      const dateStr = checkDate.toISOString().split("T")[0];
+      if (workoutDays.has(dateStr)) {
+        calculatedStreak++;
+        // Ir para o dia anterior
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    // Atualizar o streak no banco se estiver diferente
+    if (calculatedStreak !== (progress.currentStreak || 0)) {
+      const longestStreak = Math.max(
+        calculatedStreak,
+        progress.longestStreak || 0
+      );
+      
+      await db.studentProgress.update({
+        where: { studentId },
+        data: {
+          currentStreak: calculatedStreak,
+          longestStreak: longestStreak,
+        },
+      });
+    }
+
     return successResponse({
-      currentStreak: progress.currentStreak || 0,
-      longestStreak: progress.longestStreak || 0,
+      currentStreak: calculatedStreak,
+      longestStreak: Math.max(calculatedStreak, progress.longestStreak || 0),
       totalXP: progress.totalXP || 0,
       currentLevel: progress.currentLevel || 1,
       xpToNextLevel: progress.xpToNextLevel || 100,

@@ -33,7 +33,7 @@ export function StreakModal({
           </div>
 
           <DialogTitle className="mb-2 text-2xl font-bold text-duo-text">
-            {currentStreak} dia de sequência!
+            {currentStreak} {currentStreak === 1 ? "dia" : "dias"} de sequência!
           </DialogTitle>
           <p className="mb-6 text-sm text-duo-gray-dark">
             Continue praticando todos os dias para manter sua sequência

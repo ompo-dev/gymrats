@@ -121,8 +121,8 @@ export function WorkoutModal() {
     selectAlternative,
     setCardioPreference,
   } = useWorkoutStore();
-  const { completeWorkout: completeStudentWorkout, updateProgress } =
-    useStudent("actions");
+  const { completeWorkout: completeStudentWorkout, updateProgress, loadProgress } =
+    useStudent("actions", "loadProgress");
   const { progress: studentProgress } = useStudent("progress");
 
   // Helper para adicionar XP (atualiza progress)
@@ -737,7 +737,7 @@ export function WorkoutModal() {
       });
 
       // Aguardar um tick para garantir que o estado foi atualizado
-      setTimeout(() => {
+      setTimeout(async () => {
         // Obter estado final DEPOIS de adicionar o log
         const finalState = useWorkoutStore.getState();
         const finalActiveWorkout = finalState.activeWorkout;
@@ -860,13 +860,15 @@ export function WorkoutModal() {
         // Marcar como completo e atualizar XP/streak (otimisticamente)
         // completeWorkout espera um objeto WorkoutCompletionData
         const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
-        completeStudentWorkout({
+        // completeStudentWorkout já chama loadProgress internamente
+        await completeStudentWorkout({
           workoutId: workout.id,
           exercises: finalLogs,
           duration: workoutDuration,
           totalVolume: totalVolume,
           overallFeedback: overallFeedback,
           bodyPartsFatigued: bodyPartsFatigued,
+          xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
         });
 
         // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
@@ -1321,14 +1323,17 @@ export function WorkoutModal() {
         exercises: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
         duration: 0,
       });
-      completeStudentWorkout({
+      // Calcular XP ganho (usar xpEarned do workout atualizado ou do workout original)
+      const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
+      // completeStudentWorkout já chama loadProgress internamente
+      await completeStudentWorkout({
         workoutId: workout.id,
         exercises: updatedWorkout.exerciseLogs || [],
         duration: 0,
+        xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
       });
 
       // Adicionar XP se houver (mesmo que seja 0 se todos foram pulados)
-      const xpEarned = updatedWorkout.xpEarned || 0;
       if (xpEarned > 0) {
         addXP(xpEarned);
       }

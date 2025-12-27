@@ -1380,6 +1380,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           });
         }
 
+        // Recarregar progresso do backend para garantir sincronização
+        // Isso atualiza workoutsCompleted, streak, etc com os valores corretos do backend
+        await get().loadProgress();
+
         // Recarregar workouts para atualizar status de locked/completed
         await get().loadWorkouts();
       },
