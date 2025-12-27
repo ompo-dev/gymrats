@@ -79,6 +79,30 @@ export default function StudentOnboardingPage() {
     setIsMounted(true);
   }, []);
 
+  // Verificar se já tem perfil e redirecionar para /student
+  useEffect(() => {
+    const checkProfileAndRedirect = async () => {
+      if (!isMounted) return;
+
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{ hasProfile: boolean }>(
+          "/api/students/profile"
+        );
+
+        if (response.data.hasProfile === true) {
+          // Já tem perfil, redirecionar para /student
+          router.replace("/student");
+        }
+      } catch (error) {
+        // Se der erro (usuário não autenticado), continuar normalmente
+        console.error("Erro ao verificar perfil:", error);
+      }
+    };
+
+    checkProfileAndRedirect();
+  }, [isMounted, router]);
+
   // Reseta forceValidation quando o step muda
   useEffect(() => {
     setForceValidation(false);
@@ -110,7 +134,7 @@ export default function StudentOnboardingPage() {
   const handleNext = () => {
     // Força validação de todos os campos
     setForceValidation(true);
-    
+
     // Valida todos os campos antes de avançar
     if (canProceed()) {
       setForceValidation(false); // Reseta para o próximo step
@@ -147,15 +171,21 @@ export default function StudentOnboardingPage() {
 
     try {
       const { submitOnboarding } = await import("./actions");
+
+      // Iniciar salvamento - retorna imediatamente após salvar perfil básico
+      // A geração de treinos roda em background e não bloqueia
       const result = await submitOnboarding(formData);
 
       if (!result.success) {
         throw new Error(result.error || "Erro ao salvar perfil");
       }
 
+      // Redirecionar imediatamente após salvar o perfil
+      // A geração de treinos continuará em background
+      // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
       setTimeout(() => {
-        router.push("/student");
-      }, 1500);
+        window.location.href = "/student";
+      }, 800);
     } catch (error: any) {
       alert(error.message || "Erro ao salvar perfil. Tente novamente.");
       setIsLoading(false);
@@ -171,15 +201,24 @@ export default function StudentOnboardingPage() {
         isTrans: formData.isTrans,
         usesHormones: formData.usesHormones,
         hormoneType: formData.hormoneType || undefined,
-        height: typeof formData.height === "number" ? formData.height : undefined,
-        weight: typeof formData.weight === "number" ? formData.weight : undefined,
+        height:
+          typeof formData.height === "number" ? formData.height : undefined,
+        weight:
+          typeof formData.weight === "number" ? formData.weight : undefined,
         fitnessLevel: formData.fitnessLevel || undefined,
       });
       return validation.success;
     }
     if (step === 2) {
       const validation = validateStep2({
-        goals: formData.goals,
+        goals: formData.goals as (
+          | "perder-peso"
+          | "ganhar-massa"
+          | "definir"
+          | "saude"
+          | "forca"
+          | "resistencia"
+        )[],
         weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency,
         workoutDuration: formData.workoutDuration,
       });
@@ -251,25 +290,49 @@ export default function StudentOnboardingPage() {
         <div className="relative mx-auto w-full max-w-2xl">
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <Step1 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step1
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
             {step === 2 && (
-              <Step2 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step2
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
             {step === 3 && (
-              <Step3 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step3
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
             {step === 4 && (
-              <Step4 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step4
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
             {step === 5 && (
-              <Step6 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step6
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
             {step === 6 && (
               <Step5 formData={formData} setFormData={setFormData} />
             )}
             {step === 7 && (
-              <Step7 formData={formData} setFormData={setFormData} forceValidation={forceValidation} />
+              <Step7
+                formData={formData}
+                setFormData={setFormData}
+                forceValidation={forceValidation}
+              />
             )}
           </AnimatePresence>
         </div>

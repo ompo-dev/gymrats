@@ -11,7 +11,7 @@ export interface OnboardingData {
   fitnessLevel: DifficultyLevel | "";
   weeklyWorkoutFrequency: number;
   workoutDuration: number;
-  goals: string[];
+  goals: ("perder-peso" | "ganhar-massa" | "definir" | "saude" | "forca" | "resistencia")[];
   gymType:
     | "academia-completa"
     | "academia-basica"

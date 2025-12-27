@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import type { OnboardingData } from "./steps/types";
 import { validateOnboarding } from "./schemas";
+import { sendWelcomeEmail } from "@/lib/services/email.service";
 
 export async function submitOnboarding(formData: OnboardingData) {
   try {
@@ -242,13 +243,16 @@ export async function submitOnboarding(formData: OnboardingData) {
     // Inicializar trial de 14 dias automaticamente
     await initializeStudentTrial(student.id);
 
-    // Gerar treinos personalizados automaticamente após completar onboarding
-    try {
-      const { 
-        generatePersonalizedWorkoutPlan,
-        updateExercisesWithAlternatives 
-      } = await import("@/lib/services/personalized-workout-generator");
-      
+    // Enviar email de boas-vindas (em background, não bloqueia)
+    sendWelcomeEmail({
+      to: user.email,
+      name: user.name,
+    }).catch((error) => {
+      console.error("Erro ao enviar email de boas-vindas:", error);
+    });
+
+    // Retornar sucesso imediatamente - geração de treinos roda em background
+    // Preparar dados do perfil para geração de treinos
       const workoutProfile: any = {
         age: student.age,
         gender: student.gender,
@@ -270,6 +274,15 @@ export async function submitOnboarding(formData: OnboardingData) {
         limitationDetails: formData.limitationDetails || null,
       };
 
+    // Gerar treinos personalizados em background (fire and forget)
+    // Não espera a conclusão - roda assincronamente sem bloquear o retorno
+    (async () => {
+      try {
+        const { 
+          generatePersonalizedWorkoutPlan,
+          updateExercisesWithAlternatives 
+        } = await import("@/lib/services/personalized-workout-generator");
+
       await generatePersonalizedWorkoutPlan(student.id, workoutProfile);
       
       // Atualizar exercícios com alternativas (garantir que todos tenham alternativas)
@@ -280,8 +293,9 @@ export async function submitOnboarding(formData: OnboardingData) {
       await populateWorkoutExercisesWithEducationalData();
     } catch (workoutError: any) {
       // Não falhar o onboarding se a geração de treinos falhar
-      console.error("Erro ao gerar treinos personalizados:", workoutError);
+        console.error("Erro ao gerar treinos personalizados em background:", workoutError);
     }
+    })();
 
     return { success: true };
   } catch (error: any) {

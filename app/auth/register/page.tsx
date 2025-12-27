@@ -52,19 +52,8 @@ export default function RegisterPage() {
       localStorage.setItem("userName", name);
       localStorage.setItem("userId", response.user.id);
 
-      // VERSÃO BETA: Automaticamente definir como STUDENT
       // O role já é definido como STUDENT no backend durante o registro
-      // Mas vamos garantir que está atualizado usando a rota correta
-      try {
-        const { apiClient } = await import("@/lib/api/client");
-        await apiClient.post("/api/users/update-role", {
-          userId: response.user.id,
-          role: "STUDENT",
-        });
-      } catch (roleError: any) {
-        console.error("Erro ao definir role como STUDENT:", roleError);
-        // Continuar mesmo se falhar - o role já foi definido no sign-up
-      }
+      // Não precisa fazer update-role, pois já vem como STUDENT por padrão
 
       // Atualizar store
       setAuthenticated(true);
@@ -94,9 +83,8 @@ export default function RegisterPage() {
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userRole", "STUDENT");
 
-      // VERSÃO BETA: Redirecionar diretamente para onboarding do student
-      // Não verificar perfil, pois acabou de criar a conta e não tem perfil ainda
-      // Usar replace para evitar que o usuário volte para a página de registro
+      // IMPORTANTE: Redirecionar DIRETO para onboarding do student
+      // Pular completamente a página de user-type ao criar conta nova
       router.replace("/student/onboarding");
     } catch (err: any) {
       setError(err.message || "Erro ao criar conta");

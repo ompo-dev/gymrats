@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { DuoButton } from "@/components/ui/duo-button";
-import { Users, Building2, Dumbbell, Check } from "lucide-react";
+import { Users, Dumbbell, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthStore } from "@/stores";
@@ -15,37 +15,57 @@ export default function UserTypePage() {
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  // VERSÃO BETA: Redirecionar automaticamente se já for STUDENT
+  // Verificar se já tem perfil e redirecionar para /student
   useEffect(() => {
     const checkAndRedirect = async () => {
-      // Verificar localStorage primeiro (mais rápido)
-      const userMode = localStorage.getItem("userMode");
-      const userRole = localStorage.getItem("userRole");
-
-      if (userMode === "student" || userRole === "STUDENT") {
-        // Já é student, redirecionar para onboarding
-        router.replace("/student/onboarding");
-        return;
-      }
-
-      // Se não tiver no localStorage, verificar na sessão
       try {
         const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{
-          user: { role: string };
-        }>("/api/auth/session");
 
-        if (response.data.user.role === "STUDENT") {
-          // Atualizar localStorage e redirecionar
-          localStorage.setItem("userMode", "student");
-          localStorage.setItem("userRole", "STUDENT");
-          setUserMode("student");
+        // Primeiro verificar se já tem perfil completo
+        try {
+          const profileResponse = await apiClient.get<{ hasProfile: boolean }>(
+            "/api/students/profile"
+          );
+
+          if (profileResponse.data.hasProfile === true) {
+            // Já tem perfil completo, redirecionar para /student
+            router.replace("/student");
+            return;
+          }
+        } catch (profileError) {
+          // Se der erro ao verificar perfil, continuar para verificar role
+          console.error("Erro ao verificar perfil:", profileError);
+        }
+
+        // Se não tem perfil, verificar se já é STUDENT e redirecionar para onboarding
+        const userMode = localStorage.getItem("userMode");
+        const userRole = localStorage.getItem("userRole");
+
+        if (userMode === "student" || userRole === "STUDENT") {
+          // Já é student mas não tem perfil, redirecionar para onboarding
           router.replace("/student/onboarding");
+          return;
+        }
+
+        // Verificar na sessão
+        try {
+          const sessionResponse = await apiClient.get<{
+            user: { role: string };
+          }>("/api/auth/session");
+
+          if (sessionResponse.data.user.role === "STUDENT") {
+            // Atualizar localStorage e redirecionar para onboarding
+            localStorage.setItem("userMode", "student");
+            localStorage.setItem("userRole", "STUDENT");
+            setUserMode("student");
+            router.replace("/student/onboarding");
+          }
+        } catch (error) {
+          // Se der erro (usuário não autenticado), continuar normalmente
+          console.error("Erro ao verificar sessão:", error);
         }
       } catch (error) {
-        // Se der erro (usuário não autenticado), continuar normalmente
-        // O usuário pode escolher o tipo
-        console.error("Erro ao verificar sessão:", error);
+        console.error("Erro ao verificar e redirecionar:", error);
       }
     };
 
@@ -259,45 +279,31 @@ export default function UserTypePage() {
               </motion.button>
             </motion.div>
 
-            {/* Gym Type */}
-            <motion.div
+            {/* Gym Type - DESABILITADO (versão beta apenas para students) */}
+            {/* <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4, duration: 0.5 }}
+              className="relative"
             >
               <motion.button
-                whileHover={{ scale: 1.02, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleSelectType("gym")}
-                disabled={isLoading}
-                className={`w-full p-8 rounded-3xl border-2 transition-all text-left ${
-                  selectedType === "gym"
-                    ? "border-[#FF9600] bg-[#FF9600]/5 shadow-xl"
-                    : "border-gray-200 bg-white hover:border-[#FF9600]/50 hover:shadow-lg"
-                }`}
+                onClick={() => {
+                  // Bloqueado na versão beta
+                  alert(
+                    "Funcionalidade de Academia estará disponível em breve!"
+                  );
+                }}
+                disabled={true}
+                className={`w-full p-8 rounded-3xl border-2 transition-all text-left cursor-not-allowed opacity-60 ${"border-gray-200 bg-gray-50"}`}
               >
                 <div className="text-center mb-6">
-                  <motion.div
-                    className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                      selectedType === "gym"
-                        ? "bg-linear-to-br from-[#FF9600] to-[#E68A00]"
-                        : "bg-gray-100"
-                    }`}
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ type: "spring", stiffness: 400 }}
-                  >
-                    <Building2
-                      className={`w-12 h-12 ${
-                        selectedType === "gym" ? "text-white" : "text-gray-400"
-                      }`}
-                    />
+                  <motion.div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 bg-gray-100">
+                    <Building2 className="w-12 h-12 text-gray-400" />
                   </motion.div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h2 className="text-2xl font-bold text-gray-400 mb-2">
                     Sou Academia
                   </h2>
-                  <p className="text-gray-600 text-sm">
-                    Gerencie alunos e equipamentos
-                  </p>
+                  <p className="text-gray-400 text-sm">Em breve</p>
                 </div>
 
                 <div className="space-y-2 mb-6">
@@ -307,50 +313,23 @@ export default function UserTypePage() {
                     "Gestão financeira",
                     "Gamificação para academias",
                   ].map((feature, index) => (
-                    <motion.div
+                    <div
                       key={feature}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                      className="flex items-center gap-2 text-sm text-gray-700"
+                      className="flex items-center gap-2 text-sm text-gray-400"
                     >
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          selectedType === "gym"
-                            ? "bg-[#FF9600]"
-                            : "bg-gray-300"
-                        }`}
-                      />
+                      <div className="w-2 h-2 rounded-full bg-gray-300" />
                       <span>{feature}</span>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
 
-                <AnimatePresence>
-                  {selectedType === "gym" && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center justify-center gap-2 text-[#FF9600] font-bold"
-                    >
-                      <Check className="w-5 h-5" />
-                      <span>Selecionado</span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <div className="flex items-center justify-center gap-2 text-gray-400 font-bold">
+                  <span>Em breve</span>
+                </div>
               </motion.button>
             </motion.div>
+           */}
           </div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="text-center text-gray-500 mt-8 text-sm"
-          >
-            Você poderá mudar entre os modos a qualquer momento
-          </motion.p>
         </motion.div>
       </div>
     </div>

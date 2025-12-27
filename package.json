@@ -1,6 +1,6 @@
 {
   "name": "gymrats",
-  "version": "11.7.0",
+  "version": "12.0.0",
   "private": true,
   "scripts": {
     "build": "npm run version:sync && prisma generate && next build",
@@ -48,6 +48,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.0",
     "@tanstack/react-query": "^5.62.0",
+    "@types/nodemailer": "^7.0.4",
     "@types/pg": "^8.15.6",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
@@ -68,6 +69,7 @@
     "motion": "^12.23.25",
     "next": "^16.0.7",
     "next-themes": "^0.4.6",
+    "nodemailer": "^7.0.12",
     "nuqs": "^2.8.2",
     "pg": "^8.16.3",
     "prisma": "^6.19.0",
