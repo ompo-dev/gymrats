@@ -1,7 +1,7 @@
 // Service Worker para PWA - GymRats
 // IMPORTANTE: Esta versão é atualizada automaticamente pelo script sync-version.js
 // Para alterar, edite apenas o package.json e execute: npm run version:sync
-const CACHE_VERSION = "v12.2.3";
+const CACHE_VERSION = "v12.3.0";
 const CACHE_NAME = `gymrats-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `gymrats-runtime-${CACHE_VERSION}`;
 const OFFLINE_QUEUE_DB = 'offline-queue';
@@ -100,13 +100,34 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Estratégia: Network First para APIs, Cache First para assets
+  // Para rotas de navegação (páginas do Next.js), sempre deixa passar para o servidor
+  // O Next.js já tem seu próprio sistema de cache e routing
+  // Interceptar navegação causa problemas de 404 quando o app é reaberto
+  if (request.mode === "navigate") {
+    // Não intercepta: deixa o Next.js cuidar do routing
+    return;
+  }
+
+  // Ignora arquivos do Next.js (_next/static, _next/image, etc.)
+  // O Next.js já tem seu próprio sistema de cache e otimização
+  if (url.pathname.startsWith("/_next/")) {
+    return;
+  }
+
+  // Estratégia: Network First para APIs, Cache First para assets estáticos
   if (url.pathname.startsWith("/api/")) {
     // APIs: Network First com fallback para cache
     event.respondWith(networkFirstStrategy(request));
-  } else {
+  } else if (
+    // Assets estáticos: apenas para arquivos com extensões conhecidas da pasta /public
+    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json)$/i) &&
+    !url.pathname.startsWith("/_next/")
+  ) {
     // Assets estáticos: Cache First
     event.respondWith(cacheFirstStrategy(request));
+  } else {
+    // Outras requisições: deixa passar normalmente (Next.js cuida)
+    return;
   }
 });
 
@@ -131,20 +152,13 @@ async function networkFirstStrategy(request) {
       return cachedResponse;
     }
     
-    // Se for navegação e não tiver cache, retorna página inicial
-    if (request.mode === "navigate") {
-      const indexCache = await caches.match("/");
-      if (indexCache) {
-        return indexCache;
-      }
-    }
-    
     throw error;
   }
 }
 
 /**
  * Cache First Strategy - Tenta cache primeiro, fallback para rede
+ * Usado apenas para assets estáticos (JS, CSS, imagens, etc.)
  */
 async function cacheFirstStrategy(request) {
   const cachedResponse = await caches.match(request);
@@ -155,22 +169,16 @@ async function cacheFirstStrategy(request) {
   try {
     const response = await fetch(request);
     
-    // Cacheia resposta válida
-    if (response.status === 200) {
+    // Cacheia resposta válida (status 200-299)
+    if (response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, response.clone());
     }
     
     return response;
   } catch (error) {
-    // Se for navegação e falhar, retorna página inicial
-    if (request.mode === "navigate") {
-      const indexCache = await caches.match("/");
-      if (indexCache) {
-        return indexCache;
-      }
-    }
-    
+    // Se falhar ao buscar asset, retorna erro
+    // Não tenta fallback para evitar problemas de 404
     throw error;
   }
 }
