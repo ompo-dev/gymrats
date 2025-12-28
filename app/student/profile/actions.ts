@@ -328,10 +328,16 @@ export async function getStudentProfileData() {
 
     // Formatar memberSince
     const memberSince = user?.createdAt
-      ? new Date(user.createdAt).toLocaleDateString("pt-BR", {
-          month: "short",
-          year: "numeric",
-        })
+      ? (() => {
+          const d = new Date(user.createdAt);
+          const months = [
+            "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+            "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+          ];
+          const month = months[d.getMonth()];
+          const year = d.getFullYear();
+          return `${month} ${year}`;
+        })()
       : "Jan 2025";
 
     // Peso atual (último registro de WeightHistory ou do perfil)

@@ -93,6 +93,12 @@ export async function GET() {
               type: "boolean",
               description: "Se o usuário tem perfil de aluno",
             },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Data de criação do usuário (ISO 8601)",
+              example: "2025-12-27T23:56:23.743Z",
+            },
           },
         },
         Session: {
@@ -146,6 +152,57 @@ export async function GET() {
             },
           },
         },
+        ForgotPasswordRequest: {
+          type: "object",
+          required: ["email"],
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              example: "joao@email.com",
+            },
+          },
+        },
+        VerifyResetCodeRequest: {
+          type: "object",
+          required: ["email", "code"],
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              example: "joao@email.com",
+            },
+            code: {
+              type: "string",
+              pattern: "^\\d{6}$",
+              description: "Código de 6 dígitos",
+              example: "123456",
+            },
+          },
+        },
+        ResetPasswordRequest: {
+          type: "object",
+          required: ["email", "code", "newPassword"],
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              example: "joao@email.com",
+            },
+            code: {
+              type: "string",
+              pattern: "^\\d{6}$",
+              description: "Código de 6 dígitos",
+              example: "123456",
+            },
+            newPassword: {
+              type: "string",
+              format: "password",
+              minLength: 8,
+              example: "novaSenhaSegura123",
+            },
+          },
+        },
         UpdateRoleRequest: {
           type: "object",
           required: ["userId", "role"],
@@ -184,8 +241,16 @@ export async function GET() {
         StudentProfile: {
           type: "object",
           properties: {
-            height: { type: "number", description: "Altura em cm", nullable: true },
-            weight: { type: "number", description: "Peso em kg", nullable: true },
+            height: {
+              type: "number",
+              description: "Altura em cm",
+              nullable: true,
+            },
+            weight: {
+              type: "number",
+              description: "Peso em kg",
+              nullable: true,
+            },
             fitnessLevel: {
               type: "string",
               enum: ["iniciante", "intermediario", "avancado"],
@@ -207,24 +272,86 @@ export async function GET() {
             preferredRepRange: { type: "string", nullable: true },
             restTime: { type: "string", nullable: true },
             // Valores metabólicos calculados
-            bmr: { type: "number", description: "Taxa metabólica basal (kcal/dia)", nullable: true },
-            tdee: { type: "number", description: "Gasto energético total diário (kcal/dia)", nullable: true },
-            targetCalories: { type: "number", description: "Calorias alvo diárias", nullable: true },
-            targetProtein: { type: "number", description: "Proteína alvo (gramas)", nullable: true },
-            targetCarbs: { type: "number", description: "Carboidratos alvo (gramas)", nullable: true },
-            targetFats: { type: "number", description: "Gorduras alvo (gramas)", nullable: true },
+            bmr: {
+              type: "number",
+              description: "Taxa metabólica basal (kcal/dia)",
+              nullable: true,
+            },
+            tdee: {
+              type: "number",
+              description: "Gasto energético total diário (kcal/dia)",
+              nullable: true,
+            },
+            targetCalories: {
+              type: "number",
+              description: "Calorias alvo diárias",
+              nullable: true,
+            },
+            targetProtein: {
+              type: "number",
+              description: "Proteína alvo (gramas)",
+              nullable: true,
+            },
+            targetCarbs: {
+              type: "number",
+              description: "Carboidratos alvo (gramas)",
+              nullable: true,
+            },
+            targetFats: {
+              type: "number",
+              description: "Gorduras alvo (gramas)",
+              nullable: true,
+            },
             // Nível de atividade e tratamento hormonal
-            activityLevel: { type: "number", description: "Nível de atividade física (1-10)", minimum: 1, maximum: 10, nullable: true },
-            hormoneTreatmentDuration: { type: "number", description: "Tempo de tratamento hormonal (meses)", nullable: true },
+            activityLevel: {
+              type: "number",
+              description: "Nível de atividade física (1-10)",
+              minimum: 1,
+              maximum: 10,
+              nullable: true,
+            },
+            hormoneTreatmentDuration: {
+              type: "number",
+              description: "Tempo de tratamento hormonal (meses)",
+              nullable: true,
+            },
             // Limitações
-            physicalLimitations: { type: "array", items: { type: "string" }, description: "Limitações físicas", nullable: true },
-            motorLimitations: { type: "array", items: { type: "string" }, description: "Limitações motoras", nullable: true },
-            medicalConditions: { type: "array", items: { type: "string" }, description: "Condições médicas", nullable: true },
-            limitationDetails: { type: "object", description: "Detalhes das limitações (JSON object)", nullable: true },
+            physicalLimitations: {
+              type: "array",
+              items: { type: "string" },
+              description: "Limitações físicas",
+              nullable: true,
+            },
+            motorLimitations: {
+              type: "array",
+              items: { type: "string" },
+              description: "Limitações motoras",
+              nullable: true,
+            },
+            medicalConditions: {
+              type: "array",
+              items: { type: "string" },
+              description: "Condições médicas",
+              nullable: true,
+            },
+            limitationDetails: {
+              type: "object",
+              description: "Detalhes das limitações (JSON object)",
+              nullable: true,
+            },
             // Horas disponíveis por dia para treino
-            dailyAvailableHours: { type: "number", description: "Horas disponíveis por dia para treino (0.5-24)", nullable: true },
+            dailyAvailableHours: {
+              type: "number",
+              description: "Horas disponíveis por dia para treino (0.5-24)",
+              nullable: true,
+            },
             // Compatibilidade com campo antigo
-            injuries: { type: "array", items: { type: "string" }, description: "Lesões/limitações (campo legado)", nullable: true },
+            injuries: {
+              type: "array",
+              items: { type: "string" },
+              description: "Lesões/limitações (campo legado)",
+              nullable: true,
+            },
           },
         },
         Student: {
@@ -235,9 +362,22 @@ export async function GET() {
             gender: { type: "string", nullable: true },
             phone: { type: "string", nullable: true },
             avatar: { type: "string", nullable: true },
-            isTrans: { type: "boolean", description: "Se a pessoa é transgênero", nullable: true },
-            usesHormones: { type: "boolean", description: "Se faz uso de terapia hormonal", nullable: true },
-            hormoneType: { type: "string", enum: ["testosterone", "estrogen", "none"], description: "Tipo de hormônio usado", nullable: true },
+            isTrans: {
+              type: "boolean",
+              description: "Se a pessoa é transgênero",
+              nullable: true,
+            },
+            usesHormones: {
+              type: "boolean",
+              description: "Se faz uso de terapia hormonal",
+              nullable: true,
+            },
+            hormoneType: {
+              type: "string",
+              enum: ["testosterone", "estrogen", "none"],
+              description: "Tipo de hormônio usado",
+              nullable: true,
+            },
           },
         },
         WeightHistory: {
@@ -292,23 +432,83 @@ export async function GET() {
           properties: {
             id: { type: "string" },
             name: { type: "string" },
-            sets: { type: "number", description: "Número de séries (baseado em preferredSets do onboarding)" },
-            reps: { type: "string", description: "Faixa de repetições (baseado em preferredRepRange do onboarding)" },
-            rest: { type: "number", description: "Tempo de descanso em segundos (baseado em restTime do onboarding)" },
+            sets: {
+              type: "number",
+              description:
+                "Número de séries (baseado em preferredSets do onboarding)",
+            },
+            reps: {
+              type: "string",
+              description:
+                "Faixa de repetições (baseado em preferredRepRange do onboarding)",
+            },
+            rest: {
+              type: "number",
+              description:
+                "Tempo de descanso em segundos (baseado em restTime do onboarding)",
+            },
             notes: { type: "string", nullable: true },
             videoUrl: { type: "string", nullable: true },
-            educationalId: { type: "string", nullable: true, description: "ID do exercício no educational database" },
+            educationalId: {
+              type: "string",
+              nullable: true,
+              description: "ID do exercício no educational database",
+            },
             order: { type: "number" },
             // Dados do educational database
-            primaryMuscles: { type: "array", items: { type: "string" }, nullable: true, description: "Músculos primários (JSON array)" },
-            secondaryMuscles: { type: "array", items: { type: "string" }, nullable: true, description: "Músculos secundários (JSON array)" },
-            difficulty: { type: "string", enum: ["iniciante", "intermediario", "avancado"], nullable: true, description: "Nível de dificuldade" },
-            equipment: { type: "array", items: { type: "string" }, nullable: true, description: "Equipamentos necessários (JSON array)" },
-            instructions: { type: "array", items: { type: "string" }, nullable: true, description: "Instruções passo a passo (JSON array)" },
-            tips: { type: "array", items: { type: "string" }, nullable: true, description: "Dicas de execução (JSON array)" },
-            commonMistakes: { type: "array", items: { type: "string" }, nullable: true, description: "Erros comuns (JSON array)" },
-            benefits: { type: "array", items: { type: "string" }, nullable: true, description: "Benefícios do exercício (JSON array)" },
-            scientificEvidence: { type: "string", nullable: true, description: "Evidência científica" },
+            primaryMuscles: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Músculos primários (JSON array)",
+            },
+            secondaryMuscles: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Músculos secundários (JSON array)",
+            },
+            difficulty: {
+              type: "string",
+              enum: ["iniciante", "intermediario", "avancado"],
+              nullable: true,
+              description: "Nível de dificuldade",
+            },
+            equipment: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Equipamentos necessários (JSON array)",
+            },
+            instructions: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Instruções passo a passo (JSON array)",
+            },
+            tips: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Dicas de execução (JSON array)",
+            },
+            commonMistakes: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Erros comuns (JSON array)",
+            },
+            benefits: {
+              type: "array",
+              items: { type: "string" },
+              nullable: true,
+              description: "Benefícios do exercício (JSON array)",
+            },
+            scientificEvidence: {
+              type: "string",
+              nullable: true,
+              description: "Evidência científica",
+            },
             alternatives: {
               type: "array",
               items: { $ref: "#/components/schemas/AlternativeExercise" },
@@ -323,9 +523,20 @@ export async function GET() {
           type: "object",
           properties: {
             id: { type: "string" },
-            name: { type: "string", description: "Nome do exercício alternativo" },
-            reason: { type: "string", description: "Motivo da alternativa (ex: 'Sem equipamento disponível', 'Menor impacto nas articulações')" },
-            educationalId: { type: "string", nullable: true, description: "ID do exercício no database educacional" },
+            name: {
+              type: "string",
+              description: "Nome do exercício alternativo",
+            },
+            reason: {
+              type: "string",
+              description:
+                "Motivo da alternativa (ex: 'Sem equipamento disponível', 'Menor impacto nas articulações')",
+            },
+            educationalId: {
+              type: "string",
+              nullable: true,
+              description: "ID do exercício no database educacional",
+            },
           },
         },
         Subscription: {
@@ -653,7 +864,8 @@ export async function GET() {
         get: {
           tags: ["Students"],
           summary: "Buscar progresso do student",
-          description: "Retorna progresso completo (XP, streaks, achievements, weeklyXP)",
+          description:
+            "Retorna progresso completo (XP, streaks, achievements, weeklyXP)",
           operationId: "getStudentProgress",
           security: [{ bearerAuth: [] }, { cookieAuth: [] }],
           responses: {
@@ -696,7 +908,8 @@ export async function GET() {
         get: {
           tags: ["Students"],
           summary: "Buscar informações básicas do student",
-          description: "Retorna informações básicas (id, age, gender, phone, avatar)",
+          description:
+            "Retorna informações básicas (id, age, gender, phone, avatar)",
           operationId: "getStudentInfo",
           security: [{ bearerAuth: [] }, { cookieAuth: [] }],
           responses: {
@@ -706,16 +919,29 @@ export async function GET() {
                 "application/json": {
                   schema: {
                     type: "object",
-                      properties: {
-                        id: { type: "string" },
-                        age: { type: "integer", nullable: true },
-                        gender: { type: "string", nullable: true },
-                        phone: { type: "string", nullable: true },
-                        avatar: { type: "string", nullable: true },
-                        isTrans: { type: "boolean", description: "Se a pessoa é transgênero", nullable: true },
-                        usesHormones: { type: "boolean", description: "Se faz uso de terapia hormonal", nullable: true },
-                        hormoneType: { type: "string", enum: ["testosterone", "estrogen", "none"], description: "Tipo de hormônio usado", nullable: true },
+                    properties: {
+                      id: { type: "string" },
+                      age: { type: "integer", nullable: true },
+                      gender: { type: "string", nullable: true },
+                      phone: { type: "string", nullable: true },
+                      avatar: { type: "string", nullable: true },
+                      isTrans: {
+                        type: "boolean",
+                        description: "Se a pessoa é transgênero",
+                        nullable: true,
                       },
+                      usesHormones: {
+                        type: "boolean",
+                        description: "Se faz uso de terapia hormonal",
+                        nullable: true,
+                      },
+                      hormoneType: {
+                        type: "string",
+                        enum: ["testosterone", "estrogen", "none"],
+                        description: "Tipo de hormônio usado",
+                        nullable: true,
+                      },
+                    },
                   },
                 },
               },
@@ -791,7 +1017,10 @@ export async function GET() {
                             id: { type: "string" },
                             gymId: { type: "string" },
                             gymName: { type: "string" },
-                            purchaseDate: { type: "string", format: "date-time" },
+                            purchaseDate: {
+                              type: "string",
+                              format: "date-time",
+                            },
                             validDate: { type: "string", format: "date-time" },
                             price: { type: "number" },
                             status: { type: "string" },
@@ -1128,7 +1357,8 @@ export async function GET() {
           security: [{ bearerAuth: [] }, { cookieAuth: [] }],
           responses: {
             "200": {
-              description: "Alternativas adicionadas aos exercícios com sucesso",
+              description:
+                "Alternativas adicionadas aos exercícios com sucesso",
               content: {
                 "application/json": {
                   schema: {
@@ -2473,11 +2703,13 @@ export async function GET() {
                     file: {
                       type: "string",
                       format: "binary",
-                      description: "Arquivo CSV com os alimentos (opcional, usa public/alimentos.csv se não fornecido)",
+                      description:
+                        "Arquivo CSV com os alimentos (opcional, usa public/alimentos.csv se não fornecido)",
                     },
                     skipDuplicates: {
                       type: "boolean",
-                      description: "Se true, não atualiza alimentos existentes (apenas cria novos)",
+                      description:
+                        "Se true, não atualiza alimentos existentes (apenas cria novos)",
                       default: false,
                     },
                     batchSize: {
@@ -2859,6 +3091,7 @@ export async function GET() {
                       role: "STUDENT",
                       hasGym: false,
                       hasStudent: true,
+                      createdAt: "2025-12-27T23:56:23.743Z",
                     },
                     session: {
                       id: "sess_123",
@@ -2934,6 +3167,251 @@ export async function GET() {
                   },
                   example: {
                     error: "Token não fornecido",
+                  },
+                },
+              },
+            },
+            "500": {
+              description: "Erro interno do servidor",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/auth/forgot-password": {
+        post: {
+          tags: ["Autenticação"],
+          summary: "Solicitar recuperação de senha",
+          description:
+            "Envia um código de verificação de 6 dígitos por email para recuperação de senha. O código expira em 15 minutos. Sempre retorna sucesso para não expor se o email está cadastrado ou não.",
+          operationId: "forgotPassword",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ForgotPasswordRequest",
+                },
+                examples: {
+                  request: {
+                    value: {
+                      email: "joao@email.com",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Email enviado com sucesso (se o email estiver cadastrado)",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: {
+                        type: "string",
+                        example:
+                          "Se o email estiver cadastrado, você receberá um código de verificação.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Dados inválidos",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+            "500": {
+              description: "Erro interno do servidor",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/auth/verify-reset-code": {
+        post: {
+          tags: ["Autenticação"],
+          summary: "Verificar código de recuperação",
+          description:
+            "Verifica se o código de 6 dígitos enviado por email é válido e não expirou. O código expira em 15 minutos após o envio.",
+          operationId: "verifyResetCode",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/VerifyResetCodeRequest",
+                },
+                examples: {
+                  request: {
+                    value: {
+                      email: "joao@email.com",
+                      code: "123456",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Código verificado com sucesso",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      valid: {
+                        type: "boolean",
+                        example: true,
+                      },
+                      message: {
+                        type: "string",
+                        example: "Código verificado com sucesso",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Código inválido ou expirado",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                  examples: {
+                    invalidCode: {
+                      value: {
+                        error: "Código inválido",
+                      },
+                    },
+                    expiredCode: {
+                      value: {
+                        error: "Código expirado. Solicite um novo código.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "404": {
+              description: "Usuário não encontrado",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+            "500": {
+              description: "Erro interno do servidor",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/auth/reset-password": {
+        post: {
+          tags: ["Autenticação"],
+          summary: "Redefinir senha",
+          description:
+            "Redefine a senha do usuário após verificar o código de recuperação. O código deve ser válido e não expirado. Após redefinir a senha, o código é invalidado.",
+          operationId: "resetPassword",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/ResetPasswordRequest",
+                },
+                examples: {
+                  request: {
+                    value: {
+                      email: "joao@email.com",
+                      code: "123456",
+                      newPassword: "novaSenhaSegura123",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Senha redefinida com sucesso",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      message: {
+                        type: "string",
+                        example: "Senha redefinida com sucesso",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Código inválido ou expirado, ou senha inválida",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
+                  },
+                  examples: {
+                    invalidCode: {
+                      value: {
+                        error: "Código inválido",
+                      },
+                    },
+                    expiredCode: {
+                      value: {
+                        error: "Código expirado. Solicite um novo código.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "404": {
+              description: "Usuário não encontrado",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/Error",
                   },
                 },
               },

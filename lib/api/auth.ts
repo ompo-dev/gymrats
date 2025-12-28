@@ -76,5 +76,53 @@ export const authApi = {
       return null;
     }
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>(
+        "/api/auth/forgot-password",
+        { email }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Erro ao solicitar recuperação de senha";
+      throw new Error(errorMessage);
+    }
+  },
+
+  async verifyResetCode(email: string, code: string): Promise<{ valid: boolean; message: string }> {
+    try {
+      const response = await apiClient.post<{ valid: boolean; message: string }>(
+        "/api/auth/verify-reset-code",
+        { email, code }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Erro ao verificar código";
+      throw new Error(errorMessage);
+    }
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+    try {
+      const response = await apiClient.post<{ message: string }>(
+        "/api/auth/reset-password",
+        { email, code, newPassword }
+      );
+      return response.data;
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Erro ao redefinir senha";
+      throw new Error(errorMessage);
+    }
+  },
 }
 

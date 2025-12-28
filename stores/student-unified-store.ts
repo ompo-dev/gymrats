@@ -107,7 +107,24 @@ export interface StudentUnifiedState {
 // HELPER FUNCTIONS
 // ============================================
 
-// transformStudentData é importado de student-transformers.ts
+/**
+ * Formata a data de criação do usuário para memberSince
+ */
+function formatMemberSince(date: Date | string | null | undefined): string {
+  if (!date) return "Jan 2025";
+  const d = typeof date === "string" ? new Date(date) : date;
+  
+  // Mapeamento de meses em português
+  const months = [
+    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+  ];
+  
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  
+  return `${month} ${year}`;
+}
 
 /**
  * Carrega uma seção específica dos dados
@@ -222,12 +239,26 @@ function transformSectionResponse(
   switch (section) {
     case "user":
       // User vem de /api/auth/session como { user: {...}, session: {...} }
-      // Extrair apenas os dados do user
-      if (data.user) {
-        return { user: data.user };
-      }
-      // Se vier direto do /api/students/all
-      return { user: data };
+      // Extrair apenas os dados do user e transformar
+      const userData = data.user || data;
+      
+      // Gerar username do email se não existir
+      const username = userData.username || (userData.email 
+        ? `@${userData.email.split("@")[0].toLowerCase()}`
+        : "@usuario");
+      
+      return {
+        user: {
+          id: userData.id || "",
+          name: userData.name || "",
+          email: userData.email || "",
+          username,
+          memberSince: userData.memberSince || formatMemberSince(userData.createdAt),
+          avatar: userData.avatar || userData.image,
+          role: userData.role || "STUDENT",
+          isAdmin: userData.role === "ADMIN" || userData.isAdmin || false,
+        },
+      };
 
     case "student":
       // Student vem direto da rota /api/students/student

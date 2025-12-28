@@ -74,15 +74,17 @@ export default function StudentOnboardingPage() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [forceValidation, setForceValidation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   // Verificar se já tem perfil e redirecionar para /student
+  // Mas não verificar se estiver submetendo (para evitar conflito)
   useEffect(() => {
     const checkProfileAndRedirect = async () => {
-      if (!isMounted) return;
+      if (!isMounted || isSubmitting) return;
 
       try {
         const { apiClient } = await import("@/lib/api/client");
@@ -101,7 +103,7 @@ export default function StudentOnboardingPage() {
     };
 
     checkProfileAndRedirect();
-  }, [isMounted, router]);
+  }, [isMounted, router, isSubmitting]);
 
   // Reseta forceValidation quando o step muda
   useEffect(() => {
@@ -167,6 +169,7 @@ export default function StudentOnboardingPage() {
     }
 
     setIsLoading(true);
+    setIsSubmitting(true);
     setShowConfetti(true);
 
     try {
@@ -183,12 +186,12 @@ export default function StudentOnboardingPage() {
       // Redirecionar imediatamente após salvar o perfil
       // A geração de treinos continuará em background
       // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
-      setTimeout(() => {
-        window.location.href = "/student";
-      }, 800);
+      // Não usar setTimeout - redirecionar imediatamente
+      window.location.href = "/student";
     } catch (error: any) {
       alert(error.message || "Erro ao salvar perfil. Tente novamente.");
       setIsLoading(false);
+      setIsSubmitting(false);
       setShowConfetti(false);
     }
   };

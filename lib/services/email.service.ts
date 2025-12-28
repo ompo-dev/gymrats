@@ -238,5 +238,124 @@ function getWelcomeEmailTemplate(userName: string): string {
     </table>
 </body>
 </html>
+      `;
+}
+
+interface SendResetPasswordEmailParams {
+  to: string;
+  name: string;
+  code: string;
+}
+
+export async function sendResetPasswordEmail({
+  to,
+  name,
+  code,
+}: SendResetPasswordEmailParams): Promise<void> {
+  try {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+      to,
+      subject: "🔐 Código de recuperação de senha - Gym Rats",
+      html: getResetPasswordEmailTemplate(name, code),
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email de recuperação de senha enviado para ${to}`);
+  } catch (error) {
+    console.error("Erro ao enviar email de recuperação de senha:", error);
+    throw error;
+  }
+}
+
+function getResetPasswordEmailTemplate(userName: string, code: string): string {
+  const firstName = userName.split(" ")[0];
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://gym-rats-testes.vercel.app";
+
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Recuperação de Senha - Gym Rats</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #F9FAFB;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #F9FAFB; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <!-- Container Principal -->
+                    <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #FFFFFF; border-radius: 16px; border: 2px solid #D1D5DB; box-shadow: 0 4px 0 #D1D5DB; overflow: hidden;">
+                        <!-- Header com gradiente verde -->
+                        <tr>
+                            <td style="background: linear-gradient(135deg, #58CC02 0%, #47A302 100%); padding: 40px 24px; text-align: center;">
+                                <div style="background-color: #FFFFFF; width: 110px; height: 110px; border-radius: 24px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                                    <img src="${appUrl}/icon-512.png" alt="Gym Rats Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; margin: 0 auto;" />
+                                </div>
+                                <h1 style="margin: 0; color: #FFFFFF; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    Recuperação de Senha
+                                </h1>
+                            </td>
+                        </tr>
+                        
+                        <!-- Conteúdo Principal -->
+                        <tr>
+                            <td style="padding: 40px 24px;">
+                                <!-- Card de Informação -->
+                                <div style="background-color: #FFFFFF; border-radius: 16px; border: 2px solid #D1D5DB; box-shadow: 0 4px 0 #D1D5DB; padding: 32px; margin-bottom: 24px;">
+                                    <h2 style="margin: 0 0 16px; color: #111827; font-size: 24px; font-weight: bold;">
+                                        Olá, ${firstName}!
+                                    </h2>
+                                    <p style="margin: 0 0 20px; color: #4B5563; font-size: 16px; line-height: 1.6;">
+                                        Recebemos uma solicitação para redefinir a senha da sua conta no Gym Rats. Use o código abaixo para continuar:
+                                    </p>
+                                    
+                                    <!-- Código de Verificação -->
+                                    <div style="background: linear-gradient(135deg, #58CC02 0%, #47A302 100%); border-radius: 12px; padding: 24px; text-align: center; margin: 24px 0;">
+                                        <p style="margin: 0 0 12px; color: #FFFFFF; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">
+                                            Seu código de verificação
+                                        </p>
+                                        <p style="margin: 0; color: #FFFFFF; font-size: 48px; font-weight: bold; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                                            ${code}
+                                        </p>
+                                    </div>
+                                    
+                                    <p style="margin: 20px 0 0; color: #6B7280; font-size: 14px; line-height: 1.6;">
+                                        Este código expira em <strong>15 minutos</strong>. Se você não solicitou esta alteração, ignore este email.
+                                    </p>
+                                </div>
+
+                                <!-- Card Informativo -->
+                                <div style="background-color: #FEF3C7; border-radius: 12px; border: 2px solid #FBBF24; padding: 20px; margin-top: 24px;">
+                                    <p style="margin: 0; color: #92400E; font-size: 14px; line-height: 1.6;">
+                                        ⚠️ <strong>Dica de segurança:</strong> Nunca compartilhe este código com outras pessoas. O Gym Rats nunca solicitará seu código por telefone ou email não solicitado.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding: 24px; background-color: #F9FAFB; border-top: 1px solid #E5E7EB; text-align: center;">
+                                <p style="margin: 0 0 12px; color: #6B7280; font-size: 14px;">
+                                    Precisa de ajuda? Estamos aqui para você!
+                                </p>
+                                <p style="margin: 0; color: #9CA3AF; font-size: 12px;">
+                                    © ${new Date().getFullYear()} Gym Rats. Todos os direitos reservados.
+                                </p>
+                                <p style="margin: 12px 0 0; color: #9CA3AF; font-size: 12px;">
+                                    <a href="${appUrl}" style="color: #1899D6; text-decoration: none;">Visite nosso site</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
   `;
 }

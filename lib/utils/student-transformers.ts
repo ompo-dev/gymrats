@@ -395,10 +395,17 @@ function generateUsername(email: string): string {
 function formatMemberSince(date: Date | string | null | undefined): string {
   if (!date) return "Jan 2025";
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString("pt-BR", {
-    month: "short",
-    year: "numeric",
-  });
+  
+  // Mapeamento de meses em português
+  const months = [
+    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+  ];
+  
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  
+  return `${month} ${year}`;
 }
 
 // ============================================

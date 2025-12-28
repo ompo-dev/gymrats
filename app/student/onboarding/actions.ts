@@ -251,50 +251,58 @@ export async function submitOnboarding(formData: OnboardingData) {
       console.error("Erro ao enviar email de boas-vindas:", error);
     });
 
-    // Retornar sucesso imediatamente - geração de treinos roda em background
-    // Preparar dados do perfil para geração de treinos
-      const workoutProfile: any = {
-        age: student.age,
-        gender: student.gender,
-        fitnessLevel: formData.fitnessLevel as "iniciante" | "intermediario" | "avancado" | null,
-        height: typeof formData.height === "number" ? formData.height : null,
-        weight: typeof formData.weight === "number" ? formData.weight : null,
-        goals: formData.goals || [],
-        weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency || null,
-        workoutDuration: formData.workoutDuration || null,
-        // Preferências do onboarding (ESSENCIAIS para sets, reps e rest)
-        preferredSets: typeof formData.preferredSets === "number" ? formData.preferredSets : null,
-        preferredRepRange: formData.preferredRepRange || null,
-        restTime: formData.restTime || null,
-        gymType: formData.gymType || null,
-        activityLevel: typeof formData.activityLevel === "number" ? formData.activityLevel : null,
-        physicalLimitations: formData.physicalLimitations || [],
-        motorLimitations: formData.motorLimitations || [],
-        medicalConditions: formData.medicalConditions || [],
-        limitationDetails: formData.limitationDetails || null,
-      };
-
     // Gerar treinos personalizados em background (fire and forget)
-    // Não espera a conclusão - roda assincronamente sem bloquear o retorno
+    // Não bloqueia o retorno do onboarding
     (async () => {
       try {
         const { 
           generatePersonalizedWorkoutPlan,
           updateExercisesWithAlternatives 
         } = await import("@/lib/services/personalized-workout-generator");
+        
+        const { populateWorkoutExercisesWithEducationalData } = await import("@/lib/services/populate-workout-exercises-educational-data");
 
-      await generatePersonalizedWorkoutPlan(student.id, workoutProfile);
-      
-      // Atualizar exercícios com alternativas (garantir que todos tenham alternativas)
-      await updateExercisesWithAlternatives(student.id);
-      
-      // Popular exercícios com dados educacionais (músculos, instruções, dicas, etc)
-      const { populateWorkoutExercisesWithEducationalData } = await import("@/lib/services/populate-workout-exercises-educational-data");
-      await populateWorkoutExercisesWithEducationalData();
-    } catch (workoutError: any) {
-      // Não falhar o onboarding se a geração de treinos falhar
-        console.error("Erro ao gerar treinos personalizados em background:", workoutError);
-    }
+        // Preparar dados do perfil para geração de treinos (usando dados já salvos no banco)
+        const workoutProfile: any = {
+          age: student.age,
+          gender: student.gender,
+          fitnessLevel: formData.fitnessLevel as "iniciante" | "intermediario" | "avancado" | null,
+          height: typeof formData.height === "number" ? formData.height : null,
+          weight: typeof formData.weight === "number" ? formData.weight : null,
+          goals: formData.goals || [],
+          weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency || null,
+          workoutDuration: formData.workoutDuration || null,
+          preferredSets: typeof formData.preferredSets === "number" ? formData.preferredSets : null,
+          preferredRepRange: formData.preferredRepRange || null,
+          restTime: formData.restTime || null,
+          gymType: formData.gymType || null,
+          activityLevel: typeof formData.activityLevel === "number" ? formData.activityLevel : null,
+          physicalLimitations: formData.physicalLimitations || [],
+          motorLimitations: formData.motorLimitations || [],
+          medicalConditions: formData.medicalConditions || [],
+          limitationDetails: formData.limitationDetails || null,
+        };
+
+        console.log(`[submitOnboarding] Iniciando geração de treinos para student ${student.id}`);
+        
+        // Gerar treinos personalizados (gera 4 semanas de treinos)
+        await generatePersonalizedWorkoutPlan(student.id, workoutProfile);
+        console.log(`[submitOnboarding] Treinos gerados para student ${student.id}`);
+        
+        // Atualizar exercícios com alternativas
+        await updateExercisesWithAlternatives(student.id);
+        console.log(`[submitOnboarding] Alternativas atualizadas para student ${student.id}`);
+        
+        // Popular exercícios com dados educacionais
+        await populateWorkoutExercisesWithEducationalData(student.id);
+        console.log(`[submitOnboarding] Dados educacionais populados para student ${student.id}`);
+        
+        console.log(`[submitOnboarding] ✅ Treinos personalizados gerados com sucesso para student ${student.id}`);
+      } catch (workoutError: any) {
+        // Não falhar o onboarding se a geração de treinos falhar
+        console.error("[submitOnboarding] ❌ Erro ao gerar treinos personalizados:", workoutError);
+        console.error("[submitOnboarding] Stack trace:", workoutError.stack);
+      }
     })();
 
     return { success: true };

@@ -32,3 +32,18 @@ export const updateUserRoleSchema = z.object({
   }),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+});
+
+export const verifyResetCodeSchema = z.object({
+  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+  code: z.string().length(6, "O código deve ter 6 dígitos").regex(/^\d+$/, "O código deve conter apenas números"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+  code: z.string().length(6, "O código deve ter 6 dígitos").regex(/^\d+$/, "O código deve conter apenas números"),
+  newPassword: z.string().min(8, "A senha deve ter no mínimo 8 caracteres"),
+});
+
