@@ -159,7 +159,9 @@ export async function deleteAllUserSessions(userId: string) {
 export function getSessionTokenFromRequest(request: Request): string | null {
   const authHeader = request.headers.get("authorization");
   if (authHeader) {
-    return authHeader.replace("Bearer ", "");
+    // Remover "Bearer " e fazer trim para remover espaços
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    return token || null;
   }
   return null;
 }

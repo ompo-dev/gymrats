@@ -6,7 +6,7 @@ import { useAuthStore } from "@/stores";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, userMode } = useAuthStore();
+  const { isAuthenticated, userRole } = useAuthStore();
   const [mounted, setMounted] = useState(false);
 
   // Aguardar montagem do componente e rehydrate do Zustand
@@ -21,33 +21,27 @@ export default function Home() {
     // Verificar token diretamente no localStorage como fonte da verdade
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("auth_token");
-      const storedUserRole = localStorage.getItem("userRole");
-      const storedUserMode = localStorage.getItem("userMode");
+      const storedUserRole = localStorage.getItem("userRole") as
+        | "STUDENT"
+        | "GYM"
+        | "ADMIN"
+        | null;
 
       // Se há token, está autenticado (independente do estado do Zustand)
-      if (token) {
-        // Determinar userMode do localStorage ou role
-        const mode =
-          storedUserMode ||
-          (storedUserRole === "STUDENT"
-            ? "student"
-            : storedUserRole === "GYM"
-            ? "gym"
-            : null);
-
-        if (mode === "student") {
+      if (token && storedUserRole) {
+        if (storedUserRole === "STUDENT" || storedUserRole === "ADMIN") {
           router.push("/student");
           return;
-        } else if (mode === "gym") {
+        } else if (storedUserRole === "GYM") {
           router.push("/gym");
           return;
         }
       }
     }
 
-    // Se chegou aqui, não está autenticado ou não tem userMode
+    // Se chegou aqui, não está autenticado ou não tem role válido
     router.push("/welcome");
-  }, [router, mounted, isAuthenticated, userMode]);
+  }, [router, mounted, isAuthenticated, userRole]);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-[#58CC02] to-[#47A302] flex items-center justify-center">

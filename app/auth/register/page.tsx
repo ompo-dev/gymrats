@@ -13,7 +13,7 @@ import { authApi } from "@/lib/api/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setAuthenticated, setUserProfile, setUserId, setUserMode } =
+  const { setAuthenticated, setUserProfile, setUserId, setUserRole } =
     useAuthStore();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -58,7 +58,7 @@ export default function RegisterPage() {
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
-      setUserMode("student"); // Definir como student automaticamente
+      setUserRole("STUDENT"); // Definir role como STUDENT (padrão no backend)
       setUserProfile({
         id: response.user.id,
         name: response.user.name,
@@ -78,8 +78,7 @@ export default function RegisterPage() {
         restTime: "medio",
       });
 
-      // Salvar userMode no localStorage ANTES de redirecionar
-      localStorage.setItem("userMode", "student");
+      // Salvar dados no localStorage ANTES de redirecionar
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userRole", "STUDENT");
 

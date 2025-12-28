@@ -17,7 +17,6 @@ export default function LoginPage() {
   const {
     setAuthenticated,
     setUserId,
-    setUserMode,
     setUserProfile,
     setUserRole,
   } = useAuthStore();
@@ -53,10 +52,6 @@ export default function LoginPage() {
       // Atualizar store
       setAuthenticated(true);
       setUserId(response.user.id);
-      // Converter role para userMode (compatibilidade)
-      const userMode =
-        userRole === "STUDENT" ? "student" : userRole === "GYM" ? "gym" : null;
-      setUserMode(userMode);
       setUserRole(userRole || null);
       setUserProfile({
         id: response.user.id,

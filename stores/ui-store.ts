@@ -1,5 +1,4 @@
 import { create } from "zustand"
-import type { UserType } from "@/lib/types"
 
 interface UIState {
   // Student tabs

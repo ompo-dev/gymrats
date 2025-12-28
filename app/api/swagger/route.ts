@@ -3432,9 +3432,9 @@ export async function GET() {
       "/api/auth/update-role": {
         post: {
           tags: ["Usuários"],
-          summary: "Atualizar tipo de usuário",
+          summary: "Atualizar role do usuário",
           description:
-            "Atualiza o role e tipo de um usuário (STUDENT ou GYM). Cria os registros necessários (Student ou Gym) se não existirem.",
+            "Atualiza o role de um usuário (STUDENT, GYM ou ADMIN). Cria os registros necessários (Student ou Gym) se não existirem.",
           operationId: "updateRole",
           security: [{ bearerAuth: [] }, { cookieAuth: [] }],
           requestBody: {
@@ -3481,11 +3481,8 @@ export async function GET() {
                           },
                           role: {
                             type: "string",
-                            enum: ["STUDENT", "GYM"],
-                          },
-                          userType: {
-                            type: "string",
-                            enum: ["student", "gym"],
+                            enum: ["STUDENT", "GYM", "ADMIN"],
+                            description: "Role do usuário (STUDENT, GYM ou ADMIN)",
                           },
                         },
                       },

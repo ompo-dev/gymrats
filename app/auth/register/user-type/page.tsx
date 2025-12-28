@@ -9,7 +9,7 @@ import { useAuthStore } from "@/stores";
 
 export default function UserTypePage() {
   const router = useRouter();
-  const { setUserMode, userId, setAuthenticated } = useAuthStore();
+  const { setUserRole, userId, setAuthenticated } = useAuthStore();
   const [selectedType, setSelectedType] = useState<"student" | "gym" | null>(
     null
   );
@@ -38,10 +38,9 @@ export default function UserTypePage() {
         }
 
         // Se não tem perfil, verificar se já é STUDENT e redirecionar para onboarding
-        const userMode = localStorage.getItem("userMode");
         const userRole = localStorage.getItem("userRole");
 
-        if (userMode === "student" || userRole === "STUDENT") {
+        if (userRole === "STUDENT") {
           // Já é student mas não tem perfil, redirecionar para onboarding
           router.replace("/student/onboarding");
           return;
@@ -55,9 +54,8 @@ export default function UserTypePage() {
 
           if (sessionResponse.data.user.role === "STUDENT") {
             // Atualizar localStorage e redirecionar para onboarding
-            localStorage.setItem("userMode", "student");
             localStorage.setItem("userRole", "STUDENT");
-            setUserMode("student");
+            setUserRole("STUDENT");
             router.replace("/student/onboarding");
           }
         } catch (error) {
@@ -70,7 +68,7 @@ export default function UserTypePage() {
     };
 
     checkAndRedirect();
-  }, [router, userId, setUserMode]);
+  }, [router, userId, setUserRole]);
 
   const checkStudentProfile = async () => {
     try {
@@ -127,9 +125,10 @@ export default function UserTypePage() {
       }
 
       // Atualizar store e localStorage
-      setUserMode(type);
+      const role = type === "student" ? "STUDENT" : "GYM";
+      setUserRole(role);
       setAuthenticated(true);
-      localStorage.setItem("userMode", type);
+      localStorage.setItem("userRole", role);
       localStorage.setItem("isAuthenticated", "true");
 
       // Verificar se tem perfil e redirecionar adequadamente

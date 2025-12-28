@@ -5,10 +5,13 @@ import { getCookie } from "@/lib/utils/cookies";
 
 export async function GET(request: NextRequest) {
   try {
+    // Primeiro tentar pegar do header Authorization (Bearer token)
     let sessionToken = getSessionTokenFromRequest(request);
 
+    // Se não encontrou no header, tentar pegar do cookie
     if (!sessionToken) {
-      sessionToken = await getCookie("auth_token");
+      const cookieStore = await getCookie("auth_token");
+      sessionToken = cookieStore || null;
     }
 
     if (!sessionToken) {
@@ -18,9 +21,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Limpar espaços em branco e trim
+    sessionToken = sessionToken.trim();
+
+    // Debug: log do token (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === "development") {
+      console.log(
+        "[session] Token recebido:",
+        sessionToken.substring(0, 20) + "..."
+      );
+    }
+
     const session = await getSession(sessionToken);
 
     if (!session) {
+      // Debug: log de erro (apenas em desenvolvimento)
+      if (process.env.NODE_ENV === "development") {
+        console.error(
+          "[session] Sessão não encontrada para token:",
+          sessionToken.substring(0, 20) + "..."
+        );
+      }
       return NextResponse.json(
         { error: "Sessão inválida ou expirada" },
         { status: 401 }
