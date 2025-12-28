@@ -1,27 +1,53 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores";
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, userMode } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  // Aguardar montagem do componente e rehydrate do Zustand
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      if (userMode === "student") {
-        router.push("/student");
-      } else if (userMode === "gym") {
-        router.push("/gym");
-      } else {
-        // Se autenticado mas sem userMode, redirecionar para welcome
-        router.push("/welcome");
+    // Não fazer nada até montar (garantir que Zustand restaurou)
+    if (!mounted) return;
+
+    // Verificar token diretamente no localStorage como fonte da verdade
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("auth_token");
+      const storedUserRole = localStorage.getItem("userRole");
+      const storedUserMode = localStorage.getItem("userMode");
+
+      // Se há token, está autenticado (independente do estado do Zustand)
+      if (token) {
+        // Determinar userMode do localStorage ou role
+        const mode =
+          storedUserMode ||
+          (storedUserRole === "STUDENT"
+            ? "student"
+            : storedUserRole === "GYM"
+            ? "gym"
+            : null);
+
+        if (mode === "student") {
+          router.push("/student");
+          return;
+        } else if (mode === "gym") {
+          router.push("/gym");
+          return;
+        }
       }
-    } else {
-      router.push("/welcome");
     }
-  }, [router, isAuthenticated, userMode]);
+
+    // Se chegou aqui, não está autenticado ou não tem userMode
+    router.push("/welcome");
+  }, [router, mounted, isAuthenticated, userMode]);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-[#58CC02] to-[#47A302] flex items-center justify-center">
