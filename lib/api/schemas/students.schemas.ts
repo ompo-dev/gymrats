@@ -74,3 +74,15 @@ export const studentSectionsQuerySchema = z.object({
   sections: z.string().optional(),
 });
 
+export const updateStudentProgressSchema = z.object({
+  totalXP: z.number().int().nonnegative().optional(),
+  todayXP: z.number().int().nonnegative().optional(),
+  workoutsCompleted: z.number().int().nonnegative().optional(),
+  currentStreak: z.number().int().nonnegative().optional(),
+  longestStreak: z.number().int().nonnegative().optional(),
+  currentLevel: z.number().int().positive().optional(),
+  xpToNextLevel: z.number().int().nonnegative().optional(),
+  dailyGoalXP: z.number().int().positive().optional(),
+  lastActivityDate: z.string().datetime().optional(),
+});
+

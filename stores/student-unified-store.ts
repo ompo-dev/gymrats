@@ -113,16 +113,26 @@ export interface StudentUnifiedState {
 function formatMemberSince(date: Date | string | null | undefined): string {
   if (!date) return "Jan 2025";
   const d = typeof date === "string" ? new Date(date) : date;
-  
+
   // Mapeamento de meses em português
   const months = [
-    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+    "Jan",
+    "Fev",
+    "Mar",
+    "Abr",
+    "Mai",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Set",
+    "Out",
+    "Nov",
+    "Dez",
   ];
-  
+
   const month = months[d.getMonth()];
   const year = d.getFullYear();
-  
+
   return `${month} ${year}`;
 }
 
@@ -241,19 +251,22 @@ function transformSectionResponse(
       // User vem de /api/auth/session como { user: {...}, session: {...} }
       // Extrair apenas os dados do user e transformar
       const userData = data.user || data;
-      
+
       // Gerar username do email se não existir
-      const username = userData.username || (userData.email 
-        ? `@${userData.email.split("@")[0].toLowerCase()}`
-        : "@usuario");
-      
+      const username =
+        userData.username ||
+        (userData.email
+          ? `@${userData.email.split("@")[0].toLowerCase()}`
+          : "@usuario");
+
       return {
         user: {
           id: userData.id || "",
           name: userData.name || "",
           email: userData.email || "",
           username,
-          memberSince: userData.memberSince || formatMemberSince(userData.createdAt),
+          memberSince:
+            userData.memberSince || formatMemberSince(userData.createdAt),
           avatar: userData.avatar || userData.image,
           role: userData.role || "STUDENT",
           isAdmin: userData.role === "ADMIN" || userData.isAdmin || false,
@@ -1399,20 +1412,29 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       completeWorkout: async (data) => {
         // O workout já foi salvo no backend pelo workout-modal
-        // Aqui apenas atualizamos o store local para refletir a conclusão
+        // O handler completeWorkoutHandler já atualiza o progresso automaticamente
+        // Aqui apenas atualizamos o store local otimisticamente e recarregamos do backend
 
-        // Atualizar progresso (XP, streak, etc) se fornecido
-        if (data.xpEarned) {
+        // Optimistic update local (atualiza UI imediatamente)
+        if (data.xpEarned && data.xpEarned > 0) {
           const currentProgress = get().data.progress;
-          await get().updateProgress({
-            totalXP: currentProgress.totalXP + data.xpEarned,
-            todayXP: currentProgress.todayXP + data.xpEarned,
-            workoutsCompleted: currentProgress.workoutsCompleted + 1,
-          });
+          const xpEarned = data.xpEarned;
+          set((state) => ({
+            data: {
+              ...state.data,
+              progress: {
+                ...state.data.progress,
+                totalXP: currentProgress.totalXP + xpEarned,
+                todayXP: currentProgress.todayXP + xpEarned,
+                workoutsCompleted: currentProgress.workoutsCompleted + 1,
+              },
+            },
+          }));
         }
 
         // Recarregar progresso do backend para garantir sincronização
         // Isso atualiza workoutsCompleted, streak, etc com os valores corretos do backend
+        // O backend já atualizou o progresso quando o workout foi completado
         await get().loadProgress();
 
         // Recarregar workouts para atualizar status de locked/completed
@@ -1452,7 +1474,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           // IMPORTANTE: Calcular apenas refeições completadas (completed: true)
           let calculatedTotals = {};
           if (updates.meals !== undefined) {
-            const completedMeals = updatedMeals.filter((meal: any) => meal.completed === true);
+            const completedMeals = updatedMeals.filter(
+              (meal: any) => meal.completed === true
+            );
             const totalCalories = completedMeals.reduce(
               (sum: number, meal: any) => sum + (meal.calories || 0),
               0

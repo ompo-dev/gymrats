@@ -20,6 +20,7 @@ import {
   addWeightSchema,
   weightHistoryQuerySchema,
   studentSectionsQuerySchema,
+  updateStudentProgressSchema,
 } from "../schemas";
 import { validateBody, validateQuery } from "../middleware/validation.middleware";
 
@@ -706,6 +707,65 @@ export async function getStudentProgressHandler(
   } catch (error: any) {
     console.error("[getStudentProgressHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar progresso", error);
+  }
+}
+
+/**
+ * PUT /api/students/progress
+ * Atualiza o progresso do student
+ */
+export async function updateStudentProgressHandler(
+  request: NextRequest
+): Promise<NextResponse> {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const studentId = auth.user.student.id;
+
+    // Validar body com Zod
+    const validation = await validateBody(request, updateStudentProgressSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const data = validation.data;
+
+    // Buscar progresso atual
+    const progress = await db.studentProgress.findUnique({
+      where: { studentId },
+    });
+
+    if (!progress) {
+      // Criar progresso se não existir
+      await db.studentProgress.create({
+        data: {
+          studentId,
+          ...data,
+        },
+      });
+    } else {
+      // Atualizar progresso
+      await db.studentProgress.update({
+        where: { studentId },
+        data: {
+          ...data,
+          // Converter lastActivityDate para Date se fornecido
+          lastActivityDate: data.lastActivityDate
+            ? new Date(data.lastActivityDate)
+            : undefined,
+        },
+      });
+    }
+
+    return successResponse({
+      message: "Progresso atualizado com sucesso",
+    });
+  } catch (error: any) {
+    console.error("[updateStudentProgressHandler] Erro:", error);
+    return internalErrorResponse("Erro ao atualizar progresso", error);
   }
 }
 

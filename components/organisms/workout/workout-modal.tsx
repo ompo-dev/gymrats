@@ -121,13 +121,33 @@ export function WorkoutModal() {
     selectAlternative,
     setCardioPreference,
   } = useWorkoutStore();
-  const { completeWorkout: completeStudentWorkout, updateProgress, loadProgress } =
-    useStudent("actions", "loadProgress");
+  const actions = useStudent("actions");
+  const loaders = useStudent("loaders");
   const { progress: studentProgress } = useStudent("progress");
+
+  const completeStudentWorkout = actions?.completeWorkout;
+  const updateProgress = actions?.updateProgress;
+  const loadProgress = loaders?.loadProgress;
+
+  // Verificar se as funções estão disponíveis
+  if (!completeStudentWorkout || typeof completeStudentWorkout !== "function") {
+    console.error("❌ completeStudentWorkout não está disponível:", {
+      actions,
+      hasCompleteWorkout: !!actions?.completeWorkout,
+      type: typeof actions?.completeWorkout,
+    });
+  }
+  if (!updateProgress || typeof updateProgress !== "function") {
+    console.error("❌ updateProgress não está disponível:", {
+      actions,
+      hasUpdateProgress: !!actions?.updateProgress,
+      type: typeof actions?.updateProgress,
+    });
+  }
 
   // Helper para adicionar XP (atualiza progress)
   const addXP = async (amount: number) => {
-    if (studentProgress) {
+    if (studentProgress && updateProgress) {
       await updateProgress({
         totalXP: (studentProgress.totalXP || 0) + amount,
         todayXP: (studentProgress.todayXP || 0) + amount,
@@ -832,17 +852,45 @@ export function WorkoutModal() {
           try {
             // Usar axios client (API → Zustand → Component)
             const { apiClient } = await import("@/lib/api/client");
+
+            // Garantir que startTime seja uma string ISO
+            const startTimeValue = finalActiveWorkout?.startTime || new Date();
+            const startTimeISO =
+              startTimeValue instanceof Date
+                ? startTimeValue.toISOString()
+                : typeof startTimeValue === "string"
+                ? startTimeValue
+                : new Date(startTimeValue).toISOString();
+
+            // Garantir que exerciseLogs seja um array válido
+            const exerciseLogs = (finalLogs || []).filter(
+              (log) => log && log.exerciseId && log.exerciseName
+            );
+
+            // Garantir que bodyPartsFatigued seja um array válido
+            const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
+              ? bodyPartsFatigued.filter(
+                  (part) => part && typeof part === "string"
+                )
+              : [];
+
+            const requestBody: any = {
+              exerciseLogs: exerciseLogs,
+              duration: workoutDuration,
+              totalVolume: totalVolume || 0,
+              overallFeedback: overallFeedback,
+              xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
+              startTime: startTimeISO,
+            };
+
+            // Adicionar bodyPartsFatigued apenas se não estiver vazio
+            if (validBodyPartsFatigued.length > 0) {
+              requestBody.bodyPartsFatigued = validBodyPartsFatigued;
+            }
+
             const response = await apiClient.post(
               `/api/workouts/${workout.id}/complete`,
-              {
-                exerciseLogs: finalLogs,
-                duration: workoutDuration,
-                totalVolume: totalVolume,
-                overallFeedback: overallFeedback,
-                bodyPartsFatigued: bodyPartsFatigued,
-                xpEarned: finalActiveWorkout?.xpEarned || workout.xpReward,
-                startTime: finalActiveWorkout?.startTime || new Date(),
-              }
+              requestBody
             );
             console.log("Workout salvo com sucesso:", response.data);
           } catch (error: any) {
@@ -861,15 +909,24 @@ export function WorkoutModal() {
         // completeWorkout espera um objeto WorkoutCompletionData
         const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
         // completeStudentWorkout já chama loadProgress internamente
-        await completeStudentWorkout({
-          workoutId: workout.id,
-          exercises: finalLogs,
-          duration: workoutDuration,
-          totalVolume: totalVolume,
-          overallFeedback: overallFeedback,
-          bodyPartsFatigued: bodyPartsFatigued,
-          xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
-        });
+        if (
+          completeStudentWorkout &&
+          typeof completeStudentWorkout === "function"
+        ) {
+          await completeStudentWorkout({
+            workoutId: workout.id,
+            exercises: finalLogs,
+            duration: workoutDuration,
+            totalVolume: totalVolume,
+            overallFeedback: overallFeedback,
+            bodyPartsFatigued: bodyPartsFatigued,
+            xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
+          });
+        } else {
+          console.error(
+            "❌ completeStudentWorkout não está disponível em handleExerciseComplete"
+          );
+        }
 
         // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
         // Vamos chamar depois de mostrar a tela de conclusão
@@ -954,7 +1011,7 @@ export function WorkoutModal() {
       // Aguardar um tick para garantir que o estado foi atualizado
       // Usar requestAnimationFrame para garantir que o estado foi atualizado após o addExerciseLog
       requestAnimationFrame(() => {
-        setTimeout(() => {
+        setTimeout(async () => {
           const finalState = useWorkoutStore.getState();
           const finalActiveWorkout = finalState.activeWorkout;
 
@@ -1070,17 +1127,46 @@ export function WorkoutModal() {
             const saveWorkoutToBackend = async () => {
               try {
                 const { apiClient } = await import("@/lib/api/client");
+
+                // Garantir que startTime seja uma string ISO
+                const startTimeValue =
+                  finalActiveWorkout.startTime || new Date();
+                const startTimeISO =
+                  startTimeValue instanceof Date
+                    ? startTimeValue.toISOString()
+                    : typeof startTimeValue === "string"
+                    ? startTimeValue
+                    : new Date(startTimeValue).toISOString();
+
+                // Garantir que exerciseLogs seja um array válido
+                const exerciseLogs = (finalLogs || []).filter(
+                  (log) => log && log.exerciseId && log.exerciseName
+                );
+
+                // Garantir que bodyPartsFatigued seja um array válido
+                const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
+                  ? bodyPartsFatigued.filter(
+                      (part) => part && typeof part === "string"
+                    )
+                  : [];
+
+                const requestBody: any = {
+                  exerciseLogs: exerciseLogs,
+                  duration: workoutDuration,
+                  totalVolume: totalVolume || 0,
+                  overallFeedback: overallFeedback,
+                  xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
+                  startTime: startTimeISO,
+                };
+
+                // Adicionar bodyPartsFatigued apenas se não estiver vazio
+                if (validBodyPartsFatigued.length > 0) {
+                  requestBody.bodyPartsFatigued = validBodyPartsFatigued;
+                }
+
                 const response = await apiClient.post(
                   `/api/workouts/${workout.id}/complete`,
-                  {
-                    exerciseLogs: finalLogs,
-                    duration: workoutDuration,
-                    totalVolume: totalVolume,
-                    overallFeedback: overallFeedback,
-                    bodyPartsFatigued: bodyPartsFatigued,
-                    xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
-                    startTime: finalActiveWorkout.startTime || new Date(),
-                  }
+                  requestBody
                 );
                 console.log("Workout salvo com sucesso:", response.data);
               } catch (error: any) {
@@ -1095,14 +1181,24 @@ export function WorkoutModal() {
 
             // Marcar como completo
             const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
-            completeStudentWorkout({
-              workoutId: workout.id,
-              exercises: finalLogs,
-              duration: workoutDuration,
-              totalVolume: totalVolume,
-              overallFeedback: overallFeedback,
-              bodyPartsFatigued: bodyPartsFatigued,
-            });
+            if (
+              completeStudentWorkout &&
+              typeof completeStudentWorkout === "function"
+            ) {
+              await completeStudentWorkout({
+                workoutId: workout.id,
+                exercises: finalLogs,
+                duration: workoutDuration,
+                totalVolume: totalVolume,
+                overallFeedback: overallFeedback,
+                bodyPartsFatigued: bodyPartsFatigued,
+                xpEarned: xpEarned,
+              });
+            } else {
+              console.error(
+                "❌ completeStudentWorkout não está disponível em handleCardioComplete"
+              );
+            }
 
             // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
             // Vamos chamar depois de mostrar a tela de conclusão
@@ -1132,6 +1228,203 @@ export function WorkoutModal() {
     setElapsedTime(0);
     setCalories(0);
     setHeartRate(120);
+  };
+
+  // Função para finalizar o treino (quando está no último exercício)
+  const handleFinish = async () => {
+    if (!activeWorkout) return;
+
+    console.log("🏁 handleFinish CHAMADO:", {
+      currentIndex: activeWorkout.currentExerciseIndex,
+      totalExercises: workout.exercises.length,
+      currentExerciseName:
+        workout.exercises[activeWorkout.currentExerciseIndex]?.name,
+      exerciseLogsCount: activeWorkout.exerciseLogs.length,
+      skippedExercisesCount: activeWorkout.skippedExercises?.length || 0,
+    });
+
+    // Se for cardio, resetar cronômetro
+    if (isCurrentExerciseCardio()) {
+      setIsRunning(false);
+      setElapsedTime(0);
+      setCalories(0);
+      setHeartRate(120);
+    }
+
+    // Calcular estatísticas atualizadas
+    calculateWorkoutStats();
+
+    // Obter estado atualizado
+    const currentState = useWorkoutStore.getState();
+    const updatedWorkout = currentState.activeWorkout;
+
+    if (!updatedWorkout) {
+      console.error("❌ updatedWorkout é null!");
+      return;
+    }
+
+    const totalExercises = workout.exercises.length;
+    const completedCount = updatedWorkout.exerciseLogs.length || 0;
+    const skippedCount = updatedWorkout.skippedExercises?.length || 0;
+    const totalSeen = completedCount + skippedCount;
+
+    console.log("📊 Estado ao finalizar:", {
+      completedCount,
+      skippedCount,
+      totalSeen,
+      totalExercises,
+      exerciseLogs: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
+      skippedExercises: updatedWorkout.skippedExercises,
+    });
+
+    // Salvar dados para a tela de conclusão ANTES de limpar o activeWorkout
+    setCompletedWorkoutData({
+      exerciseLogs: updatedWorkout.exerciseLogs || [],
+      xpEarned: updatedWorkout.xpEarned || 0,
+      skippedExercises: updatedWorkout.skippedExercises || [],
+    });
+
+    // Calcular duração do workout
+    const workoutDuration = updatedWorkout?.startTime
+      ? Math.round(
+          (new Date().getTime() -
+            new Date(updatedWorkout.startTime).getTime()) /
+            60000
+        )
+      : workout.estimatedTime;
+
+    // Calcular volume total
+    const totalVolume = updatedWorkout?.totalVolume || 0;
+
+    // Determinar feedback baseado em performance
+    let overallFeedback: "excelente" | "bom" | "regular" | "ruim" = "regular";
+    const completedExercises = updatedWorkout?.exerciseLogs?.length || 0;
+    const completionRate = completedExercises / totalExercises;
+
+    if (completionRate >= 0.9 && totalVolume > 0) {
+      overallFeedback = "excelente";
+    } else if (completionRate >= 0.7) {
+      overallFeedback = "bom";
+    } else if (completionRate >= 0.5) {
+      overallFeedback = "regular";
+    } else {
+      overallFeedback = "ruim";
+    }
+
+    // Determinar partes do corpo fatigadas
+    const bodyPartsFatigued = [workout.muscleGroup];
+
+    // Salvar workout no backend
+    const saveWorkoutToBackend = async () => {
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+
+        const startTimeValue = updatedWorkout?.startTime || new Date();
+        const startTimeISO =
+          startTimeValue instanceof Date
+            ? startTimeValue.toISOString()
+            : typeof startTimeValue === "string"
+            ? startTimeValue
+            : new Date(startTimeValue).toISOString();
+
+        // Garantir que exerciseLogs seja um array válido
+        const exerciseLogs = (updatedWorkout?.exerciseLogs || []).filter(
+          (log) => log && log.exerciseId && log.exerciseName
+        );
+
+        // Garantir que bodyPartsFatigued seja um array válido
+        const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
+          ? bodyPartsFatigued.filter((part) => part && typeof part === "string")
+          : [];
+
+        const requestBody = {
+          exerciseLogs: exerciseLogs,
+          duration: workoutDuration,
+          totalVolume: totalVolume || 0,
+          overallFeedback: overallFeedback,
+          bodyPartsFatigued:
+            validBodyPartsFatigued.length > 0
+              ? validBodyPartsFatigued
+              : undefined,
+          xpEarned: updatedWorkout?.xpEarned || 0,
+          startTime: startTimeISO,
+        };
+
+        // Remover campos undefined para evitar problemas na validação
+        Object.keys(requestBody).forEach((key) => {
+          if (requestBody[key as keyof typeof requestBody] === undefined) {
+            delete requestBody[key as keyof typeof requestBody];
+          }
+        });
+
+        const response = await apiClient.post(
+          `/api/workouts/${workout.id}/complete`,
+          requestBody
+        );
+        console.log("Workout salvo com sucesso:", response.data);
+      } catch (error: any) {
+        const errorMessage =
+          error?.response?.data?.error || error?.message || "Erro desconhecido";
+        const errorDetails =
+          error?.response?.data?.details || error?.response?.data;
+
+        console.error("Erro ao salvar workout no backend:", {
+          message: errorMessage,
+          status: error?.response?.status,
+          details: errorDetails,
+          fullError: error,
+        });
+      }
+    };
+
+    // Salvar no backend (não bloquear UI)
+    saveWorkoutToBackend();
+
+    // Marcar como completo
+    const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
+    if (
+      completeStudentWorkout &&
+      typeof completeStudentWorkout === "function"
+    ) {
+      await completeStudentWorkout({
+        workoutId: workout.id,
+        exercises: updatedWorkout.exerciseLogs || [],
+        duration: workoutDuration,
+        totalVolume: totalVolume,
+        overallFeedback: overallFeedback,
+        bodyPartsFatigued: bodyPartsFatigued,
+        xpEarned: xpEarned,
+      });
+    } else {
+      console.error(
+        "❌ completeStudentWorkout não está disponível em handleFinish"
+      );
+    }
+
+    // XP já é atualizado automaticamente pelo backend quando o workout é completado
+    // Não precisamos chamar addXP manualmente
+
+    // Disparar evento de conclusão
+    window.dispatchEvent(
+      new CustomEvent("workoutCompleted", {
+        detail: { workoutId: workout.id },
+      })
+    );
+
+    // Disparar evento customizado para atualizar o estado de completed workouts no store
+    window.dispatchEvent(
+      new CustomEvent("workoutProgressUpdate", {
+        detail: { workoutId: workout.id, completed: true },
+      })
+    );
+
+    // Mostrar tela de conclusão
+    setShowCompletion(true);
+
+    // Limpar activeWorkout DEPOIS de salvar os dados
+    setTimeout(() => {
+      completeWorkout(workout.id);
+    }, 100);
   };
 
   const handleSkip = async () => {
@@ -1271,17 +1564,35 @@ export function WorkoutModal() {
               ? startTimeValue
               : new Date(startTimeValue).toISOString();
 
+          // Garantir que exerciseLogs seja um array válido
+          const exerciseLogs = (updatedWorkout?.exerciseLogs || []).filter(
+            (log) => log && log.exerciseId && log.exerciseName
+          );
+
+          // Garantir que bodyPartsFatigued seja um array válido
+          const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
+            ? bodyPartsFatigued.filter(
+                (part) => part && typeof part === "string"
+              )
+            : [];
+
+          const requestBody: any = {
+            exerciseLogs: exerciseLogs,
+            duration: workoutDuration,
+            totalVolume: totalVolume || 0,
+            overallFeedback: overallFeedback,
+            xpEarned: updatedWorkout?.xpEarned || 0,
+            startTime: startTimeISO,
+          };
+
+          // Adicionar bodyPartsFatigued apenas se não estiver vazio
+          if (validBodyPartsFatigued.length > 0) {
+            requestBody.bodyPartsFatigued = validBodyPartsFatigued;
+          }
+
           const response = await apiClient.post(
             `/api/workouts/${workout.id}/complete`,
-            {
-              exerciseLogs: updatedWorkout?.exerciseLogs || [],
-              duration: workoutDuration,
-              totalVolume: totalVolume,
-              overallFeedback: overallFeedback,
-              bodyPartsFatigued: bodyPartsFatigued,
-              xpEarned: updatedWorkout?.xpEarned || 0,
-              startTime: startTimeISO,
-            }
+            requestBody
           );
           console.log("Workout salvo com sucesso:", response.data);
         } catch (error: any) {
@@ -1326,17 +1637,24 @@ export function WorkoutModal() {
       // Calcular XP ganho (usar xpEarned do workout atualizado ou do workout original)
       const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
       // completeStudentWorkout já chama loadProgress internamente
-      await completeStudentWorkout({
-        workoutId: workout.id,
-        exercises: updatedWorkout.exerciseLogs || [],
-        duration: 0,
-        xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
-      });
-
-      // Adicionar XP se houver (mesmo que seja 0 se todos foram pulados)
-      if (xpEarned > 0) {
-        addXP(xpEarned);
+      if (
+        completeStudentWorkout &&
+        typeof completeStudentWorkout === "function"
+      ) {
+        await completeStudentWorkout({
+          workoutId: workout.id,
+          exercises: updatedWorkout.exerciseLogs || [],
+          duration: 0,
+          xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
+        });
+      } else {
+        console.error(
+          "❌ completeStudentWorkout não está disponível em handleSkip"
+        );
       }
+
+      // XP já é atualizado automaticamente pelo backend quando o workout é completado
+      // Não precisamos chamar addXP manualmente
 
       // Disparar evento de conclusão IMEDIATAMENTE após atualizar o store
       // Isso garante que os WorkoutNodes sejam atualizados na hora
@@ -1747,7 +2065,7 @@ export function WorkoutModal() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="absolute inset-0 z-[60] flex h-screen flex-col bg-white overflow-hidden"
+                className="absolute inset-0 z-60 flex h-screen flex-col bg-white overflow-hidden"
               >
                 <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm shrink-0">
                   <div className="mb-3 flex items-center justify-between">
@@ -1798,7 +2116,7 @@ export function WorkoutModal() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
-                className="absolute inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                className="absolute inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm"
                 onClick={(e) => {
                   if (e.target === e.currentTarget) {
                     cardioConfigModal.close();
@@ -2213,22 +2531,45 @@ export function WorkoutModal() {
                             <span className="sm:hidden">ANTERIOR</span>
                           </motion.button>
                         )}
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleSkip}
-                        className={cn(
-                          "rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50",
-                          activeWorkout &&
+                      {/* Verificar se é o último exercício */}
+                      {activeWorkout &&
+                      activeWorkout.currentExerciseIndex + 1 >=
+                        workout.exercises.length ? (
+                        // Último exercício: mostrar botão FINALIZAR
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleFinish}
+                          className={cn(
+                            "rounded-xl sm:rounded-2xl border-2 border-duo-green bg-duo-green py-3 sm:py-4 font-bold text-xs sm:text-sm text-white transition-all hover:bg-duo-green/90",
                             activeWorkout.currentExerciseIndex === 0 &&
-                            "col-span-2"
-                        )}
-                      >
-                        <span className="hidden sm:inline">
-                          PULAR EXERCÍCIO
-                        </span>
-                        <span className="sm:hidden">PULAR</span>
-                      </motion.button>
+                              "col-span-2"
+                          )}
+                        >
+                          <span className="hidden sm:inline">
+                            FINALIZAR TREINO
+                          </span>
+                          <span className="sm:hidden">FINALIZAR</span>
+                        </motion.button>
+                      ) : (
+                        // Não é o último: mostrar botão PULAR
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={handleSkip}
+                          className={cn(
+                            "rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50",
+                            activeWorkout &&
+                              activeWorkout.currentExerciseIndex === 0 &&
+                              "col-span-2"
+                          )}
+                        >
+                          <span className="hidden sm:inline">
+                            PULAR EXERCÍCIO
+                          </span>
+                          <span className="sm:hidden">PULAR</span>
+                        </motion.button>
+                      )}
                     </div>
                   </motion.div>
                 </div>
