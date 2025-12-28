@@ -88,7 +88,8 @@ export default function LoginPage() {
       } else if (userRole === "GYM") {
         router.push("/gym");
       } else {
-        router.push("/select-mode");
+        // Se não tem role definido, redirecionar para página de registro de tipo
+        router.push("/auth/register/user-type");
       }
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login");

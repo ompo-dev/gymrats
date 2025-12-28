@@ -15,7 +15,8 @@ export default function Home() {
       } else if (userMode === "gym") {
         router.push("/gym");
       } else {
-        router.push("/select-mode");
+        // Se autenticado mas sem userMode, redirecionar para welcome
+        router.push("/welcome");
       }
     } else {
       router.push("/welcome");

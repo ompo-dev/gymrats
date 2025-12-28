@@ -6,7 +6,6 @@ const publicRoutes = [
   "/auth/login",
   "/auth/register",
   "/api/auth",
-  "/select-mode",
   "/onboarding",
 ];
 

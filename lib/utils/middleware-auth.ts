@@ -29,7 +29,6 @@ export function isPublicRoute(pathname: string): boolean {
     "/auth/login",
     "/auth/register",
     "/api/auth",
-    "/select-mode",
     "/onboarding",
   ]
 
