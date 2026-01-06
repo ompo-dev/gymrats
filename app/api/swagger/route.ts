@@ -1305,6 +1305,35 @@ export async function GET() {
             "401": { $ref: "#/components/responses/UnauthorizedError" },
           },
         },
+        post: {
+          tags: ["Workouts"],
+          summary: "Criar unit (plano de treino)",
+          description: "Cria um novo plano de treino (unit) para o student",
+          operationId: "createUnit",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["title"],
+                  properties: {
+                    title: { type: "string", minLength: 1 },
+                    description: { type: "string" },
+                    color: { type: "string" },
+                    icon: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+          },
+        },
       },
       "/api/workouts/generate": {
         post: {
@@ -1576,6 +1605,406 @@ export async function GET() {
                             xpEarned: { type: "number" },
                             overallFeedback: { type: "string" },
                             exercises: { type: "array" },
+                          },
+                        },
+                      },
+                      total: { type: "integer" },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+          },
+        },
+      },
+      // ============================================
+      // WORKOUT MANAGEMENT ENDPOINTS
+      // ============================================
+      "/api/workouts/units/{id}": {
+        put: {
+          tags: ["Workouts"],
+          summary: "Atualizar unit",
+          description: "Atualiza um plano de treino existente",
+          operationId: "updateUnit",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    color: { type: "string" },
+                    icon: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+        delete: {
+          tags: ["Workouts"],
+          summary: "Deletar unit",
+          description: "Remove um plano de treino e todos os seus workouts",
+          operationId: "deleteUnit",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+      },
+      "/api/workouts/manage": {
+        post: {
+          tags: ["Workouts"],
+          summary: "Criar workout",
+          description: "Cria um novo workout (dia de treino) em uma unit",
+          operationId: "createWorkout",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["unitId", "title", "muscleGroup", "difficulty", "estimatedTime"],
+                  properties: {
+                    unitId: { type: "string" },
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    type: {
+                      type: "string",
+                      enum: ["strength", "cardio", "flexibility", "rest"],
+                      default: "strength",
+                    },
+                    muscleGroup: { type: "string" },
+                    difficulty: {
+                      type: "string",
+                      enum: ["iniciante", "intermediario", "avancado"],
+                    },
+                    estimatedTime: { type: "integer", minimum: 1 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+      },
+      "/api/workouts/manage/{id}": {
+        put: {
+          tags: ["Workouts"],
+          summary: "Atualizar workout",
+          description: "Atualiza um workout existente",
+          operationId: "updateWorkout",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    description: { type: "string" },
+                    type: {
+                      type: "string",
+                      enum: ["strength", "cardio", "flexibility", "rest"],
+                    },
+                    muscleGroup: { type: "string" },
+                    difficulty: {
+                      type: "string",
+                      enum: ["iniciante", "intermediario", "avancado"],
+                    },
+                    estimatedTime: { type: "integer", minimum: 1 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+        delete: {
+          tags: ["Workouts"],
+          summary: "Deletar workout",
+          description: "Remove um workout e todos os seus exercícios",
+          operationId: "deleteWorkout",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+      },
+      "/api/workouts/exercises": {
+        post: {
+          tags: ["Workouts"],
+          summary: "Adicionar exercício ao workout",
+          description: "Adiciona um novo exercício a um workout",
+          operationId: "addWorkoutExercise",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["workoutId", "name", "sets", "reps", "rest"],
+                  properties: {
+                    workoutId: { type: "string" },
+                    name: { type: "string" },
+                    sets: { type: "integer", minimum: 1 },
+                    reps: { type: "string" },
+                    rest: { type: "integer", minimum: 0 },
+                    notes: { type: "string" },
+                    videoUrl: { type: "string" },
+                    educationalId: { type: "string" },
+                    primaryMuscles: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    secondaryMuscles: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    difficulty: {
+                      type: "string",
+                      enum: ["iniciante", "intermediario", "avancado"],
+                    },
+                    equipment: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    instructions: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    tips: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    commonMistakes: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    benefits: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    scientificEvidence: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+      },
+      "/api/workouts/exercises/{id}": {
+        put: {
+          tags: ["Workouts"],
+          summary: "Atualizar exercício",
+          description: "Atualiza um exercício existente em um workout",
+          operationId: "updateWorkoutExercise",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    sets: { type: "integer", minimum: 1 },
+                    reps: { type: "string" },
+                    rest: { type: "integer", minimum: 0 },
+                    notes: { type: "string" },
+                    videoUrl: { type: "string" },
+                    educationalId: { type: "string" },
+                    primaryMuscles: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    secondaryMuscles: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    difficulty: {
+                      type: "string",
+                      enum: ["iniciante", "intermediario", "avancado"],
+                    },
+                    equipment: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    instructions: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    tips: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    commonMistakes: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    benefits: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                    scientificEvidence: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "400": { $ref: "#/components/responses/BadRequestError" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+        delete: {
+          tags: ["Workouts"],
+          summary: "Deletar exercício",
+          description: "Remove um exercício de um workout",
+          operationId: "deleteWorkoutExercise",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": { $ref: "#/components/responses/SuccessResponse" },
+            "401": { $ref: "#/components/responses/UnauthorizedError" },
+            "404": { $ref: "#/components/responses/NotFoundError" },
+          },
+        },
+      },
+      "/api/exercises/search": {
+        get: {
+          tags: ["Workouts"],
+          summary: "Buscar exercícios",
+          description:
+            "Busca exercícios do banco educacional com filtros opcionais",
+          operationId: "searchExercises",
+          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
+          parameters: [
+            {
+              name: "q",
+              in: "query",
+              description: "Termo de busca (nome do exercício)",
+              schema: { type: "string" },
+            },
+            {
+              name: "muscle",
+              in: "query",
+              description: "Filtrar por grupo muscular",
+              schema: { type: "string" },
+            },
+            {
+              name: "limit",
+              in: "query",
+              schema: { type: "integer", default: 20, minimum: 1, maximum: 100 },
+            },
+            {
+              name: "offset",
+              in: "query",
+              schema: { type: "integer", default: 0, minimum: 0 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Lista de exercícios",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      exercises: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string" },
+                            primaryMuscles: {
+                              type: "array",
+                              items: { type: "string" },
+                            },
+                            group: { type: "string" },
                           },
                         },
                       },

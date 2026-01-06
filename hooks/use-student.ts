@@ -127,6 +127,8 @@ export function useStudent<T extends StudentSelector>(
   const dailyNutritionData = useStudentUnifiedStore(
     (state) => state.data.dailyNutrition
   );
+  // Seletor específico para units para garantir reatividade imediata
+  const unitsData = useStudentUnifiedStore((state) => state.data.units);
   const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const loadAllPrioritized = useStudentUnifiedStore(
     (state) => state.loadAllPrioritized
@@ -151,6 +153,24 @@ export function useStudent<T extends StudentSelector>(
     (state) => state.updateSubscription
   );
   const addDayPass = useStudentUnifiedStore((state) => state.addDayPass);
+
+  // Workout Management Actions
+  const createUnit = useStudentUnifiedStore((state) => state.createUnit);
+  const updateUnit = useStudentUnifiedStore((state) => state.updateUnit);
+  const deleteUnit = useStudentUnifiedStore((state) => state.deleteUnit);
+  const createWorkout = useStudentUnifiedStore((state) => state.createWorkout);
+  const updateWorkout = useStudentUnifiedStore((state) => state.updateWorkout);
+  const deleteWorkout = useStudentUnifiedStore((state) => state.deleteWorkout);
+  const addWorkoutExercise = useStudentUnifiedStore(
+    (state) => state.addWorkoutExercise
+  );
+  const updateWorkoutExercise = useStudentUnifiedStore(
+    (state) => state.updateWorkoutExercise
+  );
+  const deleteWorkoutExercise = useStudentUnifiedStore(
+    (state) => state.deleteWorkoutExercise
+  );
+
   const setActiveWorkout = useStudentUnifiedStore(
     (state) => state.setActiveWorkout
   );
@@ -226,6 +246,15 @@ export function useStudent<T extends StudentSelector>(
         updateNutrition,
         updateSubscription,
         addDayPass,
+        createUnit,
+        updateUnit,
+        deleteUnit,
+        createWorkout,
+        updateWorkout,
+        deleteWorkout,
+        addWorkoutExercise,
+        updateWorkoutExercise,
+        deleteWorkoutExercise,
         setActiveWorkout,
         updateActiveWorkout,
         saveWorkoutProgress,
@@ -267,6 +296,10 @@ export function useStudent<T extends StudentSelector>(
     if (selector === "dailyNutrition") {
       return dailyNutritionData as any;
     }
+    // Para units, usar valor já selecionado para garantir reatividade imediata
+    if (selector === "units") {
+      return unitsData as any;
+    }
     return selectFromData(data, selector) as any;
   }
 
@@ -284,6 +317,15 @@ export function useStudent<T extends StudentSelector>(
         updateNutrition,
         updateSubscription,
         addDayPass,
+        createUnit,
+        updateUnit,
+        deleteUnit,
+        createWorkout,
+        updateWorkout,
+        deleteWorkout,
+        addWorkoutExercise,
+        updateWorkoutExercise,
+        deleteWorkoutExercise,
         setActiveWorkout,
         updateActiveWorkout,
         saveWorkoutProgress,
@@ -318,6 +360,9 @@ export function useStudent<T extends StudentSelector>(
     } else if (selector === "dailyNutrition") {
       // Usar valor já selecionado para garantir reatividade
       result[selector] = dailyNutritionData;
+    } else if (selector === "units") {
+      // Usar valor já selecionado para garantir reatividade imediata
+      result[selector] = unitsData;
     } else {
       result[selector] = selectFromData(data, selector);
     }
@@ -342,6 +387,15 @@ function getActions(actions: {
   updateNutrition: StudentUnifiedState["updateNutrition"];
   updateSubscription: StudentUnifiedState["updateSubscription"];
   addDayPass: StudentUnifiedState["addDayPass"];
+  createUnit: StudentUnifiedState["createUnit"];
+  updateUnit: StudentUnifiedState["updateUnit"];
+  deleteUnit: StudentUnifiedState["deleteUnit"];
+  createWorkout: StudentUnifiedState["createWorkout"];
+  updateWorkout: StudentUnifiedState["updateWorkout"];
+  deleteWorkout: StudentUnifiedState["deleteWorkout"];
+  addWorkoutExercise: StudentUnifiedState["addWorkoutExercise"];
+  updateWorkoutExercise: StudentUnifiedState["updateWorkoutExercise"];
+  deleteWorkoutExercise: StudentUnifiedState["deleteWorkoutExercise"];
   setActiveWorkout: StudentUnifiedState["setActiveWorkout"];
   updateActiveWorkout: StudentUnifiedState["updateActiveWorkout"];
   saveWorkoutProgress: StudentUnifiedState["saveWorkoutProgress"];
@@ -361,6 +415,15 @@ function getActions(actions: {
     updateNutrition: actions.updateNutrition,
     updateSubscription: actions.updateSubscription,
     addDayPass: actions.addDayPass,
+    createUnit: actions.createUnit,
+    updateUnit: actions.updateUnit,
+    deleteUnit: actions.deleteUnit,
+    createWorkout: actions.createWorkout,
+    updateWorkout: actions.updateWorkout,
+    deleteWorkout: actions.deleteWorkout,
+    addWorkoutExercise: actions.addWorkoutExercise,
+    updateWorkoutExercise: actions.updateWorkoutExercise,
+    deleteWorkoutExercise: actions.deleteWorkoutExercise,
     setActiveWorkout: actions.setActiveWorkout,
     updateActiveWorkout: actions.updateActiveWorkout,
     saveWorkoutProgress: actions.saveWorkoutProgress,

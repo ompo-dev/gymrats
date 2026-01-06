@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { Book, LucideIcon } from "lucide-react";
+import { Book, LucideIcon, Loader2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/atoms/buttons/button";
 
@@ -10,6 +10,8 @@ export interface UnitSectionCardProps
   title: string;
   icon?: LucideIcon;
   buttonHref?: string;
+  onButtonClick?: () => void;
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -18,6 +20,8 @@ export function UnitSectionCard({
   title,
   icon: Icon,
   buttonHref,
+  onButtonClick,
+  isLoading,
   className,
   ...props
 }: UnitSectionCardProps) {
@@ -50,19 +54,32 @@ export function UnitSectionCard({
       </div>
 
       {/* Seção do ícone */}
-      {Icon && !buttonHref && (
+      {Icon && !buttonHref && !onButtonClick && (
         <div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
           <Icon className="h-[22px] w-[22px] text-white" />
         </div>
       )}
 
       {/* Seção do botão */}
-      {buttonHref && (
+      {(buttonHref || onButtonClick) && (
         <div className="flex flex-row items-center justify-center px-4 py-4 bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
-          <Button asChild variant="white" size="icon-lg" className="h-10 w-10">
-            <Link href={buttonHref}>
-              <Book className="h-6 w-6" />
-            </Link>
+          <Button
+            asChild={!!buttonHref}
+            variant="white"
+            size="icon-lg"
+            className="h-10 w-10 cursor-pointer"
+            onClick={onButtonClick}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-6 w-6 animate-spin text-duo-green" />
+            ) : buttonHref ? (
+              <Link href={buttonHref}>
+                <Pencil className="h-6 w-6" />
+              </Link>
+            ) : (
+              <Pencil className="h-6 w-6" />
+            )}
           </Button>
         </div>
       )}

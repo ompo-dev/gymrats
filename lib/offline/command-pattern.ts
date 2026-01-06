@@ -16,6 +16,20 @@ function generateUUID(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/**
+ * Verifica se um ID é um ID temporário (formato de command ID)
+ * IDs temporários têm formato: timestamp-random-random
+ */
+export function isTemporaryId(id: string): boolean {
+  if (!id) return false;
+  // Formato: timestamp-random-random (ex: "1767707729293-ifbn3r43t-20bx1d8y7")
+  const parts = id.split("-");
+  if (parts.length !== 3) return false;
+  // Primeira parte deve ser um timestamp (número)
+  const timestamp = parseInt(parts[0], 10);
+  return !isNaN(timestamp) && timestamp > 0 && parts[1].length > 0 && parts[2].length > 0;
+}
+
 // ============================================
 // TIPOS
 // ============================================
@@ -28,6 +42,15 @@ export type CommandType =
   | 'COMPLETE_WORKOUT'
   | 'ADD_PERSONAL_RECORD'
   | 'UPDATE_SUBSCRIPTION'
+  | 'CREATE_UNIT'
+  | 'UPDATE_UNIT'
+  | 'DELETE_UNIT'
+  | 'CREATE_WORKOUT'
+  | 'UPDATE_WORKOUT'
+  | 'DELETE_WORKOUT'
+  | 'ADD_WORKOUT_EXERCISE'
+  | 'UPDATE_WORKOUT_EXERCISE'
+  | 'DELETE_WORKOUT_EXERCISE'
   | 'CUSTOM';
 
 export interface Command {
@@ -64,6 +87,15 @@ const COMMAND_VERSIONS: Record<CommandType, number> = {
   COMPLETE_WORKOUT: 1,
   ADD_PERSONAL_RECORD: 1,
   UPDATE_SUBSCRIPTION: 1,
+  CREATE_UNIT: 1,
+  UPDATE_UNIT: 1,
+  DELETE_UNIT: 1,
+  CREATE_WORKOUT: 1,
+  UPDATE_WORKOUT: 1,
+  DELETE_WORKOUT: 1,
+  ADD_WORKOUT_EXERCISE: 1,
+  UPDATE_WORKOUT_EXERCISE: 1,
+  DELETE_WORKOUT_EXERCISE: 1,
   CUSTOM: 1,
 };
 

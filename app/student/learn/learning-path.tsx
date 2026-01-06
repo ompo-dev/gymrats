@@ -69,6 +69,8 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     };
   }, [loadWorkouts]);
 
+  const editUnitModal = useModalStateWithParam("editUnit", "unitId");
+
   const handleWorkoutClick = (
     workoutId: string,
     isLocked: boolean, // Recebe isLocked calculado do WorkoutNode
@@ -85,7 +87,9 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
     // Se está bloqueado (calculado pelo WorkoutNode), não abrir
     if (isLocked) {
-      console.log("[DEBUG] Workout está bloqueado (calculado pelo WorkoutNode), não abrindo modal");
+      console.log(
+        "[DEBUG] Workout está bloqueado (calculado pelo WorkoutNode), não abrindo modal"
+      );
       return;
     }
 
@@ -113,6 +117,11 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     }
   };
 
+  const handleEditUnit = (unit: Unit) => {
+    // Apenas abrir o modal, sem clonagem
+    editUnitModal.open(unit.id);
+  };
+
   if (!units || units.length === 0) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -137,7 +146,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
               <UnitSectionCard
                 sectionLabel={unit.title}
                 title={unit.description}
-                buttonHref="/student?tab=education"
+                onButtonClick={() => handleEditUnit(unit)}
               />
             </div>
 

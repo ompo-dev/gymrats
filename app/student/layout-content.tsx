@@ -6,6 +6,7 @@ import {
   TabConfig,
 } from "@/components/templates/layouts/app-layout";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
+import { EditUnitModal } from "@/components/organisms/modals";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
 import {
   Home,
@@ -114,7 +115,12 @@ export function StudentLayoutContent({
         path.includes("/onboarding")
       }
       onTabChange={handleTabChange}
-      additionalContent={<WorkoutModal />}
+      additionalContent={
+        <>
+          <WorkoutModal />
+          <EditUnitModal />
+        </>
+      }
       scrollResetEnabled={!isOnboarding}
       className="bg-white"
     >

@@ -15,7 +15,17 @@ import type {
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
-import type { UserProgress, PersonalRecord, DailyNutrition } from "@/lib/types";
+import type {
+  UserProgress,
+  PersonalRecord,
+  DailyNutrition,
+  Unit,
+  WorkoutSession,
+  WorkoutExercise,
+  WorkoutType,
+  DifficultyLevel,
+  MuscleGroup,
+} from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -33,6 +43,7 @@ import {
 import {
   createCommand,
   commandToSyncManager,
+  isTemporaryId,
 } from "@/lib/offline/command-pattern";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
@@ -85,6 +96,28 @@ export interface StudentUnifiedState {
     subscription: Partial<StudentData["subscription"]>
   ) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
+
+  // === ACTIONS - WORKOUT MANAGEMENT ===
+  createUnit: (data: { title: string; description?: string }) => Promise<void>;
+  updateUnit: (
+    unitId: string,
+    data: { title?: string; description?: string }
+  ) => Promise<void>;
+  deleteUnit: (unitId: string) => Promise<void>;
+  createWorkout: (data: {
+    unitId: string;
+    title: string;
+    description?: string;
+    muscleGroup?: string;
+    difficulty?: string;
+    estimatedTime?: number;
+    type?: string;
+  }) => Promise<string>; // Retorna o ID do workout criado (temporário ou real)
+  updateWorkout: (workoutId: string, data: Partial<any>) => Promise<void>;
+  deleteWorkout: (workoutId: string) => Promise<void>;
+  addWorkoutExercise: (workoutId: string, data: any) => Promise<void>;
+  updateWorkoutExercise: (exerciseId: string, data: any) => Promise<void>;
+  deleteWorkoutExercise: (exerciseId: string) => Promise<void>;
 
   // === ACTIONS - WORKOUT PROGRESS ===
   setActiveWorkout: (workoutId: string | null) => void;
@@ -1670,6 +1703,1448 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         // Sync com backend se necessário
+      },
+
+      // === ACTIONS - WORKOUT MANAGEMENT ===
+      // Segue padrão offline-first: optimistic update → command → syncManager
+      createUnit: async (data) => {
+        // 1. Optimistic update - atualiza UI imediatamente
+        const command = createCommand("CREATE_UNIT", data);
+        await logCommand(command);
+
+        const currentState = get();
+        const newUnit: Unit = {
+          id: command.id, // Usar command ID como ID temporário
+          title: data.title,
+          description: data.description || "",
+          color: "#58CC02",
+          icon: "💪",
+          studentId: currentState.data.student?.id,
+          workouts: [],
+        };
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: [...state.data.units, newUnit],
+          },
+        }));
+
+        // 2. Criar command explícito
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            "/api/workouts/units",
+            "POST",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "CREATE_UNIT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log("✅ Unit criada offline. Sincronizará quando online.");
+            return;
+          }
+
+          // Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
+          if (result.success && !result.queued && result.data?.id) {
+            const realId = result.data.id;
+            // Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((u) =>
+                  u.id === command.id ? { ...u, id: realId } : u
+                ),
+              },
+            }));
+          }
+          // Remover de pendentes se existir
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "CREATE_UNIT" || action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "CREATE_UNIT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Unit será sincronizada quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - pode ser validação, etc
+            console.error("Erro ao criar unit:", error);
+            // Reverter optimistic update apenas em caso de erro de validação
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.filter((u) => u.id !== command.id),
+              },
+            }));
+          }
+        }
+      },
+
+      updateUnit: async (unitId, data) => {
+        // 1. Optimistic update - atualiza UI imediatamente
+        const previousUnits = get().data.units;
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((unit) =>
+              unit.id === unitId
+                ? {
+                    ...unit,
+                    ...data,
+                    description: data.description ?? unit.description,
+                  }
+                : unit
+            ),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("UPDATE_UNIT", { unitId, ...data });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/units/${unitId}`,
+            "PUT",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_UNIT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Unit atualizada offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "UPDATE_UNIT" || action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_UNIT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Unit será sincronizada quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao atualizar unit:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: previousUnits,
+              },
+            }));
+          }
+        }
+      },
+
+      deleteUnit: async (unitId) => {
+        // 1. Optimistic update - remove da UI imediatamente
+        const previousUnits = get().data.units;
+        const unitToDelete = previousUnits.find((u) => u.id === unitId);
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.filter((unit) => unit.id !== unitId),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("DELETE_UNIT", { unitId });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/units/${unitId}`,
+            "DELETE",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_UNIT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Unit deletada offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "DELETE_UNIT" || action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_UNIT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Unit será sincronizada quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao deletar unit:", error);
+            if (unitToDelete) {
+              set((state) => ({
+                data: {
+                  ...state.data,
+                  units: [...state.data.units, unitToDelete],
+                },
+              }));
+            }
+          }
+        }
+      },
+
+      createWorkout: async (data) => {
+        // 1. Criar command primeiro (para ter o ID temporário)
+        const command = createCommand("CREATE_WORKOUT", data);
+
+        // 2. Optimistic update PRIMEIRO - atualiza UI imediatamente (antes de qualquer await!)
+        const currentState = get();
+        const unit = currentState.data.units.find((u) => u.id === data.unitId);
+        if (!unit) {
+          throw new Error("Unit não encontrada");
+        }
+
+        const newWorkout: WorkoutSession = {
+          id: command.id, // Usar command ID como ID temporário
+          title: data.title,
+          description: data.description || "",
+          type: (data.type as WorkoutType) || "strength",
+          muscleGroup: (data.muscleGroup as MuscleGroup) || "peito",
+          difficulty: (data.difficulty as DifficultyLevel) || "iniciante",
+          exercises: [],
+          xpReward: 50,
+          estimatedTime: data.estimatedTime || 45,
+          locked: false,
+          completed: false,
+        };
+
+        // Optimistic update IMEDIATO - não espera nada!
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((u) =>
+              u.id === data.unitId
+                ? { ...u, workouts: [...u.workouts, newWorkout] }
+                : u
+            ),
+          },
+        }));
+
+        // 3. Log command em background (não bloqueia UI)
+        logCommand(command).catch((err) => {
+          console.error("Erro ao logar command:", err);
+        });
+
+        // 2. Criar command explícito
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            "/api/workouts/manage",
+            "POST",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "CREATE_WORKOUT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Workout criado offline. Sincronizará quando online."
+            );
+            return command.id; // Retornar ID temporário
+          }
+
+          // Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
+          // A resposta vem como { success: true, data: { data: workout, message: "..." } }
+          // ou { success: true, data: workout } dependendo da estrutura
+          const workoutData = result.data?.data || result.data;
+          if (result.success && !result.queued && workoutData?.id) {
+            const realId = workoutData.id;
+            // Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((u) =>
+                  u.id === data.unitId
+                    ? {
+                        ...u,
+                        workouts: u.workouts.map((w) =>
+                          w.id === command.id ? { ...w, id: realId } : w
+                        ),
+                      }
+                    : u
+                ),
+              },
+            }));
+            // Remover de pendentes se existir
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "CREATE_WORKOUT" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+            return realId; // Retornar ID real
+          } else if (result.success && !result.queued) {
+            // Se não tem ID na resposta, apenas remover de pendentes
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "CREATE_WORKOUT" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+            return command.id; // Retornar ID temporário se não houver ID real
+          }
+
+          return command.id; // Retornar ID temporário por padrão
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "CREATE_WORKOUT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Workout será sincronizado quando voltar online"
+            );
+            return command.id; // Retornar ID temporário mesmo em caso de erro de rede
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao criar workout:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((u) =>
+                  u.id === data.unitId
+                    ? {
+                        ...u,
+                        workouts: u.workouts.filter((w) => w.id !== command.id),
+                      }
+                    : u
+                ),
+              },
+            }));
+            throw error; // Re-lançar erro para o componente tratar
+          }
+        }
+      },
+
+      updateWorkout: async (workoutId, data) => {
+        // 1. Optimistic update - atualiza UI imediatamente
+        const previousUnits = get().data.units;
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((unit) => ({
+              ...unit,
+              workouts: unit.workouts.map((workout) =>
+                workout.id === workoutId ? { ...workout, ...data } : workout
+              ),
+            })),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("UPDATE_WORKOUT", { workoutId, ...data });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/manage/${workoutId}`,
+            "PUT",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_WORKOUT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Workout atualizado offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "UPDATE_WORKOUT" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_WORKOUT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Workout será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao atualizar workout:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: previousUnits,
+              },
+            }));
+          }
+        }
+      },
+
+      deleteWorkout: async (workoutId) => {
+        // 1. Optimistic update - remove da UI imediatamente
+        const previousUnits = get().data.units;
+        let workoutToDelete: WorkoutSession | null = null;
+        let unitId: string | undefined;
+
+        // Encontrar workout e unit antes de remover
+        for (const unit of previousUnits) {
+          const workout = unit.workouts.find((w) => w.id === workoutId);
+          if (workout) {
+            workoutToDelete = workout;
+            unitId = unit.id;
+            break;
+          }
+        }
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((unit) => ({
+              ...unit,
+              workouts: unit.workouts.filter((w) => w.id !== workoutId),
+            })),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("DELETE_WORKOUT", { workoutId });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/manage/${workoutId}`,
+            "DELETE",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_WORKOUT",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Workout deletado offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "DELETE_WORKOUT" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_WORKOUT",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Workout será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao deletar workout:", error);
+            if (workoutToDelete && unitId) {
+              set((state) => ({
+                data: {
+                  ...state.data,
+                  units: state.data.units.map((unit) =>
+                    unit.id === unitId
+                      ? {
+                          ...unit,
+                          workouts: [...unit.workouts, workoutToDelete!],
+                        }
+                      : unit
+                  ),
+                },
+              }));
+            }
+          }
+        }
+      },
+
+      addWorkoutExercise: async (workoutId, data) => {
+        // 1. Optimistic update PRIMEIRO - atualiza UI instantaneamente (não espera API!)
+        const command = createCommand("ADD_WORKOUT_EXERCISE", {
+          workoutId, // Pode ser temporário - será atualizado depois
+          ...data,
+        });
+        await logCommand(command);
+
+        const currentState = get();
+        let unitFound = false;
+
+        const newExercise: WorkoutExercise = {
+          id: command.id, // Usar command ID como ID temporário
+          name: data.name || "Novo Exercício",
+          sets: data.sets || 3,
+          reps: data.reps || "12",
+          rest: data.rest || 60,
+          notes: data.notes,
+          videoUrl: data.videoUrl,
+          educationalId: data.educationalId,
+          primaryMuscles: data.primaryMuscles,
+          secondaryMuscles: data.secondaryMuscles,
+          difficulty: data.difficulty,
+          equipment: data.equipment,
+          instructions: data.instructions,
+          tips: data.tips,
+          commonMistakes: data.commonMistakes,
+          benefits: data.benefits,
+          scientificEvidence: data.scientificEvidence,
+          order: 0, // Será calculado
+        };
+
+        set((state) => {
+          const updatedUnits = state.data.units.map((unit) => {
+            // Procurar workout pelo ID original (pode ser temporário)
+            const workout = unit.workouts.find((w) => w.id === workoutId);
+            if (workout) {
+              unitFound = true;
+              const lastExercise =
+                workout.exercises[workout.exercises.length - 1];
+              const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
+              return {
+                ...unit,
+                workouts: unit.workouts.map((w) =>
+                  w.id === workoutId
+                    ? {
+                        ...w,
+                        exercises: [
+                          ...w.exercises,
+                          { ...newExercise, order: newOrder },
+                        ],
+                      }
+                    : w
+                ),
+              };
+            }
+            return unit;
+          });
+
+          return {
+            data: {
+              ...state.data,
+              units: updatedUnits,
+            },
+          };
+        });
+
+        if (!unitFound) {
+          throw new Error("Workout não encontrado");
+        }
+
+        // 2. Verificar se workoutId é temporário - se for, aguardar ID real com polling ativo
+        let finalWorkoutId = workoutId;
+        if (isTemporaryId(workoutId)) {
+          // Polling: 3 tentativas de 5 segundos cada (total 15 segundos)
+          const maxAttempts = 3;
+          const pollInterval = 5000; // 5 segundos entre tentativas
+          let attempts = 0;
+
+          console.log(
+            `[addWorkoutExercise] WorkoutId temporário detectado. Iniciando polling em background...`
+          );
+
+          while (isTemporaryId(finalWorkoutId) && attempts < maxAttempts) {
+            attempts++;
+            console.log(
+              `[addWorkoutExercise] Tentativa ${attempts}/${maxAttempts} - Aguardando ID real do workout...`
+            );
+
+            // Aguardar intervalo de polling (5 segundos)
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+            // Verificar se workout agora tem ID real
+            const currentState = get();
+            const workout = currentState.data.units
+              .flatMap((u) => u.workouts)
+              .find((w) => w.id === workoutId || w.id === finalWorkoutId);
+
+            if (workout && !isTemporaryId(workout.id)) {
+              finalWorkoutId = workout.id;
+              console.log(
+                `[addWorkoutExercise] ✅ ID real obtido após ${attempts} tentativa(s): ${finalWorkoutId}`
+              );
+              break;
+            }
+          }
+
+          // Se ainda é temporário após todas as tentativas, lançar erro
+          if (isTemporaryId(finalWorkoutId)) {
+            console.error(
+              `[addWorkoutExercise] ❌ Timeout: Workout ainda não tem ID real após ${maxAttempts} tentativas`
+            );
+            // Reverter optimistic update
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((unit) => ({
+                  ...unit,
+                  workouts: unit.workouts.map((workout) =>
+                    workout.id === workoutId
+                      ? {
+                          ...workout,
+                          exercises: workout.exercises.filter(
+                            (e) => e.id !== command.id
+                          ),
+                        }
+                      : workout
+                  ),
+                })),
+              },
+            }));
+            throw new Error(
+              "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente."
+            );
+          }
+        }
+
+        // 3. Criar command explícito com ID real (atualizar payload do command existente)
+        const commandWithRealId = {
+          ...command,
+          payload: {
+            ...command.payload,
+            workoutId: finalWorkoutId, // Usar ID real no payload
+          },
+        };
+        const migratedCommand = migrateCommand(commandWithRealId);
+
+        // 4. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            "/api/workouts/exercises",
+            "POST",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "ADD_WORKOUT_EXERCISE",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Exercício adicionado offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
+          // A resposta vem como { success: true, data: { data: exercise, message: "..." } }
+          // ou { success: true, data: exercise } dependendo da estrutura
+          const exerciseData = result.data?.data || result.data;
+          if (result.success && !result.queued && exerciseData?.id) {
+            const realId = exerciseData.id;
+            // Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((unit) => ({
+                  ...unit,
+                  workouts: unit.workouts.map((workout) =>
+                    workout.id === workoutId || workout.id === finalWorkoutId
+                      ? {
+                          ...workout,
+                          exercises: workout.exercises.map((exercise) =>
+                            exercise.id === command.id
+                              ? { ...exercise, id: realId }
+                              : exercise
+                          ),
+                        }
+                      : workout
+                  ),
+                })),
+              },
+            }));
+            // Remover de pendentes se existir
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "ADD_WORKOUT_EXERCISE" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          } else if (result.success && !result.queued) {
+            // Se não tem ID na resposta, apenas remover de pendentes
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "ADD_WORKOUT_EXERCISE" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "ADD_WORKOUT_EXERCISE",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Exercício será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao adicionar exercício:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: state.data.units.map((unit) => ({
+                  ...unit,
+                  workouts: unit.workouts.map((w) =>
+                    w.id === workoutId
+                      ? {
+                          ...w,
+                          exercises: w.exercises.filter(
+                            (e) => e.id !== command.id
+                          ),
+                        }
+                      : w
+                  ),
+                })),
+              },
+            }));
+          }
+        }
+      },
+
+      updateWorkoutExercise: async (exerciseId, data) => {
+        // 1. Optimistic update - atualiza UI imediatamente
+        const previousUnits = get().data.units;
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((unit) => ({
+              ...unit,
+              workouts: unit.workouts.map((workout) => ({
+                ...workout,
+                exercises: workout.exercises.map((exercise) =>
+                  exercise.id === exerciseId
+                    ? { ...exercise, ...data }
+                    : exercise
+                ),
+              })),
+            })),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("UPDATE_WORKOUT_EXERCISE", {
+          exerciseId,
+          ...data,
+        });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/exercises/${exerciseId}`,
+            "PUT",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_WORKOUT_EXERCISE",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Exercício atualizado offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "UPDATE_WORKOUT_EXERCISE" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "UPDATE_WORKOUT_EXERCISE",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Exercício será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao atualizar exercício:", error);
+            set((state) => ({
+              data: {
+                ...state.data,
+                units: previousUnits,
+              },
+            }));
+          }
+        }
+      },
+
+      deleteWorkoutExercise: async (exerciseId) => {
+        // 1. Optimistic update - remove da UI imediatamente
+        const previousUnits = get().data.units;
+        let exerciseToDelete: WorkoutExercise | null = null;
+        let workoutId: string | undefined;
+
+        // Encontrar exercício antes de remover
+        for (const unit of previousUnits) {
+          for (const workout of unit.workouts) {
+            const exercise = workout.exercises.find((e) => e.id === exerciseId);
+            if (exercise) {
+              exerciseToDelete = exercise;
+              workoutId = workout.id;
+              break;
+            }
+          }
+          if (exerciseToDelete) break;
+        }
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            units: state.data.units.map((unit) => ({
+              ...unit,
+              workouts: unit.workouts.map((workout) => ({
+                ...workout,
+                exercises: workout.exercises.filter((e) => e.id !== exerciseId),
+              })),
+            })),
+          },
+        }));
+
+        // 2. Criar command explícito
+        const command = createCommand("DELETE_WORKOUT_EXERCISE", {
+          exerciseId,
+        });
+        await logCommand(command);
+        const migratedCommand = migrateCommand(command);
+
+        // 3. Sync with backend usando syncManager
+        try {
+          const token =
+            typeof window !== "undefined"
+              ? localStorage.getItem("auth_token")
+              : null;
+
+          const options = commandToSyncManager(
+            migratedCommand,
+            `/api/workouts/exercises/${exerciseId}`,
+            "DELETE",
+            token ? { Authorization: `Bearer ${token}` } : {}
+          );
+
+          const result = await syncManager({
+            ...options,
+            priority: "high",
+            commandId: migratedCommand.id,
+          });
+
+          if (!result.success && result.error) {
+            throw result.error;
+          }
+
+          // Se foi enfileirado, marcar como pendente (NÃO reverter UI)
+          if (result.queued && result.queueId) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_WORKOUT_EXERCISE",
+                      queueId: result.queueId,
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "✅ Exercício deletado offline. Sincronizará quando online."
+            );
+            return;
+          }
+
+          // Se sincronizado com sucesso, apenas remover de pendentes (não recarregar!)
+          if (result.success && !result.queued) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: state.data.metadata.pendingActions.filter(
+                    (action) =>
+                      action.type !== "DELETE_WORKOUT_EXERCISE" ||
+                      action.id !== command.id
+                  ),
+                },
+              },
+            }));
+          }
+        } catch (error: any) {
+          // NÃO reverter UI - marcar como pendente se for erro de rede
+          const isNetworkError =
+            error.code === "ECONNABORTED" ||
+            error.message?.includes("Network Error") ||
+            !navigator.onLine;
+
+          if (isNetworkError) {
+            set((state) => ({
+              data: {
+                ...state.data,
+                metadata: {
+                  ...state.data.metadata,
+                  pendingActions: addPendingAction(
+                    state.data.metadata.pendingActions,
+                    {
+                      type: "DELETE_WORKOUT_EXERCISE",
+                      retries: 0,
+                    }
+                  ),
+                },
+              },
+            }));
+            console.log(
+              "📡 Offline - Exercício será sincronizado quando voltar online"
+            );
+          } else {
+            // Erro não é de rede - reverter optimistic update
+            console.error("Erro ao deletar exercício:", error);
+            if (exerciseToDelete && workoutId) {
+              set((state) => ({
+                data: {
+                  ...state.data,
+                  units: state.data.units.map((unit) => ({
+                    ...unit,
+                    workouts: unit.workouts.map((workout) =>
+                      workout.id === workoutId
+                        ? {
+                            ...workout,
+                            exercises: [
+                              ...workout.exercises,
+                              exerciseToDelete!,
+                            ].sort((a, b) => (a.order || 0) - (b.order || 0)),
+                          }
+                        : workout
+                    ),
+                  })),
+                },
+              }));
+            }
+          }
+        }
       },
 
       // === ACTIONS - WORKOUT PROGRESS ===

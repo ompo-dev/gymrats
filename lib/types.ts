@@ -119,6 +119,7 @@ export interface Unit {
   workouts: WorkoutSession[];
   color: string;
   icon: string;
+  studentId?: string; // ID do estudante se for personalizado, undefined se for global
 }
 
 // Conquistas
