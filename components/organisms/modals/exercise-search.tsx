@@ -96,6 +96,8 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
   const [selectedMuscle, setSelectedMuscle] = useState<string>("");
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
   const [exercises, setExercises] = useState<ExerciseResult[]>([]);
+  // Cache de todos os exercícios já carregados (para resolver bug de navegação entre categorias)
+  const exercisesCacheRef = useRef<Map<string, ExerciseResult>>(new Map());
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -195,6 +197,11 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 
         const newExercises = response.data.exercises || [];
 
+        // Adicionar ao cache
+        newExercises.forEach((ex: ExerciseResult) => {
+          exercisesCacheRef.current.set(ex.id, ex);
+        });
+
         if (reset || page === 0) {
           setExercises(newExercises);
         } else {
@@ -283,12 +290,16 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
     });
   };
 
-  const handleAddExercises = async () => {
+  const handleAddExercises = () => {
     if (selectedExerciseIds.length === 0) return;
 
+    // Usar cache para encontrar exercícios, não apenas o array atual
     const exercisesToAdd = selectedExerciseIds
       .map((exerciseId) => {
-        const exercise = exercises.find((e) => e.id === exerciseId);
+        // Primeiro tenta no array atual, depois no cache
+        const exercise =
+          exercises.find((e) => e.id === exerciseId) ||
+          exercisesCacheRef.current.get(exerciseId);
         if (!exercise) return null;
         return exercise;
       })
@@ -296,44 +307,55 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 
     if (exercisesToAdd.length === 0) return;
 
-    try {
-      // Adicionar todos os exercícios selecionados
-      for (const ex of exercisesToAdd) {
-        await actions.addWorkoutExercise(workoutId, {
+    // Iniciar adição de todos os exercícios (SEM await - optimistic update acontece primeiro!)
+    // As actions fazem optimistic update IMEDIATAMENTE, então UI já está atualizada
+    const addPromises = exercisesToAdd.map((ex) =>
+      actions
+        .addWorkoutExercise(workoutId, {
           name: ex.name,
           sets: defaultSets,
           reps: defaultReps,
           rest: defaultRest,
           educationalId: ex.id,
-        });
-      }
+        })
+        .catch((e: any) => {
+          // Tratar erros em background (não bloqueia UI)
+          console.error("Erro ao adicionar exercício:", e);
+          const errorMessage =
+            e?.message ||
+            e?.response?.data?.message ||
+            "Falha ao adicionar exercício";
 
-      // Toast apenas para feedback - UI já atualizou via optimistic update
-      toast.success(
-        `${exercisesToAdd.length} exercício${
-          exercisesToAdd.length > 1 ? "s" : ""
-        } adicionado${exercisesToAdd.length > 1 ? "s" : ""}`
-      );
+          // Mensagem específica para workout ainda não criado
+          if (errorMessage.includes("ainda está sendo criado")) {
+            toast.error(
+              "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente.",
+              { duration: 5000 }
+            );
+          } else {
+            toast.error(errorMessage);
+          }
+        })
+    );
 
-      // Limpar seleções
-      setSelectedExerciseIds([]);
-    } catch (e: any) {
-      console.error("Erro ao adicionar exercícios:", e);
-      const errorMessage =
-        e?.message ||
-        e?.response?.data?.message ||
-        "Falha ao adicionar exercícios";
+    // Toast apenas para feedback - UI já atualizou via optimistic update
+    toast.success(
+      `${exercisesToAdd.length} exercício${
+        exercisesToAdd.length > 1 ? "s" : ""
+      } adicionado${exercisesToAdd.length > 1 ? "s" : ""}`
+    );
 
-      // Mensagem específica para workout ainda não criado
-      if (errorMessage.includes("ainda está sendo criado")) {
-        toast.error(
-          "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente.",
-          { duration: 5000 }
-        );
-      } else {
-        toast.error(errorMessage);
-      }
-    }
+    // Limpar seleções
+    setSelectedExerciseIds([]);
+
+    // Fechar modal IMEDIATAMENTE - optimistic update já atualizou a UI!
+    // As requisições continuam em background
+    onClose();
+
+    // Processar promises em background (não bloqueia)
+    Promise.all(addPromises).catch(() => {
+      // Erros já foram tratados individualmente acima
+    });
   };
 
   const hasSelectedExercises = selectedExerciseIds.length > 0;
@@ -586,7 +608,10 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
               >
                 <AnimatePresence>
                   {selectedExerciseIds.map((exerciseId, index) => {
-                    const exercise = exercises.find((e) => e.id === exerciseId);
+                    // Usar cache para encontrar exercícios selecionados
+                    const exercise =
+                      exercises.find((e) => e.id === exerciseId) ||
+                      exercisesCacheRef.current.get(exerciseId);
                     if (!exercise) return null;
                     return (
                       <motion.div

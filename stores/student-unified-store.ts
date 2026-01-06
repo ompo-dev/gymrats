@@ -1219,6 +1219,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id, // Adicionar commandId para observabilidade
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -1330,12 +1331,16 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               ? localStorage.getItem("auth_token")
               : null;
 
+          // Gerar idempotencyKey explicitamente para evitar avisos
+          const idempotencyKey = generateIdempotencyKey();
+
           const result = await syncManager({
             url: "/api/students/profile",
             method: "POST",
             body: updates,
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             priority: "normal",
+            idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -1400,6 +1405,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               ? localStorage.getItem("auth_token")
               : null;
 
+          // Gerar idempotencyKey explicitamente para evitar avisos
+          const idempotencyKey = generateIdempotencyKey();
+
           const result = await syncManager({
             url: "/api/students/weight",
             method: "POST",
@@ -1410,6 +1418,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             },
             headers: token ? { Authorization: `Bearer ${token}` } : {},
             priority: "high",
+            idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -1751,6 +1760,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -1888,6 +1898,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2007,6 +2018,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2130,15 +2142,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           },
         }));
 
-        // 3. Log command em background (não bloqueia UI)
-        logCommand(command).catch((err) => {
-          console.error("Erro ao logar command:", err);
-        });
+        // 3. Log command (para observabilidade)
+        await logCommand(command);
 
-        // 2. Criar command explícito
+        // 4. Migrar command (versionamento)
         const migratedCommand = migrateCommand(command);
 
-        // 3. Sync with backend usando syncManager
+        // 5. Sync with backend usando syncManager
         try {
           const token =
             typeof window !== "undefined"
@@ -2156,6 +2166,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2328,6 +2339,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2462,6 +2474,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2557,13 +2570,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       addWorkoutExercise: async (workoutId, data) => {
-        // 1. Optimistic update PRIMEIRO - atualiza UI instantaneamente (não espera API!)
+        // 1. Criar command primeiro (para ter o ID temporário)
         const command = createCommand("ADD_WORKOUT_EXERCISE", {
           workoutId, // Pode ser temporário - será atualizado depois
           ...data,
         });
-        await logCommand(command);
 
+        // 2. Optimistic update PRIMEIRO - atualiza UI instantaneamente (não espera API!)
         const currentState = get();
         let unitFound = false;
 
@@ -2693,7 +2706,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }
         }
 
-        // 3. Criar command explícito com ID real (atualizar payload do command existente)
+        // 3. Log command (para observabilidade)
+        await logCommand(command);
+
+        // 4. Criar command com ID real (atualizar payload do command existente)
         const commandWithRealId = {
           ...command,
           payload: {
@@ -2701,9 +2717,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             workoutId: finalWorkoutId, // Usar ID real no payload
           },
         };
+        
+        // 5. Migrar command (versionamento)
         const migratedCommand = migrateCommand(commandWithRealId);
 
-        // 4. Sync with backend usando syncManager
+        // 6. Sync with backend usando syncManager
         try {
           const token =
             typeof window !== "undefined"
@@ -2721,6 +2739,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -2905,6 +2924,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {
@@ -3047,6 +3067,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             ...options,
             priority: "high",
             commandId: migratedCommand.id,
+            idempotencyKey: options.idempotencyKey || migratedCommand.meta.idempotencyKey,
           });
 
           if (!result.success && result.error) {

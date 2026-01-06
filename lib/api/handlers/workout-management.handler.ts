@@ -180,9 +180,12 @@ export async function createWorkoutHandler(
     });
     const order = lastWorkout ? lastWorkout.order + 1 : 0;
 
+    // Garantir valores padrão se não fornecidos
     const workout = await db.workout.create({
       data: {
         unitId,
+        muscleGroup: workoutData.muscleGroup || "",
+        estimatedTime: workoutData.estimatedTime || 0,
         ...workoutData,
         order,
       },

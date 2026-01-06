@@ -1,6 +1,6 @@
 /**
  * Serviço de Geração de Treinos Personalizados
- * 
+ *
  * Gera treinos personalizados baseados em todos os dados coletados no onboarding:
  * - Dados pessoais (idade, gênero, altura, peso, nível de fitness)
  * - Objetivos (perder peso, ganhar massa, definir, etc)
@@ -22,20 +22,25 @@ interface OnboardingProfile {
   fitnessLevel?: "iniciante" | "intermediario" | "avancado" | null;
   height?: number | null;
   weight?: number | null;
-  
+
   // Objetivos
   goals?: string[];
   weeklyWorkoutFrequency?: number | null;
   workoutDuration?: number | null; // minutos
-  
+
   // Preferências
   preferredSets?: number | null;
   preferredRepRange?: "forca" | "hipertrofia" | "resistencia" | null;
   restTime?: "curto" | "medio" | "longo" | null;
-  
+
   // Equipamentos
-  gymType?: "academia-completa" | "academia-basica" | "home-gym" | "peso-corporal" | null;
-  
+  gymType?:
+    | "academia-completa"
+    | "academia-basica"
+    | "home-gym"
+    | "peso-corporal"
+    | null;
+
   // Atividade e limitações
   activityLevel?: number | null; // 1-10
   physicalLimitations?: string[];
@@ -73,7 +78,7 @@ interface WorkoutPlan {
  */
 function getRestrictedMuscleGroups(limitations: string[]): string[] {
   const restricted: string[] = [];
-  
+
   if (limitations.includes("pernas")) {
     restricted.push("pernas", "gluteos", "quadriceps", "posterior");
   }
@@ -90,7 +95,7 @@ function getRestrictedMuscleGroups(limitations: string[]): string[] {
   if (limitations.includes("pescoco")) {
     restricted.push("pescoco", "trapezio");
   }
-  
+
   return restricted;
 }
 
@@ -104,54 +109,66 @@ function isExerciseCompatible(
   medicalConditions: string[]
 ): boolean {
   const restrictedMuscles = getRestrictedMuscleGroups(physicalLimitations);
-  
+
   // Verificar se o exercício trabalha grupos musculares restritos
   const primaryMuscles = exercise.primaryMuscles || [];
   const secondaryMuscles = exercise.secondaryMuscles || [];
   const allMuscles = [...primaryMuscles, ...secondaryMuscles];
-  
+
   for (const muscle of allMuscles) {
-    if (restrictedMuscles.some(restricted => 
-      muscle.toLowerCase().includes(restricted.toLowerCase()) ||
-      restricted.toLowerCase().includes(muscle.toLowerCase())
-    )) {
+    if (
+      restrictedMuscles.some(
+        (restricted) =>
+          muscle.toLowerCase().includes(restricted.toLowerCase()) ||
+          restricted.toLowerCase().includes(muscle.toLowerCase())
+      )
+    ) {
       return false;
     }
   }
-  
+
   // Verificar condições médicas
   if (medicalConditions.includes("problemas-cardiacos")) {
     // Evitar exercícios muito intensos
-    if (exercise.difficulty === "avancado" && exercise.name.toLowerCase().includes("terra")) {
+    if (
+      exercise.difficulty === "avancado" &&
+      exercise.name.toLowerCase().includes("terra")
+    ) {
       return false;
     }
   }
-  
+
   if (medicalConditions.includes("asma")) {
     // Evitar exercícios de alta intensidade cardiovascular
-    if (exercise.name.toLowerCase().includes("burpee") || 
-        exercise.name.toLowerCase().includes("sprint")) {
+    if (
+      exercise.name.toLowerCase().includes("burpee") ||
+      exercise.name.toLowerCase().includes("sprint")
+    ) {
       return false;
     }
   }
-  
+
   // Verificar limitações motoras
   if (motorLimitations.includes("mobilidade-reduzida")) {
     // Evitar exercícios que requerem muita mobilidade
-    if (exercise.name.toLowerCase().includes("agachamento") && 
-        exercise.name.toLowerCase().includes("profundo")) {
+    if (
+      exercise.name.toLowerCase().includes("agachamento") &&
+      exercise.name.toLowerCase().includes("profundo")
+    ) {
       return false;
     }
   }
-  
+
   if (motorLimitations.includes("equilibrio")) {
     // Evitar exercícios que requerem equilíbrio
-    if (exercise.name.toLowerCase().includes("unilateral") ||
-        exercise.name.toLowerCase().includes("pistol")) {
+    if (
+      exercise.name.toLowerCase().includes("unilateral") ||
+      exercise.name.toLowerCase().includes("pistol")
+    ) {
       return false;
     }
   }
-  
+
   return true;
 }
 
@@ -163,32 +180,36 @@ function filterByEquipment(
   gymType: string | null | undefined
 ): ExerciseInfo[] {
   if (!gymType) return exercises;
-  
-  return exercises.filter(exercise => {
+
+  return exercises.filter((exercise) => {
     const equipment = exercise.equipment || [];
-    
+
     switch (gymType) {
       case "academia-completa":
         // Todos os exercícios disponíveis
         return true;
-        
+
       case "academia-basica":
         // Apenas exercícios que não requerem equipamentos avançados
-        return !equipment.some(eq => 
+        return !equipment.some((eq) =>
           ["Máquina Avançada", "Cable Machine", "Smith Machine"].includes(eq)
         );
-        
+
       case "home-gym":
         // Apenas exercícios com equipamentos básicos
-        return equipment.some(eq => 
-          ["Halteres", "Barra", "Anilhas", "Banco"].includes(eq)
-        ) || equipment.length === 0;
-        
+        return (
+          equipment.some((eq) =>
+            ["Halteres", "Barra", "Anilhas", "Banco"].includes(eq)
+          ) || equipment.length === 0
+        );
+
       case "peso-corporal":
         // Apenas exercícios sem equipamento
-        return equipment.length === 0 || 
-               equipment.every(eq => eq === "Nenhum" || eq === "Peso Corporal");
-        
+        return (
+          equipment.length === 0 ||
+          equipment.every((eq) => eq === "Nenhum" || eq === "Peso Corporal")
+        );
+
       default:
         return true;
     }
@@ -204,7 +225,7 @@ function calculateSets(
   fitnessLevel: string | null | undefined
 ): number {
   if (preferredSets) return preferredSets;
-  
+
   // Baseado em nível de atividade
   if (activityLevel) {
     if (activityLevel >= 8) return 5; // Muito ativo
@@ -212,7 +233,7 @@ function calculateSets(
     if (activityLevel >= 4) return 3; // Moderado
     return 3; // Sedentário
   }
-  
+
   // Baseado em nível de fitness
   if (fitnessLevel === "avancado") return 4;
   if (fitnessLevel === "intermediario") return 3;
@@ -239,7 +260,7 @@ function calculateReps(
         return "8-12";
     }
   }
-  
+
   // Baseado em objetivos (fallback se não houver preferredRepRange)
   if (goals && goals.length > 0) {
     if (goals.includes("forca")) {
@@ -252,7 +273,7 @@ function calculateReps(
       return "8-12";
     }
   }
-  
+
   return "8-12"; // Padrão hipertrofia
 }
 
@@ -276,7 +297,7 @@ function calculateRest(
         return 60;
     }
   }
-  
+
   // Baseado em faixa de repetições (fallback se não houver restTime)
   if (preferredRepRange === "forca") return 120;
   if (preferredRepRange === "resistencia") return 30;
@@ -292,38 +313,50 @@ function generateAlternatives(
   gymType: string | null | undefined,
   limitations: string[]
 ): Array<{ name: string; reason: string; educationalId?: string }> {
-  const alternatives: Array<{ name: string; reason: string; educationalId?: string }> = [];
+  const alternatives: Array<{
+    name: string;
+    reason: string;
+    educationalId?: string;
+  }> = [];
   const usedNames = new Set<string>([exercise.name]); // Evitar duplicatas
-  
+
   // 1. Buscar alternativas do MESMO grupo muscular PRIMÁRIO
   // Isso garante que alternativas sejam realmente relevantes
   const primaryMuscleGroups = exercise.primaryMuscles;
-  
-  const sameMuscleGroupExercises = exerciseDatabase.filter(ex => {
+
+  const sameMuscleGroupExercises = exerciseDatabase.filter((ex) => {
     // Deve ter pelo menos um músculo primário em comum
-    const sharesPrimaryMuscle = ex.primaryMuscles.some(m => primaryMuscleGroups.includes(m));
-    
+    const sharesPrimaryMuscle = ex.primaryMuscles.some((m) =>
+      primaryMuscleGroups.includes(m)
+    );
+
     // Não pode ser o mesmo exercício
     // Não pode ter músculos primários completamente diferentes
-    const hasDifferentPrimary = ex.primaryMuscles.every(m => !primaryMuscleGroups.includes(m));
-    
-    return sharesPrimaryMuscle && 
-           !hasDifferentPrimary &&
-           ex.id !== exercise.id && 
-           !usedNames.has(ex.name);
+    const hasDifferentPrimary = ex.primaryMuscles.every(
+      (m) => !primaryMuscleGroups.includes(m)
+    );
+
+    return (
+      sharesPrimaryMuscle &&
+      !hasDifferentPrimary &&
+      ex.id !== exercise.id &&
+      !usedNames.has(ex.name)
+    );
   });
-  
+
   // 2. Alternativas baseadas em equipamentos disponíveis
   if (gymType === "peso-corporal") {
     // Se for exercício com equipamento, sugerir versão peso corporal
-    const bodyweightAlternatives = sameMuscleGroupExercises.filter(ex =>
-      !ex.equipment || ex.equipment.length === 0 || 
-      ex.name.toLowerCase().includes("peso corporal") ||
-      ex.name.toLowerCase().includes("flexão") ||
-      ex.name.toLowerCase().includes("agachamento") ||
-      ex.name.toLowerCase().includes("barra fixa")
+    const bodyweightAlternatives = sameMuscleGroupExercises.filter(
+      (ex) =>
+        !ex.equipment ||
+        ex.equipment.length === 0 ||
+        ex.name.toLowerCase().includes("peso corporal") ||
+        ex.name.toLowerCase().includes("flexão") ||
+        ex.name.toLowerCase().includes("agachamento") ||
+        ex.name.toLowerCase().includes("barra fixa")
     );
-    
+
     if (bodyweightAlternatives.length > 0) {
       const alt = bodyweightAlternatives[0];
       alternatives.push({
@@ -335,13 +368,14 @@ function generateAlternatives(
     }
   } else if (gymType === "academia-basica") {
     // Para academia básica, sugerir alternativas com equipamentos simples
-    const basicAlternatives = sameMuscleGroupExercises.filter(ex =>
-      !ex.equipment || 
-      ex.equipment.includes("barra") || 
-      ex.equipment.includes("halteres") ||
-      ex.equipment.includes("banco")
+    const basicAlternatives = sameMuscleGroupExercises.filter(
+      (ex) =>
+        !ex.equipment ||
+        ex.equipment.includes("barra") ||
+        ex.equipment.includes("halteres") ||
+        ex.equipment.includes("banco")
     );
-    
+
     if (basicAlternatives.length > 0) {
       const alt = basicAlternatives[0];
       alternatives.push({
@@ -352,17 +386,18 @@ function generateAlternatives(
       usedNames.add(alt.name);
     }
   }
-  
+
   // 3. Alternativas baseadas em limitações físicas
   if (limitations.includes("articulacoes")) {
     // Sugerir versões de menor impacto (máquinas, cabos)
-    const lowImpactAlternatives = sameMuscleGroupExercises.filter(ex =>
-      (ex.name.toLowerCase().includes("máquina") ||
-       ex.name.toLowerCase().includes("cabo") ||
-       ex.name.toLowerCase().includes("pulley")) &&
-      !usedNames.has(ex.name)
+    const lowImpactAlternatives = sameMuscleGroupExercises.filter(
+      (ex) =>
+        (ex.name.toLowerCase().includes("máquina") ||
+          ex.name.toLowerCase().includes("cabo") ||
+          ex.name.toLowerCase().includes("pulley")) &&
+        !usedNames.has(ex.name)
     );
-    
+
     if (lowImpactAlternatives.length > 0) {
       const alt = lowImpactAlternatives[0];
       alternatives.push({
@@ -373,16 +408,17 @@ function generateAlternatives(
       usedNames.add(alt.name);
     }
   }
-  
+
   if (limitations.includes("costas")) {
     // Evitar exercícios que sobrecarregam as costas
-    const backFriendlyAlternatives = sameMuscleGroupExercises.filter(ex =>
-      !ex.name.toLowerCase().includes("remo") &&
-      !ex.name.toLowerCase().includes("puxada") &&
-      !ex.name.toLowerCase().includes("remada") &&
-      !usedNames.has(ex.name)
+    const backFriendlyAlternatives = sameMuscleGroupExercises.filter(
+      (ex) =>
+        !ex.name.toLowerCase().includes("remo") &&
+        !ex.name.toLowerCase().includes("puxada") &&
+        !ex.name.toLowerCase().includes("remada") &&
+        !usedNames.has(ex.name)
     );
-    
+
     if (backFriendlyAlternatives.length > 0) {
       const alt = backFriendlyAlternatives[0];
       alternatives.push({
@@ -393,25 +429,34 @@ function generateAlternatives(
       usedNames.add(alt.name);
     }
   }
-  
+
   // 4. Sempre adicionar pelo menos uma alternativa genérica do mesmo grupo muscular
   // se ainda não tiver alternativas suficientes
   if (alternatives.length === 0 && sameMuscleGroupExercises.length > 0) {
     // Priorizar exercícios com dificuldade similar ou menor
-    const similarDifficulty = sameMuscleGroupExercises.filter(ex =>
-      ex.difficulty === exercise.difficulty || 
-      (exercise.difficulty === "intermediario" && ex.difficulty === "iniciante") ||
-      (exercise.difficulty === "avancado" && (ex.difficulty === "intermediario" || ex.difficulty === "iniciante"))
+    const similarDifficulty = sameMuscleGroupExercises.filter(
+      (ex) =>
+        ex.difficulty === exercise.difficulty ||
+        (exercise.difficulty === "intermediario" &&
+          ex.difficulty === "iniciante") ||
+        (exercise.difficulty === "avancado" &&
+          (ex.difficulty === "intermediario" || ex.difficulty === "iniciante"))
     );
-    
+
     // Priorizar exercícios que compartilham mais músculos primários
-    const bestMatches = (similarDifficulty.length > 0 ? similarDifficulty : sameMuscleGroupExercises)
-      .map(ex => ({
+    const bestMatches = (
+      similarDifficulty.length > 0
+        ? similarDifficulty
+        : sameMuscleGroupExercises
+    )
+      .map((ex) => ({
         exercise: ex,
-        sharedMuscles: ex.primaryMuscles.filter(m => primaryMuscleGroups.includes(m)).length,
+        sharedMuscles: ex.primaryMuscles.filter((m) =>
+          primaryMuscleGroups.includes(m)
+        ).length,
       }))
       .sort((a, b) => b.sharedMuscles - a.sharedMuscles);
-    
+
     if (bestMatches.length > 0) {
       const targetExercise = bestMatches[0].exercise;
       alternatives.push({
@@ -422,18 +467,23 @@ function generateAlternatives(
       usedNames.add(targetExercise.name);
     }
   }
-  
+
   // 5. Adicionar mais uma alternativa se possível (máximo 2 alternativas)
   // Priorizar exercícios que compartilham mais músculos primários
-  if (alternatives.length < 2 && sameMuscleGroupExercises.length > alternatives.length) {
+  if (
+    alternatives.length < 2 &&
+    sameMuscleGroupExercises.length > alternatives.length
+  ) {
     const remaining = sameMuscleGroupExercises
-      .filter(ex => !usedNames.has(ex.name))
-      .map(ex => ({
+      .filter((ex) => !usedNames.has(ex.name))
+      .map((ex) => ({
         exercise: ex,
-        sharedMuscles: ex.primaryMuscles.filter(m => primaryMuscleGroups.includes(m)).length,
+        sharedMuscles: ex.primaryMuscles.filter((m) =>
+          primaryMuscleGroups.includes(m)
+        ).length,
       }))
       .sort((a, b) => b.sharedMuscles - a.sharedMuscles);
-    
+
     if (remaining.length > 0) {
       const alt = remaining[0].exercise;
       alternatives.push({
@@ -443,7 +493,7 @@ function generateAlternatives(
       });
     }
   }
-  
+
   // Limitar a 2 alternativas no máximo
   return alternatives.slice(0, 2);
 }
@@ -470,69 +520,81 @@ function selectExercisesForMuscleGroup(
     motorLimitations = [],
     medicalConditions = [],
   } = profile;
-  
+
   // Definir grupos musculares que não devem aparecer
   const forbiddenMuscleGroups = new Set(excludedMuscleGroups);
-  
+
   // Filtrar exercícios por grupo muscular
   // Priorizar exercícios onde o grupo muscular é PRIMÁRIO, não secundário
-  let availableExercises = exerciseDatabase.filter(ex => {
+  let availableExercises = exerciseDatabase.filter((ex) => {
     // O grupo muscular deve estar nos músculos primários (prioridade)
     const isPrimary = ex.primaryMuscles.includes(muscleGroup as any);
     // Ou pelo menos nos secundários se não houver primários
-    const isSecondary = !isPrimary && ex.secondaryMuscles.includes(muscleGroup as any);
-    
+    const isSecondary =
+      !isPrimary && ex.secondaryMuscles.includes(muscleGroup as any);
+
     // Não pode ter grupos musculares proibidos nos primários
-    const hasForbiddenPrimary = ex.primaryMuscles.some(m => forbiddenMuscleGroups.has(m));
-    // Não pode ter grupos musculares proibidos nos secundários (a menos que seja o grupo alvo)
-    const hasForbiddenSecondary = ex.secondaryMuscles.some(m => 
-      forbiddenMuscleGroups.has(m) && m !== muscleGroup
+    const hasForbiddenPrimary = ex.primaryMuscles.some((m) =>
+      forbiddenMuscleGroups.has(m)
     );
-    
+    // Não pode ter grupos musculares proibidos nos secundários (a menos que seja o grupo alvo)
+    const hasForbiddenSecondary = ex.secondaryMuscles.some(
+      (m) => forbiddenMuscleGroups.has(m) && m !== muscleGroup
+    );
+
     // Não pode ser um exercício já selecionado
     const alreadySelected = alreadySelectedNames.has(ex.name);
-    
-    return (isPrimary || isSecondary) && 
-           !hasForbiddenPrimary && 
-           !hasForbiddenSecondary && 
-           !alreadySelected;
+
+    return (
+      (isPrimary || isSecondary) &&
+      !hasForbiddenPrimary &&
+      !hasForbiddenSecondary &&
+      !alreadySelected
+    );
   });
-  
+
   // Filtrar por equipamentos
   availableExercises = filterByEquipment(availableExercises, gymType);
-  
+
   // Filtrar por limitações
-  availableExercises = availableExercises.filter(ex =>
-    isExerciseCompatible(ex, physicalLimitations, motorLimitations, medicalConditions)
+  availableExercises = availableExercises.filter((ex) =>
+    isExerciseCompatible(
+      ex,
+      physicalLimitations,
+      motorLimitations,
+      medicalConditions
+    )
   );
-  
+
   // Filtrar por nível de dificuldade
   const targetDifficulty = fitnessLevel || "iniciante";
-  availableExercises = availableExercises.filter(ex => {
+  availableExercises = availableExercises.filter((ex) => {
     if (targetDifficulty === "iniciante") {
       return ex.difficulty === "iniciante" || ex.difficulty === "intermediario";
     }
     if (targetDifficulty === "intermediario") {
-      return ex.difficulty !== "avancado" || activityLevel && activityLevel >= 7;
+      return (
+        ex.difficulty !== "avancado" || (activityLevel && activityLevel >= 7)
+      );
     }
     return true; // avançado pode fazer qualquer exercício
   });
-  
+
   // Selecionar os melhores exercícios (priorizar exercícios compostos)
-  const compoundExercises = availableExercises.filter(ex =>
-    ex.primaryMuscles.length > 1 || ex.secondaryMuscles.length > 0
+  const compoundExercises = availableExercises.filter(
+    (ex) => ex.primaryMuscles.length > 1 || ex.secondaryMuscles.length > 0
   );
-  const isolationExercises = availableExercises.filter(ex =>
-    ex.primaryMuscles.length === 1 && ex.secondaryMuscles.length === 0
+  const isolationExercises = availableExercises.filter(
+    (ex) => ex.primaryMuscles.length === 1 && ex.secondaryMuscles.length === 0
   );
-  
+
   const selected: ExerciseSelection[] = [];
   const selectedIds = new Set<string>();
-  
+
   // Adicionar exercícios compostos primeiro
   for (const exercise of compoundExercises.slice(0, Math.min(2, count))) {
     if (selectedIds.has(exercise.id)) continue;
-    
+
     selected.push({
       exercise,
       sets: calculateSets(preferredSets, activityLevel, fitnessLevel),
@@ -546,12 +608,12 @@ function selectExercisesForMuscleGroup(
     });
     selectedIds.add(exercise.id);
   }
-  
+
   // Adicionar exercícios de isolamento
   for (const exercise of isolationExercises) {
     if (selected.length >= count) break;
     if (selectedIds.has(exercise.id)) continue;
-    
+
     selected.push({
       exercise,
       sets: calculateSets(preferredSets, activityLevel, fitnessLevel),
@@ -565,7 +627,7 @@ function selectExercisesForMuscleGroup(
     });
     selectedIds.add(exercise.id);
   }
-  
+
   return selected;
 }
 
@@ -574,7 +636,7 @@ function selectExercisesForMuscleGroup(
  */
 function determineSplit(weeklyFrequency: number | null | undefined): string[] {
   if (!weeklyFrequency) return ["full-body"];
-  
+
   if (weeklyFrequency <= 2) {
     return ["full-body"];
   } else if (weeklyFrequency === 3) {
@@ -604,57 +666,67 @@ export async function generatePersonalizedWorkoutPlan(
     goals = [],
     activityLevel = 5,
   } = profile;
-  
+
   // Determinar divisão de treino
   const split = determineSplit(weeklyWorkoutFrequency);
-  
+
   // Calcular número de semanas (4 semanas = 1 mês)
   const weeks = 4;
   const workoutsPerWeek = split.length;
-  
-    // Deletar treinos personalizados antigos do aluno (se existirem)
-    await db.unit.deleteMany({
-      where: { studentId: studentId },
-    });
 
-    // Criar units (semanas)
-    for (let week = 1; week <= weeks; week++) {
-      const unit = await db.unit.create({
-        data: {
-          title: `Semana ${week}`,
-          description: week === 1 
-            ? "Começando sua jornada fitness" 
+  // Deletar treinos personalizados antigos do aluno (se existirem)
+  await db.unit.deleteMany({
+    where: { studentId: studentId },
+  });
+
+  // Criar units (semanas)
+  for (let week = 1; week <= weeks; week++) {
+    const unit = await db.unit.create({
+      data: {
+        title: `Semana ${week}`,
+        description:
+          week === 1
+            ? "Começando sua jornada fitness"
             : week === 2
             ? "Aumentando a intensidade"
             : week === 3
             ? "Treino avançado"
             : "Consolidação e progressão",
-          color: week === 1 ? "#58CC02" : week === 2 ? "#1CB0F6" : week === 3 ? "#FF9600" : "#9B59B6",
-          icon: week === 1 ? "💪" : week === 2 ? "🔥" : week === 3 ? "⚡" : "🎯",
-          order: week,
-          studentId: studentId, // Associar ao aluno
-        },
-      });
-    
+        color:
+          week === 1
+            ? "#58CC02"
+            : week === 2
+            ? "#1CB0F6"
+            : week === 3
+            ? "#FF9600"
+            : "#9B59B6",
+        icon: week === 1 ? "💪" : week === 2 ? "🔥" : week === 3 ? "⚡" : "🎯",
+        order: week,
+        studentId: studentId, // Associar ao aluno
+      },
+    });
+
     // Criar workouts para cada dia da semana
     for (let day = 0; day < workoutsPerWeek; day++) {
       const dayType = split[day];
-      
+
       // Pular dia de descanso
       if (dayType === "rest") {
         continue;
       }
-      
+
       // Determinar grupos musculares baseado no tipo de dia
       let muscleGroups: string[] = [];
       let workoutTitle = "";
       let workoutDescription = "";
       let workoutType: "strength" | "cardio" | "flexibility" = "strength";
-      
+
       switch (dayType) {
         case "full-body":
           muscleGroups = ["peito", "costas", "pernas", "ombros", "bracos"];
-          workoutTitle = `Treino Completo - Dia ${String.fromCharCode(65 + day)}`;
+          workoutTitle = `Treino Completo - Dia ${String.fromCharCode(
+            65 + day
+          )}`;
           workoutDescription = "Treino completo para todo o corpo";
           break;
         case "upper":
@@ -683,30 +755,43 @@ export async function generatePersonalizedWorkoutPlan(
           workoutDescription = "Treino completo de pernas";
           break;
       }
-      
+
       // Adicionar cardio se objetivo incluir perder peso ou resistência
       if (goals.includes("perder-peso") || goals.includes("resistencia")) {
-        if (day % 2 === 1) { // Dias alternados
+        if (day % 2 === 1) {
+          // Dias alternados
           workoutType = "cardio";
           muscleGroups = ["cardio"];
         }
       }
-      
+
       // Selecionar exercícios para cada grupo muscular
       const allExercises: ExerciseSelection[] = [];
       const selectedExerciseNames = new Set<string>(); // Tracking de exercícios já selecionados
       const selectedExerciseIds = new Set<string>(); // Tracking de IDs para evitar duplicatas
-      
+
       // Determinar grupos musculares a evitar baseado no tipo de treino
       const excludedMuscleGroups: string[] = [];
       if (dayType === "upper" || dayType === "push" || dayType === "pull") {
         // Em treinos de superiores, excluir pernas e glúteos
-        excludedMuscleGroups.push("pernas", "gluteos", "quadriceps", "femoral", "panturrilha");
+        excludedMuscleGroups.push(
+          "pernas",
+          "gluteos",
+          "quadriceps",
+          "femoral",
+          "panturrilha"
+        );
       } else if (dayType === "lower" || dayType === "legs") {
         // Em treinos de inferiores, excluir grupos de superiores (exceto core que pode aparecer)
-        excludedMuscleGroups.push("peito", "costas", "ombros", "biceps", "triceps");
+        excludedMuscleGroups.push(
+          "peito",
+          "costas",
+          "ombros",
+          "biceps",
+          "triceps"
+        );
       }
-      
+
       for (const muscleGroup of muscleGroups) {
         const exercises = selectExercisesForMuscleGroup(
           muscleGroup,
@@ -715,32 +800,42 @@ export async function generatePersonalizedWorkoutPlan(
           excludedMuscleGroups, // Passar grupos a evitar
           selectedExerciseNames // Passar exercícios já selecionados
         );
-        
+
         // Adicionar apenas exercícios únicos
         for (const ex of exercises) {
-          if (!selectedExerciseNames.has(ex.exercise.name) && 
-              !selectedExerciseIds.has(ex.exercise.id)) {
+          if (
+            !selectedExerciseNames.has(ex.exercise.name) &&
+            !selectedExerciseIds.has(ex.exercise.id)
+          ) {
             allExercises.push(ex);
             selectedExerciseNames.add(ex.exercise.name);
             selectedExerciseIds.add(ex.exercise.id);
           }
         }
       }
-      
+
       // Limitar número de exercícios baseado em duração
-      const maxExercises = Math.floor(workoutDuration / 10); // ~10 min por exercício
+      const duration = workoutDuration ?? 45; // Garantir que não seja null
+      const maxExercises = Math.floor(duration / 10); // ~10 min por exercício
       const selectedExercises = allExercises.slice(0, maxExercises);
-      
+
       // Calcular tempo estimado
-      const estimatedTime = selectedExercises.reduce((total, ex) => {
-        const exerciseTime = (ex.sets * (parseInt(ex.reps.split("-")[0]) * 2)) + (ex.sets * ex.rest);
-        return total + exerciseTime;
-      }, 0) / 60; // Converter para minutos
-      
+      const estimatedTime =
+        selectedExercises.reduce((total, ex) => {
+          const exerciseTime =
+            ex.sets * (parseInt(ex.reps.split("-")[0]) * 2) + ex.sets * ex.rest;
+          return total + exerciseTime;
+        }, 0) / 60; // Converter para minutos
+
       // Calcular XP baseado em dificuldade e número de exercícios
-      const baseXP = fitnessLevel === "avancado" ? 100 : fitnessLevel === "intermediario" ? 75 : 50;
-      const xpReward = baseXP + (selectedExercises.length * 5);
-      
+      const baseXP =
+        fitnessLevel === "avancado"
+          ? 100
+          : fitnessLevel === "intermediario"
+          ? 75
+          : 50;
+      const xpReward = baseXP + selectedExercises.length * 5;
+
       // Criar workout
       const workout = await db.workout.create({
         data: {
@@ -749,19 +844,22 @@ export async function generatePersonalizedWorkoutPlan(
           description: workoutDescription,
           type: workoutType,
           muscleGroup: muscleGroups[0] || "full-body",
-          difficulty: fitnessLevel as "iniciante" | "intermediario" | "avancado",
+          difficulty: fitnessLevel as
+            | "iniciante"
+            | "intermediario"
+            | "avancado",
           xpReward,
-          estimatedTime: Math.round(estimatedTime) || workoutDuration,
+          estimatedTime: Math.round(estimatedTime) || duration, // Usar duration que já garante não ser null
           order: day,
           locked: day > 0, // Primeiro workout desbloqueado
         },
       });
-      
+
       // Criar exercícios
       for (let i = 0; i < selectedExercises.length; i++) {
         const exSelection = selectedExercises[i];
         const exerciseInfo = exSelection.exercise;
-        
+
         const exercise = await db.workoutExercise.create({
           data: {
             workoutId: workout.id,
@@ -773,18 +871,38 @@ export async function generatePersonalizedWorkoutPlan(
             educationalId: exerciseInfo.id,
             order: i,
             // Dados do educational database
-            primaryMuscles: exerciseInfo.primaryMuscles ? JSON.stringify(exerciseInfo.primaryMuscles) : null,
-            secondaryMuscles: exerciseInfo.secondaryMuscles ? JSON.stringify(exerciseInfo.secondaryMuscles) : null,
+            primaryMuscles: exerciseInfo.primaryMuscles
+              ? JSON.stringify(exerciseInfo.primaryMuscles)
+              : null,
+            secondaryMuscles: exerciseInfo.secondaryMuscles
+              ? JSON.stringify(exerciseInfo.secondaryMuscles)
+              : null,
             difficulty: exerciseInfo.difficulty || null,
-            equipment: exerciseInfo.equipment && exerciseInfo.equipment.length > 0 ? JSON.stringify(exerciseInfo.equipment) : null,
-            instructions: exerciseInfo.instructions && exerciseInfo.instructions.length > 0 ? JSON.stringify(exerciseInfo.instructions) : null,
-            tips: exerciseInfo.tips && exerciseInfo.tips.length > 0 ? JSON.stringify(exerciseInfo.tips) : null,
-            commonMistakes: exerciseInfo.commonMistakes && exerciseInfo.commonMistakes.length > 0 ? JSON.stringify(exerciseInfo.commonMistakes) : null,
-            benefits: exerciseInfo.benefits && exerciseInfo.benefits.length > 0 ? JSON.stringify(exerciseInfo.benefits) : null,
+            equipment:
+              exerciseInfo.equipment && exerciseInfo.equipment.length > 0
+                ? JSON.stringify(exerciseInfo.equipment)
+                : null,
+            instructions:
+              exerciseInfo.instructions && exerciseInfo.instructions.length > 0
+                ? JSON.stringify(exerciseInfo.instructions)
+                : null,
+            tips:
+              exerciseInfo.tips && exerciseInfo.tips.length > 0
+                ? JSON.stringify(exerciseInfo.tips)
+                : null,
+            commonMistakes:
+              exerciseInfo.commonMistakes &&
+              exerciseInfo.commonMistakes.length > 0
+                ? JSON.stringify(exerciseInfo.commonMistakes)
+                : null,
+            benefits:
+              exerciseInfo.benefits && exerciseInfo.benefits.length > 0
+                ? JSON.stringify(exerciseInfo.benefits)
+                : null,
             scientificEvidence: exerciseInfo.scientificEvidence || null,
           },
         });
-        
+
         // Criar alternativas
         for (let j = 0; j < exSelection.alternatives.length; j++) {
           const alt = exSelection.alternatives[j];
@@ -807,7 +925,9 @@ export async function generatePersonalizedWorkoutPlan(
  * Atualiza exercícios existentes com alternativas
  * Útil para adicionar alternativas a treinos já gerados
  */
-export async function updateExercisesWithAlternatives(studentId: string): Promise<void> {
+export async function updateExercisesWithAlternatives(
+  studentId: string
+): Promise<void> {
   try {
     // Buscar perfil do aluno uma única vez (fora do loop)
     const student = await db.student.findUnique({
@@ -816,7 +936,9 @@ export async function updateExercisesWithAlternatives(studentId: string): Promis
     });
 
     if (!student?.profile) {
-      console.warn(`[updateExercisesWithAlternatives] Perfil não encontrado para studentId: ${studentId}`);
+      console.warn(
+        `[updateExercisesWithAlternatives] Perfil não encontrado para studentId: ${studentId}`
+      );
       return;
     }
 
@@ -855,11 +977,14 @@ export async function updateExercisesWithAlternatives(studentId: string): Promis
 
           // Buscar o exercício no database educacional
           const exerciseInfo = exerciseDatabase.find(
-            (ex) => ex.id === exercise.educationalId || ex.name === exercise.name
+            (ex) =>
+              ex.id === exercise.educationalId || ex.name === exercise.name
           );
 
           if (!exerciseInfo) {
-            console.warn(`[updateExercisesWithAlternatives] Exercício não encontrado no database: ${exercise.name} (educationalId: ${exercise.educationalId})`);
+            console.warn(
+              `[updateExercisesWithAlternatives] Exercício não encontrado no database: ${exercise.name} (educationalId: ${exercise.educationalId})`
+            );
             continue;
           }
 
@@ -889,7 +1014,9 @@ export async function updateExercisesWithAlternatives(studentId: string): Promis
       }
     }
 
-    console.log(`[updateExercisesWithAlternatives] ${updatedCount} exercícios atualizados com alternativas`);
+    console.log(
+      `[updateExercisesWithAlternatives] ${updatedCount} exercícios atualizados com alternativas`
+    );
   } catch (error) {
     console.error("Erro ao atualizar exercícios com alternativas:", error);
     throw error;
@@ -899,11 +1026,12 @@ export async function updateExercisesWithAlternatives(studentId: string): Promis
 /**
  * Verifica se o aluno já tem treinos personalizados
  */
-export async function hasPersonalizedWorkouts(studentId: string): Promise<boolean> {
+export async function hasPersonalizedWorkouts(
+  studentId: string
+): Promise<boolean> {
   // Verificar se há units criadas para este aluno específico
   const unitsCount = await db.unit.count({
     where: { studentId: studentId },
   });
   return unitsCount > 0;
 }
-

@@ -39,9 +39,9 @@ export const createWorkoutSchema = z.object({
   title: z.string().min(1, "O título é obrigatório"),
   description: z.string().optional(),
   type: z.string().default("strength"), // "strength", "cardio", etc.
-  muscleGroup: z.string().min(1, "Grupo muscular é obrigatório"),
+  muscleGroup: z.string(), // Pode ser vazio - será selecionado depois
   difficulty: z.string().min(1, "Dificuldade é obrigatória"),
-  estimatedTime: z.number().int().positive("Tempo estimado deve ser positivo"),
+  estimatedTime: z.number().int().nonnegative("Tempo estimado não pode ser negativo"), // Pode ser 0 e será calculado depois
 });
 
 export const updateWorkoutSchema = createWorkoutSchema

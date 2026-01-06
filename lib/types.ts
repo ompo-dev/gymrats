@@ -60,6 +60,7 @@ export interface WorkoutSession {
   exercises: WorkoutExercise[];
   xpReward: number;
   estimatedTime: number; // em minutos
+  order?: number; // Ordem do workout na unit
   locked: boolean;
   completed: boolean;
   stars?: number; // 0-3 estrelas baseado em performance
