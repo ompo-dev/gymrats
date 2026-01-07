@@ -16,7 +16,7 @@ import { NutritionTracker } from "@/components/organisms/trackers/nutrition-trac
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { Calendar, TrendingUp } from "lucide-react";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";

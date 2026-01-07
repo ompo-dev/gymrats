@@ -10,7 +10,7 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
-import { UnitSectionCard } from "../../../components/ui/unit-section-card";
+import { UnitSectionCard } from "@/components/ui/unit-section-card";
 import { useRouter } from "next/navigation";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
