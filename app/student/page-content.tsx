@@ -22,6 +22,7 @@ import { WhileInView } from "@/components/animations/while-in-view";
 import { motion } from "motion/react";
 import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
+import { useUserSession } from "@/hooks/use-user-session";
 import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { ShopCard } from "@/components/organisms/sections/shop-card";
@@ -56,8 +57,8 @@ function StudentHomeContent() {
   const [isMounted, setIsMounted] = useState(false);
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
 
-  // Verificar se é admin
-  const { isAdmin, role } = useStudent("isAdmin", "role");
+  // ✅ SEGURO: Verificar se é admin validando no servidor
+  const { isAdmin, role } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
   // Proteger rotas bloqueadas (versão beta)

@@ -1,6 +1,9 @@
 "use client";
 
-import { AppLayout, TabConfig } from "@/components/templates/layouts/app-layout";
+import {
+  AppLayout,
+  TabConfig,
+} from "@/components/templates/layouts/app-layout";
 import {
   LayoutDashboard,
   Users,
@@ -11,7 +14,7 @@ import {
 import { parseAsString, useQueryState } from "nuqs";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useStudent } from "@/hooks/use-student";
+import { useUserSession } from "@/hooks/use-user-session";
 
 interface GymLayoutContentProps {
   children: React.ReactNode;
@@ -29,18 +32,24 @@ export function GymLayoutContent({
 }: GymLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
-  
-  // Verificar se é admin (versão beta: apenas admin pode acessar /gym)
-  const { isAdmin, role } = useStudent("isAdmin", "role");
+
+  // ✅ SEGURO: Verificar se é admin validando no servidor
+  // ⚠️ IMPORTANTE: Esta validação no cliente é apenas para UX
+  // A proteção real deve estar no middleware/proxy.ts
+  const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
-  
-  // Bloquear acesso se não for admin
+
+  // Bloquear acesso se não for admin (apenas para UX - validação real no servidor)
   useEffect(() => {
+    if (sessionLoading) return; // Aguardar validação do servidor
+
     if (!userIsAdmin) {
-      console.warn("[GymLayoutContent] Acesso negado a /gym. Apenas admin pode acessar na versão beta.");
+      console.warn(
+        "[GymLayoutContent] Acesso negado a /gym. Apenas admin pode acessar na versão beta."
+      );
       router.push("/student");
     }
-  }, [userIsAdmin, router]);
+  }, [userIsAdmin, sessionLoading, router]);
 
   // Usar valores padrão para evitar problemas de hidratação
   // O nuqs vai atualizar os valores no cliente após a hidratação
@@ -53,14 +62,19 @@ export function GymLayoutContent({
 
   const isOnboarding =
     typeof pathname === "string" && pathname.includes("/onboarding");
-  
+
   // Não renderizar nada se não for admin
   if (!userIsAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h1>
-          <p className="text-gray-600">Esta área está disponível apenas para administradores durante a versão beta.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Acesso Negado
+          </h1>
+          <p className="text-gray-600">
+            Esta área está disponível apenas para administradores durante a
+            versão beta.
+          </p>
         </div>
       </div>
     );

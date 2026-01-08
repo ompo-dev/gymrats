@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/stores";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, userRole } = useAuthStore();
+  // ⚠️ NÃO usar userRole do store - sempre validar no servidor
   const [mounted, setMounted] = useState(false);
 
   // Aguardar montagem do componente e rehydrate do Zustand
@@ -18,30 +17,38 @@ export default function Home() {
     // Não fazer nada até montar (garantir que Zustand restaurou)
     if (!mounted) return;
 
-    // Verificar token diretamente no localStorage como fonte da verdade
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("auth_token");
-      const storedUserRole = localStorage.getItem("userRole") as
-        | "STUDENT"
-        | "GYM"
-        | "ADMIN"
-        | null;
+    // ⚠️ SEGURANÇA: Validar no servidor, não confiar no localStorage
+    // localStorage pode ser modificado pelo usuário
+    async function validateAndRedirect() {
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        const response = await apiClient.get<{
+          user: { role: "STUDENT" | "GYM" | "ADMIN" } | null;
+        }>("/api/auth/session");
 
-      // Se há token, está autenticado (independente do estado do Zustand)
-      if (token && storedUserRole) {
-        if (storedUserRole === "STUDENT" || storedUserRole === "ADMIN") {
-          router.push("/student");
-          return;
-        } else if (storedUserRole === "GYM") {
-          router.push("/gym");
-          return;
+        if (response.data.user) {
+          const role = response.data.user.role;
+
+          // Redirecionar baseado no role validado no servidor
+          if (role === "STUDENT" || role === "ADMIN") {
+            router.push("/student");
+            return;
+          } else if (role === "GYM") {
+            router.push("/gym");
+            return;
+          }
         }
+      } catch (error) {
+        // Se falhar, usuário não está autenticado
+        console.error("[Home] Erro ao validar sessão:", error);
       }
+
+      // Se chegou aqui, não está autenticado ou não tem role válido
+      router.push("/welcome");
     }
 
-    // Se chegou aqui, não está autenticado ou não tem role válido
-    router.push("/welcome");
-  }, [router, mounted, isAuthenticated, userRole]);
+    validateAndRedirect();
+  }, [router, mounted]);
 
   return (
     <div className="min-h-screen bg-linear-to-b from-[#58CC02] to-[#47A302] flex items-center justify-center">

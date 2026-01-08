@@ -27,7 +27,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { getUserInfoFromStorage } from "@/lib/utils/user-info";
+import { useUserSession } from "@/hooks/use-user-session";
 import { useEffect, useState } from "react";
 
 // Nota: useUserSession foi removido - usando apenas dados do servidor (SSR)
@@ -41,57 +41,17 @@ export function GymSettingsPage({
   userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
   const router = useRouter();
-  const [actualIsAdmin, setActualIsAdmin] = useState(false);
 
-  // Buscar do localStorage primeiro (rápido, sem delay)
-  const storageInfo = getUserInfoFromStorage();
+  // ✅ SEGURO: Usar hook que valida no servidor
+  const {
+    isAdmin: serverIsAdmin,
+    role: serverRole,
+    isLoading: sessionLoading,
+  } = useUserSession();
 
-  // Buscar dados atualizados da API no cliente (confiável)
-  useEffect(() => {
-    async function fetchUserInfo() {
-      try {
-        // Usar axios client (API → Component)
-        const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{
-          user?: { role?: string; userType?: string };
-        }>("/api/auth/session");
-        if (response.data.user) {
-          const isAdminFromAPI =
-            response.data.user.role === "ADMIN" ||
-            response.data.user.userType === "admin";
-          setActualIsAdmin(isAdminFromAPI);
-          console.log(
-            "[GymSettingsPage] Dados da API:",
-            response.data.user,
-            "isAdminFromAPI:",
-            isAdminFromAPI
-          );
-        }
-      } catch (error) {
-        console.error("[GymSettingsPage] Erro ao buscar sessão:", error);
-      }
-    }
-
-    fetchUserInfo();
-  }, []);
-
-  // Usar dados da API como fonte principal, localStorage e userInfo como fallback
-  const isAdmin =
-    actualIsAdmin ||
-    storageInfo.isAdmin ||
-    userInfo?.role === "ADMIN" ||
-    userInfo?.isAdmin;
-
-  console.log(
-    "[GymSettingsPage] actualIsAdmin:",
-    actualIsAdmin,
-    "storageInfo.isAdmin:",
-    storageInfo.isAdmin,
-    "userInfo?.role:",
-    userInfo?.role,
-    "isAdmin final:",
-    isAdmin
-  );
+  // ✅ SEGURANÇA: Usar dados do servidor como fonte da verdade
+  // Nunca confiar apenas em userInfo prop ou localStorage (podem ser modificados)
+  const isAdmin = serverIsAdmin || serverRole === "ADMIN";
   const operatingHours = [
     { day: "Segunda a Sexta", hours: "06:00 - 22:00" },
     { day: "Sábado", hours: "08:00 - 20:00" },
@@ -104,7 +64,7 @@ export function GymSettingsPage({
       const { apiClient } = await import("@/lib/api/client");
       await apiClient.post("/api/auth/sign-out");
 
-      router.push("/auth/login");
+      router.push("/welcome");
       router.refresh();
     } catch (error) {
       console.error("Erro ao fazer logout:", error);

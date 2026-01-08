@@ -46,7 +46,7 @@ class ApiClient {
         if (error.response?.status === 401) {
           if (typeof window !== "undefined") {
             localStorage.removeItem("auth_token");
-            window.location.href = "/auth/login";
+            window.location.href = "/welcome";
           }
         }
         return Promise.reject(error);

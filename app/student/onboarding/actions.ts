@@ -39,10 +39,6 @@ export async function submitOnboarding(formData: OnboardingData) {
         typeof formData.hormoneTreatmentDuration === "number"
           ? formData.hormoneTreatmentDuration
           : undefined,
-      dailyAvailableHours:
-        typeof formData.dailyAvailableHours === "number"
-          ? formData.dailyAvailableHours
-          : undefined,
       physicalLimitations: formData.physicalLimitations || [],
       motorLimitations: formData.motorLimitations || [],
       medicalConditions: formData.medicalConditions || [],
@@ -244,9 +240,9 @@ export async function submitOnboarding(formData: OnboardingData) {
           : null,
       // Manter compatibilidade: também salvar no campo injuries (JSON array combinado)
       injuries:
-        (formData.physicalLimitations?.length ||
-          formData.motorLimitations?.length ||
-          formData.medicalConditions?.length) > 0
+        (formData.physicalLimitations?.length ?? 0) > 0 ||
+        (formData.motorLimitations?.length ?? 0) > 0 ||
+        (formData.medicalConditions?.length ?? 0) > 0
           ? JSON.stringify([
               ...(formData.physicalLimitations || []),
               ...(formData.motorLimitations || []),

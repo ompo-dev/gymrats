@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/welcome", "/auth/login", "/api/auth", "/onboarding"];
+const publicRoutes = ["/welcome", "/api/auth", "/onboarding", "/auth/login"];
 
 function isPublicRoute(pathname: string): boolean {
   return publicRoutes.some((route) => pathname.startsWith(route));
@@ -27,14 +27,14 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/lesson")
   ) {
     if (!hasAuth) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      return NextResponse.redirect(new URL("/welcome", request.url));
     }
     return NextResponse.next();
   }
 
   if (pathname.startsWith("/gym")) {
     if (!hasAuth) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      return NextResponse.redirect(new URL("/welcome", request.url));
     }
     return NextResponse.next();
   }

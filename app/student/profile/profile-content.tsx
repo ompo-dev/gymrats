@@ -333,14 +333,40 @@ export function ProfilePageContent() {
 
   const handleLogout = async () => {
     try {
-      // Usar axios client para logout (API → Zustand → Component)
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/auth/sign-out");
+      // Limpar store de autenticação primeiro
+      const { useAuthStore } = await import("@/stores");
+      useAuthStore.getState().logout();
 
-      router.push("/auth/login");
-      router.refresh();
+      // Limpar localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("isAdmin");
+      }
+
+      // Tentar fazer logout no servidor (não bloquear se falhar)
+      try {
+        const { apiClient } = await import("@/lib/api/client");
+        await apiClient.post("/api/auth/sign-out");
+      } catch (apiError) {
+        console.error("Erro ao fazer logout no servidor:", apiError);
+        // Continuar mesmo se falhar
+      }
+
+      // Redirecionar para welcome usando window.location para forçar navegação completa
+      // Isso evita qualquer pré-carregamento do Next.js Router
+      if (typeof window !== "undefined") {
+        window.location.href = "/welcome";
+      }
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
+      // Mesmo em caso de erro, redirecionar para welcome
+      if (typeof window !== "undefined") {
+        window.location.href = "/welcome";
+      }
     }
   };
 

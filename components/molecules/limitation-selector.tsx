@@ -29,7 +29,10 @@ interface LimitationSelectorProps {
   selectedValues: string[];
   onChange: (values: string[]) => void;
   limitationDetails?: Record<string, string | string[]>;
-  onDetailChange?: (limitationKey: string, detailValue: string | string[]) => void;
+  onDetailChange?: (
+    limitationKey: string,
+    detailValue: string | string[]
+  ) => void;
   detailConfig?: Record<string, LimitationDetail>;
   delay?: number;
   error?: string;
@@ -57,10 +60,10 @@ export function LimitationSelector({
 
   const handleHasLimitationsChange = (value: string) => {
     const hasLimits = value === "sim";
-    
+
     // Atualiza estado imediatamente
     setHasLimitations(hasLimits);
-    
+
     if (!hasLimits) {
       // Se selecionou "não", limpa tudo
       onChange([]);
@@ -82,7 +85,11 @@ export function LimitationSelector({
       : [...current, value];
 
     // Remove detalhes se a limitação foi desmarcada
-    if (!updated.includes(value) && onDetailChange && limitationDetails[value]) {
+    if (
+      !updated.includes(value) &&
+      onDetailChange &&
+      limitationDetails[value]
+    ) {
       onDetailChange(value, "");
     }
 
@@ -147,7 +154,7 @@ export function LimitationSelector({
             <p className="text-xs text-gray-600">
               Selecione todas as limitações que se aplicam a você
             </p>
-            
+
             {/* Botões de seleção como no Step 1 */}
             <div className="grid grid-cols-2 gap-3">
               {options.map((option, index) => (
@@ -194,16 +201,28 @@ export function LimitationSelector({
                       options={detail.options}
                       value={
                         Array.isArray(limitationDetails[limitationKey])
-                          ? (limitationDetails[limitationKey] as string[])[0] || ""
+                          ? (limitationDetails[limitationKey] as string[])[0] ||
+                            ""
                           : (limitationDetails[limitationKey] as string) || ""
                       }
                       onChange={(value) => {
-                        const detailValue = Array.isArray(value) ? value[0] : value;
+                        const detailValue = Array.isArray(value)
+                          ? value[0]
+                          : value;
                         onDetailChange?.(limitationKey, detailValue);
                       }}
                       multiple={false}
                       layout="grid"
-                      columns={detail.options.length <= 3 ? detail.options.length : 3}
+                      columns={
+                        Math.min(Math.max(1, detail.options.length), 7) as
+                          | 1
+                          | 2
+                          | 3
+                          | 4
+                          | 5
+                          | 6
+                          | 7
+                      }
                       size="sm"
                       delay={0}
                     />

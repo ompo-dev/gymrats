@@ -275,10 +275,10 @@ export default function StudentOnboardingPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-green scrollbar-hide">
+    <div className="relative flex min-h-screen flex-col bg-duo-green scrollbar-hide">
       {showConfetti && <Confetti />}
 
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {isMounted &&
           [...Array(20)].map((_, i) => (
             <motion.div
@@ -302,56 +302,58 @@ export default function StudentOnboardingPage() {
           ))}
       </div>
 
-      {/* Conteúdo centralizado */}
-      <div className="flex flex-1 items-center justify-center p-4   overflow-y-auto scrollbar-hide">
-        <div className="relative mx-auto w-full max-w-2xl">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <Step1
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-            {step === 2 && (
-              <Step2
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-            {step === 3 && (
-              <Step3
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-            {step === 4 && (
-              <Step4
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-            {step === 5 && (
-              <Step6
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-            {step === 6 && (
-              <Step5 formData={formData} setFormData={setFormData} />
-            )}
-            {step === 7 && (
-              <Step7
-                formData={formData}
-                setFormData={setFormData}
-                forceValidation={forceValidation}
-              />
-            )}
-          </AnimatePresence>
+      {/* Conteúdo com scroll */}
+      <div className="flex-1 overflow-y-auto scrollbar-hide pb-24">
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative mx-auto w-full max-w-2xl py-8">
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <Step1
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+              {step === 2 && (
+                <Step2
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+              {step === 3 && (
+                <Step3
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+              {step === 4 && (
+                <Step4
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+              {step === 5 && (
+                <Step6
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+              {step === 6 && (
+                <Step5 formData={formData} setFormData={setFormData} />
+              )}
+              {step === 7 && (
+                <Step7
+                  formData={formData}
+                  setFormData={setFormData}
+                  forceValidation={forceValidation}
+                />
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

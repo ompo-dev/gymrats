@@ -41,6 +41,8 @@ export const useAuthStore = create<AuthState>()(
           localStorage.removeItem("isAuthenticated");
           // Remover userMode se existir (migração)
           localStorage.removeItem("userMode");
+          // Limpar auth-storage do Zustand
+          localStorage.removeItem("auth-storage");
         }
         set({
           isAuthenticated: false,
@@ -53,32 +55,47 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      // ⚠️ SEGURANÇA: NÃO persistir userRole e isAdmin no localStorage
+      // Estes valores podem ser modificados pelo usuário e não devem ser usados para autorização
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        userProfile: state.userProfile,
+        userId: state.userId,
+        // userRole e isAdmin NÃO são persistidos - sempre validar no servidor
+      }),
       onRehydrateStorage: () => (state) => {
-        // Quando o Zustand restaura o estado do localStorage, sincronizar com auth_token
+        // ⚠️ SEGURANÇA: localStorage pode ser modificado pelo usuário
+        // Este rehydrate é apenas para UX inicial - sempre validar no servidor depois
         if (typeof window !== "undefined" && state) {
+          // ⚠️ SEGURANÇA: Limpar valores antigos e inseguros do localStorage
+          // Remover userRole e isAdmin do localStorage se existirem (valores antigos)
+          localStorage.removeItem("userRole");
+          localStorage.removeItem("isAdmin");
+
           const token = localStorage.getItem("auth_token");
           const storedUserId = localStorage.getItem("userId");
-          const storedUserRole = localStorage.getItem("userRole");
 
-          // Se há token, garantir que está autenticado (fonte da verdade: auth_token)
+          // Se há token, restaurar estado inicial (apenas para UX)
+          // ⚠️ IMPORTANTE: Este estado NÃO deve ser usado para autorização real
+          // Sempre validar no servidor via API antes de permitir ações sensíveis
           if (token) {
             state.isAuthenticated = true;
             state.userId = storedUserId || state.userId;
-            // userRole deve ser "STUDENT", "GYM" ou "ADMIN"
-            if (
-              storedUserRole === "STUDENT" ||
-              storedUserRole === "GYM" ||
-              storedUserRole === "ADMIN"
-            ) {
-              state.userRole = storedUserRole as "STUDENT" | "GYM" | "ADMIN";
-            }
-            state.isAdmin = storedUserRole === "ADMIN";
+            // ⚠️ SEGURANÇA: userRole e isAdmin NÃO são restaurados do localStorage
+            // Eles devem ser sempre obtidos do servidor via useUserSession()
+            // Sempre definir como null/false para garantir que não são usados para autorização
+            state.userRole = null;
+            state.isAdmin = false;
           }
           // Se não há token, garantir que NÃO está autenticado
           else if (!token && state.isAuthenticated) {
             state.isAuthenticated = false;
             state.userProfile = null;
             state.userId = null;
+            state.userRole = null;
+            state.isAdmin = false;
+          } else {
+            // Mesmo sem token, garantir que userRole e isAdmin estão limpos
             state.userRole = null;
             state.isAdmin = false;
           }

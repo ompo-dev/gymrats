@@ -49,7 +49,12 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
         setErrors({});
       }
     }
-  }, [formData.goals, formData.weeklyWorkoutFrequency, formData.workoutDuration, touched]);
+  }, [
+    formData.goals,
+    formData.weeklyWorkoutFrequency,
+    formData.workoutDuration,
+    touched,
+  ]);
 
   return (
     <StepCard title="Objetivos" description="O que você quer alcançar?">
@@ -82,10 +87,27 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
             ]}
             value={formData.goals}
             onChange={(value) => {
-              const goals = formData.goals.includes(value)
-                ? formData.goals.filter((g) => g !== value)
-                : [...formData.goals, value];
-              setFormData({ ...formData, goals });
+              const goalValue = value as
+                | "perder-peso"
+                | "ganhar-massa"
+                | "definir"
+                | "saude"
+                | "forca"
+                | "resistencia";
+              const goals = formData.goals.includes(goalValue)
+                ? formData.goals.filter((g) => g !== goalValue)
+                : [...formData.goals, goalValue];
+              setFormData({
+                ...formData,
+                goals: goals as (
+                  | "perder-peso"
+                  | "ganhar-massa"
+                  | "definir"
+                  | "saude"
+                  | "forca"
+                  | "resistencia"
+                )[],
+              });
               setTouched((prev) => ({ ...prev, goals: true }));
             }}
             multiple
@@ -96,7 +118,9 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
             label="Selecione seus objetivos"
           />
           {touched.goals && errors.goals && (
-            <p className="mt-2 text-sm font-bold text-red-500">{errors.goals}</p>
+            <p className="mt-2 text-sm font-bold text-red-500">
+              {errors.goals}
+            </p>
           )}
         </div>
 

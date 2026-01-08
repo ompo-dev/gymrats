@@ -46,26 +46,19 @@ export default function UserTypePage() {
           console.error("Erro ao verificar perfil:", profileError);
         }
 
-        // Se não tem perfil, verificar se já é STUDENT e redirecionar para onboarding
-        const userRole = localStorage.getItem("userRole");
-
-        if (userRole === "STUDENT") {
-          // Já é student mas não tem perfil, redirecionar para onboarding
-          router.replace("/student/onboarding");
-          return;
-        }
-
-        // Verificar na sessão
+        // ✅ SEGURANÇA: Validar role no servidor, não no localStorage
+        // Verificar na sessão (fonte da verdade)
         try {
           const sessionResponse = await apiClient.get<{
             user: { role: string };
           }>("/api/auth/session");
 
-          if (sessionResponse.data.user.role === "STUDENT") {
-            // Atualizar localStorage e redirecionar para onboarding
-            localStorage.setItem("userRole", "STUDENT");
+          if (sessionResponse.data.user?.role === "STUDENT") {
+            // ⚠️ SEGURANÇA: NÃO salvar userRole no localStorage - inseguro!
+            // Atualizar apenas store para UX (validação real acontece no servidor)
             setUserRole("STUDENT");
             router.replace("/student/onboarding");
+            return;
           }
         } catch (error) {
           // Se der erro (usuário não autenticado), continuar normalmente
@@ -133,12 +126,12 @@ export default function UserTypePage() {
         }
       }
 
-      // Atualizar store e localStorage
+      // ⚠️ SEGURANÇA: NÃO salvar userRole e isAdmin no localStorage - inseguro!
+      // Atualizar apenas store para UX (validação real acontece no servidor)
       const role = type === "student" ? "STUDENT" : "GYM";
       setUserRole(role);
       setAuthenticated(true);
-      localStorage.setItem("userRole", role);
-      localStorage.setItem("isAuthenticated", "true");
+      // localStorage.setItem("isAuthenticated", "true"); - Mantido apenas para compatibilidade
 
       // Verificar se tem perfil e redirecionar adequadamente
       if (type === "student") {
