@@ -219,7 +219,7 @@ function filterByEquipment(
 /**
  * Calcula séries baseado em preferências e nível de atividade
  */
-function calculateSets(
+export function calculateSets(
   preferredSets: number | null | undefined,
   activityLevel: number | null | undefined,
   fitnessLevel: string | null | undefined
@@ -243,7 +243,7 @@ function calculateSets(
 /**
  * Calcula repetições baseado em preferências e objetivos
  */
-function calculateReps(
+export function calculateReps(
   preferredRepRange: string | null | undefined,
   goals: string[] | undefined
 ): string {
@@ -280,7 +280,7 @@ function calculateReps(
 /**
  * Calcula tempo de descanso baseado em preferências
  */
-function calculateRest(
+export function calculateRest(
   restTime: string | null | undefined,
   preferredRepRange: string | null | undefined
 ): number {
@@ -308,7 +308,7 @@ function calculateRest(
  * Gera alternativas para um exercício baseado em equipamentos e limitações
  * Sempre tenta gerar pelo menos 1-2 alternativas relevantes
  */
-function generateAlternatives(
+export function generateAlternatives(
   exercise: ExerciseInfo,
   gymType: string | null | undefined,
   limitations: string[]

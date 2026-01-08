@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { muscleDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,46 +9,41 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get("limit") || "20");
   const offset = parseInt(searchParams.get("offset") || "0");
 
-  let allExercises: any[] = [];
+  // Usar exerciseDatabase REAL em vez de gerar IDs simples
+  // Isso garante que os IDs retornados correspondam aos IDs no database educacional
+  let filtered = exerciseDatabase.map((ex) => ({
+    id: ex.id, // ID REAL do database educacional
+    name: ex.name,
+    primaryMuscles: ex.primaryMuscles || [],
+    secondaryMuscles: ex.secondaryMuscles || [],
+    difficulty: ex.difficulty,
+    equipment: ex.equipment || [],
+  }));
 
-  // Flatten exercises from muscleDatabase
-  muscleDatabase.forEach((muscle) => {
-    muscle.commonExercises.forEach((exName) => {
-      allExercises.push({
-        id: exName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""), // simple slug
-        name: exName,
-        primaryMuscles: [muscle.name], 
-        group: muscle.group,
-      });
-    });
-  });
-
-  // Filter
-  let filtered = allExercises;
-
+  // Filter by query (buscar no nome)
   if (query) {
-    filtered = filtered.filter((ex) => ex.name.toLowerCase().includes(query));
-  }
-
-  if (muscleFilter) {
     filtered = filtered.filter((ex) =>
-      ex.group === muscleFilter ||
-      ex.primaryMuscles.some((m: string) => m.toLowerCase().includes(muscleFilter))
+      ex.name.toLowerCase().includes(query)
     );
   }
 
-  // Deduplicate by Name (case insensitive check effectively done by using same name source)
-  const seen = new Set();
-  const uniqueFiltered = [];
-  for (const ex of filtered) {
-    if (!seen.has(ex.name)) {
-      seen.add(ex.name);
-      uniqueFiltered.push(ex);
-    }
+  // Filter by muscle group
+  if (muscleFilter) {
+    filtered = filtered.filter((ex) =>
+      ex.primaryMuscles.some((m: string) =>
+        m.toLowerCase() === muscleFilter
+      ) ||
+      ex.secondaryMuscles.some((m: string) =>
+        m.toLowerCase() === muscleFilter
+      )
+    );
   }
 
-  const total = uniqueFiltered.length;
-  const paginated = uniqueFiltered.slice(offset, offset + limit);
+  // Ordenar por nome
+  filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  const total = filtered.length;
+  const paginated = filtered.slice(offset, offset + limit);
 
   return NextResponse.json({
     exercises: paginated,

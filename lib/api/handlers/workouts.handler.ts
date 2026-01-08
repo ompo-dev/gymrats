@@ -593,6 +593,7 @@ export async function getWorkoutProgressHandler(
 /**
  * DELETE /api/workouts/[id]/progress
  * Deleta progresso parcial de um workout
+ * Operação idempotente: se o progresso não existir, retorna sucesso
  */
 export async function deleteWorkoutProgressHandler(
   request: NextRequest,
@@ -610,6 +611,23 @@ export async function deleteWorkoutProgressHandler(
       return badRequestResponse("ID do workout não fornecido");
     }
 
+    // Verificar se o progresso existe antes de deletar (idempotência)
+    const existingProgress = await db.workoutProgress.findUnique({
+      where: {
+        studentId_workoutId: {
+          studentId,
+          workoutId,
+        },
+      },
+    });
+
+    // Se não existe, retornar sucesso (operção idempotente)
+    if (!existingProgress) {
+      return successResponse({ 
+        message: "Progresso não encontrado (já estava deletado)" 
+      });
+    }
+
     await db.workoutProgress.delete({
       where: {
         studentId_workoutId: {
@@ -622,8 +640,11 @@ export async function deleteWorkoutProgressHandler(
     return successResponse({ message: "Progresso deletado com sucesso" });
   } catch (error: any) {
     console.error("[deleteWorkoutProgressHandler] Erro:", error);
+    // Se o erro for P2025 (record not found), tratar como sucesso (idempotência)
     if (error.code === "P2025") {
-      return notFoundResponse("Progresso não encontrado");
+      return successResponse({ 
+        message: "Progresso não encontrado (já estava deletado)" 
+      });
     }
     return internalErrorResponse("Erro ao deletar progresso", error);
   }

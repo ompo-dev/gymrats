@@ -12,8 +12,6 @@ import {
   RefreshCw,
   BookOpen,
   Timer,
-  Flame,
-  Activity,
   Play,
   Pause,
 } from "lucide-react";
@@ -21,8 +19,12 @@ import { Progress } from "@/components/atoms/progress/progress";
 import { Button } from "@/components/atoms/buttons/button";
 import { WeightTracker } from "../trackers/weight-tracker";
 import { ExerciseAlternativeSelector } from "../modals/exercise-alternative-selector";
-import { CardioExerciseView } from "./workout/cardio-exercise-view";
-import { StrengthExerciseView } from "./workout/strength-exercise-view";
+import { WorkoutHeader } from "./workout/workout-header";
+import { WorkoutCompletionView } from "./workout/workout-completion-view";
+import { CardioConfigModal } from "./workout/cardio-config-modal";
+import { WeightTrackerOverlay } from "./workout/weight-tracker-overlay";
+import { ExerciseCardView } from "./workout/exercise-card-view";
+import { WorkoutFooter } from "./workout/workout-footer";
 import type {
   ExerciseLog,
   WorkoutExercise,
@@ -32,7 +34,6 @@ import type {
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
-import { FadeIn } from "@/components/animations/fade-in";
 import { useWorkoutStore, useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import { useRouter } from "next/navigation";
@@ -42,6 +43,77 @@ import {
   useSubModalState,
 } from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
+
+/**
+ * Converte exerciseLogs do formato frontend para o formato esperado pela API
+ * - Converte "ideal" → "medio"
+ * - Normaliza hífens para underscores ("muito-facil" → "muito_facil")
+ * - Remove campos extras e garante tipos corretos
+ */
+function convertExerciseLogsForAPI(logs: ExerciseLog[]): Array<{
+  exerciseId: string;
+  exerciseName: string;
+  sets: Array<{
+    weight: number | null;
+    reps: number | null;
+    completed: boolean;
+    notes: string | null;
+  }>;
+  notes: string | null;
+  formCheckScore: number | null;
+  difficulty:
+    | "muito_facil"
+    | "facil"
+    | "medio"
+    | "dificil"
+    | "muito_dificil"
+    | null;
+}> {
+  return logs
+    .filter((log) => log && log.exerciseId && log.exerciseName)
+    .map((log) => {
+      // Converter difficulty do formato frontend para o formato do schema
+      let difficulty:
+        | "muito_facil"
+        | "facil"
+        | "medio"
+        | "dificil"
+        | "muito_dificil"
+        | null = null;
+
+      if (log.difficulty) {
+        const normalized = log.difficulty.replace(/-/g, "_");
+        if (normalized === "ideal") {
+          difficulty = "medio";
+        } else if (normalized === "muito_facil") {
+          difficulty = "muito_facil";
+        } else if (normalized === "facil") {
+          difficulty = "facil";
+        } else if (normalized === "medio") {
+          difficulty = "medio";
+        } else if (normalized === "dificil") {
+          difficulty = "dificil";
+        } else if (normalized === "muito_dificil") {
+          difficulty = "muito_dificil";
+        }
+      }
+
+      return {
+        exerciseId: log.exerciseId,
+        exerciseName: log.exerciseName,
+        sets:
+          log.sets?.map((set) => ({
+            weight: set.weight ?? null,
+            reps: set.reps ?? null,
+            completed: set.completed ?? false,
+            notes: set.notes ?? null,
+          })) ?? [],
+        notes: log.notes ?? null,
+        formCheckScore: log.formCheckScore ?? null,
+        difficulty: difficulty,
+      };
+    });
+}
 
 export function WorkoutModal() {
   const router = useRouter();
@@ -862,10 +934,8 @@ export function WorkoutModal() {
                 ? startTimeValue
                 : new Date(startTimeValue).toISOString();
 
-            // Garantir que exerciseLogs seja um array válido
-            const exerciseLogs = (finalLogs || []).filter(
-              (log) => log && log.exerciseId && log.exerciseName
-            );
+            // Converter exerciseLogs para o formato esperado pela API
+            const exerciseLogs = convertExerciseLogsForAPI(finalLogs || []);
 
             // Garantir que bodyPartsFatigued seja um array válido
             const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
@@ -1091,6 +1161,22 @@ export function WorkoutModal() {
               skippedExercises: finalActiveWorkout.skippedExercises || [],
             });
 
+            // OPTIMISTIC FIRST: Mostrar tela de conclusão IMEDIATAMENTE
+            setShowCompletion(true);
+
+            // Disparar eventos IMEDIATAMENTE (optimistic update)
+            window.dispatchEvent(
+              new CustomEvent("workoutCompleted", {
+                detail: { workoutId: workout.id },
+              })
+            );
+
+            window.dispatchEvent(
+              new CustomEvent("workoutProgressUpdate", {
+                detail: { workoutId: workout.id, completed: true },
+              })
+            );
+
             // Calcular duração do workout
             const workoutDuration = finalActiveWorkout.startTime
               ? Math.round(
@@ -1123,7 +1209,7 @@ export function WorkoutModal() {
             // Determinar partes do corpo fatigadas baseado no muscleGroup
             const bodyPartsFatigued = [workout.muscleGroup];
 
-            // Salvar workout no backend
+            // Salvar workout no backend (em paralelo, não bloqueia UI)
             const saveWorkoutToBackend = async () => {
               try {
                 const { apiClient } = await import("@/lib/api/client");
@@ -1138,10 +1224,8 @@ export function WorkoutModal() {
                     ? startTimeValue
                     : new Date(startTimeValue).toISOString();
 
-                // Garantir que exerciseLogs seja um array válido
-                const exerciseLogs = (finalLogs || []).filter(
-                  (log) => log && log.exerciseId && log.exerciseName
-                );
+                // Converter exerciseLogs para o formato esperado pela API
+                const exerciseLogs = convertExerciseLogsForAPI(finalLogs || []);
 
                 // Garantir que bodyPartsFatigued seja um array válido
                 const validBodyPartsFatigued = Array.isArray(bodyPartsFatigued)
@@ -1177,42 +1261,34 @@ export function WorkoutModal() {
               }
             };
 
+            // Atualizar store (em paralelo, não bloqueia UI)
+            const updateStore = async () => {
+              const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
+              if (
+                completeStudentWorkout &&
+                typeof completeStudentWorkout === "function"
+              ) {
+                try {
+                  await completeStudentWorkout({
+                    workoutId: workout.id,
+                    exercises: finalLogs,
+                    duration: workoutDuration,
+                    totalVolume: totalVolume,
+                    overallFeedback: overallFeedback,
+                    bodyPartsFatigued: bodyPartsFatigued,
+                    xpEarned: xpEarned,
+                  });
+                } catch (error) {
+                  console.error("Erro ao atualizar store:", error);
+                }
+              }
+            };
+
+            // Executar tudo em paralelo (não bloqueia UI)
             saveWorkoutToBackend();
+            updateStore();
 
-            // Marcar como completo
-            const xpEarned = finalActiveWorkout.xpEarned || workout.xpReward;
-            if (
-              completeStudentWorkout &&
-              typeof completeStudentWorkout === "function"
-            ) {
-              await completeStudentWorkout({
-                workoutId: workout.id,
-                exercises: finalLogs,
-                duration: workoutDuration,
-                totalVolume: totalVolume,
-                overallFeedback: overallFeedback,
-                bodyPartsFatigued: bodyPartsFatigued,
-                xpEarned: xpEarned,
-              });
-            } else {
-              console.error(
-                "❌ completeStudentWorkout não está disponível em handleCardioComplete"
-              );
-            }
-
-            // IMPORTANTE: NÃO chamar completeWorkout aqui porque ele limpa o activeWorkout
-            // Vamos chamar depois de mostrar a tela de conclusão
-            // completeWorkout(workout.id);
-
-            window.dispatchEvent(
-              new CustomEvent("workoutCompleted", {
-                detail: { workoutId: workout.id },
-              })
-            );
-
-            setShowCompletion(true);
-
-            // Limpar activeWorkout DEPOIS de salvar os dados
+            // Limpar activeWorkout após um delay curto
             setTimeout(() => {
               completeWorkout(workout.id);
             }, 100);
@@ -1284,6 +1360,9 @@ export function WorkoutModal() {
       skippedExercises: updatedWorkout.skippedExercises || [],
     });
 
+    // OPTIMISTIC FIRST: Mostrar tela de conclusão IMEDIATAMENTE
+    setShowCompletion(true);
+
     // Calcular duração do workout
     const workoutDuration = updatedWorkout?.startTime
       ? Math.round(
@@ -1314,7 +1393,20 @@ export function WorkoutModal() {
     // Determinar partes do corpo fatigadas
     const bodyPartsFatigued = [workout.muscleGroup];
 
-    // Salvar workout no backend
+    // Disparar eventos IMEDIATAMENTE (optimistic update)
+    window.dispatchEvent(
+      new CustomEvent("workoutCompleted", {
+        detail: { workoutId: workout.id },
+      })
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("workoutProgressUpdate", {
+        detail: { workoutId: workout.id, completed: true },
+      })
+    );
+
+    // Salvar workout no backend (em paralelo, não bloqueia UI)
     const saveWorkoutToBackend = async () => {
       try {
         const { apiClient } = await import("@/lib/api/client");
@@ -1327,9 +1419,9 @@ export function WorkoutModal() {
             ? startTimeValue
             : new Date(startTimeValue).toISOString();
 
-        // Garantir que exerciseLogs seja um array válido
-        const exerciseLogs = (updatedWorkout?.exerciseLogs || []).filter(
-          (log) => log && log.exerciseId && log.exerciseName
+        // Converter exerciseLogs para o formato esperado pela API
+        const exerciseLogs = convertExerciseLogsForAPI(
+          updatedWorkout?.exerciseLogs || []
         );
 
         // Garantir que bodyPartsFatigued seja um array válido
@@ -1377,51 +1469,34 @@ export function WorkoutModal() {
       }
     };
 
-    // Salvar no backend (não bloquear UI)
+    // Atualizar store (em paralelo, não bloqueia UI)
+    const updateStore = async () => {
+      const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
+      if (
+        completeStudentWorkout &&
+        typeof completeStudentWorkout === "function"
+      ) {
+        try {
+          await completeStudentWorkout({
+            workoutId: workout.id,
+            exercises: updatedWorkout.exerciseLogs || [],
+            duration: workoutDuration,
+            totalVolume: totalVolume,
+            overallFeedback: overallFeedback,
+            bodyPartsFatigued: bodyPartsFatigued,
+            xpEarned: xpEarned,
+          });
+        } catch (error) {
+          console.error("Erro ao atualizar store:", error);
+        }
+      }
+    };
+
+    // Executar tudo em paralelo (não bloqueia UI)
     saveWorkoutToBackend();
+    updateStore();
 
-    // Marcar como completo
-    const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
-    if (
-      completeStudentWorkout &&
-      typeof completeStudentWorkout === "function"
-    ) {
-      await completeStudentWorkout({
-        workoutId: workout.id,
-        exercises: updatedWorkout.exerciseLogs || [],
-        duration: workoutDuration,
-        totalVolume: totalVolume,
-        overallFeedback: overallFeedback,
-        bodyPartsFatigued: bodyPartsFatigued,
-        xpEarned: xpEarned,
-      });
-    } else {
-      console.error(
-        "❌ completeStudentWorkout não está disponível em handleFinish"
-      );
-    }
-
-    // XP já é atualizado automaticamente pelo backend quando o workout é completado
-    // Não precisamos chamar addXP manualmente
-
-    // Disparar evento de conclusão
-    window.dispatchEvent(
-      new CustomEvent("workoutCompleted", {
-        detail: { workoutId: workout.id },
-      })
-    );
-
-    // Disparar evento customizado para atualizar o estado de completed workouts no store
-    window.dispatchEvent(
-      new CustomEvent("workoutProgressUpdate", {
-        detail: { workoutId: workout.id, completed: true },
-      })
-    );
-
-    // Mostrar tela de conclusão
-    setShowCompletion(true);
-
-    // Limpar activeWorkout DEPOIS de salvar os dados
+    // Limpar activeWorkout após um delay curto
     setTimeout(() => {
       completeWorkout(workout.id);
     }, 100);
@@ -1549,7 +1624,31 @@ export function WorkoutModal() {
       // Determinar partes do corpo fatigadas
       const bodyPartsFatigued = [workout.muscleGroup];
 
-      // Salvar workout no backend
+      // IMPORTANTE: Salvar dados ANTES de limpar o activeWorkout
+      // Salvar dados para a tela de conclusão
+      setCompletedWorkoutData({
+        exerciseLogs: updatedWorkout.exerciseLogs || [],
+        xpEarned: updatedWorkout.xpEarned || 0,
+        skippedExercises: updatedWorkout.skippedExercises || [],
+      });
+
+      // OPTIMISTIC FIRST: Mostrar tela de conclusão IMEDIATAMENTE
+      setShowCompletion(true);
+
+      // Disparar eventos IMEDIATAMENTE (optimistic update)
+      window.dispatchEvent(
+        new CustomEvent("workoutCompleted", {
+          detail: { workoutId: workout.id },
+        })
+      );
+
+      window.dispatchEvent(
+        new CustomEvent("workoutProgressUpdate", {
+          detail: { workoutId: workout.id, completed: true },
+        })
+      );
+
+      // Salvar workout no backend (em paralelo, não bloqueia UI)
       const saveWorkoutToBackend = async () => {
         try {
           // Usar axios client (API → Zustand → Component)
@@ -1564,9 +1663,9 @@ export function WorkoutModal() {
               ? startTimeValue
               : new Date(startTimeValue).toISOString();
 
-          // Garantir que exerciseLogs seja um array válido
-          const exerciseLogs = (updatedWorkout?.exerciseLogs || []).filter(
-            (log) => log && log.exerciseId && log.exerciseName
+          // Converter exerciseLogs para o formato esperado pela API
+          const exerciseLogs = convertExerciseLogsForAPI(
+            updatedWorkout?.exerciseLogs || []
           );
 
           // Garantir que bodyPartsFatigued seja um array válido
@@ -1613,67 +1712,34 @@ export function WorkoutModal() {
         }
       };
 
-      // Salvar no backend (não bloquear UI)
+      // Atualizar store (em paralelo, não bloqueia UI)
+      const updateStore = async () => {
+        const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
+        if (
+          completeStudentWorkout &&
+          typeof completeStudentWorkout === "function"
+        ) {
+          try {
+            await completeStudentWorkout({
+              workoutId: workout.id,
+              exercises: updatedWorkout.exerciseLogs || [],
+              duration: workoutDuration,
+              totalVolume: totalVolume,
+              overallFeedback: overallFeedback,
+              bodyPartsFatigued: bodyPartsFatigued,
+              xpEarned: xpEarned,
+            });
+          } catch (error) {
+            console.error("Erro ao atualizar store:", error);
+          }
+        }
+      };
+
+      // Executar tudo em paralelo (não bloqueia UI)
       saveWorkoutToBackend();
+      updateStore();
 
-      // IMPORTANTE: Salvar dados ANTES de limpar o activeWorkout
-      // Salvar dados para a tela de conclusão
-      setCompletedWorkoutData({
-        exerciseLogs: updatedWorkout.exerciseLogs || [],
-        xpEarned: updatedWorkout.xpEarned || 0,
-        skippedExercises: updatedWorkout.skippedExercises || [],
-      });
-
-      // IMPORTANTE: Atualizar Zustand ANTES de disparar eventos (estado otimista)
-      // Isso garante que o próximo workout seja desbloqueado imediatamente
-      // Mas NÃO limpar o activeWorkout ainda - vamos fazer depois
-      // completeWorkout(workout.id);
-      console.log("🔄 Chamando completeStudentWorkout com:", {
-        workoutId: workout.id,
-        exercisesCount: updatedWorkout.exerciseLogs.length,
-        exercises: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
-        duration: 0,
-      });
-      // Calcular XP ganho (usar xpEarned do workout atualizado ou do workout original)
-      const xpEarned = updatedWorkout.xpEarned || workout.xpReward || 0;
-      // completeStudentWorkout já chama loadProgress internamente
-      if (
-        completeStudentWorkout &&
-        typeof completeStudentWorkout === "function"
-      ) {
-        await completeStudentWorkout({
-          workoutId: workout.id,
-          exercises: updatedWorkout.exerciseLogs || [],
-          duration: 0,
-          xpEarned: xpEarned, // Passar xpEarned para atualizar progresso
-        });
-      } else {
-        console.error(
-          "❌ completeStudentWorkout não está disponível em handleSkip"
-        );
-      }
-
-      // XP já é atualizado automaticamente pelo backend quando o workout é completado
-      // Não precisamos chamar addXP manualmente
-
-      // Disparar evento de conclusão IMEDIATAMENTE após atualizar o store
-      // Isso garante que os WorkoutNodes sejam atualizados na hora
-      window.dispatchEvent(
-        new CustomEvent("workoutCompleted", {
-          detail: { workoutId: workout.id },
-        })
-      );
-
-      // Disparar evento customizado para atualizar o estado de completed workouts no store
-      window.dispatchEvent(
-        new CustomEvent("workoutProgressUpdate", {
-          detail: { workoutId: workout.id, completed: true },
-        })
-      );
-
-      setShowCompletion(true);
-
-      // Limpar activeWorkout DEPOIS de salvar os dados
+      // Limpar activeWorkout após um delay curto
       setTimeout(() => {
         completeWorkout(workout.id);
       }, 100);
@@ -1729,51 +1795,6 @@ export function WorkoutModal() {
       skippedExercises: activeWorkout?.skippedExercises || [],
     };
 
-    // Criar lista combinada de exercícios completados e pulados
-    const completedExerciseIds = new Set(
-      workoutData.exerciseLogs.map((log) => log.exerciseId)
-    );
-    const skippedExerciseIds = new Set(
-      workoutData.skippedExercises || activeWorkout?.skippedExercises || []
-    );
-
-    // Criar lista de todos os exercícios do workout com status
-    const allExercises = workout.exercises.map((exercise) => {
-      const isCompleted = completedExerciseIds.has(exercise.id);
-      const isSkipped = skippedExerciseIds.has(exercise.id);
-      const exerciseLog = workoutData.exerciseLogs.find(
-        (log) => log.exerciseId === exercise.id
-      );
-
-      return {
-        id: exercise.id,
-        name: exercise.name,
-        isCompleted,
-        isSkipped,
-        exerciseLog, // null se foi pulado
-      };
-    });
-
-    // Debug: Verificar dados que serão exibidos
-    console.log("🎯 Dados para tela de conclusão:", {
-      hasCompletedWorkoutData: !!completedWorkoutData,
-      totalLogs: workoutData.exerciseLogs.length,
-      skippedCount: skippedExerciseIds.size,
-      totalExercises: allExercises.length,
-      logs: workoutData.exerciseLogs.map((l) => ({
-        name: l.exerciseName,
-        id: l.id,
-        type:
-          l.exerciseName.toLowerCase().includes("cardio") ||
-          l.exerciseName.toLowerCase().includes("bicicleta") ||
-          l.exerciseName.toLowerCase().includes("corrida") ||
-          l.exerciseName.toLowerCase().includes("pular")
-            ? "CARDIO"
-            : "FORÇA",
-      })),
-      activeWorkoutLogs: activeWorkout?.exerciseLogs?.length || 0,
-    });
-
     // Calcular volume total apenas de séries válidas (peso > 0 e reps > 0)
     const totalVolume = workoutData.exerciseLogs.reduce(
       (acc, log) =>
@@ -1785,259 +1806,19 @@ export function WorkoutModal() {
     );
 
     return (
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={handleClose}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3 }}
-            onClick={(e) => e.stopPropagation()}
-            className="flex h-screen w-full max-h-screen flex-col items-center overflow-y-auto bg-linear-to-b from-white to-gray-50 p-4 sm:p-6"
-          >
-            <FadeIn delay={0.1}>
-              <div className="mb-4 sm:mb-8 text-center">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 200,
-                    damping: 10,
-                    delay: 0.2,
-                  }}
-                  className="mb-4 sm:mb-6 text-6xl sm:text-8xl"
-                >
-                  🎉
-                </motion.div>
-                <h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#58CC02]">
-                  Treino Completo!
-                </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-duo-gray-dark">
-                  Excelente trabalho hoje!
-                </p>
-              </div>
-            </FadeIn>
-
-            <div className="mb-4 sm:mb-8 grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4">
-              {/* Se houver dados de cardio, mostrar métricas diferentes */}
-              {workoutData.totalTime !== undefined ? (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-duo-blue bg-duo-blue/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <Timer className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-duo-blue" />
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      Tempo Total
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-duo-blue">
-                      {formatTime(workoutData.totalTime)}
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ delay: 0.35, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-duo-orange bg-duo-orange/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <Flame className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-duo-orange" />
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      Calorias
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-duo-orange">
-                      {workoutData.totalCalories}
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-duo-red bg-duo-red/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <Heart className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-duo-red" />
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      FC Média
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-duo-red">
-                      {workoutData.avgHeartRate} bpm
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 0.45, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <Zap className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-[#FFC800]" />
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      XP Ganho
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-[#FFC800]">
-                      {workout.xpReward}
-                    </div>
-                  </motion.div>
-                </>
-              ) : (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <div className="mb-2 flex items-center justify-center gap-2">
-                      <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFC800]" />
-                    </div>
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      XP Ganho
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-[#FFC800]">
-                      {workout.xpReward}
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    transition={{ delay: 0.35, duration: 0.4 }}
-                    whileHover={{ scale: 1.05 }}
-                    className="rounded-2xl border-2 border-[#1CB0F6] bg-linear-to-br from-[#1CB0F6]/20 to-[#58CC02]/20 p-4 sm:p-6 text-center shadow-lg"
-                  >
-                    <div className="mb-2 flex items-center justify-center gap-2">
-                      <Weight className="h-5 w-5 sm:h-6 sm:w-6 text-[#1CB0F6]" />
-                    </div>
-                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                      Volume Total
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-[#1CB0F6]">
-                      {totalVolume.toFixed(0)}kg
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </div>
-
-            {/* Mostrar resumo com todos os exercícios (completados e pulados) */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-              className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
-            >
-              <h3 className="text-base sm:text-lg font-bold text-duo-text">
-                Resumo do Treino ({allExercises.length} exercícios)
-              </h3>
-              {allExercises.map((exercise, index) => {
-                const isCompleted = exercise.isCompleted;
-                const isSkipped = exercise.isSkipped;
-                const log = exercise.exerciseLog;
-
-                return (
-                  <motion.div
-                    key={exercise.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    className={cn(
-                      "rounded-xl border-2 p-3 sm:p-4 shadow-sm transition-all hover:shadow-md",
-                      isCompleted
-                        ? "border-duo-green bg-white"
-                        : isSkipped
-                        ? "border-duo-orange bg-white opacity-75"
-                        : "border-duo-border bg-white"
-                    )}
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
-                        {exercise.name}
-                      </div>
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
-                      ) : isSkipped ? (
-                        <X className="h-4 w-4 sm:h-5 sm:w-5 text-duo-orange shrink-0" />
-                      ) : null}
-                    </div>
-                    {isCompleted && log ? (
-                      <div className="text-xs sm:text-sm text-duo-gray-dark">
-                        {
-                          log.sets.filter(
-                            (set) => set.weight > 0 && set.reps > 0
-                          ).length
-                        }{" "}
-                        séries •{" "}
-                        {log.sets
-                          .filter((set) => set.weight > 0 && set.reps > 0)
-                          .reduce((acc, set) => acc + set.weight * set.reps, 0)
-                          .toFixed(0)}
-                        kg volume
-                      </div>
-                    ) : isSkipped ? (
-                      <div className="text-xs sm:text-sm text-duo-orange font-medium">
-                        Exercício pulado
-                      </div>
-                    ) : null}
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
-              className="flex w-full max-w-md gap-2 sm:gap-3 mb-4 sm:mb-0"
-            >
-              <Button
-                variant="white"
-                className="flex-1 text-sm sm:text-base"
-                onClick={() => {
-                  if (!workout) return;
-
-                  // Limpar progresso salvo para começar do zero
-                  clearWorkoutProgress(workout.id);
-
-                  // Reinicializar workout do zero
-                  setActiveWorkout(workout);
-
-                  // Resetar tela de conclusão
-                  setShowCompletion(false);
-                  setCompletedWorkoutData(null);
-                }}
-              >
-                <span className="hidden sm:inline">FAZER NOVAMENTE</span>
-                <span className="sm:hidden">REFAZER</span>
-              </Button>
-              <Button
-                variant="default"
-                className="flex-1 text-sm sm:text-base"
-                onClick={handleClose}
-              >
-                CONTINUAR
-                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+      <WorkoutCompletionView
+        workout={workout}
+        workoutData={workoutData}
+        totalVolume={totalVolume}
+        onClose={handleClose}
+        onRepeat={() => {
+          if (!workout) return;
+          clearWorkoutProgress(workout.id);
+          setActiveWorkout(workout);
+          setShowCompletion(false);
+          setCompletedWorkoutData(null);
+        }}
+      />
     );
   }
 
@@ -2058,219 +1839,42 @@ export function WorkoutModal() {
           className="fixed inset-0 z-50 flex h-screen flex-col bg-white overflow-hidden"
         >
           {/* Weight Tracker Modal Overlay (sub-modal dentro do workout) */}
-          {weightTrackerModal.isOpen && (
-            <AnimatePresence>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 z-60 flex h-screen flex-col bg-white overflow-hidden"
-              >
-                <div className="border-b-2 border-duo-border bg-white p-4 shadow-sm shrink-0">
-                  <div className="mb-3 flex items-center justify-between">
-                    <button
-                      onClick={weightTrackerModal.close}
-                      className="rounded-xl p-2 transition-colors hover:bg-gray-100"
-                    >
-                      <X className="h-6 w-6 text-duo-gray-dark" />
-                    </button>
-                    <div className="text-sm font-bold text-duo-gray-dark">
-                      Exercício{" "}
-                      {activeWorkout?.currentExerciseIndex !== undefined
-                        ? activeWorkout.currentExerciseIndex + 1
-                        : 0}
-                      /{workout.exercises.length}
-                    </div>
-                    <div className="w-6" />
-                  </div>
-                  <Progress
-                    key={`progress-weight-${workoutProgress}-${currentIndex}-${
-                      activeWorkout?.exerciseLogs?.length || 0
-                    }-${activeWorkout?.skippedExercises?.length || 0}`}
-                    value={workoutProgress}
-                    className="h-3"
-                  />
-                </div>
-
-                {currentExercise && (
-                  <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
-                    <WeightTracker
-                      exerciseName={getCurrentExerciseName()}
-                      exerciseId={currentExercise.id}
-                      defaultSets={currentExercise.sets}
-                      defaultReps={currentExercise.reps}
-                      onComplete={handleExerciseComplete}
-                    />
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+          {currentExercise && (
+            <WeightTrackerOverlay
+              isOpen={weightTrackerModal.isOpen}
+              onClose={weightTrackerModal.close}
+              exerciseName={getCurrentExerciseName()}
+              exercise={currentExercise}
+              progress={workoutProgress}
+              currentExercise={
+                activeWorkout?.currentExerciseIndex !== undefined
+                  ? activeWorkout.currentExerciseIndex + 1
+                  : 0
+              }
+              totalExercises={workout.exercises.length}
+              onComplete={handleExerciseComplete}
+            />
           )}
 
           {/* Cardio Config Modal Overlay (sub-modal dentro do workout) */}
-          {cardioConfigModal.isOpen && workout && activeWorkout && (
-            <AnimatePresence>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    cardioConfigModal.close();
-                  }
-                }}
-              >
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.3 }}
-                  onClick={(e) => e.stopPropagation()}
-                  className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-duo-border bg-white p-6 sm:p-8 shadow-2xl"
-                >
-                  <button
-                    onClick={cardioConfigModal.close}
-                    className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-gray-100"
-                  >
-                    <X className="h-5 w-5 text-duo-gray-dark" />
-                  </button>
-
-                  <div className="mb-6 text-center">
-                    <div className="mb-4 text-6xl">🏃‍♂️</div>
-                    <h2 className="mb-2 text-2xl font-black text-duo-text">
-                      Adicionar Cardio?
-                    </h2>
-                    <p className="text-sm text-duo-gray-dark">
-                      Escolha quando fazer cardio hoje
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {/* Não fazer cardio */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setCardioPreference("none", undefined);
-                        cardioConfigModal.close();
-                      }}
-                      className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-2xl">❌</div>
-                        <div className="flex-1">
-                          <div className="font-bold text-duo-text">
-                            Não Fazer Cardio
-                          </div>
-                          <div className="text-sm text-duo-gray-dark">
-                            Apenas treino de força hoje
-                          </div>
-                        </div>
-                      </div>
-                    </motion.button>
-
-                    {/* Cardio ANTES */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-bold text-duo-text">
-                        ⏱️ Cardio ANTES do Treino
-                      </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[5, 10, 15, 20].map((duration) => (
-                          <motion.button
-                            key={`before-${duration}`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setCardioPreference("before", duration);
-                              cardioConfigModal.close();
-                            }}
-                            className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
-                          >
-                            <div className="text-xl font-black text-duo-blue">
-                              {duration}
-                            </div>
-                            <div className="text-xs text-duo-gray-dark">
-                              min
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Cardio DEPOIS */}
-                    <div className="space-y-2">
-                      <div className="text-sm font-bold text-duo-text">
-                        ⏱️ Cardio DEPOIS do Treino
-                      </div>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[5, 10, 15, 20].map((duration) => (
-                          <motion.button
-                            key={`after-${duration}`}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              setCardioPreference("after", duration);
-                              cardioConfigModal.close();
-                            }}
-                            className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
-                          >
-                            <div className="text-xl font-black text-duo-orange">
-                              {duration}
-                            </div>
-                            <div className="text-xs text-duo-gray-dark">
-                              min
-                            </div>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              </motion.div>
-            </AnimatePresence>
-          )}
+          <CardioConfigModal
+            isOpen={cardioConfigModal.isOpen && !!workout && !!activeWorkout}
+            onClose={cardioConfigModal.close}
+            onSelectPreference={setCardioPreference}
+          />
 
           {/* Header Estilo Duolingo */}
-          <div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
-            <div className="mb-2 sm:mb-3 flex items-center justify-between">
-              <button
-                onClick={handleClose}
-                className="rounded-xl p-2 transition-colors hover:bg-gray-100 active:scale-95"
-              >
-                <X className="h-5 w-5 sm:h-6 sm:w-6 text-duo-gray-dark" />
-              </button>
-              <div className="flex items-center gap-1 sm:gap-2">
-                {Array.from({ length: hearts }).map((_, i) => (
-                  <Heart
-                    key={i}
-                    className="h-5 w-5 sm:h-6 sm:w-6 fill-duo-red text-duo-red"
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="mb-2 flex items-center justify-between text-xs font-bold text-duo-gray-dark">
-              <div className="flex items-center gap-2">
-                <span>
-                  Exercício{" "}
-                  {activeWorkout?.currentExerciseIndex !== undefined
-                    ? activeWorkout.currentExerciseIndex + 1
-                    : 0}{" "}
-                  de {workout.exercises.length}
-                </span>
-              </div>
-              <span>{Math.round(workoutProgress)}%</span>
-            </div>
-            <Progress
-              key={`progress-main-${workoutProgress}-${
-                activeWorkout?.exerciseLogs?.length || 0
-              }`}
-              value={workoutProgress}
-              className="h-2 sm:h-3"
-            />
-          </div>
+          <WorkoutHeader
+            onClose={handleClose}
+            hearts={hearts}
+            currentExercise={
+              activeWorkout?.currentExerciseIndex !== undefined
+                ? activeWorkout.currentExerciseIndex + 1
+                : 0
+            }
+            totalExercises={workout.exercises.length}
+            progress={workoutProgress}
+          />
 
           {/* Exercise Content */}
           {activeWorkout && currentExercise && (
@@ -2279,301 +1883,65 @@ export function WorkoutModal() {
                 <div className="w-full max-w-2xl">
                   {/* Exercise Card Estilo Duolingo */}
                   <AnimatePresence mode="wait">
-                    <motion.div
+                    <ExerciseCardView
                       key={activeWorkout.currentExerciseIndex}
-                      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-                      className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
-                    >
-                      <div className="mb-4 sm:mb-6">
-                        <h1 className="text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
-                          {getCurrentExerciseName()}
-                        </h1>
-                        {activeWorkout?.selectedAlternatives?.[
+                      exercise={currentExercise}
+                      exerciseName={getCurrentExerciseName()}
+                      hasAlternative={
+                        !!activeWorkout?.selectedAlternatives?.[
                           currentExercise.id
-                        ] && (
-                          <p className="mt-2 text-center text-sm text-duo-blue font-bold">
-                            ✓ Alternativa selecionada
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-3 sm:space-y-4">
-                        {isCurrentExerciseCardio() ? (
-                          <>
-                            {/* Cronômetro Principal - CARDIO */}
-                            <div className="rounded-xl sm:rounded-2xl border-2 border-duo-red bg-linear-to-br from-duo-red/10 to-duo-red/5 p-6 sm:p-8 text-center">
-                              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                Tempo
-                              </div>
-                              <div className="text-5xl sm:text-6xl font-black text-duo-red">
-                                {formatTime(elapsedTime)}
-                              </div>
-                              <div className="mt-3 text-sm text-duo-gray-dark">
-                                Meta: {currentExercise.reps}
-                              </div>
-                            </div>
-
-                            {/* Métricas em Tempo Real - CARDIO */}
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                              <div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-white p-3 sm:p-4 text-center">
-                                <Flame className="mx-auto mb-1 h-5 w-5 text-duo-orange" />
-                                <div className="text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                  Calorias
-                                </div>
-                                <div className="text-2xl font-black text-duo-orange">
-                                  {Math.round(calories)}
-                                </div>
-                              </div>
-                              <div className="rounded-xl border-2 border-duo-red bg-linear-to-br from-duo-red/10 to-white p-3 sm:p-4 text-center">
-                                <Activity className="mx-auto mb-1 h-5 w-5 text-duo-red" />
-                                <div className="text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                  FC
-                                </div>
-                                <div className="text-2xl font-black text-duo-red">
-                                  {Math.round(heartRate)} bpm
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {/* Séries e Repetições - FORÇA */}
-                            <div className="rounded-xl sm:rounded-2xl border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-[#47A302]/10 p-4 sm:p-6 text-center">
-                              <div className="mb-2 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                Séries e Repetições
-                              </div>
-                              <div className="text-3xl sm:text-4xl font-black text-[#58CC02]">
-                                {currentExercise.sets} x {currentExercise.reps}
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                              <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4 text-center">
-                                <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                  Descanso
-                                </div>
-                                <div className="text-xl sm:text-2xl font-black text-duo-blue">
-                                  {currentExercise.rest}s
-                                </div>
-                              </div>
-                              <div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-white p-3 sm:p-4 text-center">
-                                <div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
-                                  XP
-                                </div>
-                                <div className="text-xl sm:text-2xl font-black text-duo-orange">
-                                  +
-                                  {Math.round(
-                                    workout.xpReward / workout.exercises.length
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-
-                        {currentExercise.notes && (
-                          <div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4">
-                            <div className="mb-1 flex items-center gap-2 text-xs sm:text-sm font-bold text-duo-blue">
-                              <span>💡</span>
-                              <span>Dica</span>
-                            </div>
-                            <p className="text-xs sm:text-sm text-duo-text wrap-break-words">
-                              {currentExercise.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Link para conteúdo educacional */}
-                        {currentExercise.educationalId && (
-                          <button
-                            onClick={() => {
-                              if (currentExercise.educationalId) {
-                                handleViewEducation(
-                                  currentExercise.educationalId
-                                );
-                              }
-                            }}
-                            className="w-full rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-3 text-left transition-all hover:border-duo-green/50 hover:bg-duo-green/10"
-                          >
-                            <div className="flex items-center gap-2">
-                              <BookOpen className="h-5 w-5 shrink-0 text-duo-green" />
-                              <div className="flex-1">
-                                <div className="text-xs sm:text-sm font-bold text-duo-green">
-                                  Ver técnica detalhada
-                                </div>
-                                <div className="text-xs text-duo-gray-dark">
-                                  Instruções completas, dicas e erros comuns
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
+                        ]
+                      }
+                      isCardio={!!isCurrentExerciseCardio()}
+                      elapsedTime={elapsedTime}
+                      xpPerExercise={Math.round(
+                        workout.xpReward / workout.exercises.length
+                      )}
+                      onViewEducation={handleViewEducation}
+                    />
                   </AnimatePresence>
                 </div>
               </div>
 
               {/* Botões fixos na parte inferior */}
-              <div className="border-t-2 border-duo-border bg-white p-3 sm:p-4 shadow-lg shrink-0">
-                <div className="mx-auto max-w-2xl">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                    className="space-y-2 sm:space-y-3"
-                  >
-                    {isCurrentExerciseCardio() ? (
-                      <motion.button
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setIsRunning(!isRunning)}
-                        className={cn(
-                          "w-full rounded-xl sm:rounded-2xl py-3 sm:py-4 font-bold text-white transition-all flex items-center justify-center gap-2",
-                          isRunning
-                            ? "bg-duo-orange hover:bg-duo-orange/90"
-                            : "bg-duo-green hover:bg-duo-green/90"
-                        )}
-                      >
-                        {isRunning ? (
-                          <>
-                            <Pause className="h-4 w-4 sm:h-5 sm:w-5" />
-                            <span>PAUSAR</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 sm:h-5 sm:w-5" />
-                            <span>INICIAR</span>
-                          </>
-                        )}
-                      </motion.button>
-                    ) : (
-                      <motion.button
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={weightTrackerModal.open}
-                        className="duo-button-green w-full flex items-center justify-center gap-2 text-sm sm:text-base lg:text-lg py-3 sm:py-4"
-                      >
-                        <Weight className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span className="hidden sm:inline">
-                          REGISTRAR SÉRIES E CARGAS
-                        </span>
-                        <span className="sm:hidden">SÉRIES E CARGAS</span>
-                      </motion.button>
-                    )}
-
-                    {/* Botão de alternativas - VERSÃO ATUALIZADA */}
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        console.log("👆 Clicou em VER ALTERNATIVAS");
-                        console.log("currentExercise:", currentExercise);
-                        alternativeSelectorModal.open();
-                      }}
-                      className="w-full rounded-xl sm:rounded-2xl border-2 border-duo-blue bg-duo-blue/10 py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-blue transition-all hover:bg-duo-blue/20 flex items-center justify-center gap-2"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      <span className="hidden sm:inline">
-                        EQUIPAMENTO OCUPADO? VER ALTERNATIVAS (
-                        {currentExercise?.alternatives?.length || 0})
-                      </span>
-                      <span className="sm:hidden">
-                        VER ALTERNATIVAS (
-                        {currentExercise?.alternatives?.length || 0})
-                      </span>
-                    </motion.button>
-
-                    {/* Botão CONCLUIR para cardio */}
-                    {isCurrentExerciseCardio() && (
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleCardioComplete}
-                        className="w-full rounded-xl sm:rounded-2xl bg-duo-green py-3 sm:py-4 font-bold text-white hover:bg-duo-green/90 flex items-center justify-center gap-2"
-                      >
-                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>CONCLUIR EXERCÍCIO</span>
-                      </motion.button>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                      {activeWorkout &&
-                        activeWorkout.currentExerciseIndex > 0 && (
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => {
-                              if (activeWorkout) {
-                                const newIndex =
-                                  activeWorkout.currentExerciseIndex - 1;
-                                // OTIMISTIC UPDATE: Atualizar Zustand e URL primeiro (instantâneo)
-                                setCurrentExerciseIndex(newIndex);
-                                setExerciseIndexParam(newIndex);
-
-                                // Salvar progresso em background (não bloquear UI)
-                                saveWorkoutProgress(workout.id).catch(
-                                  (error) => {
-                                    console.error(
-                                      "Erro ao salvar progresso em background:",
-                                      error
-                                    );
-                                  }
-                                );
-                              }
-                            }}
-                            className="rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50"
-                          >
-                            <span className="hidden sm:inline">← ANTERIOR</span>
-                            <span className="sm:hidden">ANTERIOR</span>
-                          </motion.button>
-                        )}
-                      {/* Verificar se é o último exercício */}
-                      {activeWorkout &&
-                      activeWorkout.currentExerciseIndex + 1 >=
-                        workout.exercises.length ? (
-                        // Último exercício: mostrar botão FINALIZAR
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleFinish}
-                          className={cn(
-                            "rounded-xl sm:rounded-2xl border-2 border-duo-green bg-duo-green py-3 sm:py-4 font-bold text-xs sm:text-sm text-white transition-all hover:bg-duo-green/90",
-                            activeWorkout.currentExerciseIndex === 0 &&
-                              "col-span-2"
-                          )}
-                        >
-                          <span className="hidden sm:inline">
-                            FINALIZAR TREINO
-                          </span>
-                          <span className="sm:hidden">FINALIZAR</span>
-                        </motion.button>
-                      ) : (
-                        // Não é o último: mostrar botão PULAR
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={handleSkip}
-                          className={cn(
-                            "rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50",
-                            activeWorkout &&
-                              activeWorkout.currentExerciseIndex === 0 &&
-                              "col-span-2"
-                          )}
-                        >
-                          <span className="hidden sm:inline">
-                            PULAR EXERCÍCIO
-                          </span>
-                          <span className="sm:hidden">PULAR</span>
-                        </motion.button>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
+              <WorkoutFooter
+                isCardio={!!isCurrentExerciseCardio()}
+                isRunning={isRunning}
+                currentExercise={currentExercise}
+                canGoBack={
+                  !!(activeWorkout && activeWorkout.currentExerciseIndex > 0)
+                }
+                isLastExercise={
+                  !!(
+                    activeWorkout &&
+                    activeWorkout.currentExerciseIndex + 1 >=
+                      workout.exercises.length
+                  )
+                }
+                onToggleCardio={() => setIsRunning(!isRunning)}
+                onOpenWeightTracker={weightTrackerModal.open}
+                onOpenAlternatives={() => {
+                  console.log("👆 Clicou em VER ALTERNATIVAS");
+                  console.log("currentExercise:", currentExercise);
+                  alternativeSelectorModal.open();
+                }}
+                onCompleteCardio={handleCardioComplete}
+                onGoBack={() => {
+                  if (activeWorkout) {
+                    const newIndex = activeWorkout.currentExerciseIndex - 1;
+                    setCurrentExerciseIndex(newIndex);
+                    setExerciseIndexParam(newIndex);
+                    saveWorkoutProgress(workout.id).catch((error) => {
+                      console.error(
+                        "Erro ao salvar progresso em background:",
+                        error
+                      );
+                    });
+                  }
+                }}
+                onFinish={handleFinish}
+                onSkip={handleSkip}
+              />
             </>
           )}
 

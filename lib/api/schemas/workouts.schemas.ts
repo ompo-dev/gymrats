@@ -50,13 +50,14 @@ export const updateWorkoutSchema = createWorkoutSchema
 
 export const createWorkoutExerciseSchema = z.object({
   workoutId: z.string().min(1, "O ID do treino é obrigatório"),
-  name: z.string().min(1, "O nome do exercício é obrigatório"),
-  sets: z.number().int().positive("Séries devem ser positivas"),
-  reps: z.string().min(1, "Repetições são obrigatórias"),
-  rest: z.number().int().nonnegative("Descanso não pode ser negativo"),
+  educationalId: z.string().min(1, "O ID educacional do exercício é obrigatório"),
+  // Campos opcionais para sobrescrever (caso necessário)
+  name: z.string().optional(),
+  sets: z.number().int().positive().optional(),
+  reps: z.string().optional(),
+  rest: z.number().int().nonnegative().optional(),
   notes: z.string().optional(),
   videoUrl: z.string().optional(),
-  educationalId: z.string().optional(),
   // Dados do educational database (aceita string JSON ou array)
   primaryMuscles: z.union([z.string(), z.array(z.string())]).optional(),
   secondaryMuscles: z.union([z.string(), z.array(z.string())]).optional(),

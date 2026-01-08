@@ -309,14 +309,11 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 
     // Iniciar adição de todos os exercícios (SEM await - optimistic update acontece primeiro!)
     // As actions fazem optimistic update IMEDIATAMENTE, então UI já está atualizada
+    // Enviar APENAS educationalId - backend busca todas as informações e calcula sets/reps/rest
     const addPromises = exercisesToAdd.map((ex) =>
       actions
         .addWorkoutExercise(workoutId, {
-          name: ex.name,
-          sets: defaultSets,
-          reps: defaultReps,
-          rest: defaultRest,
-          educationalId: ex.id,
+          educationalId: ex.id, // Apenas o ID - backend busca tudo
         })
         .catch((e: any) => {
           // Tratar erros em background (não bloqueia UI)

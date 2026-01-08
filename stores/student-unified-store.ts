@@ -2770,13 +2770,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             return;
           }
 
-          // Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
+          // Se sincronizado com sucesso, atualizar exercício com TODOS os dados da resposta
           // A resposta vem como { success: true, data: { data: exercise, message: "..." } }
           // ou { success: true, data: exercise } dependendo da estrutura
           const exerciseData = result.data?.data || result.data;
           if (result.success && !result.queued && exerciseData?.id) {
-            const realId = exerciseData.id;
-            // Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
+            // Atualizar exercício com TODOS os dados retornados pela API
+            // Isso inclui: primaryMuscles, secondaryMuscles, instructions, tips, benefits,
+            // commonMistakes, equipment, difficulty, scientificEvidence, alternatives, etc.
             set((state) => ({
               data: {
                 ...state.data,
@@ -2788,7 +2789,44 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                           ...workout,
                           exercises: workout.exercises.map((exercise) =>
                             exercise.id === command.id
-                              ? { ...exercise, id: realId }
+                              ? (() => {
+                                  // Função helper para parsear JSON com segurança
+                                  const safeParse = (value: any) => {
+                                    if (!value) return null;
+                                    if (Array.isArray(value)) return value;
+                                    if (typeof value === "string") {
+                                      try {
+                                        return JSON.parse(value);
+                                      } catch {
+                                        return null;
+                                      }
+                                    }
+                                    return value;
+                                  };
+
+                                  // Substituir exercício temporário pelo exercício completo da API
+                                  return {
+                                    ...exerciseData,
+                                    // Garantir que arrays sejam parseados se vierem como JSON strings
+                                    primaryMuscles: safeParse(
+                                      exerciseData.primaryMuscles
+                                    ),
+                                    secondaryMuscles: safeParse(
+                                      exerciseData.secondaryMuscles
+                                    ),
+                                    equipment: safeParse(exerciseData.equipment),
+                                    instructions: safeParse(
+                                      exerciseData.instructions
+                                    ),
+                                    tips: safeParse(exerciseData.tips),
+                                    commonMistakes: safeParse(
+                                      exerciseData.commonMistakes
+                                    ),
+                                    benefits: safeParse(exerciseData.benefits),
+                                    // Garantir que alternatives seja um array
+                                    alternatives: exerciseData.alternatives || [],
+                                  };
+                                })()
                               : exercise
                           ),
                         }

@@ -12,42 +12,26 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { Button } from "@/components/atoms/buttons/button";
 import type { ExerciseLog, WorkoutSession } from "@/lib/types";
 
-interface WorkoutCompletionScreenProps {
+interface WorkoutCompletionViewProps {
   workout: WorkoutSession;
   workoutData: {
     exerciseLogs: ExerciseLog[];
     xpEarned: number;
     totalTime?: number;
-    totalCalories?: number;
-    avgHeartRate?: number;
+    skippedExercises?: string[];
   };
+  totalVolume: number;
   onClose: () => void;
   onRepeat: () => void;
 }
 
-export function WorkoutCompletionScreen({
+export function WorkoutCompletionView({
   workout,
   workoutData,
+  totalVolume,
   onClose,
   onRepeat,
-}: WorkoutCompletionScreenProps) {
-  // Debug: Log dos dados recebidos
-  console.log("🎯 WorkoutCompletionScreen recebeu:", {
-    totalLogs: workoutData.exerciseLogs.length,
-    logs: workoutData.exerciseLogs.map((l) => ({
-      name: l.exerciseName,
-      id: l.id,
-      sets: l.sets.length,
-      type:
-        l.exerciseName.toLowerCase().includes("cardio") ||
-        l.exerciseName.toLowerCase().includes("bicicleta") ||
-        l.exerciseName.toLowerCase().includes("corrida") ||
-        l.exerciseName.toLowerCase().includes("pular")
-          ? "CARDIO"
-          : "FORÇA",
-    })),
-  });
-
+}: WorkoutCompletionViewProps) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -56,17 +40,20 @@ export function WorkoutCompletionScreen({
       .padStart(2, "0")}`;
   };
 
-  // Calcular volume total apenas de séries válidas
-  const totalVolume = workoutData.exerciseLogs.reduce(
-    (acc, log) =>
-      acc +
-      log.sets
-        .filter((set) => set.weight > 0 && set.reps > 0)
-        .reduce((setAcc, set) => setAcc + set.weight * set.reps, 0),
-    0
-  );
+  // Criar lista apenas dos exercícios completados
+  const completedExercises = workoutData.exerciseLogs.map((log) => {
+    const originalExercise = workout.exercises.find(
+      (ex) => ex.id === log.exerciseId
+    );
 
-  const isCardioWorkout = workoutData.totalTime !== undefined;
+    return {
+      id: log.id,
+      exerciseId: log.exerciseId,
+      name: log.exerciseName || originalExercise?.name || "Exercício",
+      isCompleted: true,
+      exerciseLog: log,
+    };
+  });
 
   return (
     <AnimatePresence>
@@ -110,9 +97,9 @@ export function WorkoutCompletionScreen({
             </div>
           </FadeIn>
 
-          {/* Métricas */}
           <div className="mb-4 sm:mb-8 grid w-full max-w-md grid-cols-2 gap-3 sm:gap-4">
-            {isCardioWorkout ? (
+            {/* Se houver dados de cardio, mostrar apenas Tempo Total e XP */}
+            {workoutData.totalTime !== undefined ? (
               <>
                 <motion.div
                   initial={{ opacity: 0, scale: 0.8, x: -20 }}
@@ -126,7 +113,7 @@ export function WorkoutCompletionScreen({
                     Tempo Total
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-duo-blue">
-                    {formatTime(workoutData.totalTime!)}
+                    {formatTime(workoutData.totalTime)}
                   </div>
                 </motion.div>
 
@@ -187,49 +174,40 @@ export function WorkoutCompletionScreen({
             )}
           </div>
 
-          {/* Resumo dos exercícios */}
-          {workoutData.exerciseLogs.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-              className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
-            >
-              <h3 className="text-base sm:text-lg font-bold text-duo-text">
-                Resumo do Treino ({workoutData.exerciseLogs.length} exercícios)
-              </h3>
-              {workoutData.exerciseLogs.map((log, index) => {
-                console.log(`📋 Renderizando exercício ${index + 1}:`, {
-                  name: log.exerciseName,
-                  id: log.id,
-                  sets: log.sets.length,
-                  type:
-                    log.exerciseName.toLowerCase().includes("cardio") ||
-                    log.exerciseName.toLowerCase().includes("bicicleta") ||
-                    log.exerciseName.toLowerCase().includes("corrida") ||
-                    log.exerciseName.toLowerCase().includes("pular")
-                      ? "CARDIO"
-                      : "FORÇA",
-                });
-                return (
-                  <motion.div
-                    key={log.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                    whileHover={{ scale: 1.02, x: 5 }}
-                    className="rounded-xl border-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
-                        {log.exerciseName}
-                      </div>
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
+          {/* Mostrar resumo com todos os exercícios (completados e pulados) */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="mb-4 sm:mb-6 w-full max-w-md space-y-2 sm:space-y-3"
+          >
+            <h3 className="text-base sm:text-lg font-bold text-duo-text">
+              Resumo do Treino ({completedExercises.length} exercícios)
+            </h3>
+            {completedExercises.map((exercise, index) => {
+              const log = exercise.exerciseLog;
+
+              return (
+                <motion.div
+                  key={exercise.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                  whileHover={{ scale: 1.02, x: 5 }}
+                  className="rounded-xl border-2 border-duo-green bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
+                      {exercise.name}
                     </div>
+                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
+                  </div>
+                  {log && (
                     <div className="text-xs sm:text-sm text-duo-gray-dark">
                       {
-                        log.sets.filter((set) => set.weight > 0 && set.reps > 0)
-                          .length
+                        log.sets.filter(
+                          (set) => set.weight > 0 && set.reps > 0
+                        ).length
                       }{" "}
                       séries •{" "}
                       {log.sets
@@ -238,13 +216,12 @@ export function WorkoutCompletionScreen({
                         .toFixed(0)}
                       kg volume
                     </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          )}
+                  )}
+                </motion.div>
+              );
+            })}
+          </motion.div>
 
-          {/* Botões */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -256,7 +233,8 @@ export function WorkoutCompletionScreen({
               className="flex-1 text-sm sm:text-base"
               onClick={onRepeat}
             >
-              FAZER NOVAMENTE
+              <span className="hidden sm:inline">FAZER NOVAMENTE</span>
+              <span className="sm:hidden">REFAZER</span>
             </Button>
             <Button
               variant="default"
@@ -264,7 +242,7 @@ export function WorkoutCompletionScreen({
               onClick={onClose}
             >
               CONTINUAR
-              <ArrowRight className="h-5 w-5" />
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
             </Button>
           </motion.div>
         </motion.div>

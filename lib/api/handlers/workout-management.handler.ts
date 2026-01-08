@@ -16,6 +16,13 @@ import {
   createWorkoutExerciseSchema,
   updateWorkoutExerciseSchema,
 } from "../schemas/workouts.schemas";
+import { exerciseDatabase } from "@/lib/educational-data";
+import {
+  generateAlternatives,
+  calculateSets,
+  calculateReps,
+  calculateRest,
+} from "@/lib/services/personalized-workout-generator";
 
 // ==========================================
 // UNITS
@@ -184,10 +191,10 @@ export async function createWorkoutHandler(
     const workout = await db.workout.create({
       data: {
         unitId,
+        order,
+        ...workoutData,
         muscleGroup: workoutData.muscleGroup || "",
         estimatedTime: workoutData.estimatedTime || 0,
-        ...workoutData,
-        order,
       },
     });
 
@@ -343,10 +350,31 @@ export async function createExerciseHandler(
     if ("error" in auth) return auth.response;
 
     const body = await request.json();
+    console.log(
+      "[createExerciseHandler] Body recebido:",
+      JSON.stringify(body, null, 2)
+    );
+
     const validation = createWorkoutExerciseSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error);
+      console.error("[createExerciseHandler] Erro de validação:", {
+        body,
+        errors: validation.error.errors,
+        formattedErrors: validation.error.errors.map((e) => ({
+          path: e.path.join("."),
+          message: e.message,
+          code: e.code,
+        })),
+      });
+      return badRequestResponse(
+        "Dados inválidos",
+        validation.error.errors.map((e) => ({
+          path: e.path.join("."),
+          message: e.message,
+          code: e.code,
+        }))
+      );
     }
 
     const { workoutId, ...exerciseData } = validation.data;
@@ -369,6 +397,127 @@ export async function createExerciseHandler(
       );
     }
 
+    // Validar que educationalId foi fornecido
+    if (!exerciseData.educationalId) {
+      return badRequestResponse("ID educacional do exercício é obrigatório");
+    }
+
+    // Buscar perfil do aluno para calcular sets/reps/rest baseado nas preferências
+    const student = await db.student.findUnique({
+      where: { id: auth.user.student.id },
+      include: { profile: true },
+    });
+
+    if (!student?.profile) {
+      return badRequestResponse("Perfil do aluno não encontrado");
+    }
+
+    // Buscar exercício no database educacional (OBRIGATÓRIO)
+    // Tentar buscar por ID exato primeiro
+    let exerciseInfo = exerciseDatabase.find(
+      (ex) => ex.id === exerciseData.educationalId
+    );
+
+    // Se não encontrou por ID exato, tentar buscar por nome (case-insensitive)
+    if (!exerciseInfo) {
+      const searchName = exerciseData.name || exerciseData.educationalId;
+      exerciseInfo = exerciseDatabase.find(
+        (ex) =>
+          ex.name.toLowerCase() === searchName.toLowerCase() ||
+          ex.id.toLowerCase() === exerciseData.educationalId.toLowerCase()
+      );
+    }
+
+    if (!exerciseInfo) {
+      console.error("[createExerciseHandler] Exercício não encontrado:", {
+        educationalId: exerciseData.educationalId,
+        name: exerciseData.name,
+        availableIds: exerciseDatabase.slice(0, 5).map((ex) => ex.id), // Log primeiros 5 IDs para debug
+      });
+      return badRequestResponse(
+        `Exercício não encontrado no database educacional: ${
+          exerciseData.educationalId
+        }. Nome buscado: ${exerciseData.name || "não fornecido"}`
+      );
+    }
+
+    console.log("[createExerciseHandler] Exercício encontrado:", {
+      id: exerciseInfo.id,
+      name: exerciseInfo.name,
+      educationalIdBuscado: exerciseData.educationalId,
+    });
+
+    // Calcular sets, reps e rest baseado nas preferências do aluno (igual ao generate)
+    const profile: any = {
+      preferredSets: student.profile.preferredSets || null,
+      preferredRepRange: student.profile.preferredRepRange as
+        | "forca"
+        | "hipertrofia"
+        | "resistencia"
+        | null,
+      restTime: student.profile.restTime as "curto" | "medio" | "longo" | null,
+      activityLevel: student.profile.activityLevel,
+      fitnessLevel: student.profile.fitnessLevel as
+        | "iniciante"
+        | "intermediario"
+        | "avancado"
+        | null,
+      goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
+    };
+
+    // Calcular valores baseado nas preferências do aluno
+    const calculatedSets =
+      exerciseData.sets ||
+      calculateSets(
+        profile.preferredSets,
+        profile.activityLevel,
+        profile.fitnessLevel
+      );
+    const calculatedReps =
+      exerciseData.reps ||
+      calculateReps(profile.preferredRepRange, profile.goals);
+    const calculatedRest =
+      exerciseData.rest !== undefined
+        ? exerciseData.rest
+        : calculateRest(profile.restTime, profile.preferredRepRange);
+
+    // Popular dados educacionais (igual ao generate)
+    const educationalExerciseData = {
+      name: exerciseData.name || exerciseInfo.name, // Usar nome fornecido ou do database
+      sets: calculatedSets,
+      reps: calculatedReps,
+      rest: calculatedRest,
+      primaryMuscles: exerciseInfo.primaryMuscles
+        ? JSON.stringify(exerciseInfo.primaryMuscles)
+        : null,
+      secondaryMuscles: exerciseInfo.secondaryMuscles
+        ? JSON.stringify(exerciseInfo.secondaryMuscles)
+        : null,
+      difficulty: exerciseInfo.difficulty || null,
+      equipment:
+        exerciseInfo.equipment && exerciseInfo.equipment.length > 0
+          ? JSON.stringify(exerciseInfo.equipment)
+          : null,
+      instructions:
+        exerciseInfo.instructions && exerciseInfo.instructions.length > 0
+          ? JSON.stringify(exerciseInfo.instructions)
+          : null,
+      tips:
+        exerciseInfo.tips && exerciseInfo.tips.length > 0
+          ? JSON.stringify(exerciseInfo.tips)
+          : null,
+      commonMistakes:
+        exerciseInfo.commonMistakes && exerciseInfo.commonMistakes.length > 0
+          ? JSON.stringify(exerciseInfo.commonMistakes)
+          : null,
+      benefits:
+        exerciseInfo.benefits && exerciseInfo.benefits.length > 0
+          ? JSON.stringify(exerciseInfo.benefits)
+          : null,
+      scientificEvidence: exerciseInfo.scientificEvidence || null,
+      educationalId: exerciseData.educationalId || exerciseInfo.id,
+    };
+
     // Get max order in workout
     const lastExercise = await db.workoutExercise.findFirst({
       where: { workoutId },
@@ -376,19 +525,110 @@ export async function createExerciseHandler(
     });
     const order = lastExercise ? lastExercise.order + 1 : 0;
 
-    // Normalizar dados educacionais (arrays → JSON strings)
-    const normalizedData = normalizeEducationalData(exerciseData);
-
+    // Criar exercício com todos os dados (educacionais + sets/reps/rest calculados)
     const exercise = await db.workoutExercise.create({
       data: {
         workoutId,
-        ...normalizedData,
+        ...educationalExerciseData, // Dados educacionais + sets/reps/rest calculados
+        notes: exerciseData.notes || null,
+        videoUrl: exerciseData.videoUrl || null,
         order,
       },
     });
 
+    // Buscar alternativas para o exercício automaticamente
+    // Isso garante que exercícios adicionados manualmente também tenham alternativas
+    try {
+      // Se já temos exerciseInfo (buscado acima) e perfil do aluno, gerar alternativas
+      if (student?.profile && exerciseInfo) {
+        // Preparar limitações (mesma lógica do gerador de workouts)
+        const physicalLimitations = student.profile.physicalLimitations
+          ? JSON.parse(student.profile.physicalLimitations)
+          : [];
+        const motorLimitations = student.profile.motorLimitations
+          ? JSON.parse(student.profile.motorLimitations)
+          : [];
+        const medicalConditions = student.profile.medicalConditions
+          ? JSON.parse(student.profile.medicalConditions)
+          : [];
+        const limitations = [
+          ...physicalLimitations,
+          ...motorLimitations,
+          ...medicalConditions,
+        ];
+
+        // Gerar alternativas
+        const alternatives = generateAlternatives(
+          exerciseInfo,
+          student.profile.gymType as
+            | "academia-completa"
+            | "academia-basica"
+            | "home-gym"
+            | "peso-corporal"
+            | null,
+          limitations
+        );
+
+        // Criar alternativas no banco de dados
+        if (alternatives.length > 0) {
+          await db.alternativeExercise.createMany({
+            data: alternatives.map((alt, index) => ({
+              workoutExerciseId: exercise.id,
+              name: alt.name,
+              reason: alt.reason,
+              educationalId: alt.educationalId || null,
+              order: index,
+            })),
+          });
+        }
+      }
+    } catch (altError) {
+      // Log erro mas não falhar a criação do exercício
+      // As alternativas podem ser adicionadas depois através do endpoint PATCH /api/workouts/generate
+      console.error(
+        "[createExerciseHandler] Erro ao adicionar alternativas:",
+        altError
+      );
+    }
+
+    // Buscar exercício com alternativas para retornar completo
+    const exerciseWithAlternatives = await db.workoutExercise.findUnique({
+      where: { id: exercise.id },
+      include: { alternatives: true },
+    });
+
+    // Transformar dados educacionais de JSON strings para arrays (igual ao generate)
+    // Helper para parsear JSON com segurança
+    const safeParse = (value: string | null | undefined): any => {
+      if (!value) return null;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
+    };
+
+    const transformedExercise = exerciseWithAlternatives
+      ? {
+          ...exerciseWithAlternatives,
+          primaryMuscles: safeParse(exerciseWithAlternatives.primaryMuscles),
+          secondaryMuscles: safeParse(
+            exerciseWithAlternatives.secondaryMuscles
+          ),
+          equipment: safeParse(exerciseWithAlternatives.equipment),
+          instructions: safeParse(exerciseWithAlternatives.instructions),
+          tips: safeParse(exerciseWithAlternatives.tips),
+          commonMistakes: safeParse(exerciseWithAlternatives.commonMistakes),
+          benefits: safeParse(exerciseWithAlternatives.benefits),
+          alternatives: exerciseWithAlternatives.alternatives || [],
+        }
+      : null;
+
     return successResponse(
-      { data: exercise, message: "Exercício adicionado com sucesso" },
+      {
+        data: transformedExercise,
+        message: "Exercício adicionado com sucesso",
+      },
       201
     );
   } catch (error) {
