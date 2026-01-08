@@ -31,9 +31,18 @@ export async function submitOnboarding(formData: OnboardingData) {
       targetProtein: formData.targetProtein,
       targetCarbs: formData.targetCarbs,
       targetFats: formData.targetFats,
-      activityLevel: typeof formData.activityLevel === "number" ? formData.activityLevel : undefined,
-      hormoneTreatmentDuration: typeof formData.hormoneTreatmentDuration === "number" ? formData.hormoneTreatmentDuration : undefined,
-      dailyAvailableHours: typeof formData.dailyAvailableHours === "number" ? formData.dailyAvailableHours : undefined,
+      activityLevel:
+        typeof formData.activityLevel === "number"
+          ? formData.activityLevel
+          : undefined,
+      hormoneTreatmentDuration:
+        typeof formData.hormoneTreatmentDuration === "number"
+          ? formData.hormoneTreatmentDuration
+          : undefined,
+      dailyAvailableHours:
+        typeof formData.dailyAvailableHours === "number"
+          ? formData.dailyAvailableHours
+          : undefined,
       physicalLimitations: formData.physicalLimitations || [],
       motorLimitations: formData.motorLimitations || [],
       medicalConditions: formData.medicalConditions || [],
@@ -48,7 +57,10 @@ export async function submitOnboarding(formData: OnboardingData) {
     }
 
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return { success: false, error: "Não autenticado" };
@@ -138,9 +150,7 @@ export async function submitOnboarding(formData: OnboardingData) {
           : null,
       // Valores metabólicos calculados
       bmr:
-        formData.bmr && typeof formData.bmr === "number"
-          ? formData.bmr
-          : null,
+        formData.bmr && typeof formData.bmr === "number" ? formData.bmr : null,
       tdee:
         formData.tdee && typeof formData.tdee === "number"
           ? formData.tdee
@@ -152,7 +162,8 @@ export async function submitOnboarding(formData: OnboardingData) {
           : null,
       // Tempo de tratamento hormonal (meses)
       hormoneTreatmentDuration:
-        formData.hormoneTreatmentDuration && typeof formData.hormoneTreatmentDuration === "number"
+        formData.hormoneTreatmentDuration &&
+        typeof formData.hormoneTreatmentDuration === "number"
           ? formData.hormoneTreatmentDuration
           : null,
       // Limitações separadas
@@ -170,19 +181,21 @@ export async function submitOnboarding(formData: OnboardingData) {
           : null,
       // Detalhes das limitações
       limitationDetails:
-        formData.limitationDetails && Object.keys(formData.limitationDetails).length > 0
+        formData.limitationDetails &&
+        Object.keys(formData.limitationDetails).length > 0
           ? JSON.stringify(formData.limitationDetails)
           : null,
       // Horas disponíveis por dia para treino (para planejamento de treino mensal)
       dailyAvailableHours:
-        formData.dailyAvailableHours && typeof formData.dailyAvailableHours === "number"
+        formData.dailyAvailableHours &&
+        typeof formData.dailyAvailableHours === "number"
           ? formData.dailyAvailableHours
           : null,
       // Manter compatibilidade: também salvar no campo injuries (JSON array combinado)
       injuries:
-        (formData.physicalLimitations?.length || 
-         formData.motorLimitations?.length || 
-         formData.medicalConditions?.length) > 0
+        (formData.physicalLimitations?.length ||
+          formData.motorLimitations?.length ||
+          formData.medicalConditions?.length) > 0
           ? JSON.stringify([
               ...(formData.physicalLimitations || []),
               ...(formData.motorLimitations || []),
@@ -255,52 +268,77 @@ export async function submitOnboarding(formData: OnboardingData) {
     // Não bloqueia o retorno do onboarding
     (async () => {
       try {
-        const { 
+        const {
           generatePersonalizedWorkoutPlan,
-          updateExercisesWithAlternatives 
+          updateExercisesWithAlternatives,
         } = await import("@/lib/services/personalized-workout-generator");
-        
-        const { populateWorkoutExercisesWithEducationalData } = await import("@/lib/services/populate-workout-exercises-educational-data");
+
+        const { populateWorkoutExercisesWithEducationalData } = await import(
+          "@/lib/services/populate-workout-exercises-educational-data"
+        );
 
         // Preparar dados do perfil para geração de treinos (usando dados já salvos no banco)
         const workoutProfile: any = {
           age: student.age,
           gender: student.gender,
-          fitnessLevel: formData.fitnessLevel as "iniciante" | "intermediario" | "avancado" | null,
+          fitnessLevel: formData.fitnessLevel as
+            | "iniciante"
+            | "intermediario"
+            | "avancado"
+            | null,
           height: typeof formData.height === "number" ? formData.height : null,
           weight: typeof formData.weight === "number" ? formData.weight : null,
           goals: formData.goals || [],
           weeklyWorkoutFrequency: formData.weeklyWorkoutFrequency || null,
           workoutDuration: formData.workoutDuration || null,
-          preferredSets: typeof formData.preferredSets === "number" ? formData.preferredSets : null,
+          preferredSets:
+            typeof formData.preferredSets === "number"
+              ? formData.preferredSets
+              : null,
           preferredRepRange: formData.preferredRepRange || null,
           restTime: formData.restTime || null,
           gymType: formData.gymType || null,
-          activityLevel: typeof formData.activityLevel === "number" ? formData.activityLevel : null,
+          activityLevel:
+            typeof formData.activityLevel === "number"
+              ? formData.activityLevel
+              : null,
           physicalLimitations: formData.physicalLimitations || [],
           motorLimitations: formData.motorLimitations || [],
           medicalConditions: formData.medicalConditions || [],
           limitationDetails: formData.limitationDetails || null,
         };
 
-        console.log(`[submitOnboarding] Iniciando geração de treinos para student ${student.id}`);
-        
+        console.log(
+          `[submitOnboarding] Iniciando geração de treinos para student ${student.id}`
+        );
+
         // Gerar treinos personalizados (gera 4 semanas de treinos)
         await generatePersonalizedWorkoutPlan(student.id, workoutProfile);
-        console.log(`[submitOnboarding] Treinos gerados para student ${student.id}`);
-        
+        console.log(
+          `[submitOnboarding] Treinos gerados para student ${student.id}`
+        );
+
         // Atualizar exercícios com alternativas
         await updateExercisesWithAlternatives(student.id);
-        console.log(`[submitOnboarding] Alternativas atualizadas para student ${student.id}`);
-        
+        console.log(
+          `[submitOnboarding] Alternativas atualizadas para student ${student.id}`
+        );
+
         // Popular exercícios com dados educacionais
         await populateWorkoutExercisesWithEducationalData(student.id);
-        console.log(`[submitOnboarding] Dados educacionais populados para student ${student.id}`);
-        
-        console.log(`[submitOnboarding] ✅ Treinos personalizados gerados com sucesso para student ${student.id}`);
+        console.log(
+          `[submitOnboarding] Dados educacionais populados para student ${student.id}`
+        );
+
+        console.log(
+          `[submitOnboarding] ✅ Treinos personalizados gerados com sucesso para student ${student.id}`
+        );
       } catch (workoutError: any) {
         // Não falhar o onboarding se a geração de treinos falhar
-        console.error("[submitOnboarding] ❌ Erro ao gerar treinos personalizados:", workoutError);
+        console.error(
+          "[submitOnboarding] ❌ Erro ao gerar treinos personalizados:",
+          workoutError
+        );
         console.error("[submitOnboarding] Stack trace:", workoutError.stack);
       }
     })();

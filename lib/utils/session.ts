@@ -3,27 +3,33 @@ import { db } from "@/lib/db";
 const SESSION_DURATION_DAYS = 30;
 
 export async function createSession(userId: string): Promise<string> {
-  const expires = new Date();
-  expires.setDate(expires.getDate() + SESSION_DURATION_DAYS);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
 
-  const sessionToken = `${Date.now()}-${Math.random()
+  const token = `${Date.now()}-${Math.random()
     .toString(36)
     .substring(2, 15)}-${Math.random().toString(36).substring(2, 15)}`;
 
   await db.session.create({
     data: {
-      sessionToken,
+      token, // Better Auth usa 'token'
       userId,
-      expires,
+      expiresAt, // Better Auth usa 'expiresAt'
+      // Campos legacy para compatibilidade
+      sessionToken: token,
+      expires: expiresAt,
     },
   });
 
-  return sessionToken;
+  return token;
 }
 
 export async function getSession(sessionToken: string) {
-  const session = await db.session.findUnique({
-    where: { sessionToken },
+  // Tentar buscar por token (Better Auth) primeiro, depois por sessionToken (legacy)
+  let session = await db.session.findFirst({
+    where: {
+      OR: [{ token: sessionToken }, { sessionToken: sessionToken }],
+    },
     include: {
       user: {
         include: {
@@ -46,9 +52,11 @@ export async function getSession(sessionToken: string) {
     return null;
   }
 
-  if (session.expires < new Date()) {
+  // Verificar expiração usando expiresAt (Better Auth) ou expires (legacy)
+  const expiresAt = session.expiresAt || session.expires;
+  if (expiresAt && expiresAt < new Date()) {
     await db.session.delete({
-      where: { sessionToken },
+      where: { id: session.id },
     });
     return null;
   }
@@ -118,8 +126,10 @@ export async function getSession(sessionToken: string) {
     }
 
     // Recarregar a sessão com os perfis criados
-    const updatedSession = await db.session.findUnique({
-      where: { sessionToken },
+    const updatedSession = await db.session.findFirst({
+      where: {
+        OR: [{ token: sessionToken }, { sessionToken: sessionToken }],
+      },
       include: {
         user: {
           include: {
@@ -146,7 +156,9 @@ export async function getSession(sessionToken: string) {
 
 export async function deleteSession(sessionToken: string) {
   await db.session.deleteMany({
-    where: { sessionToken },
+    where: {
+      OR: [{ token: sessionToken }, { sessionToken: sessionToken }],
+    },
   });
 }
 

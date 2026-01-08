@@ -1,28 +1,28 @@
-import { apiClient } from "./client"
+import { apiClient } from "./client";
 
 export interface LoginCredentials {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface RegisterData {
-  name: string
-  email: string
-  password: string
-  userType?: "student" | "gym"
+  name: string;
+  email: string;
+  password: string;
+  userType?: "student" | "gym";
 }
 
 export interface AuthResponse {
   user: {
-    id: string
-    email: string
-    name: string
-    role: "STUDENT" | "GYM" | "ADMIN"
-  }
+    id: string;
+    email: string;
+    name: string;
+    role: "STUDENT" | "GYM" | "ADMIN";
+  };
   session: {
-    id: string
-    token: string
-  }
+    id: string;
+    token: string;
+  };
 }
 
 export const authApi = {
@@ -36,9 +36,7 @@ export const authApi = {
       return response.data;
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Erro ao fazer login";
+        error.response?.data?.error || error.message || "Erro ao fazer login";
       throw new Error(errorMessage);
     }
   },
@@ -53,17 +51,33 @@ export const authApi = {
       return response.data;
     } catch (error: any) {
       const errorMessage =
-        error.response?.data?.error ||
-        error.message ||
-        "Erro ao criar conta";
+        error.response?.data?.error || error.message || "Erro ao criar conta";
       throw new Error(errorMessage);
     }
   },
 
   async logout(): Promise<void> {
-    // Usar axios client (API → Component)
-    // O interceptor já adiciona o token automaticamente
-    await apiClient.post("/api/auth/sign-out");
+    try {
+      // Primeiro tentar logout via Better Auth
+      if (typeof window !== "undefined") {
+        const { authClient } = await import("@/lib/auth-client");
+        await authClient.signOut();
+      }
+
+      // Também chamar endpoint de logout para compatibilidade
+      await apiClient.post("/api/auth/sign-out");
+    } catch (error: any) {
+      // Se falhar, apenas limpar localStorage e cookies
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("isAuthenticated");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("isAdmin");
+      }
+      throw error;
+    }
   },
 
   async getSession(): Promise<AuthResponse | null> {
@@ -93,12 +107,15 @@ export const authApi = {
     }
   },
 
-  async verifyResetCode(email: string, code: string): Promise<{ valid: boolean; message: string }> {
+  async verifyResetCode(
+    email: string,
+    code: string
+  ): Promise<{ valid: boolean; message: string }> {
     try {
-      const response = await apiClient.post<{ valid: boolean; message: string }>(
-        "/api/auth/verify-reset-code",
-        { email, code }
-      );
+      const response = await apiClient.post<{
+        valid: boolean;
+        message: string;
+      }>("/api/auth/verify-reset-code", { email, code });
       return response.data;
     } catch (error: any) {
       const errorMessage =
@@ -109,7 +126,11 @@ export const authApi = {
     }
   },
 
-  async resetPassword(email: string, code: string, newPassword: string): Promise<{ message: string }> {
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<{ message: string }> {
     try {
       const response = await apiClient.post<{ message: string }>(
         "/api/auth/reset-password",
@@ -124,5 +145,4 @@ export const authApi = {
       throw new Error(errorMessage);
     }
   },
-}
-
+};

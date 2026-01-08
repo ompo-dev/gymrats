@@ -83,8 +83,11 @@ export default function StudentOnboardingPage() {
   // Verificar se já tem perfil e redirecionar para /student
   // Mas não verificar se estiver submetendo (para evitar conflito)
   useEffect(() => {
+    let isChecking = false;
+    
     const checkProfileAndRedirect = async () => {
-      if (!isMounted || isSubmitting) return;
+      if (!isMounted || isSubmitting || isChecking) return;
+      isChecking = true;
 
       try {
         const { apiClient } = await import("@/lib/api/client");
@@ -94,15 +97,25 @@ export default function StudentOnboardingPage() {
 
         if (response.data.hasProfile === true) {
           // Já tem perfil, redirecionar para /student
-          router.replace("/student");
+          // Usar window.location para evitar loop
+          window.location.href = "/student";
+          return;
         }
       } catch (error) {
         // Se der erro (usuário não autenticado), continuar normalmente
         console.error("Erro ao verificar perfil:", error);
+      } finally {
+        isChecking = false;
       }
     };
 
-    checkProfileAndRedirect();
+    // Adicionar um pequeno delay para evitar múltiplas verificações simultâneas
+    const timeoutId = setTimeout(checkProfileAndRedirect, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      isChecking = false;
+    };
   }, [isMounted, router, isSubmitting]);
 
   // Reseta forceValidation quando o step muda

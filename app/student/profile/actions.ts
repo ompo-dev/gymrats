@@ -14,7 +14,10 @@ import {
 export async function getStudentProfileData() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return {
@@ -71,7 +74,8 @@ export async function getStudentProfileData() {
     if (student?.profile?.goals) {
       try {
         const goals = JSON.parse(student.profile.goals);
-        hasWeightLossGoal = Array.isArray(goals) && goals.includes("perder-peso");
+        hasWeightLossGoal =
+          Array.isArray(goals) && goals.includes("perder-peso");
       } catch (e) {
         // Ignorar erro de parse
       }
@@ -153,9 +157,20 @@ export async function getStudentProfileData() {
         try {
           const parsed = JSON.parse(wh.bodyPartsFatigued);
           if (Array.isArray(parsed)) {
-            bodyPartsFatigued = parsed.filter((item): item is MuscleGroup => 
-              typeof item === "string" && 
-              ["peito", "costas", "pernas", "ombros", "bracos", "core", "gluteos", "cardio", "funcional"].includes(item)
+            bodyPartsFatigued = parsed.filter(
+              (item): item is MuscleGroup =>
+                typeof item === "string" &&
+                [
+                  "peito",
+                  "costas",
+                  "pernas",
+                  "ombros",
+                  "bracos",
+                  "core",
+                  "gluteos",
+                  "cardio",
+                  "funcional",
+                ].includes(item)
             );
           }
         } catch (e) {
@@ -186,17 +201,27 @@ export async function getStudentProfileData() {
             sets: sets,
             notes: el.notes || undefined,
             formCheckScore: el.formCheckScore || undefined,
-            difficulty: (el.difficulty && ["muito-facil", "facil", "ideal", "dificil", "muito-dificil"].includes(el.difficulty))
-              ? (el.difficulty as "muito-facil" | "facil" | "ideal" | "dificil" | "muito-dificil")
-              : "ideal",
+            difficulty:
+              el.difficulty &&
+              [
+                "muito-facil",
+                "facil",
+                "ideal",
+                "dificil",
+                "muito-dificil",
+              ].includes(el.difficulty)
+                ? (el.difficulty as
+                    | "muito-facil"
+                    | "facil"
+                    | "ideal"
+                    | "dificil"
+                    | "muito-dificil")
+                : "ideal",
           };
         }),
         overallFeedback:
-          (wh.overallFeedback as
-            | "excelente"
-            | "bom"
-            | "regular"
-            | "ruim") || undefined,
+          (wh.overallFeedback as "excelente" | "bom" | "regular" | "ruim") ||
+          undefined,
         bodyPartsFatigued: bodyPartsFatigued,
       };
     });
@@ -275,7 +300,7 @@ export async function getStudentProfileData() {
       const currentWeight = formattedWeightHistory[0].weight;
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      
+
       // Buscar peso de 1 mês atrás
       try {
         const weightOneMonthAgo = await db.weightHistory.findFirst({
@@ -311,11 +336,13 @@ export async function getStudentProfileData() {
       });
 
       const totalStudentsWithProgress = await db.studentProgress.count();
-      
+
       if (totalStudentsWithProgress > 0) {
         // Percentil = (alunos com mais XP / total) * 100
         // Se você está no top 15%, significa que 15% dos alunos têm mais XP
-        ranking = Math.round((studentsWithMoreXP / totalStudentsWithProgress) * 100);
+        ranking = Math.round(
+          (studentsWithMoreXP / totalStudentsWithProgress) * 100
+        );
       }
     } catch (error) {
       // Ignorar erro
@@ -331,8 +358,18 @@ export async function getStudentProfileData() {
       ? (() => {
           const d = new Date(user.createdAt);
           const months = [
-            "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-            "Jul", "Ago", "Set", "Out", "Nov", "Dez"
+            "Jan",
+            "Fev",
+            "Mar",
+            "Abr",
+            "Mai",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Out",
+            "Nov",
+            "Dez",
           ];
           const month = months[d.getMonth()];
           const year = d.getFullYear();
@@ -341,9 +378,10 @@ export async function getStudentProfileData() {
       : "Jan 2025";
 
     // Peso atual (último registro de WeightHistory ou do perfil)
-    const currentWeight = formattedWeightHistory.length > 0 
-      ? formattedWeightHistory[0].weight 
-      : (student?.profile?.weight || null);
+    const currentWeight =
+      formattedWeightHistory.length > 0
+        ? formattedWeightHistory[0].weight
+        : student?.profile?.weight || null;
 
     return {
       progress: userProgress,

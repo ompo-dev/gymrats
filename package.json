@@ -1,6 +1,6 @@
 {
   "name": "gymrats",
-  "version": "13.8.3",
+  "version": "14.0.0",
   "private": true,
   "scripts": {
     "build": "npm run version:sync && prisma generate && next build",

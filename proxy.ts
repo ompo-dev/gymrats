@@ -20,21 +20,24 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
   const authToken = request.cookies.get("auth_token")?.value;
+  const betterAuthToken = request.cookies.get("better-auth.session_token")?.value;
+  const hasAuth = authToken || betterAuthToken;
 
   if (
     pathname.startsWith("/student") ||
     pathname.startsWith("/workout") ||
     pathname.startsWith("/lesson")
   ) {
-    if (!authToken) {
+    if (!hasAuth) {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
     return NextResponse.next();
   }
 
   if (pathname.startsWith("/gym")) {
-    if (!authToken) {
+    if (!hasAuth) {
       return NextResponse.redirect(new URL("/auth/login", request.url));
     }
     return NextResponse.next();

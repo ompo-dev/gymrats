@@ -11,7 +11,10 @@ import type { MuscleGroup } from "@/lib/types";
 export async function getCurrentUserInfo() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       console.log("[getCurrentUserInfo] Sem token de sessão");
@@ -26,7 +29,7 @@ export async function getCurrentUserInfo() {
 
     const isAdmin = session.user.role === "ADMIN";
     const role = session.user.role;
-    
+
     console.log("[getCurrentUserInfo] User role:", role, "isAdmin:", isAdmin);
 
     return {
@@ -34,7 +37,10 @@ export async function getCurrentUserInfo() {
       role,
     };
   } catch (error) {
-    console.error("[getCurrentUserInfo] Erro ao buscar informações do usuário:", error);
+    console.error(
+      "[getCurrentUserInfo] Erro ao buscar informações do usuário:",
+      error
+    );
     return { isAdmin: false, role: null };
   }
 }
@@ -42,63 +48,141 @@ export async function getCurrentUserInfo() {
 export async function getStudentProfile() {
   try {
     const cookieStore = await cookies();
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
     const sessionToken =
       cookieStore.get("auth_token")?.value ||
-      cookieStore.get("auth_token")?.value;
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return { hasProfile: false, profile: null };
     }
 
-    const session = await getSession(sessionToken);
+    // Primeiro tentar buscar sessão no banco usando o token
+    let session = await getSession(sessionToken);
+    
+    // Se não encontrou no banco, tentar validar via Better Auth
     if (!session) {
-      return { hasProfile: false, profile: null };
+      try {
+        const { auth } = await import("@/lib/auth-config");
+        
+        // Criar headers com cookies para Better Auth
+        const betterAuthHeaders = new Headers();
+        const betterAuthToken = cookieStore.get("better-auth.session_token")?.value;
+        const authToken = cookieStore.get("auth_token")?.value;
+        
+        if (betterAuthToken) {
+          betterAuthHeaders.set("cookie", `better-auth.session_token=${betterAuthToken}`);
+        } else if (authToken) {
+          betterAuthHeaders.set("cookie", `auth_token=${authToken}`);
+        }
+        
+        const betterAuthSession = await auth.api.getSession({
+          headers: betterAuthHeaders,
+        });
+
+        if (betterAuthSession?.user) {
+          // Sessão do Better Auth encontrada - buscar dados do perfil diretamente
+          const user = await db.user.findUnique({
+            where: { id: betterAuthSession.user.id },
+            include: {
+              student: {
+                include: {
+                  profile: true,
+                },
+              },
+            },
+          });
+
+          if (!user || !user.student) {
+            return { hasProfile: false, profile: null };
+          }
+
+          const hasProfile =
+            !!user.student.profile &&
+            user.student.profile.height !== null &&
+            user.student.profile.weight !== null &&
+            user.student.profile.fitnessLevel !== null;
+
+          return {
+            hasProfile,
+            profile: user.student.profile
+              ? {
+                  height: user.student.profile.height,
+                  weight: user.student.profile.weight,
+                  fitnessLevel: user.student.profile.fitnessLevel,
+                  weeklyWorkoutFrequency: user.student.profile.weeklyWorkoutFrequency,
+                  workoutDuration: user.student.profile.workoutDuration,
+                  goals: user.student.profile.goals
+                    ? JSON.parse(user.student.profile.goals)
+                    : [],
+                  availableEquipment: user.student.profile.availableEquipment
+                    ? JSON.parse(user.student.profile.availableEquipment)
+                    : [],
+                  gymType: user.student.profile.gymType,
+                  preferredWorkoutTime: user.student.profile.preferredWorkoutTime,
+                  preferredSets: user.student.profile.preferredSets,
+                  preferredRepRange: user.student.profile.preferredRepRange,
+                  restTime: user.student.profile.restTime,
+                }
+              : null,
+          };
+        }
+      } catch (betterAuthError) {
+        // Se falhar com Better Auth, continuar com método antigo
+        console.log("[getStudentProfile] Better Auth não encontrou sessão:", betterAuthError);
+      }
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.userId },
-      include: {
-        student: {
-          include: {
-            profile: true,
+    // Se encontrou sessão no banco, usar método antigo
+    if (session) {
+      const user = await db.user.findUnique({
+        where: { id: session.userId },
+        include: {
+          student: {
+            include: {
+              profile: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!user || !user.student) {
-      return { hasProfile: false, profile: null };
+      if (!user || !user.student) {
+        return { hasProfile: false, profile: null };
+      }
+
+      const hasProfile =
+        !!user.student.profile &&
+        user.student.profile.height !== null &&
+        user.student.profile.weight !== null &&
+        user.student.profile.fitnessLevel !== null;
+
+      return {
+        hasProfile,
+        profile: user.student.profile
+          ? {
+              height: user.student.profile.height,
+              weight: user.student.profile.weight,
+              fitnessLevel: user.student.profile.fitnessLevel,
+              weeklyWorkoutFrequency: user.student.profile.weeklyWorkoutFrequency,
+              workoutDuration: user.student.profile.workoutDuration,
+              goals: user.student.profile.goals
+                ? JSON.parse(user.student.profile.goals)
+                : [],
+              availableEquipment: user.student.profile.availableEquipment
+                ? JSON.parse(user.student.profile.availableEquipment)
+                : [],
+              gymType: user.student.profile.gymType,
+              preferredWorkoutTime: user.student.profile.preferredWorkoutTime,
+              preferredSets: user.student.profile.preferredSets,
+              preferredRepRange: user.student.profile.preferredRepRange,
+              restTime: user.student.profile.restTime,
+            }
+          : null,
+      };
     }
 
-    const hasProfile =
-      !!user.student.profile &&
-      user.student.profile.height !== null &&
-      user.student.profile.weight !== null &&
-      user.student.profile.fitnessLevel !== null;
-
-    return {
-      hasProfile,
-      profile: user.student.profile
-        ? {
-            height: user.student.profile.height,
-            weight: user.student.profile.weight,
-            fitnessLevel: user.student.profile.fitnessLevel,
-            weeklyWorkoutFrequency: user.student.profile.weeklyWorkoutFrequency,
-            workoutDuration: user.student.profile.workoutDuration,
-            goals: user.student.profile.goals
-              ? JSON.parse(user.student.profile.goals)
-              : [],
-            availableEquipment: user.student.profile.availableEquipment
-              ? JSON.parse(user.student.profile.availableEquipment)
-              : [],
-            gymType: user.student.profile.gymType,
-            preferredWorkoutTime: user.student.profile.preferredWorkoutTime,
-            preferredSets: user.student.profile.preferredSets,
-            preferredRepRange: user.student.profile.preferredRepRange,
-            restTime: user.student.profile.restTime,
-          }
-        : null,
-    };
+    // Se não encontrou sessão nem via banco nem via Better Auth
+    return { hasProfile: false, profile: null };
   } catch (error) {
     console.error("Erro ao buscar perfil:", error);
     return { hasProfile: false, profile: null };
@@ -108,7 +192,10 @@ export async function getStudentProfile() {
 export async function getStudentProgress() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return mockUserProgress;
@@ -211,7 +298,10 @@ export async function getStudentProgress() {
 export async function getStudentUnits() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       // Se não autenticado, retornar mock (para preview/demo)
@@ -220,7 +310,7 @@ export async function getStudentUnits() {
 
     const session = await getSession(sessionToken);
     if (!session || !session.user.student) {
-  return mockUnits;
+      return mockUnits;
     }
 
     // Buscar units do database
@@ -285,15 +375,15 @@ export async function getStudentUnits() {
         // 1. Está marcado como locked no DB, OU
         // 2. Não é o primeiro workout da primeira unit E não completou o anterior
         let isLocked = workout.locked;
-        
+
         // Encontrar índice do workout na unit
         const workoutIndex = unit.workouts.findIndex(
           (w) => w.id === workout.id
         );
-        
+
         // Encontrar índice da unit no array
         const unitIndex = units.findIndex((u) => u.id === unit.id);
-        
+
         // Se é o primeiro workout da primeira unit, NUNCA deve estar locked
         if (unitIndex === 0 && workoutIndex === 0) {
           isLocked = false;
@@ -301,7 +391,7 @@ export async function getStudentUnits() {
           // Se não é o primeiro workout da primeira unit
           if (unitIndex > 0 || workoutIndex > 0) {
             let previousWorkout = null;
-            
+
             if (workoutIndex > 0) {
               // Workout anterior na mesma unit
               previousWorkout = unit.workouts[workoutIndex - 1];
@@ -313,7 +403,7 @@ export async function getStudentUnits() {
                   previousUnit.workouts[previousUnit.workouts.length - 1];
               }
             }
-            
+
             // Se tem workout anterior, verificar se foi completado
             if (previousWorkout) {
               isLocked = !completedIdsSet.has(previousWorkout.id);
@@ -389,11 +479,11 @@ export async function getGymLocations() {
     const whereClause: any = {
       isActive: true,
     };
-    
+
     // Tentar adicionar isPartner se o campo existir (após migration)
     // Por enquanto, buscar todas as academias ativas
     // TODO: Descomentar após aplicar migration: whereClause.isPartner = true;
-    
+
     const gyms = await db.gym.findMany({
       where: whereClause,
       include: {
@@ -424,8 +514,11 @@ export async function getGymLocations() {
       }
 
       // Parse openingHours
-      let openingHours: { open: string; close: string; days?: string[] } | null =
-        null;
+      let openingHours: {
+        open: string;
+        close: string;
+        days?: string[];
+      } | null = null;
       if (gym.openingHours) {
         try {
           openingHours = JSON.parse(gym.openingHours);
@@ -446,7 +539,15 @@ export async function getGymLocations() {
 
       // Calcular se está aberto agora
       const now = new Date();
-      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const dayNames = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
       const currentDayName = dayNames[now.getDay()];
       const currentTime = now.getHours() * 60 + now.getMinutes();
       let openNow = true;
@@ -460,7 +561,9 @@ export async function getGymLocations() {
 
         if (openNow) {
           const [openHour, openMin] = openingHours.open.split(":").map(Number);
-          const [closeHour, closeMin] = openingHours.close.split(":").map(Number);
+          const [closeHour, closeMin] = openingHours.close
+            .split(":")
+            .map(Number);
           const openTime = openHour * 60 + openMin;
           const closeTime = closeHour * 60 + closeMin;
           openNow = currentTime >= openTime && currentTime <= closeTime;
@@ -502,13 +605,15 @@ export async function getGymLocations() {
         },
         amenities: amenities,
         openNow: openNow,
-        openingHours: openingHours ? {
-          open: openingHours.open,
-          close: openingHours.close,
-        } : {
-          open: "06:00",
-          close: "22:00",
-        },
+        openingHours: openingHours
+          ? {
+              open: openingHours.open,
+              close: openingHours.close,
+            }
+          : {
+              open: "06:00",
+              close: "22:00",
+            },
         photos: photos.length > 0 ? photos : undefined,
         isPartner: (gym as any).isPartner || false, // Type assertion temporário até migration ser aplicada
       };
@@ -518,14 +623,17 @@ export async function getGymLocations() {
   } catch (error) {
     console.error("Erro ao buscar academias do database:", error);
     // Em caso de erro, retornar mock como fallback
-  return mockGymLocations;
+    return mockGymLocations;
   }
 }
 
 export async function getStudentSubscription() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return null;
@@ -636,7 +744,10 @@ export async function getStudentSubscription() {
 export async function startStudentTrial() {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return { error: "Não autenticado" };

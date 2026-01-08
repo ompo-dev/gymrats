@@ -17,21 +17,21 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String
+  password      String? // Opcional: usuários Google não têm senha
   name          String
-  emailVerified DateTime?
+  emailVerified Boolean? // Better Auth usa boolean, não DateTime
   image         String?
   role          UserRole  @default(STUDENT)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   // Relacionamentos
-  student       Student?
-  gyms          Gym[] // Um usuário pode ter várias academias
-  activeGymId   String? // Academia atualmente selecionada
-  accounts      Account[]
-  sessions      Session[]
-  gymPreference GymUserPreference? // Preferências do usuário para academias
+  student        Student?
+  gyms           Gym[] // Um usuário pode ter várias academias
+  activeGymId    String? // Academia atualmente selecionada
+  accounts       Account[]
+  sessions       Session[]
+  gymPreference  GymUserPreference? // Preferências do usuário para academias
   paymentMethods PaymentMethod[] // Métodos de pagamento salvos
 
   @@map("users")
@@ -44,11 +44,11 @@ enum UserRole {
 }
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
-  type              String
-  provider          String
-  providerAccountId String
+  type              String?
+  provider          String?  // Temporariamente opcional para compatibilidade com Better Auth
+  providerAccountId String?  // Temporariamente opcional para compatibilidade com Better Auth
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -56,23 +56,43 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
+  
+  // Campos Better Auth (adicionados para compatibilidade)
+  accountId         String?  // Mapeado de providerAccountId
+  providerId         String?  // Mapeado de provider
+  accessToken        String?  // Mapeado de access_token
+  refreshToken       String?  // Mapeado de refresh_token
+  accessTokenExpiresAt DateTime? // Calculado de expires_at
+  idToken           String?  // Mapeado de id_token
+  
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId], name: "accounts_provider_providerAccountId_key")
   @@map("accounts")
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  token     String    @unique // Better Auth usa 'token', não 'sessionToken'
+  userId    String
+  expiresAt DateTime  // Better Auth usa 'expiresAt', não 'expires'
+  ipAddress String?   // Opcional: IP do usuário
+  userAgent String?   // Opcional: User agent do navegador
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Campos legacy (mantidos para compatibilidade durante transição)
+  sessionToken String? // Mantido para compatibilidade, mapeado de token
+  expires      DateTime? // Mantido para compatibilidade, mapeado de expiresAt
 
   @@map("sessions")
 }
 
+// Modelo antigo (mantido para compatibilidade, pode ser removido depois)
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -82,22 +102,34 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+// Modelo Better Auth - Verification
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
 // ============================================
 // ALUNOS (STUDENTS)
 // ============================================
 
 model Student {
-  id     String  @id @default(cuid())
-  userId String  @unique
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  age    Int?
-  gender String?
-  phone  String?
-  avatar String?
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age          Int?
+  gender       String?
+  phone        String?
+  avatar       String?
   // Informações sobre identidade de gênero e terapia hormonal
-  isTrans              Boolean? // Se a pessoa é transgênero
-  usesHormones         Boolean? // Se faz uso de terapia hormonal
-  hormoneType          String?  // "testosterone" | "estrogen" | "none"
+  isTrans      Boolean? // Se a pessoa é transgênero
+  usesHormones Boolean? // Se faz uso de terapia hormonal
+  hormoneType  String? // "testosterone" | "estrogen" | "none"
 
   // Progresso
   progress StudentProgress?
@@ -106,16 +138,16 @@ model Student {
   profile StudentProfile?
 
   // Histórico
-  workouts     WorkoutHistory[]
+  workouts        WorkoutHistory[]
   workoutProgress WorkoutProgress[] // Progresso parcial de workouts
-  records      PersonalRecord[]
-  diets        DietPlanCompletion[]
-  achievements AchievementUnlock[]
-  weightHistory WeightHistory[]
-  dailyNutrition DailyNutrition[]
-  
+  records         PersonalRecord[]
+  diets           DietPlanCompletion[]
+  achievements    AchievementUnlock[]
+  weightHistory   WeightHistory[]
+  dailyNutrition  DailyNutrition[]
+
   // Treinos personalizados
-  units        Unit[]
+  units Unit[]
 
   // Academias
   memberships GymMembership[]
@@ -155,44 +187,44 @@ model StudentProgress {
 }
 
 model StudentProfile {
-  id                     String  @id @default(cuid())
-  studentId              String  @unique
-  student                Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  height                 Float? // cm
-  weight                 Float? // kg (peso atual - último registro de WeightHistory)
-  fitnessLevel           String? // iniciante, intermediario, avancado
-  weeklyWorkoutFrequency Int?
-  workoutDuration        Int? // minutos
-  goals                  String? // JSON array
-  injuries               String? // JSON array
-  availableEquipment     String? // JSON array
-  gymType                String?
-  preferredWorkoutTime   String?
-  preferredSets          Int?
-  preferredRepRange      String?
-  restTime               String?
-  dietType               String?
-  allergies              String? // JSON array
-  targetCalories         Int?
-  targetProtein          Float?
-  targetCarbs            Float?
-  targetFats             Float?
-  mealsPerDay            Int?
+  id                       String  @id @default(cuid())
+  studentId                String  @unique
+  student                  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  height                   Float? // cm
+  weight                   Float? // kg (peso atual - último registro de WeightHistory)
+  fitnessLevel             String? // iniciante, intermediario, avancado
+  weeklyWorkoutFrequency   Int?
+  workoutDuration          Int? // minutos
+  goals                    String? // JSON array
+  injuries                 String? // JSON array
+  availableEquipment       String? // JSON array
+  gymType                  String?
+  preferredWorkoutTime     String?
+  preferredSets            Int?
+  preferredRepRange        String?
+  restTime                 String?
+  dietType                 String?
+  allergies                String? // JSON array
+  targetCalories           Int?
+  targetProtein            Float?
+  targetCarbs              Float?
+  targetFats               Float?
+  mealsPerDay              Int?
   // Valores metabólicos calculados
-  bmr                    Float? // Taxa metabólica basal (Basal Metabolic Rate)
-  tdee                   Float? // Gasto energético total diário (Total Daily Energy Expenditure)
+  bmr                      Float? // Taxa metabólica basal (Basal Metabolic Rate)
+  tdee                     Float? // Gasto energético total diário (Total Daily Energy Expenditure)
   // Nível de atividade física (1-10) baseado em Harris-Benedict
-  activityLevel          Int? // 1-10
+  activityLevel            Int? // 1-10
   // Tempo de tratamento hormonal (meses)
   hormoneTreatmentDuration Int? // Meses de tratamento hormonal
   // Limitações separadas (JSON arrays)
-  physicalLimitations    String? // JSON array de limitações físicas
-  motorLimitations       String? // JSON array de limitações motoras
-  medicalConditions      String? // JSON array de condições médicas
+  physicalLimitations      String? // JSON array de limitações físicas
+  motorLimitations         String? // JSON array de limitações motoras
+  medicalConditions        String? // JSON array de condições médicas
   // Detalhes adicionais das limitações (JSON object)
-  limitationDetails      String? // JSON object: { "limitationKey": "detailValue" }
+  limitationDetails        String? // JSON object: { "limitationKey": "detailValue" }
   // Horas disponíveis por dia para treino (para planejamento de treino mensal)
-  dailyAvailableHours    Float?  // 0.5, 1, 1.5, 2, etc (horas por dia)
+  dailyAvailableHours      Float? // 0.5, 1, 1.5, 2, etc (horas por dia)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -204,9 +236,9 @@ model WeightHistory {
   id        String   @id @default(cuid())
   studentId String
   student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  weight    Float    // kg
+  weight    Float // kg
   date      DateTime @default(now())
-  notes     String?  // Anotações opcionais
+  notes     String? // Anotações opcionais
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -220,28 +252,28 @@ model WeightHistory {
 // ============================================
 
 model Gym {
-  id      String  @id @default(cuid())
-  userId  String // Removido unique - agora um user pode ter várias gyms
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name    String
-  logo    String?
-  address String
-  phone   String
-  email   String
-  cnpj    String? @unique
-  plan    String  @default("basic") // basic, premium, enterprise
+  id       String  @id @default(cuid())
+  userId   String // Removido unique - agora um user pode ter várias gyms
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  logo     String?
+  address  String
+  phone    String
+  email    String
+  cnpj     String? @unique
+  plan     String  @default("basic") // basic, premium, enterprise
   isActive Boolean @default(true) // Se a academia está ativa
-  
+
   // Novos campos para localização e informações
-  latitude    Float?   // Latitude
-  longitude   Float?   // Longitude
-  rating      Float?   @default(0) // Rating médio (0-5)
+  latitude     Float? // Latitude
+  longitude    Float? // Longitude
+  rating       Float?  @default(0) // Rating médio (0-5)
   totalReviews Int     @default(0) // Total de avaliações
-  amenities   String?  // JSON array de amenidades
+  amenities    String? // JSON array de amenidades
   openingHours String? // JSON: { open: "06:00", close: "23:00", days: ["monday", "tuesday", ...] }
-  photos      String?  // JSON array de URLs de fotos
-  isPartner   Boolean  @default(false) // Se está cadastrado como parceiro no GymRats
-  
+  photos       String? // JSON array de URLs de fotos
+  isPartner    Boolean @default(false) // Se está cadastrado como parceiro no GymRats
+
   // Relacionamentos
   profile      GymProfile?
   students     GymMembership[]
@@ -317,7 +349,7 @@ model Unit {
   color       String?
   icon        String?
   order       Int      @default(0)
-  studentId   String?  // Se null, é um treino global; se preenchido, é personalizado para o aluno
+  studentId   String? // Se null, é um treino global; se preenchido, é personalizado para o aluno
   student     Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   workouts Workout[]
@@ -353,9 +385,9 @@ model Workout {
 }
 
 model WorkoutExercise {
-  id            String              @id @default(cuid())
+  id            String  @id @default(cuid())
   workoutId     String
-  workout       Workout             @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  workout       Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   name          String
   sets          Int
   reps          String // "12" ou "12-15" ou "30s"
@@ -363,17 +395,17 @@ model WorkoutExercise {
   notes         String?
   videoUrl      String?
   educationalId String? // Referência ao conteúdo educacional
-  order         Int                 @default(0)
-  
+  order         Int     @default(0)
+
   // Dados do educational database
-  primaryMuscles    String? // JSON array de músculos primários
-  secondaryMuscles  String? // JSON array de músculos secundários
-  difficulty        String? // "iniciante" | "intermediario" | "avancado"
-  equipment         String? // JSON array de equipamentos necessários
-  instructions      String? // JSON array de instruções passo a passo
-  tips              String? // JSON array de dicas
-  commonMistakes    String? // JSON array de erros comuns
-  benefits          String? // JSON array de benefícios
+  primaryMuscles     String? // JSON array de músculos primários
+  secondaryMuscles   String? // JSON array de músculos secundários
+  difficulty         String? // "iniciante" | "intermediario" | "avancado"
+  equipment          String? // JSON array de equipamentos necessários
+  instructions       String? // JSON array de instruções passo a passo
+  tips               String? // JSON array de dicas
+  commonMistakes     String? // JSON array de erros comuns
+  benefits           String? // JSON array de benefícios
   scientificEvidence String? // Texto com evidência científica
 
   alternatives AlternativeExercise[]
@@ -385,13 +417,13 @@ model WorkoutExercise {
 }
 
 model AlternativeExercise {
-  id              String          @id @default(cuid())
+  id                String          @id @default(cuid())
   workoutExerciseId String
   workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
-  name            String
-  reason          String // Motivo da alternativa (ex: "Equipamento diferente", "Sem equipamento")
-  educationalId   String? // Referência ao conteúdo educacional
-  order           Int             @default(0)
+  name              String
+  reason            String // Motivo da alternativa (ex: "Equipamento diferente", "Sem equipamento")
+  educationalId     String? // Referência ao conteúdo educacional
+  order             Int             @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -400,22 +432,22 @@ model AlternativeExercise {
 }
 
 model WorkoutProgress {
-  id                String   @id @default(cuid())
-  studentId         String
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  workoutId         String
-  workout           Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  currentExerciseIndex Int    @default(0)
-  exerciseLogs      String   // JSON array de ExerciseLog
-  skippedExercises  String?  // JSON array de IDs de exercícios pulados
+  id                   String   @id @default(cuid())
+  studentId            String
+  student              Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  workoutId            String
+  workout              Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  currentExerciseIndex Int      @default(0)
+  exerciseLogs         String // JSON array de ExerciseLog
+  skippedExercises     String? // JSON array de IDs de exercícios pulados
   selectedAlternatives String? // JSON object: exerciseId -> alternativeId
-  xpEarned          Int      @default(0)
-  totalVolume       Float    @default(0)
-  completionPercentage Float @default(0)
-  startTime         DateTime @default(now())
-  cardioPreference  String?  // "none", "before", "after"
-  cardioDuration    Int?     // minutos (5, 10, 15, 20)
-  selectedCardioType String?  // tipo de cardio selecionado
+  xpEarned             Int      @default(0)
+  totalVolume          Float    @default(0)
+  completionPercentage Float    @default(0)
+  startTime            DateTime @default(now())
+  cardioPreference     String? // "none", "before", "after"
+  cardioDuration       Int? // minutos (5, 10, 15, 20)
+  selectedCardioType   String? // tipo de cardio selecionado
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -542,7 +574,7 @@ model DailyNutrition {
   date        DateTime @default(now())
   waterIntake Int      @default(0) // ml
 
-  meals       NutritionMeal[]
+  meals NutritionMeal[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -553,21 +585,21 @@ model DailyNutrition {
 }
 
 model NutritionMeal {
-  id               String          @id @default(cuid())
+  id               String         @id @default(cuid())
   dailyNutritionId String
-  dailyNutrition   DailyNutrition  @relation(fields: [dailyNutritionId], references: [id], onDelete: Cascade)
+  dailyNutrition   DailyNutrition @relation(fields: [dailyNutritionId], references: [id], onDelete: Cascade)
   name             String
-  type             String          // breakfast, lunch, dinner, snack
+  type             String // breakfast, lunch, dinner, snack
   calories         Int
   protein          Float
   carbs            Float
   fats             Float
   time             String?
-  completed        Boolean         @default(false)
+  completed        Boolean        @default(false)
 
-  foods            NutritionFoodItem[]
+  foods NutritionFoodItem[]
 
-  order            Int             @default(0)
+  order Int @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -579,7 +611,7 @@ model NutritionFoodItem {
   id              String        @id @default(cuid())
   nutritionMealId String
   nutritionMeal   NutritionMeal @relation(fields: [nutritionMealId], references: [id], onDelete: Cascade)
-  foodId          String?       // Referência a food database
+  foodId          String? // Referência a food database
   foodName        String
   servings        Float
   calories        Int
@@ -594,14 +626,14 @@ model NutritionFoodItem {
 }
 
 model FoodItem {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
-  calories    Int      // por 100g ou por porção padrão
+  calories    Int // por 100g ou por porção padrão
   protein     Float
   carbs       Float
   fats        Float
-  servingSize String   // "100g" ou "1 unidade (50g)"
-  category    String   // protein, carbs, vegetables, fruits, fats, dairy, snacks
+  servingSize String // "100g" ou "1 unidade (50g)"
+  category    String // protein, carbs, vegetables, fruits, fats, dairy, snacks
   image       String?
 
   createdAt DateTime @default(now())
@@ -648,11 +680,11 @@ model AchievementUnlock {
 
 // Preferências do usuário para múltiplas academias
 model GymUserPreference {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String  @id @default(cuid())
+  userId          String  @unique
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   lastActiveGymId String? // Última academia acessada
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -816,18 +848,18 @@ model Expense {
 }
 
 model PaymentMethod {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String   // credit-card, debit-card, pix
-  isDefault   Boolean  @default(false)
-  cardBrand   String?  // visa, mastercard, elo, etc
-  last4       String?  // Últimos 4 dígitos do cartão
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String // credit-card, debit-card, pix
+  isDefault   Boolean @default(false)
+  cardBrand   String? // visa, mastercard, elo, etc
+  last4       String? // Últimos 4 dígitos do cartão
   expiryMonth Int?
   expiryYear  Int?
   holderName  String?
-  pixKey      String?  // Chave PIX (CPF, email, telefone, chave aleatória)
-  pixKeyType  String?  // cpf, email, phone, random
+  pixKey      String? // Chave PIX (CPF, email, telefone, chave aleatória)
+  pixKeyType  String? // cpf, email, phone, random
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

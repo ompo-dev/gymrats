@@ -1,25 +1,29 @@
-import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "./session"
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "./session";
 
 export async function getAuthSession(request: NextRequest) {
-  const authHeader = request.headers.get("authorization")
-  let sessionToken: string | null = null
+  const authHeader = request.headers.get("authorization");
+  let sessionToken: string | null = null;
 
   if (authHeader) {
-    sessionToken = authHeader.replace("Bearer ", "")
+    sessionToken = authHeader.replace("Bearer ", "");
   } else {
-    sessionToken = request.cookies.get("auth_token")?.value || null
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    sessionToken =
+      request.cookies.get("auth_token")?.value ||
+      request.cookies.get("better-auth.session_token")?.value ||
+      null;
   }
 
   if (!sessionToken) {
-    return null
+    return null;
   }
 
   try {
-    const session = await getSession(sessionToken)
-    return session
+    const session = await getSession(sessionToken);
+    return session;
   } catch {
-    return null
+    return null;
   }
 }
 
@@ -30,8 +34,7 @@ export function isPublicRoute(pathname: string): boolean {
     "/auth/register",
     "/api/auth",
     "/onboarding",
-  ]
+  ];
 
-  return publicRoutes.some((route) => pathname.startsWith(route))
+  return publicRoutes.some((route) => pathname.startsWith(route));
 }
-

@@ -1,104 +1,141 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { DuoButton } from "@/components/ui/duo-button";
-import { Input } from "@/components/ui/input";
-import { Dumbbell, Mail, Lock, Chrome, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Dumbbell, Chrome, ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
+import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/stores";
-import { authApi } from "@/lib/api/auth";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import { authApi } from "@/lib/api/auth";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
-  const {
+  const searchParams = useSearchParams();
+  const { setAuthenticated, setUserId, setUserProfile, setUserRole } =
+    useAuthStore();
+  // IMPORTANTE: Selecionar diretamente a função, não criar objeto
+  const loadAll = useStudentUnifiedStore((state) => state.loadAll);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Verificar se há callback do Google OAuth
+  useEffect(() => {
+    const checkCallback = async () => {
+      // Se vier de um callback do Google, verificar sessão
+      const callbackParam = searchParams.get("callback");
+      if (callbackParam) {
+        try {
+          // Aguardar um pouco para o Better Auth processar o callback
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Buscar sessão do Better Auth
+          const { data: session } = await authClient.getSession();
+
+          if (session?.user) {
+            // Buscar dados completos via nossa API de session
+            const sessionResponse = await authApi.getSession();
+
+            if (sessionResponse) {
+              const userRole =
+                (sessionResponse.user as { role: "STUDENT" | "GYM" | "ADMIN" })
+                  .role || sessionResponse.user.role;
+
+              // Salvar token e dados (compatibilidade com sistema existente)
+              if (sessionResponse.session?.token) {
+                localStorage.setItem(
+                  "auth_token",
+                  sessionResponse.session.token
+                );
+              }
+              localStorage.setItem("isAuthenticated", "true");
+              localStorage.setItem("userEmail", sessionResponse.user.email);
+              localStorage.setItem("userId", sessionResponse.user.id);
+              localStorage.setItem("userRole", userRole || "");
+              localStorage.setItem(
+                "isAdmin",
+                userRole === "ADMIN" ? "true" : "false"
+              );
+
+              // Atualizar store
+              setAuthenticated(true);
+              setUserId(sessionResponse.user.id);
+              setUserRole(userRole || null);
+              setUserProfile({
+                id: sessionResponse.user.id,
+                name: sessionResponse.user.name,
+                age: 25,
+                gender: "prefer-not-to-say",
+                height: 170,
+                weight: 70,
+                fitnessLevel: "iniciante",
+                weeklyWorkoutFrequency: 3,
+                workoutDuration: 60,
+                goals: [],
+                availableEquipment: [],
+                gymType: "academia-completa",
+                preferredWorkoutTime: "manha",
+                preferredSets: 3,
+                preferredRepRange: "hipertrofia",
+                restTime: "medio",
+              });
+
+              // Carregar dados do student se for STUDENT ou ADMIN
+              if (userRole === "STUDENT" || userRole === "ADMIN") {
+                loadAll().catch((err) => {
+                  console.error(
+                    "Erro ao carregar dados do student após login:",
+                    err
+                  );
+                });
+                router.push("/student");
+              } else if (userRole === "GYM") {
+                router.push("/gym");
+              } else {
+                router.push("/auth/register/user-type");
+              }
+            }
+          }
+        } catch (err: any) {
+          console.error("Erro ao verificar callback:", err);
+          setError(err.message || "Erro ao processar login com Google");
+        }
+      }
+    };
+
+    checkCallback();
+  }, [
+    searchParams,
+    router,
     setAuthenticated,
     setUserId,
     setUserProfile,
     setUserRole,
-  } = useAuthStore();
-  // IMPORTANTE: Selecionar diretamente a função, não criar objeto
-  // Criar objeto causa loop infinito porque cria nova referência a cada render
-  const loadAll = useStudentUnifiedStore((state) => state.loadAll);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+    loadAll,
+  ]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const handleGoogleLogin = async () => {
     setIsLoading(true);
+    setError("");
 
     try {
-      const response = await authApi.login({ email, password });
-
-      // Type assertion para garantir que role está presente
-      const userRole =
-        (response.user as { role: "STUDENT" | "GYM" | "ADMIN" }).role ||
-        response.user.role;
-
-      // Salvar token e dados
-      localStorage.setItem("auth_token", response.session.token);
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userEmail", response.user.email);
-      localStorage.setItem("userId", response.user.id);
-      localStorage.setItem("userRole", userRole || "");
-      localStorage.setItem("isAdmin", userRole === "ADMIN" ? "true" : "false");
-
-      // Atualizar store
-      setAuthenticated(true);
-      setUserId(response.user.id);
-      setUserRole(userRole || null);
-      setUserProfile({
-        id: response.user.id,
-        name: response.user.name,
-        age: 25,
-        gender: "prefer-not-to-say",
-        height: 170,
-        weight: 70,
-        fitnessLevel: "iniciante",
-        weeklyWorkoutFrequency: 3,
-        workoutDuration: 60,
-        goals: [],
-        availableEquipment: [],
-        gymType: "academia-completa",
-        preferredWorkoutTime: "manha",
-        preferredSets: 3,
-        preferredRepRange: "hipertrofia",
-        restTime: "medio",
+      // Usar Better Auth para login com Google
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/auth/login?callback=google",
+        errorCallbackURL: "/auth/login?error=google",
+        newUserCallbackURL: "/auth/login?callback=google",
       });
-
-      // Carregar dados do student se for STUDENT ou ADMIN
-      if (userRole === "STUDENT" || userRole === "ADMIN") {
-        // Carregar todos os dados do student em background
-        loadAll().catch((err) => {
-          console.error("Erro ao carregar dados do student após login:", err);
-          // Não bloquear o redirecionamento em caso de erro
-        });
-        router.push("/student");
-      } else if (userRole === "GYM") {
-        router.push("/gym");
-      } else {
-        // Se não tem role definido, redirecionar para página de registro de tipo
-        router.push("/auth/register/user-type");
-      }
+      // O redirecionamento para Google será automático
+      // Não precisamos fazer nada aqui, o callback será tratado no useEffect
     } catch (err: any) {
-      setError(err.message || "Erro ao fazer login");
-    } finally {
+      console.error("Erro ao iniciar login com Google:", err);
+      setError(err.message || "Erro ao iniciar login com Google");
       setIsLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setError("");
-    // TODO: Implementar login com Google usando Better Auth
-    alert("Login com Google será implementado em breve");
-    setIsLoading(false);
   };
 
   return (
@@ -142,128 +179,72 @@ export default function LoginPage() {
           </div>
 
           {/* Error Message */}
-          {error && (
+          {(error || searchParams.get("error")) && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm font-medium"
             >
-              {error}
+              {error || "Erro ao fazer login com Google. Tente novamente."}
             </motion.div>
           )}
 
-          {/* Google Login */}
+          {/* Google Login - Único método de autenticação */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
             <DuoButton
-              variant="outline"
-              size="lg"
-              className="w-full mb-4"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              animation="scale"
-            >
-              <Chrome className="w-5 h-5" />
-              Entrar com Google
-            </DuoButton>
-          </motion.div>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500 font-medium">
-                OU
-              </span>
-            </div>
-          </div>
-
-          {/* Login Form */}
-          <motion.form
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            onSubmit={handleLogin}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                E-mail
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 h-12 border-2 text-base rounded-xl"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
-                Senha
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 h-12 border-2 text-base rounded-xl"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <Link
-                href="/auth/forgot-password"
-                className="text-[#58CC02] hover:underline font-semibold"
-              >
-                Esqueci minha senha
-              </Link>
-            </div>
-
-            <DuoButton
-              type="submit"
               variant="primary"
               size="lg"
-              className="w-full mt-6"
+              className="w-full"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
               loading={isLoading}
               animation="scale"
             >
-              Entrar
+              <Chrome className="w-5 h-5" />
+              {isLoading ? "Conectando..." : "Entrar com Google"}
             </DuoButton>
-          </motion.form>
+          </motion.div>
 
-          {/* Register Link */}
+          {/* Informação sobre login */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.3 }}
             className="mt-6 text-center"
           >
             <p className="text-gray-600 text-sm">
-              Não tem uma conta?{" "}
-              <Link
-                href="/auth/register"
-                className="text-[#58CC02] hover:underline font-bold"
-              >
-                Criar conta
-              </Link>
+              Use sua conta Google para acessar o GymRats.
+              <br />
+              <span className="text-xs text-gray-500 mt-1 block">
+                Se você já tinha uma conta, use o mesmo email do Google.
+              </span>
             </p>
           </motion.div>
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-linear-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg mx-auto mb-4">
+              <Dumbbell className="w-10 h-10 text-white" />
+            </div>
+            <p className="text-gray-600">Carregando...</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

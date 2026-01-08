@@ -30,7 +30,10 @@ async function getStudentId(): Promise<{
 }> {
   try {
     const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("auth_token")?.value;
+    // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+    const sessionToken =
+      cookieStore.get("auth_token")?.value ||
+      cookieStore.get("better-auth.session_token")?.value;
 
     if (!sessionToken) {
       return { studentId: null, userId: null };

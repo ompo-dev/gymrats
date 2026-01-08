@@ -1,6 +1,6 @@
 /**
  * Middleware de Autenticação
- * 
+ *
  * Centraliza a lógica de autenticação para todas as rotas da API
  */
 
@@ -24,7 +24,10 @@ export interface AuthError {
  */
 export function extractAuthToken(request: NextRequest): string | null {
   // Tentar pegar do cookie primeiro
-  const cookieToken = request.cookies.get("auth_token")?.value;
+  // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+  const cookieToken =
+    request.cookies.get("auth_token")?.value ||
+    request.cookies.get("better-auth.session_token")?.value;
   if (cookieToken) return cookieToken;
 
   // Tentar pegar do header Authorization
@@ -43,13 +46,71 @@ export async function requireAuth(
   request: NextRequest
 ): Promise<AuthResult | AuthError> {
   try {
+    // Primeiro tentar validar via Better Auth (prioridade)
+    try {
+      const { auth } = await import("@/lib/auth-config");
+      const betterAuthSession = await auth.api.getSession({
+        headers: request.headers,
+      });
+
+      if (betterAuthSession?.user) {
+        // Sessão do Better Auth encontrada - buscar dados completos do usuário
+        const { db } = await import("@/lib/db");
+        const user = await db.user.findUnique({
+          where: { id: betterAuthSession.user.id },
+          include: {
+            student: { select: { id: true } },
+            gyms: { select: { id: true } },
+          },
+        });
+
+        if (user) {
+          // Buscar sessão do banco para compatibilidade
+          const sessionToken =
+            request.cookies.get("better-auth.session_token")?.value ||
+            request.cookies.get("auth_token")?.value;
+
+          let session = null;
+          if (sessionToken) {
+            session = await getSession(sessionToken);
+          }
+
+          return {
+            userId: user.id,
+            session:
+              session ||
+              ({
+                id: betterAuthSession.session?.id || "",
+                userId: user.id,
+                user,
+              } as any),
+            user: {
+              ...user,
+              student: user.student || undefined,
+              gyms: user.gyms || [],
+            },
+          };
+        }
+      }
+    } catch (betterAuthError) {
+      // Se falhar com Better Auth, continuar com método antigo
+      console.log(
+        "[requireAuth] Better Auth não encontrou sessão, tentando método antigo"
+      );
+    }
+
+    // Fallback: método antigo (compatibilidade)
     // Tentar pegar token do request primeiro
     let sessionToken = extractAuthToken(request);
 
     // Se não encontrou no request, tentar do cookies() do Next.js
     if (!sessionToken) {
       const cookieStore = await cookies();
-      sessionToken = cookieStore.get("auth_token")?.value || null;
+      // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
+      sessionToken =
+        cookieStore.get("auth_token")?.value ||
+        cookieStore.get("better-auth.session_token")?.value ||
+        null;
     }
 
     if (!sessionToken) {
@@ -127,7 +188,8 @@ export async function requireStudent(
       ...auth.user,
       studentId: studentId,
       // Garantir que student esteja disponível para handlers que usam auth.user.student.id
-      student: auth.user?.student || (studentId ? { id: studentId } : undefined),
+      student:
+        auth.user?.student || (studentId ? { id: studentId } : undefined),
     },
   };
 }
@@ -188,4 +250,3 @@ export async function requireAdmin(
 
   return auth;
 }
-

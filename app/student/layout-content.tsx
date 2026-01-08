@@ -70,7 +70,13 @@ export function StudentLayoutContent({
   // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
   useEffect(() => {
     if (isMounted && !hasProfile && !isOnboarding) {
-      router.push("/student/onboarding");
+      // Usar replace em vez de push para evitar histórico de navegação
+      // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
+      const timeoutId = setTimeout(() => {
+        router.replace("/student/onboarding");
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isMounted, hasProfile, isOnboarding, router]);
 
