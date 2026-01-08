@@ -66,12 +66,63 @@ export async function submitOnboarding(formData: OnboardingData) {
       return { success: false, error: "Não autenticado" };
     }
 
-    const session = await getSession(sessionToken);
-    if (!session) {
-      return { success: false, error: "Sessão inválida" };
+    // Primeiro tentar validar via Better Auth (prioridade)
+    let userId: string | null = null;
+
+    try {
+      const { auth } = await import("@/lib/auth-config");
+
+      // Em server actions, precisamos construir os headers manualmente
+      // Pegar todos os cookies e construir string de cookie
+      const allCookies = cookieStore.getAll();
+      const cookieString = allCookies
+        .map((cookie) => `${cookie.name}=${cookie.value}`)
+        .join("; ");
+
+      const betterAuthHeaders = new Headers();
+      if (cookieString) {
+        betterAuthHeaders.set("cookie", cookieString);
+      }
+
+      const betterAuthSession = await auth.api.getSession({
+        headers: betterAuthHeaders,
+      });
+
+      if (betterAuthSession?.user) {
+        // Sessão do Better Auth encontrada - usar userId diretamente
+        userId = betterAuthSession.user.id;
+        console.log(
+          "[submitOnboarding] Sessão validada via Better Auth, userId:",
+          userId
+        );
+      }
+    } catch (betterAuthError) {
+      // Se falhar com Better Auth, tentar método antigo
+      console.log(
+        "[submitOnboarding] Better Auth não encontrou sessão, tentando método antigo:",
+        betterAuthError
+      );
     }
 
-    const userId = session.userId;
+    // Fallback: tentar buscar sessão no banco usando o token
+    if (!userId) {
+      const session = await getSession(sessionToken);
+      if (session) {
+        userId = session.userId;
+        console.log(
+          "[submitOnboarding] Sessão encontrada no banco, userId:",
+          userId
+        );
+      }
+    }
+
+    if (!userId) {
+      console.error(
+        "[submitOnboarding] Nenhuma sessão válida encontrada. Token:",
+        sessionToken?.substring(0, 20) + "..."
+      );
+      return { success: false, error: "Sessão inválida" };
+    }
 
     const user = await db.user.findUnique({
       where: { id: userId },

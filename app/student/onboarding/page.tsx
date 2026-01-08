@@ -84,7 +84,7 @@ export default function StudentOnboardingPage() {
   // Mas não verificar se estiver submetendo (para evitar conflito)
   useEffect(() => {
     let isChecking = false;
-    
+
     const checkProfileAndRedirect = async () => {
       if (!isMounted || isSubmitting || isChecking) return;
       isChecking = true;
@@ -111,7 +111,7 @@ export default function StudentOnboardingPage() {
 
     // Adicionar um pequeno delay para evitar múltiplas verificações simultâneas
     const timeoutId = setTimeout(checkProfileAndRedirect, 100);
-    
+
     return () => {
       clearTimeout(timeoutId);
       isChecking = false;
@@ -193,6 +193,7 @@ export default function StudentOnboardingPage() {
       const result = await submitOnboarding(formData);
 
       if (!result.success) {
+        console.error("[Onboarding] Erro ao salvar:", result.error);
         throw new Error(result.error || "Erro ao salvar perfil");
       }
 

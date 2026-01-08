@@ -7,6 +7,15 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthStore } from "@/stores";
 
+/**
+ * Página de seleção de tipo de usuário
+ *
+ * NOTA: Esta página será usada futuramente quando implementarmos
+ * a funcionalidade de seleção de tipo de usuário após login com Google.
+ *
+ * Atualmente, todos os usuários são criados como STUDENT automaticamente.
+ * Esta página está mantida para uso futuro.
+ */
 export default function UserTypePage() {
   const router = useRouter();
   const { setUserRole, userId, setAuthenticated } = useAuthStore();

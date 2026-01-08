@@ -95,7 +95,9 @@ function LoginPageContent() {
               } else if (userRole === "GYM") {
                 router.push("/gym");
               } else {
-                router.push("/auth/register/user-type");
+                // Se não tem role, redirecionar para welcome
+                // (user-type não é mais usado, vai direto para onboarding)
+                router.push("/welcome");
               }
             }
           }

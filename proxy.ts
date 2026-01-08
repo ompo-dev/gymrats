@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = [
-  "/welcome",
-  "/auth/login",
-  "/auth/register",
-  "/api/auth",
-  "/onboarding",
-];
+const publicRoutes = ["/welcome", "/auth/login", "/api/auth", "/onboarding"];
 
 function isPublicRoute(pathname: string): boolean {
   return publicRoutes.some((route) => pathname.startsWith(route));
@@ -22,7 +16,9 @@ export async function proxy(request: NextRequest) {
 
   // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
   const authToken = request.cookies.get("auth_token")?.value;
-  const betterAuthToken = request.cookies.get("better-auth.session_token")?.value;
+  const betterAuthToken = request.cookies.get(
+    "better-auth.session_token"
+  )?.value;
   const hasAuth = authToken || betterAuthToken;
 
   if (
