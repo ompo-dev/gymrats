@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Send, Loader2, Sparkles } from "lucide-react";
-import type { FoodItem, Meal } from "@/lib/types";
+import type { FoodItem, Meal, DietType } from "@/lib/types";
 import { apiClient } from "@/lib/api/client";
 import {
   parseNutritionResponse,
@@ -115,7 +115,7 @@ export function FoodSearchChat({
     console.log("[FoodSearchChat] Verificando se refeições foram criadas:", {
       mealsCount: meals.length,
       mealsToCreate: mealsToCreate.length,
-      currentMeals: meals.map((m) => ({
+      currentMeals: meals.map((m: Meal) => ({
         id: m.id,
         type: m.type,
         name: m.name,
@@ -125,7 +125,7 @@ export function FoodSearchChat({
 
     // Verificar se todas as refeições foram criadas
     const allMealsCreated = mealsToCreate.every((mealToCreate) =>
-      meals.some((m) => m.type === mealToCreate.type)
+      meals.some((m: Meal) => m.type === mealToCreate.type)
     );
 
     if (allMealsCreated && meals.length > 0) {
@@ -136,7 +136,7 @@ export function FoodSearchChat({
       // Adicionar alimentos nas refeições criadas
       let allFoodsAdded = true;
       Object.entries(foodsByMealType).forEach(([mealType, foods]) => {
-        const meal = meals.find((m) => m.type === mealType);
+        const meal = meals.find((m: Meal) => m.type === mealType);
         if (meal) {
           console.log(
             `[FoodSearchChat] Adicionando ${foods.length} alimento(s) na refeição ${meal.name} (${meal.id})`
@@ -162,7 +162,7 @@ export function FoodSearchChat({
       }
     } else {
       const missingMeals = mealsToCreate.filter(
-        (mealToCreate) => !meals.some((m) => m.type === mealToCreate.type)
+        (mealToCreate) => !meals.some((m: Meal) => m.type === mealToCreate.type)
       );
       console.log(
         "[FoodSearchChat] ⏳ Ainda aguardando criação de refeições...",
@@ -187,7 +187,7 @@ export function FoodSearchChat({
       console.warn("[FoodSearchChat] Estado pendente:", pendingFoodsToAdd);
       console.warn(
         "[FoodSearchChat] Meals atuais:",
-        meals.map((m) => ({ id: m.id, type: m.type, name: m.name }))
+        meals.map((m: Meal) => ({ id: m.id, type: m.type, name: m.name }))
       );
       setPendingFoodsToAdd(null);
       onClose();
@@ -218,10 +218,23 @@ export function FoodSearchChat({
 
     try {
       // Preparar informações sobre refeições existentes para a IA
-      const existingMeals = meals.map((m) => ({
+      const existingMeals = meals.map((m: Meal) => ({
         type: m.type,
         name: m.name,
       }));
+
+      // Buscar informações da refeição selecionada (se houver)
+      let selectedMealInfo = null;
+      if (selectedMealId) {
+        const selectedMeal = meals.find((m: Meal) => m.id === selectedMealId);
+        if (selectedMeal) {
+          selectedMealInfo = {
+            id: selectedMeal.id,
+            type: selectedMeal.type,
+            name: selectedMeal.name,
+          };
+        }
+      }
 
       // Chamar API
       const response = await apiClient.post<{
@@ -233,6 +246,7 @@ export function FoodSearchChat({
         message: userMessage,
         conversationHistory,
         existingMeals, // Enviar refeições existentes para a IA entender o contexto
+        selectedMeal: selectedMealInfo, // Enviar refeição selecionada como padrão
       });
 
       // Adicionar resposta da IA
@@ -290,19 +304,42 @@ export function FoodSearchChat({
     console.log("[FoodSearchChat] Iniciando adição de alimentos:", {
       extractedFoodsCount: extractedFoods.length,
       currentMealsCount: meals.length,
-      currentMeals: meals.map((m) => ({
+      selectedMealId,
+      currentMeals: meals.map((m: Meal) => ({
         id: m.id,
         type: m.type,
         name: m.name,
       })),
     });
 
-    // Agrupar alimentos por tipo de refeição
-    const foodsByMealType = extractedFoods.reduce((acc, extracted) => {
-      if (!acc[extracted.mealType]) {
-        acc[extracted.mealType] = [];
+    // Buscar refeição selecionada para usar como fallback
+    const selectedMeal = selectedMealId
+      ? meals.find((m: Meal) => m.id === selectedMealId)
+      : null;
+
+    // Se houver refeição selecionada e algum alimento não especificar mealType,
+    // usar a refeição selecionada como padrão
+    const processedFoods = extractedFoods.map((extracted) => {
+      // Se o mealType não foi especificado ou está vazio, usar a refeição selecionada
+      if (!extracted.mealType && selectedMeal && selectedMeal.type) {
+        console.log(
+          `[FoodSearchChat] Alimento "${extracted.name}" não especificou refeição, usando refeição selecionada: ${selectedMeal.name} (${selectedMeal.type})`
+        );
+        return {
+          ...extracted,
+          mealType: selectedMeal.type,
+        };
       }
-      acc[extracted.mealType].push(extracted);
+      return extracted;
+    });
+
+    // Agrupar alimentos por tipo de refeição
+    const foodsByMealType = processedFoods.reduce((acc, extracted) => {
+      const mealType = extracted.mealType || (selectedMeal?.type ?? "snack");
+      if (!acc[mealType]) {
+        acc[mealType] = [];
+      }
+      acc[mealType].push(extracted);
       return acc;
     }, {} as Record<string, ExtractedFood[]>);
 
@@ -322,7 +359,7 @@ export function FoodSearchChat({
     // Processar cada tipo de refeição
     Object.entries(foodsByMealType).forEach(([mealType, foods]) => {
       // Verificar se refeição existe
-      const existingMeal = meals.find((m) => m.type === mealType);
+      const existingMeal = meals.find((m: Meal) => m.type === mealType);
 
       if (!existingMeal) {
         // Criar refeição
@@ -378,7 +415,7 @@ export function FoodSearchChat({
       // Buscar store atual para pegar meals existentes
       const storeState = useStudentUnifiedStore.getState();
       const currentNutrition = storeState.data.dailyNutrition;
-      const currentMeals = currentNutrition?.meals || [];
+      const currentMeals: Meal[] = [...(currentNutrition?.meals || [])];
 
       // Criar novas refeições COM alimentos já dentro
       const newMeals = mealsToCreate.map((mealToCreate) => {
@@ -403,10 +440,10 @@ export function FoodSearchChat({
         );
 
         // Criar refeição com alimentos já dentro
-        return {
+        const meal: Meal = {
           id: `meal-${Date.now()}-${Math.random()}`,
           name: mealToCreate.name,
-          type: mealToCreate.type,
+          type: mealToCreate.type as DietType,
           calories: totalCalories,
           protein: totalProtein,
           carbs: totalCarbs,
@@ -425,15 +462,18 @@ export function FoodSearchChat({
             servingSize: food.servingSize,
           })),
         };
+        return meal;
       });
 
       // Adicionar refeições existentes que já têm alimentos
       Object.entries(foodsToAddByMealType).forEach(([mealType, foods]) => {
-        const existingMeal = currentMeals.find((m) => m.type === mealType);
+        const existingMeal = currentMeals.find(
+          (m: Meal) => m.type === mealType
+        );
         if (existingMeal) {
           // Adicionar alimentos na refeição existente
           const mealIndex = currentMeals.findIndex(
-            (m) => m.id === existingMeal.id
+            (m: Meal) => m.id === existingMeal.id
           );
           if (mealIndex !== -1) {
             const newFoods = foods.map(({ food, servings }, idx) => ({
@@ -460,7 +500,7 @@ export function FoodSearchChat({
             const totalNewCarbs = newFoods.reduce((sum, f) => sum + f.carbs, 0);
             const totalNewFats = newFoods.reduce((sum, f) => sum + f.fats, 0);
 
-            currentMeals[mealIndex] = {
+            const updatedMeal: Meal = {
               ...existingMeal,
               foods: updatedFoods,
               calories: existingMeal.calories + totalNewCalories,
@@ -468,30 +508,31 @@ export function FoodSearchChat({
               carbs: existingMeal.carbs + totalNewCarbs,
               fats: existingMeal.fats + totalNewFats,
             };
+            currentMeals[mealIndex] = updatedMeal;
           }
         }
       });
 
       // Combinar todas as refeições (existentes atualizadas + novas)
-      const allMeals = [...currentMeals, ...newMeals];
+      const allMeals: Meal[] = [...currentMeals, ...newMeals];
 
       // Calcular totais apenas de refeições completadas
-      const completedMeals = allMeals.filter((m: any) => m.completed === true);
+      const completedMeals = allMeals.filter((m: Meal) => m.completed === true);
       const totals = {
         totalCalories: completedMeals.reduce(
-          (sum: number, m: any) => sum + (m.calories || 0),
+          (sum: number, m: Meal) => sum + (m.calories || 0),
           0
         ),
         totalProtein: completedMeals.reduce(
-          (sum: number, m: any) => sum + (m.protein || 0),
+          (sum: number, m: Meal) => sum + (m.protein || 0),
           0
         ),
         totalCarbs: completedMeals.reduce(
-          (sum: number, m: any) => sum + (m.carbs || 0),
+          (sum: number, m: Meal) => sum + (m.carbs || 0),
           0
         ),
         totalFats: completedMeals.reduce(
-          (sum: number, m: any) => sum + (m.fats || 0),
+          (sum: number, m: Meal) => sum + (m.fats || 0),
           0
         ),
       };
@@ -521,7 +562,7 @@ export function FoodSearchChat({
       let allFoodsAdded = true;
 
       Object.entries(foodsToAddByMealType).forEach(([mealType, foods]) => {
-        const meal = meals.find((m) => m.type === mealType);
+        const meal = meals.find((m: Meal) => m.type === mealType);
         if (meal) {
           console.log(
             `[FoodSearchChat] Adicionando ${foods.length} alimento(s) na refeição ${meal.name} (${meal.id})`

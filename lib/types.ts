@@ -1,5 +1,12 @@
 export type WorkoutType = "strength" | "cardio" | "flexibility" | "rest";
-export type DietType = "breakfast" | "lunch" | "dinner" | "snack";
+export type DietType =
+  | "breakfast"
+  | "lunch"
+  | "dinner"
+  | "snack"
+  | "afternoon-snack"
+  | "pre-workout"
+  | "post-workout";
 
 export type DifficultyLevel = "iniciante" | "intermediario" | "avancado";
 export type MuscleGroup =

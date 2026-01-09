@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
 
     // 4. Processar request
     const body = await request.json();
-    const { message, conversationHistory = [], existingMeals = [] } = body;
+    const { message, conversationHistory = [], existingMeals = [], selectedMeal } = body;
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -141,11 +141,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 6. Construir prompt com informações das refeições existentes
+    // 6. Construir prompt com informações das refeições existentes e refeição selecionada
     let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
     if (meals && meals.length > 0) {
       const mealsInfo = meals.map((m: any) => `- ${m.name} (${m.type})`).join('\n');
       enhancedSystemPrompt += `\n\nREFEIÇÕES JÁ EXISTENTES NO DIA DO USUÁRIO:\n${mealsInfo}\n\nUse essas informações para entender o contexto. Se o usuário mencionar uma refeição que já existe, use o tipo correto (ex: se já existe "Almoço", use mealType: "lunch").`;
+    }
+
+    // IMPORTANTE: Se o usuário clicou no botão "mais" de uma refeição específica,
+    // essa refeição deve ser usada como PADRÃO quando o usuário não especificar qual refeição
+    if (selectedMeal && selectedMeal.type && selectedMeal.name) {
+      enhancedSystemPrompt += `\n\n⚠️ IMPORTANTE - REFEIÇÃO PADRÃO:\nO usuário abriu o chat para adicionar alimentos à refeição "${selectedMeal.name}" (tipo: "${selectedMeal.type}").\n\nSe o usuário NÃO especificar explicitamente qual refeição (ex: "café da manhã", "almoço", "jantar", etc.), você DEVE usar "${selectedMeal.type}" como o mealType padrão para TODOS os alimentos mencionados.\n\nApenas se o usuário mencionar explicitamente uma refeição diferente (ex: "isso foi no almoço" ou "quero adicionar no café da manhã"), você deve usar a refeição mencionada pelo usuário.\n\nExemplos:\n- Usuário diz: "comi arroz e feijão" (sem mencionar refeição) → use mealType: "${selectedMeal.type}"\n- Usuário diz: "comi arroz e feijão no almoço" (mencionou almoço) → use mealType: "lunch"\n- Usuário diz: "comi café da manhã com pão e café" (mencionou café da manhã) → use mealType: "breakfast"`;
     }
 
     // 7. Chamar DeepSeek
