@@ -274,8 +274,24 @@ export function useNutritionHandlers() {
   };
 
   const handleAddMealSubmit = async (mealsData: Parameters<typeof addMeal>[0][]) => {
-    mealsData.forEach((mealData) => {
-      addMeal(mealData);
+    // IMPORTANTE: Criar todas as refeições de uma vez para evitar múltiplas chamadas de API
+    const newMeals = mealsData.map((mealData) => ({
+      id: `meal-${Date.now()}-${Math.random()}`,
+      name: mealData.name,
+      type: mealData.type,
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fats: 0,
+      completed: false,
+      time: mealData.time,
+      foods: [],
+    }));
+    
+    // Atualizar store UMA ÚNICA VEZ com todas as refeições
+    // IMPORTANTE: Aguardar updateNutrition completar para garantir que o store foi atualizado
+    await updateNutrition({
+      meals: [...dailyNutrition.meals, ...newMeals],
     });
     // updateNutrition já sincroniza automaticamente com backend
   };

@@ -143,9 +143,11 @@ export function DietPage() {
       {foodSearchModal.isOpen && (
         <FoodSearch
           onAddFood={handleAddFood}
+          onAddMeal={handleAddMealSubmit}
           onClose={handleCloseFoodSearch}
           selectedMealId={foodSearchModal.paramValue || selectedMealId}
           meals={dailyNutrition.meals}
+          foodDatabase={foodDatabase || []}
           onSelectMeal={(mealId) => {
             setSelectedMealId(mealId);
             foodSearchModal.setParamValue(mealId);

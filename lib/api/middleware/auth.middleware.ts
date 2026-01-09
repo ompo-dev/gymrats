@@ -178,9 +178,39 @@ export async function requireStudent(
     };
   }
 
-  // O getSession já cria o student para ADMIN se não existir (ver lib/utils/session.ts)
-  // Então o student deveria estar disponível aqui
-  const studentId = auth.user?.student?.id;
+  // Para ADMIN, garantir que student existe (criar se não existir)
+  let studentId = auth.user?.student?.id;
+  let student = auth.user?.student;
+
+  if (isAdmin && !studentId) {
+    const { db } = await import("@/lib/db");
+    const existingStudent = await db.student.findUnique({
+      where: { userId: auth.userId },
+    });
+
+    if (!existingStudent) {
+      const newStudent = await db.student.create({
+        data: {
+          userId: auth.userId,
+        },
+      });
+      studentId = newStudent.id;
+      student = { id: newStudent.id };
+    } else {
+      studentId = existingStudent.id;
+      student = { id: existingStudent.id };
+    }
+  }
+
+  if (!studentId) {
+    return {
+      response: NextResponse.json(
+        { error: "Student ID não encontrado" },
+        { status: 500 }
+      ),
+      error: "Student ID não disponível",
+    };
+  }
 
   return {
     ...auth,
@@ -188,8 +218,7 @@ export async function requireStudent(
       ...auth.user,
       studentId: studentId,
       // Garantir que student esteja disponível para handlers que usam auth.user.student.id
-      student:
-        auth.user?.student || (studentId ? { id: studentId } : undefined),
+      student: student || { id: studentId },
     },
   };
 }

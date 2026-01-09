@@ -1,6 +1,6 @@
 /**
  * Handler de Subscriptions (Student)
- * 
+ *
  * Centraliza toda a lógica das rotas relacionadas a subscriptions de students
  */
 
@@ -27,6 +27,12 @@ export async function getCurrentSubscriptionHandler(
   request: NextRequest
 ): Promise<NextResponse> {
   try {
+    // Validar autenticação primeiro
+    const auth = await requireAuth(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
     const subscription = await getStudentSubscription();
     return successResponse({ subscription });
   } catch (error: any) {
@@ -116,7 +122,9 @@ export async function createSubscriptionHandler(
     const billing = await createStudentSubscriptionBilling(studentId, plan);
 
     if (!billing || !billing.id) {
-      throw new Error("Erro ao criar cobrança: resposta inválida da AbacatePay");
+      throw new Error(
+        "Erro ao criar cobrança: resposta inválida da AbacatePay"
+      );
     }
 
     // Atualizar subscription com billingId
@@ -215,4 +223,3 @@ export async function cancelSubscriptionHandler(
     return internalErrorResponse("Erro ao cancelar assinatura", error);
   }
 }
-

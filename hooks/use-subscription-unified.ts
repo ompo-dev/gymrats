@@ -163,11 +163,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
           return null;
         }
       },
-      staleTime: 1000 * 30, // 30 segundos
+      staleTime: 1000 * 60, // 1 minuto (aumentado para evitar refetches desnecessários)
       retry: 2,
-      refetchOnMount: true,
+      refetchOnMount: false, // Desabilitado para evitar loops - dados vêm do store unificado
       refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
+      refetchOnReconnect: false, // Desabilitado para evitar loops
       gcTime: 1000 * 60 * 5, // 5 minutos
     }
   );

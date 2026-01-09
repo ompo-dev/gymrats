@@ -17,9 +17,23 @@ const nutritionFoodItemSchema = z.object({
 
 const nutritionMealSchema = z.object({
   name: z.string().min(1, "Nome da refeição é obrigatório"),
-  type: z.enum(["breakfast", "lunch", "dinner", "snack"], {
-    errorMap: () => ({ message: "Tipo deve ser breakfast, lunch, dinner ou snack" }),
-  }),
+  type: z.enum(
+    [
+      "breakfast",
+      "lunch",
+      "dinner",
+      "snack",
+      "afternoon-snack",
+      "pre-workout",
+      "post-workout",
+    ],
+    {
+      errorMap: () => ({
+        message:
+          "Tipo deve ser breakfast, lunch, dinner, snack, afternoon-snack, pre-workout ou post-workout",
+      }),
+    }
+  ),
   calories: z.number().nonnegative().optional(),
   protein: z.number().nonnegative().optional(),
   carbs: z.number().nonnegative().optional(),
@@ -32,10 +46,12 @@ const nutritionMealSchema = z.object({
 
 export const updateDailyNutritionSchema = z.object({
   date: z
-    .string()
-    .datetime()
-    .optional()
-    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .union([
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD"),
+      z.string().datetime(),
+    ])
     .optional(),
   meals: z.array(nutritionMealSchema).optional(),
   waterIntake: z.number().int().nonnegative().optional(),
@@ -65,4 +81,3 @@ export const searchFoodsQuerySchema = z.object({
     .optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
-

@@ -1,6 +1,6 @@
 /**
  * Handler de Payments
- * 
+ *
  * Centraliza toda a lógica das rotas relacionadas a pagamentos
  */
 
@@ -12,11 +12,16 @@ import {
   badRequestResponse,
   internalErrorResponse,
 } from "../utils/response.utils";
+import { paymentsQuerySchema, addPaymentMethodSchema } from "../schemas";
 import {
-  paymentsQuerySchema,
-  addPaymentMethodSchema,
-} from "../schemas";
-import { validateBody, validateQuery } from "../middleware/validation.middleware";
+  validateBody,
+  validateQuery,
+} from "../middleware/validation.middleware";
+import { z } from "zod";
+
+// Tipos inferidos dos schemas
+type PaymentsQuery = z.infer<typeof paymentsQuerySchema>;
+type AddPaymentMethod = z.infer<typeof addPaymentMethodSchema>;
 
 /**
  * GET /api/payments
@@ -31,10 +36,20 @@ export async function getPaymentsHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    // Garantir que studentId existe (requireStudent já garante, mas para segurança)
+    const studentId = auth.user.student?.id || auth.userId;
+    if (!studentId) {
+      return internalErrorResponse(
+        "Student ID não encontrado",
+        new Error("Student ID não disponível")
+      );
+    }
 
     // Validar query params com Zod
-    const queryValidation = await validateQuery(request, paymentsQuerySchema);
+    const queryValidation = await validateQuery<PaymentsQuery>(
+      request,
+      paymentsQuerySchema
+    );
     if (!queryValidation.success) {
       return queryValidation.response;
     }
@@ -77,11 +92,7 @@ export async function getPaymentsHandler(
       amount: payment.amount,
       date: payment.date,
       dueDate: payment.dueDate,
-      status: payment.status as
-        | "paid"
-        | "pending"
-        | "overdue"
-        | "canceled",
+      status: payment.status as "paid" | "pending" | "overdue" | "canceled",
       paymentMethod: payment.paymentMethod as
         | "credit-card"
         | "debit-card"
@@ -130,10 +141,7 @@ export async function getPaymentMethodsHandler(
       where: {
         userId: userId,
       },
-      orderBy: [
-        { isDefault: "desc" },
-        { createdAt: "desc" },
-      ],
+      orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
 
     // Transformar para formato esperado
@@ -172,7 +180,10 @@ export async function addPaymentMethodHandler(
     const userId = auth.userId;
 
     // Validar body com Zod
-    const validation = await validateBody(request, addPaymentMethodSchema);
+    const validation = await validateBody<AddPaymentMethod>(
+      request,
+      addPaymentMethodSchema
+    );
     if (!validation.success) {
       return validation.response;
     }
@@ -250,7 +261,14 @@ export async function getMembershipsHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    // Garantir que studentId existe (requireStudent já garante, mas para segurança)
+    const studentId = auth.user.student?.id || auth.userId;
+    if (!studentId) {
+      return internalErrorResponse(
+        "Student ID não encontrado",
+        new Error("Student ID não disponível")
+      );
+    }
 
     // Buscar memberships (modelo é GymMembership no Prisma)
     const memberships = await db.gymMembership.findMany({
@@ -287,7 +305,12 @@ export async function getMembershipsHandler(
       planName: membership.plan?.name || undefined,
       startDate: membership.startDate,
       endDate: membership.nextBillingDate || undefined, // GymMembership usa nextBillingDate, não endDate
-      status: membership.status as "active" | "expired" | "canceled" | "suspended" | "pending",
+      status: membership.status as
+        | "active"
+        | "expired"
+        | "canceled"
+        | "suspended"
+        | "pending",
       autoRenew: membership.autoRenew,
       amount: membership.amount,
     }));
@@ -298,4 +321,3 @@ export async function getMembershipsHandler(
     return internalErrorResponse("Erro ao buscar memberships", error);
   }
 }
-

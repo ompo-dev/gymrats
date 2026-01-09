@@ -17,7 +17,10 @@ import {
   dailyNutritionQuerySchema,
   searchFoodsQuerySchema,
 } from "../schemas";
-import { validateBody, validateQuery } from "../middleware/validation.middleware";
+import {
+  validateBody,
+  validateQuery,
+} from "../middleware/validation.middleware";
 
 /**
  * GET /api/nutrition/daily
@@ -35,7 +38,10 @@ export async function getDailyNutritionHandler(
     const studentId = auth.user.student.id;
 
     // Validar query params com Zod
-    const queryValidation = await validateQuery(request, dailyNutritionQuerySchema);
+    const queryValidation = await validateQuery(
+      request,
+      dailyNutritionQuerySchema
+    );
     if (!queryValidation.success) {
       return queryValidation.response;
     }
@@ -125,7 +131,9 @@ export async function getDailyNutritionHandler(
     }
 
     // Calcular totais apenas de refeições completadas (completed: true)
-    const completedMeals = dailyNutrition.meals.filter((meal) => meal.completed === true);
+    const completedMeals = dailyNutrition.meals.filter(
+      (meal) => meal.completed === true
+    );
     const totalCalories = completedMeals.reduce(
       (sum, meal) => sum + meal.calories,
       0
@@ -138,16 +146,20 @@ export async function getDailyNutritionHandler(
       (sum, meal) => sum + meal.carbs,
       0
     );
-    const totalFats = completedMeals.reduce(
-      (sum, meal) => sum + meal.fats,
-      0
-    );
+    const totalFats = completedMeals.reduce((sum, meal) => sum + meal.fats, 0);
 
     // Transformar para formato esperado
     const formattedMeals = dailyNutrition.meals.map((meal) => ({
       id: meal.id,
       name: meal.name,
-      type: meal.type as "breakfast" | "lunch" | "dinner" | "snack",
+      type: meal.type as
+        | "breakfast"
+        | "lunch"
+        | "dinner"
+        | "snack"
+        | "afternoon-snack"
+        | "pre-workout"
+        | "post-workout",
       calories: meal.calories,
       protein: meal.protein,
       carbs: meal.carbs,
@@ -228,7 +240,7 @@ export async function updateDailyNutritionHandler(
     } else {
       dateStr = new Date().toISOString().split("T")[0];
     }
-    
+
     const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
     const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
@@ -273,7 +285,10 @@ export async function updateDailyNutritionHandler(
         for (const meal of meals) {
           // Validar campos obrigatórios
           if (!meal.name || !meal.type) {
-            console.warn("[updateDailyNutritionHandler] Meal sem name ou type, pulando:", meal);
+            console.warn(
+              "[updateDailyNutritionHandler] Meal sem name ou type, pulando:",
+              meal
+            );
             continue; // Pular meal inválido
           }
 
@@ -298,7 +313,10 @@ export async function updateDailyNutritionHandler(
               for (const food of meal.foods) {
                 // Validar campos obrigatórios
                 if (!food.foodName) {
-                  console.warn("[updateDailyNutritionHandler] Food sem foodName, pulando:", food);
+                  console.warn(
+                    "[updateDailyNutritionHandler] Food sem foodName, pulando:",
+                    food
+                  );
                   continue; // Pular food inválido
                 }
 
@@ -317,13 +335,19 @@ export async function updateDailyNutritionHandler(
                     },
                   });
                 } catch (foodError: any) {
-                  console.error("[updateDailyNutritionHandler] Erro ao criar food:", foodError);
+                  console.error(
+                    "[updateDailyNutritionHandler] Erro ao criar food:",
+                    foodError
+                  );
                   // Continuar com próximo food mesmo se este falhar
                 }
               }
             }
           } catch (mealError: any) {
-            console.error("[updateDailyNutritionHandler] Erro ao criar meal:", mealError);
+            console.error(
+              "[updateDailyNutritionHandler] Erro ao criar meal:",
+              mealError
+            );
             // Continuar com próximo meal mesmo se este falhar
           }
         }
@@ -341,15 +365,18 @@ export async function updateDailyNutritionHandler(
           { code: "MIGRATION_REQUIRED" }
         );
       }
-      
+
       // Log detalhado do erro para debug
-      console.error("[updateDailyNutritionHandler] Erro ao processar nutrição:", {
-        error: error.message,
-        code: error.code,
-        meta: error.meta,
-        stack: error.stack,
-      });
-      
+      console.error(
+        "[updateDailyNutritionHandler] Erro ao processar nutrição:",
+        {
+          error: error.message,
+          code: error.code,
+          meta: error.meta,
+          stack: error.stack,
+        }
+      );
+
       throw error;
     }
   } catch (error: any) {
@@ -372,7 +399,10 @@ export async function searchFoodsHandler(
 ): Promise<NextResponse> {
   try {
     // Validar query params com Zod
-    const queryValidation = await validateQuery(request, searchFoodsQuerySchema);
+    const queryValidation = await validateQuery(
+      request,
+      searchFoodsQuerySchema
+    );
     if (!queryValidation.success) {
       return queryValidation.response;
     }

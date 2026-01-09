@@ -251,6 +251,8 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
   const hasCalledRef = useRef(false);
   const lastTabRef = useRef<string | null>(null);
   const lastPrioritiesRef = useRef<string>("");
+  const lastLoadTimeRef = useRef<number>(0);
+  const isLoadingRef = useRef(false);
   
   useEffect(() => {
     // Reset ref se tab mudou
@@ -258,6 +260,8 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
       hasCalledRef.current = false;
       lastTabRef.current = tab;
       lastPrioritiesRef.current = "";
+      lastLoadTimeRef.current = 0;
+      isLoadingRef.current = false;
     }
     
     // Detectar contexto se não fornecido
@@ -288,16 +292,39 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     
     // Verificar se as prioridades mudaram
     const prioritiesKey = priorities.sort().join(",");
-    if (lastPrioritiesRef.current === prioritiesKey && hasCalledRef.current) {
-      return; // Mesmas prioridades, já chamou
-    }
-    lastPrioritiesRef.current = prioritiesKey;
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTimeRef.current;
+    const MIN_TIME_BETWEEN_LOADS = 5000; // 5 segundos mínimo entre carregamentos
     
-    // IMPORTANTE: Prioridades SEMPRE devem ser recarregadas (refetch)
-    // Mesmo que já existam no store, fazemos requisição para garantir dados atualizados
-    // Isso garante sincronização e dados sempre frescos quando navegar entre páginas
+    // Se já está carregando, não iniciar novo carregamento
+    if (isLoadingRef.current) {
+      return;
+    }
+    
+    // Se são as mesmas prioridades e já carregou recentemente, não carregar novamente
+    if (
+      lastPrioritiesRef.current === prioritiesKey && 
+      hasCalledRef.current &&
+      timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS
+    ) {
+      return; // Mesmas prioridades, já chamou recentemente
+    }
+    
+    // Verificar se dados já existem no store antes de fazer refetch
+    const storeData = storeDataRef.current;
+    const allSectionsHaveData = priorities.every(section => hasSectionData(section, storeData));
+    
+    // Se todas as seções já têm dados e carregou recentemente, não refetch
+    if (allSectionsHaveData && timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS) {
+      return;
+    }
+    
+    lastPrioritiesRef.current = prioritiesKey;
+    lastLoadTimeRef.current = now;
+    isLoadingRef.current = true;
+    
     console.log(
-      `[useLoadPrioritized] Carregando prioridades (refetch): ${priorities.join(", ")} (context: ${detectedContext})`
+      `[useLoadPrioritized] Carregando prioridades: ${priorities.join(", ")} (context: ${detectedContext})`
     );
     
     hasCalledRef.current = true;
@@ -306,11 +333,16 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     // O Zustand já tem os dados, só precisamos atualizar as prioridades
     loadAllPrioritized(priorities, options.onlyPriorities ?? true)
       .then(() => {
-        // Sucesso
+        isLoadingRef.current = false;
+        // Sucesso - não resetar hasCalledRef aqui para evitar loops
       })
       .catch((error) => {
         console.error("[useLoadPrioritized] Erro ao carregar prioridades:", error);
-        hasCalledRef.current = false; // Permitir retry em caso de erro
+        isLoadingRef.current = false;
+        // Resetar apenas após um delay para permitir retry em caso de erro real
+        setTimeout(() => {
+          hasCalledRef.current = false;
+        }, 10000); // Reset após 10 segundos
       });
   }, [
     pathname,
@@ -319,9 +351,8 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     options.sections?.join(","),
     options.combineWithContext,
     options.onlyPriorities,
-    loadAllPrioritized,
-    // Não incluir storeData nas dependências para evitar loops
-    // Usar ref dentro do effect
+    // Remover loadAllPrioritized das dependências para evitar loops
+    // loadAllPrioritized é estável e não deve causar re-execução
   ]);
 }
 

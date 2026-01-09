@@ -7,6 +7,9 @@ import { SubscriptionStatus } from "./subscription/subscription-status";
 import { PlansSelector } from "./subscription/plans-selector";
 import { PaymentModal } from "./subscription/payment-modal";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
+import { apiClient } from "@/lib/api/client";
+import { useToast } from "@/hooks/use-toast";
+import { useStudent } from "@/hooks/use-student";
 
 export interface SubscriptionPlan {
   id: string;
@@ -243,15 +246,53 @@ export function SubscriptionSection({
     setShowPaymentModal(true);
   };
 
+  const { toast } = useToast();
+  const { updateSubscription } = useStudent("actions");
+
   const handleConfirmPayment = async () => {
     if (!selectedPlanData) return;
 
     setIsProcessingPayment(true);
     try {
-      await onSubscribe(selectedPlanData.id, selectedBillingPeriod);
+      // Chamar API para ativar premium automaticamente (sem billing real)
+      const response = await apiClient.post<{
+        subscription: any;
+        message: string;
+      }>("/api/subscriptions/activate-premium", {
+        billingPeriod: selectedBillingPeriod,
+      });
+
+      // Optimistic update no store com dados da API
+      if (response.data.subscription) {
+        const subscriptionData = response.data.subscription;
+        await updateSubscription({
+          id: subscriptionData.id,
+          plan: subscriptionData.plan,
+          status: subscriptionData.status,
+          currentPeriodStart: new Date(subscriptionData.currentPeriodStart),
+          currentPeriodEnd: new Date(subscriptionData.currentPeriodEnd),
+          trialStart: subscriptionData.trialStart ? new Date(subscriptionData.trialStart) : null,
+          trialEnd: subscriptionData.trialEnd ? new Date(subscriptionData.trialEnd) : null,
+          canceledAt: subscriptionData.canceledAt ? new Date(subscriptionData.canceledAt) : null,
+          cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd || false,
+        });
+      }
+
+      // Fechar modal
       setShowPaymentModal(false);
-    } catch (error) {
+
+      // Mostrar toast de sucesso
+      toast({
+        title: "Premium ativado!",
+        description: "Sua assinatura premium foi ativada com sucesso.",
+      });
+    } catch (error: any) {
       console.error("Erro ao processar pagamento:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao ativar premium",
+        description: error.response?.data?.message || "Erro ao processar pagamento. Tente novamente.",
+      });
     } finally {
       setIsProcessingPayment(false);
     }

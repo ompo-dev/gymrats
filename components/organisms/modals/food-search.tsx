@@ -9,6 +9,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { cn } from "@/lib/utils";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
+import { FoodSearchChat } from "./food-search-chat";
 
 interface FoodSearchProps {
   onAddFood: (
@@ -19,6 +20,12 @@ interface FoodSearchProps {
   selectedMealId?: string | null;
   meals?: Meal[];
   onSelectMeal?: (mealId: string) => void;
+  onAddMeal?: (mealsData: Array<{
+    name: string;
+    type: string;
+    time?: string;
+  }>) => void;
+  foodDatabase?: FoodItem[];
 }
 
 const mealIcons: Record<string, string> = {
@@ -60,7 +67,39 @@ export function FoodSearch({
   selectedMealId,
   meals = [],
   onSelectMeal,
+  onAddMeal,
+  foodDatabase = [],
 }: FoodSearchProps) {
+  // Verificar se é premium/trial
+  const subscription = useStudent("subscription");
+  const isPremium = useMemo(() => {
+    if (!subscription) return false;
+
+    const now = new Date();
+    const isTrialActive =
+      subscription.trialEnd && new Date(subscription.trialEnd) > now;
+    const isActive = subscription.status === "active";
+    const isTrialing = subscription.status === "trialing";
+
+    return (
+      subscription.plan === "premium" && (isActive || isTrialing || isTrialActive)
+    );
+  }, [subscription]);
+
+  // Se premium, renderizar chat ao invés de busca
+  if (isPremium) {
+    return (
+      <FoodSearchChat
+        onAddFood={onAddFood}
+        onAddMeal={onAddMeal || (() => {})}
+        onClose={onClose}
+        selectedMealId={selectedMealId}
+        meals={meals}
+      />
+    );
+  }
+
+  // Resto do código de busca padrão para usuários não-premium
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");

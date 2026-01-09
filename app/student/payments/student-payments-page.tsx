@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useModalState } from "@/hooks/use-modal-state";
 import {
@@ -43,6 +43,7 @@ import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscrip
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
+import { apiClient } from "@/lib/api/client";
 
 // Constante fora do componente para garantir que seja sempre o mesmo entre servidor e cliente
 const TAB_OPTIONS = [
@@ -175,28 +176,13 @@ export function StudentPaymentsPage({
   }, [subscription?.trialEnd, subscription?.daysRemaining]);
 
   // Carregar dados do store ao montar
-  const { loadMemberships, loadPayments, loadPaymentMethods } =
-    useStudent("loaders");
+  const actions = useStudent("actions");
+  const { updateSubscription } = actions;
 
-  useEffect(() => {
-    // Carregar dados se não tiver no store
-    if (!storeMemberships || storeMemberships.length === 0) {
-      loadMemberships();
-    }
-    if (!storePayments || storePayments.length === 0) {
-      loadPayments();
-    }
-    if (!storePaymentMethods || storePaymentMethods.length === 0) {
-      loadPaymentMethods();
-    }
-  }, [
-    storeMemberships,
-    storePayments,
-    storePaymentMethods,
-    loadMemberships,
-    loadPayments,
-    loadPaymentMethods,
-  ]);
+  // NOTA: Não precisamos carregar manualmente aqui porque:
+  // - useLoadPrioritized({ context: "payments" }) já carrega subscription, payments, paymentMethods, memberships
+  // - Essas seções são carregadas automaticamente quando a página monta
+  // - Carregar manualmente aqui causaria requisições duplicadas e loops
 
   // Usar dados do store (API → Zustand → Component)
   const membershipsData =
@@ -237,6 +223,10 @@ export function StudentPaymentsPage({
   const isLoadingMemberships = !storeMemberships;
   const isLoadingPayments = !storePayments;
   const isLoadingPaymentMethods = !storePaymentMethods;
+
+  // Carregar loaders apenas para refetchPaymentMethods se necessário
+  const loaders = useStudent("loaders");
+  const { loadPaymentMethods } = loaders;
 
   const refetchPaymentMethods = async () => {
     await loadPaymentMethods();
@@ -301,25 +291,42 @@ export function StudentPaymentsPage({
     billingPeriod: "monthly" | "annual"
   ) => {
     try {
-      const result = await createSubscription(billingPeriod);
+      // Usar nova rota que ativa premium automaticamente (sem billing real)
+      const response = await apiClient.post<{
+        subscription: any;
+        message: string;
+      }>("/api/subscriptions/activate-premium", {
+        billingPeriod,
+      });
 
-      if (result.error) {
-        toast({
-          variant: "destructive",
-          title: "Erro ao criar assinatura",
-          description: result.error,
+      // Atualizar store com dados da API
+      if (response.data.subscription) {
+        const subscriptionData = response.data.subscription;
+        await updateSubscription({
+          id: subscriptionData.id,
+          plan: subscriptionData.plan,
+          status: subscriptionData.status,
+          currentPeriodStart: new Date(subscriptionData.currentPeriodStart),
+          currentPeriodEnd: new Date(subscriptionData.currentPeriodEnd),
+          trialStart: subscriptionData.trialStart ? new Date(subscriptionData.trialStart) : null,
+          trialEnd: subscriptionData.trialEnd ? new Date(subscriptionData.trialEnd) : null,
+          canceledAt: subscriptionData.canceledAt ? new Date(subscriptionData.canceledAt) : null,
+          cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd || false,
         });
-        return;
       }
 
-      if (result.billingUrl) {
-        window.location.href = result.billingUrl;
-      }
+      toast({
+        title: "Premium ativado!",
+        description: "Sua assinatura premium foi ativada com sucesso.",
+      });
+
+      // Não precisa recarregar - updateSubscription já atualiza o store e sincroniza com backend
     } catch (error: any) {
+      console.error("[handleUpgrade] Erro:", error);
       toast({
         variant: "destructive",
-        title: "Erro ao criar cobrança",
-        description: error.message || "Erro ao criar cobrança",
+        title: "Erro ao ativar premium",
+        description: error.response?.data?.message || error.message || "Erro ao ativar premium. Tente novamente.",
       });
     }
   };
