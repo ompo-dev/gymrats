@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Plus,
   Trash2,
@@ -75,41 +75,57 @@ export function EditUnitModal() {
     return state.data.units.find((u) => u.id === unitId) || null;
   });
 
-  // Ordenar workouts por ordem antes de usar - DEPENDE de unit.workouts
+  // Ordenar workouts por ordem antes de usar
+  // IMPORTANTE: Usar IDs para comparação estável e evitar loops infinitos
+  const workoutsIds = useMemo(() => {
+    if (!unit?.workouts || unit.workouts.length === 0) return "";
+    return unit.workouts.map((w) => w.id).join(",");
+  }, [unit?.workouts]);
+
   const sortedWorkouts = useMemo(() => {
     if (!unit?.workouts || unit.workouts.length === 0) return [];
     // Criar novo array para garantir reatividade do useMemo
     return [...unit.workouts].sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [unit?.workouts]);
+  }, [workoutsIds, unit?.workouts]);
 
   // Sincronizar workoutItems com sortedWorkouts
+  // IMPORTANTE: Verificar se realmente mudou para evitar loops infinitos
+  // CRÍTICO: Não incluir workoutItems nas dependências para evitar loops
   useEffect(() => {
-    // Sempre sincronizar - optimistic update atualiza workouts instantaneamente
-    setWorkoutItems(sortedWorkouts);
-  }, [sortedWorkouts]);
+    // Verificar se realmente mudou (comparando IDs e tamanho para evitar loops)
+    const currentIds = workoutItems.map((w) => w.id).join(",");
+    const newIds = sortedWorkouts.map((w) => w.id).join(",");
+    
+    // Só atualizar se IDs mudaram OU se o tamanho mudou (novo workout adicionado)
+    if (currentIds !== newIds || workoutItems.length !== sortedWorkouts.length) {
+      setWorkoutItems(sortedWorkouts);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedWorkouts]); // IMPORTANTE: Não incluir workoutItems para evitar loops
 
   // IMPORTANTE: Seletor específico para exercises do workout ativo
-  // CRÍTICO: Este seletor depende de state.data.units - quando units muda (nova referência),
-  // o Zustand detecta a mudança, executa o seletor novamente e o componente re-renderiza
-  // 
+  // CRÍTICO: Usar useMemo para garantir referência estável e evitar loops infinitos
   // Quando addWorkoutExercise faz optimistic update:
   // 1. Store atualiza state.data.units com NOVO array (nova referência)
   // 2. Zustand detecta mudança em state.data.units (shallow equality)
   // 3. Este seletor é executado novamente
   // 4. Retorna NOVO array de exercises (criado no optimistic update)
-  // 5. Componente re-renderiza IMEDIATAMENTE com novos exercícios
-  const exercises = useStudentUnifiedStore((state) => {
-    if (!editingWorkoutId || !unitId) return [];
-    // IMPORTANTE: state.data.units é um NOVO array quando optimistic update acontece
-    // Então este seletor é executado novamente automaticamente
+  // 5. useMemo detecta mudança e recalcula, componente re-renderiza IMEDIATAMENTE
+  const exercisesRaw = useStudentUnifiedStore((state) => {
+    if (!editingWorkoutId || !unitId) return null;
     const foundUnit = state.data.units.find((u) => u.id === unitId);
-    if (!foundUnit) return [];
+    if (!foundUnit) return null;
     const foundWorkout = foundUnit.workouts.find((w) => w.id === editingWorkoutId);
-    if (!foundWorkout) return [];
-    // IMPORTANTE: Retornar array diretamente - quando optimistic update cria NOVO array de exercises,
-    // este seletor retorna o NOVO array e o Zustand detecta a mudança via shallow equality
-    return foundWorkout.exercises || [];
+    if (!foundWorkout) return null;
+    // IMPORTANTE: Retornar null quando não encontrado, não [] (evita nova referência a cada render)
+    return foundWorkout.exercises || null;
   });
+
+  // Usar useMemo para garantir referência estável quando exercises não existe
+  // Isso evita loops infinitos causados por novas referências a cada render
+  const exercises = useMemo(() => {
+    return exercisesRaw || [];
+  }, [exercisesRaw]);
 
   // Calcular activeWorkout baseado nos sortedWorkouts (para outros dados como título, etc)
   const activeWorkout = useMemo(() => {
@@ -119,26 +135,40 @@ export function EditUnitModal() {
   }, [sortedWorkouts, editingWorkoutId]);
 
   // Ordenar exercícios por ordem - IMPORTANTE: usar exercises do store diretamente!
+  // CRÍTICO: Usar IDs para comparação estável e evitar loops infinitos
   // Quando addWorkoutExercise faz optimistic update:
   // 1. Store atualiza state.data.units com NOVO array (nova referência)
   // 2. Seletor `exercises` detecta mudança e retorna NOVO array de exercises
-  // 3. useMemo detecta mudança em `exercises` e recalcula sortedExercises
+  // 3. useMemo detecta mudança em `exercisesIds` e recalcula sortedExercises
   // 4. useEffect detecta mudança em sortedExercises e atualiza exerciseItems
   // 5. Componente re-renderiza IMEDIATAMENTE com novos exercícios!
+  const exercisesIds = useMemo(() => {
+    if (!exercises || exercises.length === 0) return "";
+    return exercises.map((e) => e.id).join(",");
+  }, [exercises]);
+
   const sortedExercises = useMemo(() => {
     if (!exercises || exercises.length === 0) return [];
     // Criar novo array para garantir reatividade do useMemo
     return [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [exercises]);
+  }, [exercisesIds, exercises]);
 
-  // Sincronizar exerciseItems com sortedExercises - IMPORTANTE: sempre sincronizar!
+  // Sincronizar exerciseItems com sortedExercises - IMPORTANTE: verificar mudanças reais!
   // Isso garante que optimistic updates apareçam instantaneamente na UI
   // O Reorder precisa de estado controlado, mas deve sempre refletir sortedExercises
+  // CRÍTICO: Verificar se realmente mudou (comparando IDs) para evitar loops infinitos
+  // IMPORTANTE: Não incluir exerciseItems nas dependências para evitar loops
   useEffect(() => {
-    // Sempre sincronizar - optimistic update atualiza sortedExercises instantaneamente
-    // e exerciseItems precisa refletir isso IMEDIATAMENTE para o usuário ver
-    setExerciseItems(sortedExercises);
-  }, [sortedExercises]);
+    // Verificar se realmente mudou (comparando IDs e tamanho para evitar loops)
+    const currentIds = exerciseItems.map((e) => e.id).join(",");
+    const newIds = sortedExercises.map((e) => e.id).join(",");
+    
+    // Só atualizar se IDs mudaram OU se o tamanho mudou (novo exercício adicionado)
+    if (currentIds !== newIds || exerciseItems.length !== sortedExercises.length) {
+      setExerciseItems(sortedExercises);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedExercises]); // IMPORTANTE: Não incluir exerciseItems para evitar loops
 
   // Calcular tempo estimado baseado nos exercícios
   // IMPORTANTE: Usar exercises diretamente do store para garantir reatividade imediata
@@ -199,18 +229,25 @@ export function EditUnitModal() {
   }, [exercises]); // IMPORTANTE: Usar exercises diretamente do store para garantir reatividade imediata
 
   // Atualizar estimatedTime quando exercícios mudarem
+  // IMPORTANTE: Usar ref para evitar loops infinitos - só atualizar uma vez por mudança real
+  const lastCalculatedTimeRef = useRef<number>(0);
+  
   useEffect(() => {
-    if (activeWorkout && calculatedEstimatedTime > 0) {
-      // Só atualiza se o valor calculado for diferente do atual (com margem de 1 minuto)
-      const currentTime = activeWorkout.estimatedTime || 0;
-      if (Math.abs(currentTime - calculatedEstimatedTime) >= 1) {
-        handleUpdateWorkout(activeWorkout.id, {
-          estimatedTime: calculatedEstimatedTime,
-        });
-      }
+    if (!activeWorkout || calculatedEstimatedTime <= 0) return;
+    
+    // Só atualiza se o valor realmente mudou (com margem de 1 minuto)
+    const currentTime = activeWorkout.estimatedTime || 0;
+    const hasSignificantChange = Math.abs(currentTime - calculatedEstimatedTime) >= 1;
+    const hasChangedSinceLastUpdate = lastCalculatedTimeRef.current !== calculatedEstimatedTime;
+    
+    // CRÍTICO: Só atualizar se realmente mudou E não atualizamos este valor ainda
+    if (hasSignificantChange && hasChangedSinceLastUpdate) {
+      lastCalculatedTimeRef.current = calculatedEstimatedTime;
+      handleUpdateWorkout(activeWorkout.id, {
+        estimatedTime: calculatedEstimatedTime,
+      });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calculatedEstimatedTime]);
+  }, [calculatedEstimatedTime, activeWorkout]);
 
   // Sincronizar inputs apenas quando unit mudar (mas não durante edição)
   useEffect(() => {
