@@ -125,6 +125,7 @@ export function StudentLayoutContent({
         <>
           <WorkoutModal />
           <EditUnitModal />
+          {/* CreateUnitModal será renderizado dentro do LearningPath quando necessário */}
         </>
       }
       scrollResetEnabled={!isOnboarding}

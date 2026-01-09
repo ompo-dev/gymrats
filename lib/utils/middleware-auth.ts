@@ -28,7 +28,7 @@ export async function getAuthSession(request: NextRequest) {
 }
 
 export function isPublicRoute(pathname: string): boolean {
-  const publicRoutes = ["/welcome", "/api/auth", "/onboarding", "/auth/login"];
+  const publicRoutes = ["/welcome", "/api/auth", "/onboarding", "/auth/login", "/auth/callback"];
 
   return publicRoutes.some((route) => pathname.startsWith(route));
 }

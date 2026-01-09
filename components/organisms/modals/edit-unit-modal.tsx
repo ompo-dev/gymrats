@@ -13,6 +13,7 @@ import { motion, Reorder } from "motion/react";
 import { Button } from "@/components/atoms/buttons/button";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import type { Unit, WorkoutSession, WorkoutExercise } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -45,11 +46,7 @@ export function EditUnitModal() {
     close,
     paramValue: unitId,
   } = useModalStateWithParam("editUnit", "unitId");
-  const units = useStudent("units");
   const actions = useStudent("actions");
-
-  // Consumir diretamente do Zustand - atualiza instantaneamente!
-  const unit = units?.find((u: Unit) => u.id === unitId) || null;
 
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
 
@@ -69,56 +66,91 @@ export function EditUnitModal() {
   const [workoutItems, setWorkoutItems] = useState<WorkoutSession[]>([]);
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
 
-  // Ordenar workouts por ordem antes de usar
+  // IMPORTANTE: Seletores específicos do Zustand que detectam mudanças IMEDIATAMENTE
+  // Quando addWorkoutExercise faz optimistic update no store, estes seletores detectam INSTANTANEAMENTE
+  // porque o Zustand re-renderiza quando state.data.units muda (nova referência de array)
+  
+  // Seletor para unit completo - retorna null se não encontrado
+  const unit = useStudentUnifiedStore((state) => {
+    return state.data.units.find((u) => u.id === unitId) || null;
+  });
+
+  // Ordenar workouts por ordem antes de usar - DEPENDE de unit.workouts
   const sortedWorkouts = useMemo(() => {
-    if (!unit?.workouts) return [];
+    if (!unit?.workouts || unit.workouts.length === 0) return [];
+    // Criar novo array para garantir reatividade do useMemo
     return [...unit.workouts].sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [unit?.workouts]);
 
   // Sincronizar workoutItems com sortedWorkouts
   useEffect(() => {
-    if (sortedWorkouts.length > 0 && workoutItems.length === 0) {
-      setWorkoutItems(sortedWorkouts);
-    } else if (sortedWorkouts.length !== workoutItems.length) {
-      // Se a quantidade mudou (adicionou/removeu), atualizar
-      setWorkoutItems(sortedWorkouts);
-    }
+    // Sempre sincronizar - optimistic update atualiza workouts instantaneamente
+    setWorkoutItems(sortedWorkouts);
   }, [sortedWorkouts]);
 
-  // Calcular activeWorkout baseado nos sortedWorkouts
+  // IMPORTANTE: Seletor específico para exercises do workout ativo
+  // CRÍTICO: Este seletor depende de state.data.units - quando units muda (nova referência),
+  // o Zustand detecta a mudança, executa o seletor novamente e o componente re-renderiza
+  // 
+  // Quando addWorkoutExercise faz optimistic update:
+  // 1. Store atualiza state.data.units com NOVO array (nova referência)
+  // 2. Zustand detecta mudança em state.data.units (shallow equality)
+  // 3. Este seletor é executado novamente
+  // 4. Retorna NOVO array de exercises (criado no optimistic update)
+  // 5. Componente re-renderiza IMEDIATAMENTE com novos exercícios
+  const exercises = useStudentUnifiedStore((state) => {
+    if (!editingWorkoutId || !unitId) return [];
+    // IMPORTANTE: state.data.units é um NOVO array quando optimistic update acontece
+    // Então este seletor é executado novamente automaticamente
+    const foundUnit = state.data.units.find((u) => u.id === unitId);
+    if (!foundUnit) return [];
+    const foundWorkout = foundUnit.workouts.find((w) => w.id === editingWorkoutId);
+    if (!foundWorkout) return [];
+    // IMPORTANTE: Retornar array diretamente - quando optimistic update cria NOVO array de exercises,
+    // este seletor retorna o NOVO array e o Zustand detecta a mudança via shallow equality
+    return foundWorkout.exercises || [];
+  });
+
+  // Calcular activeWorkout baseado nos sortedWorkouts (para outros dados como título, etc)
   const activeWorkout = useMemo(() => {
     return sortedWorkouts.find(
       (w: WorkoutSession) => w.id === editingWorkoutId
     );
   }, [sortedWorkouts, editingWorkoutId]);
 
-  // Ordenar exercícios por ordem
+  // Ordenar exercícios por ordem - IMPORTANTE: usar exercises do store diretamente!
+  // Quando addWorkoutExercise faz optimistic update:
+  // 1. Store atualiza state.data.units com NOVO array (nova referência)
+  // 2. Seletor `exercises` detecta mudança e retorna NOVO array de exercises
+  // 3. useMemo detecta mudança em `exercises` e recalcula sortedExercises
+  // 4. useEffect detecta mudança em sortedExercises e atualiza exerciseItems
+  // 5. Componente re-renderiza IMEDIATAMENTE com novos exercícios!
   const sortedExercises = useMemo(() => {
-    if (!activeWorkout?.exercises) return [];
-    return [...activeWorkout.exercises].sort(
-      (a, b) => (a.order || 0) - (b.order || 0)
-    );
-  }, [activeWorkout?.exercises]);
+    if (!exercises || exercises.length === 0) return [];
+    // Criar novo array para garantir reatividade do useMemo
+    return [...exercises].sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [exercises]);
 
-  // Sincronizar exerciseItems com sortedExercises
+  // Sincronizar exerciseItems com sortedExercises - IMPORTANTE: sempre sincronizar!
+  // Isso garante que optimistic updates apareçam instantaneamente na UI
+  // O Reorder precisa de estado controlado, mas deve sempre refletir sortedExercises
   useEffect(() => {
-    if (sortedExercises.length > 0 && exerciseItems.length === 0) {
-      setExerciseItems(sortedExercises);
-    } else if (sortedExercises.length !== exerciseItems.length) {
-      // Se a quantidade mudou (adicionou/removeu), atualizar
-      setExerciseItems(sortedExercises);
-    }
+    // Sempre sincronizar - optimistic update atualiza sortedExercises instantaneamente
+    // e exerciseItems precisa refletir isso IMEDIATAMENTE para o usuário ver
+    setExerciseItems(sortedExercises);
   }, [sortedExercises]);
 
   // Calcular tempo estimado baseado nos exercícios
+  // IMPORTANTE: Usar exercises diretamente do store para garantir reatividade imediata
+  // Quando addWorkoutExercise faz optimistic update, exercises muda IMEDIATAMENTE
   const calculatedEstimatedTime = useMemo(() => {
-    if (!activeWorkout?.exercises || activeWorkout.exercises.length === 0) {
+    if (!exercises || exercises.length === 0) {
       return 0;
     }
 
     const TIME_PER_REP = 2; // segundos por repetição (média)
 
-    const totalSeconds = activeWorkout.exercises.reduce(
+    const totalSeconds = exercises.reduce(
       (total: number, ex: WorkoutExercise) => {
         const sets = ex.sets || 0;
         if (sets === 0) return total;
@@ -164,7 +196,7 @@ export function EditUnitModal() {
     // Adicionar 10 minutos para atividades preparatórias
     // (pegar anilhas, trocar pesos, séries preparatórias, aquecimento, válidas, até a falha, etc.)
     return totalMinutes + 10;
-  }, [activeWorkout?.exercises]);
+  }, [exercises]); // IMPORTANTE: Usar exercises diretamente do store para garantir reatividade imediata
 
   // Atualizar estimatedTime quando exercícios mudarem
   useEffect(() => {

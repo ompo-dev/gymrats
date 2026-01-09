@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import type { Unit, WorkoutSession } from "@/lib/types";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
-import { Lock } from "lucide-react";
+import { Lock, Dumbbell, Plus, Play } from "lucide-react";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { useStudent } from "@/hooks/use-student";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
@@ -11,9 +11,13 @@ import { StaggerContainer } from "../../../components/animations/stagger-contain
 import { StaggerItem } from "../../../components/animations/stagger-item";
 import { motion } from "motion/react";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
+import { SectionCard } from "@/components/molecules/cards/section-card";
+import { Button } from "@/components/atoms/buttons/button";
 import { useRouter } from "next/navigation";
-import { useModalStateWithParam } from "@/hooks/use-modal-state";
+import { useModalStateWithParam, useModalState } from "@/hooks/use-modal-state";
 import { parseAsInteger, useQueryState } from "nuqs";
+import { CreateUnitModal } from "@/components/organisms/modals/create-unit-modal";
+import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
 
 interface LearningPathProps {
   onLessonSelect: (lessonId: string) => void;
@@ -69,7 +73,15 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     };
   }, [loadWorkouts]);
 
+  const createUnitModal = useModalState("create-unit");
   const editUnitModal = useModalStateWithParam("editUnit", "unitId");
+
+  // IMPORTANTE: Com optimistic update, quando createUnit é chamado,
+  // o store atualiza instantaneamente (linha 1735-1740 do store),
+  // fazendo com que `units` seja atualizado automaticamente via useStudent("units")
+  // que está conectado ao seletor específico do store (linha 131 do use-student.ts).
+  // Isso faz o componente re-renderizar e o empty state desaparecer IMEDIATAMENTE,
+  // sem esperar resposta do servidor (200 OK).
 
   const handleWorkoutClick = (
     workoutId: string,
@@ -122,11 +134,33 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     editUnitModal.open(unit.id);
   };
 
-  if (!units || units.length === 0) {
+  // Empty state: quando não há units (após carregar), mostrar opção para criar primeiro treino
+  // Verificar se units é um array vazio (não undefined/null que indica carregamento)
+  const hasUnits = Array.isArray(units) && units.length > 0;
+  
+  if (!hasUnits) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-duo-gray-dark">Nenhum treino disponível</p>
-      </div>
+      <>
+        <EmptyWorkoutState
+          onCreateUnit={() => {
+            // Abrir modal de criar unit
+            createUnitModal.open();
+          }}
+        />
+        {/* Modais para empty state */}
+        {createUnitModal.isOpen && (
+          <CreateUnitModal
+            onClose={createUnitModal.close}
+            onUnitCreated={(unitId) => {
+              // Após criar unit, abrir modal de edição para adicionar workouts
+              editUnitModal.open(unitId);
+            }}
+          />
+        )}
+        {editUnitModal.isOpen && editUnitModal.paramValue && (
+          <EditUnitModal />
+        )}
+      </>
     );
   }
 
@@ -229,6 +263,70 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
           </p>
         </motion.div>
       </motion.div>
+
+      {/* Modais */}
+      {createUnitModal.isOpen && (
+        <CreateUnitModal
+          onClose={createUnitModal.close}
+          onUnitCreated={(unitId) => {
+            // Após criar unit, abrir modal de edição para adicionar workouts
+            editUnitModal.open(unitId);
+          }}
+        />
+      )}
+      {editUnitModal.isOpen && editUnitModal.paramValue && (
+        <EditUnitModal />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Empty State quando não há treinos criados
+ * 
+ * Exatamente igual ao padrão do NutritionTracker (refeições)
+ * SectionCard com ícone no header e título no header
+ * Dentro: ícone grande → título → texto motivacional → botão
+ * 
+ * IMPORTANTE: Com optimistic update, quando o usuário cria um unit,
+ * o store atualiza instantaneamente e este componente re-renderiza,
+ * fazendo o empty state desaparecer imediatamente sem esperar resposta do servidor.
+ */
+function EmptyWorkoutState({
+  onCreateUnit,
+}: {
+  onCreateUnit: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="mb-2 text-3xl font-bold text-duo-text">Treinos</h1>
+        <p className="text-sm text-duo-gray-dark">
+          Crie e acompanhe seus treinos personalizados
+        </p>
+      </div>
+
+      <SectionCard icon={Dumbbell} title="Meus Treinos">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, type: "spring" }}
+          className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
+        >
+          <Dumbbell className="h-12 w-12 text-duo-green" />
+          <p className="text-lg font-bold text-gray-900">
+            Comece a criar seus treinos!
+          </p>
+          <p className="text-sm text-gray-600">
+            Crie seu plano personalizado com units, dias de treino e exercícios.
+            Você tem controle total sobre seu treino e pode acompanhar seu progresso.
+          </p>
+          <Button onClick={onCreateUnit} variant="default" className="w-fit">
+            <Plus className="h-4 w-4 mr-2" />
+            Criar Primeiro Plano
+          </Button>
+        </motion.div>
+      </SectionCard>
     </div>
   );
 }

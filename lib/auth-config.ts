@@ -283,10 +283,10 @@ export const auth = betterAuth({
       },
     },
   },
-  // Hook para sincronizar cookie auth_token após login social
+  // Hook para sincronizar cookie auth_token após login social e suportar PWA
   hooks: {
     after: createAuthMiddleware(async (ctx) => {
-      // Detectar quando uma sessão é criada via OAuth callback ou sign-in social
+      // Detectar quando uma sessão é criada via OAuth callback
       const isOAuthCallback = ctx.path?.startsWith("/callback/");
       const isSocialSignIn = ctx.path === "/sign-in/social";
 

@@ -43,7 +43,6 @@ import {
 import {
   createCommand,
   commandToSyncManager,
-  isTemporaryId,
 } from "@/lib/offline/command-pattern";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
@@ -2572,7 +2571,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       addWorkoutExercise: async (workoutId, data) => {
         // 1. Criar command primeiro (para ter o ID temporário)
         const command = createCommand("ADD_WORKOUT_EXERCISE", {
-          workoutId, // Pode ser temporário - será atualizado depois
+          workoutId, // Pode ser temporário - será atualizado depois automaticamente
           ...data,
         });
 
@@ -2601,7 +2600,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           order: 0, // Será calculado
         };
 
+        // Optimistic update IMEDIATO - não espera nada!
+        // IMPORTANTE: Este set() é executado ANTES de qualquer await!
+        // O Zustand atualiza o store instantaneamente e componentes re-renderizam IMEDIATAMENTE
         set((state) => {
+          // IMPORTANTE: Criar NOVOS objetos para unit, workout e exercises
+          // Isso garante que o Zustand detecte mudanças profundas via shallow equality
+          // Quando state.data.units recebe um NOVO array, o Zustand detecta a mudança
+          // e todos os seletores que dependem de state.data.units são executados novamente
           const updatedUnits = state.data.units.map((unit) => {
             // Procurar workout pelo ID original (pode ser temporário)
             const workout = unit.workouts.find((w) => w.id === workoutId);
@@ -2610,28 +2616,34 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               const lastExercise =
                 workout.exercises[workout.exercises.length - 1];
               const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
+              
+              // Criar NOVO objeto unit com NOVO objeto workout com NOVO array exercises
+              // Isso garante que o Zustand detecte a mudança profunda e re-renderize componentes
               return {
-                ...unit,
+                ...unit, // Copiar unit existente (cria nova referência)
                 workouts: unit.workouts.map((w) =>
                   w.id === workoutId
                     ? {
-                        ...w,
+                        ...w, // Copiar workout existente (cria nova referência)
                         exercises: [
-                          ...w.exercises,
-                          { ...newExercise, order: newOrder },
+                          ...w.exercises, // Copiar array existente (cria novo array)
+                          { ...newExercise, order: newOrder }, // Adicionar novo exercício
                         ],
                       }
                     : w
                 ),
               };
             }
-            return unit;
+            return unit; // Retornar unit inalterado (mesma referência - Zustand não detecta mudança)
           });
 
+          // IMPORTANTE: Retornar NOVO objeto data com NOVO array units
+          // Quando state.data.units muda (nova referência), o Zustand detecta via shallow equality
+          // e todos os componentes que usam seletores dependentes de state.data.units re-renderizam
           return {
             data: {
               ...state.data,
-              units: updatedUnits,
+              units: updatedUnits, // NOVO array - Zustand detecta mudança instantaneamente
             },
           };
         });
@@ -2640,86 +2652,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           throw new Error("Workout não encontrado");
         }
 
-        // 2. Verificar se workoutId é temporário - se for, aguardar ID real com polling ativo
-        let finalWorkoutId = workoutId;
-        if (isTemporaryId(workoutId)) {
-          // Polling: 3 tentativas de 5 segundos cada (total 15 segundos)
-          const maxAttempts = 3;
-          const pollInterval = 5000; // 5 segundos entre tentativas
-          let attempts = 0;
-
-          console.log(
-            `[addWorkoutExercise] WorkoutId temporário detectado. Iniciando polling em background...`
-          );
-
-          while (isTemporaryId(finalWorkoutId) && attempts < maxAttempts) {
-            attempts++;
-            console.log(
-              `[addWorkoutExercise] Tentativa ${attempts}/${maxAttempts} - Aguardando ID real do workout...`
-            );
-
-            // Aguardar intervalo de polling (5 segundos)
-            await new Promise((resolve) => setTimeout(resolve, pollInterval));
-
-            // Verificar se workout agora tem ID real
-            const currentState = get();
-            const workout = currentState.data.units
-              .flatMap((u) => u.workouts)
-              .find((w) => w.id === workoutId || w.id === finalWorkoutId);
-
-            if (workout && !isTemporaryId(workout.id)) {
-              finalWorkoutId = workout.id;
-              console.log(
-                `[addWorkoutExercise] ✅ ID real obtido após ${attempts} tentativa(s): ${finalWorkoutId}`
-              );
-              break;
-            }
-          }
-
-          // Se ainda é temporário após todas as tentativas, lançar erro
-          if (isTemporaryId(finalWorkoutId)) {
-            console.error(
-              `[addWorkoutExercise] ❌ Timeout: Workout ainda não tem ID real após ${maxAttempts} tentativas`
-            );
-            // Reverter optimistic update
-            set((state) => ({
-              data: {
-                ...state.data,
-                units: state.data.units.map((unit) => ({
-                  ...unit,
-                  workouts: unit.workouts.map((workout) =>
-                    workout.id === workoutId
-                      ? {
-                          ...workout,
-                          exercises: workout.exercises.filter(
-                            (e) => e.id !== command.id
-                          ),
-                        }
-                      : workout
-                  ),
-                })),
-              },
-            }));
-            throw new Error(
-              "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente."
-            );
-          }
-        }
-
         // 3. Log command (para observabilidade)
         await logCommand(command);
 
-        // 4. Criar command com ID real (atualizar payload do command existente)
-        const commandWithRealId = {
-          ...command,
-          payload: {
-            ...command.payload,
-            workoutId: finalWorkoutId, // Usar ID real no payload
-          },
-        };
-        
-        // 5. Migrar command (versionamento)
-        const migratedCommand = migrateCommand(commandWithRealId);
+        // 4. Migrar command (versionamento)
+        // IMPORTANTE: Se workoutId for temporário, o syncManager vai enfileirar automaticamente
+        // Quando o workout for criado e tiver ID real, o syncManager vai atualizar o payload
+        // usando o workflow de dependências ou retry com atualização de ID
+        const migratedCommand = migrateCommand(command);
 
         // 6. Sync with backend usando syncManager
         try {
@@ -2778,60 +2718,68 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             // Atualizar exercício com TODOS os dados retornados pela API
             // Isso inclui: primaryMuscles, secondaryMuscles, instructions, tips, benefits,
             // commonMistakes, equipment, difficulty, scientificEvidence, alternatives, etc.
+            // IMPORTANTE: workoutId pode ser temporário ou real - buscar workout por qualquer um
+            // Quando o workout for atualizado com ID real, o exercício já estará lá
             set((state) => ({
               data: {
                 ...state.data,
                 units: state.data.units.map((unit) => ({
                   ...unit,
-                  workouts: unit.workouts.map((workout) =>
-                    workout.id === workoutId || workout.id === finalWorkoutId
-                      ? {
-                          ...workout,
-                          exercises: workout.exercises.map((exercise) =>
-                            exercise.id === command.id
-                              ? (() => {
-                                  // Função helper para parsear JSON com segurança
-                                  const safeParse = (value: any) => {
-                                    if (!value) return null;
-                                    if (Array.isArray(value)) return value;
-                                    if (typeof value === "string") {
-                                      try {
-                                        return JSON.parse(value);
-                                      } catch {
-                                        return null;
-                                      }
+                  workouts: unit.workouts.map((workout) => {
+                    // Buscar workout pelo ID original (pode ser temporário ou real)
+                    // Se o workout foi atualizado com ID real, ainda terá os exercícios criados com ID temporário
+                    const workoutMatches = workout.id === workoutId || 
+                      (workout.exercises.some(e => e.id === command.id));
+                    
+                    if (workoutMatches) {
+                      return {
+                        ...workout,
+                        exercises: workout.exercises.map((exercise) =>
+                          exercise.id === command.id
+                            ? (() => {
+                                // Função helper para parsear JSON com segurança
+                                const safeParse = (value: any) => {
+                                  if (!value) return null;
+                                  if (Array.isArray(value)) return value;
+                                  if (typeof value === "string") {
+                                    try {
+                                      return JSON.parse(value);
+                                    } catch {
+                                      return null;
                                     }
-                                    return value;
-                                  };
+                                  }
+                                  return value;
+                                };
 
-                                  // Substituir exercício temporário pelo exercício completo da API
-                                  return {
-                                    ...exerciseData,
-                                    // Garantir que arrays sejam parseados se vierem como JSON strings
-                                    primaryMuscles: safeParse(
-                                      exerciseData.primaryMuscles
-                                    ),
-                                    secondaryMuscles: safeParse(
-                                      exerciseData.secondaryMuscles
-                                    ),
-                                    equipment: safeParse(exerciseData.equipment),
-                                    instructions: safeParse(
-                                      exerciseData.instructions
-                                    ),
-                                    tips: safeParse(exerciseData.tips),
-                                    commonMistakes: safeParse(
-                                      exerciseData.commonMistakes
-                                    ),
-                                    benefits: safeParse(exerciseData.benefits),
-                                    // Garantir que alternatives seja um array
-                                    alternatives: exerciseData.alternatives || [],
-                                  };
-                                })()
-                              : exercise
-                          ),
-                        }
-                      : workout
-                  ),
+                                // Substituir exercício temporário pelo exercício completo da API
+                                return {
+                                  ...exerciseData,
+                                  // Garantir que arrays sejam parseados se vierem como JSON strings
+                                  primaryMuscles: safeParse(
+                                    exerciseData.primaryMuscles
+                                  ),
+                                  secondaryMuscles: safeParse(
+                                    exerciseData.secondaryMuscles
+                                  ),
+                                  equipment: safeParse(exerciseData.equipment),
+                                  instructions: safeParse(
+                                    exerciseData.instructions
+                                  ),
+                                  tips: safeParse(exerciseData.tips),
+                                  commonMistakes: safeParse(
+                                    exerciseData.commonMistakes
+                                  ),
+                                  benefits: safeParse(exerciseData.benefits),
+                                  // Garantir que alternatives seja um array
+                                  alternatives: exerciseData.alternatives || [],
+                                };
+                              })()
+                            : exercise
+                        ),
+                      };
+                    }
+                    return workout;
+                  }),
                 })),
               },
             }));
