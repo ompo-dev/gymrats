@@ -5,6 +5,8 @@ import { UtensilsCrossed, Droplets, Plus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
 
 interface NutritionStatusCardProps {
@@ -15,6 +17,34 @@ export function NutritionStatusCard({
   dailyNutrition,
 }: NutritionStatusCardProps) {
   const router = useRouter();
+
+  // Verificar se é premium/trial
+  const subscription = useStudent("subscription");
+  const isPremium = useMemo(() => {
+    if (!subscription) return false;
+
+    const now = new Date();
+    const isTrialActive =
+      subscription.trialEnd && new Date(subscription.trialEnd) > now;
+    const isActive = subscription.status === "active";
+    const isTrialing = subscription.status === "trialing";
+
+    return (
+      subscription.plan === "premium" &&
+      (isActive || isTrialing || isTrialActive)
+    );
+  }, [subscription]);
+
+  // Handler para navegação: se premium, abre chat; senão, redireciona para dieta
+  const handleNavigate = () => {
+    if (isPremium) {
+      // Premium: abrir chat diretamente
+      router.push("/student?tab=diet&modal=food-search");
+    } else {
+      // Não premium: redirecionar para página de dieta (comportamento original)
+      router.push("/student?tab=diet");
+    }
+  };
 
   // Se não houver dailyNutrition, mostrar empty state
   if (!dailyNutrition) {
@@ -33,13 +63,9 @@ export function NutritionStatusCard({
           <p className="text-sm text-gray-600">
             Registre suas refeições e hidratação para acompanhar seu progresso.
           </p>
-          <Button
-            onClick={() => router.push("/student?tab=diet")}
-            variant="default"
-            className="w-fit"
-          >
+          <Button onClick={handleNavigate} variant="default" className="w-fit">
             <Plus className="h-4 w-4 mr-2" />
-            Ir para Nutrição
+            {isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </motion.div>
@@ -75,13 +101,9 @@ export function NutritionStatusCard({
           <p className="text-sm text-gray-600">
             Registre suas refeições e hidratação para acompanhar seu progresso.
           </p>
-          <Button
-            onClick={() => router.push("/student?tab=diet")}
-            variant="default"
-            className="w-fit"
-          >
+          <Button onClick={handleNavigate} variant="default" className="w-fit">
             <Plus className="h-4 w-4 mr-2" />
-            Ir para Nutrição
+            {isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </motion.div>
@@ -114,12 +136,8 @@ export function NutritionStatusCard({
             </div>
           </div>
           {hasMeals && (
-            <Button
-              onClick={() => router.push("/student?tab=diet")}
-              variant="white"
-              size="sm"
-            >
-              Ver
+            <Button onClick={handleNavigate} variant="white" size="sm">
+              {isPremium ? "Chat" : "Ver"}
             </Button>
           )}
         </div>
@@ -140,27 +158,20 @@ export function NutritionStatusCard({
             </div>
           </div>
           {hasWater && (
-            <Button
-              onClick={() => router.push("/student?tab=diet")}
-              variant="white"
-              size="sm"
-            >
-              Ver
+            <Button onClick={handleNavigate} variant="white" size="sm">
+              {isPremium ? "Chat" : "Ver"}
             </Button>
           )}
         </div>
 
         {/* CTA para adicionar mais */}
-        <Button
-          onClick={() => router.push("/student?tab=diet")}
-          variant="default"
-          className="w-full"
-        >
+        <Button onClick={handleNavigate} variant="default" className="w-full">
           <Plus className="h-4 w-4 mr-2" />
-          Adicionar Refeição ou Água
+          {isPremium
+            ? "Abrir Chat IA de Nutrição"
+            : "Adicionar Refeição ou Água"}
         </Button>
       </motion.div>
     </SectionCard>
   );
 }
-
