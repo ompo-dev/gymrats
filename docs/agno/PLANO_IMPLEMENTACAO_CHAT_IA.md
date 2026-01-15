@@ -773,7 +773,7 @@ function normalizePrompt(prompt: string): string {
 
 ### 9.5 Rate Limiting
 
-- **Por usuário**: 50 requisições/dia
+- **Por usuário**: 20 requisições/dia
 - **Global**: 1000 requisições/hora
 - Implementar com Redis ou similar
 

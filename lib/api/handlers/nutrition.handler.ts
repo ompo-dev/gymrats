@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import type { z } from "zod";
 import { db } from "@/lib/db";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
@@ -21,6 +22,10 @@ import {
   validateBody,
   validateQuery,
 } from "../middleware/validation.middleware";
+import {
+  getBrazilNutritionDateKey,
+  getBrazilNutritionDayRange,
+} from "@/lib/utils/brazil-nutrition-date";
 
 /**
  * GET /api/nutrition/daily
@@ -38,21 +43,23 @@ export async function getDailyNutritionHandler(
     const studentId = auth.user.student.id;
 
     // Validar query params com Zod
-    const queryValidation = await validateQuery(
-      request,
-      dailyNutritionQuerySchema
-    );
+    const queryValidation = await validateQuery<
+      z.infer<typeof dailyNutritionQuerySchema>
+    >(request, dailyNutritionQuerySchema);
     if (!queryValidation.success) {
       return queryValidation.response;
     }
 
     const dateParam = queryValidation.data.date;
-    const date = dateParam ? new Date(dateParam) : new Date();
+    let dateKey: string;
+    try {
+      dateKey = getBrazilNutritionDateKey(dateParam);
+    } catch {
+      return badRequestResponse("Data inválida fornecida");
+    }
 
-    // Normalizar data para UTC (evitar problemas de timezone)
-    const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
-    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+    const { start: startOfDay, end: endOfDay } =
+      getBrazilNutritionDayRange(dateKey);
 
     // Buscar perfil para targets
     const profile = await db.studentProfile.findUnique({
@@ -95,7 +102,7 @@ export async function getDailyNutritionHandler(
       // Se a tabela não existir, retornar dados vazios
       if (error.code === "P2021" || error.message?.includes("does not exist")) {
         return successResponse({
-          date: date.toISOString(),
+          date: dateKey,
           meals: [],
           totalCalories: 0,
           totalProtein: 0,
@@ -115,7 +122,7 @@ export async function getDailyNutritionHandler(
     // Se não existe, retornar dados vazios
     if (!dailyNutrition) {
       return successResponse({
-        date: date.toISOString(),
+        date: dateKey,
         meals: [],
         totalCalories: 0,
         totalProtein: 0,
@@ -180,7 +187,7 @@ export async function getDailyNutritionHandler(
     }));
 
     return successResponse({
-      date: dailyNutrition.date.toISOString(),
+      date: dateKey,
       meals: formattedMeals,
       totalCalories,
       totalProtein,
@@ -215,34 +222,24 @@ export async function updateDailyNutritionHandler(
     const studentId = auth.user.student.id;
 
     // Validar body com Zod
-    const validation = await validateBody(request, updateDailyNutritionSchema);
+    const validation = await validateBody<
+      z.infer<typeof updateDailyNutritionSchema>
+    >(request, updateDailyNutritionSchema);
     if (!validation.success) {
       return validation.response;
     }
 
     const { date, meals, waterIntake } = validation.data;
 
-    // Normalizar data para UTC (evitar problemas de timezone)
-    // Aceita tanto YYYY-MM-DD quanto ISO string
-    let dateStr: string;
-    if (date) {
-      if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        // Já está no formato YYYY-MM-DD
-        dateStr = date;
-      } else {
-        // É ISO string ou outro formato, converter
-        const nutritionDate = new Date(date);
-        if (isNaN(nutritionDate.getTime())) {
-          return badRequestResponse("Data inválida fornecida");
-        }
-        dateStr = nutritionDate.toISOString().split("T")[0];
-      }
-    } else {
-      dateStr = new Date().toISOString().split("T")[0];
+    let dateKey: string;
+    try {
+      dateKey = getBrazilNutritionDateKey(date);
+    } catch {
+      return badRequestResponse("Data inválida fornecida");
     }
 
-    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+    const { start: startOfDay, end: endOfDay } =
+      getBrazilNutritionDayRange(dateKey);
 
     try {
       // Buscar ou criar daily nutrition
@@ -355,7 +352,7 @@ export async function updateDailyNutritionHandler(
 
       return successResponse({
         dailyNutritionId: dailyNutrition.id,
-        date: dailyNutrition.date.toISOString(),
+        date: dateKey,
       });
     } catch (error: any) {
       // Se a tabela não existir, retornar erro informativo
@@ -399,10 +396,9 @@ export async function searchFoodsHandler(
 ): Promise<NextResponse> {
   try {
     // Validar query params com Zod
-    const queryValidation = await validateQuery(
-      request,
-      searchFoodsQuerySchema
-    );
+    const queryValidation = await validateQuery<
+      z.infer<typeof searchFoodsQuerySchema>
+    >(request, searchFoodsQuerySchema);
     if (!queryValidation.success) {
       return queryValidation.response;
     }

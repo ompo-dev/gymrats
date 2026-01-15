@@ -16,6 +16,7 @@ import { useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import type { FoodItem } from "@/lib/types";
 import type { DailyNutrition } from "@/lib/types/student-unified";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 export function useNutritionHandlers() {
   // Usar hook unificado com seletor direto do Zustand para garantir reatividade
@@ -25,7 +26,7 @@ export function useNutritionHandlers() {
   // Fallback para dados iniciais se store ainda não carregou
   // Usar useMemo para garantir que o objeto seja recriado quando storeNutrition mudar
   const dailyNutrition = useMemo(() => storeNutrition || {
-    date: new Date().toISOString().split("T")[0],
+    date: getBrazilNutritionDateKey(),
     meals: [],
     totalCalories: 0,
     totalProtein: 0,

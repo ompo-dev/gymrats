@@ -46,6 +46,7 @@ import {
 } from "@/lib/offline/command-pattern";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 // ============================================
 // INTERFACE DO STORE
@@ -589,20 +590,14 @@ async function loadSectionsIncremental(
 
       const nutritionResponseData = nutritionResponse.data;
 
-      // Normalizar data para formato YYYY-MM-DD
+      // Normalizar data para dateKey Brasil (reset às 03:00 BRT)
       let normalizedDate: string;
-      if (nutritionResponseData.date) {
-        if (
-          typeof nutritionResponseData.date === "string" &&
-          /^\d{4}-\d{2}-\d{2}$/.test(nutritionResponseData.date)
-        ) {
-          normalizedDate = nutritionResponseData.date;
-        } else {
-          const dateObj = new Date(nutritionResponseData.date);
-          normalizedDate = dateObj.toISOString().split("T")[0];
-        }
-      } else {
-        normalizedDate = new Date().toISOString().split("T")[0];
+      try {
+        normalizedDate = getBrazilNutritionDateKey(
+          nutritionResponseData.date
+        );
+      } catch {
+        normalizedDate = getBrazilNutritionDateKey();
       }
 
       // Remover duplicatas antes de salvar
@@ -1567,22 +1562,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         // Sync with backend usando syncManager
         try {
           // Formatar dados para API (formato esperado: { date, meals?, waterIntake })
-          // Normalizar data para formato YYYY-MM-DD (string) ou ISO string
+          // Normalizar data para dateKey Brasil (reset às 03:00 BRT)
           let normalizedDate: string;
-          if (updatedNutrition.date) {
-            // Se já é uma string YYYY-MM-DD, usar direto
-            if (
-              typeof updatedNutrition.date === "string" &&
-              /^\d{4}-\d{2}-\d{2}$/.test(updatedNutrition.date)
-            ) {
-              normalizedDate = updatedNutrition.date;
-            } else {
-              // Se é ISO string ou Date, converter para YYYY-MM-DD
-              const dateObj = new Date(updatedNutrition.date);
-              normalizedDate = dateObj.toISOString().split("T")[0];
-            }
-          } else {
-            normalizedDate = new Date().toISOString().split("T")[0];
+          try {
+            normalizedDate = getBrazilNutritionDateKey(updatedNutrition.date);
+          } catch {
+            normalizedDate = getBrazilNutritionDateKey();
           }
 
           // Determinar o que foi atualizado
