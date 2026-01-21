@@ -13,7 +13,6 @@ export const runtime = 'nodejs'; // Garantir runtime Node.js para operações as
 import { requireStudent } from '@/lib/api/middleware/auth.middleware';
 import { db } from '@/lib/db';
 import { successResponse, badRequestResponse, internalErrorResponse } from '@/lib/api/utils/response.utils';
-import { parseWorkoutResponse } from '@/lib/ai/parsers/workout-parser';
 import { exerciseDatabase } from '@/lib/educational-data';
 import type { ExerciseInfo } from '@/lib/types';
 import {
@@ -92,12 +91,13 @@ export async function POST(request: NextRequest) {
     switch (parsedPlan.action) {
       case "create_workouts": {
         // Criar workouts e exercícios em batch
-        for (const workoutPlan of parsedPlan.workouts) {
+        for (let i = 0; i < parsedPlan.workouts.length; i++) {
+          const workoutPlan = parsedPlan.workouts[i];
           try {
             // Buscar último order
-            const lastOrder = unit.workouts.length > 0 
-              ? Math.max(...unit.workouts.map((w: any) => w.order || 0)) + 1
-              : 0;
+            const lastOrder = unit.workouts.length > 0
+              ? Math.max(...unit.workouts.map((w: any) => w.order || 0)) + i + 1
+              : i; // manter exatamente a ordem recebida
 
             // Criar workout
             const workout = await db.workout.create({
@@ -578,42 +578,27 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
     // Helper para inferir grupo muscular
     const inferMuscleGroup = (name: string): string[] => {
       const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      
-      if (normalized.includes("peito") || normalized.includes("supino") || normalized.includes("crucifixo")) {
-        return ["peito"];
-      }
-      if (normalized.includes("costas") || normalized.includes("remada") || normalized.includes("puxada") || normalized.includes("barra fixa")) {
-        return ["costas"];
-      }
-      if (normalized.includes("pernas") || normalized.includes("perna") || normalized.includes("agachamento") || normalized.includes("leg press") || normalized.includes("extensora") || normalized.includes("flexora") || normalized.includes("afundo")) {
-        return ["pernas"];
-      }
-      if (normalized.includes("quadriceps") || normalized.includes("quadríceps")) {
-        return ["pernas"];
-      }
-      if (normalized.includes("posterior") || normalized.includes("stiff") || normalized.includes("gluteo") || normalized.includes("glúteo")) {
-        return ["pernas", "gluteos"];
-      }
-      if (normalized.includes("ombros") || normalized.includes("desenvolvimento") || normalized.includes("elevacao") || normalized.includes("elevação") || normalized.includes("lateral") || normalized.includes("frontal")) {
-        return ["ombros"];
-      }
-      if (normalized.includes("triceps") || normalized.includes("tríceps") || normalized.includes("pulley") || normalized.includes("testa") || normalized.includes("frances") || normalized.includes("francês")) {
-        return ["bracos"];
-      }
-      if (normalized.includes("biceps") || normalized.includes("bíceps") || normalized.includes("rosca")) {
-        return ["bracos"];
-      }
-      if (normalized.includes("abdominal") || normalized.includes("abdomen") || normalized.includes("core") || normalized.includes("prancha")) {
-        return ["core"];
-      }
-      if (normalized.includes("antebraco") || normalized.includes("antebraço") || normalized.includes("punho") || normalized.includes("pulso") || normalized.includes("extensao de punho") || normalized.includes("extensão de punho") || normalized.includes("rosca de punho")) {
-        return ["antebraco"];
-      }
-      if (normalized.includes("panturrilha") || normalized.includes("gastrocnemio") || normalized.includes("gemio")) {
-        return ["panturrilha"];
-      }
-      if (normalized.includes("trapezio") || normalized.includes("trapézio") || normalized.includes("encolhimento")) {
-        return ["trapezio"];
+
+      const rules: Array<{ muscles: string[]; keywords: string[] }> = [
+        { muscles: ["peito"], keywords: ["peito", "supino", "crucifixo"] },
+        { muscles: ["costas"], keywords: ["costas", "remada", "puxada", "barra fixa"] },
+        {
+          muscles: ["pernas"],
+          keywords: ["pernas", "perna", "agachamento", "leg press", "extensora", "flexora", "afundo", "quadriceps", "quadríceps"],
+        },
+        { muscles: ["pernas", "gluteos"], keywords: ["posterior", "stiff", "gluteo", "glúteo"] },
+        { muscles: ["ombros"], keywords: ["ombros", "desenvolvimento", "elevacao", "elevação", "lateral", "frontal"] },
+        { muscles: ["bracos"], keywords: ["triceps", "tríceps", "pulley", "testa", "frances", "francês", "biceps", "bíceps", "rosca"] },
+        { muscles: ["core"], keywords: ["abdominal", "abdomen", "core", "prancha"] },
+        { muscles: ["antebraco"], keywords: ["antebraco", "antebraço", "punho", "pulso", "extensao de punho", "extensão de punho", "rosca de punho"] },
+        { muscles: ["panturrilha"], keywords: ["panturrilha", "gastrocnemio", "gemio"] },
+        { muscles: ["trapezio"], keywords: ["trapezio", "trapézio", "encolhimento"] },
+      ];
+
+      for (const rule of rules) {
+        if (rule.keywords.some((kw) => normalized.includes(kw))) {
+          return rule.muscles;
+        }
       }
       return ["full-body"];
     };
@@ -621,33 +606,48 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
     // Helper para inferir equipamento
     const inferEquipment = (name: string): string[] => {
       const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      
-      if (normalized.includes("maquina") || normalized.includes("máquina") || normalized.includes("cadeira") || normalized.includes("extensora") || normalized.includes("flexora") || normalized.includes("leg press")) {
-        return ["Máquina"];
+
+      const rules: Array<{ equipment: string[]; keywords: string[] }> = [
+        {
+          equipment: ["Máquina"],
+          keywords: ["maquina", "máquina", "cadeira", "extensora", "flexora", "leg press"],
+        },
+        {
+          equipment: ["Barra", "Anilhas"],
+          keywords: ["barra", "supino", "agachamento", "terra"],
+        },
+        {
+          equipment: ["Halteres"],
+          keywords: ["halter", "elevacao", "elevação", "rosca"],
+        },
+        {
+          equipment: ["Cabo", "Polia"],
+          keywords: ["cabo", "pulley", "polia"],
+        },
+        {
+          equipment: ["Barras Paralelas"],
+          keywords: ["paralelas", "barra fixa"],
+        },
+        {
+          equipment: ["Barra", "Halteres"],
+          keywords: ["punho", "pulso", "antebraco", "antebraço"],
+        },
+      ];
+
+      for (const rule of rules) {
+        if (rule.keywords.some((kw) => normalized.includes(kw))) {
+          return rule.equipment;
+        }
       }
-      if (normalized.includes("barra") || normalized.includes("supino") || normalized.includes("agachamento") || normalized.includes("terra")) {
-        return ["Barra", "Anilhas"];
-      }
-      if (normalized.includes("halter") || normalized.includes("elevacao") || normalized.includes("elevação") || normalized.includes("rosca")) {
-        return ["Halteres"];
-      }
-      if (normalized.includes("cabo") || normalized.includes("pulley") || normalized.includes("polia")) {
-        return ["Cabo", "Polia"];
-      }
-      if (normalized.includes("paralelas") || normalized.includes("barra fixa")) {
-        return ["Barras Paralelas"];
-      }
-      if (normalized.includes("punho") || normalized.includes("pulso") || normalized.includes("antebraco") || normalized.includes("antebraço")) {
-        return ["Barra", "Halteres"];
-      }
+
       return [];
     };
 
     exerciseInfo = {
       id: generatedId,
       name: exerciseName,
-      primaryMuscles: inferMuscleGroup(exerciseName),
-      secondaryMuscles: [],
+      primaryMuscles: inferMuscleGroup(exerciseName) as any, // cast para tipos aceitos
+      secondaryMuscles: [] as any[],
       difficulty: "intermediario",
       equipment: inferEquipment(exerciseName),
       instructions: [
@@ -670,9 +670,9 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
         "Aumento de força",
         "Melhora de condicionamento",
       ],
-      scientificEvidence: null,
+      scientificEvidence: undefined,
     };
   }
 
-  return exerciseInfo;
+  return exerciseInfo as ExerciseInfo;
 }
