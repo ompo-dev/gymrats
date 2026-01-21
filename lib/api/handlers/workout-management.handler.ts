@@ -17,6 +17,7 @@ import {
   updateWorkoutExerciseSchema,
 } from "../schemas/workouts.schemas";
 import { exerciseDatabase } from "@/lib/educational-data";
+import type { ExerciseInfo } from "@/lib/types";
 import {
   generateAlternatives,
   calculateSets,
@@ -397,9 +398,9 @@ export async function createExerciseHandler(
       );
     }
 
-    // Validar que educationalId foi fornecido
-    if (!exerciseData.educationalId) {
-      return badRequestResponse("ID educacional do exercício é obrigatório");
+    // Validar que name foi fornecido
+    if (!exerciseData.name) {
+      return badRequestResponse("Nome do exercício é obrigatório");
     }
 
     // Buscar perfil do aluno para calcular sets/reps/rest baseado nas preferências
@@ -412,40 +413,164 @@ export async function createExerciseHandler(
       return badRequestResponse("Perfil do aluno não encontrado");
     }
 
-    // Buscar exercício no database educacional (OBRIGATÓRIO)
-    // Tentar buscar por ID exato primeiro
-    let exerciseInfo = exerciseDatabase.find(
-      (ex) => ex.id === exerciseData.educationalId
-    );
-
-    // Se não encontrou por ID exato, tentar buscar por nome (case-insensitive)
-    if (!exerciseInfo) {
-      const searchName = exerciseData.name || exerciseData.educationalId;
+    // Buscar exercício no database educacional
+    // Tentar buscar por ID primeiro (se fornecido e não null)
+    let exerciseInfo: ExerciseInfo | null = null;
+    
+    if (exerciseData.educationalId && exerciseData.educationalId !== null) {
       exerciseInfo = exerciseDatabase.find(
-        (ex) =>
-          ex.name.toLowerCase() === searchName.toLowerCase() ||
-          ex.id.toLowerCase() === exerciseData.educationalId.toLowerCase()
+        (ex) => ex.id === exerciseData.educationalId
       );
     }
 
+    // Se não encontrou por ID, tentar buscar por nome (case-insensitive e removendo acentos)
     if (!exerciseInfo) {
-      console.error("[createExerciseHandler] Exercício não encontrado:", {
-        educationalId: exerciseData.educationalId,
-        name: exerciseData.name,
-        availableIds: exerciseDatabase.slice(0, 5).map((ex) => ex.id), // Log primeiros 5 IDs para debug
+      const searchName = exerciseData.name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+      
+      exerciseInfo = exerciseDatabase.find((ex) => {
+        const exName = ex.name
+          .toLowerCase()
+          .trim()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+        
+        // Busca exata ou por similaridade (contém o nome ou é contido pelo nome)
+        return exName === searchName || 
+               exName.includes(searchName) || 
+               searchName.includes(exName);
       });
-      return badRequestResponse(
-        `Exercício não encontrado no database educacional: ${
-          exerciseData.educationalId
-        }. Nome buscado: ${exerciseData.name || "não fornecido"}`
-      );
     }
 
-    console.log("[createExerciseHandler] Exercício encontrado:", {
-      id: exerciseInfo.id,
-      name: exerciseInfo.name,
-      educationalIdBuscado: exerciseData.educationalId,
-    });
+    // Se ainda não encontrou, criar um novo exercício virtual usando os dados fornecidos
+    // Isso permite adicionar exercícios que não estão no database educacional
+    if (!exerciseInfo) {
+      console.log("[createExerciseHandler] Exercício não encontrado no database, criando virtual:", {
+        name: exerciseData.name,
+        educationalId: exerciseData.educationalId,
+      });
+
+      // Gerar ID baseado no nome (slug) se não fornecido
+      const generatedId = exerciseData.educationalId || 
+        exerciseData.name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
+      // Helper para normalizar arrays (aceita string JSON ou array)
+      const normalizeArray = (value: string | string[] | undefined): string[] => {
+        if (!value) return [];
+        if (Array.isArray(value)) return value;
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      };
+
+      // Helper para inferir grupo muscular baseado no nome
+      const inferMuscleGroup = (name: string): string[] => {
+        const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        // Mapear nomes comuns para grupos musculares
+        if (normalized.includes("peito") || normalized.includes("supino") || normalized.includes("crucifixo")) {
+          return ["peito"];
+        }
+        if (normalized.includes("costas") || normalized.includes("remada") || normalized.includes("puxada") || normalized.includes("barra fixa")) {
+          return ["costas"];
+        }
+        if (normalized.includes("pernas") || normalized.includes("perna") || normalized.includes("agachamento") || normalized.includes("leg press") || normalized.includes("extensora") || normalized.includes("flexora") || normalized.includes("afundo")) {
+          return ["pernas"];
+        }
+        if (normalized.includes("quadriceps") || normalized.includes("quadríceps")) {
+          return ["pernas"];
+        }
+        if (normalized.includes("posterior") || normalized.includes("stiff") || normalized.includes("gluteo") || normalized.includes("glúteo")) {
+          return ["pernas", "gluteos"];
+        }
+        if (normalized.includes("ombros") || normalized.includes("desenvolvimento") || normalized.includes("elevacao") || normalized.includes("elevação") || normalized.includes("lateral") || normalized.includes("frontal")) {
+          return ["ombros"];
+        }
+        if (normalized.includes("triceps") || normalized.includes("tríceps") || normalized.includes("pulley") || normalized.includes("testa") || normalized.includes("frances") || normalized.includes("francês")) {
+          return ["bracos"];
+        }
+        if (normalized.includes("biceps") || normalized.includes("bíceps") || normalized.includes("rosca")) {
+          return ["bracos"];
+        }
+        if (normalized.includes("abdominal") || normalized.includes("abdomen") || normalized.includes("core") || normalized.includes("prancha")) {
+          return ["core"];
+        }
+        return ["full-body"];
+      };
+
+      // Helper para inferir equipamento baseado no nome
+      const inferEquipment = (name: string): string[] => {
+        const normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        if (normalized.includes("maquina") || normalized.includes("máquina") || normalized.includes("cadeira") || normalized.includes("extensora") || normalized.includes("flexora") || normalized.includes("leg press")) {
+          return ["Máquina"];
+        }
+        if (normalized.includes("barra") || normalized.includes("supino") || normalized.includes("agachamento") || normalized.includes("terra")) {
+          return ["Barra", "Anilhas"];
+        }
+        if (normalized.includes("halter") || normalized.includes("elevacao") || normalized.includes("elevação") || normalized.includes("rosca")) {
+          return ["Halteres"];
+        }
+        if (normalized.includes("cabo") || normalized.includes("pulley") || normalized.includes("polia")) {
+          return ["Cabo", "Polia"];
+        }
+        if (normalized.includes("paralelas") || normalized.includes("barra fixa")) {
+          return ["Barras Paralelas"];
+        }
+        return [];
+      };
+
+      // Normalizar arrays (se vierem vazios, usar inferência)
+      const primaryMuscles = normalizeArray(exerciseData.primaryMuscles);
+      const secondaryMuscles = normalizeArray(exerciseData.secondaryMuscles);
+      const equipment = normalizeArray(exerciseData.equipment);
+
+      // Criar exercício virtual com dados fornecidos ou inferidos
+      exerciseInfo = {
+        id: generatedId,
+        name: exerciseData.name,
+        primaryMuscles: primaryMuscles.length > 0 ? primaryMuscles : inferMuscleGroup(exerciseData.name),
+        secondaryMuscles: secondaryMuscles.length > 0 ? secondaryMuscles : [],
+        difficulty: exerciseData.difficulty || "intermediario",
+        equipment: equipment.length > 0 ? equipment : inferEquipment(exerciseData.name),
+        // Se não vierem instruções, criar básicas baseadas no nome
+        instructions: normalizeArray(exerciseData.instructions).length > 0 
+          ? normalizeArray(exerciseData.instructions)
+          : [`Execute ${exerciseData.name} com forma correta`, "Mantenha o movimento controlado", "Use peso adequado"],
+        tips: normalizeArray(exerciseData.tips).length > 0 
+          ? normalizeArray(exerciseData.tips)
+          : ["Mantenha a forma correta", "Controle o movimento", "Use amplitude completa"],
+        commonMistakes: normalizeArray(exerciseData.commonMistakes).length > 0 
+          ? normalizeArray(exerciseData.commonMistakes)
+          : ["Não usar amplitude completa", "Peso excessivo", "Forma incorreta"],
+        benefits: normalizeArray(exerciseData.benefits).length > 0 
+          ? normalizeArray(exerciseData.benefits)
+          : ["Desenvolvimento muscular", "Aumento de força", "Melhora de condicionamento"],
+        scientificEvidence: exerciseData.scientificEvidence || null,
+      };
+
+      console.log("[createExerciseHandler] Exercício virtual criado:", {
+        id: exerciseInfo.id,
+        name: exerciseInfo.name,
+      });
+    } else {
+      console.log("[createExerciseHandler] Exercício encontrado no database:", {
+        id: exerciseInfo.id,
+        name: exerciseInfo.name,
+      });
+    }
+
 
     // Calcular sets, reps e rest baseado nas preferências do aluno (igual ao generate)
     const profile: any = {
@@ -481,41 +606,54 @@ export async function createExerciseHandler(
         ? exerciseData.rest
         : calculateRest(profile.restTime, profile.preferredRepRange);
 
-    // Popular dados educacionais (igual ao generate)
+    // Helper para normalizar arrays (aceita string JSON, array ou já está normalizado)
+    const normalizeArray = (value: string | string[] | undefined | null): string[] => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+
+    // Popular dados educacionais (sempre usar dados do exerciseInfo encontrado/criado)
+    // Se o cliente enviou dados, eles foram usados na criação do exerciseInfo
+    // Se não, usamos dados do database educacional
     const educationalExerciseData = {
       name: exerciseData.name || exerciseInfo.name, // Usar nome fornecido ou do database
       sets: calculatedSets,
       reps: calculatedReps,
       rest: calculatedRest,
-      primaryMuscles: exerciseInfo.primaryMuscles
+      // SEMPRE usar dados do exerciseInfo (seja do database ou criado com dados do cliente)
+      primaryMuscles: exerciseInfo.primaryMuscles && exerciseInfo.primaryMuscles.length > 0
         ? JSON.stringify(exerciseInfo.primaryMuscles)
         : null,
-      secondaryMuscles: exerciseInfo.secondaryMuscles
+      secondaryMuscles: exerciseInfo.secondaryMuscles && exerciseInfo.secondaryMuscles.length > 0
         ? JSON.stringify(exerciseInfo.secondaryMuscles)
         : null,
       difficulty: exerciseInfo.difficulty || null,
-      equipment:
-        exerciseInfo.equipment && exerciseInfo.equipment.length > 0
-          ? JSON.stringify(exerciseInfo.equipment)
-          : null,
-      instructions:
-        exerciseInfo.instructions && exerciseInfo.instructions.length > 0
-          ? JSON.stringify(exerciseInfo.instructions)
-          : null,
-      tips:
-        exerciseInfo.tips && exerciseInfo.tips.length > 0
-          ? JSON.stringify(exerciseInfo.tips)
-          : null,
-      commonMistakes:
-        exerciseInfo.commonMistakes && exerciseInfo.commonMistakes.length > 0
-          ? JSON.stringify(exerciseInfo.commonMistakes)
-          : null,
-      benefits:
-        exerciseInfo.benefits && exerciseInfo.benefits.length > 0
-          ? JSON.stringify(exerciseInfo.benefits)
-          : null,
+      equipment: exerciseInfo.equipment && exerciseInfo.equipment.length > 0
+        ? JSON.stringify(exerciseInfo.equipment)
+        : null,
+      instructions: exerciseInfo.instructions && exerciseInfo.instructions.length > 0
+        ? JSON.stringify(exerciseInfo.instructions)
+        : null,
+      tips: exerciseInfo.tips && exerciseInfo.tips.length > 0
+        ? JSON.stringify(exerciseInfo.tips)
+        : null,
+      commonMistakes: exerciseInfo.commonMistakes && exerciseInfo.commonMistakes.length > 0
+        ? JSON.stringify(exerciseInfo.commonMistakes)
+        : null,
+      benefits: exerciseInfo.benefits && exerciseInfo.benefits.length > 0
+        ? JSON.stringify(exerciseInfo.benefits)
+        : null,
       scientificEvidence: exerciseInfo.scientificEvidence || null,
-      educationalId: exerciseData.educationalId || exerciseInfo.id,
+      educationalId: exerciseInfo.id, // Sempre usar o ID do exercício encontrado ou criado
     };
 
     // Get max order in workout

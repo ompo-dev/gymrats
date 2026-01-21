@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "motion/react";
-import { BookOpen } from "lucide-react";
+import { BookOpen, CheckCircle2 } from "lucide-react";
 import type { WorkoutExercise } from "@/lib/types";
 
 interface ExerciseCardViewProps {
@@ -12,6 +12,8 @@ interface ExerciseCardViewProps {
   elapsedTime: number;
   xpPerExercise: number;
   onViewEducation?: (educationalId: string) => void;
+  isCompleted?: boolean; // Se o exercício já foi completado
+  completedSetsCount?: number; // Número de séries completadas
 }
 
 export function ExerciseCardView({
@@ -22,6 +24,8 @@ export function ExerciseCardView({
   elapsedTime,
   xpPerExercise,
   onViewEducation,
+  isCompleted = false,
+  completedSetsCount = 0,
 }: ExerciseCardViewProps) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -40,10 +44,23 @@ export function ExerciseCardView({
       className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
     >
       <div className="mb-4 sm:mb-6">
-        <h1 className="text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
-          {exerciseName}
-        </h1>
-        {hasAlternative && (
+        <div className="flex items-center justify-center gap-2">
+          <h1 className="text-center text-xl sm:text-2xl lg:text-3xl font-black text-duo-text wrap-break-words">
+            {exerciseName}
+          </h1>
+          {isCompleted && (
+            <CheckCircle2 className="h-6 w-6 sm:h-8 sm:w-8 text-duo-green shrink-0" />
+          )}
+        </div>
+        {isCompleted && (
+          <div className="mt-2 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-duo-green/10 px-2.5 py-1 text-xs font-bold text-duo-green">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              {completedSetsCount} {completedSetsCount === 1 ? "série" : "séries"}
+            </span>
+          </div>
+        )}
+        {hasAlternative && !isCompleted && (
           <p className="mt-2 text-center text-sm text-duo-blue font-bold">
             ✓ Alternativa selecionada
           </p>

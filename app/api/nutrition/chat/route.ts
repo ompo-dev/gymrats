@@ -6,6 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
+// Configurar timeout aumentado para operações de IA (podem demorar mais)
+export const maxDuration = 60; // 60 segundos (máximo para Vercel Pro)
+export const runtime = 'nodejs'; // Garantir runtime Node.js para operações assíncronas
 import { requireStudent } from '@/lib/api/middleware/auth.middleware';
 import { db } from '@/lib/db';
 import { chatCompletion } from '@/lib/ai/client';

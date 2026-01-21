@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { TrendingUp, Check, Plus, X } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -12,6 +12,9 @@ interface WeightTrackerProps {
   defaultSets: number;
   defaultReps: string;
   onComplete: (log: ExerciseLog) => void;
+  onSaveProgress?: (log: ExerciseLog) => void; // Callback opcional para salvar progresso sem fechar modal
+  existingLog?: ExerciseLog | null; // Log existente do exercício (se já foi completado)
+  isUnilateral?: boolean; // Se o exercício é unilateral (faz cada lado separadamente)
 }
 
 export function WeightTracker({
@@ -20,17 +23,89 @@ export function WeightTracker({
   defaultSets,
   defaultReps,
   onComplete,
+  onSaveProgress,
+  existingLog,
+  isUnilateral = false,
 }: WeightTrackerProps) {
-  // Começar com apenas 1 série
-  const [sets, setSets] = useState<SetLog[]>([
-    {
-      setNumber: 1,
-      weight: 0,
-      reps: 0,
-      completed: false,
-    },
-  ]);
-  const [notes, setNotes] = useState("");
+  // Carregar dados existentes se houver, senão começar com 1 série vazia
+  const [sets, setSets] = useState<SetLog[]>(() => {
+    if (existingLog && existingLog.sets && existingLog.sets.length > 0) {
+      // Carregar séries existentes
+      return existingLog.sets.map((set) => ({
+        setNumber: set.setNumber,
+        weight: set.weight || 0,
+        reps: set.reps || 0,
+        completed: set.completed || false,
+        notes: set.notes,
+        rpe: set.rpe,
+      }));
+    }
+    // Começar com apenas 1 série
+    return [
+      {
+        setNumber: 1,
+        weight: 0,
+        reps: 0,
+        completed: false,
+      },
+    ];
+  });
+  const [notes, setNotes] = useState(existingLog?.notes || "");
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Atualizar dados quando existingLog mudar (ex: quando voltar para um exercício)
+  useEffect(() => {
+    // Se há log existente com séries, carregar
+    if (existingLog && existingLog.sets && existingLog.sets.length > 0) {
+      // Carregar séries existentes - garantir que todas as séries sejam carregadas
+      const loadedSets = existingLog.sets.map((set) => ({
+        setNumber: set.setNumber,
+        weight: set.weight || 0,
+        reps: set.reps || 0,
+        completed: set.completed || false,
+        notes: set.notes,
+        rpe: set.rpe,
+      }));
+      
+      console.log("🔄 WeightTracker carregando dados existentes:", {
+        exerciseId,
+        exerciseName,
+        existingLogId: existingLog.id,
+        setsCount: loadedSets.length,
+        sets: loadedSets.map((s) => ({
+          setNumber: s.setNumber,
+          weight: s.weight,
+          reps: s.reps,
+          completed: s.completed,
+        })),
+      });
+      
+      setSets(loadedSets);
+      setNotes(existingLog.notes || "");
+    } else if (existingLog === null || existingLog === undefined) {
+      // Resetar para estado inicial se não houver log
+      console.log("🔄 WeightTracker resetando - sem log existente");
+      setSets([
+        {
+          setNumber: 1,
+          weight: 0,
+          reps: 0,
+          completed: false,
+        },
+      ]);
+      setNotes("");
+    }
+    // Dependências: existingLog e suas propriedades principais
+  }, [existingLog?.id, existingLog?.sets?.length, exerciseId]);
+
+  // Cleanup do timeout ao desmontar
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Adicionar nova série
   const handleAddSet = () => {
@@ -63,15 +138,81 @@ export function WeightTracker({
     value: number
   ) => {
     const newSets = [...sets];
+    const oldSet = newSets[index];
     newSets[index] = { ...newSets[index], [field]: value };
     setSets(newSets);
+    
+    // Se a série estava completa e agora tem valores válidos, salvar progresso
+    // Isso permite atualizar séries já completadas
+    if (oldSet.completed && value > 0) {
+      // Limpar timeout anterior se existir
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // Debounce para não salvar a cada digitação (500ms)
+      saveTimeoutRef.current = setTimeout(() => {
+        saveProgress();
+      }, 500);
+    }
   };
 
-  // Marcar série como completa
+  // Salvar progresso automaticamente (chamado quando completa série ou atualiza dados)
+  // Esta função salva sem fechar o modal
+  const saveProgress = () => {
+    // Filtrar apenas séries válidas (com peso E reps preenchidos)
+    const validSets = sets.filter((set) => set.weight > 0 && set.reps > 0);
+    
+    // Se não houver nenhuma série válida, não salvar
+    if (validSets.length === 0) {
+      return;
+    }
+
+    // Renumerar as séries válidas
+    const finalSets = validSets.map((set, index) => ({
+      ...set,
+      setNumber: index + 1,
+    }));
+
+    // Criar ou atualizar log
+    const log: ExerciseLog = {
+      id: existingLog?.id || Date.now().toString(),
+      exerciseId,
+      exerciseName,
+      workoutId: existingLog?.workoutId || "current",
+      date: existingLog?.date || new Date(),
+      sets: finalSets,
+      notes,
+      difficulty: existingLog?.difficulty || "ideal",
+      formCheckScore: existingLog?.formCheckScore,
+    };
+
+    console.log("💾 WeightTracker salvando progresso automático:", {
+      exerciseName: log.exerciseName,
+      logId: log.id,
+      sets: log.sets.length,
+      completedSets: log.sets.filter((s) => s.completed).length,
+    });
+
+    // Usar onSaveProgress se disponível (salva sem fechar modal), senão usar onComplete
+    if (onSaveProgress) {
+      onSaveProgress(log);
+    } else {
+      // Fallback para onComplete se onSaveProgress não estiver disponível
+      onComplete(log);
+    }
+  };
+
+  // Marcar série como completa e salvar progresso automaticamente
   const handleSetComplete = (index: number) => {
     const newSets = [...sets];
     newSets[index] = { ...newSets[index], completed: true };
     setSets(newSets);
+    
+    // Salvar progresso automaticamente quando completa uma série
+    // Usar setTimeout para garantir que o estado foi atualizado
+    setTimeout(() => {
+      saveProgress();
+    }, 0);
   };
 
   // Finalizar exercício - filtrar séries vazias
@@ -80,6 +221,8 @@ export function WeightTracker({
       exerciseName,
       totalSets: sets.length,
       validSets: sets.filter((set) => set.weight > 0 && set.reps > 0).length,
+      hasExistingLog: !!existingLog,
+      existingLogId: existingLog?.id,
     });
 
     // Filtrar apenas séries válidas (com peso E reps preenchidos)
@@ -97,19 +240,22 @@ export function WeightTracker({
       setNumber: index + 1,
     }));
 
+    // Se já existe um log, manter o mesmo ID para atualizar ao invés de criar novo
     const log: ExerciseLog = {
-      id: Date.now().toString(),
+      id: existingLog?.id || Date.now().toString(),
       exerciseId,
       exerciseName,
-      workoutId: "current",
-      date: new Date(),
+      workoutId: existingLog?.workoutId || "current",
+      date: existingLog?.date || new Date(),
       sets: finalSets,
       notes,
-      difficulty: "ideal",
+      difficulty: existingLog?.difficulty || "ideal",
+      formCheckScore: existingLog?.formCheckScore,
     };
     console.log("🏋️ WeightTracker chamando onComplete:", {
       exerciseName: log.exerciseName,
       logId: log.id,
+      isUpdate: !!existingLog,
       sets: log.sets.length,
       setsDetails: log.sets.map((s) => ({
         setNumber: s.setNumber,
@@ -128,12 +274,27 @@ export function WeightTracker({
     .filter((set) => set.weight > 0 && set.reps > 0)
     .reduce((acc, set) => acc + set.weight * set.reps, 0);
 
+  const isCompleted = existingLog && existingLog.sets && existingLog.sets.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="text-center">
         <h2 className="mb-2 text-2xl font-bold text-duo-text">
           {exerciseName}
         </h2>
+        {isUnilateral && (
+          <div className="mb-2 text-xs font-bold text-duo-blue uppercase tracking-wide">
+            Exercício Unilateral
+          </div>
+        )}
+        {isCompleted && (
+          <div className="mb-2 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-duo-green/10 px-2.5 py-1 text-xs font-bold text-duo-green">
+              <Check className="h-3.5 w-3.5" />
+              Completado
+            </span>
+          </div>
+        )}
         <div className="text-sm text-duo-gray-dark">
           Sugestão: {defaultSets} séries x {defaultReps} reps
         </div>

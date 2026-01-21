@@ -115,12 +115,27 @@ export const useWorkoutStore = create<WorkoutState>()(
       updateExerciseLog: (exerciseId, updates) =>
         set((state) => {
           if (!state.activeWorkout) return state;
+          
+          // Atualizar o log específico
+          const updatedLogs = state.activeWorkout.exerciseLogs.map((log) =>
+            log.exerciseId === exerciseId ? { ...log, ...updates } : log
+          );
+
+          // Recalcular volume total apenas das séries válidas (peso > 0 e reps > 0)
+          const totalVolume = updatedLogs.reduce(
+            (acc, log) =>
+              acc +
+              (log.sets || [])
+                .filter((set) => set.weight > 0 && set.reps > 0)
+                .reduce((setAcc, set) => setAcc + set.weight * set.reps, 0),
+            0
+          );
+
           return {
             activeWorkout: {
               ...state.activeWorkout,
-              exerciseLogs: state.activeWorkout.exerciseLogs.map((log) =>
-                log.exerciseId === exerciseId ? { ...log, ...updates } : log
-              ),
+              exerciseLogs: updatedLogs,
+              totalVolume,
               lastUpdated: new Date(),
             },
           };
@@ -208,12 +223,33 @@ export const useWorkoutStore = create<WorkoutState>()(
             selectedCardioType: progressToSave.selectedCardioType,
           });
         } catch (error: any) {
+          const status = error?.response?.status;
+          const code = error?.response?.data?.code;
+          
           // Se a migration não foi aplicada, apenas logar e continuar
-          if (error.response?.data?.code === "MIGRATION_REQUIRED") {
+          if (code === "MIGRATION_REQUIRED") {
             console.log(
               "⚠️ Tabela workout_progress não existe. Execute: node scripts/migration/apply-workout-progress-migration.js"
             );
+          } else if (status === 500) {
+            // Erro 500 - logar como warning, não como error (pode ser temporário)
+            console.warn(
+              "⚠️ Erro 500 ao salvar progresso do workout. Dados salvos localmente.",
+              error?.response?.data?.error || error.message
+            );
+          } else if (status === 404) {
+            // Rota não encontrada - pode ser que ainda não esteja implementada
+            console.warn(
+              "⚠️ Rota de progresso não encontrada (404). Dados salvos localmente."
+            );
+          } else if (status && status >= 400) {
+            // Outros erros HTTP - logar como warning
+            console.warn(
+              `⚠️ Erro HTTP ${status} ao salvar progresso. Dados salvos localmente.`,
+              error?.response?.data?.error || error.message
+            );
           } else {
+            // Erros de rede ou outros - logar como error
             console.error("Erro ao sincronizar progresso com backend:", error);
           }
           // Não reverter mudanças locais - manter otimistic update

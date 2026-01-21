@@ -24,15 +24,6 @@ export function LessonHeader({ progress, lives, onExit }: LessonHeaderProps) {
             />
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {Array.from({ length: lives }).map((_, i) => (
-            <Heart key={i} className="h-6 w-6 fill-destructive text-destructive" />
-          ))}
-          {Array.from({ length: 3 - lives }).map((_, i) => (
-            <Heart key={`empty-${i}`} className="h-6 w-6 text-muted" />
-          ))}
-        </div>
       </div>
     </header>
   )

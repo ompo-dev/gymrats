@@ -19,11 +19,13 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { ExerciseSearch } from "./exercise-search";
+import { WorkoutChat } from "./workout-chat";
 import { ModalContainer } from "./modal-container";
 import { ModalHeader } from "./modal-header";
 import { ModalContent } from "./modal-content";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 
 const muscleCategories = [
   { value: "", label: "Nenhum", icon: "⚪" },
@@ -52,6 +54,7 @@ export function EditUnitModal() {
 
   // View state
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
+  const [showWorkoutChat, setShowWorkoutChat] = useState(false);
 
   // Form states (Unit) - apenas para inputs controlados
   const [title, setTitle] = useState("");
@@ -539,22 +542,40 @@ export function EditUnitModal() {
                   <h3 className="text-lg font-bold text-gray-900">
                     Dias de Treino
                   </h3>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCreateWorkout}
-                    className="border-2 font-bold hover:bg-gray-50 flex items-center gap-2 z-10 relative"
-                    style={{
-                      opacity: 1,
-                      visibility: "visible",
-                      display: "flex",
-                      pointerEvents: "auto",
-                      zIndex: 10,
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Adicionar Dia
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowWorkoutChat(true)}
+                      className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
+                      style={{
+                        opacity: 1,
+                        visibility: "visible",
+                        display: "flex",
+                        pointerEvents: "auto",
+                        zIndex: 10,
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Chat IA
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCreateWorkout}
+                      className="border-2 font-bold hover:bg-gray-50 flex items-center gap-2 z-10 relative"
+                      style={{
+                        opacity: 1,
+                        visibility: "visible",
+                        display: "flex",
+                        pointerEvents: "auto",
+                        zIndex: 10,
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Dia
+                    </Button>
+                  </div>
                 </div>
 
                 {workoutItems.length > 0 ? (
@@ -907,6 +928,14 @@ export function EditUnitModal() {
         <ExerciseSearch
           workoutId={editingWorkoutId}
           onClose={() => setShowExerciseSearch(false)}
+        />
+      )}
+
+      {showWorkoutChat && isOpen && unitId && (
+        <WorkoutChat
+          unitId={unitId}
+          workouts={sortedWorkouts}
+          onClose={() => setShowWorkoutChat(false)}
         />
       )}
 

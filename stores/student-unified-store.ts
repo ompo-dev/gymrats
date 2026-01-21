@@ -233,31 +233,70 @@ async function loadSection(
 
   // Marcar como carregando e criar promise
   loadingSections.add(section);
+  
   const loadPromise = (async () => {
+    const route = SECTION_ROUTES[section]; // Declarar route dentro da função assíncrona para estar disponível no catch
+    
+    // Wrapper para capturar erros silenciosamente antes que sejam logados pelo navegador
     try {
-      const route = SECTION_ROUTES[section];
-
       if (!route) {
         console.warn(`⚠️ Seção ${section} não tem rota específica mapeada`);
         return {};
       }
 
       // Usar rota específica (mais rápida e eficiente)
+      // Capturar erro diretamente na Promise com .catch() para evitar "unhandled promise rejection"
+      // Isso previne que o erro apareça no console antes de ser tratado
       const response = await apiClient.get<any>(route, {
         timeout: 30000, // 30 segundos para rotas específicas
+      }).catch((error: any) => {
+        // Tratar erro imediatamente aqui para evitar log no console
+        const status = error?.response?.status;
+        const errorMessage = error?.response?.data?.error || error?.message || "Erro desconhecido";
+        const errorCode = error?.response?.data?.code;
+        
+        // Se o erro já foi marcado como tratado no interceptor, retornar vazio silenciosamente
+        if (error._isHandled || error._isSilent) {
+          return null; // Retornar null para indicar que houve erro mas foi tratado
+        }
+        
+        // Tratamento específico para timeout
+        if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+          if (process.env.NODE_ENV === "development") {
+            console.debug(`⏱️ Timeout ao carregar ${section} (rota: ${route})`);
+          }
+          return null;
+        }
+        
+        // Tratamento para erros HTTP (500, 404, etc)
+        if (status === 500 || status === 404) {
+          // Erros esperados - não logar, apenas retornar null
+          return null;
+        }
+        
+        // Para outros erros HTTP, também retornar null silenciosamente
+        if (status && status >= 400) {
+          return null;
+        }
+        
+        // Para erros não-HTTP (rede, etc), re-lançar para ser logado
+        throw error;
       });
+
+      // Se response é null, significa que houve erro mas foi tratado silenciosamente
+      if (!response) {
+        return {};
+      }
 
       // Transformar resposta da rota específica para formato do store
       return transformSectionResponse(section, response.data);
     } catch (error: any) {
-      // Tratamento específico para timeout
-      if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
-        console.warn(
-          `⏱️ Timeout ao carregar ${section}. Continuando com dados existentes.`
-        );
-        return {};
-      }
-      console.error(`❌ Erro ao carregar ${section}:`, error);
+      // Este catch só captura erros não-HTTP (erros de rede, etc)
+      // Erros HTTP já foram tratados no .catch() acima
+      console.error(
+        `❌ Erro não-HTTP ao carregar ${section}${route ? ` (rota: ${route})` : ""}:`,
+        error
+      );
       return {};
     } finally {
       // Remover do tracking quando terminar (sucesso ou erro)

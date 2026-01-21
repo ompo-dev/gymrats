@@ -50,24 +50,26 @@ export const updateWorkoutSchema = createWorkoutSchema
 
 export const createWorkoutExerciseSchema = z.object({
   workoutId: z.string().min(1, "O ID do treino é obrigatório"),
-  educationalId: z.string().min(1, "O ID educacional do exercício é obrigatório"),
-  // Campos opcionais para sobrescrever (caso necessário)
-  name: z.string().optional(),
+  // educationalId agora é opcional e nullable - se não fornecido ou null, será gerado ou usado nome como ID
+  educationalId: z.string().optional().nullable(),
+  // name é obrigatório se educationalId não for fornecido
+  name: z.string().min(1, "O nome do exercício é obrigatório"),
   sets: z.number().int().positive().optional(),
   reps: z.string().optional(),
   rest: z.number().int().nonnegative().optional(),
   notes: z.string().optional(),
   videoUrl: z.string().optional(),
+  order: z.number().int().nonnegative().optional(),
   // Dados do educational database (aceita string JSON ou array)
-  primaryMuscles: z.union([z.string(), z.array(z.string())]).optional(),
-  secondaryMuscles: z.union([z.string(), z.array(z.string())]).optional(),
-  difficulty: z.enum(["iniciante", "intermediario", "avancado"]).optional(),
-  equipment: z.union([z.string(), z.array(z.string())]).optional(),
-  instructions: z.union([z.string(), z.array(z.string())]).optional(),
-  tips: z.union([z.string(), z.array(z.string())]).optional(),
-  commonMistakes: z.union([z.string(), z.array(z.string())]).optional(),
-  benefits: z.union([z.string(), z.array(z.string())]).optional(),
-  scientificEvidence: z.string().optional(),
+  primaryMuscles: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  secondaryMuscles: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  difficulty: z.enum(["iniciante", "intermediario", "avancado"]).optional().nullable(),
+  equipment: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  instructions: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  tips: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  commonMistakes: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  benefits: z.union([z.string(), z.array(z.string())]).optional().nullable(),
+  scientificEvidence: z.string().optional().nullable(),
 });
 
 export const updateWorkoutExerciseSchema = createWorkoutExerciseSchema

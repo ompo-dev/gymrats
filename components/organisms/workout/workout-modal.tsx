@@ -15,7 +15,6 @@ import {
   Play,
   Pause,
 } from "lucide-react";
-import { Progress } from "@/components/atoms/progress/progress";
 import { Button } from "@/components/atoms/buttons/button";
 import { WeightTracker } from "../trackers/weight-tracker";
 import { ExerciseAlternativeSelector } from "../modals/exercise-alternative-selector";
@@ -734,6 +733,28 @@ export function WorkoutModal() {
     );
   };
 
+  // Verificar se o exercício atual é unilateral (baseado no nome)
+  const isCurrentExerciseUnilateral = () => {
+    if (!currentExercise) return false;
+    const nameLower = currentExercise.name.toLowerCase();
+    return (
+      nameLower.includes("unilateral") ||
+      nameLower.includes("pistol") ||
+      nameLower.includes("single-leg") ||
+      nameLower.includes("single-arm")
+    );
+  };
+
+  // Buscar log existente do exercício atual
+  const getCurrentExerciseLog = (): ExerciseLog | null => {
+    if (!activeWorkout || !currentExercise) return null;
+    return (
+      activeWorkout.exerciseLogs.find(
+        (log) => log.exerciseId === currentExercise.id
+      ) || null
+    );
+  };
+
   // Formatar tempo para MM:SS
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -768,6 +789,38 @@ export function WorkoutModal() {
       : 0;
   const hearts = 5;
 
+  // Salvar progresso sem fechar modal (chamado quando completa série)
+  const handleSaveProgress = async (log: ExerciseLog) => {
+    console.log("💾 handleSaveProgress CHAMADO (salvar sem fechar):", {
+      exerciseName: log.exerciseName,
+      logId: log.id,
+      sets: log.sets.length,
+      completedSets: log.sets.filter((s) => s.completed).length,
+    });
+
+    // Verificar se já existe um log para este exercício
+    const existingLogIndex = activeWorkout?.exerciseLogs.findIndex(
+      (l) => l.exerciseId === log.exerciseId
+    );
+
+    if (existingLogIndex !== undefined && existingLogIndex >= 0) {
+      // Atualizar log existente
+      const { updateExerciseLog } = useWorkoutStore.getState();
+      updateExerciseLog(log.exerciseId, log);
+      calculateWorkoutStats();
+    } else {
+      // Adicionar novo log do exercício
+      addExerciseLog(log);
+    }
+
+    // Salvar progresso em background (não bloquear UI)
+    if (workout) {
+      saveWorkoutProgress(workout.id).catch((error) => {
+        console.error("Erro ao salvar progresso em background:", error);
+      });
+    }
+  };
+
   const handleExerciseComplete = async (log: ExerciseLog) => {
     console.log("🚀 handleExerciseComplete CHAMADO:", {
       exerciseName: log.exerciseName,
@@ -776,8 +829,28 @@ export function WorkoutModal() {
       totalExercises: workout?.exercises.length,
     });
 
-    // Adicionar log do exercício
-    addExerciseLog(log);
+    // Verificar se já existe um log para este exercício
+    const existingLogIndex = activeWorkout?.exerciseLogs.findIndex(
+      (l) => l.exerciseId === log.exerciseId
+    );
+
+    if (existingLogIndex !== undefined && existingLogIndex >= 0) {
+      // Atualizar log existente ao invés de adicionar novo
+      console.log("🔄 Atualizando log existente:", {
+        exerciseId: log.exerciseId,
+        existingLogIndex,
+        oldSets: activeWorkout?.exerciseLogs[existingLogIndex]?.sets.length,
+        newSets: log.sets.length,
+      });
+      const { updateExerciseLog } = useWorkoutStore.getState();
+      updateExerciseLog(log.exerciseId, log);
+      
+      // Recalcular estatísticas após atualizar
+      calculateWorkoutStats();
+    } else {
+      // Adicionar novo log do exercício
+      addExerciseLog(log);
+    }
     console.log(
       "✅ Exercício completado:",
       log.exerciseName,
@@ -1553,10 +1626,11 @@ export function WorkoutModal() {
       skippedExercises: updatedWorkout.skippedExercises,
     });
 
-    // Salvar progresso em background (não bloquear UI)
-    saveWorkoutProgress(workout.id).catch((error) => {
-      console.error("Erro ao salvar progresso em background:", error);
-    });
+    // NÃO salvar progresso aqui - pular é apenas navegação
+    // O progresso será salvo apenas quando:
+    // - Completar um exercício (adicionar séries/cargas)
+    // - Fechar o modal
+    // - Finalizar o treino
 
     // Verificar se chegou no último exercício
     const isLastExercise =
@@ -1747,16 +1821,13 @@ export function WorkoutModal() {
       // Se chegou no último mas ainda não completou todos, mostrar conclusão mesmo assim
       setShowCompletion(true);
     } else {
-      // Avançar para próximo exercício
+      // Avançar para próximo exercício (apenas navegação)
       const newIndex = updatedWorkout.currentExerciseIndex + 1;
       // OTIMISTIC UPDATE: Atualizar Zustand e URL primeiro (instantâneo)
       setCurrentExerciseIndex(newIndex);
       setExerciseIndexParam(newIndex);
-
-      // Salvar progresso em background (não bloquear UI)
-      saveWorkoutProgress(workout.id).catch((error) => {
-        console.error("Erro ao salvar progresso em background:", error);
-      });
+      // NÃO salvar progresso aqui - já foi salvo acima quando pulou o exercício
+      // O avanço é apenas navegação, não há mudança de estado adicional
     }
   };
 
@@ -1852,7 +1923,16 @@ export function WorkoutModal() {
                   : 0
               }
               totalExercises={workout.exercises.length}
+              exerciseIds={workout.exercises.map((ex) => ex.id)}
+              completedExerciseIds={
+                activeWorkout?.exerciseLogs?.map((log) => log.exerciseId) || []
+              }
+              skippedExerciseIds={activeWorkout?.skippedExercises || []}
+              currentExerciseId={currentExercise?.id}
               onComplete={handleExerciseComplete}
+              onSaveProgress={handleSaveProgress}
+              existingLog={getCurrentExerciseLog()}
+              isUnilateral={isCurrentExerciseUnilateral()}
             />
           )}
 
@@ -1874,6 +1954,11 @@ export function WorkoutModal() {
             }
             totalExercises={workout.exercises.length}
             progress={workoutProgress}
+            exerciseIds={workout.exercises.map((ex) => ex.id)}
+            completedExerciseIds={
+              activeWorkout?.exerciseLogs?.map((log) => log.exerciseId) || []
+            }
+            skippedExerciseIds={activeWorkout?.skippedExercises || []}
           />
 
           {/* Exercise Content */}
@@ -1898,6 +1983,10 @@ export function WorkoutModal() {
                         workout.xpReward / workout.exercises.length
                       )}
                       onViewEducation={handleViewEducation}
+                      isCompleted={!!getCurrentExerciseLog()}
+                      completedSetsCount={
+                        getCurrentExerciseLog()?.sets?.length || 0
+                      }
                     />
                   </AnimatePresence>
                 </div>
@@ -1929,14 +2018,10 @@ export function WorkoutModal() {
                 onGoBack={() => {
                   if (activeWorkout) {
                     const newIndex = activeWorkout.currentExerciseIndex - 1;
+                    // Apenas navegação - não salvar progresso (não há mudança de estado)
                     setCurrentExerciseIndex(newIndex);
                     setExerciseIndexParam(newIndex);
-                    saveWorkoutProgress(workout.id).catch((error) => {
-                      console.error(
-                        "Erro ao salvar progresso em background:",
-                        error
-                      );
-                    });
+                    // NÃO salvar progresso aqui - é apenas navegação
                   }
                 }}
                 onFinish={handleFinish}

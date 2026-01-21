@@ -506,6 +506,35 @@ export async function saveWorkoutProgressHandler(
     return successResponse({ message: "Progresso salvo com sucesso" });
   } catch (error: any) {
     console.error("[saveWorkoutProgressHandler] Erro:", error);
+    
+    // Verificar se a tabela não existe
+    if (
+      error.message?.includes("does not exist") ||
+      error.message?.includes("Unknown table") ||
+      error.code === "P2021"
+    ) {
+      return NextResponse.json(
+        {
+          error: "Tabela workout_progress não existe",
+          code: "MIGRATION_REQUIRED",
+          message:
+            "Execute a migration: node scripts/migration/apply-workout-progress-migration.js",
+        },
+        { status: 503 } // Service Unavailable
+      );
+    }
+    
+    // Verificar se é erro de Prisma (tabela não encontrada)
+    if (error.code === "P2021" || error.code === "P1001") {
+      return NextResponse.json(
+        {
+          error: "Erro de conexão com banco de dados",
+          code: "DATABASE_ERROR",
+        },
+        { status: 503 }
+      );
+    }
+    
     return internalErrorResponse("Erro ao salvar progresso", error);
   }
 }

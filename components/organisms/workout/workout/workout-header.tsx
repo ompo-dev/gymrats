@@ -1,7 +1,7 @@
 "use client";
 
-import { X, Heart } from "lucide-react";
-import { Progress } from "@/components/atoms/progress/progress";
+import { X } from "lucide-react";
+import { ExerciseSteppers } from "@/components/atoms/progress/exercise-steppers";
 
 interface WorkoutHeaderProps {
   onClose: () => void;
@@ -9,6 +9,9 @@ interface WorkoutHeaderProps {
   currentExercise: number;
   totalExercises: number;
   progress: number;
+  exerciseIds: string[];
+  completedExerciseIds: string[];
+  skippedExerciseIds?: string[];
 }
 
 export function WorkoutHeader({
@@ -17,6 +20,9 @@ export function WorkoutHeader({
   currentExercise,
   totalExercises,
   progress,
+  exerciseIds,
+  completedExerciseIds,
+  skippedExerciseIds = [],
 }: WorkoutHeaderProps) {
   return (
     <div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
@@ -24,17 +30,10 @@ export function WorkoutHeader({
         <button
           onClick={onClose}
           className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+          aria-label="Fechar workout"
         >
           <X className="h-5 w-5 sm:h-6 sm:w-6 text-duo-gray-dark" />
         </button>
-        <div className="flex items-center gap-1 sm:gap-2">
-          {Array.from({ length: hearts }).map((_, i) => (
-            <Heart
-              key={i}
-              className="h-5 w-5 sm:h-6 sm:w-6 fill-duo-red text-duo-red"
-            />
-          ))}
-        </div>
       </div>
       <div className="mb-2 flex items-center justify-between text-xs font-bold text-duo-gray-dark">
         <div className="flex items-center gap-2">
@@ -42,9 +41,16 @@ export function WorkoutHeader({
             Exercício {currentExercise} de {totalExercises}
           </span>
         </div>
-        <span>{Math.round(progress)}%</span>
       </div>
-      <Progress value={progress} className="h-2 sm:h-3" />
+      <ExerciseSteppers
+        exerciseIds={exerciseIds}
+        completedExerciseIds={completedExerciseIds}
+        skippedExerciseIds={skippedExerciseIds}
+        currentExerciseId={
+          exerciseIds[currentExercise - 1] || undefined
+        }
+        className="justify-center"
+      />
     </div>
   );
 }

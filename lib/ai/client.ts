@@ -32,25 +32,40 @@ export async function chatCompletion({
     return cached;
   }
 
-  // Chamar DeepSeek API
-  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat', // Modelo padrão do DeepSeek
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
-      temperature,
-      ...(responseFormat === 'json_object' && {
-        response_format: { type: 'json_object' },
+  // Chamar DeepSeek API com timeout aumentado (IA pode demorar)
+  // Usar AbortController para timeout personalizado
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000); // 50s timeout (menor que maxDuration da rota)
+
+  let response: Response;
+  try {
+    response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat', // Modelo padrão do DeepSeek
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+        temperature,
+        ...(responseFormat === 'json_object' && {
+          response_format: { type: 'json_object' },
+        }),
       }),
-    }),
-  });
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Timeout ao chamar API DeepSeek. Tente novamente.');
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));

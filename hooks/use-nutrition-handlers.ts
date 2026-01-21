@@ -1,6 +1,6 @@
 /**
  * Hook para Gerenciar Nutrição Diária
- * 
+ *
  * Arquitetura Offline-First:
  * - Usa dados do store unificado (Zustand + IndexedDB)
  * - Optimistic updates automáticos (UI instantânea)
@@ -14,31 +14,34 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useUIStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
-import type { FoodItem } from "@/lib/types";
-import type { DailyNutrition } from "@/lib/types/student-unified";
+import type { FoodItem, DailyNutrition, Meal, MealFoodItem } from "@/lib/types";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 export function useNutritionHandlers() {
   // Usar hook unificado com seletor direto do Zustand para garantir reatividade
-  const storeNutrition = useStudent("dailyNutrition");
+  const storeNutrition = useStudent("dailyNutrition") as DailyNutrition | null;
   const { updateNutrition } = useStudent("actions");
-  
+
   // Fallback para dados iniciais se store ainda não carregou
   // Usar useMemo para garantir que o objeto seja recriado quando storeNutrition mudar
-  const dailyNutrition = useMemo(() => storeNutrition || {
-    date: getBrazilNutritionDateKey(),
-    meals: [],
-    totalCalories: 0,
-    totalProtein: 0,
-    totalCarbs: 0,
-    totalFats: 0,
-    waterIntake: 0,
-    targetCalories: 2000,
-    targetProtein: 150,
-    targetCarbs: 250,
-    targetFats: 65,
-    targetWater: 2000,
-  }, [storeNutrition]);
+  const dailyNutrition = useMemo<DailyNutrition>(
+    () =>
+      storeNutrition || {
+        date: getBrazilNutritionDateKey(),
+        meals: [],
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFats: 0,
+        waterIntake: 0,
+        targetCalories: 2000,
+        targetProtein: 150,
+        targetCarbs: 250,
+        targetFats: 65,
+        targetWater: 2000,
+      },
+    [storeNutrition]
+  );
   const { setShowFoodSearch } = useUIStore();
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMealModal, setShowAddMealModal] = useState(false);
@@ -46,13 +49,25 @@ export function useNutritionHandlers() {
   const [hasLoadedNutrition, setHasLoadedNutrition] = useState(false); // Flag para evitar loop infinito
 
   // Helper para calcular totais apenas de refeições completadas
-  const calculateTotalsFromCompletedMeals = (meals: any[]) => {
-    const completedMeals = meals.filter((m) => m.completed === true);
+  const calculateTotalsFromCompletedMeals = (meals: Meal[]) => {
+    const completedMeals = meals.filter((meal) => meal.completed === true);
     return {
-      totalCalories: completedMeals.reduce((sum, m) => sum + (m.calories || 0), 0),
-      totalProtein: completedMeals.reduce((sum, m) => sum + (m.protein || 0), 0),
-      totalCarbs: completedMeals.reduce((sum, m) => sum + (m.carbs || 0), 0),
-      totalFats: completedMeals.reduce((sum, m) => sum + (m.fats || 0), 0),
+      totalCalories: completedMeals.reduce(
+        (sum, meal) => sum + (meal.calories || 0),
+        0
+      ),
+      totalProtein: completedMeals.reduce(
+        (sum, meal) => sum + (meal.protein || 0),
+        0
+      ),
+      totalCarbs: completedMeals.reduce(
+        (sum, meal) => sum + (meal.carbs || 0),
+        0
+      ),
+      totalFats: completedMeals.reduce(
+        (sum, meal) => sum + (meal.fats || 0),
+        0
+      ),
     };
   };
 
@@ -65,14 +80,10 @@ export function useNutritionHandlers() {
     updateNutrition({ meals: updatedMeals, ...totals });
   };
 
-  const addFoodToMeal = (
-    mealId: string,
-    food: FoodItem,
-    servings: number
-  ) => {
+  const addFoodToMeal = (mealId: string, food: FoodItem, servings: number) => {
     const updatedMeals = dailyNutrition.meals.map((meal) => {
       if (meal.id === mealId) {
-        const newFood = {
+        const newFood: MealFoodItem = {
           id: `food-${Date.now()}`,
           foodId: food.id,
           foodName: food.name,
@@ -105,10 +116,10 @@ export function useNutritionHandlers() {
 
   const addMeal = (mealData: {
     name: string;
-    type: string;
+    type: Meal["type"];
     time?: string;
   }) => {
-    const newMeal = {
+    const newMeal: Meal = {
       id: `meal-${Date.now()}`,
       name: mealData.name,
       type: mealData.type,
@@ -126,7 +137,9 @@ export function useNutritionHandlers() {
   };
 
   const removeMeal = (mealId: string) => {
-    const updatedMeals = dailyNutrition.meals.filter((m) => m.id !== mealId);
+    const updatedMeals = dailyNutrition.meals.filter(
+      (meal) => meal.id !== mealId
+    );
     const totals = calculateTotalsFromCompletedMeals(updatedMeals);
     updateNutrition({
       meals: updatedMeals,
@@ -137,9 +150,10 @@ export function useNutritionHandlers() {
   const removeFoodFromMeal = (mealId: string, foodId: string) => {
     const updatedMeals = dailyNutrition.meals.map((meal) => {
       if (meal.id === mealId) {
-        const foodToRemove = meal.foods?.find((f) => f.id === foodId);
+        const foodToRemove = meal.foods?.find((food) => food.id === foodId);
         if (foodToRemove) {
-          const updatedFoods = meal.foods?.filter((f) => f.id !== foodId) || [];
+          const updatedFoods =
+            meal.foods?.filter((food) => food.id !== foodId) || [];
           return {
             ...meal,
             foods: updatedFoods,
@@ -191,15 +205,15 @@ export function useNutritionHandlers() {
     if (mealIds.length > 0 && foods.length > 0) {
       // IMPORTANTE: Adicionar TODOS os alimentos de uma vez antes de sincronizar
       // Isso evita múltiplas requisições que criam refeições duplicadas
-      const updatedMeals = [...dailyNutrition.meals];
-      
+      const updatedMeals: Meal[] = [...dailyNutrition.meals];
+
       mealIds.forEach((mealId) => {
-        const mealIndex = updatedMeals.findIndex((m) => m.id === mealId);
+        const mealIndex = updatedMeals.findIndex((meal) => meal.id === mealId);
         if (mealIndex !== -1) {
           const meal = updatedMeals[mealIndex];
-          
+
           // Adicionar todos os alimentos de uma vez
-          const newFoods = foods.map(({ food, servings }) => ({
+          const newFoods: MealFoodItem[] = foods.map(({ food, servings }) => ({
             id: `food-${Date.now()}-${Math.random()}`,
             foodId: food.id,
             foodName: food.name,
@@ -210,13 +224,25 @@ export function useNutritionHandlers() {
             fats: food.fats * servings,
             servingSize: food.servingSize,
           }));
-          
+
           const updatedFoods = [...(meal.foods || []), ...newFoods];
-          const totalNewCalories = newFoods.reduce((sum, f) => sum + f.calories, 0);
-          const totalNewProtein = newFoods.reduce((sum, f) => sum + f.protein, 0);
-          const totalNewCarbs = newFoods.reduce((sum, f) => sum + f.carbs, 0);
-          const totalNewFats = newFoods.reduce((sum, f) => sum + f.fats, 0);
-          
+          const totalNewCalories = newFoods.reduce(
+            (sum, foodItem) => sum + foodItem.calories,
+            0
+          );
+          const totalNewProtein = newFoods.reduce(
+            (sum, foodItem) => sum + foodItem.protein,
+            0
+          );
+          const totalNewCarbs = newFoods.reduce(
+            (sum, foodItem) => sum + foodItem.carbs,
+            0
+          );
+          const totalNewFats = newFoods.reduce(
+            (sum, foodItem) => sum + foodItem.fats,
+            0
+          );
+
           updatedMeals[mealIndex] = {
             ...meal,
             foods: updatedFoods,
@@ -227,22 +253,22 @@ export function useNutritionHandlers() {
           };
         }
       });
-      
+
       // Calcular totais apenas de refeições completadas
       const totals = calculateTotalsFromCompletedMeals(updatedMeals);
-      
+
       // Atualizar store UMA ÚNICA VEZ com todos os alimentos
       updateNutrition({
         meals: updatedMeals,
         ...totals,
       });
-      
+
       // Fechar modal e limpar seleções DEPOIS do update otimista
       setTimeout(() => {
         setSelectedMealId(null);
         setShowFoodSearch(false);
       }, 0);
-      
+
       // updateNutrition já sincroniza automaticamente com backend
     }
   };
@@ -268,15 +294,16 @@ export function useNutritionHandlers() {
     [dailyNutrition.waterIntake, dailyNutrition.targetWater, updateWaterIntake]
   );
 
-
   const handleCloseFoodSearch = () => {
     setShowFoodSearch(false);
     setSelectedMealId(null);
   };
 
-  const handleAddMealSubmit = async (mealsData: Parameters<typeof addMeal>[0][]) => {
+  const handleAddMealSubmit = async (
+    mealsData: Parameters<typeof addMeal>[0][]
+  ) => {
     // IMPORTANTE: Criar todas as refeições de uma vez para evitar múltiplas chamadas de API
-    const newMeals = mealsData.map((mealData) => ({
+    const newMeals: Meal[] = mealsData.map((mealData) => ({
       id: `meal-${Date.now()}-${Math.random()}`,
       name: mealData.name,
       type: mealData.type,
@@ -288,7 +315,7 @@ export function useNutritionHandlers() {
       time: mealData.time,
       foods: [],
     }));
-    
+
     // Atualizar store UMA ÚNICA VEZ com todas as refeições
     // IMPORTANTE: Aguardar updateNutrition completar para garantir que o store foi atualizado
     await updateNutrition({
