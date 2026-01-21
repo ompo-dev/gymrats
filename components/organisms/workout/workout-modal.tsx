@@ -229,6 +229,7 @@ export function WorkoutModal() {
   const weightTrackerModal = useSubModalState("weight-tracker");
   const alternativeSelectorModal = useSubModalState("alternative-selector");
   const cardioConfigModal = useSubModalState("cardio-config");
+  const cardioConfigInitialized = useRef(false); // evita reabrir modal ao navegar entre exercícios
   const [showCompletion, setShowCompletion] = useState(false);
 
   // Manter compatibilidade com UIStore temporariamente
@@ -485,16 +486,20 @@ export function WorkoutModal() {
         });
         // Se tem progresso salvo mas não tem preferência de cardio configurada E é treino de força
         // Mostrar config de cardio (apenas se estiver no primeiro exercício e não estiver completo)
-        if (
+        const shouldOpenCardio =
+          !cardioConfigInitialized.current &&
           workout.type === "strength" &&
           !savedProgress.cardioPreference &&
           initialExerciseIndex === 0 &&
-          !isCompleted
-        ) {
+          !isCompleted;
+
+        if (shouldOpenCardio) {
           cardioConfigModal.open();
         } else {
           cardioConfigModal.close();
         }
+
+        cardioConfigInitialized.current = true;
       } else {
         // Inicializar workout novo com o índice da URL se disponível
         setActiveWorkout(workout);
@@ -502,11 +507,14 @@ export function WorkoutModal() {
           setCurrentExerciseIndex(initialExerciseIndex);
         }
         // Mostrar tela de configuração de cardio apenas para treinos de força
-        if (workout.type === "strength") {
+        const shouldOpenCardio =
+          !cardioConfigInitialized.current && workout.type === "strength";
+        if (shouldOpenCardio) {
           cardioConfigModal.open();
         } else {
           cardioConfigModal.close();
         }
+        cardioConfigInitialized.current = true;
       }
     };
 
