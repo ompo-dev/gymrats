@@ -12,6 +12,9 @@ export function usePWAUpdate() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
       return;
     }
+    if (process.env.NODE_ENV === "development") {
+      return;
+    }
 
     let registration: ServiceWorkerRegistration | null = null;
     let updateInterval: NodeJS.Timeout | null = null;

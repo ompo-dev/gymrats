@@ -117,3 +117,5 @@ export const updateExerciseLogSchema = z.object({
     .optional()
     .nullable(),
 });
+
+export const updateWorkoutProgressExerciseSchema = updateExerciseLogSchema;

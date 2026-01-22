@@ -16,3 +16,5 @@ export const createGymSubscriptionSchema = z.object({
   }),
 });
 
+export const startTrialSchema = z.any();
+

@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { RefreshCw, X } from "lucide-react";
@@ -11,6 +9,17 @@ import { cn } from "@/lib/utils";
 export function PWAUpdateBanner() {
   const { updateAvailable, isUpdating, applyUpdate } = usePWAUpdate();
   const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    // Verifica se foi dispensado recentemente (última hora)
+    const dismissedTime = localStorage.getItem("pwa-update-dismissed");
+    if (dismissedTime) {
+      const hourAgo = Date.now() - 60 * 60 * 1000;
+      if (parseInt(dismissedTime) > hourAgo) {
+        setDismissed(true);
+      }
+    }
+  }, []);
 
   if (!updateAvailable || dismissed || isUpdating) return null;
 
@@ -26,17 +35,6 @@ export function PWAUpdateBanner() {
       Date.now().toString()
     );
   };
-
-  useEffect(() => {
-    // Verifica se foi dispensado recentemente (última hora)
-    const dismissedTime = localStorage.getItem("pwa-update-dismissed");
-    if (dismissedTime) {
-      const hourAgo = Date.now() - 60 * 60 * 1000;
-      if (parseInt(dismissedTime) > hourAgo) {
-        setDismissed(true);
-      }
-    }
-  }, []);
 
   return (
     <AnimatePresence>

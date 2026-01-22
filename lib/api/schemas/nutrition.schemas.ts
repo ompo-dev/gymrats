@@ -57,6 +57,8 @@ export const updateDailyNutritionSchema = z.object({
   waterIntake: z.number().int().nonnegative().optional(),
 });
 
+export const dailyNutritionUpdateSchema = updateDailyNutritionSchema;
+
 export const dailyNutritionQuerySchema = z.object({
   date: z
     .string()
@@ -81,3 +83,5 @@ export const searchFoodsQuerySchema = z.object({
     .optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
+
+export const foodSearchQuerySchema = searchFoodsQuerySchema;

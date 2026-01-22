@@ -138,12 +138,12 @@ REGRAS DE GERAÇÃO DE EXERCÍCIOS:
   - C: Pernas Quadríceps (Agachamento, Leg Press, Extensora, Afundo)
   - D: Ombros + Trapézio (Desenvolvimento, Elevação Lateral, Remada Alta)
 - SEMPRE incluir exercícios compostos PRIMEIRO, depois isolamento
-- SEMPRE gerar ALTERNATIVAS para cada exercício:
-  - Campo \`alternatives\` obrigatório em cada exercício
-  - Mínimo 2 e máximo 3 alternativas
+- SEMPRE gerar ALTERNATIVAS E NOTAS para cada exercício:
+  - Campo \`alternatives\` OBRIGATÓRIO em cada exercício, com **mínimo 2 e máximo 3** alternativas
   - Varie equipamento/pegada/implemento (barra, halter, polia, máquina, pegada supinada/pronada/neutra)
-  - Inclua alternativas para antebraço, trapézio, etc. mesmo que não tenham sido citadas
-  - Se faltar equipamento mencionado pelo usuário, sugira equivalente com peso livre ou peso corporal
+  - Inclua alternativas para grupos menores (antebraço, trapézio etc.) mesmo que não citados
+  - Se faltar equipamento mencionado, sugira equivalente com peso livre ou peso corporal
+  - Campo \`notes\` OBRIGATÓRIO: texto curto e específico (técnica, controle, amplitude, respiração, estabilidade)
 - Considerar equipamentos disponíveis (se mencionado "não tenho X", evitar exercícios que requerem X)
 - Considerar limitações físicas (se mencionado problema no joelho, evitar agachamentos profundos)
 
