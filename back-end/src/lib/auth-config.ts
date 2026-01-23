@@ -29,6 +29,12 @@ const isProd = process.env.NODE_ENV === "production";
 const cookieSameSite = isProd ? "none" : "lax";
 
 export const auth = betterAuth({
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: cookieSameSite,
+      secure: isProd,
+    },
+  },
   database: prismaAdapter(db, {
     provider: "postgresql",
   }),
