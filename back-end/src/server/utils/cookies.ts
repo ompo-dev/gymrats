@@ -23,9 +23,18 @@ function serializeCookie(name: string, value: string, options: CookieOptions = {
   if (options.sameSite) {
     parts.push(`SameSite=${options.sameSite}`);
   } else {
-    parts.push(
-      process.env.NODE_ENV === "production" ? "SameSite=None" : "SameSite=Lax"
-    );
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const apiUrl =
+      process.env.BETTER_AUTH_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:3001";
+    let isCrossSite = false;
+    try {
+      isCrossSite = new URL(appUrl).origin !== new URL(apiUrl).origin;
+    } catch {
+      isCrossSite = false;
+    }
+    parts.push(isCrossSite ? "SameSite=None" : "SameSite=Lax");
   }
   parts.push(`Path=${options.path || "/"}`);
 

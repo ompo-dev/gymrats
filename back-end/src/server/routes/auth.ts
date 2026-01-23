@@ -21,7 +21,17 @@ import { setCookieHeader, deleteCookieHeader } from "../utils/cookies";
 import { getCookieValue } from "../utils/request";
 
 const isProd = process.env.NODE_ENV === "production";
-const cookieSameSite = isProd ? "none" : "lax";
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const authUrl = process.env.BETTER_AUTH_URL || "http://localhost:3001";
+const isCrossSite = (() => {
+  try {
+    return new URL(appUrl).origin !== new URL(authUrl).origin;
+  } catch {
+    return false;
+  }
+})();
+const cookieSameSite = isCrossSite ? "none" : "lax";
+const cookieSecure = isCrossSite ? true : isProd;
 
 export const authRoutes = new Elysia()
   .post("/sign-in/social", async ({ body, request }) => {
@@ -126,7 +136,7 @@ export const authRoutes = new Elysia()
       const sessionToken = await createSession(user.id);
       setCookieHeader(set, "auth_token", sessionToken, {
         httpOnly: true,
-        secure: isProd,
+        secure: cookieSecure,
         sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 30,
         path: "/",
@@ -185,7 +195,7 @@ export const authRoutes = new Elysia()
       const sessionToken = await createSession(newUser.id);
       setCookieHeader(set, "auth_token", sessionToken, {
         httpOnly: true,
-        secure: isProd,
+        secure: cookieSecure,
         sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 30,
         path: "/",
@@ -251,7 +261,7 @@ export const authRoutes = new Elysia()
             if (sessionToken) {
               setCookieHeader(set, "auth_token", sessionToken, {
                 httpOnly: true,
-                secure: isProd,
+                secure: cookieSecure,
                 sameSite: cookieSameSite,
                 maxAge: 60 * 60 * 24 * 30,
                 path: "/",

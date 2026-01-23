@@ -26,7 +26,15 @@ const appUrl =
 const authUrl =
   process.env.BETTER_AUTH_URL || "http://localhost:3001";
 const isProd = process.env.NODE_ENV === "production";
-const cookieSameSite = isProd ? "none" : "lax";
+const isCrossSite = (() => {
+  try {
+    return new URL(appUrl).origin !== new URL(authUrl).origin;
+  } catch {
+    return false;
+  }
+})();
+const cookieSameSite = isCrossSite ? "none" : "lax";
+const cookieSecure = isCrossSite ? true : isProd;
 
 export const auth = betterAuth({
   advanced: {
@@ -281,7 +289,7 @@ export const auth = betterAuth({
         if (sessionToken) {
           ctx.setCookie("auth_token", sessionToken, {
             httpOnly: true,
-            secure: isProd,
+            secure: cookieSecure,
             sameSite: cookieSameSite,
             maxAge: 60 * 60 * 24 * 30,
             path: "/",
