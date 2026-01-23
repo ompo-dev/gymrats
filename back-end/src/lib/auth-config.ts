@@ -25,6 +25,8 @@ const appUrl =
   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const authUrl =
   process.env.BETTER_AUTH_URL || "http://localhost:3001";
+const isProd = process.env.NODE_ENV === "production";
+const cookieSameSite = isProd ? "none" : "lax";
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {
@@ -40,7 +42,7 @@ export const auth = betterAuth({
       trustedProviders: ["google"],
     },
     // Apenas em dev para não bloquear o fluxo local
-    skipStateCookieCheck: process.env.NODE_ENV !== "production",
+    skipStateCookieCheck: !isProd,
   },
   socialProviders: {
     google: {
@@ -273,8 +275,8 @@ export const auth = betterAuth({
         if (sessionToken) {
           ctx.setCookie("auth_token", sessionToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            secure: isProd,
+            sameSite: cookieSameSite,
             maxAge: 60 * 60 * 24 * 30,
             path: "/",
           });

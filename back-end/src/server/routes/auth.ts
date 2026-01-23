@@ -20,6 +20,9 @@ import { validateBody } from "../utils/validation";
 import { setCookieHeader, deleteCookieHeader } from "../utils/cookies";
 import { getCookieValue } from "../utils/request";
 
+const isProd = process.env.NODE_ENV === "production";
+const cookieSameSite = isProd ? "none" : "lax";
+
 export const authRoutes = new Elysia()
   .post("/sign-in/social", async ({ body, request }) => {
     const payload = (body || {}) as Record<string, unknown>;
@@ -123,8 +126,8 @@ export const authRoutes = new Elysia()
       const sessionToken = await createSession(user.id);
       setCookieHeader(set, "auth_token", sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: isProd,
+        sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 30,
         path: "/",
       });
@@ -182,8 +185,8 @@ export const authRoutes = new Elysia()
       const sessionToken = await createSession(newUser.id);
       setCookieHeader(set, "auth_token", sessionToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: isProd,
+        sameSite: cookieSameSite,
         maxAge: 60 * 60 * 24 * 30,
         path: "/",
       });
@@ -248,8 +251,8 @@ export const authRoutes = new Elysia()
             if (sessionToken) {
               setCookieHeader(set, "auth_token", sessionToken, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
+                secure: isProd,
+                sameSite: cookieSameSite,
                 maxAge: 60 * 60 * 24 * 30,
                 path: "/",
               });

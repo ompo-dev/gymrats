@@ -23,7 +23,9 @@ function serializeCookie(name: string, value: string, options: CookieOptions = {
   if (options.sameSite) {
     parts.push(`SameSite=${options.sameSite}`);
   } else {
-    parts.push("SameSite=Lax");
+    parts.push(
+      process.env.NODE_ENV === "production" ? "SameSite=None" : "SameSite=Lax"
+    );
   }
   parts.push(`Path=${options.path || "/"}`);
 
