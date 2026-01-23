@@ -222,18 +222,48 @@ function WelcomePageContent() {
     setError("");
 
     try {
+      const appBaseURL =
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const apiBaseURL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const callbackURL = `${appBaseURL}/welcome?callback=google`;
+      const errorCallbackURL = `${callbackURL}&error=google`;
+
+      const startOAuth = async (popup?: Window | null) => {
+        const signInUrl = new URL("/api/auth/sign-in/social", apiBaseURL);
+        signInUrl.searchParams.set("provider", "google");
+
+        const response = await fetch(signInUrl.toString(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL,
+            errorCallbackURL,
+            newUserCallbackURL: callbackURL,
+          }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.error || "Erro ao iniciar login com Google");
+        }
+
+        if (payload?.redirect && payload?.url) {
+          if (popup && !popup.closed) {
+            popup.location.href = payload.url;
+          } else {
+            window.location.href = payload.url;
+          }
+          return;
+        }
+
+        throw new Error("URL de redirecionamento não recebida.");
+      };
+
       // Se está em PWA, abrir OAuth em popup para voltar ao app após login
       if (isPWA) {
-        const appBaseURL =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const apiBaseURL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-        const callbackURL = `${appBaseURL}/auth/callback`;
-        
-        // Construir URL para iniciar OAuth via Better Auth
-        // O Better Auth espera POST, mas vamos usar uma abordagem diferente:
-        // Fazer uma requisição fetch para obter a URL de autorização ou usar form com target
-        
         // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
         sessionStorage.setItem("pwa_oauth_popup", "true");
         
@@ -255,54 +285,12 @@ function WelcomePageContent() {
         }
 
         oauthWindowRef.current = popup;
-
-        // Criar form para fazer POST para o Better Auth em popup
-        // O Better Auth fará redirect para Google OAuth na popup
-        const form = document.createElement("form");
-        form.method = "POST";
-        const signInUrl = new URL("/api/auth/sign-in/social", apiBaseURL);
-        signInUrl.searchParams.set("provider", "google");
-        signInUrl.searchParams.set("callbackURL", callbackURL);
-        signInUrl.searchParams.set("errorCallbackURL", `${callbackURL}?error=true`);
-        signInUrl.searchParams.set("newUserCallbackURL", callbackURL);
-        form.action = signInUrl.toString();
-        form.target = "google-oauth-popup";
-        
-        // Adicionar campos necessários
-        const providerInput = document.createElement("input");
-        providerInput.type = "hidden";
-        providerInput.name = "provider";
-        providerInput.value = "google";
-        form.appendChild(providerInput);
-        
-        const callbackInput = document.createElement("input");
-        callbackInput.type = "hidden";
-        callbackInput.name = "callbackURL";
-        callbackInput.value = callbackURL;
-        form.appendChild(callbackInput);
-        
-        const errorCallbackInput = document.createElement("input");
-        errorCallbackInput.type = "hidden";
-        errorCallbackInput.name = "errorCallbackURL";
-        errorCallbackInput.value = `${callbackURL}?error=true`;
-        form.appendChild(errorCallbackInput);
-        
-        const newUserCallbackInput = document.createElement("input");
-        newUserCallbackInput.type = "hidden";
-        newUserCallbackInput.name = "newUserCallbackURL";
-        newUserCallbackInput.value = callbackURL;
-        form.appendChild(newUserCallbackInput);
-        
-        document.body.appendChild(form);
         
         // Monitorar se a popup foi fechada manualmente
         const checkClosed = setInterval(() => {
           if (popup.closed) {
             clearInterval(checkClosed);
             sessionStorage.removeItem("pwa_oauth_popup");
-            if (document.body.contains(form)) {
-              document.body.removeChild(form);
-            }
             // Se fechou sem sucesso, pode ter sido cancelado
             if (isLoading) {
               setIsLoading(false);
@@ -316,68 +304,10 @@ function WelcomePageContent() {
           sessionStorage.removeItem("pwa_oauth_popup");
           clearInterval(checkClosed);
         }, 5 * 60 * 1000); // 5 minutos máximo
-        
-        // Fazer submit do form (abrirá no popup e Better Auth redirecionará para Google)
-        form.submit();
-        
-        // Remover form após um pequeno delay
-        setTimeout(() => {
-          if (document.body.contains(form)) {
-            document.body.removeChild(form);
-          }
-        }, 1000);
+
+        await startOAuth(popup);
       } else {
-        // Navegador normal - iniciar OAuth via POST direto no back-end
-        const appBaseURL =
-          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const apiBaseURL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
-        const callbackURL = `${appBaseURL}/welcome?callback=google`;
-        const form = document.createElement("form");
-        form.method = "POST";
-        const signInUrl = new URL("/api/auth/sign-in/social", apiBaseURL);
-        signInUrl.searchParams.set("provider", "google");
-        signInUrl.searchParams.set("callbackURL", callbackURL);
-        signInUrl.searchParams.set(
-          "errorCallbackURL",
-          `${callbackURL}?error=google`
-        );
-        signInUrl.searchParams.set("newUserCallbackURL", callbackURL);
-        form.action = signInUrl.toString();
-
-        const providerInput = document.createElement("input");
-        providerInput.type = "hidden";
-        providerInput.name = "provider";
-        providerInput.value = "google";
-        form.appendChild(providerInput);
-
-        const callbackInput = document.createElement("input");
-        callbackInput.type = "hidden";
-        callbackInput.name = "callbackURL";
-        callbackInput.value = callbackURL;
-        form.appendChild(callbackInput);
-
-        const errorCallbackInput = document.createElement("input");
-        errorCallbackInput.type = "hidden";
-        errorCallbackInput.name = "errorCallbackURL";
-        errorCallbackInput.value = `${callbackURL}?error=google`;
-        form.appendChild(errorCallbackInput);
-
-        const newUserCallbackInput = document.createElement("input");
-        newUserCallbackInput.type = "hidden";
-        newUserCallbackInput.name = "newUserCallbackURL";
-        newUserCallbackInput.value = callbackURL;
-        form.appendChild(newUserCallbackInput);
-
-        document.body.appendChild(form);
-        form.submit();
-
-        setTimeout(() => {
-          if (document.body.contains(form)) {
-            document.body.removeChild(form);
-          }
-        }, 1000);
+        await startOAuth();
       }
     } catch (err: any) {
       console.error("Erro ao iniciar login com Google:", err);
