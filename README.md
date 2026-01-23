@@ -88,6 +88,32 @@ Passos:
    - `bun install`
    - `bun run dev`
 
+## Configuracoes de ambiente
+Nunca versionamos chaves e segredos. Apenas as variaveis abaixo:
+
+### Back-end (`back-end/.env`)
+```
+DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<db>?pgbouncer=true
+DIRECT_URL=postgresql://<user>:<password>@<host>:<port>/<db>
+BETTER_AUTH_URL=http://localhost:3001
+BETTER_AUTH_SECRET=<sua_chave>
+GOOGLE_CLIENT_ID=<seu_client_id>
+GOOGLE_CLIENT_SECRET=<seu_client_secret>
+EMAIL_USER=<seu_email>
+EMAIL_PASSWORD=<sua_senha>
+DEEPSEEK_API_KEY=<sua_chave>
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+### Front-end (`front-end/.env.local`)
+```
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_SUPABASE_URL=<sua_url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<sua_anon_key>
+```
+
 ## Documentacao
 - Front-end: `front-end/README.md`
 - Swagger: `front-end/SWAGGER.md`
