@@ -1,12 +1,12 @@
 FROM oven/bun:1.3.6 AS deps
 WORKDIR /app
-COPY package.json /app/package.json
-COPY packages/contracts /app/packages/contracts
-COPY prisma/schema.prisma /app/prisma/schema.prisma
+COPY back-end/package.json /app/package.json
+COPY back-end/packages/contracts /app/packages/contracts
+COPY back-end/prisma/schema.prisma /app/prisma/schema.prisma
 RUN bun install
 
 FROM deps AS builder
-COPY . /app
+COPY back-end /app
 RUN bun run build
 
 FROM oven/bun:1.3.6 AS runner
