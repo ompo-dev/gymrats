@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+
+# Environment variables
+#.env.local
+
+# Next.js
+.next
+/lib/generated/prisma
+
+# Prisma
+# prisma/migrations - migrations devem estar no repositório se necessário para deploy
+# prisma/schema.prisma - O schema DEVE estar no repositório para o build funcionar
+
+# Database
+db.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.* 
