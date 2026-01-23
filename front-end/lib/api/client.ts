@@ -13,6 +13,7 @@ class ApiClient {
     // NÃO definir timeout aqui - será definido por chamada ou usar padrão do axios
     this.client = axios.create({
       baseURL: API_BASE_URL,
+      withCredentials: true,
       // timeout removido do construtor - será definido por chamada específica
       headers: {
         "Content-Type": "application/json",
