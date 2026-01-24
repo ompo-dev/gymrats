@@ -19,6 +19,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useStudentInitializer } from "@/hooks/use-student-initializer";
 import { useStudent } from "@/hooks/use-student";
+import { apiClient } from "@/lib/api/client";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
@@ -35,6 +36,10 @@ export function StudentLayoutContent({
   initialProgress,
 }: StudentLayoutContentProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const [resolvedHasProfile, setResolvedHasProfile] = useState<
+    boolean | null
+  >(hasProfile);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -43,6 +48,45 @@ export function StudentLayoutContent({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (hasProfile !== null) {
+      setResolvedHasProfile(hasProfile);
+      return;
+    }
+
+    let isActive = true;
+    setIsCheckingProfile(true);
+
+    const resolveProfile = async () => {
+      try {
+        const response = await apiClient.get<{ hasProfile?: boolean }>(
+          "/api/students/profile"
+        );
+        const nextValue =
+          typeof response?.data?.hasProfile === "boolean"
+            ? response.data.hasProfile
+            : true;
+        if (isActive) {
+          setResolvedHasProfile(nextValue);
+        }
+      } catch {
+        if (isActive) {
+          setResolvedHasProfile(true);
+        }
+      } finally {
+        if (isActive) {
+          setIsCheckingProfile(false);
+        }
+      }
+    };
+
+    resolveProfile();
+
+    return () => {
+      isActive = false;
+    };
+  }, [hasProfile]);
 
   // Inicializar dados do student automaticamente quando o layout carregar
   // Não bloquear renderização - dados carregam em background
@@ -69,7 +113,7 @@ export function StudentLayoutContent({
 
   // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
   useEffect(() => {
-    if (isMounted && hasProfile === false && !isOnboarding) {
+    if (isMounted && resolvedHasProfile === false && !isOnboarding) {
       // Usar replace em vez de push para evitar histórico de navegação
       // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
       const timeoutId = setTimeout(() => {
@@ -89,12 +133,12 @@ export function StudentLayoutContent({
     return <>{children}</>;
   }
 
-  if (hasProfile === null) {
+  if (resolvedHasProfile === null || isCheckingProfile) {
     return <LoadingScreen variant="student" message="Carregando perfil..." />;
   }
 
   // Mostrar loading enquanto redireciona para onboarding
-  if (hasProfile === false && !isOnboarding) {
+  if (resolvedHasProfile === false && !isOnboarding) {
     return <LoadingScreen variant="student" message="Redirecionando..." />;
   }
 
