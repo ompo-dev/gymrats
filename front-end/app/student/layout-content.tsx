@@ -22,7 +22,7 @@ import { useStudent } from "@/hooks/use-student";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
-  hasProfile: boolean;
+  hasProfile: boolean | null;
   initialProgress: {
     streak: number;
     xp: number;
@@ -69,7 +69,7 @@ export function StudentLayoutContent({
 
   // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
   useEffect(() => {
-    if (isMounted && !hasProfile && !isOnboarding) {
+    if (isMounted && hasProfile === false && !isOnboarding) {
       // Usar replace em vez de push para evitar histórico de navegação
       // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
       const timeoutId = setTimeout(() => {
@@ -89,8 +89,12 @@ export function StudentLayoutContent({
     return <>{children}</>;
   }
 
+  if (hasProfile === null) {
+    return <LoadingScreen variant="student" message="Carregando perfil..." />;
+  }
+
   // Mostrar loading enquanto redireciona para onboarding
-  if (!hasProfile && !isOnboarding) {
+  if (hasProfile === false && !isOnboarding) {
     return <LoadingScreen variant="student" message="Redirecionando..." />;
   }
 

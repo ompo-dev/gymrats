@@ -23,7 +23,10 @@ export async function getCurrentUserInfo() {
   }
 }
 
-export async function getStudentProfile() {
+export async function getStudentProfile(): Promise<{
+  hasProfile: boolean | null;
+  profile: unknown | null;
+}> {
   try {
     const response = await backendGet<
       ApiSuccess<{ hasProfile?: boolean; profile?: unknown }>
@@ -35,7 +38,7 @@ export async function getStudentProfile() {
     };
   } catch (error) {
     console.error("[getStudentProfile] Erro ao buscar perfil:", error);
-    return { hasProfile: false, profile: null };
+    return { hasProfile: null, profile: null };
   }
 }
 
