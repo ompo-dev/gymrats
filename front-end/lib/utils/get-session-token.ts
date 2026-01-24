@@ -10,6 +10,8 @@ export async function getSessionToken(): Promise<string | null> {
   return (
     cookieStore.get("auth_token")?.value ||
     cookieStore.get("better-auth.session_token")?.value ||
+    cookieStore.get("__Secure-better-auth.session_token")?.value ||
+    cookieStore.get("__Host-better-auth.session_token")?.value ||
     null
   );
 }
@@ -23,6 +25,8 @@ export function getSessionTokenFromRequest(
   return (
     request.cookies.get("auth_token")?.value ||
     request.cookies.get("better-auth.session_token")?.value ||
+    request.cookies.get("__Secure-better-auth.session_token")?.value ||
+    request.cookies.get("__Host-better-auth.session_token")?.value ||
     null
   );
 }

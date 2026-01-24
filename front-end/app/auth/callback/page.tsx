@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { authApi } from "@/lib/api/auth";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
+import { persistAuthToken } from "@/lib/utils/auth-token";
 
 /**
  * Página de callback do OAuth
@@ -120,6 +121,11 @@ function AuthCallbackPageContent() {
       const userRole =
         (sessionResponse.user as { role: "STUDENT" | "GYM" | "ADMIN" })
           .role || sessionResponse.user.role;
+      const sessionToken = sessionResponse.session?.token;
+
+      if (sessionToken) {
+        persistAuthToken(sessionToken);
+      }
 
       // Se está em popup (PWA), comunicar com janela pai
       if (isInPopup && window.opener) {
@@ -134,7 +140,7 @@ function AuthCallbackPageContent() {
               role: userRole,
             },
             session: {
-              token: sessionResponse.session?.token,
+              token: sessionToken,
             },
           },
           window.location.origin

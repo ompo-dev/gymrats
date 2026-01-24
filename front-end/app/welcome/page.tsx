@@ -18,6 +18,7 @@ import { useAuthStore } from "@/stores";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { authApi } from "@/lib/api/auth";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
+import { persistAuthToken } from "@/lib/utils/auth-token";
 
 function WelcomePageContent() {
   const router = useRouter();
@@ -46,6 +47,7 @@ function WelcomePageContent() {
           // NÃO salvar userRole e isAdmin - sempre validar no servidor
           if (session?.token) {
             localStorage.setItem("auth_token", session.token);
+            persistAuthToken(session.token);
           }
           localStorage.setItem("isAuthenticated", "true");
           localStorage.setItem("userEmail", user.email);
@@ -151,6 +153,7 @@ function WelcomePageContent() {
                   "auth_token",
                   sessionResponse.session.token
                 );
+                persistAuthToken(sessionResponse.session.token);
               }
               localStorage.setItem("isAuthenticated", "true");
               localStorage.setItem("userEmail", sessionResponse.user.email);
