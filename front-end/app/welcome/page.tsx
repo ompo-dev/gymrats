@@ -30,6 +30,9 @@ function WelcomePageContent() {
   const [error, setError] = useState("");
   const oauthWindowRef = useRef<Window | null>(null);
   const isPWA = typeof window !== "undefined" ? isStandaloneMode() : false;
+  const isMobile =
+    typeof window !== "undefined" &&
+    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Listener para mensagens do OAuth popup (PWA)
   useEffect(() => {
@@ -265,8 +268,8 @@ function WelcomePageContent() {
         throw new Error("URL de redirecionamento não recebida.");
       };
 
-      // Se está em PWA, abrir OAuth em popup para voltar ao app após login
-      if (isPWA) {
+      // Em mobile/PWA, evitar popup (instável e frequentemente bloqueado)
+      if (isPWA && !isMobile) {
         // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
         sessionStorage.setItem("pwa_oauth_popup", "true");
         

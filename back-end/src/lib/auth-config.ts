@@ -35,12 +35,18 @@ const isCrossSite = (() => {
 })();
 const cookieSameSite = isCrossSite ? "none" : "lax";
 const cookieSecure = isCrossSite ? true : isProd;
+console.log("[Auth] Cookie defaults:", {
+  sameSite: cookieSameSite,
+  secure: cookieSecure,
+  isCrossSite,
+  isProd,
+});
 
 export const auth = betterAuth({
   advanced: {
     defaultCookieAttributes: {
       sameSite: cookieSameSite,
-      secure: isProd,
+      secure: cookieSecure,
     },
   },
   database: prismaAdapter(db, {

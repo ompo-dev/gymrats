@@ -121,6 +121,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Não interceptar rotas de autenticação
+  if (url.pathname.startsWith("/api/auth")) {
+    return;
+  }
+
   // Estratégia: Network First para APIs, Cache First para assets estáticos
   if (url.pathname.startsWith("/api/")) {
     // APIs: Network First com fallback para cache
