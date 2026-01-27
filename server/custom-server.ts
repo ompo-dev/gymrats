@@ -4,7 +4,7 @@ import { apiApp } from "./app";
 
 const nodeEnv = process.env.NODE_ENV || "development";
 const dev = nodeEnv !== "production";
-const hostname = "localhost";
+const hostname = process.env.HOST || (dev ? "localhost" : "0.0.0.0");
 const port = Number(process.env.PORT || 3000);
 
 if (dev) {
@@ -89,7 +89,7 @@ nextApp.prepare().then(() => {
     }
 
     const { pathname } = parse(req.url, true);
-    if (pathname && pathname.startsWith("/api")) {
+    if (pathname && (pathname.startsWith("/api") || pathname === "/health")) {
       await handleApiRequest(req, res);
       return;
     }
