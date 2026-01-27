@@ -1,9 +1,10 @@
 {
 	"name": "gymrats",
-	"version": "21.8.5",
+	"version": "22.0.0",
 	"private": true,
 	"scripts": {
-		"build": "bun run version:sync && prisma generate && bun --bun next build",
+		"build": "bun run version:sync && prisma generate && NODE_OPTIONS='--max-old-space-size=4096' bun next build",
+		"build:node": "bun run version:sync && prisma generate && next build",
 		"dev": "bun --bun server/custom-server.ts",
 		"dev:next": "node scripts/dev.js",
 		"dev:webpack": "node scripts/dev.js --webpack",
