@@ -1,79 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { verifyResetCodeSchema } from "@/lib/api/schemas";
+import { type NextRequest, NextResponse } from "next/server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { verifyResetCodeSchema } from "@/lib/api/schemas";
+import { db } from "@/lib/db";
+import {
+	type VerifyResetCodeInput,
+	verifyResetCodeUseCase,
+} from "@/lib/use-cases/auth";
 
 /**
  * POST /api/auth/verify-reset-code
  * Verifica se o código de recuperação é válido
  */
 export async function POST(request: NextRequest) {
-  try {
-    const validation = await validateBody(request, verifyResetCodeSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+	try {
+		const validation = await validateBody(request, verifyResetCodeSchema);
+		if (!validation.success) {
+			return validation.response;
+		}
 
-    const { email, code } = validation.data;
+		const result = await verifyResetCodeUseCase(
+			{
+				findVerificationToken: (identifier, token) =>
+					db.verificationToken.findUnique({
+						where: { identifier_token: { identifier, token } },
+						select: { expires: true },
+					}),
+				deleteVerificationToken: (identifier, token) =>
+					db.verificationToken
+						.delete({
+							where: { identifier_token: { identifier, token } },
+						})
+						.then(() => undefined),
+				findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+				now: () => new Date(),
+			},
+			validation.data as VerifyResetCodeInput,
+		);
 
-    // Buscar token de verificação
-    const verificationToken = await db.verificationToken.findUnique({
-      where: {
-        identifier_token: {
-          identifier: `reset-password:${email}`,
-          token: code,
-        },
-      },
-    });
+		if (!result.ok) {
+			return NextResponse.json(
+				{ error: result.error.message },
+				{ status: result.error.status },
+			);
+		}
 
-    // Verificar se existe e não expirou
-    if (!verificationToken) {
-      return NextResponse.json(
-        { error: "Código inválido" },
-        { status: 400 }
-      );
-    }
-
-    if (new Date() > verificationToken.expires) {
-      // Remover token expirado
-      await db.verificationToken.delete({
-        where: {
-          identifier_token: {
-            identifier: `reset-password:${email}`,
-            token: code,
-          },
-        },
-      });
-
-      return NextResponse.json(
-        { error: "Código expirado. Solicite um novo código." },
-        { status: 400 }
-      );
-    }
-
-    // Verificar se o usuário existe
-    const user = await db.user.findUnique({
-      where: { email },
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      );
-    }
-
-    // Código válido
-    return NextResponse.json({
-      valid: true,
-      message: "Código verificado com sucesso",
-    });
-  } catch (error: any) {
-    console.error("Erro ao verificar código:", error);
-    return NextResponse.json(
-      { error: "Erro ao verificar código. Tente novamente." },
-      { status: 500 }
-    );
-  }
+		return NextResponse.json(result.data);
+	} catch (error: unknown) {
+		console.error("Erro ao verificar código:", error);
+		const message =
+			error instanceof Error
+				? error.message
+				: "Erro ao verificar código. Tente novamente.";
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }
-

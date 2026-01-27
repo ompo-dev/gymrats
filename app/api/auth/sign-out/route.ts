@@ -1,59 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth-config";
-import { getSessionTokenFromRequest, deleteSession } from "@/lib/utils/session";
-import { getCookie, deleteCookie } from "@/lib/utils/cookies";
+import { signOutUseCase } from "@/lib/use-cases/auth";
+import { deleteSession } from "@/lib/utils/session";
 
 export async function POST(request: NextRequest) {
-  try {
-    // Primeiro tentar fazer logout do Better Auth
-    try {
-      await auth.api.signOut({
-        headers: request.headers,
-      });
+	try {
+		const authHeaderValue = request.headers.get("authorization");
+		const authHeaderToken = authHeaderValue
+			? authHeaderValue.replace(/^Bearer\s+/i, "").trim()
+			: null;
+		const cookieAuthToken = request.cookies.get("auth_token")?.value || null;
+		const cookieBetterAuthToken =
+			request.cookies.get("better-auth.session_token")?.value || null;
 
-      // Limpar cookies do Better Auth
-      const response = NextResponse.json({ success: true });
-      response.cookies.delete("better-auth.session_token");
-      response.cookies.delete("auth_token");
+		const result = await signOutUseCase(
+			{
+				signOutBetterAuth: (headers) =>
+					auth.api.signOut({ headers }).then(() => undefined),
+				deleteSession,
+			},
+			{
+				headers: request.headers,
+				authHeaderToken,
+				cookieAuthToken,
+				cookieBetterAuthToken,
+			},
+		);
 
-      return response;
-    } catch (betterAuthError) {
-      // Se falhar, tentar método antigo (compatibilidade)
-      console.log(
-        "[sign-out] Better Auth logout falhou, tentando método antigo"
-      );
-    }
+		if (!result.ok) {
+			return NextResponse.json(
+				{ error: result.error.message },
+				{ status: result.error.status },
+			);
+		}
 
-    // Fallback: método antigo (compatibilidade)
-    let sessionToken = getSessionTokenFromRequest(request);
-
-    if (!sessionToken) {
-      sessionToken = await getCookie("auth_token");
-    }
-
-    if (!sessionToken) {
-      return NextResponse.json(
-        { error: "Token não fornecido" },
-        { status: 401 }
-      );
-    }
-
-    if (sessionToken) {
-      await deleteSession(sessionToken);
-    }
-
-    await deleteCookie("auth_token");
-
-    const response = NextResponse.json({ success: true });
-    response.cookies.delete("auth_token");
-    response.cookies.delete("better-auth.session_token");
-
-    return response;
-  } catch (error: any) {
-    console.error("Erro ao fazer logout:", error);
-    return NextResponse.json(
-      { error: error.message || "Erro ao fazer logout" },
-      { status: 500 }
-    );
-  }
+		const response = NextResponse.json({ success: true });
+		response.cookies.delete("auth_token");
+		response.cookies.delete("better-auth.session_token");
+		return response;
+	} catch (error: unknown) {
+		console.error("Erro ao fazer logout:", error);
+		const message =
+			error instanceof Error ? error.message : "Erro ao fazer logout";
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }
