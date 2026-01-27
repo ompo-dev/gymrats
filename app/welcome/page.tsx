@@ -227,10 +227,6 @@ function WelcomePageContent() {
         const baseURL = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
         const callbackURL = `${baseURL}/auth/callback`;
         
-        // Construir URL para iniciar OAuth via Better Auth
-        // O Better Auth espera POST, mas vamos usar uma abordagem diferente:
-        // Fazer uma requisição fetch para obter a URL de autorização ou usar form com target
-        
         // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
         sessionStorage.setItem("pwa_oauth_popup", "true");
         
@@ -253,48 +249,71 @@ function WelcomePageContent() {
 
         oauthWindowRef.current = popup;
 
-        // Criar form para fazer POST para o Better Auth em popup
-        // O Better Auth fará redirect para Google OAuth na popup
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = `${baseURL}/api/auth/sign-in/social`;
-        form.target = "google-oauth-popup";
-        
-        // Adicionar campos necessários
-        const providerInput = document.createElement("input");
-        providerInput.type = "hidden";
-        providerInput.name = "provider";
-        providerInput.value = "google";
-        form.appendChild(providerInput);
-        
-        const callbackInput = document.createElement("input");
-        callbackInput.type = "hidden";
-        callbackInput.name = "callbackURL";
-        callbackInput.value = callbackURL;
-        form.appendChild(callbackInput);
-        
-        const errorCallbackInput = document.createElement("input");
-        errorCallbackInput.type = "hidden";
-        errorCallbackInput.name = "errorCallbackURL";
-        errorCallbackInput.value = `${callbackURL}?error=true`;
-        form.appendChild(errorCallbackInput);
-        
-        const newUserCallbackInput = document.createElement("input");
-        newUserCallbackInput.type = "hidden";
-        newUserCallbackInput.name = "newUserCallbackURL";
-        newUserCallbackInput.value = callbackURL;
-        form.appendChild(newUserCallbackInput);
-        
-        document.body.appendChild(form);
+        try {
+          // Fazer requisição POST com JSON (não form-urlencoded) para o Better Auth
+          // Usar redirect: "manual" para controlar o redirect manualmente na popup
+          const response = await fetch(`${baseURL}/api/auth/sign-in/social`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              provider: "google",
+              callbackURL,
+              errorCallbackURL: `${callbackURL}?error=true`,
+              newUserCallbackURL: callbackURL,
+            }),
+            credentials: "include", // Importante para cookies
+            redirect: "manual", // Não seguir redirects automaticamente
+          });
+
+          // Verificar se há um redirect (status 301, 302, 307, 308)
+          if (response.status >= 300 && response.status < 400) {
+            const location = response.headers.get("Location");
+            if (location) {
+              // Redirecionar a popup para a URL de autorização do Google
+              popup.location.href = location;
+            } else {
+              throw new Error("Redirect recebido mas sem header Location");
+            }
+          } else if (response.ok) {
+            // Se retornar JSON com URL, usar essa URL
+            try {
+              const data = await response.json();
+              if (data.url) {
+                popup.location.href = data.url;
+              } else {
+                throw new Error("Resposta não contém URL de autorização");
+              }
+            } catch (jsonError) {
+              // Se não for JSON, pode ser HTML ou outro formato
+              throw new Error("Resposta inesperada do servidor");
+            }
+          } else {
+            // Se houver erro, tentar ler a mensagem
+            let errorMessage = "Erro ao iniciar login";
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || errorData.error || errorMessage;
+            } catch {
+              // Se não conseguir ler JSON, usar status text
+              errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+          }
+        } catch (fetchError: any) {
+          console.error("Erro ao fazer requisição OAuth:", fetchError);
+          popup.close();
+          throw new Error(
+            fetchError.message || "Erro ao iniciar login com Google"
+          );
+        }
         
         // Monitorar se a popup foi fechada manualmente
         const checkClosed = setInterval(() => {
           if (popup.closed) {
             clearInterval(checkClosed);
             sessionStorage.removeItem("pwa_oauth_popup");
-            if (document.body.contains(form)) {
-              document.body.removeChild(form);
-            }
             // Se fechou sem sucesso, pode ter sido cancelado
             if (isLoading) {
               setIsLoading(false);
@@ -308,16 +327,6 @@ function WelcomePageContent() {
           sessionStorage.removeItem("pwa_oauth_popup");
           clearInterval(checkClosed);
         }, 5 * 60 * 1000); // 5 minutos máximo
-        
-        // Fazer submit do form (abrirá no popup e Better Auth redirecionará para Google)
-        form.submit();
-        
-        // Remover form após um pequeno delay
-        setTimeout(() => {
-          if (document.body.contains(form)) {
-            document.body.removeChild(form);
-          }
-        }, 1000);
       } else {
         // Navegador normal - usar redirecionamento padrão do Better Auth
         await authClient.signIn.social({
