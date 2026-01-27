@@ -1,88 +1,50 @@
-import { NextRequest, NextResponse } from "next/server"
-import { db } from "@/lib/db"
-import { updateRoleSchema } from "@/lib/api/schemas"
-import { validateBody } from "@/lib/api/middleware/validation.middleware"
+import { type NextRequest, NextResponse } from "next/server";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { updateRoleSchema } from "@/lib/api/schemas";
+import { db } from "@/lib/db";
+import { type UpdateRoleInput, updateRoleUseCase } from "@/lib/use-cases/auth";
 
 export async function POST(request: NextRequest) {
-  try {
-    // Validar body com Zod
-    const validation = await validateBody(request, updateRoleSchema)
-    if (!validation.success) {
-      return validation.response
-    }
+	try {
+		// Validar body com Zod
+		const validation = await validateBody(request, updateRoleSchema);
+		if (!validation.success) {
+			return validation.response;
+		}
 
-    const { userId, role, userType } = validation.data
+		const result = await updateRoleUseCase(
+			{
+				findUserById: (id) =>
+					db.user.findUnique({
+						where: { id },
+						include: { student: true, gyms: true },
+					}),
+				updateUserRole: (id, role) =>
+					db.user.update({ where: { id }, data: { role } }),
+				findStudentByUserId: (id) =>
+					db.student.findUnique({ where: { userId: id } }),
+				createStudent: (id) =>
+					db.student.create({ data: { userId: id } }).then(() => undefined),
+				findGymByUserId: (id) => db.gym.findFirst({ where: { userId: id } }),
+				createGym: (data) => db.gym.create({ data }).then(() => undefined),
+			},
+			validation.data as UpdateRoleInput,
+		);
 
-    // Verificar se o usuário existe
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      include: {
-        student: true,
-        gyms: true,
-      },
-    })
+		if (!result.ok) {
+			return NextResponse.json(
+				{ error: result.error.message },
+				{ status: result.error.status },
+			);
+		}
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "Usuário não encontrado" },
-        { status: 404 }
-      )
-    }
-
-    // Atualizar role
-    const updatedUser = await db.user.update({
-      where: { id: userId },
-      data: {
-        role: role as "STUDENT" | "GYM" | "ADMIN",
-      },
-    })
-
-    // Criar Student ou Gym se necessário baseado no role
-    if (role === "STUDENT" && !user.student) {
-      const existingStudent = await db.student.findUnique({
-        where: { userId },
-      })
-
-      if (!existingStudent) {
-        await db.student.create({
-          data: {
-            userId,
-          },
-        })
-      }
-    } else if (role === "GYM" && (!user.gyms || user.gyms.length === 0)) {
-      const existingGym = await db.gym.findFirst({
-        where: { userId },
-      })
-
-      if (!existingGym) {
-        await db.gym.create({
-          data: {
-            userId,
-            name: user.name,
-            address: "",
-            phone: "",
-            email: user.email,
-            plan: "basic",
-            isActive: true,
-          },
-        })
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: updatedUser.id,
-        role: updatedUser.role,
-      },
-    })
-  } catch (error: any) {
-    console.error("Erro ao atualizar role:", error)
-    return NextResponse.json(
-      { error: error.message || "Erro ao atualizar tipo de usuário" },
-      { status: 500 }
-    )
-  }
+		return NextResponse.json(result.data);
+	} catch (error: unknown) {
+		console.error("Erro ao atualizar role:", error);
+		const message =
+			error instanceof Error
+				? error.message
+				: "Erro ao atualizar tipo de usuário";
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }
-
