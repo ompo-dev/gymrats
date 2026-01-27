@@ -1,0 +1,305 @@
+import { db } from "@/lib/db";
+import { abacatePay } from "@/lib/api/abacatepay";
+import type { CreateBillingRequest } from "@/lib/api/abacatepay";
+import { addMonths } from "date-fns";
+
+export async function hasPremiumAccess(studentId: string): Promise<boolean> {
+  const subscription = await db.subscription.findUnique({
+    where: { studentId },
+  });
+
+  if (subscription?.plan === "premium") {
+    const now = new Date();
+    const isTrialActive =
+      subscription.trialEnd && new Date(subscription.trialEnd) > now;
+    const isActive = subscription.status === "active";
+    const isTrialing = subscription.status === "trialing";
+
+    if (isActive || isTrialing || isTrialActive) {
+      return true;
+    }
+  }
+
+  const membership = await db.gymMembership.findFirst({
+    where: {
+      studentId,
+      status: "active",
+    },
+    include: {
+      gym: {
+        include: {
+          subscription: true,
+        },
+      },
+    },
+  });
+
+  if (membership?.gym?.subscription) {
+    const gymSub = membership.gym.subscription;
+    const now = new Date();
+    const isTrialActive = gymSub.trialEnd && new Date(gymSub.trialEnd) > now;
+    const isActive = gymSub.status === "active";
+    const isTrialing = gymSub.status === "trialing";
+
+    if (isActive || isTrialing || isTrialActive) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export async function canUseFeature(
+  studentId: string,
+  featureKey: string
+): Promise<boolean> {
+  const hasPremium = await hasPremiumAccess(studentId);
+
+  if (!hasPremium) {
+    return false;
+  }
+
+  const feature = await db.subscriptionFeature.findUnique({
+    where: { featureKey },
+  });
+
+  return !!feature;
+}
+
+export async function createStudentSubscriptionBilling(
+  studentId: string,
+  plan: "monthly" | "annual",
+  customerData?: {
+    name: string;
+    email: string;
+    cellphone: string;
+    taxId: string;
+  }
+) {
+  const student = await db.student.findUnique({
+    where: { id: studentId },
+    include: {
+      user: true,
+      profile: true,
+    },
+  });
+
+  if (!student) {
+    throw new Error("Aluno não encontrado");
+  }
+
+  const prices = {
+    monthly: 1500,
+    annual: 15000,
+  };
+
+  const billingData: CreateBillingRequest = {
+    frequency: plan === "monthly" ? "MULTIPLE_PAYMENTS" : "ONE_TIME",
+    methods: ["PIX", "CARD"],
+    products: [
+      {
+        externalId: `subscription-${plan}-${studentId}`,
+        name: `GymRats Premium - ${plan === "monthly" ? "Mensal" : "Anual"}`,
+        description: `Assinatura Premium do GymRats - ${
+          plan === "monthly" ? "1 mês" : "12 meses"
+        } de acesso completo`,
+        quantity: 1,
+        price: prices[plan],
+      },
+    ],
+    returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student/payments?canceled=true`,
+    completionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student/payments?success=true`,
+  };
+
+  if (customerData) {
+    const customerResponse = await abacatePay.createCustomer(customerData);
+    if (customerResponse.error || !customerResponse.data) {
+      throw new Error(
+        customerResponse.error || "Erro ao criar cliente na AbacatePay"
+      );
+    }
+    billingData.customerId = customerResponse.data.id;
+  } else if (student.user.email) {
+    billingData.customer = {
+      name: student.user.name,
+      email: student.user.email,
+      cellphone: student.phone || "(00) 0000-0000",
+      taxId: "",
+    };
+  }
+
+  console.log(
+    "[createStudentSubscriptionBilling] Criando billing na AbacatePay:",
+    {
+      studentId,
+      plan,
+      billingData: {
+        ...billingData,
+        customer: billingData.customer
+          ? { ...billingData.customer, taxId: "***" }
+          : undefined,
+      },
+    }
+  );
+
+  const billingResponse = await abacatePay.createBilling(billingData);
+
+  console.log("[createStudentSubscriptionBilling] Resposta da AbacatePay:", {
+    hasError: !!billingResponse.error,
+    error: billingResponse.error,
+    hasData: !!billingResponse.data,
+    dataId: billingResponse.data?.id,
+    dataUrl: billingResponse.data?.url,
+  });
+
+  if (billingResponse.error || !billingResponse.data) {
+    const errorMessage =
+      billingResponse.error || "Erro ao criar cobrança na AbacatePay";
+    console.error("[createStudentSubscriptionBilling] Erro ao criar billing:", {
+      error: billingResponse.error,
+      response: billingResponse,
+    });
+    throw new Error(errorMessage);
+  }
+
+  return billingResponse.data;
+}
+
+export async function createGymSubscriptionBilling(
+  gymId: string,
+  plan: "basic" | "premium" | "enterprise",
+  studentCount: number,
+  billingPeriod: "monthly" | "annual" = "monthly",
+  customerData?: {
+    name: string;
+    email: string;
+    cellphone: string;
+    taxId: string;
+  }
+) {
+  const gym = await db.gym.findUnique({
+    where: { id: gymId },
+    include: {
+      user: true,
+    },
+  });
+
+  if (!gym) {
+    throw new Error("Academia não encontrada");
+  }
+
+  const prices = {
+    basic: {
+      base: 15000,
+      perStudent: 150,
+    },
+    premium: {
+      base: 25000,
+      perStudent: 100,
+    },
+    enterprise: {
+      base: 40000,
+      perStudent: 50,
+    },
+  };
+
+  const planPrices = prices[plan];
+
+  let basePrice = planPrices.base;
+  let perStudentPrice = planPrices.perStudent;
+
+  if (billingPeriod === "annual") {
+    const annualDiscounts = {
+      basic: 0.95,
+      premium: 0.9,
+      enterprise: 0.85,
+    };
+    basePrice = Math.round(planPrices.base * 12 * annualDiscounts[plan]);
+    perStudentPrice = 0;
+  } else {
+    basePrice = planPrices.base;
+    perStudentPrice = planPrices.perStudent;
+  }
+
+  const totalAmount =
+    billingPeriod === "annual"
+      ? basePrice
+      : basePrice + perStudentPrice * studentCount;
+
+  const billingData: CreateBillingRequest = {
+    frequency: billingPeriod === "annual" ? "ONE_TIME" : "MULTIPLE_PAYMENTS",
+    methods: ["PIX", "CARD"],
+    products: [
+      {
+        externalId: `gym-subscription-${plan}-${billingPeriod}-${gymId}`,
+        name: `GymRats Academia - ${
+          plan.charAt(0).toUpperCase() + plan.slice(1)
+        } (${billingPeriod === "annual" ? "Anual" : "Mensal"})`,
+        description:
+          billingPeriod === "annual"
+            ? `Assinatura ${plan} anual - Preço fixo para todos os alunos - R$ ${(
+                totalAmount / 100
+              ).toFixed(2)}/ano`
+            : `Assinatura ${plan} mensal para ${studentCount} alunos - R$ ${(
+                totalAmount / 100
+              ).toFixed(2)}/mês`,
+        quantity: 1,
+        price: totalAmount,
+      },
+    ],
+    returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/gym?tab=financial&subTab=subscription&canceled=true`,
+    completionUrl: `${process.env.NEXT_PUBLIC_APP_URL}/gym?tab=financial&subTab=subscription&success=true`,
+  };
+
+  if (customerData) {
+    const customerResponse = await abacatePay.createCustomer(customerData);
+    if (customerResponse.error || !customerResponse.data) {
+      throw new Error(
+        customerResponse.error || "Erro ao criar cliente na AbacatePay"
+      );
+    }
+    billingData.customerId = customerResponse.data.id;
+  } else if (gym.user.email) {
+    billingData.customer = {
+      name: gym.name,
+      email: gym.email,
+      cellphone: gym.phone,
+      taxId: gym.cnpj || "",
+    };
+  }
+
+  console.log("[createGymSubscriptionBilling] Criando billing na AbacatePay:", {
+    gymId,
+    plan,
+    billingPeriod,
+    studentCount,
+    billingData: {
+      ...billingData,
+      customer: billingData.customer
+        ? { ...billingData.customer, taxId: "***" }
+        : undefined,
+    },
+  });
+
+  const billingResponse = await abacatePay.createBilling(billingData);
+
+  console.log("[createGymSubscriptionBilling] Resposta da AbacatePay:", {
+    hasError: !!billingResponse.error,
+    error: billingResponse.error,
+    hasData: !!billingResponse.data,
+    dataId: billingResponse.data?.id,
+    dataUrl: billingResponse.data?.url,
+  });
+
+  if (billingResponse.error || !billingResponse.data) {
+    const errorMessage =
+      billingResponse.error || "Erro ao criar cobrança na AbacatePay";
+    console.error("[createGymSubscriptionBilling] Erro ao criar billing:", {
+      error: billingResponse.error,
+      response: billingResponse,
+    });
+    throw new Error(errorMessage);
+  }
+
+  return billingResponse.data;
+}
