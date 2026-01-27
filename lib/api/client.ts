@@ -3,8 +3,14 @@ import axios, {
   type AxiosRequestConfig,
   type AxiosResponse,
 } from "axios";
+
 // Para API routes do Next.js (autenticação)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// No browser, sempre use mesma origem para evitar drift de porta/host.
+// No server-side, use a env configurada.
+const API_BASE_URL =
+  typeof window !== "undefined"
+    ? ""
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 class ApiClient {
   private client: AxiosInstance;
