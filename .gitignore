@@ -28,3 +28,10 @@ logs
 *.log.*
 *.log.*.*
 *.log.*.*.* 
+
+# Cursor
+.cursorrules
+.cursor
+.cursorignore
+.cursorhistory
+.agent
