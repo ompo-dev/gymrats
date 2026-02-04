@@ -402,23 +402,6 @@ export function EditUnitModal() {
 		setDeleteWorkoutConfirmationId(null);
 	};
 
-	const handleUpdateWorkout = async (
-		workoutId: string,
-		data: {
-			title?: string;
-			muscleGroup?: string;
-			estimatedTime?: number;
-			order?: number;
-		},
-	) => {
-		// Não precisa de try/catch com toast - optimistic update já atualiza UI instantaneamente!
-		// Apenas chamar a action - o store gerencia tudo
-		actions.updateWorkout(workoutId, data).catch((error) => {
-			console.error(error);
-			toast.error("Erro ao atualizar treino");
-		});
-	};
-
 	// Reordenar workouts usando Reorder
 	const handleReorderWorkouts = (newOrder: WorkoutSession[]) => {
 		setWorkoutItems(newOrder);
