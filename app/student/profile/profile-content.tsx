@@ -213,7 +213,7 @@ export function ProfilePageContent() {
 
 		// Filtrar apenas workouts com pelo menos 1 exercício feito
 		const workoutsWithProgress = progressEntries
-			.filter(([_, progress]) => progress.exerciseLogs.length > 0)
+			.filter(([_, progress]) => progress?.exerciseLogs?.length > 0)
 			.map(([workoutId, progress]) => ({
 				workoutId,
 				progress,
@@ -260,7 +260,7 @@ export function ProfilePageContent() {
 							60000,
 					),
 					totalVolume: lastInProgressWorkout.progress.totalVolume || 0,
-					exercises: lastInProgressWorkout.progress.exerciseLogs.map((log) => ({
+					exercises: lastInProgressWorkout.progress.exerciseLogs?.map((log) => ({
 						id: log.exerciseId,
 						exerciseId: log.exerciseId,
 						exerciseName: log.exerciseName,
