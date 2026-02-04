@@ -8,7 +8,11 @@
 			"!**/dist",
 			"!**/coverage",
 			"!**/public",
-			"!**/prisma/migrations"
+			"!**/prisma/migrations",
+			"!**/*.md",
+			"!.gitattributes",
+			"!.gitignore",
+			"!**/*.txt"
 		]
 	},
 	"formatter": {
