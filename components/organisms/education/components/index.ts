@@ -1,10 +1,9 @@
-export { LessonDetail } from "./lesson-detail";
 export type { LessonDetailProps } from "./lesson-detail";
-export { LessonFilters } from "./lesson-filters";
+export { LessonDetail } from "./lesson-detail";
 export type { LessonFiltersProps } from "./lesson-filters";
-export { LessonList } from "./lesson-list";
+export { LessonFilters } from "./lesson-filters";
 export type { LessonListProps } from "./lesson-list";
-export { LessonQuiz } from "./lesson-quiz";
+export { LessonList } from "./lesson-list";
 export type { LessonQuizProps } from "./lesson-quiz";
+export { LessonQuiz } from "./lesson-quiz";
 export { MarkdownRenderer } from "./markdown-renderer";
-

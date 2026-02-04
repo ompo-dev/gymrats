@@ -4,52 +4,52 @@ import nodemailer from "nodemailer";
 // Nota: Para usar OAuth2, seria necessário configurar refresh tokens
 // Por enquanto, usando senha de aplicativo do Google
 const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: "gmail",
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false, // true para 465, false para outras portas
-    auth: {
-      user: process.env.EMAIL_USER || "gym.rats.workout@gmail.com",
-      pass:
-        process.env.EMAIL_PASSWORD || "K@r@lh0@4K@r@lh0@4K@r@lh0@4K@r@lh0@4",
-    },
-  });
+	return nodemailer.createTransport({
+		service: "gmail",
+		host: "smtp.gmail.com",
+		port: 587,
+		secure: false, // true para 465, false para outras portas
+		auth: {
+			user: process.env.EMAIL_USER || "gym.rats.workout@gmail.com",
+			pass:
+				process.env.EMAIL_PASSWORD || "K@r@lh0@4K@r@lh0@4K@r@lh0@4K@r@lh0@4",
+		},
+	});
 };
 
 interface SendWelcomeEmailParams {
-  to: string;
-  name: string;
+	to: string;
+	name: string;
 }
 
 export async function sendWelcomeEmail({
-  to,
-  name,
+	to,
+	name,
 }: SendWelcomeEmailParams): Promise<void> {
-  try {
-    const transporter = createTransporter();
+	try {
+		const transporter = createTransporter();
 
-    const mailOptions = {
-      from: '"Gym Rats" <gym.rats.workout@gmail.com>',
-      to,
-      subject: "🎉 Bem-vindo ao Gym Rats!",
-      html: getWelcomeEmailTemplate(name),
-    };
+		const mailOptions = {
+			from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+			to,
+			subject: "🎉 Bem-vindo ao Gym Rats!",
+			html: getWelcomeEmailTemplate(name),
+		};
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de boas-vindas enviado para ${to}`);
-  } catch (error) {
-    console.error("Erro ao enviar email de boas-vindas:", error);
-    // Não lançar erro para não interromper o fluxo de registro
-    // O email é opcional
-  }
+		await transporter.sendMail(mailOptions);
+		console.log(`Email de boas-vindas enviado para ${to}`);
+	} catch (error) {
+		console.error("Erro ao enviar email de boas-vindas:", error);
+		// Não lançar erro para não interromper o fluxo de registro
+		// O email é opcional
+	}
 }
 
 function getWelcomeEmailTemplate(userName: string): string {
-  // Pegar apenas o primeiro nome
-  const firstName = userName.split(" ")[0];
+	// Pegar apenas o primeiro nome
+	const firstName = userName.split(" ")[0];
 
-  return `
+	return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -68,9 +68,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                         <td style="background: linear-gradient(135deg, #58CC02 0%, #47A302 100%); padding: 40px 24px; text-align: center;">
                             <div style="background-color: #FFFFFF; width: 110px; height: 110px; border-radius: 24px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                                 <img src="${
-                                  process.env.NEXT_PUBLIC_APP_URL ||
-                                  "https://gym-rats-testes.vercel.app"
-                                }/icon-512.png" alt="Gym Rats Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; margin: 0 auto;" />
+																	process.env.NEXT_PUBLIC_APP_URL ||
+																	"https://gym-rats-testes.vercel.app"
+																}/icon-512.png" alt="Gym Rats Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; margin: 0 auto;" />
                             </div>
                             <h1 style="margin: 0; color: #FFFFFF; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                 Bem-vindo, ${firstName}!
@@ -99,9 +99,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                                 <tr>
                                     <td align="center">
                                         <a href="${
-                                          process.env.NEXT_PUBLIC_APP_URL ||
-                                          "https://gym-rats-testes.vercel.app"
-                                        }/student" 
+																					process.env.NEXT_PUBLIC_APP_URL ||
+																					"https://gym-rats-testes.vercel.app"
+																				}/student" 
                                            style="display: inline-block; background-color: #58CC02; color: #FFFFFF; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; padding: 16px 32px; border-radius: 16px; box-shadow: 0 4px 0 #58A700; font-size: 13.2px; line-height: 18px;">
                                             Começar minha jornada
                                         </a>
@@ -121,9 +121,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <!-- Card Treino -->
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
-                                              process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gym-rats-testes.vercel.app"
-                                            }/student?tab=learn" 
+																							process.env.NEXT_PUBLIC_APP_URL ||
+																							"https://gym-rats-testes.vercel.app"
+																						}/student?tab=learn" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">💪</div>
                                                 <h4 style="margin: 0 0 8px; color: #111827; font-size: 16px; font-weight: bold;">
@@ -138,9 +138,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <!-- Card Dieta -->
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
-                                              process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gym-rats-testes.vercel.app"
-                                            }/student?tab=diet" 
+																							process.env.NEXT_PUBLIC_APP_URL ||
+																							"https://gym-rats-testes.vercel.app"
+																						}/student?tab=diet" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">🍎</div>
                                                 <h4 style="margin: 0 0 8px; color: #111827; font-size: 16px; font-weight: bold;">
@@ -156,9 +156,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <!-- Card Educação -->
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
-                                              process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gym-rats-testes.vercel.app"
-                                            }/student?tab=education" 
+																							process.env.NEXT_PUBLIC_APP_URL ||
+																							"https://gym-rats-testes.vercel.app"
+																						}/student?tab=education" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">📚</div>
                                                 <h4 style="margin: 0 0 8px; color: #111827; font-size: 16px; font-weight: bold;">
@@ -173,9 +173,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <!-- Card Perfil -->
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
-                                              process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gym-rats-testes.vercel.app"
-                                            }/student?tab=profile" 
+																							process.env.NEXT_PUBLIC_APP_URL ||
+																							"https://gym-rats-testes.vercel.app"
+																						}/student?tab=profile" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">👤</div>
                                                 <h4 style="margin: 0 0 8px; color: #111827; font-size: 16px; font-weight: bold;">
@@ -226,9 +226,9 @@ function getWelcomeEmailTemplate(userName: string): string {
                             </p>
                             <p style="margin: 12px 0 0; color: #9CA3AF; font-size: 12px;">
                                 <a href="${
-                                  process.env.NEXT_PUBLIC_APP_URL ||
-                                  "https://gym-rats-testes.vercel.app"
-                                }" style="color: #1899D6; text-decoration: none;">Visite nosso site</a>
+																	process.env.NEXT_PUBLIC_APP_URL ||
+																	"https://gym-rats-testes.vercel.app"
+																}" style="color: #1899D6; text-decoration: none;">Visite nosso site</a>
                             </p>
                         </td>
                     </tr>
@@ -242,40 +242,40 @@ function getWelcomeEmailTemplate(userName: string): string {
 }
 
 interface SendResetPasswordEmailParams {
-  to: string;
-  name: string;
-  code: string;
+	to: string;
+	name: string;
+	code: string;
 }
 
 export async function sendResetPasswordEmail({
-  to,
-  name,
-  code,
+	to,
+	name,
+	code,
 }: SendResetPasswordEmailParams): Promise<void> {
-  try {
-    const transporter = createTransporter();
+	try {
+		const transporter = createTransporter();
 
-    const mailOptions = {
-      from: '"Gym Rats" <gym.rats.workout@gmail.com>',
-      to,
-      subject: "🔐 Código de recuperação de senha - Gym Rats",
-      html: getResetPasswordEmailTemplate(name, code),
-    };
+		const mailOptions = {
+			from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+			to,
+			subject: "🔐 Código de recuperação de senha - Gym Rats",
+			html: getResetPasswordEmailTemplate(name, code),
+		};
 
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de recuperação de senha enviado para ${to}`);
-  } catch (error) {
-    console.error("Erro ao enviar email de recuperação de senha:", error);
-    throw error;
-  }
+		await transporter.sendMail(mailOptions);
+		console.log(`Email de recuperação de senha enviado para ${to}`);
+	} catch (error) {
+		console.error("Erro ao enviar email de recuperação de senha:", error);
+		throw error;
+	}
 }
 
 function getResetPasswordEmailTemplate(userName: string, code: string): string {
-  const firstName = userName.split(" ")[0];
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://gym-rats-testes.vercel.app";
+	const firstName = userName.split(" ")[0];
+	const appUrl =
+		process.env.NEXT_PUBLIC_APP_URL || "https://gym-rats-testes.vercel.app";
 
-  return `
+	return `
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>

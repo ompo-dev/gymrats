@@ -1,13 +1,13 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
-  getWeightHistoryHandler,
-  addWeightHandler,
+	addWeightHandler,
+	getWeightHistoryHandler,
 } from "@/lib/api/handlers/students.handler";
 
 export async function GET(request: NextRequest) {
-  return getWeightHistoryHandler(request);
+	return getWeightHistoryHandler(request);
 }
 
 export async function POST(request: NextRequest) {
-  return addWeightHandler(request);
+	return addWeightHandler(request);
 }

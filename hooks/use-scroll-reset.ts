@@ -1,22 +1,22 @@
-import { useEffect, useRef, RefObject } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 interface UseScrollResetOptions {
-  dependencies?: unknown[];
-  behavior?: ScrollBehavior;
-  enabled?: boolean;
+	dependencies?: unknown[];
+	behavior?: ScrollBehavior;
+	enabled?: boolean;
 }
 
 export function useScrollReset<T extends HTMLElement = HTMLElement>(
-  options: UseScrollResetOptions = {}
+	options: UseScrollResetOptions = {},
 ): RefObject<T | null> {
-  const { dependencies = [], behavior = "instant", enabled = true } = options;
-  const elementRef = useRef<T>(null);
+	const { dependencies = [], behavior = "instant", enabled = true } = options;
+	const elementRef = useRef<T>(null);
 
-  useEffect(() => {
-    if (!enabled || !elementRef.current) return;
+	useEffect(() => {
+		if (!enabled || !elementRef.current) return;
 
-    elementRef.current.scrollTo({ top: 0, behavior });
-  }, dependencies);
+		elementRef.current.scrollTo({ top: 0, behavior });
+	}, dependencies);
 
-  return elementRef;
+	return elementRef;
 }

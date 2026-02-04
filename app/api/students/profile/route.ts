@@ -1,13 +1,13 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import {
-  getStudentProfileHandler,
-  updateStudentProfileHandler,
+	getStudentProfileHandler,
+	updateStudentProfileHandler,
 } from "@/lib/api/handlers/students.handler";
 
 export async function GET(request: NextRequest) {
-  return getStudentProfileHandler(request);
+	return getStudentProfileHandler(request);
 }
 
 export async function POST(request: NextRequest) {
-  return updateStudentProfileHandler(request);
+	return updateStudentProfileHandler(request);
 }

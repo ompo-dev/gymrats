@@ -1,1343 +1,1343 @@
 import type {
-  Unit,
-  WorkoutSession,
-  WorkoutExercise,
-  UserProgress,
-  Achievement,
-  UserStats,
-  DietPlan,
-  Meal,
-  PlacementQuestion,
-  PlacementTestResult,
-  DifficultyLevel,
-  DailyNutrition,
-  FoodItem,
-  WorkoutHistory,
-  PersonalRecord,
-  StudentGymMembership,
-  StudentPayment,
-  PaymentMethod,
+	Achievement,
+	DailyNutrition,
+	DietPlan,
+	DifficultyLevel,
+	FoodItem,
+	Meal,
+	PaymentMethod,
+	PersonalRecord,
+	PlacementQuestion,
+	PlacementTestResult,
+	StudentGymMembership,
+	StudentPayment,
+	Unit,
+	UserProgress,
+	UserStats,
+	WorkoutExercise,
+	WorkoutHistory,
+	WorkoutSession,
 } from "./types";
 
 // Achievements mock
 export const mockAchievements: Achievement[] = [
-  {
-    id: "first-workout",
-    title: "Primeiro Treino",
-    description: "Complete seu primeiro treino",
-    icon: "💪",
-    category: "workouts",
-    unlockedAt: new Date(),
-    level: 1,
-    color: "#58CC02",
-  },
-  {
-    id: "streak-3",
-    title: "Sequência de Fogo",
-    description: "Mantenha 3 dias seguidos",
-    icon: "🔥",
-    category: "streak",
-    level: 1,
-    color: "#FF9600",
-  },
-  {
-    id: "xp-100",
-    title: "Iniciante Motivado",
-    description: "Ganhe 100 XP",
-    icon: "⚡",
-    category: "xp",
-    level: 1,
-    color: "#FFC800",
-  },
-  {
-    id: "perfect-5",
-    title: "Perfeccionista",
-    description: "Complete 5 treinos perfeitamente",
-    icon: "⭐",
-    category: "perfect",
-    level: 3,
-    color: "#58CC02",
-  },
-  {
-    id: "week-warrior",
-    title: "Guerreiro Semanal",
-    description: "7 dias de sequência",
-    icon: "🏆",
-    category: "streak",
-    progress: 5,
-    target: 7,
-    level: 3,
-    color: "#FF9600",
-  },
-  {
-    id: "chest-master",
-    title: "Mestre do Peito",
-    description: "Complete 10 treinos de peito",
-    icon: "💯",
-    category: "special",
-    progress: 3,
-    target: 10,
-    level: 5,
-    color: "#CE82FF",
-  },
+	{
+		id: "first-workout",
+		title: "Primeiro Treino",
+		description: "Complete seu primeiro treino",
+		icon: "💪",
+		category: "workouts",
+		unlockedAt: new Date(),
+		level: 1,
+		color: "#58CC02",
+	},
+	{
+		id: "streak-3",
+		title: "Sequência de Fogo",
+		description: "Mantenha 3 dias seguidos",
+		icon: "🔥",
+		category: "streak",
+		level: 1,
+		color: "#FF9600",
+	},
+	{
+		id: "xp-100",
+		title: "Iniciante Motivado",
+		description: "Ganhe 100 XP",
+		icon: "⚡",
+		category: "xp",
+		level: 1,
+		color: "#FFC800",
+	},
+	{
+		id: "perfect-5",
+		title: "Perfeccionista",
+		description: "Complete 5 treinos perfeitamente",
+		icon: "⭐",
+		category: "perfect",
+		level: 3,
+		color: "#58CC02",
+	},
+	{
+		id: "week-warrior",
+		title: "Guerreiro Semanal",
+		description: "7 dias de sequência",
+		icon: "🏆",
+		category: "streak",
+		progress: 5,
+		target: 7,
+		level: 3,
+		color: "#FF9600",
+	},
+	{
+		id: "chest-master",
+		title: "Mestre do Peito",
+		description: "Complete 10 treinos de peito",
+		icon: "💯",
+		category: "special",
+		progress: 3,
+		target: 10,
+		level: 5,
+		color: "#CE82FF",
+	},
 ];
 
 // User progress mock
 export const mockUserProgress: UserProgress = {
-  currentStreak: 5,
-  longestStreak: 12,
-  totalXP: 1287,
-  currentLevel: 8,
-  xpToNextLevel: 213,
-  workoutsCompleted: 23,
-  achievements: mockAchievements.slice(0, 3),
-  lastActivityDate: new Date().toISOString(),
-  dailyGoalXP: 50,
-  weeklyXP: [45, 60, 50, 75, 55, 70, 50],
-  todayXP: 30,
+	currentStreak: 5,
+	longestStreak: 12,
+	totalXP: 1287,
+	currentLevel: 8,
+	xpToNextLevel: 213,
+	workoutsCompleted: 23,
+	achievements: mockAchievements.slice(0, 3),
+	lastActivityDate: new Date().toISOString(),
+	dailyGoalXP: 50,
+	weeklyXP: [45, 60, 50, 75, 55, 70, 50],
+	todayXP: 30,
 };
 
 // User stats mock
 export const mockUserStats: UserStats = {
-  muscleGroupWorkouts: {
-    funcional: 0,
-    peito: 8,
-    costas: 6,
-    pernas: 5,
-    ombros: 4,
-    bracos: 7,
-    core: 3,
-    gluteos: 2,
-    cardio: 4,
-  },
-  totalWorkouts: 23,
-  totalCalories: 48500,
-  averageWorkoutTime: 45,
-  perfectWorkouts: 5,
+	muscleGroupWorkouts: {
+		funcional: 0,
+		peito: 8,
+		costas: 6,
+		pernas: 5,
+		ombros: 4,
+		bracos: 7,
+		core: 3,
+		gluteos: 2,
+		cardio: 4,
+	},
+	totalWorkouts: 23,
+	totalCalories: 48500,
+	averageWorkoutTime: 45,
+	perfectWorkouts: 5,
 };
 
 // Mock workout exercises
 const createWorkoutExercise = (
-  id: string,
-  name: string,
-  sets: number,
-  reps: string,
-  rest: number,
-  notes?: string,
-  educationalId?: string,
-  alternatives?: {
-    id: string;
-    name: string;
-    reason: string;
-    educationalId?: string;
-  }[]
+	id: string,
+	name: string,
+	sets: number,
+	reps: string,
+	rest: number,
+	notes?: string,
+	educationalId?: string,
+	alternatives?: {
+		id: string;
+		name: string;
+		reason: string;
+		educationalId?: string;
+	}[],
 ): WorkoutExercise => ({
-  id,
-  name,
-  sets,
-  reps,
-  rest,
-  notes,
-  educationalId,
-  alternatives,
+	id,
+	name,
+	sets,
+	reps,
+	rest,
+	notes,
+	educationalId,
+	alternatives,
 });
 
 // Mock workout sessions
 export const mockWorkouts: WorkoutSession[] = [
-  {
-    id: "chest-push-1",
-    title: "Peito e Tríceps - Dia A",
-    description: "Treino focado em desenvolvimento do peitoral",
-    type: "strength",
-    muscleGroup: "peito",
-    difficulty: "iniciante",
-    xpReward: 50,
-    estimatedTime: 45,
-    locked: false,
-    completed: true,
-    stars: 3,
-    completedAt: new Date(Date.now() - 86400000),
-    exercises: [
-      createWorkoutExercise(
-        "ex1",
-        "Supino Reto",
-        4,
-        "12-10-8-8",
-        90,
-        "Aumente o peso a cada série",
-        "supino-reto",
-        [
-          {
-            id: "alt-ex1-1",
-            name: "Supino com Halteres",
-            reason: "Banco de supino ocupado",
-            educationalId: "supino-halteres",
-          },
-          {
-            id: "alt-ex1-2",
-            name: "Flexão de Braço com Carga",
-            reason: "Sem equipamento disponível",
-            educationalId: "flexao-bracos",
-          },
-          {
-            id: "alt-ex1-3",
-            name: "Supino na Máquina",
-            reason: "Alternativa mais segura",
-            educationalId: "supino-maquina",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex2",
-        "Supino Inclinado",
-        3,
-        "12",
-        90,
-        undefined,
-        "supino-inclinado",
-        [
-          {
-            id: "alt-ex2-1",
-            name: "Supino Inclinado com Halteres",
-            reason: "Banco de supino ocupado",
-            educationalId: "supino-inclinado-halteres",
-          },
-          {
-            id: "alt-ex2-2",
-            name: "Flexão Inclinada",
-            reason: "Sem equipamento",
-            educationalId: "flexao-inclinada",
-          },
-          {
-            id: "alt-ex2-3",
-            name: "Crossover Superior",
-            reason: "Foco na porção superior",
-            educationalId: "crossover-superior",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex3",
-        "Crucifixo",
-        3,
-        "15",
-        60,
-        "Foco na contração",
-        "crucifixo",
-        [
-          {
-            id: "alt-ex3-1",
-            name: "Crucifixo com Cabos",
-            reason: "Banco ocupado",
-            educationalId: "crucifixo-cabos",
-          },
-          {
-            id: "alt-ex3-2",
-            name: "Peck Deck",
-            reason: "Maior isolamento",
-            educationalId: "peck-deck",
-          },
-          {
-            id: "alt-ex3-3",
-            name: "Flexão com Abertura",
-            reason: "Sem equipamento",
-            educationalId: "flexao-abertura",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex4",
-        "Tríceps Testa",
-        3,
-        "12",
-        60,
-        undefined,
-        "triceps-testa",
-        [
-          {
-            id: "alt-ex4-1",
-            name: "Tríceps Francês",
-            reason: "Banco ocupado",
-            educationalId: "triceps-frances",
-          },
-          {
-            id: "alt-ex4-2",
-            name: "Tríceps Coice",
-            reason: "Alternativa com halteres",
-            educationalId: "triceps-coice",
-          },
-          {
-            id: "alt-ex4-3",
-            name: "Mergulho no Banco",
-            reason: "Sem equipamento",
-            educationalId: "mergulho-banco",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex5",
-        "Tríceps Corda",
-        3,
-        "15",
-        45,
-        undefined,
-        "triceps-corda",
-        [
-          {
-            id: "alt-ex5-1",
-            name: "Tríceps Barra Reta",
-            reason: "Corda não disponível",
-            educationalId: "triceps-barra",
-          },
-          {
-            id: "alt-ex5-2",
-            name: "Tríceps Unilateral",
-            reason: "Cabo ocupado",
-            educationalId: "triceps-unilateral",
-          },
-          {
-            id: "alt-ex5-3",
-            name: "Paralelas",
-            reason: "Máxima ativação",
-            educationalId: "paralelas",
-          },
-        ]
-      ),
-    ],
-  },
-  {
-    id: "back-pull-1",
-    title: "Costas e Bíceps - Dia B",
-    description: "Desenvolvimento completo das costas",
-    type: "strength",
-    muscleGroup: "costas",
-    difficulty: "iniciante",
-    xpReward: 50,
-    estimatedTime: 50,
-    locked: false,
-    completed: false,
-    exercises: [
-      createWorkoutExercise(
-        "ex1",
-        "Barra Fixa",
-        4,
-        "8-10",
-        120,
-        "Assistida se necessário",
-        "barra-fixa",
-        [
-          {
-            id: "alt-ex1-1",
-            name: "Pulldown",
-            reason: "Barra ocupada ou força insuficiente",
-            educationalId: "pulldown",
-          },
-          {
-            id: "alt-ex1-2",
-            name: "Barra Fixa Assistida",
-            reason: "Progressão gradual",
-            educationalId: "barra-fixa-assistida",
-          },
-          {
-            id: "alt-ex1-3",
-            name: "Remada Graviton",
-            reason: "Máquina alternativa",
-            educationalId: "remada-graviton",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex2",
-        "Remada Curvada",
-        4,
-        "12",
-        90,
-        undefined,
-        "remada-curvada",
-        [
-          {
-            id: "alt-ex2-1",
-            name: "Remada Cavalinho",
-            reason: "Mais estabilidade",
-            educationalId: "remada-cavalinho",
-          },
-          {
-            id: "alt-ex2-2",
-            name: "Remada com Halteres",
-            reason: "Barra ocupada",
-            educationalId: "remada-halteres",
-          },
-          {
-            id: "alt-ex2-3",
-            name: "Remada no Cabo",
-            reason: "Tensão constante",
-            educationalId: "remada-cabo",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex3",
-        "Pulldown",
-        3,
-        "12",
-        60,
-        undefined,
-        "pulldown",
-        [
-          {
-            id: "alt-ex3-1",
-            name: "Pulldown Triângulo",
-            reason: "Pegada diferente",
-            educationalId: "pulldown-triangulo",
-          },
-          {
-            id: "alt-ex3-2",
-            name: "Pullover",
-            reason: "Cabo ocupado",
-            educationalId: "pullover",
-          },
-          {
-            id: "alt-ex3-3",
-            name: "Barra Fixa Pegada Fechada",
-            reason: "Variação com peso corporal",
-            educationalId: "barra-fixa-fechada",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex4",
-        "Rosca Direta",
-        3,
-        "12",
-        60,
-        undefined,
-        "rosca-direta",
-        [
-          {
-            id: "alt-ex4-1",
-            name: "Rosca Alternada",
-            reason: "Barra ocupada",
-            educationalId: "rosca-alternada",
-          },
-          {
-            id: "alt-ex4-2",
-            name: "Rosca Scott",
-            reason: "Maior isolamento",
-            educationalId: "rosca-scott",
-          },
-          {
-            id: "alt-ex4-3",
-            name: "Rosca no Cabo",
-            reason: "Tensão constante",
-            educationalId: "rosca-cabo",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex5",
-        "Rosca Martelo",
-        3,
-        "12",
-        60,
-        undefined,
-        "rosca-martelo",
-        [
-          {
-            id: "alt-ex5-1",
-            name: "Rosca Inversa",
-            reason: "Foco no braquial",
-            educationalId: "rosca-inversa",
-          },
-          {
-            id: "alt-ex5-2",
-            name: "Rosca Concentrada",
-            reason: "Halteres ocupados",
-            educationalId: "rosca-concentrada",
-          },
-          {
-            id: "alt-ex5-3",
-            name: "Rosca com Corda",
-            reason: "Variação com cabo",
-            educationalId: "rosca-corda",
-          },
-        ]
-      ),
-    ],
-  },
-  {
-    id: "legs-1",
-    title: "Pernas Completo - Dia C",
-    description: "Treino intenso de pernas e glúteos",
-    type: "strength",
-    muscleGroup: "pernas",
-    difficulty: "intermediario",
-    xpReward: 75,
-    estimatedTime: 60,
-    locked: false,
-    completed: false,
-    exercises: [
-      createWorkoutExercise(
-        "ex1",
-        "Agachamento Livre",
-        4,
-        "12-10-8-8",
-        120,
-        undefined,
-        "agachamento-livre",
-        [
-          {
-            id: "alt-ex1-1",
-            name: "Leg Press",
-            reason: "Rack ocupado ou mais seguro",
-            educationalId: "leg-press",
-          },
-          {
-            id: "alt-ex1-2",
-            name: "Agachamento no Smith",
-            reason: "Maior estabilidade",
-            educationalId: "agachamento-smith",
-          },
-          {
-            id: "alt-ex1-3",
-            name: "Agachamento Búlgaro",
-            reason: "Foco unilateral",
-            educationalId: "agachamento-bulgaro",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex2",
-        "Leg Press",
-        4,
-        "15",
-        90,
-        undefined,
-        "leg-press",
-        [
-          {
-            id: "alt-ex2-1",
-            name: "Agachamento Livre",
-            reason: "Leg press ocupado",
-            educationalId: "agachamento-livre",
-          },
-          {
-            id: "alt-ex2-2",
-            name: "Hack Machine",
-            reason: "Máquina alternativa",
-            educationalId: "hack-machine",
-          },
-          {
-            id: "alt-ex2-3",
-            name: "Afundo com Barra",
-            reason: "Exercício funcional",
-            educationalId: "afundo-barra",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex3",
-        "Cadeira Extensora",
-        3,
-        "15",
-        60,
-        undefined,
-        "cadeira-extensora",
-        [
-          {
-            id: "alt-ex3-1",
-            name: "Agachamento Sissy",
-            reason: "Cadeira ocupada",
-            educationalId: "agachamento-sissy",
-          },
-          {
-            id: "alt-ex3-2",
-            name: "Extensão Unilateral",
-            reason: "Foco em cada perna",
-            educationalId: "extensao-unilateral",
-          },
-          {
-            id: "alt-ex3-3",
-            name: "Leg Press Parcial",
-            reason: "Foco no quadríceps",
-            educationalId: "leg-press-parcial",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex4",
-        "Mesa Flexora",
-        3,
-        "12",
-        60,
-        undefined,
-        "mesa-flexora",
-        [
-          {
-            id: "alt-ex4-1",
-            name: "Stiff",
-            reason: "Mesa ocupada",
-            educationalId: "stiff",
-          },
-          {
-            id: "alt-ex4-2",
-            name: "Flexora em Pé",
-            reason: "Variação unilateral",
-            educationalId: "flexora-pe",
-          },
-          {
-            id: "alt-ex4-3",
-            name: "Good Morning",
-            reason: "Trabalho posterior completo",
-            educationalId: "good-morning",
-          },
-        ]
-      ),
-      createWorkoutExercise(
-        "ex5",
-        "Panturrilha",
-        4,
-        "20",
-        45,
-        undefined,
-        "panturrilha",
-        [
-          {
-            id: "alt-ex5-1",
-            name: "Panturrilha no Leg Press",
-            reason: "Máquina ocupada",
-            educationalId: "panturrilha-leg-press",
-          },
-          {
-            id: "alt-ex5-2",
-            name: "Panturrilha Unilateral",
-            reason: "Foco em cada perna",
-            educationalId: "panturrilha-unilateral",
-          },
-          {
-            id: "alt-ex5-3",
-            name: "Elevação de Panturrilha Livre",
-            reason: "Sem equipamento",
-            educationalId: "elevacao-panturrilha",
-          },
-        ]
-      ),
-    ],
-  },
-  {
-    id: "shoulders-1",
-    title: "Ombros e Trapézio",
-    description: "Desenvolvimento completo dos deltóides",
-    type: "strength",
-    muscleGroup: "ombros",
-    difficulty: "iniciante",
-    xpReward: 50,
-    estimatedTime: 40,
-    locked: true,
-    completed: false,
-    exercises: [],
-  },
-  // Workouts de Cardio
-  {
-    id: "cardio-run-1",
-    title: "Corrida Intervalada",
-    description: "HIIT de corrida para queimar calorias",
-    type: "cardio",
-    muscleGroup: "cardio",
-    difficulty: "intermediario",
-    xpReward: 40,
-    estimatedTime: 25,
-    locked: false,
-    completed: false,
-    exercises: [
-      createWorkoutExercise(
-        "cardio-ex1",
-        "Corrida 6km/h",
-        1,
-        "25min",
-        0,
-        "Ritmo moderado, mantenha conversação",
-        "corrida-moderada",
-        [
-          {
-            id: "alt-cardio-1-1",
-            name: "Caminhada Rápida 5km/h",
-            reason: "Menor impacto nas articulações",
-          },
-          {
-            id: "alt-cardio-1-2",
-            name: "Elíptico",
-            reason: "Esteira ocupada ou problemas no joelho",
-          },
-          {
-            id: "alt-cardio-1-3",
-            name: "Bike Ergométrica",
-            reason: "Sem impacto, mesmo gasto calórico",
-          },
-        ]
-      ),
-    ],
-  },
-  {
-    id: "cardio-bike-1",
-    title: "Bike Resistência",
-    description: "Treino de resistência cardiovascular",
-    type: "cardio",
-    muscleGroup: "cardio",
-    difficulty: "iniciante",
-    xpReward: 35,
-    estimatedTime: 30,
-    locked: false,
-    completed: false,
-    exercises: [
-      createWorkoutExercise(
-        "bike-ex1",
-        "Bike Ergométrica 30min",
-        1,
-        "30min",
-        0,
-        "Resistência média, 70-80% FC máx",
-        "bike-resistencia",
-        [
-          {
-            id: "alt-bike-1-1",
-            name: "Spinning",
-            reason: "Bike ergométrica ocupada",
-          },
-          {
-            id: "alt-bike-1-2",
-            name: "Esteira Inclinada",
-            reason: "Simular subida, mesmo esforço",
-          },
-          {
-            id: "alt-bike-1-3",
-            name: "Remo Ergométrico",
-            reason: "Trabalho cardiovascular completo",
-          },
-        ]
-      ),
-    ],
-  },
-  {
-    id: "cardio-hiit-1",
-    title: "HIIT Completo",
-    description: "Alta intensidade para máxima queima",
-    type: "cardio",
-    muscleGroup: "cardio",
-    difficulty: "avancado",
-    xpReward: 60,
-    estimatedTime: 20,
-    locked: false,
-    completed: false,
-    exercises: [
-      createWorkoutExercise(
-        "hiit-ex1",
-        "HIIT Burpees 20min",
-        1,
-        "20min",
-        0,
-        "40s on / 20s off - Máxima intensidade",
-        "hiit-burpees",
-        [
-          {
-            id: "alt-hiit-1-1",
-            name: "HIIT Bike",
-            reason: "Menor impacto, mesma intensidade",
-          },
-          {
-            id: "alt-hiit-1-2",
-            name: "HIIT Esteira",
-            reason: "Sprint intervals na esteira",
-          },
-          {
-            id: "alt-hiit-1-3",
-            name: "HIIT Remo",
-            reason: "Trabalho completo corpo inteiro",
-          },
-        ]
-      ),
-    ],
-  },
+	{
+		id: "chest-push-1",
+		title: "Peito e Tríceps - Dia A",
+		description: "Treino focado em desenvolvimento do peitoral",
+		type: "strength",
+		muscleGroup: "peito",
+		difficulty: "iniciante",
+		xpReward: 50,
+		estimatedTime: 45,
+		locked: false,
+		completed: true,
+		stars: 3,
+		completedAt: new Date(Date.now() - 86400000),
+		exercises: [
+			createWorkoutExercise(
+				"ex1",
+				"Supino Reto",
+				4,
+				"12-10-8-8",
+				90,
+				"Aumente o peso a cada série",
+				"supino-reto",
+				[
+					{
+						id: "alt-ex1-1",
+						name: "Supino com Halteres",
+						reason: "Banco de supino ocupado",
+						educationalId: "supino-halteres",
+					},
+					{
+						id: "alt-ex1-2",
+						name: "Flexão de Braço com Carga",
+						reason: "Sem equipamento disponível",
+						educationalId: "flexao-bracos",
+					},
+					{
+						id: "alt-ex1-3",
+						name: "Supino na Máquina",
+						reason: "Alternativa mais segura",
+						educationalId: "supino-maquina",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex2",
+				"Supino Inclinado",
+				3,
+				"12",
+				90,
+				undefined,
+				"supino-inclinado",
+				[
+					{
+						id: "alt-ex2-1",
+						name: "Supino Inclinado com Halteres",
+						reason: "Banco de supino ocupado",
+						educationalId: "supino-inclinado-halteres",
+					},
+					{
+						id: "alt-ex2-2",
+						name: "Flexão Inclinada",
+						reason: "Sem equipamento",
+						educationalId: "flexao-inclinada",
+					},
+					{
+						id: "alt-ex2-3",
+						name: "Crossover Superior",
+						reason: "Foco na porção superior",
+						educationalId: "crossover-superior",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex3",
+				"Crucifixo",
+				3,
+				"15",
+				60,
+				"Foco na contração",
+				"crucifixo",
+				[
+					{
+						id: "alt-ex3-1",
+						name: "Crucifixo com Cabos",
+						reason: "Banco ocupado",
+						educationalId: "crucifixo-cabos",
+					},
+					{
+						id: "alt-ex3-2",
+						name: "Peck Deck",
+						reason: "Maior isolamento",
+						educationalId: "peck-deck",
+					},
+					{
+						id: "alt-ex3-3",
+						name: "Flexão com Abertura",
+						reason: "Sem equipamento",
+						educationalId: "flexao-abertura",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex4",
+				"Tríceps Testa",
+				3,
+				"12",
+				60,
+				undefined,
+				"triceps-testa",
+				[
+					{
+						id: "alt-ex4-1",
+						name: "Tríceps Francês",
+						reason: "Banco ocupado",
+						educationalId: "triceps-frances",
+					},
+					{
+						id: "alt-ex4-2",
+						name: "Tríceps Coice",
+						reason: "Alternativa com halteres",
+						educationalId: "triceps-coice",
+					},
+					{
+						id: "alt-ex4-3",
+						name: "Mergulho no Banco",
+						reason: "Sem equipamento",
+						educationalId: "mergulho-banco",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex5",
+				"Tríceps Corda",
+				3,
+				"15",
+				45,
+				undefined,
+				"triceps-corda",
+				[
+					{
+						id: "alt-ex5-1",
+						name: "Tríceps Barra Reta",
+						reason: "Corda não disponível",
+						educationalId: "triceps-barra",
+					},
+					{
+						id: "alt-ex5-2",
+						name: "Tríceps Unilateral",
+						reason: "Cabo ocupado",
+						educationalId: "triceps-unilateral",
+					},
+					{
+						id: "alt-ex5-3",
+						name: "Paralelas",
+						reason: "Máxima ativação",
+						educationalId: "paralelas",
+					},
+				],
+			),
+		],
+	},
+	{
+		id: "back-pull-1",
+		title: "Costas e Bíceps - Dia B",
+		description: "Desenvolvimento completo das costas",
+		type: "strength",
+		muscleGroup: "costas",
+		difficulty: "iniciante",
+		xpReward: 50,
+		estimatedTime: 50,
+		locked: false,
+		completed: false,
+		exercises: [
+			createWorkoutExercise(
+				"ex1",
+				"Barra Fixa",
+				4,
+				"8-10",
+				120,
+				"Assistida se necessário",
+				"barra-fixa",
+				[
+					{
+						id: "alt-ex1-1",
+						name: "Pulldown",
+						reason: "Barra ocupada ou força insuficiente",
+						educationalId: "pulldown",
+					},
+					{
+						id: "alt-ex1-2",
+						name: "Barra Fixa Assistida",
+						reason: "Progressão gradual",
+						educationalId: "barra-fixa-assistida",
+					},
+					{
+						id: "alt-ex1-3",
+						name: "Remada Graviton",
+						reason: "Máquina alternativa",
+						educationalId: "remada-graviton",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex2",
+				"Remada Curvada",
+				4,
+				"12",
+				90,
+				undefined,
+				"remada-curvada",
+				[
+					{
+						id: "alt-ex2-1",
+						name: "Remada Cavalinho",
+						reason: "Mais estabilidade",
+						educationalId: "remada-cavalinho",
+					},
+					{
+						id: "alt-ex2-2",
+						name: "Remada com Halteres",
+						reason: "Barra ocupada",
+						educationalId: "remada-halteres",
+					},
+					{
+						id: "alt-ex2-3",
+						name: "Remada no Cabo",
+						reason: "Tensão constante",
+						educationalId: "remada-cabo",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex3",
+				"Pulldown",
+				3,
+				"12",
+				60,
+				undefined,
+				"pulldown",
+				[
+					{
+						id: "alt-ex3-1",
+						name: "Pulldown Triângulo",
+						reason: "Pegada diferente",
+						educationalId: "pulldown-triangulo",
+					},
+					{
+						id: "alt-ex3-2",
+						name: "Pullover",
+						reason: "Cabo ocupado",
+						educationalId: "pullover",
+					},
+					{
+						id: "alt-ex3-3",
+						name: "Barra Fixa Pegada Fechada",
+						reason: "Variação com peso corporal",
+						educationalId: "barra-fixa-fechada",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex4",
+				"Rosca Direta",
+				3,
+				"12",
+				60,
+				undefined,
+				"rosca-direta",
+				[
+					{
+						id: "alt-ex4-1",
+						name: "Rosca Alternada",
+						reason: "Barra ocupada",
+						educationalId: "rosca-alternada",
+					},
+					{
+						id: "alt-ex4-2",
+						name: "Rosca Scott",
+						reason: "Maior isolamento",
+						educationalId: "rosca-scott",
+					},
+					{
+						id: "alt-ex4-3",
+						name: "Rosca no Cabo",
+						reason: "Tensão constante",
+						educationalId: "rosca-cabo",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex5",
+				"Rosca Martelo",
+				3,
+				"12",
+				60,
+				undefined,
+				"rosca-martelo",
+				[
+					{
+						id: "alt-ex5-1",
+						name: "Rosca Inversa",
+						reason: "Foco no braquial",
+						educationalId: "rosca-inversa",
+					},
+					{
+						id: "alt-ex5-2",
+						name: "Rosca Concentrada",
+						reason: "Halteres ocupados",
+						educationalId: "rosca-concentrada",
+					},
+					{
+						id: "alt-ex5-3",
+						name: "Rosca com Corda",
+						reason: "Variação com cabo",
+						educationalId: "rosca-corda",
+					},
+				],
+			),
+		],
+	},
+	{
+		id: "legs-1",
+		title: "Pernas Completo - Dia C",
+		description: "Treino intenso de pernas e glúteos",
+		type: "strength",
+		muscleGroup: "pernas",
+		difficulty: "intermediario",
+		xpReward: 75,
+		estimatedTime: 60,
+		locked: false,
+		completed: false,
+		exercises: [
+			createWorkoutExercise(
+				"ex1",
+				"Agachamento Livre",
+				4,
+				"12-10-8-8",
+				120,
+				undefined,
+				"agachamento-livre",
+				[
+					{
+						id: "alt-ex1-1",
+						name: "Leg Press",
+						reason: "Rack ocupado ou mais seguro",
+						educationalId: "leg-press",
+					},
+					{
+						id: "alt-ex1-2",
+						name: "Agachamento no Smith",
+						reason: "Maior estabilidade",
+						educationalId: "agachamento-smith",
+					},
+					{
+						id: "alt-ex1-3",
+						name: "Agachamento Búlgaro",
+						reason: "Foco unilateral",
+						educationalId: "agachamento-bulgaro",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex2",
+				"Leg Press",
+				4,
+				"15",
+				90,
+				undefined,
+				"leg-press",
+				[
+					{
+						id: "alt-ex2-1",
+						name: "Agachamento Livre",
+						reason: "Leg press ocupado",
+						educationalId: "agachamento-livre",
+					},
+					{
+						id: "alt-ex2-2",
+						name: "Hack Machine",
+						reason: "Máquina alternativa",
+						educationalId: "hack-machine",
+					},
+					{
+						id: "alt-ex2-3",
+						name: "Afundo com Barra",
+						reason: "Exercício funcional",
+						educationalId: "afundo-barra",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex3",
+				"Cadeira Extensora",
+				3,
+				"15",
+				60,
+				undefined,
+				"cadeira-extensora",
+				[
+					{
+						id: "alt-ex3-1",
+						name: "Agachamento Sissy",
+						reason: "Cadeira ocupada",
+						educationalId: "agachamento-sissy",
+					},
+					{
+						id: "alt-ex3-2",
+						name: "Extensão Unilateral",
+						reason: "Foco em cada perna",
+						educationalId: "extensao-unilateral",
+					},
+					{
+						id: "alt-ex3-3",
+						name: "Leg Press Parcial",
+						reason: "Foco no quadríceps",
+						educationalId: "leg-press-parcial",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex4",
+				"Mesa Flexora",
+				3,
+				"12",
+				60,
+				undefined,
+				"mesa-flexora",
+				[
+					{
+						id: "alt-ex4-1",
+						name: "Stiff",
+						reason: "Mesa ocupada",
+						educationalId: "stiff",
+					},
+					{
+						id: "alt-ex4-2",
+						name: "Flexora em Pé",
+						reason: "Variação unilateral",
+						educationalId: "flexora-pe",
+					},
+					{
+						id: "alt-ex4-3",
+						name: "Good Morning",
+						reason: "Trabalho posterior completo",
+						educationalId: "good-morning",
+					},
+				],
+			),
+			createWorkoutExercise(
+				"ex5",
+				"Panturrilha",
+				4,
+				"20",
+				45,
+				undefined,
+				"panturrilha",
+				[
+					{
+						id: "alt-ex5-1",
+						name: "Panturrilha no Leg Press",
+						reason: "Máquina ocupada",
+						educationalId: "panturrilha-leg-press",
+					},
+					{
+						id: "alt-ex5-2",
+						name: "Panturrilha Unilateral",
+						reason: "Foco em cada perna",
+						educationalId: "panturrilha-unilateral",
+					},
+					{
+						id: "alt-ex5-3",
+						name: "Elevação de Panturrilha Livre",
+						reason: "Sem equipamento",
+						educationalId: "elevacao-panturrilha",
+					},
+				],
+			),
+		],
+	},
+	{
+		id: "shoulders-1",
+		title: "Ombros e Trapézio",
+		description: "Desenvolvimento completo dos deltóides",
+		type: "strength",
+		muscleGroup: "ombros",
+		difficulty: "iniciante",
+		xpReward: 50,
+		estimatedTime: 40,
+		locked: true,
+		completed: false,
+		exercises: [],
+	},
+	// Workouts de Cardio
+	{
+		id: "cardio-run-1",
+		title: "Corrida Intervalada",
+		description: "HIIT de corrida para queimar calorias",
+		type: "cardio",
+		muscleGroup: "cardio",
+		difficulty: "intermediario",
+		xpReward: 40,
+		estimatedTime: 25,
+		locked: false,
+		completed: false,
+		exercises: [
+			createWorkoutExercise(
+				"cardio-ex1",
+				"Corrida 6km/h",
+				1,
+				"25min",
+				0,
+				"Ritmo moderado, mantenha conversação",
+				"corrida-moderada",
+				[
+					{
+						id: "alt-cardio-1-1",
+						name: "Caminhada Rápida 5km/h",
+						reason: "Menor impacto nas articulações",
+					},
+					{
+						id: "alt-cardio-1-2",
+						name: "Elíptico",
+						reason: "Esteira ocupada ou problemas no joelho",
+					},
+					{
+						id: "alt-cardio-1-3",
+						name: "Bike Ergométrica",
+						reason: "Sem impacto, mesmo gasto calórico",
+					},
+				],
+			),
+		],
+	},
+	{
+		id: "cardio-bike-1",
+		title: "Bike Resistência",
+		description: "Treino de resistência cardiovascular",
+		type: "cardio",
+		muscleGroup: "cardio",
+		difficulty: "iniciante",
+		xpReward: 35,
+		estimatedTime: 30,
+		locked: false,
+		completed: false,
+		exercises: [
+			createWorkoutExercise(
+				"bike-ex1",
+				"Bike Ergométrica 30min",
+				1,
+				"30min",
+				0,
+				"Resistência média, 70-80% FC máx",
+				"bike-resistencia",
+				[
+					{
+						id: "alt-bike-1-1",
+						name: "Spinning",
+						reason: "Bike ergométrica ocupada",
+					},
+					{
+						id: "alt-bike-1-2",
+						name: "Esteira Inclinada",
+						reason: "Simular subida, mesmo esforço",
+					},
+					{
+						id: "alt-bike-1-3",
+						name: "Remo Ergométrico",
+						reason: "Trabalho cardiovascular completo",
+					},
+				],
+			),
+		],
+	},
+	{
+		id: "cardio-hiit-1",
+		title: "HIIT Completo",
+		description: "Alta intensidade para máxima queima",
+		type: "cardio",
+		muscleGroup: "cardio",
+		difficulty: "avancado",
+		xpReward: 60,
+		estimatedTime: 20,
+		locked: false,
+		completed: false,
+		exercises: [
+			createWorkoutExercise(
+				"hiit-ex1",
+				"HIIT Burpees 20min",
+				1,
+				"20min",
+				0,
+				"40s on / 20s off - Máxima intensidade",
+				"hiit-burpees",
+				[
+					{
+						id: "alt-hiit-1-1",
+						name: "HIIT Bike",
+						reason: "Menor impacto, mesma intensidade",
+					},
+					{
+						id: "alt-hiit-1-2",
+						name: "HIIT Esteira",
+						reason: "Sprint intervals na esteira",
+					},
+					{
+						id: "alt-hiit-1-3",
+						name: "HIIT Remo",
+						reason: "Trabalho completo corpo inteiro",
+					},
+				],
+			),
+		],
+	},
 ];
 
 export const mockLessons = mockWorkouts;
 
 // Mock diet plans
 export const mockMeals: Meal[] = [
-  {
-    id: "m1",
-    name: "Ovos mexidos + aveia",
-    calories: 450,
-    protein: 30,
-    carbs: 45,
-    fats: 15,
-    completed: true,
-    type: "breakfast",
-  },
-  {
-    id: "m2",
-    name: "Frango grelhado + arroz integral",
-    calories: 550,
-    protein: 45,
-    carbs: 60,
-    fats: 10,
-    type: "lunch",
-  },
-  {
-    id: "m3",
-    name: "Salmão + batata doce",
-    calories: 500,
-    protein: 40,
-    carbs: 50,
-    fats: 12,
-    type: "dinner",
-  },
-  {
-    id: "m4",
-    name: "Whey protein + banana",
-    calories: 200,
-    protein: 25,
-    carbs: 25,
-    fats: 2,
-    type: "snack",
-  },
+	{
+		id: "m1",
+		name: "Ovos mexidos + aveia",
+		calories: 450,
+		protein: 30,
+		carbs: 45,
+		fats: 15,
+		completed: true,
+		type: "breakfast",
+	},
+	{
+		id: "m2",
+		name: "Frango grelhado + arroz integral",
+		calories: 550,
+		protein: 45,
+		carbs: 60,
+		fats: 10,
+		type: "lunch",
+	},
+	{
+		id: "m3",
+		name: "Salmão + batata doce",
+		calories: 500,
+		protein: 40,
+		carbs: 50,
+		fats: 12,
+		type: "dinner",
+	},
+	{
+		id: "m4",
+		name: "Whey protein + banana",
+		calories: 200,
+		protein: 25,
+		carbs: 25,
+		fats: 2,
+		type: "snack",
+	},
 ];
 
 export const mockDietPlans: DietPlan[] = [
-  {
-    id: "diet-1",
-    title: "Dieta Bulking - Dia 1",
-    description: "Plano alimentar para ganho de massa",
-    meals: mockMeals,
-    totalCalories: 2800,
-    xpReward: 30,
-    locked: false,
-    completed: false,
-    targetProtein: 180,
-    targetCarbs: 280,
-    targetFats: 70,
-  },
+	{
+		id: "diet-1",
+		title: "Dieta Bulking - Dia 1",
+		description: "Plano alimentar para ganho de massa",
+		meals: mockMeals,
+		totalCalories: 2800,
+		xpReward: 30,
+		locked: false,
+		completed: false,
+		targetProtein: 180,
+		targetCarbs: 280,
+		targetFats: 70,
+	},
 ];
 
 // Mock units (trilha de treino)
 export const mockUnits: Unit[] = [
-  {
-    id: "unit-1",
-    title: "Semana 1",
-    description: "Começando sua jornada fitness",
-    workouts: [
-      mockWorkouts[0], // Peito e Tríceps
-      mockWorkouts[4], // Cardio - Corrida Intervalada
-      mockWorkouts[1], // Costas e Bíceps
-    ],
-    color: "#58CC02",
-    icon: "💪",
-  },
-  {
-    id: "unit-2",
-    title: "Semana 2",
-    description: "Aumentando a intensidade",
-    workouts: [
-      mockWorkouts[2], // Pernas
-      mockWorkouts[5], // Cardio - Bike
-      mockWorkouts[6], // HIIT
-    ],
-    color: "#1CB0F6",
-    icon: "🔥",
-  },
-  {
-    id: "unit-3",
-    title: "Semana 3",
-    description: "Treino avançado",
-    workouts: [mockWorkouts[3]], // Ombros (locked)
-    color: "#FF9600",
-    icon: "⚡",
-  },
+	{
+		id: "unit-1",
+		title: "Semana 1",
+		description: "Começando sua jornada fitness",
+		workouts: [
+			mockWorkouts[0], // Peito e Tríceps
+			mockWorkouts[4], // Cardio - Corrida Intervalada
+			mockWorkouts[1], // Costas e Bíceps
+		],
+		color: "#58CC02",
+		icon: "💪",
+	},
+	{
+		id: "unit-2",
+		title: "Semana 2",
+		description: "Aumentando a intensidade",
+		workouts: [
+			mockWorkouts[2], // Pernas
+			mockWorkouts[5], // Cardio - Bike
+			mockWorkouts[6], // HIIT
+		],
+		color: "#1CB0F6",
+		icon: "🔥",
+	},
+	{
+		id: "unit-3",
+		title: "Semana 3",
+		description: "Treino avançado",
+		workouts: [mockWorkouts[3]], // Ombros (locked)
+		color: "#FF9600",
+		icon: "⚡",
+	},
 ];
 
 export const mockFoodDatabase: FoodItem[] = [
-  {
-    id: "food-1",
-    name: "Peito de frango grelhado",
-    calories: 165,
-    protein: 31,
-    carbs: 0,
-    fats: 3.6,
-    servingSize: "100g",
-    category: "protein",
-  },
-  {
-    id: "food-2",
-    name: "Arroz integral cozido",
-    calories: 112,
-    protein: 2.6,
-    carbs: 24,
-    fats: 0.9,
-    servingSize: "100g",
-    category: "carbs",
-  },
-  {
-    id: "food-3",
-    name: "Batata doce cozida",
-    calories: 86,
-    protein: 1.6,
-    carbs: 20,
-    fats: 0.1,
-    servingSize: "100g",
-    category: "carbs",
-  },
-  {
-    id: "food-4",
-    name: "Ovo inteiro cozido",
-    calories: 155,
-    protein: 13,
-    carbs: 1.1,
-    fats: 11,
-    servingSize: "1 unidade (50g)",
-    category: "protein",
-  },
-  {
-    id: "food-5",
-    name: "Aveia em flocos",
-    calories: 389,
-    protein: 16.9,
-    carbs: 66,
-    fats: 6.9,
-    servingSize: "100g",
-    category: "carbs",
-  },
-  {
-    id: "food-6",
-    name: "Banana",
-    calories: 89,
-    protein: 1.1,
-    carbs: 23,
-    fats: 0.3,
-    servingSize: "1 unidade (100g)",
-    category: "fruits",
-  },
-  {
-    id: "food-7",
-    name: "Salmão grelhado",
-    calories: 208,
-    protein: 20,
-    carbs: 0,
-    fats: 13,
-    servingSize: "100g",
-    category: "protein",
-  },
-  {
-    id: "food-8",
-    name: "Brócolis cozido",
-    calories: 35,
-    protein: 2.4,
-    carbs: 7,
-    fats: 0.4,
-    servingSize: "100g",
-    category: "vegetables",
-  },
-  {
-    id: "food-9",
-    name: "Whey Protein",
-    calories: 120,
-    protein: 24,
-    carbs: 3,
-    fats: 1,
-    servingSize: "1 scoop (30g)",
-    category: "protein",
-  },
-  {
-    id: "food-10",
-    name: "Azeite de oliva",
-    calories: 884,
-    protein: 0,
-    carbs: 0,
-    fats: 100,
-    servingSize: "100ml",
-    category: "fats",
-  },
+	{
+		id: "food-1",
+		name: "Peito de frango grelhado",
+		calories: 165,
+		protein: 31,
+		carbs: 0,
+		fats: 3.6,
+		servingSize: "100g",
+		category: "protein",
+	},
+	{
+		id: "food-2",
+		name: "Arroz integral cozido",
+		calories: 112,
+		protein: 2.6,
+		carbs: 24,
+		fats: 0.9,
+		servingSize: "100g",
+		category: "carbs",
+	},
+	{
+		id: "food-3",
+		name: "Batata doce cozida",
+		calories: 86,
+		protein: 1.6,
+		carbs: 20,
+		fats: 0.1,
+		servingSize: "100g",
+		category: "carbs",
+	},
+	{
+		id: "food-4",
+		name: "Ovo inteiro cozido",
+		calories: 155,
+		protein: 13,
+		carbs: 1.1,
+		fats: 11,
+		servingSize: "1 unidade (50g)",
+		category: "protein",
+	},
+	{
+		id: "food-5",
+		name: "Aveia em flocos",
+		calories: 389,
+		protein: 16.9,
+		carbs: 66,
+		fats: 6.9,
+		servingSize: "100g",
+		category: "carbs",
+	},
+	{
+		id: "food-6",
+		name: "Banana",
+		calories: 89,
+		protein: 1.1,
+		carbs: 23,
+		fats: 0.3,
+		servingSize: "1 unidade (100g)",
+		category: "fruits",
+	},
+	{
+		id: "food-7",
+		name: "Salmão grelhado",
+		calories: 208,
+		protein: 20,
+		carbs: 0,
+		fats: 13,
+		servingSize: "100g",
+		category: "protein",
+	},
+	{
+		id: "food-8",
+		name: "Brócolis cozido",
+		calories: 35,
+		protein: 2.4,
+		carbs: 7,
+		fats: 0.4,
+		servingSize: "100g",
+		category: "vegetables",
+	},
+	{
+		id: "food-9",
+		name: "Whey Protein",
+		calories: 120,
+		protein: 24,
+		carbs: 3,
+		fats: 1,
+		servingSize: "1 scoop (30g)",
+		category: "protein",
+	},
+	{
+		id: "food-10",
+		name: "Azeite de oliva",
+		calories: 884,
+		protein: 0,
+		carbs: 0,
+		fats: 100,
+		servingSize: "100ml",
+		category: "fats",
+	},
 ];
 
 export const mockDailyNutrition: DailyNutrition = {
-  date: new Date().toISOString(),
-  meals: [
-    {
-      id: "meal-1",
-      name: "Café da manhã completo",
-      type: "breakfast",
-      calories: 450,
-      protein: 30,
-      carbs: 45,
-      fats: 15,
-      completed: true,
-      time: "08:00",
-      ingredients: ["3 ovos", "50g aveia", "1 banana"],
-    },
-  ],
-  totalCalories: 450,
-  totalProtein: 30,
-  totalCarbs: 45,
-  totalFats: 15,
-  waterIntake: 2000,
-  targetCalories: 2500,
-  targetProtein: 180,
-  targetCarbs: 280,
-  targetFats: 70,
-  targetWater: 3000,
+	date: new Date().toISOString(),
+	meals: [
+		{
+			id: "meal-1",
+			name: "Café da manhã completo",
+			type: "breakfast",
+			calories: 450,
+			protein: 30,
+			carbs: 45,
+			fats: 15,
+			completed: true,
+			time: "08:00",
+			ingredients: ["3 ovos", "50g aveia", "1 banana"],
+		},
+	],
+	totalCalories: 450,
+	totalProtein: 30,
+	totalCarbs: 45,
+	totalFats: 15,
+	waterIntake: 2000,
+	targetCalories: 2500,
+	targetProtein: 180,
+	targetCarbs: 280,
+	targetFats: 70,
+	targetWater: 3000,
 };
 
 // Helper functions
 export function calculateLevel(xp: number): {
-  level: number;
-  xpToNext: number;
+	level: number;
+	xpToNext: number;
 } {
-  const level = Math.floor(xp / 100) + 1;
-  const xpToNext = level * 100 - xp;
-  return { level, xpToNext };
+	const level = Math.floor(xp / 100) + 1;
+	const xpToNext = level * 100 - xp;
+	return { level, xpToNext };
 }
 
 export function checkStreak(lastActivityDate: string): boolean {
-  const last = new Date(lastActivityDate);
-  const now = new Date();
-  const diffTime = Math.abs(now.getTime() - last.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays <= 1;
+	const last = new Date(lastActivityDate);
+	const now = new Date();
+	const diffTime = Math.abs(now.getTime() - last.getTime());
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+	return diffDays <= 1;
 }
 
 // AI integration placeholders
 export async function generateWorkoutWithAI(
-  prompt: string
+	prompt: string,
 ): Promise<WorkoutSession> {
-  console.log("AI Prompt:", prompt);
-  return mockWorkouts[0];
+	console.log("AI Prompt:", prompt);
+	return mockWorkouts[0];
 }
 
 export async function generateDietWithAI(prompt: string): Promise<DietPlan> {
-  console.log("AI Prompt:", prompt);
-  return mockDietPlans[0];
+	console.log("AI Prompt:", prompt);
+	return mockDietPlans[0];
 }
 
 export const placementQuestions: PlacementQuestion[] = [
-  {
-    id: "experience",
-    question: "Qual é seu nível de experiência com musculação?",
-    type: "multiple-choice",
-    options: [
-      "Nunca treinei antes",
-      "Treino há menos de 6 meses",
-      "Treino há 6 meses a 2 anos",
-      "Treino há mais de 2 anos",
-    ],
-    icon: "💪",
-  },
-  {
-    id: "frequency",
-    question: "Quantos dias por semana você pode treinar?",
-    type: "multiple-choice",
-    options: ["2-3 dias", "4-5 dias", "6-7 dias"],
-    icon: "📅",
-  },
-  {
-    id: "goals",
-    question: "Quais são seus principais objetivos?",
-    type: "selection",
-    options: [
-      "Ganhar massa muscular",
-      "Perder gordura",
-      "Melhorar condicionamento",
-      "Ficar mais forte",
-      "Definição muscular",
-    ],
-    icon: "🎯",
-  },
-  {
-    id: "equipment",
-    question: "Onde você vai treinar?",
-    type: "multiple-choice",
-    options: [
-      "Academia completa",
-      "Academia em casa",
-      "Apenas peso corporal",
-      "Equipamentos limitados",
-    ],
-    icon: "🏋️",
-  },
-  {
-    id: "injuries",
-    question: "Você tem alguma lesão ou limitação física?",
-    type: "multiple-choice",
-    options: [
-      "Não, estou 100%",
-      "Problemas no joelho",
-      "Problemas nas costas",
-      "Problemas no ombro",
-      "Outras limitações",
-    ],
-    icon: "🩺",
-  },
+	{
+		id: "experience",
+		question: "Qual é seu nível de experiência com musculação?",
+		type: "multiple-choice",
+		options: [
+			"Nunca treinei antes",
+			"Treino há menos de 6 meses",
+			"Treino há 6 meses a 2 anos",
+			"Treino há mais de 2 anos",
+		],
+		icon: "💪",
+	},
+	{
+		id: "frequency",
+		question: "Quantos dias por semana você pode treinar?",
+		type: "multiple-choice",
+		options: ["2-3 dias", "4-5 dias", "6-7 dias"],
+		icon: "📅",
+	},
+	{
+		id: "goals",
+		question: "Quais são seus principais objetivos?",
+		type: "selection",
+		options: [
+			"Ganhar massa muscular",
+			"Perder gordura",
+			"Melhorar condicionamento",
+			"Ficar mais forte",
+			"Definição muscular",
+		],
+		icon: "🎯",
+	},
+	{
+		id: "equipment",
+		question: "Onde você vai treinar?",
+		type: "multiple-choice",
+		options: [
+			"Academia completa",
+			"Academia em casa",
+			"Apenas peso corporal",
+			"Equipamentos limitados",
+		],
+		icon: "🏋️",
+	},
+	{
+		id: "injuries",
+		question: "Você tem alguma lesão ou limitação física?",
+		type: "multiple-choice",
+		options: [
+			"Não, estou 100%",
+			"Problemas no joelho",
+			"Problemas nas costas",
+			"Problemas no ombro",
+			"Outras limitações",
+		],
+		icon: "🩺",
+	},
 ];
 
 export function calculatePlacementResult(
-  responses: Record<string, any>
+	responses: Record<string, any>,
 ): PlacementTestResult {
-  let level: DifficultyLevel = "iniciante";
+	let level: DifficultyLevel = "iniciante";
 
-  if (responses.experience === "Treino há 6 meses a 2 anos") {
-    level = "intermediario";
-  } else if (responses.experience === "Treino há mais de 2 anos") {
-    level = "avancado";
-  }
+	if (responses.experience === "Treino há 6 meses a 2 anos") {
+		level = "intermediario";
+	} else if (responses.experience === "Treino há mais de 2 anos") {
+		level = "avancado";
+	}
 
-  return {
-    level,
-    recommendedProgram:
-      level === "iniciante"
-        ? "Push Pull Legs 3x"
-        : level === "intermediario"
-        ? "Upper Lower 4x"
-        : "Arnold Split 6x",
-    strengthAreas: ["peito", "pernas", "costas"],
-    weeklyGoal:
-      responses.frequency === "6-7 dias"
-        ? 6
-        : responses.frequency === "4-5 dias"
-        ? 4
-        : 3,
-    dietCalories: 2500,
-    userResponses: responses,
-  };
+	return {
+		level,
+		recommendedProgram:
+			level === "iniciante"
+				? "Push Pull Legs 3x"
+				: level === "intermediario"
+					? "Upper Lower 4x"
+					: "Arnold Split 6x",
+		strengthAreas: ["peito", "pernas", "costas"],
+		weeklyGoal:
+			responses.frequency === "6-7 dias"
+				? 6
+				: responses.frequency === "4-5 dias"
+					? 4
+					: 3,
+		dietCalories: 2500,
+		userResponses: responses,
+	};
 }
 
 export const mockWorkoutHistory: WorkoutHistory[] = [
-  {
-    date: new Date(Date.now() - 86400000),
-    workoutId: "chest-push-1",
-    workoutName: "Peito e Tríceps - Dia A",
-    duration: 48,
-    totalVolume: 3250,
-    exercises: [
-      {
-        id: "log-1",
-        exerciseId: "ex1",
-        exerciseName: "Supino Reto",
-        workoutId: "chest-push-1",
-        date: new Date(Date.now() - 86400000),
-        sets: [
-          { setNumber: 1, weight: 60, reps: 12, completed: true },
-          { setNumber: 2, weight: 65, reps: 10, completed: true },
-          { setNumber: 3, weight: 70, reps: 8, completed: true },
-          { setNumber: 4, weight: 70, reps: 8, completed: true },
-        ],
-        difficulty: "ideal",
-        formCheckScore: 92,
-      },
-      {
-        id: "log-2",
-        exerciseId: "ex2",
-        exerciseName: "Supino Inclinado",
-        workoutId: "chest-push-1",
-        date: new Date(Date.now() - 86400000),
-        sets: [
-          { setNumber: 1, weight: 50, reps: 12, completed: true },
-          { setNumber: 2, weight: 50, reps: 12, completed: true },
-          { setNumber: 3, weight: 50, reps: 11, completed: true },
-        ],
-        difficulty: "ideal",
-      },
-    ],
-    overallFeedback: "excelente",
-    bodyPartsFatigued: ["peito", "bracos"],
-  },
-  {
-    date: new Date(Date.now() - 172800000),
-    workoutId: "back-pull-1",
-    workoutName: "Costas e Bíceps - Dia B",
-    duration: 52,
-    totalVolume: 2890,
-    exercises: [],
-    overallFeedback: "bom",
-    bodyPartsFatigued: ["costas", "bracos"],
-  },
-  {
-    date: new Date(Date.now() - 259200000),
-    workoutId: "legs-1",
-    workoutName: "Pernas Completo",
-    duration: 65,
-    totalVolume: 4200,
-    exercises: [],
-    overallFeedback: "excelente",
-    bodyPartsFatigued: ["pernas", "gluteos"],
-  },
+	{
+		date: new Date(Date.now() - 86400000),
+		workoutId: "chest-push-1",
+		workoutName: "Peito e Tríceps - Dia A",
+		duration: 48,
+		totalVolume: 3250,
+		exercises: [
+			{
+				id: "log-1",
+				exerciseId: "ex1",
+				exerciseName: "Supino Reto",
+				workoutId: "chest-push-1",
+				date: new Date(Date.now() - 86400000),
+				sets: [
+					{ setNumber: 1, weight: 60, reps: 12, completed: true },
+					{ setNumber: 2, weight: 65, reps: 10, completed: true },
+					{ setNumber: 3, weight: 70, reps: 8, completed: true },
+					{ setNumber: 4, weight: 70, reps: 8, completed: true },
+				],
+				difficulty: "ideal",
+				formCheckScore: 92,
+			},
+			{
+				id: "log-2",
+				exerciseId: "ex2",
+				exerciseName: "Supino Inclinado",
+				workoutId: "chest-push-1",
+				date: new Date(Date.now() - 86400000),
+				sets: [
+					{ setNumber: 1, weight: 50, reps: 12, completed: true },
+					{ setNumber: 2, weight: 50, reps: 12, completed: true },
+					{ setNumber: 3, weight: 50, reps: 11, completed: true },
+				],
+				difficulty: "ideal",
+			},
+		],
+		overallFeedback: "excelente",
+		bodyPartsFatigued: ["peito", "bracos"],
+	},
+	{
+		date: new Date(Date.now() - 172800000),
+		workoutId: "back-pull-1",
+		workoutName: "Costas e Bíceps - Dia B",
+		duration: 52,
+		totalVolume: 2890,
+		exercises: [],
+		overallFeedback: "bom",
+		bodyPartsFatigued: ["costas", "bracos"],
+	},
+	{
+		date: new Date(Date.now() - 259200000),
+		workoutId: "legs-1",
+		workoutName: "Pernas Completo",
+		duration: 65,
+		totalVolume: 4200,
+		exercises: [],
+		overallFeedback: "excelente",
+		bodyPartsFatigued: ["pernas", "gluteos"],
+	},
 ];
 
 export const mockPersonalRecords: PersonalRecord[] = [
-  {
-    exerciseId: "ex1",
-    exerciseName: "Supino Reto",
-    type: "max-weight",
-    value: 100,
-    date: new Date(Date.now() - 604800000),
-    previousBest: 95,
-  },
-  {
-    exerciseId: "squat-1",
-    exerciseName: "Agachamento Livre",
-    type: "max-weight",
-    value: 140,
-    date: new Date(Date.now() - 1209600000),
-    previousBest: 130,
-  },
-  {
-    exerciseId: "deadlift-1",
-    exerciseName: "Levantamento Terra",
-    type: "max-weight",
-    value: 160,
-    date: new Date(Date.now() - 2592000000),
-    previousBest: 150,
-  },
-  {
-    exerciseId: "ex4",
-    exerciseName: "Rosca Direta",
-    type: "max-reps",
-    value: 15,
-    date: new Date(Date.now() - 432000000),
-  },
+	{
+		exerciseId: "ex1",
+		exerciseName: "Supino Reto",
+		type: "max-weight",
+		value: 100,
+		date: new Date(Date.now() - 604800000),
+		previousBest: 95,
+	},
+	{
+		exerciseId: "squat-1",
+		exerciseName: "Agachamento Livre",
+		type: "max-weight",
+		value: 140,
+		date: new Date(Date.now() - 1209600000),
+		previousBest: 130,
+	},
+	{
+		exerciseId: "deadlift-1",
+		exerciseName: "Levantamento Terra",
+		type: "max-weight",
+		value: 160,
+		date: new Date(Date.now() - 2592000000),
+		previousBest: 150,
+	},
+	{
+		exerciseId: "ex4",
+		exerciseName: "Rosca Direta",
+		type: "max-reps",
+		value: 15,
+		date: new Date(Date.now() - 432000000),
+	},
 ];
 
 export const mockWeightHistory = [
-  { date: new Date(Date.now() - 2592000000 * 3), weight: 78 },
-  { date: new Date(Date.now() - 2592000000 * 2), weight: 79.5 },
-  { date: new Date(Date.now() - 2592000000), weight: 81 },
-  { date: new Date(Date.now()), weight: 82.5 },
+	{ date: new Date(Date.now() - 2592000000 * 3), weight: 78 },
+	{ date: new Date(Date.now() - 2592000000 * 2), weight: 79.5 },
+	{ date: new Date(Date.now() - 2592000000), weight: 81 },
+	{ date: new Date(Date.now()), weight: 82.5 },
 ];
 
 export const mockProgressPhotos = [
-  {
-    id: "photo-1",
-    date: new Date(Date.now() - 2592000000 * 3),
-    url: "/fitness-transformation-before.jpg",
-    notes: "Início da jornada",
-    weight: 78,
-  },
-  {
-    id: "photo-2",
-    date: new Date(Date.now() - 2592000000),
-    url: "/fitness-transformation-1-month.jpg",
-    notes: "1 mês de treino",
-    weight: 81,
-  },
-  {
-    id: "photo-3",
-    date: new Date(),
-    url: "/fitness-transformation-current.jpg",
-    notes: "Progresso atual",
-    weight: 82.5,
-  },
+	{
+		id: "photo-1",
+		date: new Date(Date.now() - 2592000000 * 3),
+		url: "/fitness-transformation-before.jpg",
+		notes: "Início da jornada",
+		weight: 78,
+	},
+	{
+		id: "photo-2",
+		date: new Date(Date.now() - 2592000000),
+		url: "/fitness-transformation-1-month.jpg",
+		notes: "1 mês de treino",
+		weight: 81,
+	},
+	{
+		id: "photo-3",
+		date: new Date(),
+		url: "/fitness-transformation-current.jpg",
+		notes: "Progresso atual",
+		weight: 82.5,
+	},
 ];
 
 // Mock student memberships
 export const mockStudentMemberships: StudentGymMembership[] = [
-  {
-    id: "membership-1",
-    gymId: "gym-1",
-    gymName: "PowerFit Academia",
-    gymLogo: "/abstract-gym-logo.png",
-    gymAddress: "Rua das Flores, 123 - Centro",
-    planId: "plan-monthly",
-    planName: "Mensal Premium",
-    planType: "monthly",
-    startDate: new Date(Date.now() - 86400000 * 30),
-    nextBillingDate: new Date(Date.now() + 86400000 * 5),
-    amount: 149.9,
-    status: "active",
-    autoRenew: true,
-    paymentMethod: {
-      type: "credit-card",
-      last4: "4532",
-      brand: "Visa",
-    },
-    benefits: [
-      "Acesso ilimitado",
-      "Todas as aulas",
-      "App premium",
-      "Avaliação física",
-    ],
-  },
-  {
-    id: "membership-2",
-    gymId: "gym-2",
-    gymName: "FitZone",
-    gymAddress: "Av. Principal, 456 - Bairro Novo",
-    planId: "plan-quarterly",
-    planName: "Plano Trimestral",
-    planType: "quarterly",
-    startDate: new Date(Date.now() - 86400000 * 60),
-    nextBillingDate: new Date(Date.now() + 86400000 * 30),
-    amount: 119.9,
-    status: "active",
-    autoRenew: false,
-    benefits: ["Acesso ilimitado", "Musculação"],
-  },
+	{
+		id: "membership-1",
+		gymId: "gym-1",
+		gymName: "PowerFit Academia",
+		gymLogo: "/abstract-gym-logo.png",
+		gymAddress: "Rua das Flores, 123 - Centro",
+		planId: "plan-monthly",
+		planName: "Mensal Premium",
+		planType: "monthly",
+		startDate: new Date(Date.now() - 86400000 * 30),
+		nextBillingDate: new Date(Date.now() + 86400000 * 5),
+		amount: 149.9,
+		status: "active",
+		autoRenew: true,
+		paymentMethod: {
+			type: "credit-card",
+			last4: "4532",
+			brand: "Visa",
+		},
+		benefits: [
+			"Acesso ilimitado",
+			"Todas as aulas",
+			"App premium",
+			"Avaliação física",
+		],
+	},
+	{
+		id: "membership-2",
+		gymId: "gym-2",
+		gymName: "FitZone",
+		gymAddress: "Av. Principal, 456 - Bairro Novo",
+		planId: "plan-quarterly",
+		planName: "Plano Trimestral",
+		planType: "quarterly",
+		startDate: new Date(Date.now() - 86400000 * 60),
+		nextBillingDate: new Date(Date.now() + 86400000 * 30),
+		amount: 119.9,
+		status: "active",
+		autoRenew: false,
+		benefits: ["Acesso ilimitado", "Musculação"],
+	},
 ];
 
 // Mock student payments
 export const mockStudentPayments: StudentPayment[] = [
-  {
-    id: "pay-1",
-    gymId: "gym-1",
-    gymName: "PowerFit Academia",
-    planName: "Mensal Premium",
-    amount: 149.9,
-    date: new Date(Date.now() - 86400000 * 5),
-    dueDate: new Date(Date.now() - 86400000 * 5),
-    status: "paid",
-    paymentMethod: "credit-card",
-    reference: "PAY-2024-001",
-    receiptUrl: "#",
-  },
-  {
-    id: "pay-2",
-    gymId: "gym-1",
-    gymName: "PowerFit Academia",
-    planName: "Mensal Premium",
-    amount: 149.9,
-    date: new Date(),
-    dueDate: new Date(Date.now() + 86400000 * 5),
-    status: "pending",
-    paymentMethod: "credit-card",
-  },
-  {
-    id: "pay-3",
-    gymId: "gym-2",
-    gymName: "FitZone",
-    planName: "Trimestral",
-    amount: 119.9,
-    date: new Date(Date.now() - 86400000 * 30),
-    dueDate: new Date(Date.now() - 86400000 * 30),
-    status: "paid",
-    paymentMethod: "pix",
-  },
+	{
+		id: "pay-1",
+		gymId: "gym-1",
+		gymName: "PowerFit Academia",
+		planName: "Mensal Premium",
+		amount: 149.9,
+		date: new Date(Date.now() - 86400000 * 5),
+		dueDate: new Date(Date.now() - 86400000 * 5),
+		status: "paid",
+		paymentMethod: "credit-card",
+		reference: "PAY-2024-001",
+		receiptUrl: "#",
+	},
+	{
+		id: "pay-2",
+		gymId: "gym-1",
+		gymName: "PowerFit Academia",
+		planName: "Mensal Premium",
+		amount: 149.9,
+		date: new Date(),
+		dueDate: new Date(Date.now() + 86400000 * 5),
+		status: "pending",
+		paymentMethod: "credit-card",
+	},
+	{
+		id: "pay-3",
+		gymId: "gym-2",
+		gymName: "FitZone",
+		planName: "Trimestral",
+		amount: 119.9,
+		date: new Date(Date.now() - 86400000 * 30),
+		dueDate: new Date(Date.now() - 86400000 * 30),
+		status: "paid",
+		paymentMethod: "pix",
+	},
 ];
 
 // Mock payment methods
 export const mockPaymentMethods: PaymentMethod[] = [
-  {
-    id: "pm-1",
-    type: "credit-card",
-    isDefault: true,
-    cardBrand: "Visa",
-    last4: "4532",
-    expiryMonth: 12,
-    expiryYear: 2027,
-    holderName: "João Silva",
-  },
-  {
-    id: "pm-2",
-    type: "debit-card",
-    isDefault: false,
-    cardBrand: "Mastercard",
-    last4: "8976",
-    expiryMonth: 8,
-    expiryYear: 2026,
-    holderName: "João Silva",
-  },
+	{
+		id: "pm-1",
+		type: "credit-card",
+		isDefault: true,
+		cardBrand: "Visa",
+		last4: "4532",
+		expiryMonth: 12,
+		expiryYear: 2027,
+		holderName: "João Silva",
+	},
+	{
+		id: "pm-2",
+		type: "debit-card",
+		isDefault: false,
+		cardBrand: "Mastercard",
+		last4: "8976",
+		expiryMonth: 8,
+		expiryYear: 2026,
+		holderName: "João Silva",
+	},
 ];

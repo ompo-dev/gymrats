@@ -1,14 +1,14 @@
 "use client";
 
-import { motion } from "motion/react";
 import { Star } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 interface WorkoutNodeButtonProps {
-  onClick: () => void;
-  isLocked: boolean;
-  isCompleted: boolean;
-  isCurrent: boolean;
+	onClick: () => void;
+	isLocked: boolean;
+	isCompleted: boolean;
+	isCurrent: boolean;
 }
 
 /**
@@ -16,66 +16,66 @@ interface WorkoutNodeButtonProps {
  * Renderiza estrela sempre, mas em tons de cinza quando bloqueado
  */
 export function WorkoutNodeButton({
-  onClick,
-  isLocked,
-  isCompleted,
-  isCurrent,
+	onClick,
+	isLocked,
+	isCompleted,
+	isCurrent,
 }: WorkoutNodeButtonProps) {
-  const activeColor = "#58CC02"; // duo-green
-  
-  const handleClick = (e: React.MouseEvent) => {
-    // Não chamar onClick se estiver bloqueado
-    if (isLocked) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    onClick();
-  };
-  
-  return (
-    <motion.button
-      onClick={handleClick}
-      disabled={isLocked}
-      whileHover={!isLocked && !isCompleted ? { scale: 1.05, y: -5 } : {}}
-      whileTap={!isLocked && !isCompleted ? { scale: 0.95, y: -3 } : {}}
-      animate={!isLocked && !isCompleted ? { y: -5 } : { y: 0 }}
-      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-      className={cn(
-        "relative w-[70px] h-[65px] flex items-center justify-center z-10",
-        // Quando bloqueado: tons de cinza
-        isLocked && "cursor-not-allowed bg-[#E5E5E5]",
-        // Quando desbloqueado e completo: dourado
-        !isLocked &&
-          isCompleted &&
-          "bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00]",
-        // Quando não completo: cor baseada no tipo (cardio=vermelho, strength=verde)
-        !isLocked && !isCompleted && "transition-colors duration-200"
-      )}
-      style={{
-        borderRadius: "31.75px",
-        backgroundColor: !isLocked && !isCompleted ? activeColor : undefined,
-        boxShadow: isLocked
-          ? "0px 8px 0px rgba(0, 0, 0, 0.1), 0px 8px 0px #D1D5DB"
-          : isCurrent || (!isLocked && !isCompleted)
-          ? `0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px ${activeColor}`
-          : isCompleted
-          ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FFA500"
-          : "none",
-      }}
-    >
-      {/* Estrela - sempre mostra, mas em cinza quando bloqueado */}
-      <Star
-        className={cn(
-          "fill-current",
-          isLocked
-            ? "text-[#AFAFAF]"
-            : isCompleted
-            ? "text-white"
-            : "text-white"
-        )}
-        style={{ width: "42px", height: "34px" }}
-      />
-    </motion.button>
-  );
+	const activeColor = "#58CC02"; // duo-green
+
+	const handleClick = (e: React.MouseEvent) => {
+		// Não chamar onClick se estiver bloqueado
+		if (isLocked) {
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
+		onClick();
+	};
+
+	return (
+		<motion.button
+			onClick={handleClick}
+			disabled={isLocked}
+			whileHover={!isLocked && !isCompleted ? { scale: 1.05, y: -5 } : {}}
+			whileTap={!isLocked && !isCompleted ? { scale: 0.95, y: -3 } : {}}
+			animate={!isLocked && !isCompleted ? { y: -5 } : { y: 0 }}
+			transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+			className={cn(
+				"relative w-[70px] h-[65px] flex items-center justify-center z-10",
+				// Quando bloqueado: tons de cinza
+				isLocked && "cursor-not-allowed bg-[#E5E5E5]",
+				// Quando desbloqueado e completo: dourado
+				!isLocked &&
+					isCompleted &&
+					"bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00]",
+				// Quando não completo: cor baseada no tipo (cardio=vermelho, strength=verde)
+				!isLocked && !isCompleted && "transition-colors duration-200",
+			)}
+			style={{
+				borderRadius: "31.75px",
+				backgroundColor: !isLocked && !isCompleted ? activeColor : undefined,
+				boxShadow: isLocked
+					? "0px 8px 0px rgba(0, 0, 0, 0.1), 0px 8px 0px #D1D5DB"
+					: isCurrent || (!isLocked && !isCompleted)
+						? `0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px ${activeColor}`
+						: isCompleted
+							? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FFA500"
+							: "none",
+			}}
+		>
+			{/* Estrela - sempre mostra, mas em cinza quando bloqueado */}
+			<Star
+				className={cn(
+					"fill-current",
+					isLocked
+						? "text-[#AFAFAF]"
+						: isCompleted
+							? "text-white"
+							: "text-white",
+				)}
+				style={{ width: "42px", height: "34px" }}
+			/>
+		</motion.button>
+	);
 }

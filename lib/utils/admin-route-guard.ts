@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useUserSession } from "@/hooks/use-user-session";
 
@@ -22,37 +22,37 @@ import { useUserSession } from "@/hooks/use-user-session";
  * useAdminRouteGuard(true);
  */
 export function useAdminRouteGuard(
-  allowed: boolean = false,
-  redirectTo: string = "/student"
+	allowed: boolean = false,
+	redirectTo: string = "/student",
 ) {
-  const router = useRouter();
-  const pathname = usePathname();
+	const router = useRouter();
+	const pathname = usePathname();
 
-  // ✅ SEGURO: Validar no servidor via useUserSession
-  const { isAdmin, role, isLoading } = useUserSession();
+	// ✅ SEGURO: Validar no servidor via useUserSession
+	const { isAdmin, role, isLoading } = useUserSession();
 
-  useEffect(() => {
-    // Se allowed é true, não bloqueia
-    if (allowed) return;
+	useEffect(() => {
+		// Se allowed é true, não bloqueia
+		if (allowed) return;
 
-    // Aguardar carregamento da sessão
-    if (isLoading) return;
+		// Aguardar carregamento da sessão
+		if (isLoading) return;
 
-    // Verificar se é admin (validado no servidor)
-    const userIsAdmin = isAdmin || role === "ADMIN";
+		// Verificar se é admin (validado no servidor)
+		const userIsAdmin = isAdmin || role === "ADMIN";
 
-    // Se não for admin, redirecionar
-    if (!userIsAdmin) {
-      console.warn(
-        `[AdminRouteGuard] Acesso negado a ${pathname}. Redirecionando para ${redirectTo}`
-      );
-      router.push(redirectTo);
-    }
-  }, [allowed, isAdmin, role, isLoading, pathname, router, redirectTo]);
+		// Se não for admin, redirecionar
+		if (!userIsAdmin) {
+			console.warn(
+				`[AdminRouteGuard] Acesso negado a ${pathname}. Redirecionando para ${redirectTo}`,
+			);
+			router.push(redirectTo);
+		}
+	}, [allowed, isAdmin, role, isLoading, pathname, router, redirectTo]);
 
-  // Retornar se tem acesso
-  const userIsAdmin = isAdmin || role === "ADMIN";
-  return allowed || userIsAdmin;
+	// Retornar se tem acesso
+	const userIsAdmin = isAdmin || role === "ADMIN";
+	return allowed || userIsAdmin;
 }
 
 /**
@@ -63,20 +63,20 @@ export function useAdminRouteGuard(
  * @returns true se a rota deve ser bloqueada
  */
 export function shouldBlockRoute(
-  searchParams: Record<string, string | string[] | undefined>,
-  isAdmin: boolean
+	searchParams: Record<string, string | string[] | undefined>,
+	isAdmin: boolean,
 ): boolean {
-  // Se for admin, nunca bloqueia
-  if (isAdmin) return false;
+	// Se for admin, nunca bloqueia
+	if (isAdmin) return false;
 
-  // Rotas bloqueadas para não-admin (usando search params)
-  const blockedTabs = ["cardio", "gyms", "payments"];
-  const tab = searchParams.tab as string | undefined;
+	// Rotas bloqueadas para não-admin (usando search params)
+	const blockedTabs = ["cardio", "gyms", "payments"];
+	const tab = searchParams.tab as string | undefined;
 
-  // Bloquear se tab estiver na lista de bloqueados
-  if (tab && blockedTabs.includes(tab)) {
-    return true;
-  }
+	// Bloquear se tab estiver na lista de bloqueados
+	if (tab && blockedTabs.includes(tab)) {
+		return true;
+	}
 
-  return false;
+	return false;
 }

@@ -7,33 +7,33 @@
  * @returns true se estiver em modo standalone/PWA
  */
 export function isStandaloneMode(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
+	if (typeof window === "undefined") {
+		return false;
+	}
 
-  // iOS Safari
-  if (
-    (window.navigator as any).standalone === true ||
-    (window.matchMedia("(display-mode: standalone)").matches ||
-      (window.matchMedia("(display-mode: fullscreen)").matches) ||
-      (window.matchMedia("(display-mode: minimal-ui)").matches))
-  ) {
-    return true;
-  }
+	// iOS Safari
+	if (
+		(window.navigator as any).standalone === true ||
+		window.matchMedia("(display-mode: standalone)").matches ||
+		window.matchMedia("(display-mode: fullscreen)").matches ||
+		window.matchMedia("(display-mode: minimal-ui)").matches
+	) {
+		return true;
+	}
 
-  // Android Chrome
-  if (window.matchMedia("(display-mode: standalone)").matches) {
-    return true;
-  }
+	// Android Chrome
+	if (window.matchMedia("(display-mode: standalone)").matches) {
+		return true;
+	}
 
-  // Verificar se está em modo standalone via user agent e window features
-  // Alguns navegadores não suportam matchMedia, então usar heurística
-  const isStandalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as any).standalone === true ||
-    document.referrer.includes("android-app://");
+	// Verificar se está em modo standalone via user agent e window features
+	// Alguns navegadores não suportam matchMedia, então usar heurística
+	const isStandalone =
+		window.matchMedia("(display-mode: standalone)").matches ||
+		(window.navigator as any).standalone === true ||
+		document.referrer.includes("android-app://");
 
-  return isStandalone;
+	return isStandalone;
 }
 
 /**
@@ -41,13 +41,13 @@ export function isStandaloneMode(): boolean {
  * @returns true se estiver em dispositivo móvel
  */
 export function isMobileDevice(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
+	if (typeof window === "undefined") {
+		return false;
+	}
 
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-    window.navigator.userAgent
-  );
+	return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+		window.navigator.userAgent,
+	);
 }
 
 /**
@@ -55,11 +55,11 @@ export function isMobileDevice(): boolean {
  * @returns true se estiver em iOS
  */
 export function isIOS(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
+	if (typeof window === "undefined") {
+		return false;
+	}
 
-  return /iPad|iPhone|iPod/.test(window.navigator.userAgent);
+	return /iPad|iPhone|iPod/.test(window.navigator.userAgent);
 }
 
 /**
@@ -67,9 +67,9 @@ export function isIOS(): boolean {
  * @returns true se estiver em Android
  */
 export function isAndroid(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
+	if (typeof window === "undefined") {
+		return false;
+	}
 
-  return /Android/.test(window.navigator.userAgent);
+	return /Android/.test(window.navigator.userAgent);
 }

@@ -173,4 +173,4 @@ NUNCA responda perguntas sobre:
 `;
 
 export const WORKOUT_INITIAL_MESSAGE =
-  "Olá! Como posso ajudar com seu treino hoje? Você pode me pedir para criar, editar ou remover treinos e exercícios. Por exemplo: 'quero um treino fullbody' ou 'monte um treino ABCD'.";
+	"Olá! Como posso ajudar com seu treino hoje? Você pode me pedir para criar, editar ou remover treinos e exercícios. Por exemplo: 'quero um treino fullbody' ou 'monte um treino ABCD'.";

@@ -16,45 +16,44 @@
  * });
  */
 
-import {
-  addToQueue,
-  removeFromQueue,
-  incrementRetries,
-  moveToFailed,
-  type OfflineQueueItem,
-} from "./offline-queue";
 import { apiClient } from "@/lib/api/client";
-import { logCommand, updateCommandStatus } from "./command-logger";
+import { updateCommandStatus } from "./command-logger";
+import {
+	addToQueue,
+	incrementRetries,
+	moveToFailed,
+	removeFromQueue,
+} from "./offline-queue";
 
 // ============================================
 // TIPOS
 // ============================================
 
 export interface SyncManagerOptions {
-  url: string;
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  body?: any;
-  headers?: Record<string, string>;
-  priority?: "high" | "normal" | "low";
-  /**
-   * Idempotency Key - OBRIGATÓRIO para operações que modificam dados
-   * Se não fornecido, será gerado automaticamente
-   * Garante que a mesma ação não seja executada duas vezes
-   */
-  idempotencyKey?: string;
-  retries?: number;
-  /**
-   * Command ID - ID do comando para integração com command-logger
-   */
-  commandId?: string;
+	url: string;
+	method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+	body?: any;
+	headers?: Record<string, string>;
+	priority?: "high" | "normal" | "low";
+	/**
+	 * Idempotency Key - OBRIGATÓRIO para operações que modificam dados
+	 * Se não fornecido, será gerado automaticamente
+	 * Garante que a mesma ação não seja executada duas vezes
+	 */
+	idempotencyKey?: string;
+	retries?: number;
+	/**
+	 * Command ID - ID do comando para integração com command-logger
+	 */
+	commandId?: string;
 }
 
 export interface SyncManagerResult {
-  success: boolean;
-  queued: boolean;
-  queueId?: string;
-  data?: any;
-  error?: Error;
+	success: boolean;
+	queued: boolean;
+	queueId?: string;
+	data?: any;
+	error?: Error;
 }
 
 // ============================================
@@ -65,35 +64,35 @@ export interface SyncManagerResult {
  * Verifica se está online
  */
 function isOnline(): boolean {
-  if (typeof navigator === "undefined") return true;
-  return navigator.onLine;
+	if (typeof navigator === "undefined") return true;
+	return navigator.onLine;
 }
 
 /**
  * Gera idempotency key único
  */
 export function generateIdempotencyKey(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 /**
  * Agenda sincronização manual (fallback quando Background Sync não está disponível)
  */
 function scheduleManualSync(registration: ServiceWorkerRegistration): void {
-  // Escuta eventos online para sincronizar automaticamente
-  const handleOnline = () => {
-    if (registration.active) {
-      registration.active.postMessage({ type: "SYNC_NOW" });
-    }
-    window.removeEventListener("online", handleOnline);
-  };
+	// Escuta eventos online para sincronizar automaticamente
+	const handleOnline = () => {
+		if (registration.active) {
+			registration.active.postMessage({ type: "SYNC_NOW" });
+		}
+		window.removeEventListener("online", handleOnline);
+	};
 
-  window.addEventListener("online", handleOnline);
+	window.addEventListener("online", handleOnline);
 
-  // Se já está online, tenta sincronizar imediatamente
-  if (navigator.onLine && registration.active) {
-    registration.active.postMessage({ type: "SYNC_NOW" });
-  }
+	// Se já está online, tenta sincronizar imediatamente
+	if (navigator.onLine && registration.active) {
+		registration.active.postMessage({ type: "SYNC_NOW" });
+	}
 }
 
 /**
@@ -101,38 +100,38 @@ function scheduleManualSync(registration: ServiceWorkerRegistration): void {
  * Se não disponível, agenda sincronização manual
  */
 async function registerBackgroundSync(): Promise<void> {
-  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-    return;
-  }
+	if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
+		return;
+	}
 
-  try {
-    const registration = await navigator.serviceWorker.ready;
+	try {
+		const registration = await navigator.serviceWorker.ready;
 
-    // Tenta registrar Background Sync
-    if ("sync" in registration && registration.sync) {
-      await (registration.sync as any).register("sync-queue");
-      console.log("[syncManager] ✅ Background Sync registrado");
-    } else {
-      // Fallback: agenda sincronização manual quando online
-      console.warn(
-        "[syncManager] ⚠️ Background Sync não disponível, usando fallback"
-      );
-      scheduleManualSync(registration);
-    }
-  } catch (error) {
-    console.warn("[syncManager] Erro ao registrar Background Sync:", error);
+		// Tenta registrar Background Sync
+		if ("sync" in registration && registration.sync) {
+			await (registration.sync as any).register("sync-queue");
+			console.log("[syncManager] ✅ Background Sync registrado");
+		} else {
+			// Fallback: agenda sincronização manual quando online
+			console.warn(
+				"[syncManager] ⚠️ Background Sync não disponível, usando fallback",
+			);
+			scheduleManualSync(registration);
+		}
+	} catch (error) {
+		console.warn("[syncManager] Erro ao registrar Background Sync:", error);
 
-    // Fallback: tenta sincronização manual
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      scheduleManualSync(registration);
-    } catch (fallbackError) {
-      console.error(
-        "[syncManager] Erro no fallback de sincronização:",
-        fallbackError
-      );
-    }
-  }
+		// Fallback: tenta sincronização manual
+		try {
+			const registration = await navigator.serviceWorker.ready;
+			scheduleManualSync(registration);
+		} catch (fallbackError) {
+			console.error(
+				"[syncManager] Erro no fallback de sincronização:",
+				fallbackError,
+			);
+		}
+	}
 }
 
 // ============================================
@@ -146,146 +145,146 @@ async function registerBackgroundSync(): Promise<void> {
  * @returns Resultado da operação
  */
 export async function syncManager(
-  options: SyncManagerOptions
+	options: SyncManagerOptions,
 ): Promise<SyncManagerResult> {
-  const {
-    url,
-    method,
-    body,
-    headers = {},
-    priority = "normal",
-    idempotencyKey,
-    retries = 0,
-  } = options;
+	const {
+		url,
+		method,
+		body,
+		headers = {},
+		priority = "normal",
+		idempotencyKey,
+		retries = 0,
+	} = options;
 
-  // IdempotencyKey é OBRIGATÓRIO para métodos que modificam dados
-  // Gera automaticamente se não fornecido
-  const key = idempotencyKey || generateIdempotencyKey();
+	// IdempotencyKey é OBRIGATÓRIO para métodos que modificam dados
+	// Gera automaticamente se não fornecido
+	const key = idempotencyKey || generateIdempotencyKey();
 
-  // Para métodos que modificam dados, sempre gerar key se não fornecido
-  const requiresIdempotency = ["POST", "PUT", "PATCH", "DELETE"].includes(
-    method
-  );
-  if (requiresIdempotency && !idempotencyKey) {
-    console.warn(
-      `[syncManager] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`
-    );
-  }
+	// Para métodos que modificam dados, sempre gerar key se não fornecido
+	const requiresIdempotency = ["POST", "PUT", "PATCH", "DELETE"].includes(
+		method,
+	);
+	if (requiresIdempotency && !idempotencyKey) {
+		console.warn(
+			`[syncManager] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`,
+		);
+	}
 
-  // Se estiver online, tenta enviar imediatamente
-  if (isOnline()) {
-    try {
-      // Adiciona idempotency key aos headers
-      const requestHeaders = {
-        ...headers,
-        "X-Idempotency-Key": key,
-      };
+	// Se estiver online, tenta enviar imediatamente
+	if (isOnline()) {
+		try {
+			// Adiciona idempotency key aos headers
+			const requestHeaders = {
+				...headers,
+				"X-Idempotency-Key": key,
+			};
 
-      // Faz requisição
-      let response;
-      switch (method) {
-        case "GET":
-          response = await apiClient.get(url, { headers: requestHeaders });
-          break;
-        case "POST":
-          response = await apiClient.post(url, body, {
-            headers: requestHeaders,
-          });
-          break;
-        case "PUT":
-          response = await apiClient.put(url, body, {
-            headers: requestHeaders,
-          });
-          break;
-        case "PATCH":
-          response = await apiClient.patch(url, body, {
-            headers: requestHeaders,
-          });
-          break;
-        case "DELETE":
-          response = await apiClient.delete(url, { headers: requestHeaders });
-          break;
-      }
+			// Faz requisição
+			let response;
+			switch (method) {
+				case "GET":
+					response = await apiClient.get(url, { headers: requestHeaders });
+					break;
+				case "POST":
+					response = await apiClient.post(url, body, {
+						headers: requestHeaders,
+					});
+					break;
+				case "PUT":
+					response = await apiClient.put(url, body, {
+						headers: requestHeaders,
+					});
+					break;
+				case "PATCH":
+					response = await apiClient.patch(url, body, {
+						headers: requestHeaders,
+					});
+					break;
+				case "DELETE":
+					response = await apiClient.delete(url, { headers: requestHeaders });
+					break;
+			}
 
-      // Log comando como sincronizado
-      if (options.commandId) {
-        await updateCommandStatus(options.commandId, "synced");
-      }
+			// Log comando como sincronizado
+			if (options.commandId) {
+				await updateCommandStatus(options.commandId, "synced");
+			}
 
-      return {
-        success: true,
-        queued: false,
-        data: response.data,
-      };
-    } catch (error: any) {
-      // Se erro e for erro de rede, salva na fila
-      if (
-        error.code === "ECONNABORTED" ||
-        error.message?.includes("Network Error") ||
-        !isOnline()
-      ) {
-        // Agora está offline, salva na fila
-        return await queueRequest(options, key);
-      }
+			return {
+				success: true,
+				queued: false,
+				data: response.data,
+			};
+		} catch (error: any) {
+			// Se erro e for erro de rede, salva na fila
+			if (
+				error.code === "ECONNABORTED" ||
+				error.message?.includes("Network Error") ||
+				!isOnline()
+			) {
+				// Agora está offline, salva na fila
+				return await queueRequest(options, key);
+			}
 
-      // Erro não relacionado a rede, retorna erro
-      // Log comando como falhado
-      if (options.commandId) {
-        await updateCommandStatus(options.commandId, "failed", error);
-      }
+			// Erro não relacionado a rede, retorna erro
+			// Log comando como falhado
+			if (options.commandId) {
+				await updateCommandStatus(options.commandId, "failed", error);
+			}
 
-      return {
-        success: false,
-        queued: false,
-        error: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
-  }
+			return {
+				success: false,
+				queued: false,
+				error: error instanceof Error ? error : new Error(String(error)),
+			};
+		}
+	}
 
-  // Está offline, salva na fila
-  return await queueRequest(options, key);
+	// Está offline, salva na fila
+	return await queueRequest(options, key);
 }
 
 /**
  * Salva requisição na fila offline
  */
 async function queueRequest(
-  options: SyncManagerOptions,
-  idempotencyKey: string
+	options: SyncManagerOptions,
+	idempotencyKey: string,
 ): Promise<SyncManagerResult> {
-  try {
-    const queueId = await addToQueue({
-      url: options.url,
-      method: options.method,
-      headers: options.headers || {},
-      body: JSON.stringify(options.body || {}),
-      idempotencyKey,
-      priority: options.priority || "normal",
-    });
+	try {
+		const queueId = await addToQueue({
+			url: options.url,
+			method: options.method,
+			headers: options.headers || {},
+			body: JSON.stringify(options.body || {}),
+			idempotencyKey,
+			priority: options.priority || "normal",
+		});
 
-    // Registra Background Sync
-    await registerBackgroundSync();
+		// Registra Background Sync
+		await registerBackgroundSync();
 
-    // Log comando como enfileirado
-    if (options.commandId) {
-      await updateCommandStatus(options.commandId, "pending");
-    }
+		// Log comando como enfileirado
+		if (options.commandId) {
+			await updateCommandStatus(options.commandId, "pending");
+		}
 
-    console.log(`[syncManager] ✅ Ação salva na fila offline (ID: ${queueId})`);
+		console.log(`[syncManager] ✅ Ação salva na fila offline (ID: ${queueId})`);
 
-    return {
-      success: true,
-      queued: true,
-      queueId,
-    };
-  } catch (error) {
-    console.error("[syncManager] Erro ao salvar na fila:", error);
-    return {
-      success: false,
-      queued: false,
-      error: error instanceof Error ? error : new Error(String(error)),
-    };
-  }
+		return {
+			success: true,
+			queued: true,
+			queueId,
+		};
+	} catch (error) {
+		console.error("[syncManager] Erro ao salvar na fila:", error);
+		return {
+			success: false,
+			queued: false,
+			error: error instanceof Error ? error : new Error(String(error)),
+		};
+	}
 }
 
 // ============================================
@@ -297,72 +296,73 @@ async function queueRequest(
  * (Chamado pelo Service Worker ou manualmente)
  */
 export async function syncQueue(): Promise<{
-  synced: number;
-  failed: number;
+	synced: number;
+	failed: number;
 }> {
-  const { getQueueItems } = await import("./offline-queue");
-  const items = await getQueueItems();
+	const { getQueueItems } = await import("./offline-queue");
+	const items = await getQueueItems();
 
-  let synced = 0;
-  let failed = 0;
+	let synced = 0;
+	let failed = 0;
 
-  for (const item of items) {
-    try {
-      // Tenta enviar requisição
-      const requestHeaders = {
-        ...item.headers,
-        "X-Idempotency-Key": item.idempotencyKey,
-      };
+	for (const item of items) {
+		try {
+			// Tenta enviar requisição
+			const requestHeaders = {
+				...item.headers,
+				"X-Idempotency-Key": item.idempotencyKey,
+			};
 
-      let response;
-      switch (item.method) {
-        case "GET":
-          response = await apiClient.get(item.url, { headers: requestHeaders });
-          break;
-        case "POST":
-          response = await apiClient.post(item.url, JSON.parse(item.body), {
-            headers: requestHeaders,
-          });
-          break;
-        case "PUT":
-          response = await apiClient.put(item.url, JSON.parse(item.body), {
-            headers: requestHeaders,
-          });
-          break;
-        case "PATCH":
-          response = await apiClient.patch(item.url, JSON.parse(item.body), {
-            headers: requestHeaders,
-          });
-          break;
-        case "DELETE":
-          response = await apiClient.delete(item.url, {
-            headers: requestHeaders,
-          });
-          break;
-      }
+			let _response;
+			switch (item.method) {
+				case "GET":
+					_response = await apiClient.get(item.url, {
+						headers: requestHeaders,
+					});
+					break;
+				case "POST":
+					_response = await apiClient.post(item.url, JSON.parse(item.body), {
+						headers: requestHeaders,
+					});
+					break;
+				case "PUT":
+					_response = await apiClient.put(item.url, JSON.parse(item.body), {
+						headers: requestHeaders,
+					});
+					break;
+				case "PATCH":
+					_response = await apiClient.patch(item.url, JSON.parse(item.body), {
+						headers: requestHeaders,
+					});
+					break;
+				case "DELETE":
+					_response = await apiClient.delete(item.url, {
+						headers: requestHeaders,
+					});
+					break;
+			}
 
-      // Sucesso: remove da fila
-      await removeFromQueue(item.id);
-      synced++;
+			// Sucesso: remove da fila
+			await removeFromQueue(item.id);
+			synced++;
 
-      console.log(`[syncManager] ✅ Sincronizado: ${item.url}`);
-    } catch (error: any) {
-      // Erro: incrementa retries
-      const newRetries = await incrementRetries(item.id);
+			console.log(`[syncManager] ✅ Sincronizado: ${item.url}`);
+		} catch (error: any) {
+			// Erro: incrementa retries
+			const newRetries = await incrementRetries(item.id);
 
-      if (newRetries >= 5) {
-        // Muitas tentativas: move para failed
-        await moveToFailed(item, error.message || "Erro ao sincronizar");
-        failed++;
-        console.error(`[syncManager] ❌ Falhou após 5 tentativas: ${item.url}`);
-      } else {
-        console.warn(
-          `[syncManager] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url}`
-        );
-      }
-    }
-  }
+			if (newRetries >= 5) {
+				// Muitas tentativas: move para failed
+				await moveToFailed(item, error.message || "Erro ao sincronizar");
+				failed++;
+				console.error(`[syncManager] ❌ Falhou após 5 tentativas: ${item.url}`);
+			} else {
+				console.warn(
+					`[syncManager] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url}`,
+				);
+			}
+		}
+	}
 
-  return { synced, failed };
+	return { synced, failed };
 }
-

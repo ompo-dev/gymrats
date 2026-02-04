@@ -1,103 +1,106 @@
 /**
  * Handler de Gyms
- * 
+ *
  * Centraliza toda a lógica das rotas relacionadas a gyms
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAuth, requireGym } from "../middleware/auth.middleware";
+import { requireAuth } from "../middleware/auth.middleware";
 import {
-  successResponse,
-  badRequestResponse,
-  notFoundResponse,
-  internalErrorResponse,
-} from "../utils/response.utils";
+	validateBody,
+	validateQuery,
+} from "../middleware/validation.middleware";
 import {
-  createGymSchema,
-  setActiveGymSchema,
-  gymLocationsQuerySchema,
+	createGymSchema,
+	gymLocationsQuerySchema,
+	setActiveGymSchema,
 } from "../schemas";
-import { validateBody, validateQuery } from "../middleware/validation.middleware";
+import {
+	badRequestResponse,
+	internalErrorResponse,
+	notFoundResponse,
+	successResponse,
+} from "../utils/response.utils";
 
 /**
  * GET /api/gyms/list
  * Lista todas as academias do usuário
  */
 export async function listGymsHandler(
-  request: NextRequest
+	request: NextRequest,
 ): Promise<NextResponse> {
-  try {
-    const auth = await requireAuth(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+	try {
+		const auth = await requireAuth(request);
+		if ("error" in auth) {
+			return auth.response;
+		}
 
-    const userId = auth.userId;
+		const userId = auth.userId;
 
-    // Buscar todas as academias do usuário
-    const gyms = await db.gym.findMany({
-      where: { userId },
-      include: {
-        subscription: true,
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
-    });
+		// Buscar todas as academias do usuário
+		const gyms = await db.gym.findMany({
+			where: { userId },
+			include: {
+				subscription: true,
+			},
+			orderBy: {
+				createdAt: "asc",
+			},
+		});
 
-    // Verificar se alguma academia tem assinatura ativa (não trial)
-    const hasActiveSubscription = gyms.some((gym) => {
-      if (!gym.subscription) return false;
+		// Verificar se alguma academia tem assinatura ativa (não trial)
+		const _hasActiveSubscription = gyms.some((gym) => {
+			if (!gym.subscription) return false;
 
-      const now = new Date();
-      const isTrialActive =
-        gym.subscription.trialEnd && new Date(gym.subscription.trialEnd) > now;
-      const isActive = gym.subscription.status === "active";
-      const isTrialing = gym.subscription.status === "trialing";
+			const now = new Date();
+			const isTrialActive =
+				gym.subscription.trialEnd && new Date(gym.subscription.trialEnd) > now;
+			const isActive = gym.subscription.status === "active";
+			const isTrialing = gym.subscription.status === "trialing";
 
-      return isActive || (isTrialing && isTrialActive);
-    });
+			return isActive || (isTrialing && isTrialActive);
+		});
 
-    // Verificar se tem pelo menos uma academia com plano pago (não trial)
-    const hasPaidSubscription = gyms.some((gym) => {
-      if (!gym.subscription) return false;
-      return gym.subscription.status === "active";
-    });
+		// Verificar se tem pelo menos uma academia com plano pago (não trial)
+		const hasPaidSubscription = gyms.some((gym) => {
+			if (!gym.subscription) return false;
+			return gym.subscription.status === "active";
+		});
 
-    // Usuário só pode criar múltiplas academias se tiver pelo menos UMA com plano ativo (não trial)
-    const canCreateMultipleGyms = hasPaidSubscription;
+		// Usuário só pode criar múltiplas academias se tiver pelo menos UMA com plano ativo (não trial)
+		const canCreateMultipleGyms = hasPaidSubscription;
 
-    const gymsData = gyms.map((gym) => {
-      const now = new Date();
-      const gymHasActiveSubscription = gym.subscription
-        ? gym.subscription.status === "active" ||
-          (gym.subscription.status === "trialing" &&
-            gym.subscription.trialEnd &&
-            new Date(gym.subscription.trialEnd) > now)
-        : false;
+		const gymsData = gyms.map((gym) => {
+			const now = new Date();
+			const gymHasActiveSubscription = gym.subscription
+				? gym.subscription.status === "active" ||
+					(gym.subscription.status === "trialing" &&
+						gym.subscription.trialEnd &&
+						new Date(gym.subscription.trialEnd) > now)
+				: false;
 
-      return {
-        id: gym.id,
-        name: gym.name,
-        logo: gym.logo,
-        address: gym.address,
-        email: gym.email,
-        plan: gym.plan,
-        isActive: gym.isActive,
-        hasActiveSubscription: gymHasActiveSubscription,
-      };
-    });
+			return {
+				id: gym.id,
+				name: gym.name,
+				logo: gym.logo,
+				address: gym.address,
+				email: gym.email,
+				plan: gym.plan,
+				isActive: gym.isActive,
+				hasActiveSubscription: gymHasActiveSubscription,
+			};
+		});
 
-    return successResponse({
-      gyms: gymsData,
-      canCreateMultipleGyms,
-      totalGyms: gyms.length,
-    });
-  } catch (error: any) {
-    console.error("[listGymsHandler] Erro:", error);
-    return internalErrorResponse("Erro ao listar academias", error);
-  }
+		return successResponse({
+			gyms: gymsData,
+			canCreateMultipleGyms,
+			totalGyms: gyms.length,
+		});
+	} catch (error: any) {
+		console.error("[listGymsHandler] Erro:", error);
+		return internalErrorResponse("Erro ao listar academias", error);
+	}
 }
 
 /**
@@ -105,125 +108,125 @@ export async function listGymsHandler(
  * Cria uma nova academia
  */
 export async function createGymHandler(
-  request: NextRequest
+	request: NextRequest,
 ): Promise<NextResponse> {
-  try {
-    const auth = await requireAuth(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+	try {
+		const auth = await requireAuth(request);
+		if ("error" in auth) {
+			return auth.response;
+		}
 
-    const userId = auth.userId;
-    
-    // Validar body com Zod
-    const validation = await validateBody(request, createGymSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+		const userId = auth.userId;
 
-    const { name, address, phone, email, cnpj } = validation.data;
+		// Validar body com Zod
+		const validation = await validateBody(request, createGymSchema);
+		if (!validation.success) {
+			return validation.response;
+		}
 
-    // Buscar academias existentes do usuário
-    const existingGyms = await db.gym.findMany({
-      where: { userId },
-      include: {
-        subscription: true,
-      },
-    });
+		const { name, address, phone, email, cnpj } = validation.data;
 
-    // Verificar se usuário pode criar múltiplas academias
-    if (existingGyms.length > 0) {
-      const hasPaidSubscription = existingGyms.some((gym) => {
-        if (!gym.subscription) return false;
-        return gym.subscription.status === "active";
-      });
+		// Buscar academias existentes do usuário
+		const existingGyms = await db.gym.findMany({
+			where: { userId },
+			include: {
+				subscription: true,
+			},
+		});
 
-      if (!hasPaidSubscription) {
-        return badRequestResponse(
-          "Para criar múltiplas academias, você precisa ter pelo menos uma academia com plano ativo (não trial)"
-        );
-      }
-    }
+		// Verificar se usuário pode criar múltiplas academias
+		if (existingGyms.length > 0) {
+			const hasPaidSubscription = existingGyms.some((gym) => {
+				if (!gym.subscription) return false;
+				return gym.subscription.status === "active";
+			});
 
-    // Verificar se CNPJ já existe (se fornecido)
-    if (cnpj) {
-      const existingCnpj = await db.gym.findUnique({
-        where: { cnpj },
-      });
+			if (!hasPaidSubscription) {
+				return badRequestResponse(
+					"Para criar múltiplas academias, você precisa ter pelo menos uma academia com plano ativo (não trial)",
+				);
+			}
+		}
 
-      if (existingCnpj) {
-        return badRequestResponse("CNPJ já cadastrado");
-      }
-    }
+		// Verificar se CNPJ já existe (se fornecido)
+		if (cnpj) {
+			const existingCnpj = await db.gym.findUnique({
+				where: { cnpj },
+			});
 
-    // Criar nova academia
-    const newGym = await db.gym.create({
-      data: {
-        userId,
-        name,
-        address,
-        phone,
-        email,
-        cnpj: cnpj || null,
-        plan: "basic",
-        isActive: true,
-      },
-    });
+			if (existingCnpj) {
+				return badRequestResponse("CNPJ já cadastrado");
+			}
+		}
 
-    // Criar perfil da academia
-    await db.gymProfile.create({
-      data: {
-        gymId: newGym.id,
-        totalStudents: 0,
-        activeStudents: 0,
-        equipmentCount: 0,
-        level: 1,
-        xp: 0,
-        xpToNextLevel: 100,
-        currentStreak: 0,
-        longestStreak: 0,
-      },
-    });
+		// Criar nova academia
+		const newGym = await db.gym.create({
+			data: {
+				userId,
+				name,
+				address,
+				phone,
+				email,
+				cnpj: cnpj || null,
+				plan: "basic",
+				isActive: true,
+			},
+		});
 
-    // Criar stats da academia
-    await db.gymStats.create({
-      data: {
-        gymId: newGym.id,
-      },
-    });
+		// Criar perfil da academia
+		await db.gymProfile.create({
+			data: {
+				gymId: newGym.id,
+				totalStudents: 0,
+				activeStudents: 0,
+				equipmentCount: 0,
+				level: 1,
+				xp: 0,
+				xpToNextLevel: 100,
+				currentStreak: 0,
+				longestStreak: 0,
+			},
+		});
 
-    // Definir como academia ativa
-    await db.user.update({
-      where: { id: userId },
-      data: { activeGymId: newGym.id },
-    });
+		// Criar stats da academia
+		await db.gymStats.create({
+			data: {
+				gymId: newGym.id,
+			},
+		});
 
-    // Atualizar preferência
-    await db.gymUserPreference.upsert({
-      where: { userId },
-      update: {
-        lastActiveGymId: newGym.id,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId,
-        lastActiveGymId: newGym.id,
-      },
-    });
+		// Definir como academia ativa
+		await db.user.update({
+			where: { id: userId },
+			data: { activeGymId: newGym.id },
+		});
 
-    return successResponse({
-      gym: {
-        id: newGym.id,
-        name: newGym.name,
-        address: newGym.address,
-        email: newGym.email,
-        plan: newGym.plan,
-      },
-    });
-  } catch (error: any) {
-    console.error("[createGymHandler] Erro:", error);
-    return internalErrorResponse("Erro ao criar academia", error);
-  }
+		// Atualizar preferência
+		await db.gymUserPreference.upsert({
+			where: { userId },
+			update: {
+				lastActiveGymId: newGym.id,
+				updatedAt: new Date(),
+			},
+			create: {
+				userId,
+				lastActiveGymId: newGym.id,
+			},
+		});
+
+		return successResponse({
+			gym: {
+				id: newGym.id,
+				name: newGym.name,
+				address: newGym.address,
+				email: newGym.email,
+				plan: newGym.plan,
+			},
+		});
+	} catch (error: any) {
+		console.error("[createGymHandler] Erro:", error);
+		return internalErrorResponse("Erro ao criar academia", error);
+	}
 }
 
 /**
@@ -231,60 +234,60 @@ export async function createGymHandler(
  * Busca o perfil da academia
  */
 export async function getGymProfileHandler(
-  request: NextRequest
+	request: NextRequest,
 ): Promise<NextResponse> {
-  try {
-    const auth = await requireAuth(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+	try {
+		const auth = await requireAuth(request);
+		if ("error" in auth) {
+			return auth.response;
+		}
 
-    const userId = auth.userId;
+		const userId = auth.userId;
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      include: {
-        gyms: {
-          include: {
-            profile: true,
-          },
-        },
-      },
-    });
+		const user = await db.user.findUnique({
+			where: { id: userId },
+			include: {
+				gyms: {
+					include: {
+						profile: true,
+					},
+				},
+			},
+		});
 
-    if (!user || !user.gyms || user.gyms.length === 0) {
-      return successResponse({
-        hasProfile: false,
-      });
-    }
+		if (!user || !user.gyms || user.gyms.length === 0) {
+			return successResponse({
+				hasProfile: false,
+			});
+		}
 
-    // Pegar a primeira academia do usuário (ou a ativa se tiver activeGymId no futuro)
-    const gym = user.gyms[0];
+		// Pegar a primeira academia do usuário (ou a ativa se tiver activeGymId no futuro)
+		const gym = user.gyms[0];
 
-    const hasProfile =
-      !!gym.profile &&
-      gym.name !== null &&
-      gym.address !== null &&
-      gym.phone !== null &&
-      gym.email !== null;
+		const hasProfile =
+			!!gym.profile &&
+			gym.name !== null &&
+			gym.address !== null &&
+			gym.phone !== null &&
+			gym.email !== null;
 
-    return successResponse({
-      hasProfile,
-      profile: gym.profile
-        ? {
-            name: gym.name,
-            address: gym.address,
-            phone: gym.phone,
-            email: gym.email,
-            cnpj: gym.cnpj,
-            equipmentCount: gym.profile.equipmentCount,
-          }
-        : null,
-    });
-  } catch (error: any) {
-    console.error("[getGymProfileHandler] Erro:", error);
-    return internalErrorResponse("Erro ao buscar perfil", error);
-  }
+		return successResponse({
+			hasProfile,
+			profile: gym.profile
+				? {
+						name: gym.name,
+						address: gym.address,
+						phone: gym.phone,
+						email: gym.email,
+						cnpj: gym.cnpj,
+						equipmentCount: gym.profile.equipmentCount,
+					}
+				: null,
+		});
+	} catch (error: any) {
+		console.error("[getGymProfileHandler] Erro:", error);
+		return internalErrorResponse("Erro ao buscar perfil", error);
+	}
 }
 
 /**
@@ -292,60 +295,60 @@ export async function getGymProfileHandler(
  * Define uma academia como ativa
  */
 export async function setActiveGymHandler(
-  request: NextRequest
+	request: NextRequest,
 ): Promise<NextResponse> {
-  try {
-    const auth = await requireAuth(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+	try {
+		const auth = await requireAuth(request);
+		if ("error" in auth) {
+			return auth.response;
+		}
 
-    const userId = auth.userId;
-    
-    // Validar body com Zod
-    const validation = await validateBody(request, setActiveGymSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+		const userId = auth.userId;
 
-    const { gymId } = validation.data;
+		// Validar body com Zod
+		const validation = await validateBody(request, setActiveGymSchema);
+		if (!validation.success) {
+			return validation.response;
+		}
 
-    // Verificar se a academia pertence ao usuário
-    const gym = await db.gym.findFirst({
-      where: {
-        id: gymId,
-        userId,
-      },
-    });
+		const { gymId } = validation.data;
 
-    if (!gym) {
-      return notFoundResponse("Academia não encontrada");
-    }
+		// Verificar se a academia pertence ao usuário
+		const gym = await db.gym.findFirst({
+			where: {
+				id: gymId,
+				userId,
+			},
+		});
 
-    // Atualizar activeGymId no usuário
-    await db.user.update({
-      where: { id: userId },
-      data: { activeGymId: gymId },
-    });
+		if (!gym) {
+			return notFoundResponse("Academia não encontrada");
+		}
 
-    // Atualizar preferência do usuário
-    await db.gymUserPreference.upsert({
-      where: { userId },
-      update: {
-        lastActiveGymId: gymId,
-        updatedAt: new Date(),
-      },
-      create: {
-        userId,
-        lastActiveGymId: gymId,
-      },
-    });
+		// Atualizar activeGymId no usuário
+		await db.user.update({
+			where: { id: userId },
+			data: { activeGymId: gymId },
+		});
 
-    return successResponse({ activeGymId: gymId });
-  } catch (error: any) {
-    console.error("[setActiveGymHandler] Erro:", error);
-    return internalErrorResponse("Erro ao alterar academia ativa", error);
-  }
+		// Atualizar preferência do usuário
+		await db.gymUserPreference.upsert({
+			where: { userId },
+			update: {
+				lastActiveGymId: gymId,
+				updatedAt: new Date(),
+			},
+			create: {
+				userId,
+				lastActiveGymId: gymId,
+			},
+		});
+
+		return successResponse({ activeGymId: gymId });
+	} catch (error: any) {
+		console.error("[setActiveGymHandler] Erro:", error);
+		return internalErrorResponse("Erro ao alterar academia ativa", error);
+	}
 }
 
 /**
@@ -353,194 +356,199 @@ export async function setActiveGymHandler(
  * Busca academias parceiras com localização e planos
  */
 export async function getGymLocationsHandler(
-  request: NextRequest
+	request: NextRequest,
 ): Promise<NextResponse> {
-  try {
-    // Esta rota pode ser pública (não requer autenticação)
-    // Validar query params com Zod
-    const queryValidation = await validateQuery(request, gymLocationsQuerySchema);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
+	try {
+		// Esta rota pode ser pública (não requer autenticação)
+		// Validar query params com Zod
+		const queryValidation = await validateQuery(
+			request,
+			gymLocationsQuerySchema,
+		);
+		if (!queryValidation.success) {
+			return queryValidation.response;
+		}
 
-    const lat = queryValidation.data.lat;
-    const lng = queryValidation.data.lng;
-    const isPartner = queryValidation.data.isPartner;
+		const lat = queryValidation.data.lat;
+		const lng = queryValidation.data.lng;
+		const _isPartner = queryValidation.data.isPartner;
 
-    // Construir filtros
-    const where: any = {
-      isActive: true,
-    };
+		// Construir filtros
+		const where: any = {
+			isActive: true,
+		};
 
-    // Buscar academias
-    const gyms = await db.gym.findMany({
-      where: where,
-      include: {
-        plans: {
-          where: {
-            isActive: true,
-          },
-          orderBy: {
-            price: "asc",
-          },
-        },
-      },
-      orderBy: {
-        rating: "desc",
-      },
-    });
+		// Buscar academias
+		const gyms = await db.gym.findMany({
+			where: where,
+			include: {
+				plans: {
+					where: {
+						isActive: true,
+					},
+					orderBy: {
+						price: "asc",
+					},
+				},
+			},
+			orderBy: {
+				rating: "desc",
+			},
+		});
 
-    // Função para calcular distância
-    const calculateDistance = (
-      lat1: number,
-      lon1: number,
-      lat2: number,
-      lon2: number
-    ): number => {
-      const R = 6371; // Raio da Terra em km
-      const dLat = ((lat2 - lat1) * Math.PI) / 180;
-      const dLon = ((lon2 - lon1) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos((lat1 * Math.PI) / 180) *
-          Math.cos((lat2 * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c; // Distância em km
-    };
+		// Função para calcular distância
+		const calculateDistance = (
+			lat1: number,
+			lon1: number,
+			lat2: number,
+			lon2: number,
+		): number => {
+			const R = 6371; // Raio da Terra em km
+			const dLat = ((lat2 - lat1) * Math.PI) / 180;
+			const dLon = ((lon2 - lon1) * Math.PI) / 180;
+			const a =
+				Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+				Math.cos((lat1 * Math.PI) / 180) *
+					Math.cos((lat2 * Math.PI) / 180) *
+					Math.sin(dLon / 2) *
+					Math.sin(dLon / 2);
+			const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+			return R * c; // Distância em km
+		};
 
-    // Função para calcular se está aberto agora
-    const calculateOpenNow = (
-      openingHours: { open: string; close: string; days?: string[] } | null
-    ): boolean => {
-      if (!openingHours) return true;
+		// Função para calcular se está aberto agora
+		const calculateOpenNow = (
+			openingHours: { open: string; close: string; days?: string[] } | null,
+		): boolean => {
+			if (!openingHours) return true;
 
-      const now = new Date();
-      const dayNames = [
-        "sunday",
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-      ];
-      const currentDayName = dayNames[now.getDay()];
-      const currentTime = now.getHours() * 60 + now.getMinutes();
+			const now = new Date();
+			const dayNames = [
+				"sunday",
+				"monday",
+				"tuesday",
+				"wednesday",
+				"thursday",
+				"friday",
+				"saturday",
+			];
+			const currentDayName = dayNames[now.getDay()];
+			const currentTime = now.getHours() * 60 + now.getMinutes();
 
-      if (openingHours.days && openingHours.days.length > 0) {
-        if (!openingHours.days.includes(currentDayName)) {
-          return false;
-        }
-      }
+			if (openingHours.days && openingHours.days.length > 0) {
+				if (!openingHours.days.includes(currentDayName)) {
+					return false;
+				}
+			}
 
-      const [openHour, openMin] = openingHours.open.split(":").map(Number);
-      const [closeHour, closeMin] = openingHours.close.split(":").map(Number);
-      const openTime = openHour * 60 + openMin;
-      const closeTime = closeHour * 60 + closeMin;
+			const [openHour, openMin] = openingHours.open.split(":").map(Number);
+			const [closeHour, closeMin] = openingHours.close.split(":").map(Number);
+			const openTime = openHour * 60 + openMin;
+			const closeTime = closeHour * 60 + closeMin;
 
-      return currentTime >= openTime && currentTime <= closeTime;
-    };
+			return currentTime >= openTime && currentTime <= closeTime;
+		};
 
-    // Transformar para formato esperado
-    const formattedGyms = gyms.map((gym) => {
-      // Parse amenities
-      let amenities: string[] = [];
-      if (gym.amenities) {
-        try {
-          amenities = JSON.parse(gym.amenities);
-        } catch (e) {
-          // Ignorar erro de parse
-        }
-      }
+		// Transformar para formato esperado
+		const formattedGyms = gyms.map((gym) => {
+			// Parse amenities
+			let amenities: string[] = [];
+			if (gym.amenities) {
+				try {
+					amenities = JSON.parse(gym.amenities);
+				} catch (_e) {
+					// Ignorar erro de parse
+				}
+			}
 
-      // Parse openingHours
-      let openingHours: { open: string; close: string; days?: string[] } | null =
-        null;
-      if (gym.openingHours) {
-        try {
-          openingHours = JSON.parse(gym.openingHours);
-        } catch (e) {
-          // Ignorar erro de parse
-        }
-      }
+			// Parse openingHours
+			let openingHours: {
+				open: string;
+				close: string;
+				days?: string[];
+			} | null = null;
+			if (gym.openingHours) {
+				try {
+					openingHours = JSON.parse(gym.openingHours);
+				} catch (_e) {
+					// Ignorar erro de parse
+				}
+			}
 
-      // Parse photos
-      let photos: string[] = [];
-      if (gym.photos) {
-        try {
-          photos = JSON.parse(gym.photos);
-        } catch (e) {
-          // Ignorar erro de parse
-        }
-      }
+			// Parse photos
+			let photos: string[] = [];
+			if (gym.photos) {
+				try {
+					photos = JSON.parse(gym.photos);
+				} catch (_e) {
+					// Ignorar erro de parse
+				}
+			}
 
-      // Calcular distância se lat/lng fornecidos
-      let distance: number | undefined = undefined;
-      if (lat && lng && gym.latitude && gym.longitude) {
-        distance = calculateDistance(
-          parseFloat(lat),
-          parseFloat(lng),
-          gym.latitude,
-          gym.longitude
-        );
-      }
+			// Calcular distância se lat/lng fornecidos
+			let distance: number | undefined;
+			if (lat && lng && gym.latitude && gym.longitude) {
+				distance = calculateDistance(
+					parseFloat(lat),
+					parseFloat(lng),
+					gym.latitude,
+					gym.longitude,
+				);
+			}
 
-      // Calcular se está aberto agora
-      const openNow = openingHours ? calculateOpenNow(openingHours) : true;
+			// Calcular se está aberto agora
+			const openNow = openingHours ? calculateOpenNow(openingHours) : true;
 
-      // Organizar plans por tipo
-      const plansByType: {
-        daily?: number;
-        weekly?: number;
-        monthly?: number;
-      } = {};
+			// Organizar plans por tipo
+			const plansByType: {
+				daily?: number;
+				weekly?: number;
+				monthly?: number;
+			} = {};
 
-      gym.plans.forEach((plan) => {
-        if (plan.type === "daily") {
-          plansByType.daily = plan.price;
-        } else if (plan.type === "weekly") {
-          plansByType.weekly = plan.price;
-        } else if (plan.type === "monthly") {
-          plansByType.monthly = plan.price;
-        }
-      });
+			gym.plans.forEach((plan) => {
+				if (plan.type === "daily") {
+					plansByType.daily = plan.price;
+				} else if (plan.type === "weekly") {
+					plansByType.weekly = plan.price;
+				} else if (plan.type === "monthly") {
+					plansByType.monthly = plan.price;
+				}
+			});
 
-      return {
-        id: gym.id,
-        name: gym.name,
-        logo: gym.logo || undefined,
-        address: gym.address,
-        coordinates: {
-          lat: gym.latitude || 0,
-          lng: gym.longitude || 0,
-        },
-        distance: distance,
-        rating: gym.rating || 0,
-        totalReviews: gym.totalReviews || 0,
-        plans: plansByType,
-        amenities: amenities,
-        openNow: openNow,
-        openingHours: openingHours || undefined,
-        photos: photos.length > 0 ? photos : undefined,
-        isPartner: (gym as any).isPartner || false,
-      };
-    });
+			return {
+				id: gym.id,
+				name: gym.name,
+				logo: gym.logo || undefined,
+				address: gym.address,
+				coordinates: {
+					lat: gym.latitude || 0,
+					lng: gym.longitude || 0,
+				},
+				distance: distance,
+				rating: gym.rating || 0,
+				totalReviews: gym.totalReviews || 0,
+				plans: plansByType,
+				amenities: amenities,
+				openNow: openNow,
+				openingHours: openingHours || undefined,
+				photos: photos.length > 0 ? photos : undefined,
+				isPartner: (gym as any).isPartner || false,
+			};
+		});
 
-    // Ordenar por distância se fornecida
-    if (lat && lng) {
-      formattedGyms.sort((a, b) => {
-        if (a.distance === undefined) return 1;
-        if (b.distance === undefined) return -1;
-        return a.distance - b.distance;
-      });
-    }
+		// Ordenar por distância se fornecida
+		if (lat && lng) {
+			formattedGyms.sort((a, b) => {
+				if (a.distance === undefined) return 1;
+				if (b.distance === undefined) return -1;
+				return a.distance - b.distance;
+			});
+		}
 
-    return successResponse({ gyms: formattedGyms });
-  } catch (error: any) {
-    console.error("[getGymLocationsHandler] Erro:", error);
-    return internalErrorResponse("Erro ao buscar academias", error);
-  }
+		return successResponse({ gyms: formattedGyms });
+	} catch (error: any) {
+		console.error("[getGymLocationsHandler] Erro:", error);
+		return internalErrorResponse("Erro ao buscar academias", error);
+	}
 }
-

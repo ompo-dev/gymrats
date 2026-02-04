@@ -1,11 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useUserSession } from "@/hooks/use-user-session";
 
 interface AdminOnlyProps {
-  children: ReactNode;
-  fallback?: ReactNode;
+	children: ReactNode;
+	fallback?: ReactNode;
 }
 
 /**
@@ -25,20 +25,20 @@ interface AdminOnlyProps {
  * </AdminOnly>
  */
 export function AdminOnly({ children, fallback = null }: AdminOnlyProps) {
-  // ✅ SEGURO: Validar no servidor via useUserSession
-  const { isAdmin, role, isLoading } = useUserSession();
+	// ✅ SEGURO: Validar no servidor via useUserSession
+	const { isAdmin, role, isLoading } = useUserSession();
 
-  // Verificar se é admin (validado no servidor)
-  const userIsAdmin = isAdmin || role === "ADMIN";
+	// Verificar se é admin (validado no servidor)
+	const userIsAdmin = isAdmin || role === "ADMIN";
 
-  // Mostrar fallback enquanto carrega ou se não for admin
-  if (isLoading) {
-    return <>{fallback}</>;
-  }
+	// Mostrar fallback enquanto carrega ou se não for admin
+	if (isLoading) {
+		return <>{fallback}</>;
+	}
 
-  if (!userIsAdmin) {
-    return <>{fallback}</>;
-  }
+	if (!userIsAdmin) {
+		return <>{fallback}</>;
+	}
 
-  return <>{children}</>;
+	return <>{children}</>;
 }

@@ -1,24 +1,24 @@
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+	prisma: PrismaClient | undefined;
 };
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL não está configurado nas variáveis de ambiente"
-  );
+	throw new Error(
+		"DATABASE_URL não está configurado nas variáveis de ambiente",
+	);
 }
 
 export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
-  });
+	globalForPrisma.prisma ??
+	new PrismaClient({
+		log:
+			process.env.NODE_ENV === "development"
+				? ["query", "error", "warn"]
+				: ["error"],
+	});
 
 if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = db;
+	globalForPrisma.prisma = db;
 }

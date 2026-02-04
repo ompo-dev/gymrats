@@ -11,13 +11,13 @@
 import StudentHome from "./page-content";
 
 export default function StudentPage() {
-  // Não fazemos server-side fetching aqui!
-  // Todos os dados são carregados automaticamente pelo useStudentInitializer
-  // no layout e ficam disponíveis no store unificado.
-  // Isso permite:
-  // - Offline-first (dados em cache)
-  // - Performance (dados já carregados)
-  // - Sincronização automática
+	// Não fazemos server-side fetching aqui!
+	// Todos os dados são carregados automaticamente pelo useStudentInitializer
+	// no layout e ficam disponíveis no store unificado.
+	// Isso permite:
+	// - Offline-first (dados em cache)
+	// - Performance (dados já carregados)
+	// - Sincronização automática
 
-  return <StudentHome />;
+	return <StudentHome />;
 }
