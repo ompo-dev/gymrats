@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion, Reorder } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
@@ -242,6 +242,27 @@ export function EditUnitModal() {
 	// Atualizar estimatedTime quando exercícios mudarem
 	// IMPORTANTE: Usar ref para evitar loops infinitos - só atualizar uma vez por mudança real
 	const lastCalculatedTimeRef = useRef<number>(0);
+
+	// Função para atualizar workout - DEVE estar ANTES do useEffect que a usa
+	const handleUpdateWorkout = useCallback(
+		async (
+			workoutId: string,
+			data: {
+				title?: string;
+				muscleGroup?: string;
+				estimatedTime?: number;
+				order?: number;
+			},
+		) => {
+			// Não precisa de try/catch com toast - optimistic update já atualiza UI instantaneamente!
+			// Apenas chamar a action - o store gerencia tudo
+			actions.updateWorkout(workoutId, data).catch((error) => {
+				console.error(error);
+				toast.error("Erro ao atualizar treino");
+			});
+		},
+		[actions],
+	);
 
 	useEffect(() => {
 		if (!activeWorkout || calculatedEstimatedTime <= 0) return;
