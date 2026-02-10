@@ -12,22 +12,25 @@ interface WorkoutHeaderProps {
 	exerciseIds: string[];
 	completedExerciseIds: string[];
 	skippedExerciseIds?: string[];
+	skippedIndices?: number[];
 }
 
 export function WorkoutHeader({
 	onClose,
-	hearts,
+	hearts: _hearts,
 	currentExercise,
 	totalExercises,
-	progress,
+	progress: _progress,
 	exerciseIds,
 	completedExerciseIds,
 	skippedExerciseIds = [],
+	skippedIndices = [],
 }: WorkoutHeaderProps) {
 	return (
 		<div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
 			<div className="mb-3 flex items-center justify-between">
 				<button
+					type="button"
 					onClick={onClose}
 					className="rounded-xl p-2 transition-colors hover:bg-gray-100"
 					aria-label="Fechar workout"
@@ -46,6 +49,7 @@ export function WorkoutHeader({
 				exerciseIds={exerciseIds}
 				completedExerciseIds={completedExerciseIds}
 				skippedExerciseIds={skippedExerciseIds}
+				skippedIndices={skippedIndices}
 				currentExerciseId={exerciseIds[currentExercise - 1] || undefined}
 				className="justify-center"
 			/>

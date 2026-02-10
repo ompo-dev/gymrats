@@ -6,6 +6,34 @@ import { ExerciseSteppers } from "@/components/atoms/progress/exercise-steppers"
 import type { ExerciseLog, WorkoutExercise } from "@/lib/types";
 import { WeightTracker } from "../../trackers/weight-tracker";
 
+/** Garante que o log passado ao WeightTracker nunca tenha null/undefined em notes ou sets. */
+function sanitizeExistingLog(
+	log: ExerciseLog | null | undefined,
+): ExerciseLog | null {
+	if (log == null) return null;
+	try {
+		const sets = Array.isArray(log.sets)
+			? log.sets
+					.filter((s) => s != null)
+					.map((s) => ({
+						setNumber: s?.setNumber ?? 0,
+						weight: s?.weight ?? 0,
+						reps: s?.reps ?? 0,
+						completed: s?.completed ?? false,
+						notes: s?.notes ?? undefined,
+						rpe: s?.rpe,
+					}))
+			: [];
+		return {
+			...log,
+			sets,
+			notes: typeof log.notes === "string" ? log.notes : "",
+		};
+	} catch {
+		return null;
+	}
+}
+
 interface WeightTrackerOverlayProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -17,6 +45,7 @@ interface WeightTrackerOverlayProps {
 	exerciseIds: string[]; // IDs dos exercícios na ordem do workout
 	completedExerciseIds: string[]; // IDs dos exercícios completados
 	skippedExerciseIds?: string[]; // IDs dos exercícios pulados (opcional)
+	skippedIndices?: number[]; // Índices pulados (fallback quando ID não bate)
 	currentExerciseId?: string; // ID do exercício atual (para mostrar ring)
 	onComplete: (log: ExerciseLog) => void;
 	onSaveProgress?: (log: ExerciseLog) => void; // Callback para salvar progresso sem fechar modal
@@ -29,12 +58,13 @@ export function WeightTrackerOverlay({
 	onClose,
 	exerciseName,
 	exercise,
-	progress,
+	progress: _progress,
 	currentExercise,
 	totalExercises,
 	exerciseIds,
 	completedExerciseIds,
 	skippedExerciseIds = [],
+	skippedIndices = [],
 	currentExerciseId,
 	onComplete,
 	onSaveProgress,
@@ -55,6 +85,7 @@ export function WeightTrackerOverlay({
 				<div className="border-b-2 border-duo-border bg-white p-4 shadow-sm shrink-0">
 					<div className="mb-3 flex items-center justify-between">
 						<button
+							type="button"
 							onClick={onClose}
 							className="rounded-xl p-2 transition-colors hover:bg-gray-100"
 						>
@@ -70,6 +101,7 @@ export function WeightTrackerOverlay({
 						exerciseIds={exerciseIds}
 						completedExerciseIds={completedExerciseIds}
 						skippedExerciseIds={skippedExerciseIds}
+						skippedIndices={skippedIndices}
 						currentExerciseId={currentExerciseId}
 						className="justify-center"
 					/>
@@ -83,7 +115,7 @@ export function WeightTrackerOverlay({
 						defaultReps={exercise.reps}
 						onComplete={onComplete}
 						onSaveProgress={onSaveProgress}
-						existingLog={existingLog}
+						existingLog={sanitizeExistingLog(existingLog)}
 						isUnilateral={isUnilateral}
 					/>
 				</div>

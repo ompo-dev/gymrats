@@ -8,6 +8,7 @@ interface WorkoutProgress {
 	currentExerciseIndex: number;
 	exerciseLogs: ExerciseLog[];
 	skippedExercises: string[]; // IDs dos exercícios pulados
+	skippedExerciseIndices: number[]; // Índices pulados (para stepper, não depende de match por id)
 	selectedAlternatives: Record<string, string>; // exerciseId -> alternativeId
 	xpEarned: number; // XP total ganho no workout
 	totalVolume: number; // Volume total em kg
@@ -39,7 +40,7 @@ interface WorkoutState {
 	isWorkoutInProgress: (workoutId: string) => boolean;
 	getWorkoutProgress: (workoutId: string) => number; // Retorna % de progresso (0-100)
 	openWorkout: (workoutId: string | null) => void; // Abrir/fechar modal
-	skipExercise: (exerciseId: string) => void; // Marcar exercício como pulado
+	skipExercise: (exerciseId: string, exerciseIndex: number) => void; // Marcar exercício como pulado
 	calculateWorkoutStats: () => void; // Calcular estatísticas do workout (XP, volume, %)
 	selectAlternative: (exerciseId: string, alternativeId?: string) => void; // Selecionar alternativa
 	setCardioPreference: (
@@ -63,6 +64,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 								currentExerciseIndex: 0,
 								exerciseLogs: [],
 								skippedExercises: [],
+								skippedExerciseIndices: [],
 								selectedAlternatives: {},
 								xpEarned: 0,
 								totalVolume: 0,
@@ -152,6 +154,8 @@ export const useWorkoutStore = create<WorkoutState>()(
 					currentExerciseIndex: state.activeWorkout.currentExerciseIndex,
 					exerciseLogs: state.activeWorkout.exerciseLogs || [],
 					skippedExercises: state.activeWorkout.skippedExercises || [],
+					skippedExerciseIndices:
+						state.activeWorkout.skippedExerciseIndices || [],
 					selectedAlternatives: state.activeWorkout.selectedAlternatives || {},
 					xpEarned: state.activeWorkout.xpEarned || 0,
 					totalVolume: state.activeWorkout.totalVolume || 0,
@@ -222,7 +226,10 @@ export const useWorkoutStore = create<WorkoutState>()(
 					});
 				} catch (error: unknown) {
 					const err = error as {
-						response?: { status?: number; data?: { code?: string } };
+						response?: {
+							status?: number;
+							data?: { code?: string; error?: string };
+						};
 						message?: string;
 					};
 					const status = err?.response?.status;
@@ -328,17 +335,24 @@ export const useWorkoutStore = create<WorkoutState>()(
 				return completedCount + skippedCount;
 			},
 			openWorkout: (workoutId) => set({ openWorkoutId: workoutId }),
-			skipExercise: (exerciseId) =>
+			skipExercise: (exerciseId, exerciseIndex) =>
 				set((state) => {
 					if (!state.activeWorkout) return state;
 					const skipped = [...state.activeWorkout.skippedExercises];
 					if (!skipped.includes(exerciseId)) {
 						skipped.push(exerciseId);
 					}
+					const skippedIndices = [
+						...(state.activeWorkout.skippedExerciseIndices ?? []),
+					];
+					if (!skippedIndices.includes(exerciseIndex)) {
+						skippedIndices.push(exerciseIndex);
+					}
 					return {
 						activeWorkout: {
 							...state.activeWorkout,
 							skippedExercises: skipped,
+							skippedExerciseIndices: skippedIndices,
 							lastUpdated: new Date(),
 						},
 					};
@@ -429,14 +443,20 @@ export const useWorkoutStore = create<WorkoutState>()(
 				...state,
 				completedWorkouts: Array.from(state.completedWorkouts),
 			}),
-			merge: (persistedState: unknown, currentState) => ({
-				...currentState,
-				...persistedState,
-				completedWorkouts: (persistedState as { completedWorkouts?: string[] })
-					?.completedWorkouts
-					? new Set(persistedState.completedWorkouts)
-					: new Set<string>(),
-			}),
+			merge: (persistedState: unknown, currentState) => {
+				const persisted = persistedState as Record<string, unknown> & {
+					completedWorkouts?: string[];
+				};
+				return {
+					...currentState,
+					...(typeof persisted === "object" && persisted !== null
+						? persisted
+						: {}),
+					completedWorkouts: persisted?.completedWorkouts
+						? new Set(persisted.completedWorkouts)
+						: new Set<string>(),
+				};
+			},
 		},
 	),
 );

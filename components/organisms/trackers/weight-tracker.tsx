@@ -6,16 +6,64 @@ import { useEffect, useRef, useState } from "react";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+/** Lê propriedade 'notes' sem lançar (getters ou proxies podem acessar null). */
+function getNotesSafe(log: unknown): string {
+	try {
+		if (log == null || typeof log !== "object") return "";
+		const n = (log as Record<string, unknown>).notes;
+		return typeof n === "string" ? n : "";
+	} catch {
+		return "";
+	}
+}
+
+/** Normaliza log para evitar null/undefined em sets ou notes (dados inconsistentes). */
+function normalizeExistingLog(
+	log: ExerciseLog | null | undefined,
+): ExerciseLog | null {
+	if (log == null) return null;
+	try {
+		const rawSets = log.sets;
+		const safeSets = Array.isArray(rawSets)
+			? rawSets
+					.filter((s): s is SetLog => s != null)
+					.map((s) => ({
+						setNumber: s?.setNumber ?? 0,
+						weight: s?.weight ?? 0,
+						reps: s?.reps ?? 0,
+						completed: s?.completed ?? false,
+						notes: s?.notes ?? undefined,
+						rpe: s?.rpe,
+					}))
+			: [];
+		const notes = getNotesSafe(log);
+		return {
+			...log,
+			sets: safeSets.length > 0 ? safeSets : [],
+			notes,
+		};
+	} catch {
+		return null;
+	}
+}
+
 interface WeightTrackerProps {
 	exerciseName: string;
 	exerciseId: string;
 	defaultSets: number;
 	defaultReps: string;
 	onComplete: (log: ExerciseLog) => void;
-	onSaveProgress?: (log: ExerciseLog) => void; // Callback opcional para salvar progresso sem fechar modal
-	existingLog?: ExerciseLog | null; // Log existente do exercício (se já foi completado)
-	isUnilateral?: boolean; // Se o exercício é unilateral (faz cada lado separadamente)
+	onSaveProgress?: (log: ExerciseLog) => void;
+	existingLog?: ExerciseLog | null;
+	isUnilateral?: boolean;
 }
+
+const DEFAULT_SET: SetLog = {
+	setNumber: 1,
+	weight: 0,
+	reps: 0,
+	completed: false,
+};
 
 export function WeightTracker({
 	exerciseName,
@@ -27,84 +75,49 @@ export function WeightTracker({
 	existingLog,
 	isUnilateral = false,
 }: WeightTrackerProps) {
-	// Carregar dados existentes se houver, senão começar com 1 série vazia
+	const safeLog = normalizeExistingLog(existingLog);
+
 	const [sets, setSets] = useState<SetLog[]>(() => {
-		if (existingLog?.sets && existingLog.sets.length > 0) {
-			// Carregar séries existentes
-			return existingLog.sets.map((set) => ({
-				setNumber: set.setNumber,
-				weight: set.weight || 0,
-				reps: set.reps || 0,
-				completed: set.completed || false,
-				notes: set.notes,
-				rpe: set.rpe,
-			}));
+		try {
+			if (safeLog?.sets && safeLog.sets.length > 0) {
+				return safeLog.sets.map((set) => ({
+					setNumber: set?.setNumber ?? 0,
+					weight: set?.weight ?? 0,
+					reps: set?.reps ?? 0,
+					completed: set?.completed ?? false,
+					notes: set?.notes ?? undefined,
+					rpe: set?.rpe,
+				}));
+			}
+		} catch {
+			// fallthrough to default
 		}
-		// Começar com apenas 1 série
-		return [
-			{
-				setNumber: 1,
-				weight: 0,
-				reps: 0,
-				completed: false,
-			},
-		];
+		return [DEFAULT_SET];
 	});
-	const [notes, setNotes] = useState(existingLog?.notes || "");
+
+	const [notes, setNotes] = useState(() => getNotesSafe(safeLog));
+
 	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	// Atualizar dados quando existingLog mudar (ex: quando voltar para um exercício)
+	const effectNotes = getNotesSafe(safeLog);
+
 	useEffect(() => {
-		// Se há log existente com séries, carregar
-		if (existingLog?.sets && existingLog.sets.length > 0) {
-			// Carregar séries existentes - garantir que todas as séries sejam carregadas
-			const loadedSets = existingLog.sets.map((set) => ({
-				setNumber: set.setNumber,
-				weight: set.weight || 0,
-				reps: set.reps || 0,
-				completed: set.completed || false,
-				notes: set.notes,
-				rpe: set.rpe,
+		if (safeLog?.sets && safeLog.sets.length > 0) {
+			const loadedSets = safeLog.sets.map((set) => ({
+				setNumber: set?.setNumber ?? 0,
+				weight: set?.weight ?? 0,
+				reps: set?.reps ?? 0,
+				completed: set?.completed ?? false,
+				notes: set?.notes ?? undefined,
+				rpe: set?.rpe,
 			}));
-
-			console.log("🔄 WeightTracker carregando dados existentes:", {
-				exerciseId,
-				exerciseName,
-				existingLogId: existingLog.id,
-				setsCount: loadedSets.length,
-				sets: loadedSets.map((s) => ({
-					setNumber: s.setNumber,
-					weight: s.weight,
-					reps: s.reps,
-					completed: s.completed,
-				})),
-			});
-
 			setSets(loadedSets);
-			setNotes(existingLog.notes || "");
-		} else if (existingLog === null || existingLog === undefined) {
-			// Resetar para estado inicial se não houver log
-			console.log("🔄 WeightTracker resetando - sem log existente");
-			setSets([
-				{
-					setNumber: 1,
-					weight: 0,
-					reps: 0,
-					completed: false,
-				},
-			]);
+			setNotes(effectNotes);
+		} else {
+			setSets([DEFAULT_SET]);
 			setNotes("");
 		}
-		// Dependências: existingLog e suas propriedades principais
-	}, [
-		existingLog?.id,
-		existingLog?.sets?.length,
-		exerciseId,
-		existingLog.notes,
-		existingLog.sets,
-		existingLog,
-		exerciseName,
-	]);
+	}, [effectNotes, safeLog]);
 
 	// Cleanup do timeout ao desmontar
 	useEffect(() => {
@@ -282,7 +295,7 @@ export function WeightTracker({
 		.filter((set) => set.weight > 0 && set.reps > 0)
 		.reduce((acc, set) => acc + set.weight * set.reps, 0);
 
-	const isCompleted = existingLog?.sets && existingLog.sets.length > 0;
+	const isCompleted = safeLog?.sets && safeLog.sets.length > 0;
 
 	return (
 		<div className="space-y-6">
@@ -340,6 +353,7 @@ export function WeightTracker({
 										)}
 										{sets.length > 1 && (
 											<button
+												type="button"
 												onClick={() => handleRemoveSet(index)}
 												className="rounded-lg p-1 text-duo-gray-dark hover:bg-red-100 hover:text-red-600 transition-colors"
 												title="Remover série"
@@ -353,10 +367,14 @@ export function WeightTracker({
 								{!set.completed ? (
 									<div className="grid grid-cols-2 gap-3">
 										<div>
-											<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
+											<label
+												htmlFor={`set-${index}-weight`}
+												className="mb-1 block text-xs font-bold text-duo-gray-dark"
+											>
 												Carga (kg)
 											</label>
 											<input
+												id={`set-${index}-weight`}
 												type="number"
 												step="0.5"
 												min="0"
@@ -370,10 +388,14 @@ export function WeightTracker({
 											/>
 										</div>
 										<div>
-											<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
+											<label
+												htmlFor={`set-${index}-reps`}
+												className="mb-1 block text-xs font-bold text-duo-gray-dark"
+											>
 												Repetições
 											</label>
 											<input
+												id={`set-${index}-reps`}
 												type="number"
 												min="0"
 												placeholder="0"
@@ -449,10 +471,14 @@ export function WeightTracker({
 
 			{/* Notas */}
 			<div>
-				<label className="mb-2 block text-sm font-bold text-duo-gray-dark">
+				<label
+					htmlFor="weight-tracker-notes"
+					className="mb-2 block text-sm font-bold text-duo-gray-dark"
+				>
 					Notas (opcional)
 				</label>
 				<textarea
+					id="weight-tracker-notes"
 					value={notes}
 					onChange={(e) => setNotes(e.target.value)}
 					placeholder="Como foi o treino? Sentiu alguma dificuldade?"

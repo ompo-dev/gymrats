@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	useModalStateWithParam,
 	useSubModalState,
@@ -105,6 +105,9 @@ export function WorkoutModal() {
 		parseAsInteger,
 	);
 	const activeWorkout = useWorkoutStore((state) => state.activeWorkout);
+	// Derivar dos pulados do activeWorkout (única assinatura = re-render quando mudar)
+	const skippedExercises = activeWorkout?.skippedExercises ?? [];
+	const skippedExerciseIndices = activeWorkout?.skippedExerciseIndices ?? [];
 
 	// Estado para forçar re-render quando workout for encontrado
 	const [, forceUpdate] = useState(0);
@@ -125,17 +128,20 @@ export function WorkoutModal() {
 	}, [openWorkoutId, workoutModal]);
 
 	// Buscar workout das units do store unificado ou do mock como fallback
-	const findWorkoutInUnits = (workoutId: string): WorkoutSession | null => {
-		if (!units || !Array.isArray(units) || units.length === 0) return null;
+	const findWorkoutInUnits = useCallback(
+		(workoutId: string): WorkoutSession | null => {
+			if (!units || !Array.isArray(units) || units.length === 0) return null;
 
-		for (const unit of units) {
-			const workout = unit.workouts.find(
-				(w: WorkoutSession) => w.id === workoutId,
-			);
-			if (workout) return workout;
-		}
-		return null;
-	};
+			for (const unit of units) {
+				const workout = unit.workouts.find(
+					(w: WorkoutSession) => w.id === workoutId,
+				);
+				if (workout) return workout;
+			}
+			return null;
+		},
+		[units],
+	);
 
 	const workoutBase = openWorkoutId
 		? findWorkoutInUnits(openWorkoutId) ||
@@ -167,7 +173,7 @@ export function WorkoutModal() {
 		loadWorkoutProgress,
 		completeWorkout,
 		clearWorkoutProgress,
-		openWorkout,
+		openWorkout: _openWorkout,
 		skipExercise,
 		calculateWorkoutStats,
 		isWorkoutCompleted,
@@ -212,10 +218,11 @@ export function WorkoutModal() {
 	const alternativeSelectorModal = useSubModalState("alternative-selector");
 	const cardioConfigModal = useSubModalState("cardio-config");
 	const cardioConfigInitialized = useRef(false); // evita reabrir modal ao navegar entre exercícios
+	const lastInitializedKey = useRef<string | null>(null); // evita loop: só inicializa uma vez por (workoutId + exerciseIndex)
 	const [showCompletion, setShowCompletion] = useState(false);
 
 	// Manter compatibilidade com UIStore temporariamente
-	const { showWeightTracker } = useUIStore();
+	const { showWeightTracker: _showWeightTracker } = useUIStore();
 
 	// Estados específicos de cardio
 	const [isRunning, setIsRunning] = useState(false);
@@ -355,11 +362,13 @@ export function WorkoutModal() {
 		: null;
 
 	// Inicializar workout quando abrir ou quando workoutId mudar
+	// biome-ignore lint/correctness/useExhaustiveDependencies: deps intencionais para evitar loop; inicialização só quando openWorkoutId/workout/id/modal mudam
 	useEffect(() => {
 		// Função assíncrona para inicializar workout
 		const initializeWorkout = async () => {
 			// Se não tem workoutId, limpar tudo
 			if (!openWorkoutId) {
+				lastInitializedKey.current = null;
 				setActiveWorkout(null);
 				setShowCompletion(false);
 				weightTrackerModal.close();
@@ -391,30 +400,22 @@ export function WorkoutModal() {
 
 			// Se não tem workout ainda após tentar buscar, aguardar e tentar novamente
 			if (!workout) {
-				// Se modal está aberto, tentar buscar novamente após um delay
-				// Isso é útil quando acessado diretamente pela URL e as units ainda não foram carregadas
 				if (workoutModal.isOpen) {
-					// Tentar buscar novamente após um delay
 					const retryTimer = setTimeout(() => {
-						const retryWorkout =
+						const retry =
 							findWorkoutInUnits(openWorkoutId) ||
 							mockWorkouts.find((w) => w.id === openWorkoutId);
-
-						if (retryWorkout) {
-							// Se encontrou, forçar re-render para inicializar
-							forceUpdate((prev) => prev + 1);
-						} else {
-							// Se ainda não encontrou, tentar mais uma vez após outro delay
-							const secondRetryTimer = setTimeout(() => {
-								forceUpdate((prev) => prev + 1);
-							}, 1000);
-							return () => clearTimeout(secondRetryTimer);
-						}
+						if (retry) forceUpdate((prev) => prev + 1);
+						else setTimeout(() => forceUpdate((prev) => prev + 1), 1000);
 					}, 500);
 					return () => clearTimeout(retryTimer);
 				}
 				return;
 			}
+
+			const initKey = `${openWorkoutId}:${exerciseIndexParam ?? ""}`;
+			if (lastInitializedKey.current === initKey) return;
+			lastInitializedKey.current = initKey;
 
 			// Sempre resetar tela de conclusão quando abrir
 			setShowCompletion(false);
@@ -455,6 +456,7 @@ export function WorkoutModal() {
 						currentExerciseIndex: initialExerciseIndex,
 						exerciseLogs: savedProgress.exerciseLogs || [],
 						skippedExercises: savedProgress.skippedExercises || [],
+						skippedExerciseIndices: savedProgress.skippedExerciseIndices || [],
 						xpEarned: savedProgress.xpEarned || 0,
 						totalVolume: savedProgress.totalVolume || 0,
 						completionPercentage: savedProgress.completionPercentage || 0,
@@ -510,21 +512,7 @@ export function WorkoutModal() {
 			// O progresso é salvo explicitamente em handleClose()
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [
-		openWorkoutId,
-		exerciseIndexParam,
-		cardioConfigModal.close,
-		cardioConfigModal.open,
-		findWorkoutInUnits,
-		isWorkoutCompleted,
-		loadWorkoutProgress, // Inicializar workout novo com o índice da URL se disponível
-		setActiveWorkout,
-		setCurrentExerciseIndex, // Limpar exerciseIndex da URL
-		setExerciseIndexParam,
-		weightTrackerModal.close,
-		workout,
-		workoutModal.isOpen,
-	]);
+	}, [openWorkoutId, exerciseIndexParam, workout?.id, workoutModal.isOpen]);
 
 	// Cronômetro para exercícios de cardio
 	useEffect(() => {
@@ -755,14 +743,13 @@ export function WorkoutModal() {
 		);
 	};
 
-	// Buscar log existente do exercício atual
+	// Buscar log existente do exercício atual (ignora entradas null/undefined no array)
 	const getCurrentExerciseLog = (): ExerciseLog | null => {
 		if (!activeWorkout || !currentExercise) return null;
-		return (
-			activeWorkout.exerciseLogs.find(
-				(log) => log.exerciseId === currentExercise.id,
-			) || null
+		const log = activeWorkout.exerciseLogs?.find(
+			(log) => log != null && log.exerciseId === currentExercise.id,
 		);
+		return log ?? null;
 	};
 
 	// Formatar tempo para MM:SS
@@ -1026,8 +1013,16 @@ export function WorkoutModal() {
 								)
 							: [];
 
-						const requestBody: any = {
-							exerciseLogs: exerciseLogs,
+						const requestBody: {
+							exerciseLogs: typeof exerciseLogs;
+							duration: number;
+							totalVolume: number;
+							overallFeedback: string;
+							xpEarned: number;
+							startTime: string;
+							bodyPartsFatigued?: string[];
+						} = {
+							exerciseLogs,
 							duration: workoutDuration,
 							totalVolume: totalVolume || 0,
 							overallFeedback: overallFeedback,
@@ -1035,7 +1030,6 @@ export function WorkoutModal() {
 							startTime: startTimeISO,
 						};
 
-						// Adicionar bodyPartsFatigued apenas se não estiver vazio
 						if (validBodyPartsFatigued.length > 0) {
 							requestBody.bodyPartsFatigued = validBodyPartsFatigued;
 						}
@@ -1045,10 +1039,11 @@ export function WorkoutModal() {
 							requestBody,
 						);
 						console.log("Workout salvo com sucesso:", response.data);
-					} catch (error: any) {
+					} catch (error: unknown) {
+						const err = error as { message?: string };
 						console.error(
 							"Erro ao salvar workout no backend:",
-							error?.message || error,
+							err?.message ?? error,
 						);
 						// Continuar mesmo se falhar
 					}
@@ -1316,8 +1311,16 @@ export function WorkoutModal() {
 										)
 									: [];
 
-								const requestBody: any = {
-									exerciseLogs: exerciseLogs,
+								const requestBody: {
+									exerciseLogs: typeof exerciseLogs;
+									duration: number;
+									totalVolume: number;
+									overallFeedback: string;
+									xpEarned: number;
+									startTime: string;
+									bodyPartsFatigued?: string[];
+								} = {
+									exerciseLogs,
 									duration: workoutDuration,
 									totalVolume: totalVolume || 0,
 									overallFeedback: overallFeedback,
@@ -1325,7 +1328,6 @@ export function WorkoutModal() {
 									startTime: startTimeISO,
 								};
 
-								// Adicionar bodyPartsFatigued apenas se não estiver vazio
 								if (validBodyPartsFatigued.length > 0) {
 									requestBody.bodyPartsFatigued = validBodyPartsFatigued;
 								}
@@ -1335,10 +1337,11 @@ export function WorkoutModal() {
 									requestBody,
 								);
 								console.log("Workout salvo com sucesso:", response.data);
-							} catch (error: any) {
+							} catch (error: unknown) {
+								const err = error as { message?: string };
 								console.error(
 									"Erro ao salvar workout no backend:",
-									error?.message || error,
+									err?.message ?? error,
 								);
 							}
 						};
@@ -1534,15 +1537,22 @@ export function WorkoutModal() {
 					requestBody,
 				);
 				console.log("Workout salvo com sucesso:", response.data);
-			} catch (error: any) {
+			} catch (error: unknown) {
+				const err = error as {
+					message?: string;
+					response?: {
+						status?: number;
+						data?: { error?: string; details?: unknown };
+					};
+				};
 				const errorMessage =
-					error?.response?.data?.error || error?.message || "Erro desconhecido";
+					err?.response?.data?.error || err?.message || "Erro desconhecido";
 				const errorDetails =
-					error?.response?.data?.details || error?.response?.data;
+					err?.response?.data?.details ?? err?.response?.data;
 
 				console.error("Erro ao salvar workout no backend:", {
 					message: errorMessage,
-					status: error?.response?.status,
+					status: err?.response?.status,
 					details: errorDetails,
 					fullError: error,
 				});
@@ -1602,10 +1612,10 @@ export function WorkoutModal() {
 			setHeartRate(120);
 		}
 
-		// Marcar exercício atual como pulado
+		// Marcar exercício atual como pulado (id + índice para o stepper não depender de match por id)
 		const currentExerciseId =
 			workout.exercises[activeWorkout.currentExerciseIndex].id;
-		skipExercise(currentExerciseId);
+		skipExercise(currentExerciseId, activeWorkout.currentExerciseIndex);
 
 		// Calcular estatísticas atualizadas
 		calculateWorkoutStats();
@@ -1631,6 +1641,7 @@ export function WorkoutModal() {
 			totalExercises,
 			exerciseLogs: updatedWorkout.exerciseLogs.map((l) => l.exerciseName),
 			skippedExercises: updatedWorkout.skippedExercises,
+			skippedExerciseIndices: updatedWorkout.skippedExerciseIndices,
 		});
 
 		// NÃO salvar progresso aqui - pular é apenas navegação
@@ -1754,8 +1765,16 @@ export function WorkoutModal() {
 							)
 						: [];
 
-					const requestBody: any = {
-						exerciseLogs: exerciseLogs,
+					const requestBody: {
+						exerciseLogs: typeof exerciseLogs;
+						duration: number;
+						totalVolume: number;
+						overallFeedback: string;
+						xpEarned: number;
+						startTime: string;
+						bodyPartsFatigued?: string[];
+					} = {
+						exerciseLogs,
 						duration: workoutDuration,
 						totalVolume: totalVolume || 0,
 						overallFeedback: overallFeedback,
@@ -1763,7 +1782,6 @@ export function WorkoutModal() {
 						startTime: startTimeISO,
 					};
 
-					// Adicionar bodyPartsFatigued apenas se não estiver vazio
 					if (validBodyPartsFatigued.length > 0) {
 						requestBody.bodyPartsFatigued = validBodyPartsFatigued;
 					}
@@ -1773,18 +1791,22 @@ export function WorkoutModal() {
 						requestBody,
 					);
 					console.log("Workout salvo com sucesso:", response.data);
-				} catch (error: any) {
-					// Log detalhado do erro para debug
+				} catch (error: unknown) {
+					const err = error as {
+						message?: string;
+						response?: {
+							status?: number;
+							data?: { error?: string; details?: unknown };
+						};
+					};
 					const errorMessage =
-						error?.response?.data?.error ||
-						error?.message ||
-						"Erro desconhecido";
+						err?.response?.data?.error || err?.message || "Erro desconhecido";
 					const errorDetails =
-						error?.response?.data?.details || error?.response?.data;
+						err?.response?.data?.details ?? err?.response?.data;
 
 					console.error("Erro ao salvar workout no backend:", {
 						message: errorMessage,
-						status: error?.response?.status,
+						status: err?.response?.status,
 						details: errorDetails,
 						fullError: error,
 					});
@@ -1932,7 +1954,12 @@ export function WorkoutModal() {
 							completedExerciseIds={
 								activeWorkout?.exerciseLogs?.map((log) => log.exerciseId) || []
 							}
-							skippedExerciseIds={activeWorkout?.skippedExercises || []}
+							skippedExerciseIds={skippedExercises}
+							skippedIndices={
+								skippedExerciseIndices.length > 0
+									? [...skippedExerciseIndices]
+									: []
+							}
 							currentExerciseId={currentExercise?.id}
 							onComplete={handleExerciseComplete}
 							onSaveProgress={handleSaveProgress}
@@ -1963,7 +1990,12 @@ export function WorkoutModal() {
 						completedExerciseIds={
 							activeWorkout?.exerciseLogs?.map((log) => log.exerciseId) || []
 						}
-						skippedExerciseIds={activeWorkout?.skippedExercises || []}
+						skippedExerciseIds={skippedExercises}
+						skippedIndices={
+							skippedExerciseIndices.length > 0
+								? [...skippedExerciseIndices]
+								: []
+						}
 					/>
 
 					{/* Exercise Content */}
