@@ -2,7 +2,9 @@
 
 import { Check, Plus, TrendingUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/atoms/buttons/button";
+import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +77,10 @@ export function WeightTracker({
 	existingLog,
 	isUnilateral = false,
 }: WeightTrackerProps) {
-	const safeLog = normalizeExistingLog(existingLog);
+	const safeLog = useMemo(
+		() => normalizeExistingLog(existingLog),
+		[existingLog],
+	);
 
 	const [sets, setSets] = useState<SetLog[]>(() => {
 		try {
@@ -99,9 +104,11 @@ export function WeightTracker({
 
 	const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	const effectNotes = getNotesSafe(safeLog);
-
+	// biome-ignore lint/correctness/useExhaustiveDependencies: queremos ressincronizar apenas quando o id do log mudar para não sobrescrever o estado local já editado
 	useEffect(() => {
+		// Só ressincroniza com o log existente quando o ID mudar
+		// (abrir outro exercício / outro log). Isso evita sobrescrever
+		// o estado local (como `completed`) em toda renderização.
 		if (safeLog?.sets && safeLog.sets.length > 0) {
 			const loadedSets = safeLog.sets.map((set) => ({
 				setNumber: set?.setNumber ?? 0,
@@ -112,12 +119,12 @@ export function WeightTracker({
 				rpe: set?.rpe,
 			}));
 			setSets(loadedSets);
-			setNotes(effectNotes);
+			setNotes(getNotesSafe(safeLog));
 		} else {
 			setSets([DEFAULT_SET]);
 			setNotes("");
 		}
-	}, [effectNotes, safeLog]);
+	}, [safeLog?.id]);
 
 	// Cleanup do timeout ao desmontar
 	useEffect(() => {
@@ -344,22 +351,23 @@ export function WeightTracker({
 								)}
 							>
 								<div className="mb-3 flex items-center justify-between">
-									<div className="font-bold text-duo-text">
-										Série {set.setNumber}
+									<div>
+										<span className="inline-flex items-center rounded-full bg-duo-blue/5 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-duo-blue">
+											Série {set.setNumber}
+										</span>
 									</div>
 									<div className="flex items-center gap-2">
-										{set.completed && (
-											<Check className="h-5 w-5 text-duo-green" />
-										)}
 										{sets.length > 1 && (
-											<button
+											<Button
 												type="button"
+												variant="destructive"
+												size="icon-sm"
 												onClick={() => handleRemoveSet(index)}
-												className="rounded-lg p-1 text-duo-gray-dark hover:bg-red-100 hover:text-red-600 transition-colors"
 												title="Remover série"
+												className="p-0"
 											>
 												<X className="h-4 w-4" />
-											</button>
+											</Button>
 										)}
 									</div>
 								</div>
@@ -369,9 +377,9 @@ export function WeightTracker({
 										<div>
 											<label
 												htmlFor={`set-${index}-weight`}
-												className="mb-1 block text-xs font-bold text-duo-gray-dark"
+												className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-duo-gray-dark"
 											>
-												Carga (kg)
+												Peso (kg)
 											</label>
 											<input
 												id={`set-${index}-weight`}
@@ -390,9 +398,9 @@ export function WeightTracker({
 										<div>
 											<label
 												htmlFor={`set-${index}-reps`}
-												className="mb-1 block text-xs font-bold text-duo-gray-dark"
+												className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-duo-gray-dark"
 											>
-												Repetições
+												Reps
 											</label>
 											<input
 												id={`set-${index}-reps`}
@@ -409,15 +417,20 @@ export function WeightTracker({
 											/>
 										</div>
 										{isValid && (
-											<motion.button
+											<motion.div
 												initial={{ opacity: 0, scale: 0.9 }}
 												animate={{ opacity: 1, scale: 1 }}
-												onClick={() => handleSetComplete(index)}
-												className="duo-button-green col-span-2 flex items-center justify-center gap-2"
+												className="col-span-2"
 											>
-												<Check className="h-5 w-5" />
-												COMPLETAR SÉRIE
-											</motion.button>
+												<Button
+													type="button"
+													onClick={() => handleSetComplete(index)}
+													className="flex w-full items-center justify-center gap-2 text-[13px]"
+												>
+													<Check className="h-5 w-5" />
+													COMPLETAR SÉRIE
+												</Button>
+											</motion.div>
 										)}
 										{isEmpty && (
 											<div className="col-span-2 text-center text-xs text-duo-gray-dark">
@@ -426,8 +439,8 @@ export function WeightTracker({
 										)}
 									</div>
 								) : (
-									<div className="flex items-center justify-between text-sm">
-										<span className="text-duo-gray-dark">
+									<div className="flex items-center justify-between text-sm text-duo-text">
+										<span>
 											{set.weight}kg x {set.reps} reps
 										</span>
 										<span className="font-bold text-duo-green">
@@ -441,15 +454,17 @@ export function WeightTracker({
 				</AnimatePresence>
 
 				{/* Botão para adicionar nova série */}
-				<motion.button
-					whileHover={{ scale: 1.02 }}
-					whileTap={{ scale: 0.98 }}
-					onClick={handleAddSet}
-					className="w-full rounded-2xl border-2 border-dashed border-duo-border bg-white py-4 font-bold text-duo-gray-dark transition-all hover:border-duo-blue hover:bg-duo-blue/5"
-				>
-					<Plus className="mr-2 inline h-5 w-5" />
-					ADICIONAR SÉRIE
-				</motion.button>
+				<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+					<Button
+						type="button"
+						variant="outline"
+						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-white py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
+						onClick={handleAddSet}
+					>
+						<Plus className="h-5 w-5" />
+						ADICIONAR SÉRIE
+					</Button>
+				</motion.div>
 			</div>
 
 			{/* Volume total (sempre visível se houver séries válidas) */}
@@ -457,15 +472,15 @@ export function WeightTracker({
 				<motion.div
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
-					className="rounded-2xl border-2 border-duo-yellow bg-duo-yellow/10 p-4"
 				>
-					<div className="mb-2 flex items-center gap-2">
-						<TrendingUp className="h-5 w-5 text-duo-yellow" />
-						<span className="font-bold text-duo-text">Volume Total</span>
-					</div>
-					<div className="text-3xl font-bold text-duo-yellow">
-						{totalVolume.toFixed(0)} kg
-					</div>
+					<StatCardLarge
+						icon={TrendingUp}
+						iconColor="duo-yellow"
+						value={`${totalVolume.toFixed(0)} kg`}
+						label="Volume total do exercício"
+						subtitle="Soma de todas as séries válidas"
+						className="w-full"
+					/>
 				</motion.div>
 			)}
 
@@ -489,16 +504,20 @@ export function WeightTracker({
 
 			{/* Botão finalizar - aparece se houver pelo menos uma série válida */}
 			{hasValidSets && (
-				<motion.button
+				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
-					onClick={handleFinish}
-					className="duo-button-green w-full text-lg"
 				>
-					FINALIZAR EXERCÍCIO
-				</motion.button>
+					<Button
+						type="button"
+						onClick={handleFinish}
+						className="w-full text-lg"
+					>
+						FINALIZAR EXERCÍCIO
+					</Button>
+				</motion.div>
 			)}
 		</div>
 	);
