@@ -1,6 +1,6 @@
 {
 	"name": "gymrats",
-	"version": "23.0.0",
+	"version": "23.5.0",
 	"private": true,
 	"scripts": {
 		"build": "bun run version:sync && prisma generate && NODE_OPTIONS='--max-old-space-size=4096' bun next build",

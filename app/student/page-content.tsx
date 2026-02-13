@@ -26,6 +26,7 @@ import { WeightProgressCard } from "@/components/organisms/home/home/weight-prog
 import { GymMap } from "@/components/organisms/sections/gym-map";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
+import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymLocation } from "@/lib/types";
 
@@ -78,9 +79,9 @@ function StudentHomeContent() {
 		}
 	}, [exerciseId, educationView, setEducationView]);
 
-	// Debug: verificar se tab e exerciseId estão sendo lidos corretamente
+	// Debug: verificar se tab e exerciseId estão sendo lidos corretamente (apenas em dev)
 	useEffect(() => {
-		if (tab === "education") {
+		if (process.env.NODE_ENV === "development" && tab === "education") {
 			console.log("[DEBUG] Education tab ativo:", {
 				tab,
 				educationView,
@@ -133,6 +134,7 @@ function StudentHomeContent() {
 
 	const { addDayPass } = useStudent("actions");
 	const { loadSubscription } = useStudent("loaders");
+	const { toast } = useToast();
 
 	useEffect(() => {
 		setIsMounted(true);
@@ -165,7 +167,6 @@ function StudentHomeContent() {
 	const currentWeight = storeProfile?.weight;
 	const currentSubscription = storeSubscription;
 	const _currentPersonalRecords = storePersonalRecords || [];
-	const currentRanking = null; // TODO: Adicionar ao store se necessário
 	const _userInfo = {
 		isAdmin: storeIsAdmin || false,
 		role: storeRole || null,
@@ -191,7 +192,11 @@ function StudentHomeContent() {
 		};
 
 		addDayPass(newPass);
-		alert(`Diária comprada com sucesso! R$ ${gym.plans.daily.toFixed(2)}`);
+		toast({
+			title: "Diária comprada",
+			description: `R$ ${gym.plans.daily.toFixed(2)} – válido por 24h`,
+			variant: "default",
+		});
 	};
 
 	return (
@@ -225,7 +230,6 @@ function StudentHomeContent() {
 								currentLevel={storeProgress.currentLevel}
 								totalXP={storeProgress.totalXP}
 								xpToNextLevel={storeProgress.xpToNextLevel}
-								ranking={currentRanking ?? null}
 							/>
 						</WhileInView>
 					)}
@@ -269,11 +273,7 @@ function StudentHomeContent() {
 								icon={Trophy}
 								value={`#${displayProgress.currentLevel}`}
 								label="nível atual"
-								subtitle={
-									currentRanking !== null && currentRanking !== undefined
-										? `Top ${currentRanking}% global`
-										: "Continue treinando"
-								}
+								subtitle="Continue treinando"
 								iconColor="duo-blue"
 							/>
 						</motion.div>
