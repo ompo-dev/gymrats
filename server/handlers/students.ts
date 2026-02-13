@@ -1,4 +1,5 @@
 import type { Context } from "elysia";
+import type { z } from "zod";
 import {
 	addWeightSchema,
 	studentSectionsQuerySchema,
@@ -7,14 +8,6 @@ import {
 	weightHistoryQuerySchema,
 } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
-import { mockGymLocations } from "@/lib/gym-mock-data";
-import {
-	mockPersonalRecords,
-	mockUnits,
-	mockUserProgress,
-	mockWeightHistory,
-	mockWorkoutHistory,
-} from "@/lib/mock-data";
 import type { MuscleGroup } from "@/lib/types";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import { parseJsonArray, parseJsonSafe } from "../utils/json";
@@ -138,7 +131,7 @@ export async function getAllStudentDataHandler({
 
 export async function getStudentProfileHandler({
 	set,
-	studentId,
+	studentId: _studentId,
 	userId,
 }: StudentContext) {
 	try {
@@ -186,7 +179,7 @@ export async function getStudentProfileHandler({
 export async function updateStudentProfileHandler({
 	set,
 	body,
-	studentId,
+	studentId: _studentId,
 	userId,
 }: StudentContext) {
 	try {
@@ -199,7 +192,7 @@ export async function updateStudentProfileHandler({
 			);
 		}
 
-		const data = validation.data as any;
+		const data = validation.data as z.infer<typeof updateStudentProfileSchema>;
 		const user = await db.user.findUnique({
 			where: { id: userId },
 			include: { student: true },
@@ -250,7 +243,7 @@ export async function updateStudentProfileHandler({
 					? data.weight
 					: parseFloat(String(data.weight))
 				: null,
-			fitnessLevel: data.fitnessLevel || null,
+			fitnessLevel: (data.fitnessLevel as string | null) ?? null,
 			weeklyWorkoutFrequency: data.weeklyWorkoutFrequency
 				? parseInt(String(data.weeklyWorkoutFrequency), 10)
 				: null,
@@ -431,7 +424,11 @@ export async function addWeightHandler({
 			);
 		}
 
-		const { weight, date, notes } = validation.data as any;
+		const { weight, date, notes } = validation.data as {
+			weight: number;
+			date?: string;
+			notes?: string;
+		};
 		const weightEntry = await db.weightHistory.create({
 			data: {
 				studentId,
@@ -483,7 +480,10 @@ export async function getWeightHistoryFilteredHandler({
 		const startDate = queryValidation.data.startDate;
 		const endDate = queryValidation.data.endDate;
 
-		const where: Record<string, any> = { studentId };
+		const where: {
+			studentId: string;
+			date?: { gte?: Date; lte?: Date };
+		} = { studentId };
 		if (startDate || endDate) {
 			where.date = {};
 			if (startDate) where.date.gte = new Date(startDate);
@@ -664,7 +664,7 @@ export async function updateStudentProgressHandler({
 			);
 		}
 
-		const data = validation.data as any;
+		const data = validation.data as z.infer<typeof updateStudentProgressSchema>;
 		const progress = await db.studentProgress.findUnique({
 			where: { studentId },
 		});
@@ -681,9 +681,10 @@ export async function updateStudentProgressHandler({
 				where: { studentId },
 				data: {
 					...data,
-					lastActivityDate: data.lastActivityDate
-						? new Date(data.lastActivityDate)
-						: undefined,
+					lastActivityDate:
+						typeof data.lastActivityDate === "string"
+							? new Date(data.lastActivityDate)
+							: undefined,
 				},
 			});
 		}
@@ -860,7 +861,11 @@ async function getAllStudentDataForUser({
 			? sections.filter((s) => s !== "actions" && s !== "loaders")
 			: null;
 
-		const result: any = {};
+		const result: {
+			weightHistory?: Array<{ date: Date; weight: number; notes?: string }>;
+			weightGain?: number;
+			[key: string]: unknown;
+		} = {};
 
 		if (!requestedSections || requestedSections.includes("user")) {
 			const user = await db.user.findUnique({
@@ -1022,8 +1027,9 @@ async function getAllStudentDataForUser({
 					notes: wh.notes || undefined,
 				}));
 
-				if (result.weightHistory.length > 0) {
-					const currentWeight = result.weightHistory[0].weight;
+				const wh = result.weightHistory ?? [];
+				if (wh.length > 0) {
+					const currentWeight = wh[0].weight;
 					const oneMonthAgo = new Date();
 					oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
@@ -1039,13 +1045,12 @@ async function getAllStudentDataForUser({
 						result.weightGain = currentWeight - weightOneMonthAgo.weight;
 					}
 				}
-			} catch (error: any) {
-				if (
-					error.code === "P2021" ||
-					error.message?.includes("does not exist")
-				) {
-					result.weightHistory = mockWeightHistory;
+			} catch (error: unknown) {
+				const err = error as { code?: string; message?: string };
+				if (err.code === "P2021" || err.message?.includes("does not exist")) {
+					console.warn("Tabela weight_history não existe:", err.message);
 				}
+				result.weightHistory = [];
 			}
 		}
 
@@ -1178,7 +1183,7 @@ async function getAllStudentDataForUser({
 				}));
 			} catch (error) {
 				console.error("Erro ao buscar units:", error);
-				result.units = mockUnits;
+				result.units = [];
 			}
 		}
 
@@ -1209,12 +1214,22 @@ async function getAllStudentDataForUser({
 							if (Array.isArray(sets)) {
 								return (
 									acc +
-									sets.reduce((setAcc: number, set: any) => {
-										if (set.weight && set.reps && set.completed) {
-											return setAcc + set.weight * set.reps;
-										}
-										return setAcc;
-									}, 0)
+									sets.reduce(
+										(
+											setAcc: number,
+											set: {
+												weight?: number;
+												reps?: number;
+												completed?: boolean;
+											},
+										) => {
+											if (set.weight && set.reps && set.completed) {
+												return setAcc + set.weight * set.reps;
+											}
+											return setAcc;
+										},
+										0,
+									)
 								);
 							}
 						} catch {}
@@ -1253,7 +1268,11 @@ async function getAllStudentDataForUser({
 					duration: wh.duration,
 					totalVolume: wh.totalVolume || calculatedVolume,
 					exercises: wh.exercises.map((el) => {
-						let sets: any[] = [];
+						let sets: Array<{
+							weight?: number;
+							reps?: number;
+							completed?: boolean;
+						}> = [];
 						try {
 							sets = JSON.parse(el.sets);
 						} catch {}
@@ -1403,11 +1422,9 @@ async function getAllStudentDataForUser({
 						targetWater: 2000,
 					};
 				}
-			} catch (error: any) {
-				if (
-					error.code === "P2021" ||
-					error.message?.includes("does not exist")
-				) {
+			} catch (error: unknown) {
+				const err = error as { code?: string; message?: string };
+				if (err.code === "P2021" || err.message?.includes("does not exist")) {
 					result.dailyNutrition = {
 						date: new Date().toISOString().split("T")[0],
 						meals: [],
@@ -1619,14 +1636,22 @@ async function getAllStudentDataForUser({
 						} catch {}
 					}
 
-					let openingHours: any = null;
+					let openingHours: {
+						open: string;
+						close: string;
+						days?: string[];
+					} | null = null;
 					if (gym.openingHours) {
 						try {
 							openingHours = JSON.parse(gym.openingHours);
 						} catch {}
 					}
 
-					const plansByType: any = {};
+					const plansByType: {
+						daily?: number;
+						weekly?: number;
+						monthly?: number;
+					} = {};
 					gym.plans.forEach((plan) => {
 						if (plan.type === "daily") {
 							plansByType.daily = plan.price;
@@ -1707,11 +1732,12 @@ async function getAllStudentDataForUser({
 									}
 								})()
 							: undefined,
-						isPartner: (gym as any).isPartner || false,
+						isPartner: (gym as { isPartner?: boolean }).isPartner || false,
 					};
 				});
-			} catch {
-				result.gymLocations = mockGymLocations;
+			} catch (error) {
+				console.error("Erro ao buscar gym locations:", error);
+				result.gymLocations = [];
 			}
 		}
 
@@ -1761,31 +1787,33 @@ async function getAllStudentDataForUser({
 		return result;
 	} catch (error) {
 		console.error("[getAllStudentData] Erro:", error);
-		return getMockData();
+		return getNeutralData();
 	}
 }
 
-function getMockData() {
+function getNeutralData() {
 	return {
-		user: {
-			id: "",
-			name: "Usuário",
-			email: "",
-			username: "@usuario",
-			memberSince: "Jan 2025",
-			role: "STUDENT" as const,
-			isAdmin: false,
+		user: null,
+		student: null,
+		progress: {
+			currentStreak: 0,
+			longestStreak: 0,
+			totalXP: 0,
+			currentLevel: 1,
+			xpToNextLevel: 100,
+			workoutsCompleted: 0,
+			todayXP: 0,
+			achievements: [],
+			lastActivityDate: new Date().toISOString(),
+			dailyGoalXP: 50,
+			weeklyXP: [0, 0, 0, 0, 0, 0, 0],
 		},
-		student: {
-			id: "",
-		},
-		progress: mockUserProgress,
-		profile: {},
-		weightHistory: mockWeightHistory,
+		profile: null,
+		weightHistory: [],
 		weightGain: null,
-		units: mockUnits,
-		workoutHistory: mockWorkoutHistory.slice(0, 3),
-		personalRecords: mockPersonalRecords,
+		units: [],
+		workoutHistory: [],
+		personalRecords: [],
 		dailyNutrition: {
 			date: new Date().toISOString().split("T")[0],
 			meals: [],
@@ -1806,7 +1834,7 @@ function getMockData() {
 		payments: [],
 		paymentMethods: [],
 		dayPasses: [],
-		gymLocations: mockGymLocations,
+		gymLocations: [],
 		friends: {
 			count: 0,
 			list: [],

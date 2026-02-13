@@ -28,11 +28,6 @@ import {
 } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
-import {
-	mockPaymentMethods,
-	mockStudentMemberships,
-	mockStudentPayments,
-} from "@/lib/mock-data";
 import type {
 	PaymentMethod,
 	StudentGymMembership,
@@ -67,7 +62,7 @@ interface StudentPaymentsPageProps {
 
 export function StudentPaymentsPage({
 	subscription: initialSubscription,
-	startTrial,
+	startTrial: _startTrial,
 }: StudentPaymentsPageProps = {}) {
 	// Carregamento prioritizado: subscription, payments, paymentMethods, memberships aparecem primeiro
 	// Se dados já existem no store, só carrega o que falta
@@ -92,7 +87,7 @@ export function StudentPaymentsPage({
 		isLoading: isLoadingSubscription,
 		startTrial: startTrialHook,
 		isStartingTrial,
-		createSubscription,
+		createSubscription: _createSubscription,
 		isCreatingSubscription,
 		cancelSubscription,
 		isCancelingSubscription,
@@ -150,9 +145,10 @@ export function StudentPaymentsPage({
 
 	useEffect(() => {
 		if (subscription?.trialEnd) {
+			const trialEndDate = subscription.trialEnd;
 			const updateDaysRemaining = () => {
 				const now = new Date();
-				const trialEnd = new Date(subscription.trialEnd!);
+				const trialEnd = new Date(trialEndDate);
 				const diff = trialEnd.getTime() - now.getTime();
 				const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 				setDaysRemaining(days);
@@ -182,7 +178,7 @@ export function StudentPaymentsPage({
 	// Usar dados do store (API → Zustand → Component)
 	const membershipsData =
 		storeMemberships && storeMemberships.length > 0
-			? storeMemberships.map((m: any) => ({
+			? storeMemberships.map((m: StudentGymMembership) => ({
 					...m,
 					startDate: m.startDate
 						? m.startDate instanceof Date
@@ -195,11 +191,11 @@ export function StudentPaymentsPage({
 							: new Date(m.nextBillingDate)
 						: undefined,
 				}))
-			: mockStudentMemberships;
+			: [];
 
 	const paymentsData =
 		storePayments && storePayments.length > 0
-			? storePayments.map((p: any) => ({
+			? storePayments.map((p: StudentPayment) => ({
 					...p,
 					date: p.date
 						? p.date instanceof Date
@@ -212,9 +208,9 @@ export function StudentPaymentsPage({
 							: new Date(p.dueDate)
 						: new Date(),
 				}))
-			: mockStudentPayments;
+			: [];
 
-	const paymentMethodsData = storePaymentMethods || mockPaymentMethods;
+	const paymentMethodsData = storePaymentMethods ?? [];
 	const isLoadingMemberships = !storeMemberships;
 	const isLoadingPayments = !storePayments;
 	const isLoadingPaymentMethods = !storePaymentMethods;
@@ -272,11 +268,15 @@ export function StudentPaymentsPage({
 					description: "Seu trial de 14 dias foi iniciado com sucesso!",
 				});
 			}
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const msg =
+				error instanceof Error
+					? error.message
+					: "Erro ao iniciar trial. Tente novamente.";
 			toast({
 				variant: "destructive",
 				title: "Erro ao iniciar trial",
-				description: error.message || "Erro ao iniciar trial. Tente novamente.",
+				description: msg,
 			});
 		}
 	};
@@ -288,7 +288,17 @@ export function StudentPaymentsPage({
 		try {
 			// Usar nova rota que ativa premium automaticamente (sem billing real)
 			const response = await apiClient.post<{
-				subscription: any;
+				subscription: {
+					id: string;
+					plan: string;
+					status: string;
+					currentPeriodStart: string | Date;
+					currentPeriodEnd: string | Date;
+					trialStart?: string | Date | null;
+					trialEnd?: string | Date | null;
+					canceledAt?: string | Date | null;
+					cancelAtPeriodEnd?: boolean;
+				};
 				message: string;
 			}>("/api/subscriptions/activate-premium", {
 				billingPeriod,
@@ -296,23 +306,22 @@ export function StudentPaymentsPage({
 
 			// Atualizar store com dados da API
 			if (response.data.subscription) {
-				const subscriptionData = response.data.subscription;
+				const sub = response.data.subscription;
 				await updateSubscription({
-					id: subscriptionData.id,
-					plan: subscriptionData.plan,
-					status: subscriptionData.status,
-					currentPeriodStart: new Date(subscriptionData.currentPeriodStart),
-					currentPeriodEnd: new Date(subscriptionData.currentPeriodEnd),
-					trialStart: subscriptionData.trialStart
-						? new Date(subscriptionData.trialStart)
-						: null,
-					trialEnd: subscriptionData.trialEnd
-						? new Date(subscriptionData.trialEnd)
-						: null,
-					canceledAt: subscriptionData.canceledAt
-						? new Date(subscriptionData.canceledAt)
-						: null,
-					cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd || false,
+					id: sub.id,
+					plan: sub.plan as "premium" | "free",
+					status: sub.status as
+						| "canceled"
+						| "trialing"
+						| "active"
+						| "expired"
+						| "past_due",
+					currentPeriodStart: new Date(sub.currentPeriodStart),
+					currentPeriodEnd: new Date(sub.currentPeriodEnd),
+					trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
+					trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
+					canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
+					cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
 				});
 			}
 
@@ -322,14 +331,18 @@ export function StudentPaymentsPage({
 			});
 
 			// Não precisa recarregar - updateSubscription já atualiza o store e sincroniza com backend
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error("[handleUpgrade] Erro:", error);
+			const err = error as {
+				response?: { data?: { message?: string } };
+				message?: string;
+			};
 			toast({
 				variant: "destructive",
 				title: "Erro ao ativar premium",
 				description:
-					error.response?.data?.message ||
-					error.message ||
+					err.response?.data?.message ||
+					(err instanceof Error ? err.message : undefined) ||
 					"Erro ao ativar premium. Tente novamente.",
 			});
 		}
@@ -358,11 +371,13 @@ export function StudentPaymentsPage({
 				});
 			}
 			// O hook já invalida e refetch automaticamente no onSuccess
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const msg =
+				error instanceof Error ? error.message : "Erro ao cancelar assinatura";
 			toast({
 				variant: "destructive",
 				title: "Erro ao cancelar assinatura",
-				description: error.message || "Erro ao cancelar assinatura",
+				description: msg,
 			});
 		}
 	};
