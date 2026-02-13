@@ -498,14 +498,10 @@ export async function getStudentUnits() {
 export async function getGymLocations() {
 	try {
 		// Buscar academias parceiras e ativas
-		// Nota: isPartner pode não existir ainda se migration não foi aplicada
-		const whereClause: { isActive: boolean } = {
+		const whereClause: { isActive: boolean; isPartner?: boolean } = {
 			isActive: true,
+			isPartner: true,
 		};
-
-		// Tentar adicionar isPartner se o campo existir (após migration)
-		// Por enquanto, buscar todas as academias ativas
-		// TODO: Descomentar após aplicar migration: whereClause.isPartner = true;
 
 		const gyms = await db.gym.findMany({
 			where: whereClause,

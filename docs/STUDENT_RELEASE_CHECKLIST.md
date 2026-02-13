@@ -6,11 +6,11 @@ Documento de referência para lançamento público da área do aluno. Organizado
 
 ## Resumo Executivo
 
-| Categoria | Itens | Prioridade |
-|-----------|-------|------------|
-| Crítico (bloquear launch) | 12 | 🔴 |
-| Importante (deixar pronto antes de beta) | 8 | 🟠 |
-| Desejável (post-launch) | 6 | 🟡 |
+| Categoria                                | Itens | Prioridade |
+| ---------------------------------------- | ----- | ---------- |
+| Crítico (bloquear launch)                | 12    | 🔴         |
+| Importante (deixar pronto antes de beta) | 8     | 🟠         |
+| Desejável (post-launch)                  | 6     | 🟡         |
 
 ---
 
@@ -24,6 +24,7 @@ Documento de referência para lançamento público da área do aluno. Organizado
 **Linhas:** 166-168, 227-228, 273-276
 
 **Opção A – Remover ranking da UI até estar pronto:**
+
 ```tsx
 // page-content.tsx linha 166
 // REMOVER: const currentRanking = null; // TODO: Adicionar ao store se necessário
@@ -34,15 +35,16 @@ Documento de referência para lançamento público da área do aluno. Organizado
   totalXP={storeProgress.totalXP}
   xpToNextLevel={storeProgress.xpToNextLevel}
   // ranking={currentRanking ?? null}  // REMOVER
-/>
+/>;
 
 // Linhas 271-277 - StatCardLarge de nível: usar sempre subtitle fixo
-subtitle="Continue treinando"
+subtitle = "Continue treinando";
 // Remover condicional: currentRanking !== null && currentRanking !== undefined ? ...
 ```
 
 **Opção B – Integrar ranking real (se backend já retorna):**  
 O `getStudentProfileData` em `app/student/profile/actions.ts` já calcula ranking. É preciso:
+
 - Adicionar `ranking` ao store unificado (ex: em `progress` ou em `profile`)
 - Garantir que `loadProgress` ou `loadProfile` carregue esse dado
 - Usar `storeProgress?.ranking ?? storeProfile?.ranking ?? null` em vez de `null`
@@ -77,7 +79,12 @@ O `getStudentProfileData` em `app/student/profile/actions.ts` já calcula rankin
 ```tsx
 useEffect(() => {
   if (process.env.NODE_ENV === "development" && tab === "education") {
-    console.log("[DEBUG] Education tab ativo:", { tab, educationView, exerciseId, muscleId });
+    console.log("[DEBUG] Education tab ativo:", {
+      tab,
+      educationView,
+      exerciseId,
+      muscleId,
+    });
   }
 }, [tab, educationView, exerciseId, muscleId]);
 ```
@@ -101,6 +108,7 @@ Nenhuma alteração crítica necessária.
 ### 3.1 🔴 Mocks em `getStudentProgress` (SSR)
 
 **Problema:** `getStudentProgress` retorna `mockUserProgress` quando:
+
 - não há `sessionToken` (linha 211)
 - sessão não encontrada ou sem student (linha 216)
 - `progress` não existe no DB (linha 226)
@@ -142,6 +150,7 @@ if (!progress) {
 ### 4.1 🔴 `getStudentUnits` – remover fallback para mock
 
 **Problema:** Retorna `mockUnits` quando:
+
 - não autenticado (linhas 317-318)
 - sessão sem student (linha 323)
 - erro em catch (linhas 479-481)
@@ -150,6 +159,7 @@ if (!progress) {
 **Linhas:** 316-323, 478-481
 
 **Ação:**
+
 - Não autenticado: retornar `[]` ou `null` e deixar o cliente tratar (redirecionar para login).
 - Erro: logar e retornar `[]` ou lançar para o cliente exibir erro, **não** retornar mock.
 
@@ -187,19 +197,9 @@ if (!session || !session.user.student) {
 
 ---
 
-### 4.3 🟠 TODO `isPartner` em `getGymLocations`
+### 4.3 ✅ `isPartner` em `getGymLocations`
 
-**Problema:** `whereClause.isPartner = true` está comentado (linha 495).
-
-**Arquivo:** `app/student/actions.ts`  
-**Linha:** 495
-
-**Ação:** Aplicar migration para adicionar `isPartner` na tabela `gym` e descomentar:
-
-```ts
-// Após migration
-whereClause.isPartner = true;
-```
+**Status:** Concluído. O campo `isPartner` já existe no schema Prisma e o `whereClause` foi atualizado para filtrar apenas academias parceiras (`isPartner: true`).
 
 ---
 
@@ -213,6 +213,7 @@ whereClause.isPartner = true;
 **Linhas:** 84-87, 1084-1087
 
 **Ação:**
+
 - Quando não autenticado: retornar objeto vazio/neutro (sem dados sensíveis de mock) ou lançar erro para o cliente tratar.
 - Em `catch`: logar e retornar objeto vazio ou rethrow.
 
@@ -239,6 +240,7 @@ if (!studentId || !userId) {
 ### 5.2 🔴 Fallbacks internos para mock em `getAllStudentData`
 
 **Problema:** Em diversos trechos, em caso de erro ou tabela inexistente, são atribuídos mocks:
+
 - `result.weightHistory = mockWeightHistory` (linha 311)
 - `result.units = mockUnits` (linha 448)
 - `result.gymLocations = mockGymLocations` (linha 1033)
@@ -284,6 +286,7 @@ if (!studentId || !userId) {
 **Linhas:** 331, 477
 
 **Ação:** Mesma estratégia da Home (seção 1.1):
+
 - **Opção A:** Remover exibição de ranking e usar texto fixo ("Calculando..." ou "Em breve").
 - **Opção B:** Integrar ranking real via store (se `getStudentProfileData` já o retorna).
 
@@ -299,6 +302,7 @@ if (!studentId || !userId) {
 **Linhas:** 183-217
 
 **Ação:** Em produção, quando o store estiver vazio:
+
 - Memberships: `[]`
 - Payments: `[]`
 - PaymentMethods: `[]` ou `null`
@@ -337,6 +341,7 @@ A tab `payments` está em `blockedTabs` e `AdminOnly` envolve `StudentPaymentsPa
 **Linhas:** 130-149, 385-410
 
 **Ação:** Se o workout não for encontrado nas units do store:
+
 - **Não** usar mock.
 - Mostrar estado de erro: "Treino não encontrado. Por favor, recarregue a página." com botão de retry/fechar.
 - Logar o `workoutId` para debug.
@@ -368,14 +373,9 @@ Para lançamento: manter ocultos até que os fluxos estejam prontos. Nenhuma alt
 
 ---
 
-### 10.2 🟡 `alert()` em bloqueio
+### 10.2 ✅ `alert()` em bloqueio
 
-**Problema:** Quando não-admin tenta acessar item bloqueado, usa `alert()` (linhas 85-88).
-
-**Arquivo:** `app/student/more/student-more-menu.tsx`  
-**Linhas:** 84-89
-
-**Ação (pós-launch):** Trocar por toast ou mensagem inline para melhor UX.
+**Status:** Concluído. O `alert()` foi substituído por `toast()` com variant `destructive` para melhor UX.
 
 ---
 
@@ -428,20 +428,20 @@ O handler de `students` também usa `getMockData()` e fallbacks para mocks em er
 
 ### Antes do lançamento
 
-- [ ] Remover todos os fallbacks para mock em produção (actions, actions-unified, profile actions, server handlers)
-- [ ] Substituir retornos de mock por valores neutros (`[]`, `null`, objetos vazios) e logar erros
-- [ ] Remover ou condicionar `console.log` de debug
-- [ ] Definir ranking: remover da UI ou integrar do backend
-- [ ] Remover fallback para `mockWorkouts` no WorkoutModal
-- [ ] Garantir que `student-payments-page` usa `[]` quando store vazio (não mock)
-- [ ] Confirmar que tabs bloqueadas (cardio, gyms, payments, subscription) permanecem ocultas para alunos
-- [ ] Garantir que `alert()` em bloqueio não seja usado em excesso (ok manter por enquanto)
+- [x] Remover todos os fallbacks para mock em produção (actions, actions-unified, profile actions, server handlers)
+- [x] Substituir retornos de mock por valores neutros (`[]`, `null`, objetos vazios) e logar erros
+- [x] Remover ou condicionar `console.log` de debug
+- [x] Definir ranking: remover da UI ou integrar do backend
+- [x] Remover fallback para `mockWorkouts` no WorkoutModal
+- [x] Garantir que `student-payments-page` usa `[]` quando store vazio (não mock)
+- [x] Confirmar que tabs bloqueadas (cardio, gyms, payments, subscription) permanecem ocultas para alunos
+- [x] Garantir que `alert()` em bloqueio não seja usado em excesso (substituído por toast)
 
 ### Pós-lançamento
 
 - [ ] Implementar fluxo real de compra de diária (quando liberar gyms)
 - [ ] Integrar ranking no store e exibir na UI
-- [ ] Substituir `alert()` por toast em bloqueios
+- [x] Substituir `alert()` por toast em bloqueios
 - [ ] Adicionar estados de erro e empty states em todas as telas críticas
 - [ ] Observabilidade: logs estruturados, Sentry ou similar para erros client-side
 - [ ] Rate limiting e timeout em APIs de IA
@@ -450,17 +450,18 @@ O handler de `students` também usa `getMockData()` e fallbacks para mocks em er
 
 ## 15. Arquivos Modificados (Resumo)
 
-| Arquivo | Alterações |
-|---------|------------|
-| `app/student/actions.ts` | Remover mocks em getStudentProgress, getStudentUnits, getGymLocations |
-| `app/student/actions-unified.ts` | Remover getMockData e fallbacks para mock |
-| `app/student/profile/actions.ts` | Remover mocks em catch e weight_history |
-| `app/student/page-content.tsx` | Ranking, debug log, possivelmente day pass |
-| `app/student/profile/profile-content.tsx` | Ranking |
-| `app/student/payments/student-payments-page.tsx` | Usar [] em vez de mock |
-| `components/organisms/workout/workout-modal.tsx` | Remover mockWorkouts, adicionar estado de erro |
-| `server/handlers/students.ts` | Remover getMockData e fallbacks |
+| Arquivo                                          | Alterações                                       |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `app/student/actions.ts`                         | Remover mocks, usar isPartner em getGymLocations |
+| `app/student/actions-unified.ts`                 | Remover getMockData e fallbacks para mock        |
+| `app/student/profile/actions.ts`                 | Remover mocks em catch e weight_history          |
+| `app/student/page-content.tsx`                   | Ranking, debug log, day pass com toast           |
+| `app/student/profile/profile-content.tsx`        | Ranking                                          |
+| `app/student/payments/student-payments-page.tsx` | Usar [] em vez de mock                           |
+| `app/student/more/student-more-menu.tsx`         | Substituir alert() por toast em bloqueios        |
+| `components/organisms/workout/workout-modal.tsx` | Remover mockWorkouts, adicionar estado de erro   |
+| `server/handlers/students.ts`                    | Remover getMockData e fallbacks                  |
 
 ---
 
-*Documento gerado em 12/02/2025. Revisar antes de cada release.*
+_Documento gerado em 12/02/2025. Revisar antes de cada release._
