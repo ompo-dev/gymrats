@@ -11,7 +11,10 @@ export const maxDuration = 60;
 export const runtime = "nodejs";
 
 import { chatCompletionStream } from "@/lib/ai/client";
-import { parseNutritionResponse } from "@/lib/ai/parsers/nutrition-parser";
+import {
+  extractFoodsAndPartialFromStream,
+  parseNutritionResponse,
+} from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
@@ -186,8 +189,10 @@ export async function POST(request: NextRequest) {
           message: "Consultando IA...",
         });
 
-        // Não encaminhar tokens ao client - resposta é JSON, usuário veria lixo.
-        // Streaming ainda acelera server-side (TTFT menor).
+        let accumulatedContent = "";
+        let lastEmittedFoodCount = -1;
+        const step = 80;
+
         const fullContent = await chatCompletionStream(
           {
             messages,
@@ -196,7 +201,37 @@ export async function POST(request: NextRequest) {
             responseFormat: "json_object",
             maxTokens: 1024,
           },
-          undefined, // onChunk - não enviar tokens (JSON não é legível)
+          (delta) => {
+            sendSSE(controller, "token", { delta });
+            accumulatedContent += delta;
+
+            const contentLen = accumulatedContent.length;
+            const prevLen = contentLen - delta.length;
+            const checkpoints: number[] = [];
+            if (delta.length > step) {
+              for (let i = prevLen; i < contentLen; i += step)
+                checkpoints.push(i);
+            }
+            checkpoints.push(contentLen);
+
+            for (const len of checkpoints) {
+              const slice = accumulatedContent.slice(0, len);
+              const { foods: extractedFoods } =
+                extractFoodsAndPartialFromStream(slice);
+
+              if (
+                extractedFoods.length > 0 &&
+                extractedFoods.length > lastEmittedFoodCount
+              ) {
+                lastEmittedFoodCount = extractedFoods.length;
+                sendSSE(controller, "food_progress", {
+                  foods: extractedFoods,
+                  index: lastEmittedFoodCount - 1,
+                  total: extractedFoods.length,
+                });
+              }
+            }
+          },
         );
 
         sendSSE(controller, "status", {
