@@ -9,7 +9,7 @@ import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
 
 /** Dados aplicados antes da validação para onboarding simplificado (3 etapas) */
-export const ONBOARDING_DEFAULTS = {
+const ONBOARDING_DEFAULTS = {
   gymType: "academia-completa" as const,
   preferredSets: 3,
   preferredRepRange: "hipertrofia" as const,
