@@ -304,7 +304,7 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 
 - **Limite**: 20 mensagens por dia (nutrição + treinos compartilhados).
 - **Modelo**: `NutritionChatUsage` – um registro por `(studentId, date)` com `messageCount`.
-- **Exceção**: Usuários `ADMIN` não têm limite no chat-stream.
+- **Exceção**: Usuários `ADMIN` não têm limite em ambos os chats (nutrição e treino).
 
 ### 6.3 Importação Direta de Treinos
 
@@ -343,7 +343,7 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 | `lib/ai/parsers/nutrition-parser.ts` | `parsedFoodToFoodItem(parsedFood)` | `FoodItem` |
 | `lib/ai/parsers/workout-parser.ts` | `parseWorkoutResponse(response)` | `ParsedWorkoutResponse` |
 
-Ambos extraem JSON da resposta (regex `/\{[\s\S]*\}/`) e validam/normalizam a estrutura.
+Ambos extraem JSON da resposta (regex `/\{[\s\S]*\}/`), tentam reparar JSON truncado quando o parse falha, e validam/normalizam a estrutura. O parser de treinos normaliza tipos (full-body→strength), dificuldade e grupo muscular.
 
 ---
 
@@ -487,7 +487,7 @@ Baseado em [JSON Output](https://api-docs.deepseek.com/guides/json_mode) e [Cont
 | Recomendação | Implementação |
 |--------------|---------------|
 | **JSON mode**: incluir "json" no prompt + exemplo concreto | ✅ Prompts com `exampleOutput` e `instruction` |
-| **max_tokens** para evitar truncamento | ✅ 1024 (nutrição), 2048 (treino) |
+| **max_tokens** para evitar truncamento | ✅ 1024 (nutrição), 4096 (treino) |
 | **Context Caching**: prefixo estável para cache hit | System prompt base estável; contexto dinâmico (meals, workouts) no final |
 | **Resposta vazia**: API pode retornar empty content | Tratar no parser; considerar retry |
 
@@ -503,7 +503,7 @@ Baseado em [JSON Output](https://api-docs.deepseek.com/guides/json_mode) e [Cont
 | **Streaming DeepSeek** | ✅ `chatCompletionStream` em `lib/ai/client.ts` | TTFT ~200-500ms vs 5-10s |
 | **Nutrition chat-stream** | ✅ `/api/nutrition/chat-stream` + FoodSearchChat | UX instantânea |
 | **Workout streaming** | ✅ chat-stream usa `chatCompletionStream` | Tokens chegam progressivamente |
-| **max_tokens** | ✅ 1024 (nutrição), 2048 (treino) | Evita geração excessiva |
+| **max_tokens** | ✅ 1024 (nutrição), 4096 (treino) | Evita truncamento em treinos complexos |
 | **Limite conversationHistory** | ✅ 4 msgs (nutrição), 6 msgs (treino) | Reduz prompt tokens |
 
 ---

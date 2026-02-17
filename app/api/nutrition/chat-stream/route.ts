@@ -19,217 +19,226 @@ import { db } from "@/lib/db";
 const MAX_HISTORY = 4; // Últimas 4 mensagens para reduzir tokens
 
 function sendSSE(
-	controller: ReadableStreamDefaultController,
-	event: string,
-	data: unknown,
+  controller: ReadableStreamDefaultController,
+  event: string,
+  data: unknown,
 ) {
-	controller.enqueue(
-		new TextEncoder().encode(
-			`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
-		),
-	);
+  controller.enqueue(
+    new TextEncoder().encode(
+      `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+    ),
+  );
 }
 
 function limitHistory<T>(arr: T[], max: number): T[] {
-	return arr.length <= max ? arr : arr.slice(-max);
+  return arr.length <= max ? arr : arr.slice(-max);
 }
 
 export async function POST(request: NextRequest) {
-	const requestClone = request.clone();
-	const body = await requestClone.json();
+  const requestClone = request.clone();
+  const body = await requestClone.json();
 
-	const stream = new ReadableStream({
-		async start(controller) {
-			try {
-				const auth = await requireStudent(request);
-				if ("error" in auth) {
-					sendSSE(controller, "error", { error: "Não autorizado" });
-					controller.close();
-					return;
-				}
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const auth = await requireStudent(request);
+        if ("error" in auth) {
+          sendSSE(controller, "error", { error: "Não autorizado" });
+          controller.close();
+          return;
+        }
 
-				const studentId = auth.user.student?.id;
-				if (!studentId) {
-					sendSSE(controller, "error", { error: "Student ID não encontrado" });
-					controller.close();
-					return;
-				}
+        const studentId = auth.user.student?.id;
+        if (!studentId) {
+          sendSSE(controller, "error", { error: "Student ID não encontrado" });
+          controller.close();
+          return;
+        }
 
-				const subscription = await db.subscription.findUnique({
-					where: { studentId },
-				});
+        const subscription = await db.subscription.findUnique({
+          where: { studentId },
+        });
 
-				if (!subscription) {
-					sendSSE(controller, "error", {
-						error: "Recurso premium",
-						message:
-							"Esta funcionalidade requer assinatura premium ou trial ativo",
-					});
-					controller.close();
-					return;
-				}
+        if (!subscription) {
+          sendSSE(controller, "error", {
+            error: "Recurso premium",
+            message:
+              "Esta funcionalidade requer assinatura premium ou trial ativo",
+          });
+          controller.close();
+          return;
+        }
 
-				const now = new Date();
-				const isTrialActive =
-					subscription.trialEnd && new Date(subscription.trialEnd) > now;
-				const hasPremium =
-					subscription.plan === "premium" &&
-					(subscription.status === "active" ||
-						subscription.status === "trialing" ||
-						isTrialActive);
+        const now = new Date();
+        const isTrialActive =
+          subscription.trialEnd && new Date(subscription.trialEnd) > now;
+        const hasPremium =
+          subscription.plan === "premium" &&
+          (subscription.status === "active" ||
+            subscription.status === "trialing" ||
+            isTrialActive);
 
-				if (!hasPremium) {
-					sendSSE(controller, "error", {
-						error: "Recurso premium",
-						message:
-							"Esta funcionalidade requer assinatura premium ou trial ativo",
-					});
-					controller.close();
-					return;
-				}
+        if (!hasPremium) {
+          sendSSE(controller, "error", {
+            error: "Recurso premium",
+            message:
+              "Esta funcionalidade requer assinatura premium ou trial ativo",
+          });
+          controller.close();
+          return;
+        }
 
-				const today = new Date();
-				const dateStr = today.toISOString().split("T")[0];
-				const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-				const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+        const today = new Date();
+        const dateStr = today.toISOString().split("T")[0];
+        const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+        const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
-				let chatUsage = await db.nutritionChatUsage.findFirst({
-					where: {
-						studentId,
-						date: { gte: startOfDay, lte: endOfDay },
-					},
-				});
+        const isAdmin = auth.user?.role === "ADMIN";
+        const MAX_MESSAGES_PER_DAY = 20;
 
-				if (!chatUsage) {
-					chatUsage = await db.nutritionChatUsage.create({
-						data: { studentId, date: startOfDay, messageCount: 0 },
-					});
-				}
+        let chatUsage = null;
+        if (!isAdmin) {
+          chatUsage = await db.nutritionChatUsage.findFirst({
+            where: {
+              studentId,
+              date: { gte: startOfDay, lte: endOfDay },
+            },
+          });
 
-				const MAX_MESSAGES_PER_DAY = 20;
-				if (chatUsage.messageCount >= MAX_MESSAGES_PER_DAY) {
-					sendSSE(controller, "error", {
-						error: "Limite diário atingido",
-						message: `Você atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia.`,
-					});
-					controller.close();
-					return;
-				}
+          if (!chatUsage) {
+            chatUsage = await db.nutritionChatUsage.create({
+              data: { studentId, date: startOfDay, messageCount: 0 },
+            });
+          }
 
-				const {
-					message,
-					conversationHistory = [],
-					existingMeals = [],
-					selectedMeal,
-				} = body;
+          if (chatUsage.messageCount >= MAX_MESSAGES_PER_DAY) {
+            sendSSE(controller, "error", {
+              error: "Limite diário atingido",
+              message: `Você atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia.`,
+            });
+            controller.close();
+            return;
+          }
+        }
 
-				if (!message || typeof message !== "string") {
-					sendSSE(controller, "error", { error: "Mensagem inválida" });
-					controller.close();
-					return;
-				}
+        const {
+          message,
+          conversationHistory = [],
+          existingMeals = [],
+          selectedMeal,
+        } = body;
 
-				let meals = existingMeals;
-				if (!meals || meals.length === 0) {
-					const todayDate = new Date().toISOString().split("T")[0];
-					const nutrition = await db.dailyNutrition.findUnique({
-						where: {
-							studentId_date: {
-								studentId,
-								date: new Date(todayDate),
-							},
-						},
-						include: {
-							meals: { orderBy: { order: "asc" } },
-						},
-					});
+        if (!message || typeof message !== "string") {
+          sendSSE(controller, "error", { error: "Mensagem inválida" });
+          controller.close();
+          return;
+        }
 
-					if (nutrition) {
-						meals = nutrition.meals.map(
-							(m: { type: string; name: string }) => ({
-								type: m.type,
-								name: m.name,
-							}),
-						);
-					}
-				}
+        let meals = existingMeals;
+        if (!meals || meals.length === 0) {
+          const todayDate = new Date().toISOString().split("T")[0];
+          const nutrition = await db.dailyNutrition.findUnique({
+            where: {
+              studentId_date: {
+                studentId,
+                date: new Date(todayDate),
+              },
+            },
+            include: {
+              meals: { orderBy: { order: "asc" } },
+            },
+          });
 
-				let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
-				if (meals?.length > 0) {
-					const mealsInfo = meals
-						.map(
-							(m: { type: string; name: string }) => `- ${m.name} (${m.type})`,
-						)
-						.join("\n");
-					enhancedSystemPrompt += `\n\nREFEIÇÕES EXISTENTES:\n${mealsInfo}`;
-				}
+          if (nutrition) {
+            meals = nutrition.meals.map(
+              (m: { type: string; name: string }) => ({
+                type: m.type,
+                name: m.name,
+              }),
+            );
+          }
+        }
 
-				if (selectedMeal?.type && selectedMeal.name) {
-					enhancedSystemPrompt += `\n\nREFEIÇÃO PADRÃO: "${selectedMeal.name}" (${selectedMeal.type}). Se usuário não especificar refeição, use mealType: "${selectedMeal.type}".`;
-				}
+        let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
+        if (meals?.length > 0) {
+          const mealsInfo = meals
+            .map(
+              (m: { type: string; name: string }) => `- ${m.name} (${m.type})`,
+            )
+            .join("\n");
+          enhancedSystemPrompt += `\n\nREFEIÇÕES EXISTENTES:\n${mealsInfo}`;
+        }
 
-				type ChatMsg = { role: "user" | "assistant"; content: string };
-				const history = (conversationHistory ?? []) as ChatMsg[];
-				const limitedHistory = limitHistory(history, MAX_HISTORY);
-				const messages: ChatMsg[] = [
-					...limitedHistory,
-					{ role: "user" as const, content: message },
-				];
+        if (selectedMeal?.type && selectedMeal.name) {
+          enhancedSystemPrompt += `\n\nREFEIÇÃO PADRÃO: "${selectedMeal.name}" (${selectedMeal.type}). Se usuário não especificar refeição, use mealType: "${selectedMeal.type}".`;
+        }
 
-				sendSSE(controller, "status", {
-					status: "calling_ai",
-					message: "Consultando IA...",
-				});
+        type ChatMsg = { role: "user" | "assistant"; content: string };
+        const history = (conversationHistory ?? []) as ChatMsg[];
+        const limitedHistory = limitHistory(history, MAX_HISTORY);
+        const messages: ChatMsg[] = [
+          ...limitedHistory,
+          { role: "user" as const, content: message },
+        ];
 
-				// Não encaminhar tokens ao client - resposta é JSON, usuário veria lixo.
-				// Streaming ainda acelera server-side (TTFT menor).
-				const fullContent = await chatCompletionStream(
-					{
-						messages,
-						systemPrompt: enhancedSystemPrompt,
-						temperature: 0.7,
-						responseFormat: "json_object",
-						maxTokens: 1024,
-					},
-					undefined, // onChunk - não enviar tokens (JSON não é legível)
-				);
+        sendSSE(controller, "status", {
+          status: "calling_ai",
+          message: "Consultando IA...",
+        });
 
-				sendSSE(controller, "status", {
-					status: "parsing",
-					message: "Processando...",
-				});
+        // Não encaminhar tokens ao client - resposta é JSON, usuário veria lixo.
+        // Streaming ainda acelera server-side (TTFT menor).
+        const fullContent = await chatCompletionStream(
+          {
+            messages,
+            systemPrompt: enhancedSystemPrompt,
+            temperature: 0.7,
+            responseFormat: "json_object",
+            maxTokens: 1024,
+          },
+          undefined, // onChunk - não enviar tokens (JSON não é legível)
+        );
 
-				const parsed = parseNutritionResponse(fullContent);
+        sendSSE(controller, "status", {
+          status: "parsing",
+          message: "Processando...",
+        });
 
-				await db.nutritionChatUsage.update({
-					where: { id: chatUsage.id },
-					data: { messageCount: { increment: 1 } },
-				});
+        const parsed = parseNutritionResponse(fullContent);
 
-				sendSSE(controller, "complete", {
-					foods: parsed.foods,
-					message: parsed.message,
-					needsConfirmation: parsed.foods.some((f) => f.confidence < 0.8),
-					remainingMessages: MAX_MESSAGES_PER_DAY - chatUsage.messageCount - 1,
-				});
+        if (!isAdmin && chatUsage) {
+          await db.nutritionChatUsage.update({
+            where: { id: chatUsage.id },
+            data: { messageCount: { increment: 1 } },
+          });
+        }
 
-				controller.close();
-			} catch (error: unknown) {
-				console.error("[nutrition/chat-stream] Erro:", error);
-				const err = error instanceof Error ? error : new Error(String(error));
-				sendSSE(controller, "error", {
-					error: err.message || "Erro ao processar mensagem",
-				});
-				controller.close();
-			}
-		},
-	});
+        sendSSE(controller, "complete", {
+          foods: parsed.foods,
+          message: parsed.message,
+          needsConfirmation: parsed.foods.some((f) => f.confidence < 0.8),
+          remainingMessages: isAdmin
+            ? null
+            : MAX_MESSAGES_PER_DAY - (chatUsage?.messageCount ?? 0) - 1,
+        });
 
-	return new Response(stream, {
-		headers: {
-			"Content-Type": "text/event-stream",
-			"Cache-Control": "no-cache",
-			Connection: "keep-alive",
-		},
-	});
+        controller.close();
+      } catch (error: unknown) {
+        console.error("[nutrition/chat-stream] Erro:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        sendSSE(controller, "error", {
+          error: err.message || "Erro ao processar mensagem",
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
