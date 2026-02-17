@@ -243,6 +243,16 @@ export interface StreamExtractResult {
   partialWorkout?: ParsedWorkout;
 }
 
+/** Encontra início do array "exercises" (aceita espaços/newlines no JSON) */
+function findExercisesArrayStart(slice: string): {
+  start: number;
+  end: number;
+} {
+  const match = slice.match(/"exercises"\s*:\s*\[/);
+  if (!match || match.index === undefined) return { start: -1, end: -1 };
+  return { start: match.index, end: match.index + match[0].length };
+}
+
 function parseRawExercise(ex: RawParsedExercise): ParsedExercise | null {
   if (!ex.name || typeof ex.name !== "string") return null;
   const sets = typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3;
@@ -323,11 +333,10 @@ export function extractWorkoutsAndPartialFromStream(
         // Entrando no array "exercises" — emitir workout parcial com 0 exercícios
         if (workoutStart >= 0) {
           const slice = content.slice(workoutStart, i + 1);
-          const exercisesMarker = '"exercises":[';
-          const exercisesIdx = slice.indexOf(exercisesMarker);
-          if (exercisesIdx >= 0) {
+          const { start: exStart, end: exEnd } = findExercisesArrayStart(slice);
+          if (exStart >= 0) {
             try {
-              const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+              const headerStr = `${slice.slice(0, exEnd)}]}`;
               const raw = JSON.parse(headerStr) as RawParsedWorkout;
               if (raw.title && typeof raw.title === "string") {
                 const type = normalizeWorkoutType(raw.type);
@@ -371,11 +380,10 @@ export function extractWorkoutsAndPartialFromStream(
         // Atualizar partialWorkout com o novo exercício (se tivermos header)
         if (workoutStart >= 0) {
           const slice = content.slice(workoutStart, i + 1);
-          const exercisesMarker = '"exercises":[';
-          const exercisesIdx = slice.indexOf(exercisesMarker);
-          if (exercisesIdx >= 0) {
+          const { start: exStart, end: exEnd } = findExercisesArrayStart(slice);
+          if (exStart >= 0) {
             try {
-              const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+              const headerStr = `${slice.slice(0, exEnd)}]}`;
               const raw = JSON.parse(headerStr) as RawParsedWorkout;
               if (raw.title && typeof raw.title === "string") {
                 const type = normalizeWorkoutType(raw.type);
@@ -443,11 +451,10 @@ export function extractWorkoutsAndPartialFromStream(
 
     if (depth === 3 && workoutStart >= 0) {
       const slice = content.slice(workoutStart, i + 1);
-      const exercisesMarker = '"exercises":[';
-      const exercisesIdx = slice.indexOf(exercisesMarker);
-      if (exercisesIdx >= 0) {
+      const { start: exStart, end: exEnd } = findExercisesArrayStart(slice);
+      if (exStart >= 0) {
         try {
-          const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+          const headerStr = `${slice.slice(0, exEnd)}]}`;
           const raw = JSON.parse(headerStr) as RawParsedWorkout;
           if (raw.title && typeof raw.title === "string") {
             const type = normalizeWorkoutType(raw.type);
