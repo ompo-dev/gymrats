@@ -10,7 +10,10 @@ export const maxDuration = 300; // 5 minutos para operações longas
 export const runtime = "nodejs";
 
 import { chatCompletionStream } from "@/lib/ai/client";
-import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
+import {
+  extractWorkoutsFromStream,
+  parseWorkoutResponse,
+} from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
@@ -393,10 +396,10 @@ ${previewsStructure}
           workouts?: unknown[];
           message?: string;
           targetWorkoutId?: string;
-          [key: string]: unknown;
         } | null;
 
         let parsed: ParsedRes = null;
+        let lastEmittedWorkoutCount = 0;
         const tryParseImportedWorkout = (raw: unknown): ParsedRes => {
           const rawObj = raw as { workouts?: unknown[]; exercises?: unknown };
           const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
@@ -476,6 +479,8 @@ ${previewsStructure}
           ];
 
           try {
+            let accumulatedContent = "";
+
             const response = await chatCompletionStream(
               {
                 messages: messagesArr,
@@ -484,7 +489,20 @@ ${previewsStructure}
                 responseFormat: "json_object",
                 maxTokens: 4096, // Treinos full body 4x/semana com todos os grupamentos precisam de mais espaço
               },
-              (delta) => sendSSE(controller, "token", { delta }),
+              (delta) => {
+                sendSSE(controller, "token", { delta });
+                accumulatedContent += delta;
+                const workouts = extractWorkoutsFromStream(accumulatedContent);
+                while (lastEmittedWorkoutCount < workouts.length) {
+                  const workout = workouts[lastEmittedWorkoutCount];
+                  sendSSE(controller, "workout_progress", {
+                    workout,
+                    index: lastEmittedWorkoutCount,
+                    total: workouts.length,
+                  });
+                  lastEmittedWorkoutCount++;
+                }
+              },
             );
 
             sendSSE(controller, "status", {
@@ -525,8 +543,8 @@ ${previewsStructure}
             mergedWorkouts[modifiedIndex] = parsed.workouts[0];
           } else {
             // IA retornou quantidade diferente: escolher melhor candidato e descartar extras
-            const byTitle = parsed.workouts.find(
-              (w: { title?: string }) =>
+            const byTitle = (parsed.workouts as Array<{ title?: string }>).find(
+              (w) =>
                 w.title?.toLowerCase().trim() ===
                 reference.workoutTitle?.toLowerCase().trim(),
             );
@@ -547,17 +565,19 @@ ${previewsStructure}
           });
         }
 
-        // 13. Enviar workouts progressivamente (um por vez)
-        if (parsed.workouts && parsed.workouts.length > 0) {
-          for (let i = 0; i < parsed.workouts.length; i++) {
+        // 13. Enviar workouts que não foram emitidos durante o stream (fallback)
+        if (parsed?.workouts && parsed.workouts.length > 0) {
+          for (
+            let i = lastEmittedWorkoutCount;
+            i < parsed.workouts.length;
+            i++
+          ) {
             const workout = parsed.workouts[i];
             sendSSE(controller, "workout_progress", {
               workout,
               index: i,
               total: parsed.workouts.length,
             });
-
-            // Pequeno delay entre workouts para melhor UX
             if (i < parsed.workouts.length - 1) {
               await new Promise((resolve) => setTimeout(resolve, 300));
             }
@@ -565,6 +585,13 @@ ${previewsStructure}
         }
 
         // 14. Enviar resultado final (completo)
+        if (!parsed) {
+          sendSSE(controller, "error", {
+            error: "Não foi possível processar a resposta",
+          });
+          controller.close();
+          return;
+        }
         const remainingMessages = isAdmin
           ? null
           : MAX_MESSAGES_PER_DAY - (chatUsage?.messageCount || 0) - 1;

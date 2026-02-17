@@ -124,6 +124,120 @@ interface RawParsedWorkoutResponse {
 }
 
 /**
+ * Extrai workouts completos de JSON parcial (stream).
+ * Útil para enviar workout_progress em tempo real enquanto a IA gera o JSON.
+ * Retorna apenas objetos de workout válidos e completos (com exercises fechado).
+ */
+export function extractWorkoutsFromStream(content: string): ParsedWorkout[] {
+  const workouts: ParsedWorkout[] = [];
+  const idx = content.indexOf('"workouts"');
+  if (idx === -1) return workouts;
+
+  const arrStart = content.indexOf("[", idx);
+  if (arrStart === -1) return workouts;
+
+  let depth = 1;
+  let objStart = -1;
+  let inString = false;
+  let isEscaped = false;
+  let strChar = '"';
+
+  for (let i = arrStart + 1; i < content.length; i++) {
+    const c = content[i];
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+    if (inString) {
+      if (c === "\\") isEscaped = true;
+      else if (c === strChar) inString = false;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inString = true;
+      strChar = c;
+      continue;
+    }
+    if (c === "[" || c === "{") {
+      if (depth === 1 && c === "{") objStart = i;
+      depth++;
+    } else if (c === "]" || c === "}") {
+      depth--;
+      if (depth === 1 && c === "}" && objStart >= 0) {
+        try {
+          const raw = JSON.parse(
+            content.slice(objStart, i + 1),
+          ) as RawParsedWorkout;
+          if (
+            raw.title &&
+            typeof raw.title === "string" &&
+            Array.isArray(raw.exercises)
+          ) {
+            const type = normalizeWorkoutType(raw.type);
+            const muscleGroup = normalizeMuscleGroup(
+              raw.muscleGroup,
+              type === "cardio" ? "cardio" : "full-body",
+            );
+            const difficulty = normalizeDifficulty(raw.difficulty);
+            const validExercises: ParsedExercise[] = raw.exercises
+              .map((ex: RawParsedExercise): ParsedExercise | null => {
+                if (!ex.name || typeof ex.name !== "string") return null;
+                const sets =
+                  typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3;
+                const reps =
+                  typeof ex.reps === "string" && ex.reps ? ex.reps : "8-12";
+                const rest =
+                  typeof ex.rest === "number" && ex.rest >= 0 ? ex.rest : 60;
+                const notes =
+                  typeof ex.notes === "string" ? ex.notes : undefined;
+                const focus: ParsedExercise["focus"] =
+                  ex.focus && ["quadriceps", "posterior"].includes(ex.focus)
+                    ? (ex.focus as "quadriceps" | "posterior")
+                    : null;
+                const alternatives =
+                  Array.isArray(ex.alternatives) && ex.alternatives.length > 0
+                    ? ex.alternatives
+                        .filter(
+                          (alt): alt is string =>
+                            typeof alt === "string" && alt.trim().length > 0,
+                        )
+                        .slice(0, 3)
+                        .map((alt) => alt.trim())
+                    : [];
+                return {
+                  name: ex.name.trim(),
+                  sets,
+                  reps,
+                  rest,
+                  notes,
+                  focus,
+                  alternatives,
+                };
+              })
+              .filter((e): e is ParsedExercise => e !== null);
+            workouts.push({
+              title: raw.title.trim(),
+              description:
+                typeof raw.description === "string"
+                  ? raw.description.trim()
+                  : undefined,
+              type,
+              muscleGroup,
+              difficulty,
+              exercises: validExercises,
+            });
+          }
+        } catch {
+          // JSON incompleto ou inválido, ignorar
+        }
+        objStart = -1;
+      }
+    }
+  }
+  return workouts;
+}
+
+/**
  * Tenta reparar JSON truncado (ex.: cortado por max_tokens)
  * Fecha strings, arrays e objetos faltantes
  */
