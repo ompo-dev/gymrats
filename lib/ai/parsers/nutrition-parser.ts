@@ -76,8 +76,11 @@ function parseRawFoodToParsedFood(food: RawParsedFood): ParsedFood | null {
       "fats",
       "dairy",
       "snacks",
+      "ultra_processed",
     ].includes(food.category)
-      ? (food.category as ParsedFood["category"])
+      ? food.category === "ultra_processed"
+        ? "snacks"
+        : (food.category as ParsedFood["category"])
       : "snacks";
   const mealType =
     typeof food.mealType === "string" && food.mealType
@@ -111,7 +114,9 @@ export function extractFoodsAndPartialFromStream(
   content: string,
 ): NutritionStreamExtractResult {
   const foods: ParsedFood[] = [];
-  const idx = content.indexOf('"foods"');
+  const foodsIdx = content.indexOf('"foods"');
+  const mealsIdx = content.indexOf('"meals"');
+  const idx = foodsIdx >= 0 ? foodsIdx : mealsIdx;
   if (idx === -1) return { foods };
 
   const arrStart = content.indexOf("[", idx);
@@ -236,13 +241,14 @@ export function parseNutritionResponse(
       }
     }
 
-    // Validar estrutura
-    if (!parsed.foods || !Array.isArray(parsed.foods)) {
+    // Validar estrutura (IA pode retornar "foods" ou "meals")
+    const foodsArray = parsed.foods ?? parsed.meals;
+    if (!foodsArray || !Array.isArray(foodsArray)) {
       throw new Error("Estrutura de alimentos inválida");
     }
 
     // Validar e normalizar cada alimento
-    const validatedFoods: ParsedFood[] = (parsed.foods as RawParsedFood[]).map(
+    const validatedFoods: ParsedFood[] = (foodsArray as RawParsedFood[]).map(
       (food: RawParsedFood, index: number) => {
         // Validar campos obrigatórios
         if (!food.name || typeof food.name !== "string") {
@@ -286,8 +292,11 @@ export function parseNutritionResponse(
             "fats",
             "dairy",
             "snacks",
+            "ultra_processed",
           ].includes(food.category)
-            ? (food.category as ParsedFood["category"])
+            ? food.category === "ultra_processed"
+              ? "snacks"
+              : (food.category as ParsedFood["category"])
             : "snacks";
 
         const mealType =
