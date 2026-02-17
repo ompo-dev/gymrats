@@ -191,7 +191,16 @@ const WORKOUT_PROMPT_JSON = {
 
   ResponseFormat: {
     type: "JSON_ONLY",
-    instruction: "Retorne apenas JSON válido sem texto fora do JSON.",
+    instruction:
+      "Retorne apenas JSON válido sem texto fora do JSON. OBRIGATÓRIO: inclua sempre os campos intent, action, workouts e message.",
+    schema: {
+      intent: "create | edit | delete (use 'create' para criar treinos novos)",
+      action:
+        "create_workouts | update_workout | delete_workout | replace_exercise | remove_exercise",
+      workouts:
+        "Array de treinos com title, type, muscleGroup, difficulty, exercises",
+      message: "Mensagem curta em português para o usuário",
+    },
   },
 
   InitialMessage: "Como posso ajudar a criar ou ajustar seu treino hoje?",

@@ -156,15 +156,17 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
   try {
     const parsed = extractAndParseJson(response) as RawParsedWorkoutResponse;
 
-    // Validar intent
-    if (
-      !parsed.intent ||
-      !["create", "edit", "delete"].includes(parsed.intent)
-    ) {
-      throw new Error("Intent inválido");
+    // Validar intent (inferir "create" se ausente mas houver workouts)
+    let intent = parsed.intent;
+    if (!intent || !["create", "edit", "delete"].includes(intent)) {
+      if (Array.isArray(parsed.workouts) && parsed.workouts.length > 0) {
+        intent = "create";
+      } else {
+        throw new Error("Intent inválido");
+      }
     }
 
-    // Validar action
+    // Validar action (inferir "create_workouts" se ausente mas houver workouts)
     const validActions = [
       "create_workouts",
       "delete_workout",
@@ -173,8 +175,13 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
       "replace_exercise",
       "update_workout",
     ];
-    if (!parsed.action || !validActions.includes(parsed.action)) {
-      throw new Error("Action inválida");
+    let action = parsed.action;
+    if (!action || !validActions.includes(action)) {
+      if (Array.isArray(parsed.workouts) && parsed.workouts.length > 0) {
+        action = "create_workouts";
+      } else {
+        throw new Error("Action inválida");
+      }
     }
 
     // Validar workouts (sempre deve ser array, mesmo se vazio para delete_workout)
@@ -288,8 +295,8 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
     );
 
     return {
-      intent: parsed.intent as WorkoutIntent,
-      action: parsed.action as WorkoutAction,
+      intent: intent as WorkoutIntent,
+      action: action as WorkoutAction,
       workouts: validatedWorkouts,
       targetWorkoutId: parsed.targetWorkoutId
         ? String(parsed.targetWorkoutId)
