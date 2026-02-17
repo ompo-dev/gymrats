@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 import { chatCompletionStream } from "@/lib/ai/client";
 import {
-  extractWorkoutsFromStream,
+  extractWorkoutsAndPartialFromStream,
   parseWorkoutResponse,
 } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
@@ -400,6 +400,7 @@ ${previewsStructure}
 
         let parsed: ParsedRes = null;
         let lastEmittedWorkoutCount = 0;
+        let lastEmittedPartialExerciseCount = -1;
         const tryParseImportedWorkout = (raw: unknown): ParsedRes => {
           const rawObj = raw as { workouts?: unknown[]; exercises?: unknown };
           const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
@@ -492,15 +493,35 @@ ${previewsStructure}
               (delta) => {
                 sendSSE(controller, "token", { delta });
                 accumulatedContent += delta;
-                const workouts = extractWorkoutsFromStream(accumulatedContent);
-                while (lastEmittedWorkoutCount < workouts.length) {
-                  const workout = workouts[lastEmittedWorkoutCount];
+                const { completeWorkouts, partialWorkout } =
+                  extractWorkoutsAndPartialFromStream(accumulatedContent);
+                // Emitir workouts completos novos
+                while (lastEmittedWorkoutCount < completeWorkouts.length) {
+                  const workout = completeWorkouts[lastEmittedWorkoutCount];
+                  const total =
+                    completeWorkouts.length + (partialWorkout ? 1 : 0);
                   sendSSE(controller, "workout_progress", {
                     workout,
                     index: lastEmittedWorkoutCount,
-                    total: workouts.length,
+                    total,
                   });
                   lastEmittedWorkoutCount++;
+                  lastEmittedPartialExerciseCount = -1;
+                }
+                // Emitir/atualizar workout parcial apenas quando houver novos exercícios
+                if (
+                  partialWorkout &&
+                  partialWorkout.exercises.length >
+                    lastEmittedPartialExerciseCount
+                ) {
+                  lastEmittedPartialExerciseCount =
+                    partialWorkout.exercises.length;
+                  const total = completeWorkouts.length + 1;
+                  sendSSE(controller, "workout_progress", {
+                    workout: partialWorkout,
+                    index: completeWorkouts.length,
+                    total,
+                  });
                 }
               },
             );
