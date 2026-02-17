@@ -493,35 +493,49 @@ ${previewsStructure}
               (delta) => {
                 sendSSE(controller, "token", { delta });
                 accumulatedContent += delta;
-                const { completeWorkouts, partialWorkout } =
-                  extractWorkoutsAndPartialFromStream(accumulatedContent);
-                // Emitir workouts completos novos
-                while (lastEmittedWorkoutCount < completeWorkouts.length) {
-                  const workout = completeWorkouts[lastEmittedWorkoutCount];
-                  const total =
-                    completeWorkouts.length + (partialWorkout ? 1 : 0);
-                  sendSSE(controller, "workout_progress", {
-                    workout,
-                    index: lastEmittedWorkoutCount,
-                    total,
-                  });
-                  lastEmittedWorkoutCount++;
-                  lastEmittedPartialExerciseCount = -1;
+
+                // Deltas grandes: simular chunks de ~80 chars para capturar estados parciais
+                const step = 80;
+                const contentLen = accumulatedContent.length;
+                const prevLen = contentLen - delta.length;
+                const checkpoints: number[] = [];
+                if (delta.length > step) {
+                  for (let i = prevLen; i < contentLen; i += step)
+                    checkpoints.push(i);
                 }
-                // Emitir/atualizar workout parcial apenas quando houver novos exercícios
-                if (
-                  partialWorkout &&
-                  partialWorkout.exercises.length >
-                    lastEmittedPartialExerciseCount
-                ) {
-                  lastEmittedPartialExerciseCount =
-                    partialWorkout.exercises.length;
-                  const total = completeWorkouts.length + 1;
-                  sendSSE(controller, "workout_progress", {
-                    workout: partialWorkout,
-                    index: completeWorkouts.length,
-                    total,
-                  });
+                checkpoints.push(contentLen);
+
+                for (const len of checkpoints) {
+                  const slice = accumulatedContent.slice(0, len);
+                  const { completeWorkouts, partialWorkout } =
+                    extractWorkoutsAndPartialFromStream(slice);
+
+                  while (lastEmittedWorkoutCount < completeWorkouts.length) {
+                    const workout = completeWorkouts[lastEmittedWorkoutCount];
+                    const total =
+                      completeWorkouts.length + (partialWorkout ? 1 : 0);
+                    sendSSE(controller, "workout_progress", {
+                      workout,
+                      index: lastEmittedWorkoutCount,
+                      total,
+                    });
+                    lastEmittedWorkoutCount++;
+                    lastEmittedPartialExerciseCount = -1;
+                  }
+                  if (
+                    partialWorkout &&
+                    partialWorkout.exercises.length >
+                      lastEmittedPartialExerciseCount
+                  ) {
+                    lastEmittedPartialExerciseCount =
+                      partialWorkout.exercises.length;
+                    const total = completeWorkouts.length + 1;
+                    sendSSE(controller, "workout_progress", {
+                      workout: partialWorkout,
+                      index: completeWorkouts.length,
+                      total,
+                    });
+                  }
                 }
               },
             );
