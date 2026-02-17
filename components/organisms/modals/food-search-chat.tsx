@@ -7,7 +7,6 @@ import { Button } from "@/components/atoms/buttons/button";
 import { useStudent } from "@/hooks/use-student";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
-import { apiClient } from "@/lib/api/client";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
@@ -29,6 +28,7 @@ interface FoodSearchChatProps {
 }
 
 interface ChatMessage {
+	id: string;
 	role: "user" | "assistant";
 	content: string;
 	timestamp: Date;
@@ -56,7 +56,7 @@ interface ExtractedFood {
 
 export function FoodSearchChat({
 	onAddFood,
-	onAddMeal,
+	onAddMeal: _onAddMeal,
 	onClose,
 	selectedMealId,
 	meals: initialMeals = [],
@@ -66,6 +66,7 @@ export function FoodSearchChat({
 	const meals = storeMeals.length > 0 ? storeMeals : initialMeals;
 	const [messages, setMessages] = useState<ChatMessage[]>([
 		{
+			id: "init",
 			role: "assistant",
 			content: NUTRITION_INITIAL_MESSAGE,
 			timestamp: new Date(),
@@ -202,6 +203,7 @@ export function FoodSearchChat({
 
 		// Adicionar mensagem do usuário
 		const newUserMessage: ChatMessage = {
+			id: `user-${Date.now()}`,
 			role: "user",
 			content: userMessage,
 			timestamp: new Date(),
@@ -215,13 +217,11 @@ export function FoodSearchChat({
 		setIsProcessing(true);
 
 		try {
-			// Preparar informações sobre refeições existentes para a IA
 			const existingMeals = meals.map((m: Meal) => ({
 				type: m.type,
 				name: m.name,
 			}));
 
-			// Buscar informações da refeição selecionada (se houver)
 			let selectedMealInfo = null;
 			if (selectedMealId) {
 				const selectedMeal = meals.find((m: Meal) => m.id === selectedMealId);
@@ -234,63 +234,161 @@ export function FoodSearchChat({
 				}
 			}
 
-			// Chamar API
-			const response = await apiClient.post<{
-				foods: ExtractedFood[];
-				message: string;
-				needsConfirmation: boolean;
-				remainingMessages?: number;
-			}>("/api/nutrition/chat", {
-				message: userMessage,
-				conversationHistory,
-				existingMeals, // Enviar refeições existentes para a IA entender o contexto
-				selectedMeal: selectedMealInfo, // Enviar refeição selecionada como padrão
-			});
-
-			// Adicionar resposta da IA
-			const assistantMessage: ChatMessage = {
-				role: "assistant",
-				content: response.data.message,
-				timestamp: new Date(),
-			};
-			setMessages((prev) => [...prev, assistantMessage]);
-			setConversationHistory((prev) => [
+			// Placeholder para streaming - usuário vê resposta aparecendo em tempo real
+			setMessages((prev) => [
 				...prev,
-				{ role: "assistant", content: response.data.message },
+				{
+					id: `assistant-${Date.now()}`,
+					role: "assistant",
+					content: "",
+					timestamp: new Date(),
+				},
 			]);
 
-			// Processar alimentos extraídos (IA já retorna dados completos)
-			if (response.data.foods && response.data.foods.length > 0) {
-				setExtractedFoods(response.data.foods);
+			const API_BASE =
+				typeof window !== "undefined"
+					? ""
+					: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+			const token =
+				typeof window !== "undefined"
+					? localStorage.getItem("auth_token")
+					: null;
+
+			const response = await fetch(`${API_BASE}/api/nutrition/chat-stream`, {
+				method: "POST",
+				credentials: "include",
+				headers: {
+					"Content-Type": "application/json",
+					...(token && { Authorization: `Bearer ${token}` }),
+				},
+				body: JSON.stringify({
+					message: userMessage,
+					conversationHistory,
+					existingMeals,
+					selectedMeal: selectedMealInfo,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
 			}
 
-			// Atualizar mensagens restantes
-			if (response.data.remainingMessages !== undefined) {
-				setRemainingMessages(response.data.remainingMessages);
+			const reader = response.body?.getReader();
+			const decoder = new TextDecoder();
+			if (!reader) throw new Error("Stream não disponível");
+
+			let buffer = "";
+			let fullMessage = "";
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n\n");
+				buffer = lines.pop() || "";
+
+				for (const block of lines) {
+					if (!block.trim()) continue;
+					const eventMatch = block.match(/event: (\w+)/);
+					const dataLine = block
+						.split("\n")
+						.find((l) => l.startsWith("data: "));
+					const event = eventMatch?.[1];
+					const dataStr = dataLine?.slice(6); // "data: ".length
+					if (!event || !dataStr) continue;
+
+					try {
+						const data = JSON.parse(dataStr);
+						if (event === "token" && data.delta) {
+							fullMessage += data.delta;
+							setMessages((prev) => {
+								const next = [...prev];
+								const last = next[next.length - 1];
+								if (last?.role === "assistant") {
+									next[next.length - 1] = {
+										...last,
+										content: fullMessage,
+									};
+								}
+								return next;
+							});
+						} else if (event === "complete") {
+							const finalMessage = data.message || fullMessage;
+							setMessages((prev) => {
+								const next = [...prev];
+								const last = next[next.length - 1];
+								if (last?.role === "assistant") {
+									next[next.length - 1] = {
+										...last,
+										content: finalMessage,
+									};
+								}
+								return next;
+							});
+							setConversationHistory((prev) => [
+								...prev,
+								{ role: "assistant", content: finalMessage },
+							]);
+							if (data.foods?.length > 0) setExtractedFoods(data.foods);
+							if (data.remainingMessages != null)
+								setRemainingMessages(data.remainingMessages);
+						} else if (event === "error") {
+							throw new Error(data.error || "Erro ao processar");
+						}
+					} catch (e) {
+						if (e instanceof Error && event === "error") throw e;
+					}
+				}
 			}
-		} catch (error: any) {
+
+			// Garantir que a mensagem final está no histórico
+			setConversationHistory((prev) => {
+				if (prev[prev.length - 1]?.role !== "assistant") {
+					return [
+						...prev,
+						{ role: "assistant" as const, content: fullMessage },
+					];
+				}
+				return prev;
+			});
+		} catch (error: unknown) {
 			console.error("[FoodSearchChat] Erro:", error);
 
-			// Tratar erro de limite atingido
-			if (error.response?.status === 429) {
-				const errorMessage: ChatMessage = {
-					role: "assistant",
-					content:
-						error.response?.data?.message ||
-						"Você atingiu o limite de 20 mensagens por dia. Tente novamente amanhã.",
-					timestamp: new Date(),
-				};
-				setMessages((prev) => [...prev, errorMessage]);
-			} else {
-				const errorMessage: ChatMessage = {
-					role: "assistant",
-					content:
-						error.response?.data?.message ||
-						"Desculpe, ocorreu um erro. Tente novamente.",
-					timestamp: new Date(),
-				};
-				setMessages((prev) => [...prev, errorMessage]);
-			}
+			const err = error instanceof Error ? error : new Error(String(error));
+			const errorContent =
+				(err as { response?: { data?: { message?: string }; status?: number } })
+					?.response?.data?.message ||
+				err.message ||
+				"Desculpe, ocorreu um erro. Tente novamente.";
+			const is429 =
+				(err as { response?: { status?: number } })?.response?.status === 429;
+
+			setMessages((prev) => {
+				const next = [...prev];
+				const last = next[next.length - 1];
+				if (last?.role === "assistant" && last.content === "") {
+					next[next.length - 1] = {
+						...last,
+						content: is429
+							? "Você atingiu o limite de 20 mensagens por dia. Tente novamente amanhã."
+							: errorContent,
+						timestamp: new Date(),
+					};
+					return next;
+				}
+				return [
+					...prev,
+					{
+						id: `assistant-error-${Date.now()}`,
+						role: "assistant" as const,
+						content: is429
+							? "Você atingiu o limite de 20 mensagens por dia. Tente novamente amanhã."
+							: errorContent,
+						timestamp: new Date(),
+					},
+				];
+			});
 		} finally {
 			setIsProcessing(false);
 		}
@@ -652,6 +750,7 @@ export function FoodSearchChat({
 								</h2>
 							</div>
 							<button
+								type="button"
 								onClick={onClose}
 								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
 							>
@@ -680,9 +779,9 @@ export function FoodSearchChat({
 						className="flex-1 overflow-y-auto p-6 space-y-4"
 						style={{ maxHeight: "50vh" }}
 					>
-						{messages.map((msg, idx) => (
+						{messages.map((msg) => (
 							<motion.div
-								key={idx}
+								key={msg.id}
 								initial={{ opacity: 0, y: 10 }}
 								animate={{ opacity: 1, y: 0 }}
 								className={`flex ${
@@ -719,9 +818,9 @@ export function FoodSearchChat({
 								Alimentos identificados:
 							</h3>
 							<div className="space-y-2 max-h-32 overflow-y-auto">
-								{extractedFoods.map((extracted, idx) => (
+								{extractedFoods.map((extracted) => (
 									<div
-										key={idx}
+										key={`${extracted.name}-${extracted.mealType}-${extracted.calories}`}
 										className="flex items-center justify-between text-xs bg-white rounded-lg p-2"
 									>
 										<div className="flex-1">
@@ -788,6 +887,7 @@ export function FoodSearchChat({
 								}
 							/>
 							<button
+								type="button"
 								onClick={handleSendMessage}
 								disabled={
 									!inputMessage.trim() ||

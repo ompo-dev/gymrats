@@ -12,21 +12,11 @@
 			"!**/*.md",
 			"!.gitattributes",
 			"!.gitignore",
-			"!**/*.txt"
+			"!**/*.txt",
+			"!package.json"
 		]
 	},
-	"formatter": {
-		"enabled": true
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double"
-		}
-	}
+	"formatter": { "enabled": true },
+	"linter": { "enabled": true, "rules": { "recommended": true } },
+	"javascript": { "formatter": { "quoteStyle": "double" } }
 }
