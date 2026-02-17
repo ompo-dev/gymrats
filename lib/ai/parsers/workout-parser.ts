@@ -78,6 +78,19 @@ function normalizeDifficulty(
   return "intermediario";
 }
 
+/** Normaliza grupo muscular (IA pode retornar string, array ou omitir) */
+function normalizeMuscleGroup(
+  raw: string | string[] | undefined,
+  fallback = "full-body",
+): string {
+  if (Array.isArray(raw) && raw.length > 0) {
+    const first = raw[0];
+    return typeof first === "string" ? first.trim() || fallback : fallback;
+  }
+  if (typeof raw === "string" && raw.trim()) return raw.trim();
+  return fallback;
+}
+
 /** Estrutura bruta do exercício vindo da IA (não validada) */
 interface RawParsedExercise {
   name?: string;
@@ -94,7 +107,7 @@ interface RawParsedWorkout {
   title?: string;
   description?: string;
   type?: string;
-  muscleGroup?: string;
+  muscleGroup?: string | string[];
   difficulty?: string;
   exercises?: RawParsedExercise[];
 }
@@ -230,11 +243,10 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
         }
 
         const normalizedType = normalizeWorkoutType(workout.type);
-
-        if (!workout.muscleGroup || typeof workout.muscleGroup !== "string") {
-          throw new Error(`Workout ${index + 1}: grupo muscular inválido`);
-        }
-
+        const normalizedMuscleGroup = normalizeMuscleGroup(
+          workout.muscleGroup,
+          normalizedType === "cardio" ? "cardio" : "full-body",
+        );
         const normalizedDifficulty = normalizeDifficulty(workout.difficulty);
 
         // Validar exercícios
@@ -307,7 +319,7 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
             ? workout.description.trim()
             : undefined,
           type: normalizedType,
-          muscleGroup: workout.muscleGroup.trim(),
+          muscleGroup: normalizedMuscleGroup,
           difficulty: normalizedDifficulty,
           exercises: validatedExercises,
         };
