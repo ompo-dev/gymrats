@@ -19,223 +19,223 @@ import { db } from "@/lib/db";
  * Enviar evento SSE
  */
 function sendSSE(
-	controller: ReadableStreamDefaultController,
-	event: string,
-	data: unknown,
+  controller: ReadableStreamDefaultController,
+  event: string,
+  data: unknown,
 ) {
-	const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-	controller.enqueue(new TextEncoder().encode(message));
+  const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  controller.enqueue(new TextEncoder().encode(message));
 }
 
 export async function POST(request: NextRequest) {
-	// Clonar request para não consumir o original na autenticação
-	const requestClone = request.clone();
-	const body = await requestClone.json();
+  // Clonar request para não consumir o original na autenticação
+  const requestClone = request.clone();
+  const body = await requestClone.json();
 
-	// Criar stream SSE
-	const stream = new ReadableStream({
-		async start(controller) {
-			try {
-				// 1. Autenticação (usar request original que ainda tem headers/cookies)
-				const auth = await requireStudent(request);
-				if ("error" in auth) {
-					sendSSE(controller, "error", { error: "Não autorizado" });
-					controller.close();
-					return;
-				}
+  // Criar stream SSE
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // 1. Autenticação (usar request original que ainda tem headers/cookies)
+        const auth = await requireStudent(request);
+        if ("error" in auth) {
+          sendSSE(controller, "error", { error: "Não autorizado" });
+          controller.close();
+          return;
+        }
 
-				const studentId = auth.user.student?.id;
-				if (!studentId) {
-					sendSSE(controller, "error", { error: "Student ID não encontrado" });
-					controller.close();
-					return;
-				}
+        const studentId = auth.user.student?.id;
+        if (!studentId) {
+          sendSSE(controller, "error", { error: "Student ID não encontrado" });
+          controller.close();
+          return;
+        }
 
-				// 2. Verificar Premium/Trial
-				const subscription = await db.subscription.findUnique({
-					where: { studentId },
-				});
+        // 2. Verificar Premium/Trial
+        const subscription = await db.subscription.findUnique({
+          where: { studentId },
+        });
 
-				if (!subscription) {
-					sendSSE(controller, "error", {
-						error: "Recurso premium",
-						message:
-							"Esta funcionalidade requer assinatura premium ou trial ativo",
-					});
-					controller.close();
-					return;
-				}
+        if (!subscription) {
+          sendSSE(controller, "error", {
+            error: "Recurso premium",
+            message:
+              "Esta funcionalidade requer assinatura premium ou trial ativo",
+          });
+          controller.close();
+          return;
+        }
 
-				const now = new Date();
-				const isTrialActive =
-					subscription.trialEnd && new Date(subscription.trialEnd) > now;
-				const isActive = subscription.status === "active";
-				const isTrialing = subscription.status === "trialing";
-				const hasPremium =
-					subscription.plan === "premium" &&
-					(isActive || isTrialing || isTrialActive);
+        const now = new Date();
+        const isTrialActive =
+          subscription.trialEnd && new Date(subscription.trialEnd) > now;
+        const isActive = subscription.status === "active";
+        const isTrialing = subscription.status === "trialing";
+        const hasPremium =
+          subscription.plan === "premium" &&
+          (isActive || isTrialing || isTrialActive);
 
-				if (!hasPremium) {
-					sendSSE(controller, "error", {
-						error: "Recurso premium",
-						message:
-							"Esta funcionalidade requer assinatura premium ou trial ativo",
-					});
-					controller.close();
-					return;
-				}
+        if (!hasPremium) {
+          sendSSE(controller, "error", {
+            error: "Recurso premium",
+            message:
+              "Esta funcionalidade requer assinatura premium ou trial ativo",
+          });
+          controller.close();
+          return;
+        }
 
-				// 3. Verificar rate limiting (apenas para não-admins)
-				const isAdmin = auth.user?.role === "ADMIN";
-				const MAX_MESSAGES_PER_DAY = 20;
+        // 3. Verificar rate limiting (apenas para não-admins)
+        const isAdmin = auth.user?.role === "ADMIN";
+        const MAX_MESSAGES_PER_DAY = 20;
 
-				let chatUsage = null;
-				if (!isAdmin) {
-					const today = new Date();
-					const dateStr = today.toISOString().split("T")[0];
-					const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-					const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+        let chatUsage = null;
+        if (!isAdmin) {
+          const today = new Date();
+          const dateStr = today.toISOString().split("T")[0];
+          const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
+          const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
 
-					chatUsage = await db.nutritionChatUsage.findFirst({
-						where: {
-							studentId,
-							date: { gte: startOfDay, lte: endOfDay },
-						},
-					});
+          chatUsage = await db.nutritionChatUsage.findFirst({
+            where: {
+              studentId,
+              date: { gte: startOfDay, lte: endOfDay },
+            },
+          });
 
-					if (!chatUsage) {
-						chatUsage = await db.nutritionChatUsage.create({
-							data: { studentId, date: startOfDay, messageCount: 0 },
-						});
-					}
+          if (!chatUsage) {
+            chatUsage = await db.nutritionChatUsage.create({
+              data: { studentId, date: startOfDay, messageCount: 0 },
+            });
+          }
 
-					if (chatUsage.messageCount >= MAX_MESSAGES_PER_DAY) {
-						sendSSE(controller, "error", {
-							error: "Limite diário atingido",
-							message: `Você atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia. Tente novamente amanhã.`,
-						});
-						controller.close();
-						return;
-					}
-				}
+          if (chatUsage.messageCount >= MAX_MESSAGES_PER_DAY) {
+            sendSSE(controller, "error", {
+              error: "Limite diário atingido",
+              message: `Você atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia. Tente novamente amanhã.`,
+            });
+            controller.close();
+            return;
+          }
+        }
 
-				// 4. Processar request (body já foi lido antes)
-				const {
-					message,
-					conversationHistory = [],
-					unitId,
-					existingWorkouts: _existingWorkouts = [],
-					profile: _profile,
-					reference,
-					previewWorkouts = [],
-				} = body;
+        // 4. Processar request (body já foi lido antes)
+        const {
+          message,
+          conversationHistory = [],
+          unitId,
+          existingWorkouts: _existingWorkouts = [],
+          profile: _profile,
+          reference,
+          previewWorkouts = [],
+        } = body;
 
-				if (!message || typeof message !== "string") {
-					sendSSE(controller, "error", { error: "Mensagem inválida" });
-					controller.close();
-					return;
-				}
+        if (!message || typeof message !== "string") {
+          sendSSE(controller, "error", { error: "Mensagem inválida" });
+          controller.close();
+          return;
+        }
 
-				if (!unitId || typeof unitId !== "string") {
-					sendSSE(controller, "error", { error: "Unit ID é obrigatório" });
-					controller.close();
-					return;
-				}
+        if (!unitId || typeof unitId !== "string") {
+          sendSSE(controller, "error", { error: "Unit ID é obrigatório" });
+          controller.close();
+          return;
+        }
 
-				// 5. Verificar unit
-				const unit = await db.unit.findUnique({
-					where: { id: unitId },
-					include: {
-						workouts: {
-							orderBy: { order: "asc" },
-							include: { exercises: { orderBy: { order: "asc" } } },
-						},
-					},
-				});
+        // 5. Verificar unit
+        const unit = await db.unit.findUnique({
+          where: { id: unitId },
+          include: {
+            workouts: {
+              orderBy: { order: "asc" },
+              include: { exercises: { orderBy: { order: "asc" } } },
+            },
+          },
+        });
 
-				if (!unit) {
-					sendSSE(controller, "error", { error: "Unit não encontrada" });
-					controller.close();
-					return;
-				}
+        if (!unit) {
+          sendSSE(controller, "error", { error: "Unit não encontrada" });
+          controller.close();
+          return;
+        }
 
-				if (unit.studentId !== studentId) {
-					sendSSE(controller, "error", {
-						error: "Você não tem permissão para editar esta unit",
-					});
-					controller.close();
-					return;
-				}
+        if (unit.studentId !== studentId) {
+          sendSSE(controller, "error", {
+            error: "Você não tem permissão para editar esta unit",
+          });
+          controller.close();
+          return;
+        }
 
-				// 6. Preparar contexto
-				const workoutsInfo = unit.workouts.map((w) => ({
-					id: w.id,
-					title: w.title,
-					type: w.type,
-					muscleGroup: w.muscleGroup,
-					exercises: w.exercises.map((e) => ({
-						id: e.id,
-						name: e.name,
-						sets: e.sets,
-						reps: e.reps,
-					})),
-				}));
+        // 6. Preparar contexto
+        const workoutsInfo = unit.workouts.map((w) => ({
+          id: w.id,
+          title: w.title,
+          type: w.type,
+          muscleGroup: w.muscleGroup,
+          exercises: w.exercises.map((e) => ({
+            id: e.id,
+            name: e.name,
+            sets: e.sets,
+            reps: e.reps,
+          })),
+        }));
 
-				const student = await db.student.findUnique({
-					where: { id: studentId },
-					include: { profile: true },
-				});
+        const student = await db.student.findUnique({
+          where: { id: studentId },
+          include: { profile: true },
+        });
 
-				// 7. Construir prompt
-				let enhancedSystemPrompt = WORKOUT_SYSTEM_PROMPT;
+        // 7. Construir prompt
+        let enhancedSystemPrompt = WORKOUT_SYSTEM_PROMPT;
 
-				if (workoutsInfo.length > 0) {
-					const workoutsInfoText = workoutsInfo
-						.map(
-							(w) =>
-								`- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
-						)
-						.join("\n");
-					enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
+        if (workoutsInfo.length > 0) {
+          const workoutsInfoText = workoutsInfo
+            .map(
+              (w) =>
+                `- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
+            )
+            .join("\n");
+          enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
 
-					// Se houver referência, adicionar instruções específicas
-					if (reference && previewWorkouts.length > 0) {
-						const workoutIdentifier =
-							reference.workoutId || reference.workoutTitle;
+          // Se houver referência, adicionar instruções específicas
+          if (reference && previewWorkouts.length > 0) {
+            const workoutIdentifier =
+              reference.workoutId || reference.workoutTitle;
 
-						// Incluir TODOS os workouts dos previews no contexto
-						const previewsText = previewWorkouts
-							.map(
-								(
-									w: {
-										title?: string;
-										type?: string;
-										muscleGroup?: string;
-										exercises?: unknown[];
-									},
-									idx: number,
-								) =>
-									`${idx + 1}. ${w.title} (${w.type}, ${w.muscleGroup}): ${w.exercises?.length || 0} exercícios`,
-							)
-							.join("\n");
+            // Incluir TODOS os workouts dos previews no contexto
+            const previewsText = previewWorkouts
+              .map(
+                (
+                  w: {
+                    title?: string;
+                    type?: string;
+                    muscleGroup?: string;
+                    exercises?: unknown[];
+                  },
+                  idx: number,
+                ) =>
+                  `${idx + 1}. ${w.title} (${w.type}, ${w.muscleGroup}): ${w.exercises?.length || 0} exercícios`,
+              )
+              .join("\n");
 
-						enhancedSystemPrompt += `\n\nWORKOUTS EM PREVIEW (AINDA NÃO SALVOS):\n${previewsText}\n\n`;
+            enhancedSystemPrompt += `\n\nWORKOUTS EM PREVIEW (AINDA NÃO SALVOS):\n${previewsText}\n\n`;
 
-						if (reference.type === "workout") {
-							// Incluir estrutura completa dos previews para a IA copiar EXATAMENTE como estão
-							type PreviewW = {
-								title?: string;
-								description?: string;
-								type?: string;
-								muscleGroup?: string;
-								difficulty?: string;
-								exercises?: unknown[];
-							};
-							const previewsStructure = (previewWorkouts as PreviewW[])
-								.map((w, idx: number) => {
-									if (idx === reference.workoutIndex) {
-										// Para o workout referenciado, mostrar estrutura mas indicar que deve ser modificado
-										return `  {
+            if (reference.type === "workout") {
+              // Incluir estrutura completa dos previews para a IA copiar EXATAMENTE como estão
+              type PreviewW = {
+                title?: string;
+                description?: string;
+                type?: string;
+                muscleGroup?: string;
+                difficulty?: string;
+                exercises?: unknown[];
+              };
+              const previewsStructure = (previewWorkouts as PreviewW[])
+                .map((w, idx: number) => {
+                  if (idx === reference.workoutIndex) {
+                    // Para o workout referenciado, mostrar estrutura mas indicar que deve ser modificado
+                    return `  {
     "title": "[MODIFICAR conforme pedido - se pedir mudança de foco, altere o título também]",
     "description": "${w.description || ""}",
     "type": "${w.type}",
@@ -243,17 +243,17 @@ export async function POST(request: NextRequest) {
     "difficulty": "${w.difficulty}",
     "exercises": [/* MODIFICAR exercícios conforme pedido do usuário, mantendo estrutura de alternatives */]
   }`;
-									} else {
-										// Para os outros workouts, copiar EXATAMENTE como estão
-										const exercisesJson = JSON.stringify(
-											w.exercises || [],
-											null,
-											2,
-										)
-											.split("\n")
-											.map((line, i) => (i === 0 ? line : `    ${line}`))
-											.join("\n");
-										return `  {
+                  } else {
+                    // Para os outros workouts, copiar EXATAMENTE como estão
+                    const exercisesJson = JSON.stringify(
+                      w.exercises || [],
+                      null,
+                      2,
+                    )
+                      .split("\n")
+                      .map((line, i) => (i === 0 ? line : `    ${line}`))
+                      .join("\n");
+                    return `  {
     "title": "${w.title}",
     "description": "${w.description || ""}",
     "type": "${w.type}",
@@ -261,11 +261,11 @@ export async function POST(request: NextRequest) {
     "difficulty": "${w.difficulty}",
     "exercises": ${exercisesJson}
   }`;
-									}
-								})
-								.join(",\n");
+                  }
+                })
+                .join(",\n");
 
-							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (posição ${reference.workoutIndex + 1} na lista acima). 
+              enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (posição ${reference.workoutIndex + 1} na lista acima). 
 
 REGRA ABSOLUTA: Você DEVE retornar TODOS os ${previewWorkouts.length} workouts no array "workouts", modificando APENAS o referenciado.
 
@@ -282,315 +282,315 @@ ${previewsStructure}
 - NÃO crie novos workouts, apenas ATUALIZE o referenciado mantendo os demais intactos
 - O workout modificado DEVE aparecer na mesma posição (índice ${reference.workoutIndex}) do array
 - Se você retornar apenas 1 workout ao invés de ${previewWorkouts.length}, o sistema falhará`;
-						} else if (
-							reference.type === "exercise" &&
-							reference.exerciseName
-						) {
-							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}" (posição ${reference.workoutIndex + 1} na lista acima). 
+            } else if (
+              reference.type === "exercise" &&
+              reference.exerciseName
+            ) {
+              enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}" (posição ${reference.workoutIndex + 1} na lista acima). 
 - Você DEVE usar action="replace_exercise" ou "remove_exercise" 
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}"
 - Você DEVE usar exerciseToReplace com old="${reference.exerciseName}" e new="nome do novo exercício"
 - Você DEVE retornar TODOS os ${previewWorkouts.length} workouts no array workouts
 - Apenas MODIFIQUE o exercício referenciado no workout referenciado, mantendo TODOS os outros workouts e exercícios EXATAMENTE como estão
 - NÃO crie novos workouts, apenas MODIFIQUE o exercício específico`;
-						}
-					} else if (reference) {
-						// Referência sem previews (workout já salvo no banco)
-						const workoutIdentifier =
-							reference.workoutId || reference.workoutTitle;
+            }
+          } else if (reference) {
+            // Referência sem previews (workout já salvo no banco)
+            const workoutIdentifier =
+              reference.workoutId || reference.workoutTitle;
 
-						if (reference.type === "workout") {
-							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (Identificador: ${workoutIdentifier}). 
+            if (reference.type === "workout") {
+              enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (Identificador: ${workoutIdentifier}). 
 - Você DEVE usar action="update_workout" 
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}" (pode ser ID ou título exato)
 - Você DEVE atualizar o título se o usuário pedir mudança (ex: de "Quadríceps" para "Adutores")
 - Retorne APENAS o workout modificado no array workouts, mas use targetWorkoutId para identificar qual atualizar`;
-						} else if (
-							reference.type === "exercise" &&
-							reference.exerciseName
-						) {
-							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}" (Identificador: ${workoutIdentifier}). 
+            } else if (
+              reference.type === "exercise" &&
+              reference.exerciseName
+            ) {
+              enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}" (Identificador: ${workoutIdentifier}). 
 - Você DEVE usar action="replace_exercise" ou "remove_exercise" 
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}"
 - Você DEVE usar exerciseToReplace com old="${reference.exerciseName}" e new="nome do novo exercício"
 - Retorne APENAS o workout modificado no array workouts`;
-						}
-					}
-				}
+            }
+          }
+        }
 
-				if (student?.profile) {
-					const profileData = student.profile;
-					const profileInfo: string[] = [];
+        if (student?.profile) {
+          const profileData = student.profile;
+          const profileInfo: string[] = [];
 
-					if (profileData.fitnessLevel)
-						profileInfo.push(`Nível de fitness: ${profileData.fitnessLevel}`);
-					if (profileData.weeklyWorkoutFrequency)
-						profileInfo.push(
-							`Frequência semanal: ${profileData.weeklyWorkoutFrequency} dias`,
-						);
-					if (profileData.workoutDuration)
-						profileInfo.push(
-							`Duração preferida: ${profileData.workoutDuration} minutos`,
-						);
-					if (profileData.preferredSets)
-						profileInfo.push(`Séries preferidas: ${profileData.preferredSets}`);
-					if (profileData.preferredRepRange)
-						profileInfo.push(
-							`Faixa de repetições preferida: ${profileData.preferredRepRange}`,
-						);
-					if (profileData.restTime)
-						profileInfo.push(
-							`Tempo de descanso preferido: ${profileData.restTime}`,
-						);
-					if (profileData.gymType)
-						profileInfo.push(`Tipo de academia: ${profileData.gymType}`);
-					if (profileData.goals) {
-						const goals = JSON.parse(profileData.goals);
-						if (Array.isArray(goals) && goals.length > 0) {
-							profileInfo.push(`Objetivos: ${goals.join(", ")}`);
-						}
-					}
-					if (profileData.physicalLimitations) {
-						const limitations = JSON.parse(profileData.physicalLimitations);
-						if (Array.isArray(limitations) && limitations.length > 0) {
-							profileInfo.push(`Limitações físicas: ${limitations.join(", ")}`);
-						}
-					}
+          if (profileData.fitnessLevel)
+            profileInfo.push(`Nível de fitness: ${profileData.fitnessLevel}`);
+          if (profileData.weeklyWorkoutFrequency)
+            profileInfo.push(
+              `Frequência semanal: ${profileData.weeklyWorkoutFrequency} dias`,
+            );
+          if (profileData.workoutDuration)
+            profileInfo.push(
+              `Duração preferida: ${profileData.workoutDuration} minutos`,
+            );
+          if (profileData.preferredSets)
+            profileInfo.push(`Séries preferidas: ${profileData.preferredSets}`);
+          if (profileData.preferredRepRange)
+            profileInfo.push(
+              `Faixa de repetições preferida: ${profileData.preferredRepRange}`,
+            );
+          if (profileData.restTime)
+            profileInfo.push(
+              `Tempo de descanso preferido: ${profileData.restTime}`,
+            );
+          if (profileData.gymType)
+            profileInfo.push(`Tipo de academia: ${profileData.gymType}`);
+          if (profileData.goals) {
+            const goals = JSON.parse(profileData.goals);
+            if (Array.isArray(goals) && goals.length > 0) {
+              profileInfo.push(`Objetivos: ${goals.join(", ")}`);
+            }
+          }
+          if (profileData.physicalLimitations) {
+            const limitations = JSON.parse(profileData.physicalLimitations);
+            if (Array.isArray(limitations) && limitations.length > 0) {
+              profileInfo.push(`Limitações físicas: ${limitations.join(", ")}`);
+            }
+          }
 
-					if (profileInfo.length > 0) {
-						enhancedSystemPrompt += `\n\nPERFIL DO USUÁRIO:\n${profileInfo.join("\n")}\n\nUse essas informações como padrão quando o usuário não especificar preferências.`;
-					}
-				}
+          if (profileInfo.length > 0) {
+            enhancedSystemPrompt += `\n\nPERFIL DO USUÁRIO:\n${profileInfo.join("\n")}\n\nUse essas informações como padrão quando o usuário não especificar preferências.`;
+          }
+        }
 
-				// 8. Enviar status inicial
-				sendSSE(controller, "status", {
-					status: "processing",
-					message: "Gerando treino...",
-				});
+        // 8. Enviar status inicial
+        sendSSE(controller, "status", {
+          status: "processing",
+          message: "Gerando treino...",
+        });
 
-				// 9. Suporte a importação direta
-				type ImportedEx = {
-					name?: string;
-					sets?: number;
-					reps?: string;
-					rest?: number;
-					notes?: string;
-					focus?: string | null;
-					alternatives?: unknown[];
-				};
-				type ImportedW = {
-					title?: string;
-					name?: string;
-					description?: string;
-					type?: string;
-					muscleGroup?: string;
-					difficulty?: string;
-					exercises?: ImportedEx[];
-				};
-				type ParsedRes = {
-					intent?: string;
-					action?: string;
-					workouts?: unknown[];
-					message?: string;
-					targetWorkoutId?: string;
-					[key: string]: unknown;
-				} | null;
+        // 9. Suporte a importação direta
+        type ImportedEx = {
+          name?: string;
+          sets?: number;
+          reps?: string;
+          rest?: number;
+          notes?: string;
+          focus?: string | null;
+          alternatives?: unknown[];
+        };
+        type ImportedW = {
+          title?: string;
+          name?: string;
+          description?: string;
+          type?: string;
+          muscleGroup?: string;
+          difficulty?: string;
+          exercises?: ImportedEx[];
+        };
+        type ParsedRes = {
+          intent?: string;
+          action?: string;
+          workouts?: unknown[];
+          message?: string;
+          targetWorkoutId?: string;
+          [key: string]: unknown;
+        } | null;
 
-				let parsed: ParsedRes = null;
-				const tryParseImportedWorkout = (raw: unknown): ParsedRes => {
-					const rawObj = raw as { workouts?: unknown[]; exercises?: unknown };
-					const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
-						(exercises || []).map((ex: ImportedEx) => ({
-							name: ex.name,
-							sets: ex.sets ?? 3,
-							reps: ex.reps ?? "8-12",
-							rest: ex.rest ?? 60,
-							notes: ex.notes ?? undefined,
-							focus: ex.focus ?? null,
-							alternatives:
-								Array.isArray(ex.alternatives) && ex.alternatives.length > 0
-									? ex.alternatives.slice(0, 3)
-									: [],
-						}));
+        let parsed: ParsedRes = null;
+        const tryParseImportedWorkout = (raw: unknown): ParsedRes => {
+          const rawObj = raw as { workouts?: unknown[]; exercises?: unknown };
+          const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
+            (exercises || []).map((ex: ImportedEx) => ({
+              name: ex.name,
+              sets: ex.sets ?? 3,
+              reps: ex.reps ?? "8-12",
+              rest: ex.rest ?? 60,
+              notes: ex.notes ?? undefined,
+              focus: ex.focus ?? null,
+              alternatives:
+                Array.isArray(ex.alternatives) && ex.alternatives.length > 0
+                  ? ex.alternatives.slice(0, 3)
+                  : [],
+            }));
 
-					const normalizeWorkout = (w: ImportedW) => ({
-						title: w.title || w.name || "Treino",
-						description: w.description || "",
-						type: w.type || "strength",
-						muscleGroup: w.muscleGroup || "full-body",
-						difficulty: w.difficulty || "intermediario",
-						exercises: normalizeExercises(w.exercises || []),
-					});
+          const normalizeWorkout = (w: ImportedW) => ({
+            title: w.title || w.name || "Treino",
+            description: w.description || "",
+            type: w.type || "strength",
+            muscleGroup: w.muscleGroup || "full-body",
+            difficulty: w.difficulty || "intermediario",
+            exercises: normalizeExercises(w.exercises || []),
+          });
 
-					let workoutsArr: ImportedW[] = [];
-					if (rawObj?.workouts && Array.isArray(rawObj.workouts)) {
-						workoutsArr = rawObj.workouts as ImportedW[];
-					} else if (Array.isArray(raw)) {
-						workoutsArr = raw as ImportedW[];
-					} else if (raw && typeof raw === "object" && rawObj.exercises) {
-						workoutsArr = [raw as ImportedW];
-					}
+          let workoutsArr: ImportedW[] = [];
+          if (rawObj?.workouts && Array.isArray(rawObj.workouts)) {
+            workoutsArr = rawObj.workouts as ImportedW[];
+          } else if (Array.isArray(raw)) {
+            workoutsArr = raw as ImportedW[];
+          } else if (raw && typeof raw === "object" && rawObj.exercises) {
+            workoutsArr = [raw as ImportedW];
+          }
 
-					if (workoutsArr.length === 0) return null;
+          if (workoutsArr.length === 0) return null;
 
-					return {
-						intent: "create",
-						action: "create_workouts",
-						workouts: workoutsArr.map(normalizeWorkout),
-						message: "Treino importado e pronto para aplicar.",
-					};
-				};
+          return {
+            intent: "create",
+            action: "create_workouts",
+            workouts: workoutsArr.map(normalizeWorkout),
+            message: "Treino importado e pronto para aplicar.",
+          };
+        };
 
-				// Se mensagem é JSON, tentar importar diretamente
-				try {
-					if (
-						message.trim().startsWith("{") ||
-						message.trim().startsWith("[")
-					) {
-						const rawJson = JSON.parse(message);
-						parsed = tryParseImportedWorkout(rawJson);
-						sendSSE(controller, "status", {
-							status: "imported",
-							message: "Treino importado com sucesso!",
-						});
-					}
-				} catch {
-					// não é JSON válido, segue fluxo normal
-				}
+        // Se mensagem é JSON, tentar importar diretamente
+        try {
+          if (
+            message.trim().startsWith("{") ||
+            message.trim().startsWith("[")
+          ) {
+            const rawJson = JSON.parse(message);
+            parsed = tryParseImportedWorkout(rawJson);
+            sendSSE(controller, "status", {
+              status: "imported",
+              message: "Treino importado com sucesso!",
+            });
+          }
+        } catch {
+          // não é JSON válido, segue fluxo normal
+        }
 
-				// 10. Chamar DeepSeek com STREAMING (TTFT ~200-500ms vs 5-10s)
-				if (!parsed) {
-					sendSSE(controller, "status", {
-						status: "calling_ai",
-						message: "Consultando IA...",
-					});
+        // 10. Chamar DeepSeek com STREAMING (TTFT ~200-500ms vs 5-10s)
+        if (!parsed) {
+          sendSSE(controller, "status", {
+            status: "calling_ai",
+            message: "Consultando IA...",
+          });
 
-					const MAX_HISTORY = 6;
-					const limitedHistory =
-						conversationHistory.length > MAX_HISTORY
-							? conversationHistory.slice(-MAX_HISTORY)
-							: conversationHistory;
-					const messagesArr = [
-						...limitedHistory,
-						{ role: "user" as const, content: message },
-					];
+          const MAX_HISTORY = 6;
+          const limitedHistory =
+            conversationHistory.length > MAX_HISTORY
+              ? conversationHistory.slice(-MAX_HISTORY)
+              : conversationHistory;
+          const messagesArr = [
+            ...limitedHistory,
+            { role: "user" as const, content: message },
+          ];
 
-					try {
-						const response = await chatCompletionStream(
-							{
-								messages: messagesArr,
-								systemPrompt: enhancedSystemPrompt,
-								temperature: 0.7,
-								responseFormat: "json_object",
-								maxTokens: 2048,
-							},
-							(delta) => sendSSE(controller, "token", { delta }),
-						);
+          try {
+            const response = await chatCompletionStream(
+              {
+                messages: messagesArr,
+                systemPrompt: enhancedSystemPrompt,
+                temperature: 0.7,
+                responseFormat: "json_object",
+                maxTokens: 4096, // Treinos full body 4x/semana com todos os grupamentos precisam de mais espaço
+              },
+              (delta) => sendSSE(controller, "token", { delta }),
+            );
 
-						sendSSE(controller, "status", {
-							status: "parsing",
-							message: "Processando resposta...",
-						});
-						parsed = parseWorkoutResponse(response);
-					} catch (error: unknown) {
-						const err =
-							error instanceof Error ? error : new Error(String(error));
-						sendSSE(controller, "error", {
-							error: err.message || "Erro ao processar mensagem",
-						});
-						controller.close();
-						return;
-					}
-				}
+            sendSSE(controller, "status", {
+              status: "parsing",
+              message: "Processando resposta...",
+            });
+            parsed = parseWorkoutResponse(response);
+          } catch (error: unknown) {
+            const err =
+              error instanceof Error ? error : new Error(String(error));
+            sendSSE(controller, "error", {
+              error: err.message || "Erro ao processar mensagem",
+            });
+            controller.close();
+            return;
+          }
+        }
 
-				// 11. Normalizar resposta quando há referência para garantir consistência (nunca criar 6º treino)
-				if (
-					reference &&
-					Array.isArray(previewWorkouts) &&
-					previewWorkouts.length > 0 &&
-					parsed?.workouts
-				) {
-					const modifiedIndex =
-						typeof reference.workoutIndex === "number"
-							? reference.workoutIndex
-							: 0;
-					const mergedWorkouts = [...previewWorkouts];
+        // 11. Normalizar resposta quando há referência para garantir consistência (nunca criar 6º treino)
+        if (
+          reference &&
+          Array.isArray(previewWorkouts) &&
+          previewWorkouts.length > 0 &&
+          parsed?.workouts
+        ) {
+          const modifiedIndex =
+            typeof reference.workoutIndex === "number"
+              ? reference.workoutIndex
+              : 0;
+          const mergedWorkouts = [...previewWorkouts];
 
-					if (parsed.workouts.length === previewWorkouts.length) {
-						// IA retornou todos: preservar todos os não referenciados exatamente como estavam (evita renumeração 6..10)
-						// e aplicar apenas o modificado na posição correta.
-						mergedWorkouts[modifiedIndex] = parsed.workouts[modifiedIndex];
-					} else if (parsed.workouts.length === 1) {
-						// IA retornou só o workout modificado: substituir somente o referenciado
-						mergedWorkouts[modifiedIndex] = parsed.workouts[0];
-					} else {
-						// IA retornou quantidade diferente: escolher melhor candidato e descartar extras
-						const byTitle = parsed.workouts.find(
-							(w: { title?: string }) =>
-								w.title?.toLowerCase().trim() ===
-								reference.workoutTitle?.toLowerCase().trim(),
-						);
-						mergedWorkouts[modifiedIndex] = byTitle || parsed.workouts[0];
-					}
+          if (parsed.workouts.length === previewWorkouts.length) {
+            // IA retornou todos: preservar todos os não referenciados exatamente como estavam (evita renumeração 6..10)
+            // e aplicar apenas o modificado na posição correta.
+            mergedWorkouts[modifiedIndex] = parsed.workouts[modifiedIndex];
+          } else if (parsed.workouts.length === 1) {
+            // IA retornou só o workout modificado: substituir somente o referenciado
+            mergedWorkouts[modifiedIndex] = parsed.workouts[0];
+          } else {
+            // IA retornou quantidade diferente: escolher melhor candidato e descartar extras
+            const byTitle = parsed.workouts.find(
+              (w: { title?: string }) =>
+                w.title?.toLowerCase().trim() ===
+                reference.workoutTitle?.toLowerCase().trim(),
+            );
+            mergedWorkouts[modifiedIndex] = byTitle || parsed.workouts[0];
+          }
 
-					parsed.workouts = mergedWorkouts;
-					// Garantir action/targetWorkoutId coerentes
-					parsed.action = parsed.action || "update_workout";
-					parsed.targetWorkoutId = reference.workoutTitle;
-				}
+          parsed.workouts = mergedWorkouts;
+          // Garantir action/targetWorkoutId coerentes
+          parsed.action = parsed.action || "update_workout";
+          parsed.targetWorkoutId = reference.workoutTitle;
+        }
 
-				// 12. Incrementar contador (apenas para não-admins)
-				if (!isAdmin && chatUsage) {
-					await db.nutritionChatUsage.update({
-						where: { id: chatUsage.id },
-						data: { messageCount: { increment: 1 } },
-					});
-				}
+        // 12. Incrementar contador (apenas para não-admins)
+        if (!isAdmin && chatUsage) {
+          await db.nutritionChatUsage.update({
+            where: { id: chatUsage.id },
+            data: { messageCount: { increment: 1 } },
+          });
+        }
 
-				// 13. Enviar workouts progressivamente (um por vez)
-				if (parsed.workouts && parsed.workouts.length > 0) {
-					for (let i = 0; i < parsed.workouts.length; i++) {
-						const workout = parsed.workouts[i];
-						sendSSE(controller, "workout_progress", {
-							workout,
-							index: i,
-							total: parsed.workouts.length,
-						});
+        // 13. Enviar workouts progressivamente (um por vez)
+        if (parsed.workouts && parsed.workouts.length > 0) {
+          for (let i = 0; i < parsed.workouts.length; i++) {
+            const workout = parsed.workouts[i];
+            sendSSE(controller, "workout_progress", {
+              workout,
+              index: i,
+              total: parsed.workouts.length,
+            });
 
-						// Pequeno delay entre workouts para melhor UX
-						if (i < parsed.workouts.length - 1) {
-							await new Promise((resolve) => setTimeout(resolve, 300));
-						}
-					}
-				}
+            // Pequeno delay entre workouts para melhor UX
+            if (i < parsed.workouts.length - 1) {
+              await new Promise((resolve) => setTimeout(resolve, 300));
+            }
+          }
+        }
 
-				// 14. Enviar resultado final (completo)
-				const remainingMessages = isAdmin
-					? null
-					: MAX_MESSAGES_PER_DAY - (chatUsage?.messageCount || 0) - 1;
+        // 14. Enviar resultado final (completo)
+        const remainingMessages = isAdmin
+          ? null
+          : MAX_MESSAGES_PER_DAY - (chatUsage?.messageCount || 0) - 1;
 
-				sendSSE(controller, "complete", {
-					...parsed,
-					remainingMessages,
-				});
+        sendSSE(controller, "complete", {
+          ...parsed,
+          remainingMessages,
+        });
 
-				controller.close();
-			} catch (error: unknown) {
-				console.error("[workouts/chat-stream] Erro:", error);
-				const err = error instanceof Error ? error : new Error(String(error));
-				sendSSE(controller, "error", {
-					error: err.message || "Erro ao processar mensagem",
-				});
-				controller.close();
-			}
-		},
-	});
+        controller.close();
+      } catch (error: unknown) {
+        console.error("[workouts/chat-stream] Erro:", error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        sendSSE(controller, "error", {
+          error: err.message || "Erro ao processar mensagem",
+        });
+        controller.close();
+      }
+    },
+  });
 
-	return new Response(stream, {
-		headers: {
-			"Content-Type": "text/event-stream",
-			"Cache-Control": "no-cache",
-			Connection: "keep-alive",
-		},
-	});
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }
