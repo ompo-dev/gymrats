@@ -2,8 +2,6 @@
 
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { mockGymLocations } from "@/lib/gym-mock-data";
-import { mockUnits, mockUserProgress } from "@/lib/mock-data";
 import type { MuscleGroup } from "@/lib/types";
 import { getSession } from "@/lib/utils/session";
 
@@ -208,12 +206,12 @@ export async function getStudentProgress() {
 			cookieStore.get("better-auth.session_token")?.value;
 
 		if (!sessionToken) {
-			return mockUserProgress;
+			return getNeutralProgress();
 		}
 
 		const session = await getSession(sessionToken);
 		if (!session || !session.user.student) {
-			return mockUserProgress;
+			return getNeutralProgress();
 		}
 
 		const studentId = session.user.student.id;
@@ -223,7 +221,7 @@ export async function getStudentProgress() {
 		});
 
 		if (!progress) {
-			return mockUserProgress;
+			return getNeutralProgress();
 		}
 
 		// Buscar achievements desbloqueados
@@ -281,7 +279,7 @@ export async function getStudentProgress() {
 		const weeklyXP = [0, 0, 0, 0, 0, 0, 0];
 		workoutHistory.forEach((wh) => {
 			const dayOfWeek = wh.date.getDay();
-			weeklyXP[dayOfWeek] += wh.workout.xpReward;
+			weeklyXP[dayOfWeek] += wh.workout?.xpReward ?? 0;
 		});
 
 		return {
@@ -301,8 +299,25 @@ export async function getStudentProgress() {
 		};
 	} catch (error) {
 		console.error("Erro ao buscar progresso:", error);
-		return mockUserProgress;
+		return getNeutralProgress();
 	}
+}
+
+/** Valores neutros para progresso quando não autenticado ou em erro (nunca mock em produção) */
+function getNeutralProgress() {
+	return {
+		currentStreak: 0,
+		longestStreak: 0,
+		totalXP: 0,
+		currentLevel: 1,
+		xpToNextLevel: 100,
+		workoutsCompleted: 0,
+		todayXP: 0,
+		achievements: [],
+		lastActivityDate: new Date().toISOString(),
+		dailyGoalXP: 50,
+		weeklyXP: [0, 0, 0, 0, 0, 0, 0],
+	};
 }
 
 export async function getStudentUnits() {
@@ -314,13 +329,12 @@ export async function getStudentUnits() {
 			cookieStore.get("better-auth.session_token")?.value;
 
 		if (!sessionToken) {
-			// Se não autenticado, retornar mock (para preview/demo)
-			return mockUnits;
+			return [];
 		}
 
 		const session = await getSession(sessionToken);
 		if (!session || !session.user.student) {
-			return mockUnits;
+			return [];
 		}
 
 		// Buscar units do database
@@ -477,22 +491,17 @@ export async function getStudentUnits() {
 		return formattedUnits;
 	} catch (error) {
 		console.error("Erro ao buscar units do database:", error);
-		// Em caso de erro, retornar mock como fallback
-		return mockUnits;
+		return [];
 	}
 }
 
 export async function getGymLocations() {
 	try {
 		// Buscar academias parceiras e ativas
-		// Nota: isPartner pode não existir ainda se migration não foi aplicada
-		const whereClause: { isActive: boolean } = {
+		const whereClause: { isActive: boolean; isPartner?: boolean } = {
 			isActive: true,
+			isPartner: true,
 		};
-
-		// Tentar adicionar isPartner se o campo existir (após migration)
-		// Por enquanto, buscar todas as academias ativas
-		// TODO: Descomentar após aplicar migration: whereClause.isPartner = true;
 
 		const gyms = await db.gym.findMany({
 			where: whereClause,
@@ -632,8 +641,7 @@ export async function getGymLocations() {
 		return formattedGyms;
 	} catch (error) {
 		console.error("Erro ao buscar academias do database:", error);
-		// Em caso de erro, retornar mock como fallback
-		return mockGymLocations;
+		return [];
 	}
 }
 

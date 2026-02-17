@@ -260,20 +260,22 @@ export function ProfilePageContent() {
 							60000,
 					),
 					totalVolume: lastInProgressWorkout.progress.totalVolume || 0,
-					exercises: lastInProgressWorkout.progress.exerciseLogs?.map((log) => ({
-						id: log.exerciseId,
-						exerciseId: log.exerciseId,
-						exerciseName: log.exerciseName,
-						workoutId: lastInProgressWorkout.workout.id,
-						date:
-							lastInProgressWorkout.progress.startTime instanceof Date
-								? lastInProgressWorkout.progress.startTime
-								: new Date(lastInProgressWorkout.progress.startTime),
-						sets: log.sets || [],
-						notes: log.notes,
-						formCheckScore: log.formCheckScore,
-						difficulty: log.difficulty || "medio",
-					})),
+					exercises: lastInProgressWorkout.progress.exerciseLogs?.map(
+						(log) => ({
+							id: log.exerciseId,
+							exerciseId: log.exerciseId,
+							exerciseName: log.exerciseName,
+							workoutId: lastInProgressWorkout.workout.id,
+							date:
+								lastInProgressWorkout.progress.startTime instanceof Date
+									? lastInProgressWorkout.progress.startTime
+									: new Date(lastInProgressWorkout.progress.startTime),
+							sets: log.sets || [],
+							notes: log.notes,
+							formCheckScore: log.formCheckScore,
+							difficulty: log.difficulty || "medio",
+						}),
+					),
 					overallFeedback: undefined as
 						| "excelente"
 						| "bom"
@@ -328,7 +330,6 @@ export function ProfilePageContent() {
 	).length;
 
 	const hasWeightLossGoal = storeProfile?.hasWeightLossGoal || false;
-	const ranking = null; // TODO: Adicionar ao store se necessário
 
 	const handleLogout = async () => {
 		try {
@@ -473,9 +474,7 @@ export function ProfilePageContent() {
 					icon={Trophy}
 					value={`#${displayProgress.currentLevel}`}
 					label="Nível atual"
-					subtitle={
-						ranking !== null ? `Top ${ranking}% global` : "Calculando..."
-					}
+					subtitle="Continue treinando"
 					iconColor="duo-blue"
 				/>
 				<StatCardLarge
@@ -532,29 +531,30 @@ export function ProfilePageContent() {
 			>
 				{weightHistoryLocal.length > 0 ? (
 					<div className="space-y-3">
-						{weightHistoryLocal.map(
-							(record: WeightHistoryItem, index: number) => (
-								<div key={index} className="flex items-center justify-between">
-									<div className="text-sm text-duo-gray-dark">
-										{new Date(record.date).toLocaleDateString("pt-BR")}
-									</div>
-									<div className="flex items-center gap-3">
+						{weightHistoryLocal.map((record: WeightHistoryItem) => (
+							<div
+								key={`${String(record.date)}-${record.weight}`}
+								className="flex items-center justify-between"
+							>
+								<div className="text-sm text-duo-gray-dark">
+									{new Date(record.date).toLocaleDateString("pt-BR")}
+								</div>
+								<div className="flex items-center gap-3">
+									<div
+										className="h-2 flex-1 rounded-full bg-duo-border"
+										style={{ width: `${record.weight}px` }}
+									>
 										<div
-											className="h-2 flex-1 rounded-full bg-duo-border"
-											style={{ width: `${record.weight}px` }}
-										>
-											<div
-												className="h-full rounded-full bg-duo-green"
-												style={{ width: `${(record.weight / 85) * 100}%` }}
-											/>
-										</div>
-										<div className="w-16 text-right font-bold text-duo-text">
-											{record.weight}kg
-										</div>
+											className="h-full rounded-full bg-duo-green"
+											style={{ width: `${(record.weight / 85) * 100}%` }}
+										/>
+									</div>
+									<div className="w-16 text-right font-bold text-duo-text">
+										{record.weight}kg
 									</div>
 								</div>
-							),
-						)}
+							</div>
+						))}
 					</div>
 				) : (
 					<motion.div
@@ -586,55 +586,53 @@ export function ProfilePageContent() {
 				<SectionCard icon={Calendar} title="Histórico Recente">
 					{recentWorkoutHistory.length > 0 ? (
 						<div className="space-y-3">
-							{recentWorkoutHistory.map(
-								(workout: WorkoutHistory, index: number) => (
-									<div key={index}>
-										<HistoryCard
-											title={workout.workoutName}
-											date={workout.date}
-											status={
-												workout.overallFeedback === "excelente"
-													? "excelente"
-													: workout.overallFeedback === "bom"
-														? "bom"
-														: "regular"
-											}
-											metadata={[
-												{ icon: "⏱️", label: `${workout.duration} min` },
-												{
-													icon: "💪",
-													label: `${workout.totalVolume.toLocaleString()} kg`,
-												},
-												{
-													icon: "🏋️",
-													label: `${workout.exercises.length} exercício${
-														workout.exercises.length !== 1 ? "s" : ""
-													}`,
-												},
-											]}
-										/>
-										{/* Mostrar apenas os exercícios do último workout iniciado */}
-										{lastInProgressWorkout && workout.exercises.length > 0 && (
-											<div className="mt-2 ml-4 space-y-1">
-												{workout.exercises.map((exercise, exIndex) => (
-													<div
-														key={exIndex}
-														className="text-sm text-duo-gray-dark flex items-center gap-2"
-													>
-														<span className="text-duo-green">✓</span>
-														<span>{exercise.exerciseName}</span>
-														{exercise.sets && exercise.sets.length > 0 && (
-															<span className="text-xs text-duo-gray">
-																({exercise.sets.length} séries)
-															</span>
-														)}
-													</div>
-												))}
-											</div>
-										)}
-									</div>
-								),
-							)}
+							{recentWorkoutHistory.map((workout: WorkoutHistory) => (
+								<div key={`${workout.workoutId}-${String(workout.date)}`}>
+									<HistoryCard
+										title={workout.workoutName}
+										date={workout.date}
+										status={
+											workout.overallFeedback === "excelente"
+												? "excelente"
+												: workout.overallFeedback === "bom"
+													? "bom"
+													: "regular"
+										}
+										metadata={[
+											{ icon: "⏱️", label: `${workout.duration} min` },
+											{
+												icon: "💪",
+												label: `${workout.totalVolume.toLocaleString()} kg`,
+											},
+											{
+												icon: "🏋️",
+												label: `${workout.exercises.length} exercício${
+													workout.exercises.length !== 1 ? "s" : ""
+												}`,
+											},
+										]}
+									/>
+									{/* Mostrar apenas os exercícios do último workout iniciado */}
+									{lastInProgressWorkout && workout.exercises.length > 0 && (
+										<div className="mt-2 ml-4 space-y-1">
+											{workout.exercises.map((exercise) => (
+												<div
+													key={exercise.id}
+													className="text-sm text-duo-gray-dark flex items-center gap-2"
+												>
+													<span className="text-duo-green">✓</span>
+													<span>{exercise.exerciseName}</span>
+													{exercise.sets && exercise.sets.length > 0 && (
+														<span className="text-xs text-duo-gray">
+															({exercise.sets.length} séries)
+														</span>
+													)}
+												</div>
+											))}
+										</div>
+									)}
+								</div>
+							))}
 						</div>
 					) : (
 						<motion.div
@@ -665,9 +663,9 @@ export function ProfilePageContent() {
 				<SectionCard icon={Award} title="Recordes Pessoais">
 					{personalRecords.length > 0 ? (
 						<div className="space-y-3">
-							{personalRecords.map((record: PersonalRecord, index: number) => (
+							{personalRecords.map((record: PersonalRecord) => (
 								<RecordCard
-									key={index}
+									key={`${record.exerciseId}-${String(record.date)}`}
 									exerciseName={record.exerciseName}
 									date={record.date}
 									value={record.value}

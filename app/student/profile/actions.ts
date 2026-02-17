@@ -2,12 +2,6 @@
 
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import {
-	mockPersonalRecords,
-	mockUserProgress,
-	mockWeightHistory,
-	mockWorkoutHistory,
-} from "@/lib/mock-data";
 import type { MuscleGroup, SetLog, UserProgress } from "@/lib/types";
 import { getSession } from "@/lib/utils/session";
 
@@ -20,32 +14,12 @@ export async function getStudentProfileData() {
 			cookieStore.get("better-auth.session_token")?.value;
 
 		if (!sessionToken) {
-			return {
-				progress: mockUserProgress,
-				workoutHistory: mockWorkoutHistory.slice(0, 3),
-				personalRecords: mockPersonalRecords,
-				weightHistory: mockWeightHistory,
-				userInfo: null,
-				weeklyWorkouts: 0,
-				weightGain: null,
-				ranking: null,
-				hasWeightLossGoal: false,
-			};
+			return getNeutralProfileData();
 		}
 
 		const session = await getSession(sessionToken);
 		if (!session || !session.user.student) {
-			return {
-				progress: mockUserProgress,
-				workoutHistory: mockWorkoutHistory.slice(0, 3),
-				personalRecords: mockPersonalRecords,
-				weightHistory: mockWeightHistory,
-				userInfo: null,
-				weeklyWorkouts: 0,
-				weightGain: null,
-				ranking: null,
-				hasWeightLossGoal: false,
-			};
+			return getNeutralProfileData();
 		}
 
 		const studentId = session.user.student.id;
@@ -99,7 +73,7 @@ export async function getStudentProfileData() {
 					dailyGoalXP: 50,
 					weeklyXP: [0, 0, 0, 0, 0, 0, 0],
 				}
-			: mockUserProgress;
+			: getNeutralUserProgress();
 
 		// Buscar histórico de workouts do database
 		const workoutHistoryData = await db.workoutHistory.findMany({
@@ -257,8 +231,7 @@ export async function getStudentProfileData() {
 		}));
 
 		// Buscar histórico de peso do database
-		// Se a tabela não existir (migration não aplicada), usar mock
-		let formattedWeightHistory = mockWeightHistory;
+		let formattedWeightHistory: { date: Date; weight: number }[] = [];
 		try {
 			const weightHistoryData = await db.weightHistory.findMany({
 				where: {
@@ -275,25 +248,19 @@ export async function getStudentProfileData() {
 				weight: wh.weight,
 			}));
 		} catch (error: unknown) {
-			// Se a tabela não existir, usar mock
+			const err = error as { code?: string; message?: string };
 			if (
-				(error as { code?: string; message?: string }).code === "P2021" ||
-				(error as { code?: string; message?: string }).message?.includes(
-					"does not exist",
-				) ||
-				(error as { code?: string; message?: string }).message?.includes(
-					"Unknown table",
-				)
+				err.code === "P2021" ||
+				err.message?.includes("does not exist") ||
+				err.message?.includes("Unknown table")
 			) {
-				console.log(
-					"Tabela weight_history não existe ainda. Usando mock. Execute: node scripts/apply-weight-history-migration.js",
+				console.warn(
+					"Tabela weight_history não existe. Execute: node scripts/apply-weight-history-migration.js",
 				);
-				formattedWeightHistory = mockWeightHistory;
 			} else {
-				// Outro erro, logar e usar mock
 				console.error("Erro ao buscar weight history:", error);
-				formattedWeightHistory = mockWeightHistory;
 			}
+			formattedWeightHistory = [];
 		}
 
 		// Calcular workouts da semana (últimos 7 dias)
@@ -415,17 +382,37 @@ export async function getStudentProfileData() {
 		};
 	} catch (error) {
 		console.error("Erro ao buscar dados do perfil:", error);
-		return {
-			progress: mockUserProgress,
-			workoutHistory: mockWorkoutHistory.slice(0, 3),
-			personalRecords: mockPersonalRecords,
-			weightHistory: mockWeightHistory,
-			userInfo: null,
-			weeklyWorkouts: 0,
-			weightGain: null,
-			ranking: null,
-			currentWeight: null,
-			hasWeightLossGoal: false,
-		};
+		return getNeutralProfileData();
 	}
+}
+
+function getNeutralUserProgress(): UserProgress {
+	return {
+		currentStreak: 0,
+		longestStreak: 0,
+		totalXP: 0,
+		currentLevel: 1,
+		xpToNextLevel: 100,
+		workoutsCompleted: 0,
+		todayXP: 0,
+		achievements: [],
+		lastActivityDate: new Date().toISOString(),
+		dailyGoalXP: 50,
+		weeklyXP: [0, 0, 0, 0, 0, 0, 0],
+	};
+}
+
+function getNeutralProfileData() {
+	return {
+		progress: getNeutralUserProgress(),
+		workoutHistory: [],
+		personalRecords: [],
+		weightHistory: [],
+		userInfo: null,
+		weeklyWorkouts: 0,
+		weightGain: null,
+		ranking: null,
+		currentWeight: null,
+		hasWeightLossGoal: false,
+	};
 }

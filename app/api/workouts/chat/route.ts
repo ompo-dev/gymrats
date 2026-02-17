@@ -329,8 +329,13 @@ export async function POST(request: NextRequest) {
 
 		// 10. Chamar DeepSeek somente se não for importação direta
 		if (!parsed) {
+			const MAX_HISTORY = 6;
+			const limitedHistory =
+				conversationHistory.length > MAX_HISTORY
+					? conversationHistory.slice(-MAX_HISTORY)
+					: conversationHistory;
 			const messagesArr = [
-				...conversationHistory,
+				...limitedHistory,
 				{ role: "user" as const, content: message },
 			];
 
@@ -339,6 +344,7 @@ export async function POST(request: NextRequest) {
 				systemPrompt: enhancedSystemPrompt,
 				temperature: 0.7,
 				responseFormat: "json_object",
+				maxTokens: 2048,
 			});
 
 			parsed = parseWorkoutResponse(response);

@@ -9,7 +9,6 @@ import {
 	useSubModalState,
 } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { mockWorkouts } from "@/lib/mock-data";
 import type {
 	AlternativeExercise,
 	ExerciseLog,
@@ -144,24 +143,16 @@ export function WorkoutModal() {
 	);
 
 	const workoutBase = openWorkoutId
-		? findWorkoutInUnits(openWorkoutId) ||
-			mockWorkouts.find((w) => w.id === openWorkoutId) ||
-			null
+		? (findWorkoutInUnits(openWorkoutId) ?? null)
 		: null;
 
-	// Tentar buscar workout periodicamente se não foi encontrado ainda
+	// Tentar buscar workout periodicamente se não foi encontrado ainda (units podem estar carregando)
 	useEffect(() => {
 		if (openWorkoutId && !workoutBase && units && units.length > 0) {
-			// Tentar buscar novamente após um pequeno delay
 			const timer = setTimeout(() => {
-				const retryWorkout =
-					findWorkoutInUnits(openWorkoutId) ||
-					mockWorkouts.find((w) => w.id === openWorkoutId);
-				if (retryWorkout) {
-					forceUpdate((prev) => prev + 1);
-				}
+				const retryWorkout = findWorkoutInUnits(openWorkoutId);
+				if (retryWorkout) forceUpdate((prev) => prev + 1);
 			}, 100);
-
 			return () => clearTimeout(timer);
 		}
 	}, [openWorkoutId, workoutBase, units, findWorkoutInUnits]);
@@ -381,32 +372,12 @@ export function WorkoutModal() {
 				return;
 			}
 
-			// Se tem workoutId mas não tem workout ainda, tentar buscar novamente
-			if (!workout) {
-				// Tentar buscar o workout (pode estar carregando)
-				const retryWorkout =
-					findWorkoutInUnits(openWorkoutId) ||
-					mockWorkouts.find((w) => w.id === openWorkoutId);
-
-				// Se ainda não encontrou, aguardar próximo render (workout pode estar carregando)
-				if (!retryWorkout) {
-					return;
-				}
-
-				// Se encontrou, usar esse workout para inicializar
-				// Mas não podemos modificar workout aqui, então vamos continuar
-				// O workout será recalculado no próximo render
-			}
-
-			// Se não tem workout ainda após tentar buscar, aguardar e tentar novamente
+			// Se tem workoutId mas não tem workout ainda, aguardar próximo render (workout pode estar carregando)
 			if (!workout) {
 				if (workoutModal.isOpen) {
 					const retryTimer = setTimeout(() => {
-						const retry =
-							findWorkoutInUnits(openWorkoutId) ||
-							mockWorkouts.find((w) => w.id === openWorkoutId);
+						const retry = findWorkoutInUnits(openWorkoutId);
 						if (retry) forceUpdate((prev) => prev + 1);
-						else setTimeout(() => forceUpdate((prev) => prev + 1), 1000);
 					}, 500);
 					return () => clearTimeout(retryTimer);
 				}
@@ -625,14 +596,30 @@ export function WorkoutModal() {
 		}
 	}
 
-	// Se não tem workout, mas modal está aberto, aguardar carregamento
-	// Se modal não está aberto e não tem workout, não renderizar
+	// Se não tem workout, mas modal está aberto
 	if (!workout) {
-		// Se modal está aberto, renderizar um loading ou aguardar
-		// O useEffect vai tentar buscar o workout
 		if (workoutModal.isOpen && openWorkoutId) {
-			// Renderizar um estado de loading enquanto busca o workout
-			// Isso permite que o modal seja visível mesmo quando o workout ainda não foi encontrado
+			// Units carregadas e workout não encontrado → estado de erro
+			if (units !== undefined) {
+				return (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+						<div className="mx-4 rounded-xl bg-white p-8 text-center">
+							<p className="mb-4 text-duo-gray-dark">
+								Treino não encontrado. Por favor, recarregue a página.
+							</p>
+							<p className="mb-4 text-xs text-duo-gray">ID: {openWorkoutId}</p>
+							<button
+								type="button"
+								onClick={() => workoutModal.close()}
+								className="rounded-lg bg-duo-blue px-4 py-2 text-sm font-medium text-white"
+							>
+								Fechar
+							</button>
+						</div>
+					</div>
+				);
+			}
+			// Units ainda carregando → loading
 			return (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
 					<div className="rounded-xl bg-white p-8">

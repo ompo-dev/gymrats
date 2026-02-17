@@ -13,6 +13,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
+import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
 
 interface MoreMenuItem {
@@ -67,6 +68,7 @@ export function StudentMoreMenu() {
 		"subTab",
 		parseAsString.withDefault("memberships"),
 	);
+	const { toast } = useToast();
 
 	// ✅ SEGURO: Verificar se é admin validando no servidor
 	const { isAdmin, role } = useUserSession();
@@ -83,9 +85,12 @@ export function StudentMoreMenu() {
 	const handleItemClick = async (itemId: string) => {
 		// Bloquear acesso se não for admin e item estiver bloqueado
 		if (!userIsAdmin && blockedItems.includes(itemId)) {
-			alert(
-				"Esta funcionalidade está disponível apenas para administradores durante a versão beta.",
-			);
+			toast({
+				variant: "destructive",
+				title: "Funcionalidade indisponível",
+				description:
+					"Esta funcionalidade está disponível apenas para administradores durante a versão beta.",
+			});
 			return;
 		}
 
