@@ -101,8 +101,8 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 3. Se premium: renderiza `FoodSearchChat` (substitui busca manual)
 4. Usuário digita mensagem (ex: "Comi arroz, feijão e frango no almoço")
 5. `FoodSearchChat` chama `POST /api/nutrition/chat-stream` (SSE)
-6. API envia tokens em tempo real → evento `complete` com `{ foods, message, ... }`
-7. Componente exibe alimentos extraídos; usuário confirma "Adicionar"
+6. API envia: `status` → `token` (tokens em tempo real) → `food_progress` (alimentos um a um) → `complete`
+7. Componente exibe alimentos em tempo real conforme são extraídos; usuário confirma "Adicionar"
 8. `handleConfirmAdd` adiciona alimentos ao store e fecha modal
 
 **Arquivos**:
@@ -120,8 +120,8 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 2. Ao clicar, abre `WorkoutChat` com `unitId` e `workouts` atuais
 3. Usuário digita comando (ex: "Monte um treino ABCD" ou "Troca extensora por leg press no treino de pernas")
 4. `WorkoutChat` chama `POST /api/workouts/chat-stream` (SSE)
-5. API envia eventos: `status` → `workout_progress` (um por workout) → `complete`
-6. Componente exibe preview dos workouts; usuário aprova
+5. API envia: `status` → `token` → `workout_progress` (workouts e exercícios em tempo real) → `complete`
+6. Componente exibe workouts e exercícios aparecendo um a um; usuário aprova
 7. `handleApprove` chama `POST /api/workouts/process` com `parsedPlan` e `unitId`
 8. API processa comandos (criar/editar/deletar) e persiste no banco
 
@@ -143,7 +143,8 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 
 **Eventos SSE**:
 - `status`: `{ status, message }` – ex.: "Consultando IA..."
-- `token`: `{ delta }` – cada token da resposta (usuário vê texto aparecendo)
+- `token`: `{ delta }` – cada token da resposta (streaming)
+- `food_progress`: `{ foods, index, total }` – alimentos extraídos em tempo real (um a um)
 - `complete`: `{ foods, message, needsConfirmation, remainingMessages }` – resultado final
 - `error`: `{ error }` – erro
 
@@ -235,7 +236,8 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 
 **Eventos SSE**:
 - `status`: `{ status, message }` – ex.: "Consultando IA...", "Processando resposta..."
-- `workout_progress`: `{ workout, index, total }` – um evento por workout gerado
+- `token`: `{ delta }` – cada token da resposta (streaming)
+- `workout_progress`: `{ workout, index, total }` – workouts e exercícios em tempo real (um a um)
 - `complete`: `{ ...parsedPlan, remainingMessages }` – resultado final
 - `error`: `{ error, message? }` – erro
 
@@ -340,10 +342,12 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 | Arquivo | Função | Retorno |
 |---------|--------|---------|
 | `lib/ai/parsers/nutrition-parser.ts` | `parseNutritionResponse(response)` | `ParsedNutritionResponse` |
+| `lib/ai/parsers/nutrition-parser.ts` | `extractFoodsAndPartialFromStream(content)` | `{ foods }` – extração progressiva do stream |
 | `lib/ai/parsers/nutrition-parser.ts` | `parsedFoodToFoodItem(parsedFood)` | `FoodItem` |
 | `lib/ai/parsers/workout-parser.ts` | `parseWorkoutResponse(response)` | `ParsedWorkoutResponse` |
+| `lib/ai/parsers/workout-parser.ts` | `extractWorkoutsAndPartialFromStream(content)` | `{ completeWorkouts, partialWorkout }` – extração progressiva |
 
-Ambos extraem JSON da resposta (regex `/\{[\s\S]*\}/`), tentam reparar JSON truncado quando o parse falha, e validam/normalizam a estrutura. O parser de treinos normaliza tipos (full-body→strength), dificuldade e grupo muscular.
+Ambos extraem JSON da resposta (regex `/\{[\s\S]*\}/`), tentam reparar JSON truncado quando o parse falha, e validam/normalizam a estrutura. Os extratores `*FromStream` permitem exibir resultados em tempo real (alimentos e exercícios um a um) durante o streaming.
 
 ---
 
@@ -430,7 +434,7 @@ Esta seção documenta **suspeitos reais** de lentidão e **otimizações recome
 | # | Suspeito | Impacto | Descrição |
 |---|----------|---------|-----------|
 | 🔴 1 | **DeepSeek + Infra + Região** | Alto | Modelo `deepseek-chat` + rota BR → US → possivelmente Asia. Latência normal 2–8s, pico 10–20s. +300–800ms base por região. |
-| 🔴 2 | **Nutrition sem streaming** | Alto (UX) | Nutrição retorna JSON completo; Workout usa SSE. Mesmo tempo real, **percepção** é diferente: streaming = instantâneo, JSON = espera total. |
+| 🔴 2 | ~~Nutrition sem streaming~~ | ~~Alto (UX)~~ | **Resolvido**: Nutrição e Workout usam SSE com `*_progress` para exibir itens em tempo real. |
 | 🔴 3 | **Timeout 50s + Retry 3x** | Médio | Em 429: retry → espera → retry → espera. Pode virar 5s → 15s → 40s sem feedback claro. |
 | 🔴 4 | **Parser regex JSON** | Baixo–Médio | `/\{[\s\S]*\}/` em resposta grande pode causar backtracking, CPU spike e 500ms–2s extra no event loop. |
 | 🔴 5 | **Prompt grande** | Alto | Injeção de `conversationHistory`, `existingMeals`, `profile`, `preview`, `references`. Se > 3k tokens → latência explode. |
@@ -453,7 +457,7 @@ Esta seção documenta **suspeitos reais** de lentidão e **otimizações recome
 
 | Prioridade | Otimização | Impacto |
 |------------|------------|---------|
-| 🥇 | **Converter Nutrition → Streaming** | Percepção ~3x mais rápido |
+| ~~🥇~~ | ~~Converter Nutrition → Streaming~~ | ✅ Implementado: `food_progress` em tempo real |
 | 🥈 | **Resumir histórico** | Manter últimas 4 mensagens + summary do resto |
 | 🥉 | **Limitar output tokens** | Ex.: `max_tokens: 400` na chamada DeepSeek |
 | 🧠 Pro | **Resposta em 2 fases** | Fase 1: modelo rápido extrai comida básica → Fase 2: modelo lento ajusta macros. Usuário sente instantâneo. |
@@ -475,8 +479,8 @@ Esta seção documenta **suspeitos reais** de lentidão e **otimizações recome
 
 | Área | Ação |
 |------|------|
-| **Nutrição** | Streaming obrigatório, modelo menor, output curto |
-| **Treino** | Manter streaming, considerar modelo melhor se necessário |
+| **Nutrição** | ✅ Streaming + `food_progress`; modelo menor, output curto |
+| **Treino** | ✅ Streaming + `workout_progress` (exercícios incrementais); considerar modelo melhor se necessário |
 | **Parser** | Avaliar regex vs `JSON.parse` com fallback para extração segura |
 | **Prompts** | Monitorar tamanho; limitar `conversationHistory` a 4–6 mensagens |
 
@@ -502,11 +506,13 @@ Baseado em [JSON Output](https://api-docs.deepseek.com/guides/json_mode) e [Cont
 |------------|--------|---------|
 | **Streaming DeepSeek** | ✅ `chatCompletionStream` em `lib/ai/client.ts` | TTFT ~200-500ms vs 5-10s |
 | **Nutrition chat-stream** | ✅ `/api/nutrition/chat-stream` + FoodSearchChat | UX instantânea |
+| **Nutrition food_progress** | ✅ `extractFoodsAndPartialFromStream` + evento `food_progress` | Alimentos aparecem um a um em tempo real |
 | **Workout streaming** | ✅ chat-stream usa `chatCompletionStream` | Tokens chegam progressivamente |
+| **Workout workout_progress** | ✅ `extractWorkoutsAndPartialFromStream` + checkpoints em deltas grandes | Workouts e exercícios aparecem um a um em tempo real |
 | **max_tokens** | ✅ 1024 (nutrição), 4096 (treino) | Evita truncamento em treinos complexos |
 | **Limite conversationHistory** | ✅ 4 msgs (nutrição), 6 msgs (treino) | Reduz prompt tokens |
 
 ---
 
 **Documento criado em**: 2025-02-17  
-**Última atualização**: 2025-02-17
+**Última atualização**: 2025-02-17 (streaming progressivo: food_progress, workout_progress com exercícios incrementais)

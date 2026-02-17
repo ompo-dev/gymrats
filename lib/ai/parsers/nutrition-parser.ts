@@ -46,6 +46,126 @@ interface RawParsedFood {
   confidence?: number;
 }
 
+/** Resultado da extração progressiva: alimentos extraídos do stream até o momento */
+export interface NutritionStreamExtractResult {
+  foods: ParsedFood[];
+}
+
+function parseRawFoodToParsedFood(food: RawParsedFood): ParsedFood | null {
+  if (!food.name || typeof food.name !== "string") return null;
+  const servings =
+    typeof food.servings === "number" && food.servings > 0 ? food.servings : 1;
+  const calories =
+    typeof food.calories === "number" && food.calories >= 0 ? food.calories : 0;
+  const protein =
+    typeof food.protein === "number" && food.protein >= 0 ? food.protein : 0;
+  const carbs =
+    typeof food.carbs === "number" && food.carbs >= 0 ? food.carbs : 0;
+  const fats = typeof food.fats === "number" && food.fats >= 0 ? food.fats : 0;
+  const servingSize =
+    typeof food.servingSize === "string" && food.servingSize
+      ? food.servingSize
+      : "100g";
+  const category: ParsedFood["category"] =
+    food.category &&
+    [
+      "protein",
+      "carbs",
+      "vegetables",
+      "fruits",
+      "fats",
+      "dairy",
+      "snacks",
+    ].includes(food.category)
+      ? (food.category as ParsedFood["category"])
+      : "snacks";
+  const mealType =
+    typeof food.mealType === "string" && food.mealType
+      ? food.mealType
+      : "snack";
+  const confidence =
+    typeof food.confidence === "number" &&
+    food.confidence >= 0 &&
+    food.confidence <= 1
+      ? food.confidence
+      : 0.8;
+  return {
+    name: food.name.trim(),
+    servings,
+    mealType,
+    calories,
+    protein,
+    carbs,
+    fats,
+    servingSize,
+    category,
+    confidence,
+  };
+}
+
+/**
+ * Extrai alimentos do stream de forma progressiva.
+ * Permite mostrar alimentos aparecendo um a um em tempo real.
+ */
+export function extractFoodsAndPartialFromStream(
+  content: string,
+): NutritionStreamExtractResult {
+  const foods: ParsedFood[] = [];
+  const idx = content.indexOf('"foods"');
+  if (idx === -1) return { foods };
+
+  const arrStart = content.indexOf("[", idx);
+  if (arrStart === -1) return { foods };
+
+  let depth = 1;
+  let foodStart = -1;
+  let inString = false;
+  let isEscaped = false;
+  let strChar = '"';
+
+  for (let i = arrStart + 1; i < content.length; i++) {
+    const c = content[i];
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+    if (inString) {
+      if (c === "\\") isEscaped = true;
+      else if (c === strChar) inString = false;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inString = true;
+      strChar = c;
+      continue;
+    }
+    if (c === "[" || c === "{") {
+      if (depth === 2 && c === "{") {
+        foodStart = i;
+      }
+      depth++;
+    } else if (c === "]" || c === "}") {
+      depth--;
+      if (depth === 2 && c === "}" && foodStart >= 0) {
+        try {
+          const raw = JSON.parse(
+            content.slice(foodStart, i + 1),
+          ) as RawParsedFood;
+          const parsed = parseRawFoodToParsedFood(raw);
+          if (parsed) {
+            foods.push(parsed);
+          }
+        } catch {
+          // ignorar
+        }
+        foodStart = -1;
+      }
+    }
+  }
+
+  return { foods };
+}
+
 /**
  * Tenta reparar JSON truncado (ex.: cortado por max_tokens)
  */
