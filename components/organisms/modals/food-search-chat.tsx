@@ -234,13 +234,13 @@ export function FoodSearchChat({
         }
       }
 
-      // Placeholder para streaming - usuário vê resposta aparecendo em tempo real
+      // Placeholder — igual ao workout: status atualiza; tokens ignorados (resposta é JSON); alimentos via food_progress
       setMessages((prev) => [
         ...prev,
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content: "",
+          content: "Identificando alimentos...",
           timestamp: new Date(),
         },
       ]);
@@ -300,19 +300,21 @@ export function FoodSearchChat({
 
           try {
             const data = JSON.parse(dataStr);
-            if (event === "token" && data.delta) {
-              fullMessage += data.delta;
+            if (event === "status" && data.message) {
               setMessages((prev) => {
                 const next = [...prev];
                 const last = next[next.length - 1];
                 if (last?.role === "assistant") {
                   next[next.length - 1] = {
                     ...last,
-                    content: fullMessage,
+                    content: data.message,
                   };
                 }
                 return next;
               });
+            } else if (event === "token" && data.delta) {
+              fullMessage += data.delta;
+              // Não exibir tokens no chat — resposta é JSON; alimentos vêm via food_progress
             } else if (event === "food_progress" && data.foods) {
               setExtractedFoods(data.foods);
             } else if (event === "complete") {
@@ -323,7 +325,7 @@ export function FoodSearchChat({
                 if (last?.role === "assistant") {
                   next[next.length - 1] = {
                     ...last,
-                    content: finalMessage,
+                    content: finalMessage || "Alimentos identificados.",
                   };
                 }
                 return next;

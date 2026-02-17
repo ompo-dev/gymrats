@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 
         let accumulatedContent = "";
         let lastEmittedFoodCount = -1;
-        const step = 80;
+        const step = 80; // Igual ao workout: checkpoints em deltas grandes para capturar estados parciais
 
         const fullContent = await chatCompletionStream(
           {
