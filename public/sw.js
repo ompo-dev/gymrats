@@ -1,7 +1,7 @@
 // Service Worker para PWA - GymRats
 // IMPORTANTE: Esta versão é atualizada automaticamente pelo script sync-version.js
 // Para alterar, edite apenas o package.json e execute: npm run version:sync
-const CACHE_VERSION = "v24.0.0";
+const CACHE_VERSION = "v25.0.0";
 const CACHE_NAME = `gymrats-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `gymrats-runtime-${CACHE_VERSION}`;
 const OFFLINE_QUEUE_DB = "offline-queue";
