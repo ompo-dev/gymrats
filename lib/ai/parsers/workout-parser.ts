@@ -319,6 +319,40 @@ export function extractWorkoutsAndPartialFromStream(
         partialExercises.length = 0;
       } else if (depth === 3 && c === "{") {
         exerciseStart = i;
+      } else if (depth === 2 && c === "[") {
+        // Entrando no array "exercises" — emitir workout parcial com 0 exercícios
+        if (workoutStart >= 0) {
+          const slice = content.slice(workoutStart, i + 1);
+          const exercisesMarker = '"exercises":[';
+          const exercisesIdx = slice.indexOf(exercisesMarker);
+          if (exercisesIdx >= 0) {
+            try {
+              const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+              const raw = JSON.parse(headerStr) as RawParsedWorkout;
+              if (raw.title && typeof raw.title === "string") {
+                const type = normalizeWorkoutType(raw.type);
+                const muscleGroup = normalizeMuscleGroup(
+                  raw.muscleGroup,
+                  type === "cardio" ? "cardio" : "full-body",
+                );
+                const difficulty = normalizeDifficulty(raw.difficulty);
+                partialWorkout = {
+                  title: raw.title.trim(),
+                  description:
+                    typeof raw.description === "string"
+                      ? raw.description.trim()
+                      : undefined,
+                  type,
+                  muscleGroup,
+                  difficulty,
+                  exercises: [],
+                };
+              }
+            } catch {
+              // header incompleto
+            }
+          }
+        }
       }
       depth++;
     } else if (c === "]" || c === "}") {

@@ -27,6 +27,8 @@ interface WorkoutPreviewCardProps {
   index: number;
   /** Último workout e ainda em streaming: mantém expandido para ver exercícios em tempo real */
   defaultExpanded?: boolean;
+  /** Em streaming com 0 exercícios: mostra área de exercícios com placeholder */
+  isStreaming?: boolean;
   onReference?: (
     type: "workout" | "exercise",
     workoutIndex: number,
@@ -179,6 +181,7 @@ export function WorkoutPreviewCard({
   workout,
   index,
   defaultExpanded = false,
+  isStreaming = false,
   onReference,
 }: WorkoutPreviewCardProps) {
   const [userToggled, setUserToggled] = useState(false);
@@ -188,6 +191,7 @@ export function WorkoutPreviewCard({
     number | null
   >(null);
   const hasExercises = workout.exercises.length > 0;
+  const showExercisesArea = hasExercises || (isStreaming && defaultExpanded);
 
   const handleWorkoutReference = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -206,11 +210,11 @@ export function WorkoutPreviewCard({
         variant="default"
         className={cn(
           "group transition-colors bg-white",
-          hasExercises &&
+          (hasExercises || showExercisesArea) &&
             "cursor-pointer hover:border-duo-green/50 active:scale-[0.98]",
         )}
         onClick={
-          hasExercises
+          hasExercises || showExercisesArea
             ? () => {
                 setUserToggled(true);
                 setUserExpanded((p) => !p);
@@ -248,7 +252,7 @@ export function WorkoutPreviewCard({
                   {workout.exercises.length} exercícios • {workout.muscleGroup}
                 </p>
               </div>
-              {hasExercises && (
+              {(hasExercises || showExercisesArea) && (
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -263,7 +267,7 @@ export function WorkoutPreviewCard({
 
         {/* Lista de exercícios - Accordion */}
         <AnimatePresence>
-          {isExpanded && hasExercises && (
+          {isExpanded && showExercisesArea && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -277,48 +281,55 @@ export function WorkoutPreviewCard({
                 className="mt-4 space-y-2 border-t border-gray-300 pt-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <AnimatePresence mode="popLayout">
-                  {workout.exercises.map((exercise, exIdx) => (
-                    <motion.div
-                      key={`${exercise.name}-${exIdx}`}
-                      layout
-                      initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{
-                        opacity: 0,
-                        scale: 0.7,
-                        height: 0,
-                        y: -10,
-                        transition: {
-                          duration: 0.25,
-                          ease: [0.34, 1.56, 0.64, 1],
-                          height: { duration: 0.2 },
-                        },
-                      }}
-                      transition={{
-                        delay: exIdx * 0.05,
-                        duration: 0.2,
-                        layout: { duration: 0.2 },
-                      }}
-                    >
-                      <ExerciseItemCard
-                        exercise={exercise}
-                        index={exIdx}
-                        isExpanded={expandedExerciseIndex === exIdx}
-                        onToggle={() =>
-                          setExpandedExerciseIndex(
-                            expandedExerciseIndex === exIdx ? null : exIdx,
-                          )
-                        }
-                        onReference={
-                          onReference
-                            ? () => onReference("exercise", index, exIdx)
-                            : undefined
-                        }
-                      />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                {!hasExercises && isStreaming ? (
+                  <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-duo-green border-t-transparent" />
+                    Adicionando exercícios...
+                  </div>
+                ) : (
+                  <AnimatePresence mode="popLayout">
+                    {workout.exercises.map((exercise, exIdx) => (
+                      <motion.div
+                        key={`${exercise.name}-${exIdx}`}
+                        layout
+                        initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{
+                          opacity: 0,
+                          scale: 0.7,
+                          height: 0,
+                          y: -10,
+                          transition: {
+                            duration: 0.25,
+                            ease: [0.34, 1.56, 0.64, 1],
+                            height: { duration: 0.2 },
+                          },
+                        }}
+                        transition={{
+                          delay: exIdx * 0.05,
+                          duration: 0.2,
+                          layout: { duration: 0.2 },
+                        }}
+                      >
+                        <ExerciseItemCard
+                          exercise={exercise}
+                          index={exIdx}
+                          isExpanded={expandedExerciseIndex === exIdx}
+                          onToggle={() =>
+                            setExpandedExerciseIndex(
+                              expandedExerciseIndex === exIdx ? null : exIdx,
+                            )
+                          }
+                          onReference={
+                            onReference
+                              ? () => onReference("exercise", index, exIdx)
+                              : undefined
+                          }
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
               </div>
             </motion.div>
           )}
