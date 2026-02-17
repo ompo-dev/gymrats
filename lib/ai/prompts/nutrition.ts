@@ -157,7 +157,8 @@ const NUTRITION_PROMPT_JSON = {
 
   ResponseFormat: {
     type: "JSON_ONLY",
-    instruction: "Retorne apenas JSON válido sem texto fora do JSON.",
+    instruction:
+      'Retorne apenas JSON válido sem texto fora do JSON. OBRIGATÓRIO: use o campo "foods" (array), não "meals". Exemplo: { "foods": [{ "name": "...", "servings": 1, "mealType": "lunch", "calories": 130, "protein": 2.7, "carbs": 28, "fats": 0.3, "servingSize": "100g", "category": "carbs", "confidence": 0.85 }], "message": "..." }',
   },
 
   Rules: {
