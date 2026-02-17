@@ -46,6 +46,38 @@ export interface ParsedWorkoutResponse {
   message: string;
 }
 
+/** Tipos de treino aceitos pelo sistema */
+const VALID_WORKOUT_TYPES = ["strength", "cardio", "flexibility"] as const;
+
+/** Mapeia tipos retornados pela IA (full-body, upper, etc.) para o schema do sistema */
+function normalizeWorkoutType(
+  raw: string | undefined,
+): (typeof VALID_WORKOUT_TYPES)[number] {
+  if (!raw || typeof raw !== "string") return "strength";
+  const lower = raw.toLowerCase().trim();
+  if (lower === "cardio") return "cardio";
+  if (
+    lower === "flexibility" ||
+    lower === "flexibilidade" ||
+    lower === "funcional"
+  )
+    return "flexibility";
+  // full-body, upper, lower, push, pull, legs, ABCD, PPL, forca, hipertrofia -> strength
+  return "strength";
+}
+
+/** Mapeia dificuldade retornada pela IA para o schema do sistema */
+function normalizeDifficulty(
+  raw: string | undefined,
+): "iniciante" | "intermediario" | "avancado" {
+  if (!raw || typeof raw !== "string") return "intermediario";
+  const lower = raw.toLowerCase().trim();
+  if (lower === "iniciante" || lower === "beginner") return "iniciante";
+  if (lower === "avancado" || lower === "advanced" || lower === "avançado")
+    return "avancado";
+  return "intermediario";
+}
+
 /** Estrutura bruta do exercício vindo da IA (não validada) */
 interface RawParsedExercise {
   name?: string;
@@ -197,25 +229,13 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
           throw new Error(`Workout ${index + 1}: título inválido`);
         }
 
-        if (
-          !workout.type ||
-          !["strength", "cardio", "flexibility"].includes(workout.type)
-        ) {
-          throw new Error(`Workout ${index + 1}: tipo inválido`);
-        }
+        const normalizedType = normalizeWorkoutType(workout.type);
 
         if (!workout.muscleGroup || typeof workout.muscleGroup !== "string") {
           throw new Error(`Workout ${index + 1}: grupo muscular inválido`);
         }
 
-        if (
-          !workout.difficulty ||
-          !["iniciante", "intermediario", "avancado"].includes(
-            workout.difficulty,
-          )
-        ) {
-          throw new Error(`Workout ${index + 1}: dificuldade inválida`);
-        }
+        const normalizedDifficulty = normalizeDifficulty(workout.difficulty);
 
         // Validar exercícios
         if (!Array.isArray(workout.exercises)) {
@@ -286,9 +306,9 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
           description: workout.description
             ? workout.description.trim()
             : undefined,
-          type: workout.type as ParsedWorkout["type"],
+          type: normalizedType,
           muscleGroup: workout.muscleGroup.trim(),
-          difficulty: workout.difficulty as ParsedWorkout["difficulty"],
+          difficulty: normalizedDifficulty,
           exercises: validatedExercises,
         };
       },
