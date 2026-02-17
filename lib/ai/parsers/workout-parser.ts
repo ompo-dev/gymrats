@@ -237,6 +237,213 @@ export function extractWorkoutsFromStream(content: string): ParsedWorkout[] {
   return workouts;
 }
 
+/** Resultado da extração progressiva: workouts completos + workout atual sendo montado */
+export interface StreamExtractResult {
+  completeWorkouts: ParsedWorkout[];
+  partialWorkout?: ParsedWorkout;
+}
+
+function parseRawExercise(ex: RawParsedExercise): ParsedExercise | null {
+  if (!ex.name || typeof ex.name !== "string") return null;
+  const sets = typeof ex.sets === "number" && ex.sets > 0 ? ex.sets : 3;
+  const reps = typeof ex.reps === "string" && ex.reps ? ex.reps : "8-12";
+  const rest = typeof ex.rest === "number" && ex.rest >= 0 ? ex.rest : 60;
+  const notes = typeof ex.notes === "string" ? ex.notes : undefined;
+  const focus: ParsedExercise["focus"] =
+    ex.focus && ["quadriceps", "posterior"].includes(ex.focus)
+      ? (ex.focus as "quadriceps" | "posterior")
+      : null;
+  const alternatives =
+    Array.isArray(ex.alternatives) && ex.alternatives.length > 0
+      ? ex.alternatives
+          .filter(
+            (alt): alt is string =>
+              typeof alt === "string" && alt.trim().length > 0,
+          )
+          .slice(0, 3)
+          .map((alt) => alt.trim())
+      : [];
+  return {
+    name: ex.name.trim(),
+    sets,
+    reps,
+    rest,
+    notes,
+    focus,
+    alternatives,
+  };
+}
+
+/**
+ * Extrai workouts e workout parcial (com exercícios incrementais) do stream.
+ * Permite mostrar o treino sendo montado em tempo real, com exercícios aparecendo um a um.
+ */
+export function extractWorkoutsAndPartialFromStream(
+  content: string,
+): StreamExtractResult {
+  const completeWorkouts: ParsedWorkout[] = [];
+  let partialWorkout: ParsedWorkout | undefined;
+  const idx = content.indexOf('"workouts"');
+  if (idx === -1) return { completeWorkouts };
+
+  const arrStart = content.indexOf("[", idx);
+  if (arrStart === -1) return { completeWorkouts };
+
+  let depth = 1;
+  let workoutStart = -1;
+  let exerciseStart = -1;
+  const partialExercises: ParsedExercise[] = [];
+  let inString = false;
+  let isEscaped = false;
+  let strChar = '"';
+
+  for (let i = arrStart + 1; i < content.length; i++) {
+    const c = content[i];
+    if (isEscaped) {
+      isEscaped = false;
+      continue;
+    }
+    if (inString) {
+      if (c === "\\") isEscaped = true;
+      else if (c === strChar) inString = false;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inString = true;
+      strChar = c;
+      continue;
+    }
+    if (c === "[" || c === "{") {
+      if (depth === 1 && c === "{") {
+        workoutStart = i;
+        partialExercises.length = 0;
+      } else if (depth === 3 && c === "{") {
+        exerciseStart = i;
+      }
+      depth++;
+    } else if (c === "]" || c === "}") {
+      depth--;
+      if (depth === 3 && c === "}" && exerciseStart >= 0) {
+        try {
+          const raw = JSON.parse(
+            content.slice(exerciseStart, i + 1),
+          ) as RawParsedExercise;
+          const ex = parseRawExercise(raw);
+          if (ex) partialExercises.push(ex);
+        } catch {
+          // ignorar
+        }
+        exerciseStart = -1;
+        // Atualizar partialWorkout com o novo exercício (se tivermos header)
+        if (workoutStart >= 0) {
+          const slice = content.slice(workoutStart, i + 1);
+          const exercisesMarker = '"exercises":[';
+          const exercisesIdx = slice.indexOf(exercisesMarker);
+          if (exercisesIdx >= 0) {
+            try {
+              const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+              const raw = JSON.parse(headerStr) as RawParsedWorkout;
+              if (raw.title && typeof raw.title === "string") {
+                const type = normalizeWorkoutType(raw.type);
+                const muscleGroup = normalizeMuscleGroup(
+                  raw.muscleGroup,
+                  type === "cardio" ? "cardio" : "full-body",
+                );
+                const difficulty = normalizeDifficulty(raw.difficulty);
+                partialWorkout = {
+                  title: raw.title.trim(),
+                  description:
+                    typeof raw.description === "string"
+                      ? raw.description.trim()
+                      : undefined,
+                  type,
+                  muscleGroup,
+                  difficulty,
+                  exercises: [...partialExercises],
+                };
+              }
+            } catch {
+              // ignorar
+            }
+          }
+        }
+      } else if (depth === 1 && c === "}" && workoutStart >= 0) {
+        try {
+          const raw = JSON.parse(
+            content.slice(workoutStart, i + 1),
+          ) as RawParsedWorkout;
+          if (
+            raw.title &&
+            typeof raw.title === "string" &&
+            Array.isArray(raw.exercises)
+          ) {
+            const type = normalizeWorkoutType(raw.type);
+            const muscleGroup = normalizeMuscleGroup(
+              raw.muscleGroup,
+              type === "cardio" ? "cardio" : "full-body",
+            );
+            const difficulty = normalizeDifficulty(raw.difficulty);
+            const validExercises: ParsedExercise[] = raw.exercises
+              .map((ex: RawParsedExercise) => parseRawExercise(ex))
+              .filter((e): e is ParsedExercise => e !== null);
+            completeWorkouts.push({
+              title: raw.title.trim(),
+              description:
+                typeof raw.description === "string"
+                  ? raw.description.trim()
+                  : undefined,
+              type,
+              muscleGroup,
+              difficulty,
+              exercises: validExercises,
+            });
+          }
+        } catch {
+          // ignorar
+        }
+        partialWorkout = undefined;
+        workoutStart = -1;
+      }
+      continue;
+    }
+
+    if (depth === 3 && workoutStart >= 0) {
+      const slice = content.slice(workoutStart, i + 1);
+      const exercisesMarker = '"exercises":[';
+      const exercisesIdx = slice.indexOf(exercisesMarker);
+      if (exercisesIdx >= 0) {
+        try {
+          const headerStr = `${slice.slice(0, exercisesIdx + exercisesMarker.length)}]}`;
+          const raw = JSON.parse(headerStr) as RawParsedWorkout;
+          if (raw.title && typeof raw.title === "string") {
+            const type = normalizeWorkoutType(raw.type);
+            const muscleGroup = normalizeMuscleGroup(
+              raw.muscleGroup,
+              type === "cardio" ? "cardio" : "full-body",
+            );
+            const difficulty = normalizeDifficulty(raw.difficulty);
+            partialWorkout = {
+              title: raw.title.trim(),
+              description:
+                typeof raw.description === "string"
+                  ? raw.description.trim()
+                  : undefined,
+              type,
+              muscleGroup,
+              difficulty,
+              exercises: [...partialExercises],
+            };
+          }
+        } catch {
+          // header incompleto
+        }
+      }
+    }
+  }
+
+  return { completeWorkouts, partialWorkout };
+}
+
 /**
  * Tenta reparar JSON truncado (ex.: cortado por max_tokens)
  * Fecha strings, arrays e objetos faltantes
