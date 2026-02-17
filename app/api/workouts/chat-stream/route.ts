@@ -9,7 +9,7 @@ import type { NextRequest } from "next/server";
 export const maxDuration = 300; // 5 minutos para operações longas
 export const runtime = "nodejs";
 
-import { chatCompletion } from "@/lib/ai/client";
+import { chatCompletionStream } from "@/lib/ai/client";
 import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
@@ -458,25 +458,34 @@ ${previewsStructure}
 					// não é JSON válido, segue fluxo normal
 				}
 
-				// 10. Chamar DeepSeek se não for importação
+				// 10. Chamar DeepSeek com STREAMING (TTFT ~200-500ms vs 5-10s)
 				if (!parsed) {
 					sendSSE(controller, "status", {
 						status: "calling_ai",
 						message: "Consultando IA...",
 					});
 
+					const MAX_HISTORY = 6;
+					const limitedHistory =
+						conversationHistory.length > MAX_HISTORY
+							? conversationHistory.slice(-MAX_HISTORY)
+							: conversationHistory;
 					const messagesArr = [
-						...conversationHistory,
+						...limitedHistory,
 						{ role: "user" as const, content: message },
 					];
 
 					try {
-						const response = await chatCompletion({
-							messages: messagesArr,
-							systemPrompt: enhancedSystemPrompt,
-							temperature: 0.7,
-							responseFormat: "json_object",
-						});
+						const response = await chatCompletionStream(
+							{
+								messages: messagesArr,
+								systemPrompt: enhancedSystemPrompt,
+								temperature: 0.7,
+								responseFormat: "json_object",
+								maxTokens: 2048,
+							},
+							(delta) => sendSSE(controller, "token", { delta }),
+						);
 
 						sendSSE(controller, "status", {
 							status: "parsing",

@@ -203,7 +203,14 @@ lib/api/
 - ✅ `POST /api/auth/sign-out`
 - ✅ `POST /api/auth/update-role`
 
-**Total: 35 rotas documentadas**
+### Chat IA (Premium) – ver `docs/CHAT_IA_FLUXO_COMPLETO.md`
+- ✅ `POST /api/nutrition/chat-stream` – Chat de nutrição com streaming (recomendado)
+- ✅ `POST /api/nutrition/chat` – Chat de nutrição (JSON fallback)
+- ✅ `POST /api/workouts/chat` – Chat de treinos (JSON)
+- ✅ `POST /api/workouts/chat-stream` – Chat de treinos (SSE)
+- ✅ `POST /api/workouts/process` – Processamento de comandos de treino
+
+**Total: 39 rotas documentadas**
 
 ---
 

@@ -164,9 +164,14 @@ export async function POST(request: NextRequest) {
 			enhancedSystemPrompt += `\n\n⚠️ IMPORTANTE - REFEIÇÃO PADRÃO:\nO usuário abriu o chat para adicionar alimentos à refeição "${selectedMeal.name}" (tipo: "${selectedMeal.type}").\n\nSe o usuário NÃO especificar explicitamente qual refeição (ex: "café da manhã", "almoço", "jantar", etc.), você DEVE usar "${selectedMeal.type}" como o mealType padrão para TODOS os alimentos mencionados.\n\nApenas se o usuário mencionar explicitamente uma refeição diferente (ex: "isso foi no almoço" ou "quero adicionar no café da manhã"), você deve usar a refeição mencionada pelo usuário.\n\nExemplos:\n- Usuário diz: "comi arroz e feijão" (sem mencionar refeição) → use mealType: "${selectedMeal.type}"\n- Usuário diz: "comi arroz e feijão no almoço" (mencionou almoço) → use mealType: "lunch"\n- Usuário diz: "comi café da manhã com pão e café" (mencionou café da manhã) → use mealType: "breakfast"`;
 		}
 
-		// 7. Chamar DeepSeek
+		// 7. Chamar DeepSeek (limitar histórico para reduzir tokens)
+		const MAX_HISTORY = 4;
+		const limitedHistory =
+			conversationHistory.length > MAX_HISTORY
+				? conversationHistory.slice(-MAX_HISTORY)
+				: conversationHistory;
 		const messages = [
-			...conversationHistory,
+			...limitedHistory,
 			{ role: "user" as const, content: message },
 		];
 
@@ -175,6 +180,7 @@ export async function POST(request: NextRequest) {
 			systemPrompt: enhancedSystemPrompt,
 			temperature: 0.7,
 			responseFormat: "json_object",
+			maxTokens: 1024,
 		});
 
 		// 8. Parsear resposta (IA já retorna dados completos)

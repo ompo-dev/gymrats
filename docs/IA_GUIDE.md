@@ -60,6 +60,7 @@ Antes de mexer em qualquer parte do sistema, consulte a documentação correspon
   - `docs/DOCKER.md`: como subir o ambiente via Docker (útil para qualquer mudança que precise de ambiente rodando).
 
 - **IA / LLMs / features premium**
+  - `docs/CHAT_IA_FLUXO_COMPLETO.md`: **documentação ponta a ponta** do chat de IA – APIs, componentes, páginas, regras, prompts, parsers e fluxos.
   - `docs/agno/ESTUDO_LLMS_FULL.md`: estudo de modelos, custos e decisões de LLM.
   - `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`: arquitetura do chat de nutrição e treinos, rotas, prompts, parsers, custo, premium-check.
   - `docs/elysiajs/llms-full.txt`: referências adicionais de LLM/infra (se for integrar com Elysia ou services externos).
@@ -108,13 +109,16 @@ Abaixo um mapa de **onde procurar primeiro** no código para cada tipo de tarefa
   - Uso: quando se fala em **nova regra de negócio**, **novo endpoint**, **refactor de API**.
 
 - **IA / LLM**
-  - Diretórios previstos no plano:
+  - Documentação completa: `docs/CHAT_IA_FLUXO_COMPLETO.md`.
+  - Diretórios implementados:
     - `lib/ai/client.ts`: cliente DeepSeek com cache e retry.
     - `lib/ai/cache.ts`: estratégia de cache para prompts similares.
     - `lib/ai/prompts/*.ts`: prompts para nutrição, treinos.
     - `lib/ai/parsers/*.ts`: parse e mapeamento de respostas de IA para estruturas do domínio.
-    - `app/api/nutrition/chat/route.ts`, `app/api/workouts/ai-chat/route.ts`: rotas de IA.
-    - `components/organisms/modals/*-chat.tsx`: modais de chat para nutrição/treinos.
+    - `app/api/nutrition/chat/route.ts`: rota de chat de nutrição.
+    - `app/api/workouts/chat/route.ts`, `app/api/workouts/chat-stream/route.ts`: rotas de chat de treinos.
+    - `app/api/workouts/process/route.ts`: processamento de comandos de treino.
+    - `components/organisms/modals/food-search-chat.tsx`, `workout-chat.tsx`: modais de chat.
   - Sempre validar o que já foi implementado antes de recriar algo do plano.
 
 ---
@@ -149,13 +153,14 @@ Abaixo um mapa de **onde procurar primeiro** no código para cada tipo de tarefa
 
 - **Funcionalidades de IA (chat de nutrição / treinos / novos fluxos LLM)**
   - Ler:
+    - `docs/CHAT_IA_FLUXO_COMPLETO.md` (fluxo ponta a ponta)
     - `docs/agno/ESTUDO_LLMS_FULL.md`
     - `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
   - Verificar:
     - Cliente LLM em `lib/ai/client.ts`.
     - Parsers em `lib/ai/parsers/**`.
     - Prompts em `lib/ai/prompts/**`.
-    - Rotas em `app/api/**/chat/route.ts`.
+    - Rotas em `app/api/nutrition/chat`, `app/api/workouts/chat`, `app/api/workouts/chat-stream`, `app/api/workouts/process`.
   - Focar em:
     - Idempotência, custo por chamada, cache, fallback em caso de erro da IA.
 
