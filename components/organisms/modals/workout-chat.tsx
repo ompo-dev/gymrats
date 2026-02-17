@@ -997,6 +997,10 @@ export function WorkoutChat({
                           !allWorkoutsComplete &&
                           workoutIndex === previewWorkouts.length - 1
                         }
+                        isStreaming={
+                          !allWorkoutsComplete &&
+                          workoutIndex === previewWorkouts.length - 1
+                        }
                         onReference={(type, _workoutIdx, exerciseIdx) => {
                           const workout = msg.workoutPreview;
                           if (workout) {
