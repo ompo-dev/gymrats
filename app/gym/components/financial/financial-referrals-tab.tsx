@@ -16,6 +16,11 @@ export function FinancialReferralsTab({
 	return (
 		<SectionCard title="Programa de Indicações" icon={UsersIcon}>
 			<div className="space-y-3">
+				{referrals.length === 0 && (
+					<p className="py-8 text-center text-sm text-duo-gray-dark">
+						Nenhuma indicação registrada.
+					</p>
+				)}
 				{referrals.map((referral) => (
 					<DuoCard
 						key={referral.id}

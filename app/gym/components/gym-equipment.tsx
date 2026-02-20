@@ -132,7 +132,18 @@ export function GymEquipmentPage({
 				isOpen={isAddModalOpen}
 				onClose={() => setIsAddModalOpen(false)}
 				onSuccess={(newEquip) => {
-					setEquipmentList((prev) => [newEquip, ...prev]);
+					setEquipmentList((prev) => [
+						{
+							...newEquip,
+							usageStats: newEquip.usageStats || {
+								totalUses: 0,
+								avgUsageTime: 0,
+								popularTimes: [],
+							},
+							maintenanceHistory: newEquip.maintenanceHistory || [],
+						},
+						...prev,
+					]);
 					setIsAddModalOpen(false);
 				}}
 			/>

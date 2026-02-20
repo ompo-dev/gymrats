@@ -22,6 +22,11 @@ export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 			}
 		>
 			<div className="space-y-3">
+				{coupons.length === 0 && (
+					<p className="py-8 text-center text-sm text-duo-gray-dark">
+						Nenhum cupom cadastrado.
+					</p>
+				)}
 				{coupons.map((coupon) => (
 					<DuoCard
 						key={coupon.id}

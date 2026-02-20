@@ -287,14 +287,12 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 				</SlideIn>
 			)}
 
-		</div>
-	);
 			<AddStudentModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				onSuccess={() => router.refresh()}
 				membershipPlans={plans}
 			/>
+		</div>
+	);
 }
-
-

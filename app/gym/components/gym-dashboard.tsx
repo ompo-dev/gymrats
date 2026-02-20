@@ -102,6 +102,11 @@ export function GymDashboardPage({
 				<SlideIn delay={0.2}>
 					<SectionCard title="Check-ins Recentes" icon={Users}>
 						<div className="space-y-3">
+							{recentCheckIns.length === 0 && (
+								<p className="py-4 text-center text-sm text-duo-gray-dark">
+									Nenhum check-in recente.
+								</p>
+							)}
 							{recentCheckIns.map((checkin, index) => {
 								const student = students.find(
 									(s) => s.id === checkin.studentId,
@@ -145,6 +150,11 @@ export function GymDashboardPage({
 				<SlideIn delay={0.3}>
 					<SectionCard title="Equipamentos em Tempo Real" icon={Dumbbell}>
 						<div className="space-y-3">
+							{equipmentInUse.length === 0 && equipmentMaintenance.length === 0 && (
+								<p className="py-4 text-center text-sm text-duo-gray-dark">
+									Nenhum equipamento em uso ou manutenção no momento.
+								</p>
+							)}
 							{equipmentInUse.map((eq, index) => (
 								<motion.div
 									key={eq.id}
@@ -206,6 +216,11 @@ export function GymDashboardPage({
 				<SlideIn delay={0.4}>
 					<SectionCard title="Top Alunos do Mês" icon={Users}>
 						<div className="space-y-3">
+							{month.topStudents.length === 0 && (
+								<p className="py-4 text-center text-sm text-duo-gray-dark">
+									Nenhum dado de frequência neste mês ainda.
+								</p>
+							)}
 							{month.topStudents.slice(0, 5).map((student, index) => {
 								const variants = [
 									"highlighted",

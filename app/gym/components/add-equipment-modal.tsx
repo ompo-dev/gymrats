@@ -45,6 +45,7 @@ export function AddEquipmentModal({
 		model: "",
 		serialNumber: "",
 		purchaseDate: "",
+		status: "available",
 	});
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
@@ -54,13 +55,14 @@ export function AddEquipmentModal({
 			if (equipmentToEdit) {
 				setForm({
 					name: equipmentToEdit.name,
-					type: equipmentToEdit.type.charAt(0).toUpperCase() + equipmentToEdit.type.slice(1).toLowerCase(), // Capitalize for OptionSelector match attempt
+					type: equipmentToEdit.type.charAt(0).toUpperCase() + equipmentToEdit.type.slice(1).toLowerCase(),
 					brand: equipmentToEdit.brand || "",
 					model: equipmentToEdit.model || "",
 					serialNumber: equipmentToEdit.serialNumber || "",
 					purchaseDate: equipmentToEdit.purchaseDate
 						? new Date(equipmentToEdit.purchaseDate).toISOString().split("T")[0]
 						: "",
+					status: equipmentToEdit.status,
 				});
 			} else {
 				setForm({
@@ -70,6 +72,7 @@ export function AddEquipmentModal({
 					model: "",
 					serialNumber: "",
 					purchaseDate: "",
+					status: "available",
 				});
 			}
 			setError("");
@@ -191,6 +194,23 @@ export function AddEquipmentModal({
 								onChange={(e) => setForm((f) => ({ ...f, purchaseDate: e.target.value }))}
 							/>
 						</div>
+					</div>
+
+					<div className="grid gap-2">
+						<Label>Status</Label>
+						<OptionSelector
+							options={[
+								{ value: "available", label: "Disponível" },
+								{ value: "in-use", label: "Em Uso (Manual)" },
+								{ value: "maintenance", label: "Manutenção" },
+								{ value: "broken", label: "Quebrado" },
+							]}
+							value={form.status}
+							onChange={(v) => setForm((f) => ({ ...f, status: v }))}
+							layout="grid"
+							size="sm"
+							columns={2}
+						/>
 					</div>
 
 					{error && <p className="text-sm text-red-500 font-medium">{error}</p>}
