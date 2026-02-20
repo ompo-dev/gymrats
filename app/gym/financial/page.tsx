@@ -26,6 +26,8 @@ export default async function FinancialPageWrapper() {
 		getGymSubscription(),
 	]);
 
+	if (!financialSummary) return null;
+
 	return (
 		<FinancialPage
 			financialSummary={financialSummary}

@@ -149,7 +149,7 @@ export function GymDashboardPage({
 											</div>
 											<div className="text-right">
 												<p className="text-xs text-duo-gray-dark">
-													<RelativeTime timestamp={eq.currentUser?.startTime} />
+													<RelativeTime timestamp={eq.currentUser?.startTime ?? new Date()} />
 												</p>
 											</div>
 										</div>

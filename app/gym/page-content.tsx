@@ -20,11 +20,11 @@ import { GymStatsPage } from "./components/gym-stats";
 import { GymStudentsPage } from "./components/gym-students";
 
 interface GymHomeContentProps {
-	initialProfile: GymProfile;
-	initialStats: GymStats;
+	initialProfile: GymProfile | null;
+	initialStats: GymStats | null;
 	initialStudents: StudentData[];
 	initialEquipment: Equipment[];
-	initialFinancialSummary: FinancialSummary;
+	initialFinancialSummary: FinancialSummary | null;
 	initialRecentCheckIns?: CheckIn[];
 }
 
@@ -41,7 +41,7 @@ function GymHomeContent({
 
 	return (
 		<div className="px-4 py-6">
-			{tab === "dashboard" && (
+			{tab === "dashboard" && initialProfile && initialStats && (
 				<GymDashboardPage
 					profile={initialProfile}
 					stats={initialStats}
@@ -55,11 +55,13 @@ function GymHomeContent({
 			{tab === "financial" && (
 				<GymFinancialPage financialSummary={initialFinancialSummary} />
 			)}
-			{tab === "stats" && (
+			{tab === "stats" && initialStats && (
 				<GymStatsPage stats={initialStats} equipment={initialEquipment} />
 			)}
-			{tab === "settings" && <GymSettingsPage profile={initialProfile} />}
-			{tab === "gamification" && (
+			{tab === "settings" && initialProfile && (
+				<GymSettingsPage profile={initialProfile} />
+			)}
+			{tab === "gamification" && initialProfile && (
 				<GymGamificationPage profile={initialProfile} />
 			)}
 			{tab === "more" && <GymMoreMenu />}

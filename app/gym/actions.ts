@@ -2,19 +2,7 @@
 
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import {
-	mockCoupons,
-	mockEquipment,
-	mockExpenses,
-	mockFinancialSummary,
-	mockGymProfile,
-	mockGymStats,
-	mockMembershipPlans,
-	mockPayments,
-	mockRecentCheckIns,
-	mockReferrals,
-	mockStudents,
-} from "@/lib/gym-mock-data";
+
 import type {
 	CheckIn,
 	Equipment,
@@ -24,7 +12,10 @@ import type {
 	GymStats,
 	Payment,
 	StudentData,
+	UserProfile,
+	WorkoutHistory,
 } from "@/lib/types";
+
 import { getSession } from "@/lib/utils/session";
 
 export async function getCurrentUserInfo() {
@@ -61,19 +52,15 @@ export async function getCurrentUserInfo() {
 	}
 }
 
-export async function getGymProfile() {
+export async function getGymProfile(): Promise<GymProfile | null> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockGymProfile;
-		}
+		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockGymProfile;
-		}
+		if (!session) return null;
 
 		// Buscar o usuário com activeGymId
 		const user = await db.user.findUnique({
@@ -83,9 +70,7 @@ export async function getGymProfile() {
 
 		const gymId = user?.activeGymId;
 
-		if (!gymId) {
-			return mockGymProfile;
-		}
+		if (!gymId) return null;
 
 		const gym = await db.gym.findUnique({
 			where: { id: gymId },
@@ -94,9 +79,7 @@ export async function getGymProfile() {
 			},
 		});
 
-		if (!gym || !gym.profile) {
-			return mockGymProfile;
-		}
+		if (!gym || !gym.profile) return null;
 
 		const gymProfile: GymProfile = {
 			id: gym.id,
@@ -128,23 +111,19 @@ export async function getGymProfile() {
 		return gymProfile;
 	} catch (error) {
 		console.error("Erro ao buscar perfil da academia:", error);
-		return mockGymProfile;
+		return null;
 	}
 }
 
-export async function getGymStats() {
+export async function getGymStats(): Promise<GymStats | null> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockGymStats;
-		}
+		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockGymStats;
-		}
+		if (!session) return null;
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -152,17 +131,13 @@ export async function getGymStats() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockGymStats;
-		}
+		if (!gymId) return null;
 
 		const stats = await db.gymStats.findUnique({
 			where: { gymId },
 		});
 
-		if (!stats) {
-			return mockGymStats;
-		}
+		if (!stats) return null;
 
 		const gymStats: GymStats = {
 			today: {
@@ -190,23 +165,19 @@ export async function getGymStats() {
 		return gymStats;
 	} catch (error) {
 		console.error("Erro ao buscar estatísticas da academia:", error);
-		return mockGymStats;
+		return null;
 	}
 }
 
-export async function getGymStudents() {
+export async function getGymStudents(): Promise<StudentData[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockStudents;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockStudents;
-		}
+		if (!session) return [];
 
 		const gymUser = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -214,9 +185,7 @@ export async function getGymStudents() {
 		});
 
 		const gymId = gymUser?.activeGymId;
-		if (!gymId) {
-			return mockStudents;
-		}
+		if (!gymId) return [];
 
 		const memberships = await db.gymMembership.findMany({
 			where: { gymId },
@@ -272,7 +241,7 @@ export async function getGymStudents() {
 									| "avancado") || "iniciante",
 							weeklyWorkoutFrequency:
 								profile.weeklyWorkoutFrequency || undefined,
-							workoutDuration: profile.workoutDuration || undefined,
+							workoutDuration: profile.workoutDuration ?? 0,
 							goals: profile.goals ? JSON.parse(profile.goals) : [],
 							availableEquipment: profile.availableEquipment
 								? JSON.parse(profile.availableEquipment)
@@ -340,26 +309,22 @@ export async function getGymStudents() {
 			} as StudentData;
 		});
 
-		return students.length > 0 ? students : mockStudents;
+		return students;
 	} catch (error) {
 		console.error("Erro ao buscar alunos da academia:", error);
-		return mockStudents;
+		return [];
 	}
 }
 
-export async function getGymEquipment() {
+export async function getGymEquipment(): Promise<Equipment[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockEquipment;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockEquipment;
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -367,9 +332,7 @@ export async function getGymEquipment() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockEquipment;
-		}
+		if (!gymId) return [];
 
 		const equipment = await db.equipment.findMany({
 			where: { gymId },
@@ -402,26 +365,22 @@ export async function getGymEquipment() {
 			maintenanceHistory: [],
 		}));
 
-		return equipmentList.length > 0 ? equipmentList : mockEquipment;
+		return equipmentList;
 	} catch (error) {
 		console.error("Erro ao buscar equipamentos da academia:", error);
-		return mockEquipment;
+		return [];
 	}
 }
 
-export async function getGymFinancialSummary() {
+export async function getGymFinancialSummary(): Promise<FinancialSummary | null> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockFinancialSummary;
-		}
+		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockFinancialSummary;
-		}
+		if (!session) return null;
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -429,9 +388,7 @@ export async function getGymFinancialSummary() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockFinancialSummary;
-		}
+		if (!gymId) return null;
 
 		const payments = await db.payment.findMany({
 			where: { gymId },
@@ -470,23 +427,19 @@ export async function getGymFinancialSummary() {
 		return financialSummary;
 	} catch (error) {
 		console.error("Erro ao buscar resumo financeiro:", error);
-		return mockFinancialSummary;
+		return null;
 	}
 }
 
-export async function getGymRecentCheckIns() {
+export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockRecentCheckIns;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockRecentCheckIns;
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -494,9 +447,7 @@ export async function getGymRecentCheckIns() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockRecentCheckIns;
-		}
+		if (!gymId) return [];
 
 		const checkIns = await db.checkIn.findMany({
 			where: { gymId },
@@ -511,26 +462,22 @@ export async function getGymRecentCheckIns() {
 			timestamp: checkIn.timestamp,
 		}));
 
-		return recentCheckIns.length > 0 ? recentCheckIns : mockRecentCheckIns;
+		return recentCheckIns;
 	} catch (error) {
 		console.error("Erro ao buscar check-ins recentes:", error);
-		return mockRecentCheckIns;
+		return [];
 	}
 }
 
-export async function getGymEquipmentById(equipmentId: string) {
+export async function getGymEquipmentById(equipmentId: string): Promise<Equipment | null> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockEquipment.find((e) => e.id === equipmentId) || null;
-		}
+		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockEquipment.find((e) => e.id === equipmentId) || null;
-		}
+		if (!session) return null;
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -538,9 +485,7 @@ export async function getGymEquipmentById(equipmentId: string) {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockEquipment.find((e) => e.id === equipmentId) || null;
-		}
+		if (!gymId) return null;
 
 		const equipment = await db.equipment.findUnique({
 			where: { id: equipmentId, gymId },
@@ -597,23 +542,19 @@ export async function getGymEquipmentById(equipmentId: string) {
 		return equipmentData;
 	} catch (error) {
 		console.error("Erro ao buscar equipamento:", error);
-		return mockEquipment.find((e) => e.id === equipmentId) || null;
+		return null;
 	}
 }
 
-export async function getGymStudentById(studentId: string) {
+export async function getGymStudentById(studentId: string): Promise<StudentData | null> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockStudents.find((s) => s.id === studentId) || null;
-		}
+		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockStudents.find((s) => s.id === studentId) || null;
-		}
+		if (!session) return null;
 
 		const gymUser = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -621,9 +562,7 @@ export async function getGymStudentById(studentId: string) {
 		});
 
 		const gymId = gymUser?.activeGymId;
-		if (!gymId) {
-			return mockStudents.find((s) => s.id === studentId) || null;
-		}
+		if (!gymId) return null;
 
 		const membership = await db.gymMembership.findFirst({
 			where: {
@@ -640,6 +579,40 @@ export async function getGymStudentById(studentId: string) {
 				},
 			},
 		});
+
+		// Buscar dados reais de histório de treinos, recordes e peso
+		const [workoutHistoryRows, personalRecordRows, weightHistoryRows, checkInRows] =
+			await Promise.all([
+				db.workoutHistory.findMany({
+					where: { studentId },
+					include: { exercises: true, workout: true },
+					orderBy: { date: "desc" },
+					take: 30,
+				}),
+				db.personalRecord.findMany({
+					where: { studentId },
+					orderBy: { date: "desc" },
+				}),
+				db.weightHistory.findMany({
+					where: { studentId },
+					orderBy: { date: "asc" },
+					take: 60,
+				}),
+				db.checkIn.findMany({
+					where: { gymId, studentId },
+					orderBy: { timestamp: "desc" },
+				}),
+			]);
+
+		// Calcular totalVisits e lastVisit a partir de check-ins
+		const totalVisits = checkInRows.length;
+		const lastVisit = checkInRows[0]?.timestamp;
+
+		// Calcular attendanceRate: (check-ins na última semana / 7) × 100 (max 100)
+		const oneWeekAgo = new Date();
+		oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+		const weekCheckIns = checkInRows.filter((c) => c.timestamp >= oneWeekAgo).length;
+		const attendanceRate = Math.min(Math.round((weekCheckIns / 7) * 100), 100);
 
 		if (!membership || !membership.student) {
 			return null;
@@ -663,11 +636,11 @@ export async function getGymStudentById(studentId: string) {
 				| "inactive"
 				| "suspended",
 			joinDate: membership.createdAt,
-			lastVisit: undefined,
-			totalVisits: 0,
+			lastVisit: lastVisit,
+			totalVisits,
 			currentStreak: progress?.currentStreak || 0,
 			currentWeight: profile?.weight ?? 0,
-			attendanceRate: 0,
+			attendanceRate,
 			favoriteEquipment: [],
 			assignedTrainer: undefined,
 			profile: profile
@@ -683,8 +656,8 @@ export async function getGymStudentById(studentId: string) {
 								| "iniciante"
 								| "intermediario"
 								| "avancado") || "iniciante",
-						weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency || undefined,
-						workoutDuration: profile.workoutDuration || undefined,
+						weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency ?? 0,
+						workoutDuration: profile.workoutDuration ?? 0,
 						goals: profile.goals ? JSON.parse(profile.goals) : [],
 						availableEquipment: profile.availableEquipment
 							? JSON.parse(profile.availableEquipment)
@@ -698,7 +671,7 @@ export async function getGymStudentById(studentId: string) {
 						targetProtein: profile.targetProtein || undefined,
 						targetCarbs: profile.targetCarbs || undefined,
 						targetFats: profile.targetFats || undefined,
-					}
+					} as UserProfile
 				: {
 						id: student.id,
 						name: user.name,
@@ -706,21 +679,21 @@ export async function getGymStudentById(studentId: string) {
 						gender: (student.gender as "male" | "female") || "male",
 						height: 0,
 						weight: 0,
-						fitnessLevel: undefined,
-						weeklyWorkoutFrequency: undefined,
-						workoutDuration: undefined,
+						fitnessLevel: "iniciante",
+						weeklyWorkoutFrequency: 0,
+						workoutDuration: 0,
 						goals: [],
 						availableEquipment: [],
-						gymType: undefined,
-						preferredWorkoutTime: undefined,
-						preferredSets: undefined,
-						preferredRepRange: undefined,
-						restTime: undefined,
-						targetCalories: undefined,
-						targetProtein: undefined,
-						targetCarbs: undefined,
-						targetFats: undefined,
-					},
+						gymType: "academia-completa",
+						preferredWorkoutTime: "manha",
+						preferredSets: 3,
+						preferredRepRange: "hipertrofia",
+						restTime: "medio",
+						targetCalories: 2000,
+						targetProtein: 100,
+						targetCarbs: 200,
+						targetFats: 50,
+					} as UserProfile,
 			progress: progress
 				? {
 						currentStreak: progress.currentStreak || 0,
@@ -750,31 +723,51 @@ export async function getGymStudentById(studentId: string) {
 						dailyGoalXP: 50,
 						weeklyXP: [0, 0, 0, 0, 0, 0, 0],
 					},
-			workoutHistory: [],
-			personalRecords: [],
-			weightHistory: [],
+			workoutHistory: workoutHistoryRows.map((wh) => ({
+				date: wh.date,
+				workoutId: wh.workoutId ?? "",
+				workoutName: wh.workout?.title ?? "Treino",
+				duration: wh.duration,
+				totalVolume: wh.totalVolume ?? 0,
+				exercises: wh.exercises.map((ex) => ({
+					exerciseId: ex.exerciseId,
+					exerciseName: ex.exerciseName,
+					sets: (() => {
+						try { return JSON.parse(ex.sets); } catch { return []; }
+					})(),
+					notes: ex.notes ?? "",
+				})),
+			})) as unknown as WorkoutHistory[],
+			personalRecords: personalRecordRows.map((pr) => ({
+				exerciseId: pr.exerciseId,
+				exerciseName: pr.exerciseName,
+				type: pr.type as "max-weight" | "max-reps" | "max-volume",
+				value: pr.value,
+				date: pr.date,
+				previousBest: pr.previousBest ?? undefined,
+			})),
+			weightHistory: weightHistoryRows.map((wh) => ({
+				date: wh.date,
+				weight: wh.weight,
+			})),
 		};
 
 		return studentData;
 	} catch (error) {
 		console.error("Erro ao buscar aluno:", error);
-		return mockStudents.find((s) => s.id === studentId) || null;
+		return null;
 	}
 }
 
-export async function getGymStudentPayments(studentId: string) {
+export async function getGymStudentPayments(studentId: string): Promise<Payment[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockPayments.filter((p) => p.studentId === studentId);
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockPayments.filter((p) => p.studentId === studentId);
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -782,9 +775,7 @@ export async function getGymStudentPayments(studentId: string) {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockPayments.filter((p) => p.studentId === studentId);
-		}
+		if (!gymId) return [];
 
 		const payments = await db.payment.findMany({
 			where: {
@@ -811,28 +802,22 @@ export async function getGymStudentPayments(studentId: string) {
 				"pix",
 		}));
 
-		return paymentList.length > 0
-			? paymentList
-			: mockPayments.filter((p) => p.studentId === studentId);
+		return paymentList;
 	} catch (error) {
 		console.error("Erro ao buscar pagamentos do aluno:", error);
-		return mockPayments.filter((p) => p.studentId === studentId);
+		return [];
 	}
 }
 
-export async function getGymPayments() {
+export async function getGymPayments(): Promise<Payment[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockPayments;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockPayments;
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -840,9 +825,7 @@ export async function getGymPayments() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockPayments;
-		}
+		if (!gymId) return [];
 
 		const payments = await db.payment.findMany({
 			where: { gymId },
@@ -867,86 +850,32 @@ export async function getGymPayments() {
 				"pix",
 		}));
 
-		return paymentList.length > 0 ? paymentList : mockPayments;
+		return paymentList;
 	} catch (error) {
 		console.error("Erro ao buscar pagamentos:", error);
-		return mockPayments;
+		return [];
 	}
 }
 
 export async function getGymCoupons() {
-	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-
-		if (!sessionToken) {
-			return mockCoupons;
-		}
-
-		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockCoupons;
-		}
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-
-		if (!user?.activeGymId) {
-			return mockCoupons;
-		}
-
-		return mockCoupons;
-	} catch (error) {
-		console.error("Erro ao buscar cupons:", error);
-		return mockCoupons;
-	}
+	// Coupons table not yet implemented in schema — return empty array
+	return [];
 }
 
 export async function getGymReferrals() {
-	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-
-		if (!sessionToken) {
-			return mockReferrals;
-		}
-
-		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockReferrals;
-		}
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-
-		if (!user?.activeGymId) {
-			return mockReferrals;
-		}
-
-		return mockReferrals;
-	} catch (error) {
-		console.error("Erro ao buscar indicações:", error);
-		return mockReferrals;
-	}
+	// Referrals table not yet implemented in schema — return empty array
+	return [];
 }
 
-export async function getGymExpenses() {
+export async function getGymExpenses(): Promise<Expense[]> {
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockExpenses;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockExpenses;
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
@@ -954,9 +883,7 @@ export async function getGymExpenses() {
 		});
 
 		const gymId = user?.activeGymId;
-		if (!gymId) {
-			return mockExpenses;
-		}
+		if (!gymId) return [];
 
 		const expenses = await db.expense.findMany({
 			where: { gymId },
@@ -988,10 +915,10 @@ export async function getGymExpenses() {
 			};
 		});
 
-		return expenseList.length > 0 ? expenseList : mockExpenses;
+		return expenseList;
 	} catch (error) {
 		console.error("Erro ao buscar despesas:", error);
-		return mockExpenses;
+		return [];
 	}
 }
 
@@ -1000,28 +927,43 @@ export async function getGymMembershipPlans() {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
 
-		if (!sessionToken) {
-			return mockMembershipPlans;
-		}
+		if (!sessionToken) return [];
 
 		const session = await getSession(sessionToken);
-		if (!session) {
-			return mockMembershipPlans;
-		}
+		if (!session) return [];
 
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
 			select: { activeGymId: true },
 		});
 
-		if (!user?.activeGymId) {
-			return mockMembershipPlans;
-		}
+		if (!user?.activeGymId) return [];
 
-		return mockMembershipPlans;
+		const plans = await db.membershipPlan.findMany({
+			where: { gymId: user.activeGymId, isActive: true },
+			orderBy: { price: "asc" },
+		});
+
+		return plans.map((plan) => ({
+			id: plan.id,
+			name: plan.name,
+			type: plan.type as "monthly" | "quarterly" | "semi-annual" | "annual" | "trial",
+			price: plan.price,
+			duration: plan.duration,
+			benefits: (() => {
+				const b = plan.benefits;
+				if (!b) return [];
+				try {
+					return JSON.parse(b);
+				} catch {
+					return [];
+				}
+			})(),
+			isActive: plan.isActive,
+		}));
 	} catch (error) {
 		console.error("Erro ao buscar planos de assinatura:", error);
-		return mockMembershipPlans;
+		return [];
 	}
 }
 
@@ -1236,3 +1178,6 @@ export async function startGymTrial() {
 		return { error: "Erro ao iniciar trial" };
 	}
 }
+
+
+

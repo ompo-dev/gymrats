@@ -1,1 +1,4 @@
-bun run lint:staged
+# Formata os arquivos staged e re-adiciona ao stage (exclui arquivos deletados)
+npx biome check --write --staged
+git add $(git diff --cached --name-only --diff-filter=d)
+npx biome check --staged

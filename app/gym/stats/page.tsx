@@ -7,5 +7,7 @@ export default async function StatsPageWrapper() {
 		getGymEquipment(),
 	]);
 
+	if (!stats) return null;
+
 	return <StatsPage stats={stats} equipment={equipment} />;
 }

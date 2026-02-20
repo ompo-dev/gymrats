@@ -1,10 +1,16 @@
 "use server";
 
+import type { Gym, GymProfile, GymStats } from "@prisma/client";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { initializeGymTrial } from "@/lib/utils/auto-trial";
 import { getSession } from "@/lib/utils/session";
 import type { GymOnboardingData } from "./steps/types";
+
+type GymWithProfileAndStats = Gym & {
+	profile?: GymProfile | null;
+	stats?: GymStats | null;
+};
 
 /**
  * Cria uma NOVA academia (adicional) para um usuário gym que já tem academias
@@ -160,7 +166,7 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
 		const user = await db.user.findUnique({
 			where: { id: userId },
 			include: {
-				gym: {
+				gyms: {
 					include: {
 						profile: true,
 						stats: true,
@@ -180,8 +186,7 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
 		const fullAddress = formData.addressNumber
 			? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`
 			: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zipCode}`;
-
-		let gym = user.gym;
+		let gym: GymWithProfileAndStats | null = user.gyms?.[0] ?? null;
 		if (!gym) {
 			const createdGym = await db.gym.create({
 				data: {

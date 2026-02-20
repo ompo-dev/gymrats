@@ -281,7 +281,7 @@ export function GymStudentDetail({
 							className="lg:col-span-2"
 						>
 							<div className="space-y-2">
-								{student.weightHistory.map((record) => (
+								{student.weightHistory.map((record, whIdx) => (
 									<DuoCard
 										key={`${record.date.toISOString()}-${record.weight}`}
 										variant="default"
@@ -298,19 +298,18 @@ export function GymStudentDetail({
 												<span className="text-xl sm:text-2xl font-bold text-duo-blue">
 													{record.weight}kg
 												</span>
-												{student.weightHistory.indexOf(record) <
-													student.weightHistory.length - 1 && (
+												{whIdx < student.weightHistory.length - 1 && (
 													<div className="flex items-center gap-1">
 														{record.weight <
 														student.weightHistory[
-															student.weightHistory.indexOf(record) + 1
+															whIdx + 1
 														].weight ? (
 															<>
 																<TrendingUp className="h-4 w-4 text-duo-red shrink-0" />
 																<span className="text-xs sm:text-sm font-bold text-duo-red whitespace-nowrap">
 																	+
 																	{(
-																		student.weightHistory[index + 1].weight -
+																		student.weightHistory[whIdx + 1].weight -
 																		record.weight
 																	).toFixed(1)}
 																	kg
@@ -322,7 +321,7 @@ export function GymStudentDetail({
 																<span className="text-xs sm:text-sm font-bold text-duo-green whitespace-nowrap">
 																	{(
 																		record.weight -
-																		student.weightHistory[index + 1].weight
+																		student.weightHistory[whIdx + 1].weight
 																	).toFixed(1)}
 																	kg
 																</span>
@@ -343,9 +342,65 @@ export function GymStudentDetail({
 			{activeTab === "workouts" && (
 				<SlideIn delay={0.4}>
 					<SectionCard title="Histórico de Treinos" icon={Dumbbell}>
-						<p className="text-duo-gray-dark">
-							Implementação do histórico de treinos em desenvolvimento...
-						</p>
+						{student.workoutHistory.length === 0 ? (
+							<DuoCard variant="default" size="default" className="p-8 text-center">
+								<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+								<p className="font-bold text-duo-gray-dark">Nenhum treino registrado ainda</p>
+								<p className="mt-1 text-sm text-duo-gray-dark">
+									Os treinos do aluno aparecerão aqui assim que forem completados.
+								</p>
+							</DuoCard>
+						) : (
+							<div className="space-y-3">
+								{student.workoutHistory.map((wh, idx) => (
+									<DuoCard
+										key={`wh-${idx}-${wh.date.toISOString()}`}
+										variant="default"
+										size="default"
+									>
+										<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+											<div className="flex-1 min-w-0">
+												<p className="font-bold text-duo-text text-sm sm:text-base">
+													{wh.workoutName || "Treino"}
+												</p>
+												<p className="text-xs text-duo-gray-dark mt-0.5">
+													{new Date(wh.date).toLocaleDateString("pt-BR")}
+												</p>
+											</div>
+											<div className="flex gap-4 text-sm">
+												<span className="flex items-center gap-1 text-duo-blue font-bold">
+													<Activity className="h-3.5 w-3.5" />
+													{wh.duration} min
+												</span>
+												{wh.totalVolume > 0 && (
+													<span className="flex items-center gap-1 text-duo-green font-bold">
+														<TrendingUp className="h-3.5 w-3.5" />
+														{wh.totalVolume.toFixed(0)} kg
+													</span>
+												)}
+											</div>
+										</div>
+										{wh.exercises.length > 0 && (
+											<div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+												{wh.exercises.slice(0, 3).map((ex) => (
+													<p
+														key={ex.id}
+														className="text-xs text-duo-gray-dark"
+													>
+														• {ex.exerciseName}
+													</p>
+												))}
+												{wh.exercises.length > 3 && (
+													<p className="text-xs text-duo-gray-dark">
+														e mais {wh.exercises.length - 3} exercício(s)...
+													</p>
+												)}
+											</div>
+										)}
+									</DuoCard>
+								))}
+							</div>
+						)}
 					</SectionCard>
 				</SlideIn>
 			)}
