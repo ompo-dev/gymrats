@@ -124,7 +124,7 @@ export function AddStudentModal({
 
 	return (
 		<div
-			className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
+			className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
 			onClick={(e) => e.target === e.currentTarget && handleClose()}
 			onKeyDown={(e) => e.key === "Escape" && handleClose()}
 		>
