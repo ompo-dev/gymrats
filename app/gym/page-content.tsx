@@ -6,9 +6,12 @@ import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
 import type {
 	CheckIn,
 	Equipment,
+	Expense, // Added
 	FinancialSummary,
 	GymProfile,
 	GymStats,
+	MembershipPlan,
+	Payment, // Added
 	StudentData,
 } from "@/lib/types";
 import { GymDashboardPage } from "./components/gym-dashboard";
@@ -26,6 +29,9 @@ interface GymHomeContentProps {
 	initialEquipment: Equipment[];
 	initialFinancialSummary: FinancialSummary | null;
 	initialRecentCheckIns?: CheckIn[];
+	initialPlans: MembershipPlan[];
+	initialPayments: Payment[]; // Added
+	initialExpenses: Expense[]; // Added
 }
 
 function GymHomeContent({
@@ -35,6 +41,9 @@ function GymHomeContent({
 	initialEquipment,
 	initialFinancialSummary,
 	initialRecentCheckIns,
+	initialPlans,
+	initialPayments, // Added
+	initialExpenses, // Added
 }: GymHomeContentProps) {
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
@@ -53,13 +62,17 @@ function GymHomeContent({
 			{tab === "students" && <GymStudentsPage students={initialStudents} />}
 			{tab === "equipment" && <GymEquipmentPage equipment={initialEquipment} />}
 			{tab === "financial" && (
-				<GymFinancialPage financialSummary={initialFinancialSummary} />
+				<GymFinancialPage
+					financialSummary={initialFinancialSummary}
+					payments={initialPayments} // Added prop
+					expenses={initialExpenses} // Added prop
+				/>
 			)}
 			{tab === "stats" && initialStats && (
 				<GymStatsPage stats={initialStats} equipment={initialEquipment} />
 			)}
 			{tab === "settings" && initialProfile && (
-				<GymSettingsPage profile={initialProfile} />
+				<GymSettingsPage profile={initialProfile} plans={initialPlans} />
 			)}
 			{tab === "gamification" && initialProfile && (
 				<GymGamificationPage profile={initialProfile} />
@@ -76,6 +89,9 @@ export default function GymHome({
 	initialEquipment,
 	initialFinancialSummary,
 	initialRecentCheckIns,
+	initialPlans,
+	initialPayments, // Added
+	initialExpenses, // Added
 }: GymHomeContentProps) {
 	return (
 		<Suspense
@@ -92,6 +108,9 @@ export default function GymHome({
 				initialEquipment={initialEquipment}
 				initialFinancialSummary={initialFinancialSummary}
 				initialRecentCheckIns={initialRecentCheckIns}
+				initialPlans={initialPlans}
+				initialPayments={initialPayments} // Added
+				initialExpenses={initialExpenses} // Added
 			/>
 		</Suspense>
 	);

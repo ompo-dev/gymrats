@@ -87,19 +87,42 @@ export function GymStudentDetail({
 		);
 	}
 
-	const togglePaymentStatus = (paymentId: string) => {
+	const togglePaymentStatus = async (paymentId: string) => {
+		const payment = studentPayments.find((p) => p.id === paymentId);
+		if (!payment) return;
+
+		const newStatus = payment.status === "paid" ? "pending" : "paid";
+
+		// Optimistic update
 		setStudentPayments((prev) =>
-			prev.map((p) => {
-				if (p.id === paymentId) {
-					return {
-						...p,
-						status: p.status === "paid" ? "pending" : "paid",
-						date: p.status === "paid" ? p.date : new Date(),
-					};
-				}
-				return p;
-			}),
+			prev.map((p) =>
+				p.id === paymentId
+					? { ...p, status: newStatus, date: newStatus === "paid" ? new Date() : p.date }
+					: p
+			)
 		);
+
+		try {
+			const res = await fetch(`/api/gyms/payments/${paymentId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ status: newStatus }),
+			});
+
+			if (!res.ok) {
+				// Revert if failed
+				setStudentPayments((prev) =>
+					prev.map((p) => (p.id === paymentId ? payment : p))
+				);
+				console.error("Falha ao atualizar pagamento");
+			}
+		} catch (error) {
+			console.error("Erro ao atualizar pagamento:", error);
+			// Revert if error
+			setStudentPayments((prev) =>
+				prev.map((p) => (p.id === paymentId ? payment : p))
+			);
+		}
 	};
 
 	const tabOptions = [

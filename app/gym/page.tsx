@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import {
 	getGymEquipment,
+	getGymExpenses, // Added import
 	getGymFinancialSummary,
+	getGymMembershipPlans,
+	getGymPayments, // Added import
 	getGymProfile,
 	getGymRecentCheckIns,
 	getGymStats,
@@ -17,6 +20,9 @@ export default async function GymPage() {
 		equipment,
 		financialSummary,
 		recentCheckIns,
+		plans,
+		payments, // Added payments
+		expenses, // Added expenses
 	] = await Promise.all([
 		getGymProfile(),
 		getGymStats(),
@@ -24,6 +30,9 @@ export default async function GymPage() {
 		getGymEquipment(),
 		getGymFinancialSummary(),
 		getGymRecentCheckIns(),
+		getGymMembershipPlans(),
+		getGymPayments(), // Added fetch
+		getGymExpenses(), // Added fetch
 	]);
 
 	return (
@@ -35,6 +44,9 @@ export default async function GymPage() {
 				initialEquipment={equipment}
 				initialFinancialSummary={financialSummary}
 				initialRecentCheckIns={recentCheckIns}
+				initialPlans={plans}
+				initialPayments={payments} // Added prop
+				initialExpenses={expenses} // Added prop
 			/>
 		</Suspense>
 	);

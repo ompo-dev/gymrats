@@ -323,7 +323,6 @@ export async function getGymFinancialSummary(): Promise<FinancialSummary | null>
 	try {
 		const cookieStore = await cookies();
 		const sessionToken = cookieStore.get("auth_token")?.value;
-
 		if (!sessionToken) return null;
 
 		const session = await getSession(sessionToken);
@@ -334,44 +333,77 @@ export async function getGymFinancialSummary(): Promise<FinancialSummary | null>
 			select: { activeGymId: true },
 		});
 
-		const gymId = user?.activeGymId;
-		if (!gymId) return null;
+		if (!user?.activeGymId) return null;
+		const gymId = user.activeGymId;
 
-		const payments = await db.payment.findMany({
-			where: { gymId },
+		const startOfMonth = new Date();
+		startOfMonth.setDate(1);
+		startOfMonth.setHours(0, 0, 0, 0);
+
+		const paymentsPaid = await db.payment.aggregate({
+			where: {
+				gymId,
+				status: "paid",
+				date: { gte: startOfMonth },
+			},
+			_sum: { amount: true },
+		});
+		const totalRevenue = paymentsPaid._sum.amount ?? 0;
+
+		const expensesAgg = await db.expense.aggregate({
+			where: {
+				gymId,
+				date: { gte: startOfMonth },
+			},
+			_sum: { amount: true },
+		});
+		const totalExpenses = expensesAgg._sum.amount ?? 0;
+
+		const netProfit = totalRevenue - totalExpenses;
+
+		const activeMemberships = await db.gymMembership.findMany({
+			where: { gymId, status: "active" },
+			select: { amount: true },
+		});
+		const monthlyRecurring = activeMemberships.reduce((acc, m) => acc + m.amount, 0);
+
+		const pendingAgg = await db.payment.aggregate({
+			where: { gymId, status: "pending" },
+			_sum: { amount: true },
+		});
+		const overdueAgg = await db.payment.aggregate({
+			where: { gymId, status: "overdue" },
+			_sum: { amount: true },
 		});
 
-		const expenses = await db.expense.findMany({
-			where: { gymId },
+		const countPaid = await db.payment.count({
+			where: { gymId, status: "paid", date: { gte: startOfMonth } },
 		});
+		const averageTicket = countPaid > 0 ? totalRevenue / countPaid : 0;
 
-		const totalRevenue = payments
-			.filter((p) => p.status === "paid")
-			.reduce((sum, p) => sum + p.amount, 0);
+		const canceledCount = await db.gymMembership.count({
+			where: {
+				gymId,
+				status: "canceled",
+				updatedAt: { gte: startOfMonth },
+			},
+		});
+		const churnRate =
+			activeMemberships.length + canceledCount > 0
+				? (canceledCount / (activeMemberships.length + canceledCount)) * 100
+				: 0;
 
-		const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-
-		const pendingPayments = payments
-			.filter((p) => p.status === "pending")
-			.reduce((sum, p) => sum + p.amount, 0);
-
-		const overduePayments = payments
-			.filter((p) => p.status === "overdue")
-			.reduce((sum, p) => sum + p.amount, 0);
-
-		const financialSummary: FinancialSummary = {
+		return {
 			totalRevenue,
 			totalExpenses,
-			netProfit: totalRevenue - totalExpenses,
-			monthlyRecurring: totalRevenue,
-			pendingPayments,
-			overduePayments,
-			averageTicket: payments.length > 0 ? totalRevenue / payments.length : 0,
-			churnRate: 0,
+			netProfit,
+			monthlyRecurring,
+			pendingPayments: pendingAgg._sum.amount ?? 0,
+			overduePayments: overdueAgg._sum.amount ?? 0,
+			averageTicket,
+			churnRate,
 			revenueGrowth: 0,
 		};
-
-		return financialSummary;
 	} catch (error) {
 		console.error("Erro ao buscar resumo financeiro:", error);
 		return null;
