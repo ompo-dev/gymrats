@@ -3,7 +3,9 @@
 import { Flame, Search, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
+import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -11,8 +13,9 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
-import type { StudentData } from "@/lib/types";
+import type { MembershipPlan, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
 
 interface GymStudentsPageProps {
@@ -20,6 +23,17 @@ interface GymStudentsPageProps {
 }
 
 export function GymStudentsPage({ students }: GymStudentsPageProps) {
+	const router = useRouter();
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [plans, setPlans] = useState<MembershipPlan[]>([]);
+
+	useEffect(() => {
+		fetch("/api/gyms/plans")
+			.then((r) => r.json())
+			.then((data) => setPlans(data.plans ?? []))
+			.catch(() => {});
+	}, []);
+
 	const [searchQuery, setSearchQuery] = useQueryState("search", {
 		defaultValue: "",
 	});
@@ -81,7 +95,7 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 							{filteredStudents.length !== 1 ? "s" : ""}
 						</p>
 					</div>
-					<Button>
+					<Button onClick={() => setIsModalOpen(true)}>
 						<UserPlus className="h-5 w-5" />
 						Novo Aluno
 					</Button>
@@ -272,6 +286,15 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 					</DuoCard>
 				</SlideIn>
 			)}
+
 		</div>
 	);
+			<AddStudentModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				onSuccess={() => router.refresh()}
+				membershipPlans={plans}
+			/>
 }
+
+

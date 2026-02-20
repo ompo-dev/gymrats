@@ -5,13 +5,16 @@ import {
 	AlertCircle,
 	Apple,
 	ArrowLeft,
+	Ban,
 	Calendar,
 	CheckCircle,
 	DollarSign,
 	Dumbbell,
 	Edit,
 	Flame,
+	Loader2,
 	Mail,
+	PauseCircle,
 	Phone,
 	Target,
 	TrendingUp,
@@ -45,6 +48,29 @@ export function GymStudentDetail({
 }: GymStudentDetailProps) {
 	const [studentPayments, setStudentPayments] = useState(payments);
 	const [activeTab, setActiveTab] = useState("overview");
+	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");
+
+	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+	const handleMembershipAction = async (
+		action: "suspended" | "canceled" | "active",
+	) => {
+		const membershipId = student?.gymMembership?.id;
+		if (!membershipId) return;
+		setIsUpdatingStatus(true);
+		try {
+			const res = await fetch(`/api/gyms/members/${membershipId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ status: action }),
+			});
+			if (res.ok) {
+				setMembershipStatus(action);
+			}
+		} finally {
+			setIsUpdatingStatus(false);
+		}
+	};
 
 	if (!student) {
 		return (
@@ -155,6 +181,58 @@ export function GymStudentDetail({
 									<Apple className="h-4 w-4" />
 									Atribuir Dieta
 								</Button>
+								{/* Botões de gestão de matrícula */}
+								{student.gymMembership?.id && (
+									<>
+										{membershipStatus === "active" ? (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-amber-300 text-amber-700 hover:bg-amber-50"
+												onClick={() => handleMembershipAction("suspended")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<PauseCircle className="h-4 w-4" />
+												)}
+												Suspender
+											</Button>
+										) : membershipStatus === "suspended" ? (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-green-300 text-green-700 hover:bg-green-50"
+												onClick={() => handleMembershipAction("active")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<CheckCircle className="h-4 w-4" />
+												)}
+												Reativar
+											</Button>
+										) : null}
+										{membershipStatus !== "canceled" && (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-red-300 text-red-700 hover:bg-red-50"
+												onClick={() => handleMembershipAction("canceled")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<Ban className="h-4 w-4" />
+												)}
+												Cancelar Matrícula
+											</Button>
+										)}
+									</>
+								)}
 							</div>
 						</div>
 					</div>

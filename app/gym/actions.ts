@@ -750,7 +750,23 @@ export async function getGymStudentById(studentId: string): Promise<StudentData 
 				date: wh.date,
 				weight: wh.weight,
 			})),
+			gymMembership: {
+				id: membership.id,
+				gymId: membership.gymId,
+				gymName: "Academia",
+				gymAddress: "",
+				planId: membership.planId ?? "",
+				planName: (membership as any).plan?.name ?? "Plano",
+				planType: ((membership as any).plan?.type ?? "monthly") as "monthly" | "quarterly" | "semi-annual" | "annual",
+				startDate: membership.createdAt,
+				nextBillingDate: membership.nextBillingDate ?? membership.createdAt,
+				amount: membership.amount,
+				status: membership.status as "active" | "suspended" | "canceled" | "pending",
+				autoRenew: membership.autoRenew,
+				benefits: [],
+			},
 		};
+	
 
 		return studentData;
 	} catch (error) {
