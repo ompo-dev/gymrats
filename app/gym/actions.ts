@@ -115,59 +115,6 @@ export async function getGymProfile(): Promise<GymProfile | null> {
 	}
 }
 
-export async function getGymStats(): Promise<GymStats | null> {
-	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-
-		if (!sessionToken) return null;
-
-		const session = await getSession(sessionToken);
-		if (!session) return null;
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-
-		const gymId = user?.activeGymId;
-		if (!gymId) return null;
-
-		const stats = await db.gymStats.findUnique({
-			where: { gymId },
-		});
-
-		if (!stats) return null;
-
-		const gymStats: GymStats = {
-			today: {
-				checkins: stats.todayCheckins,
-				activeStudents: stats.todayActiveStudents,
-				equipmentInUse: stats.todayEquipmentInUse,
-				peakHour: "19:00",
-			},
-			week: {
-				totalCheckins: stats.weekTotalCheckins,
-				avgDailyCheckins: stats.weekAvgDailyCheckins,
-				newMembers: stats.weekNewMembers,
-				canceledMembers: stats.weekCanceledMembers,
-				revenue: 0,
-			},
-			month: {
-				totalCheckins: stats.monthTotalCheckins,
-				retentionRate: stats.monthRetentionRate,
-				growthRate: stats.monthGrowthRate,
-				topStudents: [],
-				mostUsedEquipment: [],
-			},
-		};
-
-		return gymStats;
-	} catch (error) {
-		console.error("Erro ao buscar estatísticas da academia:", error);
-		return null;
-	}
-}
 
 export async function getGymStudents(): Promise<StudentData[]> {
 	try {
@@ -1197,3 +1144,134 @@ export async function startGymTrial() {
 
 
 
+
+export async function getGymStats(): Promise<GymStats | null> {
+	try {
+		const cookieStore = await cookies();
+		const sessionToken = cookieStore.get("auth_token")?.value;
+		if (!sessionToken) return null;
+
+		const session = await getSession(sessionToken);
+		if (!session) return null;
+
+		const user = await db.user.findUnique({
+			where: { id: session.user.id },
+			select: { activeGymId: true },
+		});
+		if (!user?.activeGymId) return null;
+
+		const gymId = user.activeGymId;
+
+		// ── TODAY ──────────────────────────────────────────────
+		const startOfToday = new Date();
+		startOfToday.setHours(0, 0, 0, 0);
+
+		const endOfToday = new Date();
+		endOfToday.setHours(23, 59, 59, 999);
+
+		const todayCheckIns = await db.checkIn.findMany({
+			where: { gymId, timestamp: { gte: startOfToday, lte: endOfToday } },
+			orderBy: { timestamp: "asc" },
+		});
+
+		// Hora de pico
+		const hourCount: Record<string, number> = {};
+		for (const ci of todayCheckIns) {
+			const hour = `${ci.timestamp.getHours().toString().padStart(2, "0")}:00`;
+			hourCount[hour] = (hourCount[hour] ?? 0) + 1;
+		}
+		const peakHour =
+			Object.entries(hourCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "--:--";
+
+		// Alunos ativos agora (check-in sem checkout)
+		const activeNow = await db.checkIn.count({
+			where: { gymId, timestamp: { gte: startOfToday }, checkOut: null },
+		});
+
+		const equipmentInUse = activeNow;
+
+		// ── WEEK ───────────────────────────────────────────────
+		const weekStart = new Date();
+		weekStart.setDate(weekStart.getDate() - 7);
+		weekStart.setHours(0, 0, 0, 0);
+
+		const weekCheckIns = await db.checkIn.count({
+			where: { gymId, timestamp: { gte: weekStart } },
+		});
+
+		const avgDailyCheckins = Math.round(weekCheckIns / 7);
+
+		const newMembers = await db.gymMembership.count({
+			where: { gymId, createdAt: { gte: weekStart } },
+		});
+
+		const canceledMembers = await db.gymMembership.count({
+			where: { gymId, status: "canceled", updatedAt: { gte: weekStart } },
+		});
+
+		const weekRevenueAgg = await db.payment.aggregate({
+			where: { gymId, status: "paid", date: { gte: weekStart } },
+			_sum: { amount: true },
+		});
+
+		// ── MONTH ──────────────────────────────────────────────
+		const startOfMonth = new Date();
+		startOfMonth.setDate(1);
+		startOfMonth.setHours(0, 0, 0, 0);
+
+		const monthCheckIns = await db.checkIn.count({
+			where: { gymId, timestamp: { gte: startOfMonth } },
+		});
+
+		const activeStudents = await db.gymMembership.count({
+			where: { gymId, status: "active" },
+		});
+
+		const studentsWhoCheckedIn = await db.checkIn.groupBy({
+			by: ["studentId"],
+			where: { gymId, timestamp: { gte: startOfMonth } },
+		});
+
+		const retentionRate =
+			activeStudents > 0
+				? Math.round((studentsWhoCheckedIn.length / activeStudents) * 100)
+				: 0;
+
+		const prevMonthStart = new Date(startOfMonth);
+		prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+		const prevMonthMembers = await db.gymMembership.count({
+			where: { gymId, createdAt: { lt: startOfMonth, gte: prevMonthStart } },
+		});
+
+		const growthRate =
+			prevMonthMembers > 0
+				? Math.round((newMembers / prevMonthMembers) * 100)
+				: 0;
+
+		return {
+			today: {
+				checkins: todayCheckIns.length,
+				activeStudents: activeNow,
+				equipmentInUse,
+				peakHour,
+			},
+			week: {
+				totalCheckins: weekCheckIns,
+				avgDailyCheckins,
+				newMembers,
+				canceledMembers,
+				revenue: weekRevenueAgg._sum.amount ?? 0,
+			},
+			month: {
+				totalCheckins: monthCheckIns,
+				retentionRate,
+				growthRate,
+				topStudents: [],
+				mostUsedEquipment: [],
+			},
+		};
+	} catch (error) {
+		console.error("Erro ao buscar stats da academia:", error);
+		return null;
+	}
+}

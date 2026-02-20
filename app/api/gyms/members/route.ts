@@ -11,7 +11,7 @@ async function getActiveGymId(sessionUserId: string) {
 	return user?.activeGymId ?? null;
 }
 
-// GET — listar membros da academia
+// GET — listar membros da academia (com suporte a ?status= e ?search=)
 export async function GET(request: NextRequest) {
 	try {
 		const cookieStore = await cookies();
@@ -28,11 +28,19 @@ export async function GET(request: NextRequest) {
 
 		const { searchParams } = new URL(request.url);
 		const status = searchParams.get("status"); // active | suspended | canceled | all
+		const search = searchParams.get("search"); // busca por nome
 
 		const memberships = await db.gymMembership.findMany({
 			where: {
 				gymId,
 				...(status && status !== "all" ? { status } : {}),
+				...(search
+					? {
+							student: {
+								user: { name: { contains: search, mode: "insensitive" } },
+							},
+						}
+					: {}),
 			},
 			include: {
 				student: {
@@ -41,6 +49,7 @@ export async function GET(request: NextRequest) {
 				plan: true,
 			},
 			orderBy: { createdAt: "desc" },
+			...(search ? { take: 10 } : {}),
 		});
 
 		return NextResponse.json({ members: memberships });

@@ -1,12 +1,16 @@
 "use client";
 
-import { Dumbbell, Users } from "lucide-react";
+import { Dumbbell, LogIn, Users } from "lucide-react";
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { RelativeTime } from "@/components/molecules/relative-time";
+import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
+import { CheckInModal } from "./checkin-modal";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import type {
@@ -32,6 +36,8 @@ export function GymDashboardPage({
 	equipment,
 	recentCheckIns = [],
 }: GymDashboardPageProps) {
+	const router = useRouter();
+	const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
 	const { today, week, month } = stats;
 
 	const equipmentInUse = equipment.filter((eq) => eq.status === "in-use");
@@ -42,11 +48,20 @@ export function GymDashboardPage({
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
 			<FadeIn>
-				<div className="text-center">
-					<h1 className="mb-2 text-3xl font-bold text-duo-text">Dashboard</h1>
-					<p className="text-sm text-duo-gray-dark">
-						Visão geral da sua academia em tempo real
-					</p>
+				<div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+					<div className="text-center sm:text-left">
+						<h1 className="mb-1 text-3xl font-bold text-duo-text">Dashboard</h1>
+						<p className="text-sm text-duo-gray-dark">
+							Visão geral da sua academia em tempo real
+						</p>
+					</div>
+					<Button
+						onClick={() => setIsCheckInModalOpen(true)}
+						className="flex flex-shrink-0 items-center gap-2"
+					>
+						<LogIn className="h-4 w-4" />
+						Registrar Check-in
+					</Button>
 				</div>
 			</FadeIn>
 
@@ -149,7 +164,9 @@ export function GymDashboardPage({
 											</div>
 											<div className="text-right">
 												<p className="text-xs text-duo-gray-dark">
-													<RelativeTime timestamp={eq.currentUser?.startTime ?? new Date()} />
+													<RelativeTime
+														timestamp={eq.currentUser?.startTime ?? new Date()}
+													/>
 												</p>
 											</div>
 										</div>
@@ -290,6 +307,14 @@ export function GymDashboardPage({
 					</SectionCard>
 				</SlideIn>
 			</div>
+			<CheckInModal
+				isOpen={isCheckInModalOpen}
+				onClose={() => setIsCheckInModalOpen(false)}
+				onSuccess={() => {
+					setIsCheckInModalOpen(false);
+					router.refresh();
+				}}
+			/>
 		</div>
 	);
 }
