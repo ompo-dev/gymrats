@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		const session = await getSession(sessionToken);
-		if (!session || session.user.role !== "GYM") {
+		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
 			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 		}
 

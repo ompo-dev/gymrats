@@ -20,6 +20,10 @@ export async function PATCH(
 			return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 		}
 
+		if (session.user.role !== "GYM" && session.user.role !== "ADMIN") {
+			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+		}
+
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
 			select: { activeGymId: true },
@@ -90,6 +94,10 @@ export async function DELETE(
 		const session = await getSession(sessionToken);
 		if (!session) {
 			return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
+		}
+
+		if (session.user.role !== "GYM" && session.user.role !== "ADMIN") {
+			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 		}
 
 		const user = await db.user.findUnique({

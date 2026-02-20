@@ -5,7 +5,7 @@ import { getSession } from "@/lib/utils/session";
 
 async function getGymContext(sessionToken: string) {
 	const session = await getSession(sessionToken);
-	if (!session || session.user.role !== "GYM") return null;
+	if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) return null;
 	const user = await db.user.findUnique({
 		where: { id: session.user.id },
 		select: { activeGymId: true },

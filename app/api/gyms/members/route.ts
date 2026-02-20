@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
 		const session = await getSession(sessionToken);
-		if (!session || session.user.role !== "GYM") {
+		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
 			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 		}
 

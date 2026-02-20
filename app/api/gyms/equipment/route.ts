@@ -17,6 +17,10 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 		}
 
+		if (session.user.role !== "GYM" && session.user.role !== "ADMIN") {
+			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+		}
+
 		const user = await db.user.findUnique({
 			where: { id: session.user.id },
 			select: { activeGymId: true },
