@@ -2,16 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
-async function getGymContext(sessionToken: string) {
-	const session = await getSession(sessionToken);
-	if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) return null;
-	const user = await db.user.findUnique({
-		where: { id: session.user.id },
-		select: { activeGymId: true },
-	});
-	return user?.activeGymId ? { gymId: user.activeGymId } : null;
-}
+
 
 // PATCH — atualizar plano (nome, preço, benefícios, ativar/desativar)
 export async function PATCH(
@@ -24,9 +17,9 @@ export async function PATCH(
 		if (!sessionToken)
 			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-		const ctx = await getGymContext(sessionToken);
-		if (!ctx)
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
 
 		const { planId } = await params;
 		const body = await request.json();
@@ -73,9 +66,9 @@ export async function DELETE(
 		if (!sessionToken)
 			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-		const ctx = await getGymContext(sessionToken);
-		if (!ctx)
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
 
 		const { planId } = await params;
 

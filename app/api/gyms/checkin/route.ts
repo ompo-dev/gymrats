@@ -2,30 +2,13 @@ import { type NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
 export async function POST(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken) {
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-		}
-
-		const session = await getSession(sessionToken);
-		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-		}
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-		if (!user?.activeGymId) {
-			return NextResponse.json(
-				{ error: "Academia não configurada" },
-				{ status: 400 },
-			);
-		}
+const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
+		const { gymId, user } = ctx;
 
 		const body = await request.json();
 		const { studentId } = body as { studentId: string };
@@ -38,7 +21,7 @@ export async function POST(request: NextRequest) {
 
 		// Verificar se aluno é membro ativo
 		const membership = await db.gymMembership.findFirst({
-			where: { gymId: user.activeGymId, studentId, status: "active" },
+			where: { gymId, studentId, status: "active" },
 		});
 		if (!membership) {
 			return NextResponse.json(
@@ -52,7 +35,7 @@ export async function POST(request: NextRequest) {
 		today.setHours(0, 0, 0, 0);
 		const existingOpen = await db.checkIn.findFirst({
 			where: {
-				gymId: user.activeGymId,
+				gymId,
 				studentId,
 				timestamp: { gte: today },
 				checkOut: null,
@@ -76,7 +59,7 @@ export async function POST(request: NextRequest) {
 
 		const checkIn = await db.checkIn.create({
 			data: {
-				gymId: user.activeGymId,
+				gymId,
 				studentId,
 				studentName: studentUser?.name ?? "Aluno",
 			},
@@ -84,7 +67,7 @@ export async function POST(request: NextRequest) {
 
 		// Adicionar XP ao GymProfile (+5 XP por check-in)
 		await db.gymProfile.updateMany({
-			where: { gymId: user.activeGymId },
+			where: { gymId },
 			data: { xp: { increment: 5 } },
 		});
 

@@ -2,16 +2,9 @@ import { type NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
-async function getGymSession(sessionToken: string) {
-	const session = await getSession(sessionToken);
-	if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) return null;
-	const user = await db.user.findUnique({
-		where: { id: session.user.id },
-		select: { activeGymId: true },
-	});
-	return user?.activeGymId ? { session, gymId: user.activeGymId } : null;
-}
+
 
 // GET — listar planos da academia
 export async function GET(request: NextRequest) {
@@ -21,9 +14,9 @@ export async function GET(request: NextRequest) {
 		if (!sessionToken)
 			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-		const ctx = await getGymSession(sessionToken);
-		if (!ctx)
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
 
 		const { searchParams } = new URL(request.url);
 		const includeInactive = searchParams.get("includeInactive") === "true";
@@ -64,9 +57,9 @@ export async function POST(request: NextRequest) {
 		if (!sessionToken)
 			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-		const ctx = await getGymSession(sessionToken);
-		if (!ctx)
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
 
 		const body = await request.json();
 		const { name, type, price, duration, benefits } = body;
@@ -94,7 +87,15 @@ export async function POST(request: NextRequest) {
 			},
 		});
 
-		return NextResponse.json({ plan }, { status: 201 });
+		return NextResponse.json(
+			{
+				plan: {
+					...plan,
+					benefits: benefits ? benefits : [], // benefits já era o array original do body
+				},
+			},
+			{ status: 201 },
+		);
 	} catch (error) {
 		console.error("[POST /api/gyms/plans]", error);
 		return NextResponse.json({ error: "Erro interno" }, { status: 500 });

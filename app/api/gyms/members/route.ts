@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
 async function getActiveGymId(sessionUserId: string) {
 	const user = await db.user.findUnique({
@@ -62,23 +63,9 @@ export async function GET(request: NextRequest) {
 // POST — matricular aluno
 export async function POST(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-		const session = await getSession(sessionToken);
-		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-		}
-
-		const gymId = await getActiveGymId(session.user.id);
-		if (!gymId) {
-			return NextResponse.json(
-				{ error: "Academia não configurada" },
-				{ status: 400 },
-			);
-		}
+	const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
+		const { gymId } = ctx;
 
 		const body = await request.json();
 		const { studentId, planId, amount, autoRenew = true } = body;

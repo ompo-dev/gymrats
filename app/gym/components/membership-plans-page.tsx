@@ -8,6 +8,16 @@ import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import type { MembershipPlan } from "@/lib/types";
 import { useRouter } from "next/navigation";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PlanFormData {
 	name: string;
@@ -89,14 +99,21 @@ export function MembershipPlansPage({
 		}
 	};
 
-	const handleDelete = async (planId: string) => {
-		if (!confirm("Tem certeza que deseja desativar este plano?")) return;
+	const [planToDelete, setPlanToDelete] = useState<string | null>(null);
+
+	const handleDelete = (planId: string) => {
+		setPlanToDelete(planId);
+	};
+
+	const confirmDelete = async () => {
+		if (!planToDelete) return;
+
 		try {
-			const res = await fetch(`/api/gyms/plans/${planId}`, {
+			const res = await fetch(`/api/gyms/plans/${planToDelete}`, {
 				method: "DELETE",
 			});
 			if (res.ok) {
-				setPlans((prev) => prev.filter((p) => p.id !== planId));
+				setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
 				router.refresh();
 			} else {
 				const data = await res.json();
@@ -105,6 +122,8 @@ export function MembershipPlansPage({
 		} catch (error) {
 			console.error("Erro ao deletar plano:", error);
 			alert("Erro ao deletar plano");
+		} finally {
+			setPlanToDelete(null);
 		}
 	};
 
@@ -298,6 +317,32 @@ export function MembershipPlansPage({
 					</div>
 				</DuoCard>
 			)}
+
+
+			<AlertDialog
+				open={!!planToDelete}
+				onOpenChange={(open) => !open && setPlanToDelete(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Esta ação irá desativar o plano de matrícula. Usuários já inscritos
+							não serão afetados, mas novos alunos não poderão escolher este
+							plano.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancelar</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={confirmDelete}
+							className="bg-duo-red hover:bg-duo-red/90"
+						>
+							Sim, desativar
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

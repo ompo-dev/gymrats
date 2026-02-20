@@ -2,30 +2,13 @@ import { type NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
 export async function POST(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken) {
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-		}
-
-		const session = await getSession(sessionToken);
-		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-		}
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-		if (!user?.activeGymId) {
-			return NextResponse.json(
-				{ error: "Academia não configurada" },
-				{ status: 400 },
-			);
-		}
+const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
+		const { gymId } = ctx;
 
 		const body = await request.json();
 		const { checkInId } = body as { checkInId: string };
@@ -37,7 +20,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		const checkIn = await db.checkIn.findUnique({ where: { id: checkInId } });
-		if (!checkIn || checkIn.gymId !== user.activeGymId) {
+		if (!checkIn || checkIn.gymId !== gymId) {
 			return NextResponse.json(
 				{ error: "Check-in não encontrado" },
 				{ status: 404 },

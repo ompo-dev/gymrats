@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 import { cookies } from "next/headers";
 
 export async function POST(
@@ -8,35 +9,10 @@ export async function POST(
 	{ params }: { params: Promise<{ equipId: string }> },
 ) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
+		const { gymId } = ctx;
 
-		if (!sessionToken) {
-			return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-		}
-
-		const session = await getSession(sessionToken);
-		if (!session) {
-			return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
-		}
-
-		if (session.user.role !== "GYM" && session.user.role !== "ADMIN") {
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-		}
-
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-
-		if (!user?.activeGymId) {
-			return NextResponse.json(
-				{ error: "Nenhuma academia ativa" },
-				{ status: 400 },
-			);
-		}
-
-		const gymId = user.activeGymId;
 		const { equipId } = await params;
 		const body = await request.json();
 		// cost pode vir como string ou number
