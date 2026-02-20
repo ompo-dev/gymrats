@@ -603,6 +603,7 @@ export interface StudentData {
 	notes?: string;
 	gymMembership?: StudentGymMembership;
 	payments?: StudentPayment[];
+	todayNutrition?: DailyNutrition;
 }
 
 export interface StudentGymMembership {

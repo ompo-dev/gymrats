@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
+import { useState } from "react"; // Added import
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -23,13 +24,21 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import type { Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AddEquipmentModal } from "./add-equipment-modal";
 import { GymEquipmentDetail } from "./gym-equipment-detail";
 
 interface GymEquipmentPageProps {
 	equipment: Equipment[];
 }
 
-export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
+export function GymEquipmentPage({
+	equipment: initialEquipment,
+}: GymEquipmentPageProps) {
+	// Local state for optimistic updates
+	const [equipmentList, setEquipmentList] = useState(initialEquipment);
+	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+	// URL state for filters and selection
 	const [searchQuery, setSearchQuery] = useQueryState("search", {
 		defaultValue: "",
 	});
@@ -39,12 +48,12 @@ export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 	);
 	const [equipmentId, setEquipmentId] = useQueryState("equipmentId");
 
-	const filteredEquipment = equipment.filter((equipment) => {
+	const filteredEquipment = equipmentList.filter((item) => {
 		const matchesSearch =
-			equipment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			equipment.type.toLowerCase().includes(searchQuery.toLowerCase());
+			item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			item.type.toLowerCase().includes(searchQuery.toLowerCase());
 		const matchesStatus =
-			statusFilter === "all" || equipment.status === statusFilter;
+			statusFilter === "all" || item.status === statusFilter;
 		return matchesSearch && matchesStatus;
 	});
 
@@ -94,10 +103,10 @@ export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 	};
 
 	const statsOverview = {
-		total: equipment.length,
-		available: equipment.filter((e) => e.status === "available").length,
-		inUse: equipment.filter((e) => e.status === "in-use").length,
-		maintenance: equipment.filter((e) => e.status === "maintenance").length,
+		total: equipmentList.length,
+		available: equipmentList.filter((e) => e.status === "available").length,
+		inUse: equipmentList.filter((e) => e.status === "in-use").length,
+		maintenance: equipmentList.filter((e) => e.status === "maintenance").length,
 	};
 
 	const statusOptions = [
@@ -108,7 +117,7 @@ export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 	];
 
 	if (equipmentId) {
-		const equipmentItem = equipment.find((e) => e.id === equipmentId);
+		const equipmentItem = equipmentList.find((e) => e.id === equipmentId);
 		return (
 			<GymEquipmentDetail
 				equipment={equipmentItem || null}
@@ -119,6 +128,15 @@ export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6  ">
+			<AddEquipmentModal
+				isOpen={isAddModalOpen}
+				onClose={() => setIsAddModalOpen(false)}
+				onSuccess={(newEquip) => {
+					setEquipmentList((prev) => [newEquip, ...prev]);
+					setIsAddModalOpen(false);
+				}}
+			/>
+
 			<FadeIn>
 				<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 					<div>
@@ -131,7 +149,10 @@ export function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 							{filteredEquipment.length !== 1 ? "s" : ""}
 						</p>
 					</div>
-					<Button>
+					<Button
+						onClick={() => setIsAddModalOpen(true)}
+						className="flex items-center gap-2"
+					>
 						<Plus className="h-5 w-5" />
 						Novo Equipamento
 					</Button>

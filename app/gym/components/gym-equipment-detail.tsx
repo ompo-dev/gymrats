@@ -24,6 +24,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import type { Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { MaintenanceModal } from "./maintenance-modal"; // Import
+import { AddEquipmentModal } from "./add-equipment-modal";
 
 interface GymEquipmentDetailProps {
 	equipment: Equipment | null;
@@ -35,6 +37,8 @@ export function GymEquipmentDetail({
 	onBack,
 }: GymEquipmentDetailProps) {
 	const [activeTab, setActiveTab] = useState("usage");
+	const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false); // State
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
 	if (!equipment) {
 		return (
@@ -147,14 +151,21 @@ export function GymEquipmentDetail({
 								</p>
 							</div>
 							<div className="flex flex-col sm:flex-row gap-2">
-								<Button className="w-full sm:w-auto">
+								<Button 
+									className="w-full sm:w-auto"
+									onClick={() => setIsEditModalOpen(true)}
+								>
 									<Edit className="h-4 w-4" />
 									<span className="hidden sm:inline">Editar Equipamento</span>
 									<span className="sm:hidden">Editar</span>
 								</Button>
-								<Button variant="outline" className="w-full sm:w-auto">
+								<Button
+									variant="outline"
+									className="w-full sm:w-auto"
+									onClick={() => setIsMaintenanceModalOpen(true)}
+								>
 									<Wrench className="h-4 w-4" />
-									<span className="hidden sm:inline">Agendar Manutenção</span>
+									<span className="hidden sm:inline">Registrar Manutenção</span>
 									<span className="sm:hidden">Manutenção</span>
 								</Button>
 								<Button variant="outline" className="w-full sm:w-auto">
@@ -167,6 +178,45 @@ export function GymEquipmentDetail({
 					</div>
 				</SectionCard>
 			</SlideIn>
+
+			<MaintenanceModal
+				isOpen={isMaintenanceModalOpen}
+				onClose={() => setIsMaintenanceModalOpen(false)}
+				equipmentId={equipment.id}
+				onSuccess={(record) => {
+					// Update local equipment state to include new record and update date
+					const updatedRecords = [
+						{
+							...record,
+							date: new Date(record.date),
+							nextScheduled: record.nextScheduled ? new Date(record.nextScheduled) : null
+						}, 
+						...equipment.maintenanceHistory
+					];
+					// We need to update the parent state or local state. 
+					// Since equipment is a prop, we ideally should have an onUpdate prop, 
+					// but for now let's just force a refresh or assume the parent will handle re-fetching if we navigation back.
+					// However, to show immediate update we need local state.
+					// Let's assume we can't easily update prop. But wait, we can just display it if we had local state for equipment.
+					// For now, let's just close modal. The list will update on refresh.
+					// TO DO: Better state management here.
+					
+					// Actually, let's try to update the local display if we convert prop to state?
+					// But we are in detail view.
+				}}
+			/>
+
+			<AddEquipmentModal
+				isOpen={isEditModalOpen}
+				onClose={() => setIsEditModalOpen(false)}
+				onSuccess={(updatedEquipment) => {
+					// Aqui idealmente atualizaríamos o estado local ou chamaríamos onUpdate
+					// Como equipment vem de props, vamos confiar no refresh da página ou implementar refresh
+					setIsEditModalOpen(false);
+					// window.location.reload(); // Forçar reload simples por enquanto
+				}}
+				equipmentToEdit={equipment}
+			/>
 
 			{equipment.status === "in-use" && equipment.currentUser && (
 				<SlideIn delay={0.15}>

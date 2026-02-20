@@ -744,7 +744,72 @@ export async function getGymStudentById(studentId: string): Promise<StudentData 
 				autoRenew: membership.autoRenew,
 				benefits: [],
 			},
+			todayNutrition: undefined,
 		};
+
+		// Buscar nutrição de hoje
+		const startOfDay = new Date();
+		startOfDay.setHours(0, 0, 0, 0);
+		const endOfDay = new Date();
+		endOfDay.setHours(23, 59, 59, 999);
+
+		const todayNutrition = await db.dailyNutrition.findFirst({
+			where: {
+				studentId,
+				date: {
+					gte: startOfDay,
+					lte: endOfDay,
+				},
+			},
+			include: {
+				meals: {
+					include: {
+						foods: true,
+					},
+					orderBy: {
+						order: 'asc',
+					},
+				},
+			},
+		});
+
+		if (todayNutrition) {
+			studentData.todayNutrition = {
+				date: todayNutrition.date.toISOString(),
+				waterIntake: todayNutrition.waterIntake,
+				totalCalories: todayNutrition.meals.reduce((acc, m) => acc + m.calories, 0),
+				totalProtein: todayNutrition.meals.reduce((acc, m) => acc + m.protein, 0),
+				totalCarbs: todayNutrition.meals.reduce((acc, m) => acc + m.carbs, 0),
+				totalFats: todayNutrition.meals.reduce((acc, m) => acc + m.fats, 0),
+				targetCalories: profile?.targetCalories ?? 2000,
+				targetProtein: profile?.targetProtein ?? 150,
+				targetCarbs: profile?.targetCarbs ?? 200,
+				targetFats: profile?.targetFats ?? 60,
+				targetWater: 3000, // Default target
+				meals: todayNutrition.meals.map((meal) => ({
+					id: meal.id,
+					name: meal.name,
+					type: meal.type as any,
+					calories: meal.calories,
+					protein: meal.protein,
+					carbs: meal.carbs,
+					fats: meal.fats,
+					completed: meal.completed,
+					time: meal.time || undefined,
+					foods: meal.foods.map((food) => ({
+						id: food.id,
+						foodId: food.foodId || "",
+						foodName: food.foodName,
+						servings: food.servings,
+						calories: food.calories,
+						protein: food.protein,
+						carbs: food.carbs,
+						fats: food.fats,
+						servingSize: food.servingSize,
+					})),
+				})),
+			};
+		}
 	
 
 		return studentData;

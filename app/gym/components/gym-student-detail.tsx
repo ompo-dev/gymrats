@@ -508,51 +508,188 @@ export function GymStudentDetail({
 
 			{activeTab === "diet" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Plano de Dieta" icon={Apple}>
-						<div className="space-y-4">
-							<DuoCard variant="orange" size="default">
-								<p className="font-bold text-duo-text">Meta Calórica Diária</p>
-								<p className="text-3xl font-bold text-duo-orange">
-									{student.profile.targetCalories} kcal
-								</p>
-							</DuoCard>
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-								<DuoCard
-									variant="highlighted"
-									size="sm"
-									className="p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Proteína
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-green">
-										{student.profile.targetProtein}g
-									</p>
-								</DuoCard>
-								<DuoCard
-									variant="blue"
-									size="sm"
-									className="p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Carboidratos
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-blue">
-										{student.profile.targetCarbs || 250}g
-									</p>
-								</DuoCard>
-								<DuoCard
-									variant="default"
-									size="sm"
-									className="border-duo-purple bg-duo-purple/10 p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Gorduras
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-purple">
-										{student.profile.targetFats || 70}g
-									</p>
-								</DuoCard>
+					<SectionCard title="Nutrição e Dieta" icon={Apple}>
+						<div className="space-y-6">
+							{/* Targets vs Consumed */}
+							<div className="space-y-4">
+								<h3 className="font-bold text-duo-text">Resumo do Dia</h3>
+
+								{student.todayNutrition ? (
+									<>
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<DuoCard variant="default" size="default">
+												<div className="flex items-center justify-between mb-2">
+													<p className="font-bold text-duo-text">Calorias</p>
+													<p className="text-sm font-bold text-duo-gray-dark">
+														{student.todayNutrition.totalCalories} /{" "}
+														{student.profile.targetCalories} kcal
+													</p>
+												</div>
+												<div className="h-4 overflow-hidden rounded-full bg-gray-200">
+													<div
+														className="h-full bg-duo-orange"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalCalories /
+																	(student.profile.targetCalories || 2000)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+
+											<DuoCard variant="blue" size="default">
+												<div className="flex items-center justify-between mb-2">
+													<p className="font-bold text-duo-gray-dark">Água</p>
+													<p className="text-sm font-bold text-duo-blue">
+														{student.todayNutrition.waterIntake} / 3000 ml
+													</p>
+												</div>
+												<div className="h-4 overflow-hidden rounded-full bg-blue-200">
+													<div
+														className="h-full bg-duo-blue"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.waterIntake / 3000) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+										</div>
+
+										<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+											<DuoCard variant="highlighted" size="sm" className="p-3">
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Proteína
+												</p>
+												<p className="text-lg font-bold text-duo-green">
+													{student.todayNutrition.totalProtein.toFixed(0)} /{" "}
+													{student.profile.targetProtein}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
+													<div
+														className="h-full bg-duo-green"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalProtein /
+																	(student.profile.targetProtein || 150)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+											<DuoCard variant="blue" size="sm" className="p-3">
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Carboidratos
+												</p>
+												<p className="text-lg font-bold text-duo-blue">
+													{student.todayNutrition.totalCarbs.toFixed(0)} /{" "}
+													{student.profile.targetCarbs}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-blue-100">
+													<div
+														className="h-full bg-duo-blue"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalCarbs /
+																	(student.profile.targetCarbs || 250)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+											<DuoCard
+												variant="default"
+												size="sm"
+												className="border-duo-purple bg-duo-purple/10 p-3"
+											>
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Gorduras
+												</p>
+												<p className="text-lg font-bold text-duo-purple">
+													{student.todayNutrition.totalFats.toFixed(0)} /{" "}
+													{student.profile.targetFats}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-purple-100">
+													<div
+														className="h-full bg-duo-purple"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalFats /
+																	(student.profile.targetFats || 70)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+										</div>
+
+										<h3 className="font-bold text-duo-text mt-4">Refeições</h3>
+										<div className="space-y-3">
+											{student.todayNutrition.meals.map((meal) => (
+												<DuoCard
+													key={meal.id}
+													variant="default"
+													size="default"
+												>
+													<div className="flex items-center justify-between mb-2">
+														<div>
+															<p className="font-bold text-duo-text capitalize">
+																{meal.name}
+															</p>
+															<p className="text-xs text-duo-gray-dark">
+																{meal.time || "Sem horário"}
+															</p>
+														</div>
+														<p className="font-bold text-duo-orange">
+															{meal.calories} kcal
+														</p>
+													</div>
+													{meal.foods && meal.foods.length > 0 && (
+														<div className="space-y-1 pl-2 border-l-2 border-gray-100">
+															{meal.foods.map((food, idx) => (
+																<div
+																	// biome-ignore lint/suspicious/noArrayIndexKey: simple list
+																	key={idx}
+																	className="flex justify-between text-xs text-duo-gray-dark"
+																>
+																	<span>
+																		{food.servings}x {food.foodName}
+																	</span>
+																	<span>{food.calories} kcal</span>
+																</div>
+															))}
+														</div>
+													)}
+												</DuoCard>
+											))}
+										</div>
+									</>
+								) : (
+									<div className="text-center py-8">
+										<Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+										<p className="font-bold text-duo-gray-dark">
+											Nenhum registro de nutrição hoje
+										</p>
+										<p className="mt-1 text-sm text-duo-gray-dark">
+											As metas do plano são: {student.profile.targetCalories}{" "}
+											kcal, {student.profile.targetProtein}g Proteína,{" "}
+											{student.profile.targetCarbs}g Carboidratos,{" "}
+											{student.profile.targetFats}g Gorduras.
+										</p>
+									</div>
+								)}
 							</div>
 						</div>
 					</SectionCard>
