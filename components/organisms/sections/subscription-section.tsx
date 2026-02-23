@@ -6,7 +6,7 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
-import { PaymentModal } from "./subscription/payment-modal";
+import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
@@ -107,11 +107,9 @@ export function SubscriptionSection({
 	const {
 		selectedPlan,
 		selectedBillingPeriod,
-		showPaymentModal,
 		isProcessingPayment,
 		setSelectedPlan,
 		setSelectedBillingPeriod,
-		setShowPaymentModal,
 		setIsProcessingPayment,
 		initializeFromSubscription,
 	} = useSubscriptionUIStore();
@@ -248,74 +246,41 @@ export function SubscriptionSection({
 		? getAnnualDiscount(selectedPlanData.id)
 		: 10;
 
-	const handleSubscribe = async () => {
-		if (!selectedPlanData) return;
-		setShowPaymentModal(true);
-	};
-
 	const { toast } = useToast();
-	const { updateSubscription } = useStudent("actions");
 
-	const handleConfirmPayment = async () => {
+	const handleSubscribe = async () => {
 		if (!selectedPlanData) return;
 
 		setIsProcessingPayment(true);
 		try {
-			// Chamar API para ativar premium automaticamente (sem billing real)
-			const response = await apiClient.post<{
-				subscription: any;
-				message: string;
-			}>("/api/subscriptions/activate-premium", {
-				billingPeriod: selectedBillingPeriod,
-			});
+			console.log("[Subscription] Iniciando checkout para:", selectedPlanData.id, selectedBillingPeriod);
+			const result = await createAbacateBilling(
+				selectedPlanData.id,
+				selectedBillingPeriod,
+			);
 
-			// Optimistic update no store com dados da API
-			if (response.data.subscription) {
-				const subscriptionData = response.data.subscription;
-				await updateSubscription({
-					id: subscriptionData.id,
-					plan: subscriptionData.plan,
-					status: subscriptionData.status,
-					currentPeriodStart: new Date(subscriptionData.currentPeriodStart),
-					currentPeriodEnd: new Date(subscriptionData.currentPeriodEnd),
-					trialStart: subscriptionData.trialStart
-						? new Date(subscriptionData.trialStart)
-						: null,
-					trialEnd: subscriptionData.trialEnd
-						? new Date(subscriptionData.trialEnd)
-						: null,
-					canceledAt: subscriptionData.canceledAt
-						? new Date(subscriptionData.canceledAt)
-						: null,
-					cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd || false,
-				});
+			if (result && result.url) {
+				// Redirecionar para o Abacate Pay
+				window.location.href = result.url;
+			} else {
+				throw new Error("URL de checkout não recebida do servidor.");
 			}
-
-			// Fechar modal
-			setShowPaymentModal(false);
-
-			// Mostrar toast de sucesso
-			toast({
-				title: "Premium ativado!",
-				description: "Sua assinatura premium foi ativada com sucesso.",
-			});
 		} catch (error: any) {
-			console.error("Erro ao processar pagamento:", error);
+			console.error("[Subscription] Erro no checkout:", error);
+			
+			// Usar toast do hook
 			toast({
 				variant: "destructive",
-				title: "Erro ao ativar premium",
+				title: "Erro ao iniciar checkout",
 				description:
-					error.response?.data?.message ||
-					"Erro ao processar pagamento. Tente novamente.",
+					error.message ||
+					"Erro ao processar checkout com Abacate Pay. Verifique se a sua sessão está ativa.",
 			});
 		} finally {
 			setIsProcessingPayment(false);
 		}
 	};
 
-	const handleClosePaymentModal = (open: boolean) => {
-		setShowPaymentModal(open);
-	};
 
 	return (
 		<div className="space-y-4">
@@ -401,16 +366,6 @@ export function SubscriptionSection({
 				/>
 			)}
 
-			{/* Payment Modal */}
-			<PaymentModal
-				open={showPaymentModal}
-				onOpenChange={handleClosePaymentModal}
-				selectedPlan={selectedPlanData}
-				billingPeriod={selectedBillingPeriod}
-				displayPrice={displayPrice}
-				onConfirm={handleConfirmPayment}
-				isProcessing={isProcessingPayment}
-			/>
 		</div>
 	);
 }
