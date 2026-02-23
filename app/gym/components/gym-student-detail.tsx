@@ -5,13 +5,16 @@ import {
 	AlertCircle,
 	Apple,
 	ArrowLeft,
+	Ban,
 	Calendar,
 	CheckCircle,
 	DollarSign,
 	Dumbbell,
 	Edit,
 	Flame,
+	Loader2,
 	Mail,
+	PauseCircle,
 	Phone,
 	Target,
 	TrendingUp,
@@ -45,6 +48,29 @@ export function GymStudentDetail({
 }: GymStudentDetailProps) {
 	const [studentPayments, setStudentPayments] = useState(payments);
 	const [activeTab, setActiveTab] = useState("overview");
+	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");
+
+	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
+	const handleMembershipAction = async (
+		action: "suspended" | "canceled" | "active",
+	) => {
+		const membershipId = student?.gymMembership?.id;
+		if (!membershipId) return;
+		setIsUpdatingStatus(true);
+		try {
+			const res = await fetch(`/api/gyms/members/${membershipId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ status: action }),
+			});
+			if (res.ok) {
+				setMembershipStatus(action);
+			}
+		} finally {
+			setIsUpdatingStatus(false);
+		}
+	};
 
 	if (!student) {
 		return (
@@ -61,19 +87,42 @@ export function GymStudentDetail({
 		);
 	}
 
-	const togglePaymentStatus = (paymentId: string) => {
+	const togglePaymentStatus = async (paymentId: string) => {
+		const payment = studentPayments.find((p) => p.id === paymentId);
+		if (!payment) return;
+
+		const newStatus = payment.status === "paid" ? "pending" : "paid";
+
+		// Optimistic update
 		setStudentPayments((prev) =>
-			prev.map((p) => {
-				if (p.id === paymentId) {
-					return {
-						...p,
-						status: p.status === "paid" ? "pending" : "paid",
-						date: p.status === "paid" ? p.date : new Date(),
-					};
-				}
-				return p;
-			}),
+			prev.map((p) =>
+				p.id === paymentId
+					? { ...p, status: newStatus, date: newStatus === "paid" ? new Date() : p.date }
+					: p
+			)
 		);
+
+		try {
+			const res = await fetch(`/api/gyms/payments/${paymentId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ status: newStatus }),
+			});
+
+			if (!res.ok) {
+				// Revert if failed
+				setStudentPayments((prev) =>
+					prev.map((p) => (p.id === paymentId ? payment : p))
+				);
+				console.error("Falha ao atualizar pagamento");
+			}
+		} catch (error) {
+			console.error("Erro ao atualizar pagamento:", error);
+			// Revert if error
+			setStudentPayments((prev) =>
+				prev.map((p) => (p.id === paymentId ? payment : p))
+			);
+		}
 	};
 
 	const tabOptions = [
@@ -155,6 +204,58 @@ export function GymStudentDetail({
 									<Apple className="h-4 w-4" />
 									Atribuir Dieta
 								</Button>
+								{/* Botões de gestão de matrícula */}
+								{student.gymMembership?.id && (
+									<>
+										{membershipStatus === "active" ? (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-amber-300 text-amber-700 hover:bg-amber-50"
+												onClick={() => handleMembershipAction("suspended")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<PauseCircle className="h-4 w-4" />
+												)}
+												Suspender
+											</Button>
+										) : membershipStatus === "suspended" ? (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-green-300 text-green-700 hover:bg-green-50"
+												onClick={() => handleMembershipAction("active")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<CheckCircle className="h-4 w-4" />
+												)}
+												Reativar
+											</Button>
+										) : null}
+										{membershipStatus !== "canceled" && (
+											<Button
+												size="sm"
+												variant="outline"
+												className="flex-1 sm:flex-initial border-red-300 text-red-700 hover:bg-red-50"
+												onClick={() => handleMembershipAction("canceled")}
+												disabled={isUpdatingStatus}
+											>
+												{isUpdatingStatus ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<Ban className="h-4 w-4" />
+												)}
+												Cancelar Matrícula
+											</Button>
+										)}
+									</>
+								)}
 							</div>
 						</div>
 					</div>
@@ -281,7 +382,7 @@ export function GymStudentDetail({
 							className="lg:col-span-2"
 						>
 							<div className="space-y-2">
-								{student.weightHistory.map((record) => (
+								{student.weightHistory.map((record, whIdx) => (
 									<DuoCard
 										key={`${record.date.toISOString()}-${record.weight}`}
 										variant="default"
@@ -298,19 +399,18 @@ export function GymStudentDetail({
 												<span className="text-xl sm:text-2xl font-bold text-duo-blue">
 													{record.weight}kg
 												</span>
-												{student.weightHistory.indexOf(record) <
-													student.weightHistory.length - 1 && (
+												{whIdx < student.weightHistory.length - 1 && (
 													<div className="flex items-center gap-1">
 														{record.weight <
 														student.weightHistory[
-															student.weightHistory.indexOf(record) + 1
+															whIdx + 1
 														].weight ? (
 															<>
 																<TrendingUp className="h-4 w-4 text-duo-red shrink-0" />
 																<span className="text-xs sm:text-sm font-bold text-duo-red whitespace-nowrap">
 																	+
 																	{(
-																		student.weightHistory[index + 1].weight -
+																		student.weightHistory[whIdx + 1].weight -
 																		record.weight
 																	).toFixed(1)}
 																	kg
@@ -322,7 +422,7 @@ export function GymStudentDetail({
 																<span className="text-xs sm:text-sm font-bold text-duo-green whitespace-nowrap">
 																	{(
 																		record.weight -
-																		student.weightHistory[index + 1].weight
+																		student.weightHistory[whIdx + 1].weight
 																	).toFixed(1)}
 																	kg
 																</span>
@@ -343,60 +443,253 @@ export function GymStudentDetail({
 			{activeTab === "workouts" && (
 				<SlideIn delay={0.4}>
 					<SectionCard title="Histórico de Treinos" icon={Dumbbell}>
-						<p className="text-duo-gray-dark">
-							Implementação do histórico de treinos em desenvolvimento...
-						</p>
+						{student.workoutHistory.length === 0 ? (
+							<DuoCard variant="default" size="default" className="p-8 text-center">
+								<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+								<p className="font-bold text-duo-gray-dark">Nenhum treino registrado ainda</p>
+								<p className="mt-1 text-sm text-duo-gray-dark">
+									Os treinos do aluno aparecerão aqui assim que forem completados.
+								</p>
+							</DuoCard>
+						) : (
+							<div className="space-y-3">
+								{student.workoutHistory.map((wh, idx) => (
+									<DuoCard
+										key={`wh-${idx}-${wh.date.toISOString()}`}
+										variant="default"
+										size="default"
+									>
+										<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+											<div className="flex-1 min-w-0">
+												<p className="font-bold text-duo-text text-sm sm:text-base">
+													{wh.workoutName || "Treino"}
+												</p>
+												<p className="text-xs text-duo-gray-dark mt-0.5">
+													{new Date(wh.date).toLocaleDateString("pt-BR")}
+												</p>
+											</div>
+											<div className="flex gap-4 text-sm">
+												<span className="flex items-center gap-1 text-duo-blue font-bold">
+													<Activity className="h-3.5 w-3.5" />
+													{wh.duration} min
+												</span>
+												{wh.totalVolume > 0 && (
+													<span className="flex items-center gap-1 text-duo-green font-bold">
+														<TrendingUp className="h-3.5 w-3.5" />
+														{wh.totalVolume.toFixed(0)} kg
+													</span>
+												)}
+											</div>
+										</div>
+										{wh.exercises.length > 0 && (
+											<div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+												{wh.exercises.slice(0, 3).map((ex) => (
+													<p
+														key={ex.id}
+														className="text-xs text-duo-gray-dark"
+													>
+														• {ex.exerciseName}
+													</p>
+												))}
+												{wh.exercises.length > 3 && (
+													<p className="text-xs text-duo-gray-dark">
+														e mais {wh.exercises.length - 3} exercício(s)...
+													</p>
+												)}
+											</div>
+										)}
+									</DuoCard>
+								))}
+							</div>
+						)}
 					</SectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "diet" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Plano de Dieta" icon={Apple}>
-						<div className="space-y-4">
-							<DuoCard variant="orange" size="default">
-								<p className="font-bold text-duo-text">Meta Calórica Diária</p>
-								<p className="text-3xl font-bold text-duo-orange">
-									{student.profile.targetCalories} kcal
-								</p>
-							</DuoCard>
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-								<DuoCard
-									variant="highlighted"
-									size="sm"
-									className="p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Proteína
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-green">
-										{student.profile.targetProtein}g
-									</p>
-								</DuoCard>
-								<DuoCard
-									variant="blue"
-									size="sm"
-									className="p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Carboidratos
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-blue">
-										{student.profile.targetCarbs || 250}g
-									</p>
-								</DuoCard>
-								<DuoCard
-									variant="default"
-									size="sm"
-									className="border-duo-purple bg-duo-purple/10 p-3 sm:p-4 text-center"
-								>
-									<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-										Gorduras
-									</p>
-									<p className="text-xl sm:text-2xl font-bold text-duo-purple">
-										{student.profile.targetFats || 70}g
-									</p>
-								</DuoCard>
+					<SectionCard title="Nutrição e Dieta" icon={Apple}>
+						<div className="space-y-6">
+							{/* Targets vs Consumed */}
+							<div className="space-y-4">
+								<h3 className="font-bold text-duo-text">Resumo do Dia</h3>
+
+								{student.todayNutrition ? (
+									<>
+										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<DuoCard variant="default" size="default">
+												<div className="flex items-center justify-between mb-2">
+													<p className="font-bold text-duo-text">Calorias</p>
+													<p className="text-sm font-bold text-duo-gray-dark">
+														{student.todayNutrition.totalCalories} /{" "}
+														{student.profile.targetCalories} kcal
+													</p>
+												</div>
+												<div className="h-4 overflow-hidden rounded-full bg-gray-200">
+													<div
+														className="h-full bg-duo-orange"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalCalories /
+																	(student.profile.targetCalories || 2000)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+
+											<DuoCard variant="blue" size="default">
+												<div className="flex items-center justify-between mb-2">
+													<p className="font-bold text-duo-gray-dark">Água</p>
+													<p className="text-sm font-bold text-duo-blue">
+														{student.todayNutrition.waterIntake} / 3000 ml
+													</p>
+												</div>
+												<div className="h-4 overflow-hidden rounded-full bg-blue-200">
+													<div
+														className="h-full bg-duo-blue"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.waterIntake / 3000) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+										</div>
+
+										<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+											<DuoCard variant="highlighted" size="sm" className="p-3">
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Proteína
+												</p>
+												<p className="text-lg font-bold text-duo-green">
+													{student.todayNutrition.totalProtein.toFixed(0)} /{" "}
+													{student.profile.targetProtein}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
+													<div
+														className="h-full bg-duo-green"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalProtein /
+																	(student.profile.targetProtein || 150)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+											<DuoCard variant="blue" size="sm" className="p-3">
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Carboidratos
+												</p>
+												<p className="text-lg font-bold text-duo-blue">
+													{student.todayNutrition.totalCarbs.toFixed(0)} /{" "}
+													{student.profile.targetCarbs}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-blue-100">
+													<div
+														className="h-full bg-duo-blue"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalCarbs /
+																	(student.profile.targetCarbs || 250)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+											<DuoCard
+												variant="default"
+												size="sm"
+												className="border-duo-purple bg-duo-purple/10 p-3"
+											>
+												<p className="text-xs font-bold text-duo-gray-dark mb-1">
+													Gorduras
+												</p>
+												<p className="text-lg font-bold text-duo-purple">
+													{student.todayNutrition.totalFats.toFixed(0)} /{" "}
+													{student.profile.targetFats}g
+												</p>
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-purple-100">
+													<div
+														className="h-full bg-duo-purple"
+														style={{
+															width: `${Math.min(
+																(student.todayNutrition.totalFats /
+																	(student.profile.targetFats || 70)) *
+																	100,
+																100,
+															)}%`,
+														}}
+													/>
+												</div>
+											</DuoCard>
+										</div>
+
+										<h3 className="font-bold text-duo-text mt-4">Refeições</h3>
+										<div className="space-y-3">
+											{student.todayNutrition.meals.map((meal) => (
+												<DuoCard
+													key={meal.id}
+													variant="default"
+													size="default"
+												>
+													<div className="flex items-center justify-between mb-2">
+														<div>
+															<p className="font-bold text-duo-text capitalize">
+																{meal.name}
+															</p>
+															<p className="text-xs text-duo-gray-dark">
+																{meal.time || "Sem horário"}
+															</p>
+														</div>
+														<p className="font-bold text-duo-orange">
+															{meal.calories} kcal
+														</p>
+													</div>
+													{meal.foods && meal.foods.length > 0 && (
+														<div className="space-y-1 pl-2 border-l-2 border-gray-100">
+															{meal.foods.map((food, idx) => (
+																<div
+																	// biome-ignore lint/suspicious/noArrayIndexKey: simple list
+																	key={idx}
+																	className="flex justify-between text-xs text-duo-gray-dark"
+																>
+																	<span>
+																		{food.servings}x {food.foodName}
+																	</span>
+																	<span>{food.calories} kcal</span>
+																</div>
+															))}
+														</div>
+													)}
+												</DuoCard>
+											))}
+										</div>
+									</>
+								) : (
+									<div className="text-center py-8">
+										<Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+										<p className="font-bold text-duo-gray-dark">
+											Nenhum registro de nutrição hoje
+										</p>
+										<p className="mt-1 text-sm text-duo-gray-dark">
+											As metas do plano são: {student.profile.targetCalories}{" "}
+											kcal, {student.profile.targetProtein}g Proteína,{" "}
+											{student.profile.targetCarbs}g Carboidratos,{" "}
+											{student.profile.targetFats}g Gorduras.
+										</p>
+									</div>
+								)}
 							</div>
 						</div>
 					</SectionCard>

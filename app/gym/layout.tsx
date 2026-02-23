@@ -12,10 +12,10 @@ async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
 	return (
 		<GymLayoutContent
 			initialStats={{
-				streak: profile.gamification.currentStreak,
-				xp: profile.gamification.xp,
-				level: profile.gamification.level,
-				ranking: profile.gamification.ranking,
+				streak: profile?.gamification?.currentStreak ?? 0,
+				xp: profile?.gamification?.xp ?? 0,
+				level: profile?.gamification?.level ?? 1,
+				ranking: profile?.gamification?.ranking ?? 0,
 			}}
 		>
 			{children}

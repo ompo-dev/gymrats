@@ -7,13 +7,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
-import {
-	mockCoupons,
-	mockExpenses,
-	mockPayments,
-	mockReferrals,
-} from "@/lib/gym-mock-data";
-import type { FinancialSummary } from "@/lib/types";
+import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 import { FinancialCouponsTab } from "./financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "./financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "./financial/financial-overview-tab";
@@ -22,19 +16,19 @@ import { FinancialReferralsTab } from "./financial/financial-referrals-tab";
 import { FinancialSubscriptionTab } from "./financial/financial-subscription-tab";
 
 interface GymFinancialPageProps {
-	financialSummary: FinancialSummary;
-	payments?: typeof mockPayments;
-	coupons?: typeof mockCoupons;
-	referrals?: typeof mockReferrals;
-	expenses?: typeof mockExpenses;
+	financialSummary: FinancialSummary | null;
+	payments?: Payment[];
+	coupons?: never[];
+	referrals?: never[];
+	expenses?: Expense[];
 }
 
 export function GymFinancialPage({
 	financialSummary,
-	payments = mockPayments,
-	coupons = mockCoupons,
-	referrals = mockReferrals,
-	expenses = mockExpenses,
+	payments = [],
+	coupons = [],
+	referrals = [],
+	expenses = [],
 }: GymFinancialPageProps) {
 	const [subTab, setSubTab] = useQueryState(
 		"subTab",
@@ -110,7 +104,7 @@ export function GymFinancialPage({
 				</SectionCard>
 			</SlideIn>
 
-			{viewMode === "overview" && (
+			{viewMode === "overview" && financialSummary && (
 				<SlideIn delay={0.2}>
 					<FinancialOverviewTab
 						financialSummary={financialSummary}

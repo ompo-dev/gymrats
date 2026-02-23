@@ -24,6 +24,11 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 			}
 		>
 			<div className="space-y-3">
+				{expenses.length === 0 && (
+					<p className="py-8 text-center text-sm text-duo-gray-dark">
+						Nenhuma despesa registrada.
+					</p>
+				)}
 				{expenses.map((expense) => (
 					<DuoCard key={expense.id} variant="default" size="default">
 						<div className="mb-3 flex items-start justify-between">

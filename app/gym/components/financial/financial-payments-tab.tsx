@@ -49,6 +49,11 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 			}
 		>
 			<div className="space-y-3">
+				{payments.length === 0 && (
+					<p className="py-8 text-center text-sm text-duo-gray-dark">
+						Nenhum pagamento registrado.
+					</p>
+				)}
 				{payments.map((payment) => (
 					<DuoCard key={payment.id} variant="default" size="default">
 						<div className="mb-3 flex items-start justify-between">

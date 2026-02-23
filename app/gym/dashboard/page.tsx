@@ -17,6 +17,8 @@ export default async function DashboardPage() {
 			getGymRecentCheckIns(),
 		]);
 
+	if (!profile || !stats) return null;
+
 	return (
 		<GymDashboardPage
 			profile={profile}

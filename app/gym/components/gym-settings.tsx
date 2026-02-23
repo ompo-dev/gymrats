@@ -5,16 +5,13 @@ import {
 	Bell,
 	Building2,
 	Clock,
-	CreditCard,
 	Edit2,
 	FileText,
 	LogOut,
 	Mail,
 	MapPin,
 	Phone,
-	Plus,
 	Shield,
-	Trash2,
 	Users,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -25,31 +22,29 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { SectionCard } from "@/components/ui/section-card";
 import { useUserSession } from "@/hooks/use-user-session";
-import { mockMembershipPlans } from "@/lib/gym-mock-data";
-import type { GymProfile } from "@/lib/types";
+import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { MembershipPlansPage } from "./membership-plans-page";
 
-// Nota: useUserSession foi removido - usando apenas dados do servidor (SSR)
 interface GymSettingsPageProps {
 	profile: GymProfile;
+	plans: MembershipPlan[]; // Recebe planos reais
 	userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 export function GymSettingsPage({
 	profile,
+	plans, // Recebe planos reais
 	userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
 	const router = useRouter();
 
-	// ✅ SEGURO: Usar hook que valida no servidor
 	const {
 		isAdmin: serverIsAdmin,
 		role: serverRole,
 		isLoading: _sessionLoading,
 	} = useUserSession();
 
-	// ✅ SEGURANÇA: Usar dados do servidor como fonte da verdade
-	// Nunca confiar apenas em userInfo prop ou localStorage (podem ser modificados)
 	const isAdmin = serverIsAdmin || serverRole === "ADMIN";
 	const operatingHours = [
 		{ day: "Segunda a Sexta", hours: "06:00 - 22:00" },
@@ -59,7 +54,6 @@ export function GymSettingsPage({
 
 	const handleLogout = async () => {
 		try {
-			// Usar axios client (API → Component)
 			const { apiClient } = await import("@/lib/api/client");
 			await apiClient.post("/api/auth/sign-out");
 
@@ -75,7 +69,7 @@ export function GymSettingsPage({
 	};
 
 	return (
-		<div className="mx-auto max-w-4xl space-y-6  ">
+		<div className="mx-auto max-w-4xl space-y-6">
 			<FadeIn>
 				<div className="text-center">
 					<h1 className="mb-2 text-3xl font-bold text-duo-text">
@@ -148,7 +142,7 @@ export function GymSettingsPage({
 					}
 				>
 					<div className="space-y-3">
-						{operatingHours.map((schedule, _index) => (
+						{operatingHours.map((schedule) => (
 							<DuoCard key={schedule.day} variant="default" size="sm">
 								<div className="flex items-center justify-between">
 									<span className="text-sm font-bold text-duo-text">
@@ -164,57 +158,9 @@ export function GymSettingsPage({
 				</SectionCard>
 			</SlideIn>
 
+			{/* Seção de Planos - Agora usa o componente real */}
 			<SlideIn delay={0.3}>
-				<SectionCard
-					title="Planos de Assinatura"
-					icon={CreditCard}
-					variant="highlighted"
-					headerAction={
-						<Button size="sm" variant="outline">
-							<Plus className="h-4 w-4" />
-						</Button>
-					}
-				>
-					<div className="space-y-3">
-						{mockMembershipPlans.slice(0, 4).map((plan, index) => (
-							<motion.div
-								key={plan.id}
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: index * 0.05, duration: 0.4 }}
-							>
-								<DuoCard variant="default" size="default">
-									<div className="mb-2 flex items-start justify-between">
-										<div>
-											<div className="text-sm font-bold text-duo-text">
-												{plan.name}
-											</div>
-											<div className="text-xs text-duo-gray-dark">
-												{plan.duration} dias
-											</div>
-										</div>
-										<div className="text-right">
-											<div className="text-lg font-bold text-duo-green">
-												R$ {plan.price}
-											</div>
-											<div className="text-xs text-duo-gray-dark">
-												{plan.type === "monthly" ? "/mês" : "total"}
-											</div>
-										</div>
-									</div>
-									<div className="flex gap-2">
-										<Button size="sm" variant="outline" className="flex-1">
-											Editar
-										</Button>
-										<Button size="sm" variant="destructive">
-											<Trash2 className="h-3 w-3" />
-										</Button>
-									</div>
-								</DuoCard>
-							</motion.div>
-						))}
-					</div>
-				</SectionCard>
+				<MembershipPlansPage plans={plans} />
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
@@ -289,7 +235,6 @@ export function GymSettingsPage({
 			<SlideIn delay={0.5}>
 				<SectionCard title="Conta" icon={Shield}>
 					<div className="space-y-3">
-						{/* Verificar todas as fontes possíveis para garantir que funcione */}
 						{(isAdmin || userInfo?.role === "ADMIN") && (
 							<DuoCard
 								variant="default"

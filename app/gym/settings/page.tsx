@@ -5,5 +5,7 @@ export default async function SettingsPage() {
 	const profile = await getGymProfile();
 	const userInfo = await getCurrentUserInfo();
 
+	if (!profile) return null;
+
 	return <GymSettingsPage profile={profile} userInfo={userInfo} />;
 }
