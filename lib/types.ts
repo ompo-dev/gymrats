@@ -54,6 +54,7 @@ export interface WorkoutExercise {
 	order?: number; // Ordem do exercício no workout
 	createdAt?: Date | string; // Data de criação
 	updatedAt?: Date | string; // Data de atualização
+	educationSlug?: string; // Slug para busca no banco educacional
 }
 
 // Sessão de treino (equivalente a uma "lição" do Duolingo)
