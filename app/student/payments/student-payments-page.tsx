@@ -83,15 +83,12 @@ export function StudentPaymentsPage({
 	} = useStudent("subscription", "memberships", "payments", "paymentMethods");
 
 	const {
-		subscription: subscriptionData,
-		isLoading: isLoadingSubscription,
+		isLoading: isLoadingSubscriptionHook,
 		startTrial: startTrialHook,
 		isStartingTrial,
 		createSubscription: _createSubscription,
 		isCreatingSubscription,
-		cancelSubscription,
-		isCancelingSubscription,
-		refetch: refetchSubscription,
+		isCancelingSubscription: isCancelingSubscriptionHook,
 	} = useSubscription({
 		includeDaysRemaining: true,
 		includeTrialInfo: true,
@@ -110,35 +107,14 @@ export function StudentPaymentsPage({
 		}
 	}, [subTab]);
 
-	// Usar subscription do store unificado com fallback
-	const hasOptimisticUpdate = storeSubscription?.id === "temp-trial-id";
+	// Usar apenas subscription do store unificado
+	const subscription: SubscriptionData | null = storeSubscription || initialSubscription || null;
 
-	const subscription: SubscriptionData | null = hasOptimisticUpdate
-		? storeSubscription
-		: storeSubscription !== null && storeSubscription !== undefined
-			? storeSubscription
-			: subscriptionData !== undefined && subscriptionData !== null
-				? subscriptionData
-				: subscriptionData === null && initialSubscription
-					? initialSubscription
-					: subscriptionData === null
-						? null
-						: initialSubscription || null;
-
-	// Atualizar daysRemaining quando subscription mudar
-	useEffect(() => {
-		if (
-			subscription?.daysRemaining !== null &&
-			subscription?.daysRemaining !== undefined
-		) {
-			setDaysRemaining(subscription.daysRemaining);
-		}
-	}, [subscription?.daysRemaining]);
 	const isLoading =
-		isLoadingSubscription ||
+		isLoadingSubscriptionHook ||
 		isStartingTrial ||
 		isCreatingSubscription ||
-		isCancelingSubscription;
+		isCancelingSubscriptionHook;
 	const [_daysRemaining, setDaysRemaining] = useState<number | null>(
 		subscription?.daysRemaining ?? null,
 	);
@@ -167,8 +143,7 @@ export function StudentPaymentsPage({
 	}, [subscription?.trialEnd, subscription?.daysRemaining]);
 
 	// Carregar dados do store ao montar
-	const actions = useStudent("actions");
-	const { updateSubscription } = actions;
+	const { updateSubscription, cancelSubscription: cancelSubscriptionStore } = useStudent("actions");
 
 	// NOTA: Não precisamos carregar manualmente aqui porque:
 	// - useLoadPrioritized({ context: "payments" }) já carrega subscription, payments, paymentMethods, memberships
@@ -216,8 +191,7 @@ export function StudentPaymentsPage({
 	const isLoadingPaymentMethods = !storePaymentMethods;
 
 	// Carregar loaders apenas para refetchPaymentMethods se necessário
-	const loaders = useStudent("loaders");
-	const { loadPaymentMethods } = loaders;
+	const { loadPaymentMethods, loadSubscription } = useStudent("loaders");
 
 	const _refetchPaymentMethods = async () => {
 		await loadPaymentMethods();
@@ -243,7 +217,8 @@ export function StudentPaymentsPage({
 
 			if (result.error) {
 				if (result.error.includes("já existe")) {
-					await refetchSubscription();
+					// Recarregar via store
+					await loadSubscription();
 					setActiveTab("subscription");
 					setSubTab("subscription");
 					toast({
@@ -354,10 +329,9 @@ export function StudentPaymentsPage({
 
 	const handleCancelConfirm = async () => {
 		cancelDialogModal.close();
-		// O hook já faz o update otimista no Zustand e React Query antes de chamar o backend
-		// A UI já está atualizada instantaneamente
+		// O hook agora usa o cancelSubscription do store unificado
 		try {
-			const result = await cancelSubscription();
+			const result = await cancelSubscriptionStore();
 			if (!result.success && result.error) {
 				toast({
 					variant: "destructive",
@@ -394,7 +368,7 @@ export function StudentPaymentsPage({
 		!hasTrial;
 	// Considerar que não há subscription apenas se não estiver carregando e realmente não houver subscription
 	const _hasNoSubscription =
-		!isLoadingSubscription && !isStartingTrial && !subscription;
+		!isLoadingSubscriptionHook && !isStartingTrial && !subscription;
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
@@ -687,14 +661,28 @@ export function StudentPaymentsPage({
 					isLoading={isLoading}
 					isStartingTrial={isStartingTrial}
 					isCreatingSubscription={isCreatingSubscription}
-					isCancelingSubscription={isCancelingSubscription}
+					isCancelingSubscription={isCancelingSubscriptionHook}
 					onStartTrial={handleStartTrial}
 					onSubscribe={handleUpgrade}
 					onCancel={handleCancelConfirm}
 					plans={[
 						{
-							id: "premium",
-							name: "Premium",
+							id: "premium-monthly",
+							name: "Premium Mensal",
+							monthlyPrice: 15,
+							annualPrice: 150.0,
+							features: [
+								"Gerador de treinos com IA",
+								"Gerador de dietas com IA",
+								"Análise de postura avançada",
+								"Coach pessoal virtual",
+								"Consultoria nutricional",
+								"Relatórios avançados",
+							],
+						},
+						{
+							id: "premium-annual",
+							name: "Premium Anual",
 							monthlyPrice: 15,
 							annualPrice: 150.0,
 							features: [
@@ -722,7 +710,7 @@ export function StudentPaymentsPage({
 				}}
 				onConfirm={handleCancelConfirm}
 				isTrial={!!isTrialActive}
-				isLoading={isCancelingSubscription}
+				isLoading={isCancelingSubscriptionHook}
 			/>
 		</div>
 	);

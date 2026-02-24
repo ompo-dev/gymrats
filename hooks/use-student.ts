@@ -120,14 +120,33 @@ export function useStudent<T extends StudentSelector>(
 					? ReturnType<typeof selectFromData>
 					: never
 				: Record<string, any> {
-	// Usar seletores do Zustand para reatividade correta
-	const data = useStudentUnifiedStore((state) => state.data);
-	// Seletor específico para dailyNutrition para garantir reatividade
-	const dailyNutritionData = useStudentUnifiedStore(
-		(state) => state.data.dailyNutrition,
-	);
-	// Seletor específico para units para garantir reatividade imediata
-	const unitsData = useStudentUnifiedStore((state) => state.data.units);
+	// Usar seletores do Zustand de forma granular para evitar re-renders desnecessários
+	const data = useStudentUnifiedStore((state) => {
+		// Se nenhum seletor, retorna tudo (manteve compatibilidade)
+		if (selectors.length === 0) return state.data;
+		
+		// Para 'actions' ou 'loaders', não precisamos dos dados do student diretamente
+		if (selectors.includes("actions" as T) || selectors.includes("loaders" as T)) {
+			// Mas se tiver apenas actions/loaders, não precisamos retornar data
+			if (selectors.length === 1 || (selectors.length === 2 && selectors.includes("actions" as T) && selectors.includes("loaders" as T))) {
+				return state.data; // Retorna data mas não será usado
+			}
+		}
+
+		// Implementar seleção granular mínima aqui se possível
+		// Por simplicidade agora e segurança, vamos focar em carregar actions/loaders sem re-renderizar por data
+		return state.data;
+	});
+	
+	// Seletor específico e granular para cada campo se for apenas um seletor
+	const singleData = useStudentUnifiedStore((state) => {
+		if (selectors.length === 1) {
+			const s = selectors[0];
+			if (s === "actions" || s === "loaders") return null;
+			return selectFromData(state.data, s as any);
+		}
+		return null;
+	});
 	const loadAll = useStudentUnifiedStore((state) => state.loadAll);
 	const loadAllPrioritized = useStudentUnifiedStore(
 		(state) => state.loadAllPrioritized,
@@ -150,6 +169,9 @@ export function useStudent<T extends StudentSelector>(
 	);
 	const updateSubscription = useStudentUnifiedStore(
 		(state) => state.updateSubscription,
+	);
+	const cancelSubscription = useStudentUnifiedStore(
+		(state) => state.cancelSubscription,
 	);
 	const addDayPass = useStudentUnifiedStore((state) => state.addDayPass);
 
@@ -244,6 +266,7 @@ export function useStudent<T extends StudentSelector>(
 				addPersonalRecord,
 				updateNutrition,
 				updateSubscription,
+				cancelSubscription,
 				addDayPass,
 				createUnit,
 				updateUnit,
@@ -292,14 +315,15 @@ export function useStudent<T extends StudentSelector>(
 
 		// Caso contrário, retorna o dado selecionado
 		// Para dailyNutrition, usar valor já selecionado para garantir reatividade
+		// Para o seletor único, usamos o singleData que já é granular
 		if (selector === "dailyNutrition") {
-			return dailyNutritionData as any;
+			return singleData as any;
 		}
 		// Para units, usar valor já selecionado para garantir reatividade imediata
 		if (selector === "units") {
-			return unitsData as any;
+			return singleData as any;
 		}
-		return selectFromData(data, selector) as any;
+		return singleData ?? selectFromData(data, selector) as any;
 	}
 
 	// Múltiplos seletores
@@ -315,6 +339,7 @@ export function useStudent<T extends StudentSelector>(
 				addPersonalRecord,
 				updateNutrition,
 				updateSubscription,
+				cancelSubscription,
 				addDayPass,
 				createUnit,
 				updateUnit,
@@ -357,11 +382,11 @@ export function useStudent<T extends StudentSelector>(
 				loadFoodDatabase,
 			});
 		} else if (selector === "dailyNutrition") {
-			// Usar valor já selecionado para garantir reatividade
-			result[selector] = dailyNutritionData;
+			// Usar valor já selecionado para garantir reatividade (no loop usamos selectFromData por enquanto)
+			result[selector] = selectFromData(data, selector);
 		} else if (selector === "units") {
 			// Usar valor já selecionado para garantir reatividade imediata
-			result[selector] = unitsData;
+			result[selector] = selectFromData(data, selector);
 		} else {
 			result[selector] = selectFromData(data, selector);
 		}
@@ -385,6 +410,7 @@ function getActions(actions: {
 	addPersonalRecord: StudentUnifiedState["addPersonalRecord"];
 	updateNutrition: StudentUnifiedState["updateNutrition"];
 	updateSubscription: StudentUnifiedState["updateSubscription"];
+	cancelSubscription: StudentUnifiedState["cancelSubscription"];
 	addDayPass: StudentUnifiedState["addDayPass"];
 	createUnit: StudentUnifiedState["createUnit"];
 	updateUnit: StudentUnifiedState["updateUnit"];
@@ -413,6 +439,7 @@ function getActions(actions: {
 		addPersonalRecord: actions.addPersonalRecord,
 		updateNutrition: actions.updateNutrition,
 		updateSubscription: actions.updateSubscription,
+		cancelSubscription: actions.cancelSubscription,
 		addDayPass: actions.addDayPass,
 		createUnit: actions.createUnit,
 		updateUnit: actions.updateUnit,

@@ -34,8 +34,8 @@ interface SubscriptionState {
 	setGymSubscription: (subscription: GymSubscription | null) => void;
 
 	// Student subscription (DEPRECATED - usar useStudent('subscription'))
-	subscription: GymSubscription | null;
-	setSubscription: (subscription: GymSubscription | null) => void;
+	subscription: any;
+	setSubscription: (subscription: any) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set) => ({

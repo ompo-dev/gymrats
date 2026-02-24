@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 // Tipo unificado para subscription de student
 export interface StudentSubscriptionData {
@@ -79,6 +80,18 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		{
 			queryKey: [queryKey],
 			queryFn: async () => {
+				if (userType === "student") {
+					try {
+						const unifiedStore = useStudentUnifiedStore.getState();
+						await unifiedStore.loadSubscription();
+						return unifiedStore.data.subscription as any;
+					} catch (error) {
+						console.error("[useSubscriptionUnified] Erro ao carregar via store:", error);
+						return null;
+					}
+				}
+
+				// Lógica para GYM permanece a mesma por enquanto
 				try {
 					const response = await apiClient.get<{
 						subscription: SubscriptionData | null;
@@ -192,9 +205,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				}
 			} else {
 				if (userType === "student") {
-					setSubscription(data as StudentSubscriptionData);
+					setSubscription(data as any);
 				} else {
-					setGymSubscription(data as GymSubscriptionData);
+					setGymSubscription(data as any);
 				}
 			}
 		}
@@ -260,9 +273,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 						} as GymSubscriptionData);
 
 			if (userType === "student") {
-				setSubscription(optimisticSubscription as StudentSubscriptionData);
+				setSubscription(optimisticSubscription as any);
 			} else {
-				setGymSubscription(optimisticSubscription as GymSubscriptionData);
+				setGymSubscription(optimisticSubscription as any);
 			}
 
 			queryClient.setQueryData<SubscriptionData | null>(
@@ -371,9 +384,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				};
 
 				if (userType === "student") {
-					setSubscription(canceledSubscription as StudentSubscriptionData);
+					setSubscription(canceledSubscription as any);
 				} else {
-					setGymSubscription(canceledSubscription as GymSubscriptionData);
+					setGymSubscription(canceledSubscription as any);
 				}
 
 				queryClient.setQueryData<SubscriptionData | null>(
@@ -427,9 +440,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			]);
 			if (updatedData !== undefined) {
 				if (userType === "student") {
-					setSubscription(updatedData as StudentSubscriptionData | null);
+					setSubscription(updatedData as any);
 				} else {
-					setGymSubscription(updatedData as GymSubscriptionData | null);
+					setGymSubscription(updatedData as any);
 				}
 			}
 		},
