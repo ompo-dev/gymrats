@@ -131,3 +131,136 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 		throw error instanceof Error ? error : new Error("Erro inesperado ao criar checkout.");
 	}
 }
+
+/**
+ * Confirma o pagamento no AbacatePay e ativa a assinatura no banco de dados.
+ * Deve ser chamada quando o usuário retorna do AbacatePay com ?success=true.
+ */
+export async function confirmAbacatePayment(): Promise<{
+	success: boolean;
+	subscription?: {
+		plan: string;
+		status: string;
+		billingPeriod: string;
+	};
+	error?: string;
+}> {
+	try {
+		const sessionResponse = await auth.api.getSession({
+			headers: await headers(),
+		});
+
+		const user = sessionResponse?.user;
+		if (!user) {
+			return { success: false, error: "Usuário não autenticado." };
+		}
+
+		const student = await db.student.findUnique({
+			where: { userId: user.id },
+		});
+
+		if (!student) {
+			return { success: false, error: "Perfil de aluno não encontrado." };
+		}
+
+		const subscription = await db.subscription.findUnique({
+			where: { studentId: student.id },
+		});
+
+		if (!subscription) {
+			return { success: false, error: "Assinatura não encontrada." };
+		}
+
+		// Se já está ativa, não precisa confirmar
+		if (subscription.status === "active") {
+			const billingPeriod = subscription.plan.toLowerCase().includes("anual")
+				? "annual"
+				: "monthly";
+			return {
+				success: true,
+				subscription: {
+					plan: subscription.plan,
+					status: subscription.status,
+					billingPeriod,
+				},
+			};
+		}
+
+		// Verificar status do billing no AbacatePay
+		if (!subscription.abacatePayBillingId) {
+			return { success: false, error: "ID de billing não encontrado." };
+		}
+
+		const billingResponse = await abacatePay.getBilling(
+			subscription.abacatePayBillingId,
+		);
+
+		if (billingResponse.error || !billingResponse.data) {
+			console.error(
+				"[confirmAbacatePayment] Erro ao consultar billing:",
+				billingResponse.error,
+			);
+			return {
+				success: false,
+				error: "Não foi possível verificar o status do pagamento.",
+			};
+		}
+
+		const billingStatus = billingResponse.data.status;
+		console.log(
+			`[confirmAbacatePayment] Billing ${subscription.abacatePayBillingId} status: ${billingStatus}`,
+		);
+
+		if (billingStatus === "PAID") {
+			// Calcular período correto
+			const periodStart = new Date();
+			const periodEnd = new Date();
+			if (subscription.plan.toLowerCase().includes("anual")) {
+				periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+			} else {
+				periodEnd.setMonth(periodEnd.getMonth() + 1);
+			}
+
+			// Ativar a assinatura
+			const updated = await db.subscription.update({
+				where: { studentId: student.id },
+				data: {
+					status: "active",
+					currentPeriodStart: periodStart,
+					currentPeriodEnd: periodEnd,
+					cancelAtPeriodEnd: false,
+					canceledAt: null,
+				},
+			});
+
+			const billingPeriod = updated.plan.toLowerCase().includes("anual")
+				? "annual"
+				: "monthly";
+
+			console.log(
+				`[confirmAbacatePayment] Assinatura ativada: ${updated.plan} (${billingPeriod})`,
+			);
+
+			return {
+				success: true,
+				subscription: {
+					plan: updated.plan,
+					status: updated.status,
+					billingPeriod,
+				},
+			};
+		}
+
+		// Billing ainda não foi pago
+		return {
+			success: false,
+			error: `Pagamento ainda não confirmado. Status: ${billingStatus}`,
+		};
+	} catch (error: unknown) {
+		console.error("[confirmAbacatePayment] Erro inesperado:", error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Erro ao confirmar pagamento.",
+		};
+	}
+}

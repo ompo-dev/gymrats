@@ -5,7 +5,7 @@ import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
-import { createAbacateBilling } from "@/lib/actions/abacate-pay";
+import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/abacate-pay";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
@@ -119,55 +119,52 @@ export function SubscriptionSection({
 	const searchParams = useSearchParams();
 	const isSuccess = searchParams.get("success") === "true";
 	const { loadSubscription } = useStudent("loaders");
-	const pollCount = useRef(0);
-	const initialBillingPeriod = useRef(subscription?.billingPeriod);
-	const initialPlan = useRef(subscription?.plan);
 
-	// Efeito para atualizar automaticamente quando volta do Abacate Pay com sucesso
+	// Efeito para confirmar pagamento e ativar assinatura quando volta do Abacate Pay com sucesso
 	useEffect(() => {
-		if (isSuccess) {
-			const isUpgrade = 
-				subscription?.status === "active" && 
-				(subscription?.billingPeriod !== initialBillingPeriod.current || 
-				 subscription?.plan !== initialPlan.current);
+		if (!isSuccess) return;
 
-			if (subscription?.status !== "active" || isUpgrade) {
-				toast({
-					title: isUpgrade ? "Atualizando assinatura..." : "Pagamento recebido!",
-					description: isUpgrade 
-						? "Processando seu upgrade de plano..." 
-						: "Ativando sua assinatura Premium...",
-				});
+		let cancelled = false;
 
-				// Carregar imediatamente
-				loadSubscription();
+		const confirmPayment = async () => {
+			toast({
+				title: "Pagamento recebido!",
+				description: "Verificando e ativando sua assinatura Premium...",
+			});
 
-				// Tentar carregar a cada 3 segundos (máximo 10 vezes) até que mude
-				const interval = setInterval(() => {
-					const hasChanged = 
-						(subscription?.status === "active" && !isUpgrade) ||
-						(isUpgrade && 
-						 (subscription?.billingPeriod !== initialBillingPeriod.current || 
-						  subscription?.plan !== initialPlan.current));
+			// Tentar confirmar o pagamento com polling (máximo 10 tentativas)
+			for (let i = 0; i < 10; i++) {
+				if (cancelled) return;
 
-					if (hasChanged || pollCount.current >= 10) {
-						clearInterval(interval);
-						if (hasChanged) {
-							toast({
-								title: "Assinatura Atualizada!",
-								description: "Suas mudanças já estão ativas. Aproveite!",
-							});
-						}
+				try {
+					const result = await confirmAbacatePayment();
+					if (result.success) {
+						// Atualizar o store com dados frescos após ativação
+						await loadSubscription();
+						toast({
+							title: "Assinatura Ativada! 🎉",
+							description: `Seu plano ${result.subscription?.plan || "Premium"} está ativo. Aproveite!`,
+						});
 						return;
 					}
-					pollCount.current += 1;
-					loadSubscription();
-				}, 3000);
+				} catch (error) {
+					console.error("[SubscriptionSection] Erro ao confirmar pagamento:", error);
+				}
 
-				return () => clearInterval(interval);
+				// Aguardar 3 segundos antes de tentar novamente
+				await new Promise((resolve) => setTimeout(resolve, 3000));
 			}
-		}
-	}, [isSuccess, subscription?.status, subscription?.billingPeriod, subscription?.plan, loadSubscription, toast]);
+
+			// Se não confirmou em 10 tentativas, tentar só carregar do store
+			await loadSubscription();
+		};
+
+		confirmPayment();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isSuccess, loadSubscription, toast]);
 
 	// Inicializar estado baseado na subscription atual
 	const prevSubscriptionId = useRef<string | null>(null);
