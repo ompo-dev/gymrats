@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
-import { PaymentModal } from "./subscription/payment-modal";
+import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/abacate-pay";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
+import { useSearchParams } from "next/navigation";
+import { useRef } from "react";
 
 export interface SubscriptionPlan {
 	id: string;
@@ -107,33 +109,97 @@ export function SubscriptionSection({
 	const {
 		selectedPlan,
 		selectedBillingPeriod,
-		showPaymentModal,
 		isProcessingPayment,
 		setSelectedPlan,
 		setSelectedBillingPeriod,
-		setShowPaymentModal,
 		setIsProcessingPayment,
 		initializeFromSubscription,
 	} = useSubscriptionUIStore();
 
+	const { toast } = useToast();
+	const searchParams = useSearchParams();
+	const isSuccess = searchParams.get("success") === "true";
+	const { loadSubscription } = useStudent("loaders");
+
+	// Efeito para confirmar pagamento e ativar assinatura quando volta do Abacate Pay com sucesso
+	useEffect(() => {
+		if (!isSuccess) return;
+
+		let cancelled = false;
+
+		const confirmPayment = async () => {
+			toast({
+				title: "Pagamento recebido!",
+				description: "Verificando e ativando sua assinatura Premium...",
+			});
+
+			// Tentar confirmar o pagamento com polling (máximo 10 tentativas)
+			for (let i = 0; i < 10; i++) {
+				if (cancelled) return;
+
+				try {
+					const result = await confirmAbacatePayment();
+					if (result.success) {
+						// Atualizar o store com dados frescos após ativação
+						await loadSubscription();
+						toast({
+							title: "Assinatura Ativada! 🎉",
+							description: `Seu plano ${result.subscription?.plan || "Premium"} está ativo. Aproveite!`,
+						});
+						// Limpar a URL para não disparar novamente em re-renders ou navegação
+						const url = new URL(window.location.href);
+						url.searchParams.delete("success");
+						window.history.replaceState({}, "", url.toString());
+						return;
+					}
+				} catch (error) {
+					console.error("[SubscriptionSection] Erro ao confirmar pagamento:", error);
+				}
+
+				// Aguardar 3 segundos antes de tentar novamente
+				await new Promise((resolve) => setTimeout(resolve, 3000));
+			}
+
+			// Se não confirmou em 10 tentativas, tentar só carregar do store
+			await loadSubscription();
+		};
+
+		confirmPayment();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isSuccess, loadSubscription, toast]);
+
 	// Inicializar estado baseado na subscription atual
+	const prevSubscriptionId = useRef<string | null>(null);
+
 	useEffect(() => {
 		if (plans.length > 0) {
-			initializeFromSubscription(
-				plans,
-				subscription?.plan,
-				subscription?.billingPeriod,
-				userType,
-			);
+			// Apenas re-inicializar se a assinatura mudou de verdade (ID ou plano base)
+			const subId = subscription?.id || "no-subscription";
+			const subPlan = subscription?.plan || "free";
+			const subPeriod = subscription?.billingPeriod || "monthly";
+			const checkKey = `${subId}-${subPlan}-${subPeriod}`;
+
+			if (prevSubscriptionId.current !== checkKey) {
+				console.log("[Subscription] Re-inicializando UI Store:", checkKey);
+				initializeFromSubscription(
+					plans,
+					subscription?.plan,
+					subscription?.billingPeriod,
+					userType,
+				);
+				prevSubscriptionId.current = checkKey;
+			}
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
-		plans.length,
+		plans,
+		subscription?.id,
 		subscription?.plan,
 		subscription?.billingPeriod,
 		userType,
 		initializeFromSubscription,
-		plans,
 	]);
 
 	// Textos padrão
@@ -162,18 +228,14 @@ export function SubscriptionSection({
 	const isLoadingState = isLoading || isStartingTrial || isCreatingSubscription;
 
 	const hasTrial = !!(
-		subscription?.trialEnd && new Date(subscription.trialEnd) > new Date()
+		subscription?.status === "trialing" &&
+		subscription?.trialEnd && 
+		new Date(subscription.trialEnd) > new Date()
 	);
 	const isCanceled = subscription?.status === "canceled" || false;
-	const isTrialActive = !!(
-		subscription &&
-		(subscription.status === "trialing" || hasTrial)
-	);
-	const isPremiumActive = !!(
-		subscription &&
-		subscription.status === "active" &&
-		!hasTrial
-	);
+	const isTrialActive = subscription?.status === "trialing";
+	const isPremiumActive = subscription?.status === "active";
+	const isPendingPayment = subscription?.status === "pending_payment";
 	const isCanceledAndTrialExpired = isCanceled && !hasTrial;
 	const hasNoSubscription =
 		(!isLoading && !isStartingTrial && !subscription) ||
@@ -248,74 +310,42 @@ export function SubscriptionSection({
 		? getAnnualDiscount(selectedPlanData.id)
 		: 10;
 
+
 	const handleSubscribe = async () => {
 		if (!selectedPlanData) return;
-		setShowPaymentModal(true);
-	};
 
-	const { toast } = useToast();
-	const { updateSubscription } = useStudent("actions");
+		// Se o componente pai forneceu um callback, usar ele (mantém consistência)
+		if (onSubscribe) {
+			await onSubscribe(selectedPlanData.id, selectedBillingPeriod);
+			return;
+		}
 
-	const handleConfirmPayment = async () => {
-		if (!selectedPlanData) return;
-
+		// Fallback para comportamento padrão (checkout direto)
 		setIsProcessingPayment(true);
 		try {
-			// Chamar API para ativar premium automaticamente (sem billing real)
-			const response = await apiClient.post<{
-				subscription: any;
-				message: string;
-			}>("/api/subscriptions/activate-premium", {
-				billingPeriod: selectedBillingPeriod,
-			});
+			console.log("[Subscription] Iniciando checkout direto para:", selectedPlanData.id, selectedBillingPeriod);
+			const result = await createAbacateBilling(
+				selectedPlanData.id,
+				selectedBillingPeriod,
+			);
 
-			// Optimistic update no store com dados da API
-			if (response.data.subscription) {
-				const subscriptionData = response.data.subscription;
-				await updateSubscription({
-					id: subscriptionData.id,
-					plan: subscriptionData.plan,
-					status: subscriptionData.status,
-					currentPeriodStart: new Date(subscriptionData.currentPeriodStart),
-					currentPeriodEnd: new Date(subscriptionData.currentPeriodEnd),
-					trialStart: subscriptionData.trialStart
-						? new Date(subscriptionData.trialStart)
-						: null,
-					trialEnd: subscriptionData.trialEnd
-						? new Date(subscriptionData.trialEnd)
-						: null,
-					canceledAt: subscriptionData.canceledAt
-						? new Date(subscriptionData.canceledAt)
-						: null,
-					cancelAtPeriodEnd: subscriptionData.cancelAtPeriodEnd || false,
-				});
+			if (result && result.url) {
+				window.location.href = result.url;
+			} else {
+				throw new Error("URL de checkout não recebida do servidor.");
 			}
-
-			// Fechar modal
-			setShowPaymentModal(false);
-
-			// Mostrar toast de sucesso
-			toast({
-				title: "Premium ativado!",
-				description: "Sua assinatura premium foi ativada com sucesso.",
-			});
 		} catch (error: any) {
-			console.error("Erro ao processar pagamento:", error);
+			console.error("[Subscription] Erro no checkout:", error);
 			toast({
 				variant: "destructive",
-				title: "Erro ao ativar premium",
-				description:
-					error.response?.data?.message ||
-					"Erro ao processar pagamento. Tente novamente.",
+				title: "Erro ao iniciar checkout",
+				description: error.message || "Erro ao processar checkout.",
 			});
 		} finally {
 			setIsProcessingPayment(false);
 		}
 	};
 
-	const handleClosePaymentModal = (open: boolean) => {
-		setShowPaymentModal(open);
-	};
 
 	return (
 		<div className="space-y-4">
@@ -354,8 +384,9 @@ export function SubscriptionSection({
 					}}
 					isCanceled={!!isCanceled}
 					hasTrial={!!hasTrial}
-					isTrialActive={!!isTrialActive}
-					isPremiumActive={!!isPremiumActive}
+					isTrialActive={isTrialActive}
+					isPremiumActive={isPremiumActive}
+					isPendingPayment={isPendingPayment}
 					daysRemaining={daysRemaining}
 					isLoading={isLoadingState}
 					onStartTrial={onStartTrial}
@@ -401,16 +432,6 @@ export function SubscriptionSection({
 				/>
 			)}
 
-			{/* Payment Modal */}
-			<PaymentModal
-				open={showPaymentModal}
-				onOpenChange={handleClosePaymentModal}
-				selectedPlan={selectedPlanData}
-				billingPeriod={selectedBillingPeriod}
-				displayPrice={displayPrice}
-				onConfirm={handleConfirmPayment}
-				isProcessing={isProcessingPayment}
-			/>
 		</div>
 	);
 }

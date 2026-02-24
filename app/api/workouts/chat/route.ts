@@ -16,6 +16,7 @@ import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,16 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
-    const isTrialActive =
-      subscription.trialEnd && new Date(subscription.trialEnd) > now;
-    const isActive = subscription.status === "active";
-    const isTrialing = subscription.status === "trialing";
-    const hasPremium =
-      subscription.plan === "premium" &&
-      (isActive || isTrialing || isTrialActive);
-
-    if (!hasPremium) {
+    if (!hasActivePremiumStatus(subscription)) {
       return NextResponse.json(
         {
           error: "Recurso premium",
@@ -275,7 +267,9 @@ export async function POST(request: NextRequest) {
     let parsed: ParsedResult = null;
     const tryParseImportedWorkout = (raw: unknown): ParsedResult => {
       const normalizeExercises = (exercises: unknown[]): ImportedExercise[] =>
-        (exercises || []).map((ex: ImportedExercise) => ({
+        (exercises || []).map((item: unknown) => {
+          const ex = item as ImportedExercise;
+          return ({
           name: ex.name,
           sets: ex.sets ?? 3,
           reps: ex.reps ?? "8-12",
@@ -286,7 +280,8 @@ export async function POST(request: NextRequest) {
             Array.isArray(ex.alternatives) && ex.alternatives.length > 0
               ? ex.alternatives.slice(0, 3)
               : [],
-        }));
+          });
+        });
 
       const normalizeWorkout = (w: ImportedWorkout) => ({
         title: w.title || w.name || "Treino",
@@ -347,7 +342,7 @@ export async function POST(request: NextRequest) {
         maxTokens: 4096,
       });
 
-      parsed = parseWorkoutResponse(response);
+      parsed = parseWorkoutResponse(response) as ParsedResult;
     }
 
     // 11. Incrementar contador de mensagens (após sucesso)

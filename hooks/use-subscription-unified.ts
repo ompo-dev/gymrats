@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 // Tipo unificado para subscription de student
 export interface StudentSubscriptionData {
@@ -49,13 +50,31 @@ interface UseSubscriptionOptions {
 	includeDaysRemaining?: boolean;
 	includeTrialInfo?: boolean;
 	includeActiveStudents?: boolean;
+	enabled?: boolean; // Nova opção para controlar a query
 }
 
 export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	const queryClient = useQueryClient();
-	const store = useSubscriptionStore();
-	const { setSubscription, setGymSubscription } = store;
-	const { userType } = options;
+	const { userType, enabled = true } = options;
+
+	const { setSubscription, setGymSubscription } = useSubscriptionStore();
+	const studentUnifiedStore = useStudentUnifiedStore();
+
+	// Helper para atualizar ambos os stores
+	const syncStores = (sub: SubscriptionData | null) => {
+		if (userType === "student") {
+			setSubscription(sub as any);
+			if (sub) {
+				studentUnifiedStore.updateSubscription(sub as any);
+			} else {
+				// Se for null, o updateSubscription do unified store pode não aceitar null diretamente
+				// dependendo da tipagem, mas o store costuma ter assinatura como opcional ou nula
+				studentUnifiedStore.updateSubscription(null as any);
+			}
+		} else {
+			setGymSubscription(sub as any);
+		}
+	};
 
 	const queryKey = userType === "student" ? "subscription" : "gym-subscription";
 	const currentEndpoint =
@@ -127,7 +146,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 						trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
 						trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
 						canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
-						isTrial: sub.trialEnd ? new Date(sub.trialEnd) > new Date() : false,
+						isTrial:
+						(sub.status === "trialing" || sub.status === "canceled") &&
+						sub.trialEnd
+							? new Date(sub.trialEnd) > new Date()
+							: false,
 						daysRemaining: sub.trialEnd
 							? Math.max(
 									0,
@@ -165,6 +188,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			},
 			staleTime: 1000 * 60, // 1 minuto (aumentado para evitar refetches desnecessários)
 			retry: 2,
+			enabled: enabled, // Usar opção enabled
 			refetchOnMount: false, // Desabilitado para evitar loops - dados vêm do store unificado
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false, // Desabilitado para evitar loops
@@ -177,28 +201,17 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		if (data !== undefined) {
 			if (data === null) {
 				const storeState = useSubscriptionStore.getState();
-				if (userType === "student") {
-					const currentStore = storeState.subscription;
-					if (currentStore && currentStore.id === "temp-trial-id") {
-						return;
-					}
-					setSubscription(null);
-				} else {
-					const currentStore = storeState.gymSubscription;
-					if (currentStore && currentStore.id === "temp-trial-id") {
-						return;
-					}
-					setGymSubscription(null);
+				const currentSub = userType === "student" ? storeState.subscription : storeState.gymSubscription;
+				
+				if (currentSub && currentSub.id === "temp-trial-id") {
+					return;
 				}
+				syncStores(null);
 			} else {
-				if (userType === "student") {
-					setSubscription(data as StudentSubscriptionData);
-				} else {
-					setGymSubscription(data as GymSubscriptionData);
-				}
+				syncStores(data);
 			}
 		}
-	}, [data, userType, setSubscription, setGymSubscription]);
+	}, [data, userType]);
 
 	const startTrialMutation = useMutation({
 		mutationFn: async () => {
@@ -259,11 +272,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 							totalAmount: 150,
 						} as GymSubscriptionData);
 
-			if (userType === "student") {
-				setSubscription(optimisticSubscription as StudentSubscriptionData);
-			} else {
-				setGymSubscription(optimisticSubscription as GymSubscriptionData);
-			}
+			syncStores(optimisticSubscription);
 
 			queryClient.setQueryData<SubscriptionData | null>(
 				[queryKey],
@@ -277,15 +286,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				err.response?.data?.error || err.message || "Erro ao iniciar trial";
 
 			if (context?.previousSubscription !== undefined) {
-				if (userType === "student") {
-					setSubscription(
-						context.previousSubscription as StudentSubscriptionData | null,
-					);
-				} else {
-					setGymSubscription(
-						context.previousSubscription as GymSubscriptionData | null,
-					);
-				}
+				syncStores(context.previousSubscription);
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					context.previousSubscription,
@@ -308,7 +309,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey: [queryKey],
 			});
 
-			const _refetchedData = await queryClient.refetchQueries({
+			await queryClient.refetchQueries({
 				queryKey: [queryKey],
 			});
 
@@ -321,11 +322,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				cachedData !== undefined &&
 				cachedData.id !== "temp-trial-id"
 			) {
-				if (userType === "student") {
-					setSubscription(cachedData as StudentSubscriptionData);
-				} else {
-					setGymSubscription(cachedData as GymSubscriptionData);
-				}
+				syncStores(cachedData);
 			}
 		},
 	});
@@ -365,27 +362,19 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			if (previousSubscription) {
 				const canceledSubscription = {
 					...previousSubscription,
-					status: "canceled" as const,
+					status: "canceled",
 					canceledAt: new Date(),
-					cancelAtPeriodEnd: false,
+					cancelAtPeriodEnd: true,
 				};
 
-				if (userType === "student") {
-					setSubscription(canceledSubscription as StudentSubscriptionData);
-				} else {
-					setGymSubscription(canceledSubscription as GymSubscriptionData);
-				}
-
+				syncStores(canceledSubscription);
+				
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					canceledSubscription,
 				);
 			} else {
-				if (userType === "student") {
-					setSubscription(null);
-				} else {
-					setGymSubscription(null);
-				}
+				syncStores(null);
 				queryClient.setQueryData<SubscriptionData | null>([queryKey], null);
 			}
 
@@ -393,15 +382,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		},
 		onError: (_err, _variables, context) => {
 			if (context?.previousSubscription) {
-				if (userType === "student") {
-					setSubscription(
-						context.previousSubscription as StudentSubscriptionData | null,
-					);
-				} else {
-					setGymSubscription(
-						context.previousSubscription as GymSubscriptionData | null,
-					);
-				}
+				syncStores(context.previousSubscription);
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					context.previousSubscription,
@@ -417,7 +398,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey: [queryKey],
 			});
 
-			const _refetchedData = await queryClient.refetchQueries({
+			await queryClient.refetchQueries({
 				queryKey: [queryKey],
 			});
 
@@ -426,11 +407,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey,
 			]);
 			if (updatedData !== undefined) {
-				if (userType === "student") {
-					setSubscription(updatedData as StudentSubscriptionData | null);
-				} else {
-					setGymSubscription(updatedData as GymSubscriptionData | null);
-				}
+				syncStores(updatedData);
 			}
 		},
 	});

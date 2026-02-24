@@ -9,6 +9,7 @@ import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type { FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { FoodSearchChat } from "./food-search-chat";
 
 interface FoodSearchProps {
@@ -75,18 +76,8 @@ export function FoodSearch({
 	// Verificar se é premium/trial
 	const subscription = useStudent("subscription");
 	const isPremium = useMemo(() => {
-		if (!subscription) return false;
-
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-
-		return (
-			subscription.plan === "premium" &&
-			(isActive || isTrialing || isTrialActive)
-		);
+		if (!subscription || !subscription.plan || !subscription.status) return false;
+		return hasActivePremiumStatus(subscription as { plan: string; status: string; trialEnd?: Date | string | null });
 	}, [subscription]);
 
 	// Se premium, renderizar chat ao invés de busca

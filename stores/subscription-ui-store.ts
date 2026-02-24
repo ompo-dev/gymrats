@@ -5,13 +5,11 @@ interface SubscriptionUIState {
 	// Estado da seleção de planos
 	selectedPlan: string;
 	selectedBillingPeriod: "monthly" | "annual";
-	showPaymentModal: boolean;
 	isProcessingPayment: boolean;
 
 	// Ações
 	setSelectedPlan: (planId: string) => void;
 	setSelectedBillingPeriod: (period: "monthly" | "annual") => void;
-	setShowPaymentModal: (show: boolean) => void;
 	setIsProcessingPayment: (processing: boolean) => void;
 	initializeFromSubscription: (
 		plans: SubscriptionPlan[],
@@ -25,7 +23,6 @@ interface SubscriptionUIState {
 const defaultState = {
 	selectedPlan: "",
 	selectedBillingPeriod: "monthly" as const,
-	showPaymentModal: false,
 	isProcessingPayment: false,
 };
 
@@ -35,8 +32,6 @@ export const useSubscriptionUIStore = create<SubscriptionUIState>((set) => ({
 	setSelectedPlan: (planId) => set({ selectedPlan: planId }),
 
 	setSelectedBillingPeriod: (period) => set({ selectedBillingPeriod: period }),
-
-	setShowPaymentModal: (show) => set({ showPaymentModal: show }),
 
 	setIsProcessingPayment: (processing) =>
 		set({ isProcessingPayment: processing }),

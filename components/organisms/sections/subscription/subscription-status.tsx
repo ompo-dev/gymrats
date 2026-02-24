@@ -36,6 +36,7 @@ interface SubscriptionStatusProps {
 	hasTrial: boolean;
 	isTrialActive: boolean;
 	isPremiumActive: boolean;
+	isPendingPayment?: boolean;
 	daysRemaining: number | null;
 	isLoading: boolean;
 	onStartTrial: () => Promise<void>;
@@ -50,6 +51,7 @@ export function SubscriptionStatus({
 	hasTrial,
 	isTrialActive,
 	isPremiumActive,
+	isPendingPayment,
 	daysRemaining,
 	isLoading,
 	onStartTrial,
@@ -99,9 +101,11 @@ export function SubscriptionStatus({
 										? "Trial Ativo"
 										: isPremiumActive
 											? "Ativo"
-											: isCanceled
-												? "Cancelada"
-												: "Sem assinatura"}
+											: isPendingPayment
+												? "Processando..."
+												: isCanceled
+													? "Cancelada"
+													: "Sem assinatura"}
 							</p>
 						</div>
 					</div>
@@ -125,9 +129,11 @@ export function SubscriptionStatus({
 								? "Trial Ativo"
 								: isPremiumActive
 									? "Ativo"
-									: isCanceled
-										? "Cancelada"
-										: "Free"}
+									: isPendingPayment
+										? "Aguardando"
+										: isCanceled
+											? "Cancelada"
+											: "Free"}
 					</span>
 				</div>
 
@@ -144,14 +150,14 @@ export function SubscriptionStatus({
 								/>
 								<div className="flex-1">
 									<h3 className="font-bold text-duo-text">
-										{isCanceled
-											? "Trial Ativo (Cancelada)"
+							{isCanceled
+											? "Assinatura Cancelada"
 											: "Trial Gratuito Ativo"}
 									</h3>
 									{isCanceled && (
 										<p className="text-xs text-duo-orange mt-1 font-bold">
-											Sua assinatura foi cancelada, mas você ainda pode usar o
-											trial até o fim do período.
+											Sua assinatura foi cancelada. O acesso premium foi
+											revogado.
 										</p>
 									)}
 									<div className="mt-2 flex items-baseline gap-2">

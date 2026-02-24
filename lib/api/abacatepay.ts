@@ -1,7 +1,6 @@
 import axios, { type AxiosInstance } from "axios";
 
 const ABACATEPAY_API_URL = "https://api.abacatepay.com/v1";
-const ABACATEPAY_TOKEN = process.env.ABACATEPAY_API_TOKEN || "";
 
 interface AbacatePayResponse<T> {
 	data: T | null;
@@ -42,6 +41,8 @@ interface CreateBillingRequest {
 	customerId?: string;
 	customer?: CreateCustomerRequest;
 	couponCode?: string;
+	allowCoupons?: boolean;
+	metadata?: Record<string, any>;
 }
 
 interface Billing {
@@ -59,6 +60,8 @@ interface Billing {
 	frequency: "ONE_TIME" | "MULTIPLE_PAYMENTS";
 	nextBilling: string | null;
 	customer: Customer;
+	metadata?: Record<string, any>;
+	externalId?: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -115,11 +118,53 @@ class AbacatePayClient {
 		this.client = axios.create({
 			baseURL: ABACATEPAY_API_URL,
 			headers: {
-				Authorization: `Bearer ${ABACATEPAY_TOKEN}`,
 				"Content-Type": "application/json",
 				Accept: "application/json",
 			},
 		});
+
+		// Adicionar interceptor para injetar o token dinamicamente
+		this.client.interceptors.request.use((config) => {
+			const token = process.env.ABACATEPAY_API_TOKEN || "";
+			if (token) {
+				config.headers.Authorization = `Bearer ${token}`;
+			}
+			return config;
+		});
+	}
+
+	// ============================================
+	// SEGURANÇA
+	// ============================================
+
+	/**
+	 * Verifica a assinatura do webhook enviada pela AbacatePay
+	 * @param rawBody Corpo bruto da requisição
+	 * @param signature Assinatura do header X-Webhook-Signature
+	 * @returns true se a assinatura for válida
+	 */
+	verifyWebhookSignature(rawBody: string, signature: string): boolean {
+		try {
+			const crypto = require("node:crypto");
+			// A chave pública/secret para HMAC pode vir do env
+			const secret = process.env.ABACATEPAY_WEBHOOK_SECRET || "";
+
+			if (!secret || !signature) return false;
+
+			const bodyBuffer = Buffer.from(rawBody, "utf8");
+			const expectedSig = crypto
+				.createHmac("sha256", secret)
+				.update(bodyBuffer)
+				.digest("base64");
+
+			const A = Buffer.from(expectedSig);
+			const B = Buffer.from(signature);
+
+			return A.length === B.length && crypto.timingSafeEqual(A, B);
+		} catch (error) {
+			console.error("[AbacatePay] Erro ao verificar assinatura:", error);
+			return false;
+		}
 	}
 
 	// ============================================
@@ -164,6 +209,11 @@ class AbacatePayClient {
 		data: CreateBillingRequest,
 	): Promise<AbacatePayResponse<Billing>> {
 		try {
+			const token = process.env.ABACATEPAY_API_TOKEN;
+			if (!token) {
+				return { data: null, error: "ABACATEPAY_API_TOKEN não configurado no .env" };
+			}
+
 			console.log("[AbacatePay] Criando billing:", {
 				frequency: data.frequency,
 				methods: data.methods,

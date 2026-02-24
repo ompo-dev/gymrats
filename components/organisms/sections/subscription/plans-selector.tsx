@@ -84,7 +84,7 @@ export function PlansSelector({
 	return (
 		<SectionCard
 			title={
-				userType === "student" && isPremiumActive
+				userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
 					? "Mudar para Plano Anual"
 					: isTrialActive
 						? texts.upgradeTitle
@@ -130,159 +130,61 @@ export function PlansSelector({
 						)}
 					>
 						{plans
-							.filter((plan) => {
-								// Para student com subscription ativa: mostrar apenas premium
-								if (userType === "student" && isPremiumActive) {
-									return plan.id === "premium";
+						.filter((plan) => {
+							// Para student com subscription ativa
+							if (userType === "student" && isPremiumActive) {
+								// Só o plano premium é relevante
+								if (plan.id !== "premium") return false;
+
+								// Se está no anual, não mostra nada (sem downgrade)
+								if (currentSubscriptionBillingPeriod === "annual") {
+									return false;
 								}
 
-								// Para gym com subscription ativa: filtrar baseado no billingPeriod selecionado
-								if (
-									userType === "gym" &&
-									isPremiumActive &&
-									currentSubscriptionPlan
-								) {
-									// Normalizar valores para comparação - garantir que ambos sejam strings e normalizados
-									const planIdRaw = String(plan.id || "").trim();
-									const currentPlanRaw = String(
-										currentSubscriptionPlan || "",
-									).trim();
-									const planId = planIdRaw.toLowerCase();
-									const currentPlan = currentPlanRaw.toLowerCase();
+								// Se está no mensal, só mostra se o período selecionado for anual (upgrade)
+								if (currentSubscriptionBillingPeriod === "monthly") {
+									return selectedBillingPeriod === "annual";
+								}
 
-									// Debug detalhado - sempre logar para Enterprise
-									if (
-										process.env.NODE_ENV === "development" &&
-										(planId === "enterprise" || currentPlan === "enterprise")
-									) {
-										console.log("[PlansSelector] 🔍 Filtrando Enterprise:", {
-											planId,
-											currentPlan,
-											planIdRaw: plan.id,
-											currentPlanRaw: currentSubscriptionPlan,
-											planIdEqualsCurrentPlan: planId === currentPlan,
-											selectedBillingPeriod,
-											currentSubscriptionBillingPeriod,
-											isSamePeriod:
-												selectedBillingPeriod ===
-												currentSubscriptionBillingPeriod,
-											willFilterOut: planId === currentPlan,
-										});
-									}
+								// Não permitir re-assinar o mesmo plano+período
+								return selectedBillingPeriod !== currentSubscriptionBillingPeriod;
+							}
 
-									// VERIFICAÇÃO CRÍTICA #1: Se é o plano atual, NUNCA mostrar (independente do período)
-									// Esta é a verificação mais importante - deve ser a primeira e mais restritiva
-									// Comparação explícita e direta - verificar tanto lowercase quanto case-sensitive
-									const isCurrentPlan =
-										(planId === currentPlan &&
-											planId !== "" &&
-											currentPlan !== "") ||
-										(planIdRaw === currentPlanRaw &&
-											planIdRaw !== "" &&
-											currentPlanRaw !== "");
+							// Para gym com subscription ativa: filtrar baseado na hierarquia e período
+							if (
+								userType === "gym" &&
+								isPremiumActive &&
+								currentSubscriptionPlan
+							) {
+								const planId = String(plan.id || "").trim().toLowerCase();
+								const currentPlan = String(currentSubscriptionPlan || "").trim().toLowerCase();
+								const isSamePlan = planId === currentPlan;
+								const isSamePeriod = selectedBillingPeriod === currentSubscriptionBillingPeriod;
 
-									// Verificação adicional: se é o mesmo plano E está no mesmo período, definitivamente não mostrar
-									const isSamePeriod = currentSubscriptionBillingPeriod
-										? selectedBillingPeriod === currentSubscriptionBillingPeriod
-										: false;
+								// Mesmo plano + mesmo período = não mostrar
+								if (isSamePlan && isSamePeriod) {
+									return false;
+								}
 
-									const isCurrentPlanInSamePeriod =
-										isCurrentPlan && isSamePeriod;
+								// Sem downgrade na hierarquia
+								const planHierarchy = ["basic", "premium", "enterprise"];
+								const currentPlanIndex = planHierarchy.indexOf(currentPlan);
+								const selectedPlanIndex = planHierarchy.indexOf(planId);
 
-									if (isCurrentPlan) {
-										if (process.env.NODE_ENV === "development") {
-											console.log(
-												"[PlansSelector] ❌ FILTERED OUT - É O PLANO ATUAL:",
-												{
-													planId,
-													currentPlan,
-													planIdRaw: plan.id,
-													currentPlanRaw: currentSubscriptionPlan,
-													selectedBillingPeriod,
-													currentSubscriptionBillingPeriod,
-													isSamePeriod,
-													isCurrentPlanInSamePeriod,
-													reason:
-														"Plano atual não deve aparecer (independente do período)",
-												},
-											);
-										}
-										// SEMPRE retornar false se for o plano atual, independente de qualquer outra condição
-										return false;
-									}
+								if (selectedPlanIndex < currentPlanIndex) {
+									return false;
+								}
 
-									// Se não tem billingPeriod definido, aplicar lógica padrão
-									if (!currentSubscriptionBillingPeriod) {
-										// Filtrar pela hierarquia mesmo sem billingPeriod
-										const planHierarchy = ["basic", "premium", "enterprise"];
-										const currentPlanIndex = planHierarchy.indexOf(currentPlan);
-
-										if (currentPlanIndex === 2) {
-											return planId === "basic";
-										} else if (currentPlanIndex === 1) {
-											return planId === "basic";
-										} else if (currentPlanIndex === 0) {
-											return planId === "premium";
-										}
-										return true;
-									}
-
-									// Reutilizar isSamePeriod já calculado acima (ou calcular se não foi calculado)
-									const isSamePeriodCheck = currentSubscriptionBillingPeriod
-										? selectedBillingPeriod === currentSubscriptionBillingPeriod
-										: false;
-
-									// REGRA 2: Se está mudando de período (mensal -> anual ou anual -> mensal): mostrar todos
-									// (já filtramos o plano atual acima)
-									if (!isSamePeriodCheck) {
-										if (process.env.NODE_ENV === "development") {
-											console.log(
-												"[PlansSelector] ✅ MOSTRAR - Período diferente:",
-												{
-													planId,
-													selectedBillingPeriod,
-													currentSubscriptionBillingPeriod,
-												},
-											);
-										}
-										return true;
-									}
-
-									// REGRA 3: Se está no mesmo período (mas não é o plano atual): filtrar pela hierarquia
-									const planHierarchy = ["basic", "premium", "enterprise"];
-									const currentPlanIndex = planHierarchy.indexOf(currentPlan);
-
-									// Se não encontrou o plano atual na hierarquia, mostrar todos
-									if (currentPlanIndex === -1) {
-										return true;
-									}
-
-									// Filtrar baseado na hierarquia
-									if (currentPlanIndex === 2) {
-										// Enterprise: mostrar Basic e Premium (downgrade para ambos)
-										const shouldShow =
-											planId === "basic" || planId === "premium";
-										if (process.env.NODE_ENV === "development") {
-											console.log(
-												"[PlansSelector] Enterprise no mesmo período:",
-												{
-													planId,
-													shouldShow,
-												},
-											);
-										}
-										return shouldShow;
-									} else if (currentPlanIndex === 1) {
-										// Premium: mostrar Basic (downgrade)
-										return planId === "basic";
-									} else if (currentPlanIndex === 0) {
-										// Basic: mostrar Premium (upgrade)
-										return planId === "premium";
-									}
+								// Mesmo plano mudando período: permitir upgrade de período
+								if (isSamePlan && !isSamePeriod) {
+									return true;
 								}
 
 								return true;
-							})
+							}
+
+							return true;
+						})
 							.map((plan) => (
 								<PlanCard
 									key={plan.id}

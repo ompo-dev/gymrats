@@ -3,6 +3,11 @@ import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import { getSessionUseCase } from "@/lib/use-cases/auth";
 import { getSession } from "@/lib/utils/session";
+import {
+	getBillingPeriodFromPlan,
+	hasActivePremiumStatus,
+	isPremiumPlan,
+} from "@/lib/utils/subscription";
 
 export async function GET(request: NextRequest) {
 	try {
@@ -50,8 +55,46 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
+		// Buscar dados da subscription para enriquecer a sessão
+		let subscriptionData: {
+			plan: string;
+			status: string;
+			billingPeriod: "monthly" | "annual";
+			isPremium: boolean;
+		} | null = null;
+
+		if (result.data.user.hasStudent) {
+			const student = await db.student.findFirst({
+				where: { userId: result.data.user.id },
+				select: { id: true },
+			});
+
+			if (student) {
+				const subscription = await db.subscription.findUnique({
+					where: { studentId: student.id },
+					select: {
+						plan: true,
+						status: true,
+						trialEnd: true,
+					},
+				});
+
+				if (subscription && isPremiumPlan(subscription.plan)) {
+					subscriptionData = {
+						plan: subscription.plan,
+						status: subscription.status,
+						billingPeriod: getBillingPeriodFromPlan(subscription.plan),
+						isPremium: hasActivePremiumStatus(subscription),
+					};
+				}
+			}
+		}
+
 		const response = NextResponse.json({
-			user: result.data.user,
+			user: {
+				...result.data.user,
+				subscription: subscriptionData,
+			},
 			session: result.data.session,
 		});
 
@@ -73,3 +116,4 @@ export async function GET(request: NextRequest) {
 		return NextResponse.json({ error: message }, { status: 500 });
 	}
 }
+

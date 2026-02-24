@@ -2,20 +2,29 @@ import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 
+// Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
+// Para imports em componentes client-side, use "@/lib/utils/subscription-helpers" diretamente.
+export {
+	isPremiumPlan,
+	hasActivePremiumStatus,
+	getBillingPeriodFromPlan,
+} from "./subscription-helpers";
+
+import {
+	isPremiumPlan,
+	hasActivePremiumStatus,
+} from "./subscription-helpers";
+
+// ─── Funções com acesso ao DB ─────────────────────────────────────────────────
+
 export async function hasPremiumAccess(studentId: string): Promise<boolean> {
 	const subscription = await db.subscription.findUnique({
 		where: { studentId },
 	});
 
 	// Verificar se tem trial ativo ou premium ativo
-	if (subscription?.plan === "premium") {
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-
-		if (isActive || isTrialing || isTrialActive) {
+	if (subscription && isPremiumPlan(subscription.plan)) {
+		if (hasActivePremiumStatus(subscription)) {
 			return true;
 		}
 	}

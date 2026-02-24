@@ -10,7 +10,8 @@ import {
 	Wallet,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
@@ -95,6 +96,7 @@ export function StudentPaymentsPage({
 	} = useSubscription({
 		includeDaysRemaining: true,
 		includeTrialInfo: true,
+		enabled: false, // Desabilitar fetch redundante, usar store unificado
 	});
 	const cancelDialogModal = useModalState("cancel-subscription");
 
@@ -282,55 +284,19 @@ export function StudentPaymentsPage({
 	};
 
 	const handleUpgrade = async (
-		_plan: string,
+		planId: string,
 		billingPeriod: "monthly" | "annual",
 	) => {
 		try {
-			// Usar nova rota que ativa premium automaticamente (sem billing real)
-			const response = await apiClient.post<{
-				subscription: {
-					id: string;
-					plan: string;
-					status: string;
-					currentPeriodStart: string | Date;
-					currentPeriodEnd: string | Date;
-					trialStart?: string | Date | null;
-					trialEnd?: string | Date | null;
-					canceledAt?: string | Date | null;
-					cancelAtPeriodEnd?: boolean;
-				};
-				message: string;
-			}>("/api/subscriptions/activate-premium", {
-				billingPeriod,
-			});
+			// Usar a Server Action real para criar o checkout no Abacate Pay
+			const result = await createAbacateBilling(planId, billingPeriod);
 
-			// Atualizar store com dados da API
-			if (response.data.subscription) {
-				const sub = response.data.subscription;
-				await updateSubscription({
-					id: sub.id,
-					plan: sub.plan as "premium" | "free",
-					status: sub.status as
-						| "canceled"
-						| "trialing"
-						| "active"
-						| "expired"
-						| "past_due",
-					currentPeriodStart: new Date(sub.currentPeriodStart),
-					currentPeriodEnd: new Date(sub.currentPeriodEnd),
-					trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
-					trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
-					canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
-					cancelAtPeriodEnd: sub.cancelAtPeriodEnd ?? false,
-				});
+			if (result && result.url) {
+				// Redirecionar para o Abacate Pay
+				window.location.href = result.url;
+			} else {
+				throw new Error("URL de checkout não recebida do servidor.");
 			}
-
-			toast({
-				title: "Premium ativado!",
-				description: "Sua assinatura premium foi ativada com sucesso.",
-			});
-
-			// Não precisa recarregar - updateSubscription já atualiza o store e sincroniza com backend
 		} catch (error: unknown) {
 			console.error("[handleUpgrade] Erro:", error);
 			const err = error as {
@@ -386,15 +352,32 @@ export function StudentPaymentsPage({
 		subscription?.trialEnd && new Date(subscription.trialEnd) > new Date();
 	const isTrialActive =
 		subscription &&
-		subscription.plan === "premium" &&
+		subscription.plan.toLowerCase().includes("premium") &&
 		(subscription.status === "trialing" || hasTrial);
 	const _isPremiumActive =
-		subscription?.plan === "premium" &&
+		subscription?.plan.toLowerCase().includes("premium") &&
 		subscription.status === "active" &&
 		!hasTrial;
 	// Considerar que não há subscription apenas se não estiver carregando e realmente não houver subscription
 	const _hasNoSubscription =
 		!isLoadingSubscription && !isStartingTrial && !subscription;
+
+	const availablePlans = useMemo(() => [
+		{
+			id: "premium",
+			name: "Premium",
+			monthlyPrice: 15,
+			annualPrice: 150.0,
+			features: [
+				"Gerador de treinos com IA",
+				"Gerador de dietas com IA",
+				"Análise de postura avançada",
+				"Coach pessoal virtual",
+				"Consultoria nutricional",
+				"Relatórios avançados",
+			],
+		},
+	], []);
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
@@ -691,22 +674,7 @@ export function StudentPaymentsPage({
 					onStartTrial={handleStartTrial}
 					onSubscribe={handleUpgrade}
 					onCancel={handleCancelConfirm}
-					plans={[
-						{
-							id: "premium",
-							name: "Premium",
-							monthlyPrice: 15,
-							annualPrice: 150.0,
-							features: [
-								"Gerador de treinos com IA",
-								"Gerador de dietas com IA",
-								"Análise de postura avançada",
-								"Coach pessoal virtual",
-								"Consultoria nutricional",
-								"Relatórios avançados",
-							],
-						},
-					]}
+					plans={availablePlans}
 					showPlansWhen="always"
 				/>
 			)}

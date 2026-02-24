@@ -10,6 +10,7 @@ export type SubscriptionData = StudentSubscriptionData;
 interface UseSubscriptionOptions {
 	includeDaysRemaining?: boolean;
 	includeTrialInfo?: boolean;
+	enabled?: boolean;
 }
 
 type UseSubscriptionReturn = {

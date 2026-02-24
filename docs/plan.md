@@ -109,6 +109,13 @@ Rotas: /api/nutrition/*, /api/foods/*
 Subscriptions (lib/api/handlers/subscriptions.handler.ts)
 Rotas: /api/subscriptions/*
 4 handlers
+
+> **Nota sobre Server Actions de Pagamento**: Existem Server Actions em lib/actions/abacate-pay.ts:
+> - createAbacateBilling() - Cria cobranca PIX no Abacate Pay
+> - confirmAbacatePayment() - Verifica status via listBillings() e ativa subscription
+> Estas actions precisarao ser migradas para rotas Elysia.
+> Funcoes de verificacao premium (subscription-helpers.ts) sao client-safe e nao precisam migrar.
+
 Gym Subscriptions (lib/api/handlers/gym-subscriptions.handler.ts)
 Rotas: /api/gym-subscriptions/*
 4 handlers

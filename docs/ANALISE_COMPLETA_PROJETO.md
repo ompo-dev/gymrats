@@ -325,8 +325,11 @@ O GymRats implementa uma arquitetura offline-first completa e robusta:
 #### 8. Financeiro
 
 **Subscription** (Assinatura do Aluno)
-- Plano do GymRats (free, premium, pro)
-- Status e renovação
+- Plano do GymRats (free, Premium Mensal, Premium Anual)
+- Status: active, trialing, pending_payment, canceled, expired
+- Verificação de acesso premium via `hasActivePremiumStatus()` (`lib/utils/subscription-helpers.ts`)
+- Cancelamento revoga acesso premium **imediatamente** (não mantém até fim do período)
+- Integração com Abacate Pay (PIX): `createAbacateBilling` + `confirmAbacatePayment`
 
 **GymSubscription** (Assinatura da Academia)
 - Plano da academia no GymRats
@@ -887,6 +890,10 @@ EMAIL_PASSWORD=...
 
 # IA
 DEEPSEEK_API_KEY=...
+
+# Pagamentos (Abacate Pay)
+ABACATEPAY_API_TOKEN=apt_live_xxx
+ABACATEPAY_WEBHOOK_SECRET=whsec_xxx
 ```
 
 ---

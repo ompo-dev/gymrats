@@ -2038,6 +2038,36 @@ Este sistema representa:
    - Escalável e manutenível
    - Seguro e confiável
 
+
+---
+
+##  Assinaturas e Pagamentos
+
+### Arquitetura de Verificação Premium
+
+O sistema utiliza funções **client-safe** em `lib/utils/subscription-helpers.ts` para verificação de acesso premium, evitando bundling de dependências server-only (Prisma) em componentes client-side:
+
+- `isPremiumPlan(plan)`  Verifica se o plano é premium
+- `hasActivePremiumStatus(sub)`  Verifica status ativo (rejeita canceled/expired imediatamente)
+- `getBillingPeriodFromPlan(plan)`  Infere período de billing
+
+**Regra de Cancelamento**: `hasActivePremiumStatus()` retorna `false` imediatamente para status `canceled` ou `expired`, garantindo que features de IA (chat de nutrição e treinos) sejam bloqueadas no ato do cancelamento.
+
+### Fluxo de Ativação de Pagamento
+
+O sistema utiliza **duas vias** para ativar a subscription após pagamento PIX:
+
+1. **Via Server Action** (primária): `confirmAbacatePayment()` é chamada pelo frontend ao retornar com `?success=true`. Usa `abacatePay.listBillings()` (API não possui endpoint `/billing/get` individual) para verificar o status do pagamento.
+
+2. **Via Webhook** (backup): Endpoint `/api/webhooks/abacatepay` processa o evento `billing.paid` como failsafe.
+
+### Endpoint de Sessão Enriquecido
+
+O endpoint `GET /api/auth/session` inclui dados de subscription do aluno, permitindo que componentes client-side acessem o status da assinatura sem chamadas adicionais ao banco.
+
+> Documentação completa de pagamentos: `docs/FLUXO_PAGAMENTOS_COMPLETO.md`
+
+
 **Este é um case técnico de alto nível que demonstra capacidade arquitetural excepcional!** 🏆
 
 ---

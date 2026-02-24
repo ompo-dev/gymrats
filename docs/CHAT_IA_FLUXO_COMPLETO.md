@@ -298,9 +298,13 @@ Ambas são **recursos premium** (assinatura ou trial ativo) e compartilham o mes
 
 ### 6.1 Premium e Trial
 
-- **Condição**: `subscription.plan === "premium"` e `status` em `["active", "trialing"]` ou `trialEnd` no futuro.
+- **Condição**: Verificada pela função `hasActivePremiumStatus()` de `lib/utils/subscription-helpers.ts`:
+  1. O plano deve conter "premium" (case-insensitive) — via `isPremiumPlan()`
+  2. Status `canceled` ou `expired` → acesso **negado imediatamente** (independente de trial restante)
+  3. Status `active`, `trialing`, ou `trialEnd` no futuro → acesso concedido
 - **Fonte**: `db.subscription` por `studentId`.
 - **Fallback**: `GymMembership` ativo com academia premium também concede acesso.
+- **Client-safe**: A função é importável em componentes client-side sem risco de bundling de dependências server-only.
 
 ### 6.2 Rate Limiting
 

@@ -401,8 +401,12 @@ function transformSectionResponse(
 			return { personalRecords: data.records || data.personalRecords || [] };
 
 		case "subscription":
-			// Subscription pode ser null
-			return { subscription: data.subscription || data || null };
+			// Se vier no formato { success: true, subscription: ... }
+			if (data && typeof data === "object" && "success" in data) {
+				return { subscription: data.subscription || null };
+			}
+			// Se vier direto (objeto subscription ou null)
+			return { subscription: data || null };
 
 		case "memberships":
 			// Memberships vem como array
@@ -1735,19 +1739,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				set((state) => ({
 					data: {
 						...state.data,
-						subscription: state.data.subscription
-							? { ...state.data.subscription, ...updates }
+						subscription: updates 
+							? { ...(state.data.subscription || {}), ...updates } as any
 							: null,
 					},
 				}));
-
-				// Sync com backend se necessário
 			},
 
-			// === ACTIONS - WORKOUT MANAGEMENT ===
-			// Segue padrão offline-first: optimistic update → command → syncManager
 			createUnit: async (data) => {
-				// 1. Optimistic update - atualiza UI imediatamente
 				const command = createCommand("CREATE_UNIT", data);
 				await logCommand(command);
 
