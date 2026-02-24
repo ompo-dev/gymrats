@@ -65,8 +65,8 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 					price: price,
 				},
 			],
-			returnUrl: `${appUrl}/student/payments`,
-			completionUrl: `${appUrl}/student/payments`,
+			returnUrl: `${appUrl}/student?tab=payments&subTab=subscription`,
+			completionUrl: `${appUrl}/student?tab=payments&subTab=subscription&success=true`,
 			customerId: customerId || undefined,
 			customer: !customerId ? {
 				name: user.name || "",

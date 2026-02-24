@@ -4,12 +4,13 @@ import { useEffect } from "react";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
 import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
+import { useSearchParams } from "next/navigation";
+import { useRef } from "react";
 
 export interface SubscriptionPlan {
 	id: string;
@@ -113,6 +114,43 @@ export function SubscriptionSection({
 		setIsProcessingPayment,
 		initializeFromSubscription,
 	} = useSubscriptionUIStore();
+
+	const { toast } = useToast();
+	const searchParams = useSearchParams();
+	const isSuccess = searchParams.get("success") === "true";
+	const { loadSubscription } = useStudent("loaders");
+	const pollCount = useRef(0);
+
+	// Efeito para atualizar automaticamente quando volta do Abacate Pay com sucesso
+	useEffect(() => {
+		if (isSuccess && subscription?.status !== "active") {
+			toast({
+				title: "Pagamento recebido!",
+				description: "Ativando sua assinatura Premium...",
+			});
+
+			// Carregar imediatamente
+			loadSubscription();
+
+			// Tentar carregar a cada 3 segundos (máximo 5 vezes) até que esteja ativo
+			const interval = setInterval(() => {
+				if (subscription?.status === "active" || pollCount.current >= 5) {
+					clearInterval(interval);
+					if (subscription?.status === "active") {
+						toast({
+							title: "Premium Ativado!",
+							description: "Sua assinatura já está ativa. Aproveite!",
+						});
+					}
+					return;
+				}
+				pollCount.current += 1;
+				loadSubscription();
+			}, 3000);
+
+			return () => clearInterval(interval);
+		}
+	}, [isSuccess, subscription?.status, loadSubscription, toast]);
 
 	// Inicializar estado baseado na subscription atual
 	useEffect(() => {
@@ -246,7 +284,6 @@ export function SubscriptionSection({
 		? getAnnualDiscount(selectedPlanData.id)
 		: 10;
 
-	const { toast } = useToast();
 
 	const handleSubscribe = async () => {
 		if (!selectedPlanData) return;
