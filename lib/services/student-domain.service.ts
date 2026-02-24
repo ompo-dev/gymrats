@@ -209,6 +209,67 @@ export class StudentDomainService {
   }
 
   /**
+   * Updates full student profile including core student data and profile details
+   */
+  static async updateFullProfile(studentId: string, data: any) {
+    // 1. Update basic student information
+    await db.student.update({
+      where: { id: studentId },
+      data: {
+        age: data.age,
+        gender: data.gender,
+        isTrans: data.isTrans ?? undefined,
+        usesHormones: data.usesHormones ?? undefined,
+        hormoneType: data.hormoneType || null,
+      },
+    });
+
+    // 2. Prepare profile data (handling JSON stringification for arrays/objects)
+    const profileData = {
+      height: data.height,
+      weight: data.weight,
+      fitnessLevel: data.fitnessLevel || null,
+      weeklyWorkoutFrequency: data.weeklyWorkoutFrequency,
+      workoutDuration: data.workoutDuration,
+      goals: data.goals ? JSON.stringify(data.goals) : null,
+      injuries: data.injuries ? JSON.stringify(data.injuries) : null,
+      availableEquipment: data.availableEquipment ? JSON.stringify(data.availableEquipment) : null,
+      gymType: data.gymType || null,
+      preferredWorkoutTime: data.preferredWorkoutTime || null,
+      preferredSets: data.preferredSets,
+      preferredRepRange: data.preferredRepRange || null,
+      restTime: data.restTime || null,
+      dietType: data.dietType || null,
+      allergies: data.allergies ? JSON.stringify(data.allergies) : null,
+      targetCalories: data.targetCalories,
+      targetProtein: data.targetProtein,
+      targetCarbs: data.targetCarbs,
+      targetFats: data.targetFats,
+      mealsPerDay: data.mealsPerDay,
+      bmr: data.bmr,
+      tdee: data.tdee,
+      activityLevel: data.activityLevel,
+      hormoneTreatmentDuration: data.hormoneTreatmentDuration,
+      physicalLimitations: data.physicalLimitations ? JSON.stringify(data.physicalLimitations) : null,
+      motorLimitations: data.motorLimitations ? JSON.stringify(data.motorLimitations) : null,
+      medicalConditions: data.medicalConditions ? JSON.stringify(data.medicalConditions) : null,
+      limitationDetails: data.limitationDetails ? JSON.stringify(data.limitationDetails) : null,
+      dailyAvailableHours: data.dailyAvailableHours,
+    };
+
+    await this.upsertProfile(studentId, profileData);
+
+    // 3. Ensure progress exists
+    await db.studentProgress.upsert({
+        where: { studentId },
+        create: { studentId },
+        update: {},
+    });
+
+    return { success: true };
+  }
+
+  /**
    * Aggregate method to fetch all student data (replacement for getAllStudentData)
    */
   static async getAllData(studentId: string, userId: string, sections?: string[]) {

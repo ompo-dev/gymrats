@@ -56,64 +56,8 @@ export const GET = createSafeHandler(
 
 export const POST = createSafeHandler(
   async ({ body, studentContext }) => {
-    const { studentId, user } = studentContext!;
-    const data = body;
-
-    // 1. Atualizar informações básicas do student
-    await db.student.update({
-      where: { id: studentId },
-      data: {
-        age: data.age,
-        gender: data.gender,
-        isTrans: data.isTrans ?? undefined,
-        usesHormones: data.usesHormones ?? undefined,
-        hormoneType: data.hormoneType || null,
-      },
-    });
-
-    // 2. Preparar e salvar dados do perfil usando o serviço
-    const profileData = {
-        studentId,
-        height: data.height,
-        weight: data.weight,
-        fitnessLevel: data.fitnessLevel || null,
-        weeklyWorkoutFrequency: data.weeklyWorkoutFrequency,
-        workoutDuration: data.workoutDuration,
-        goals: data.goals ? JSON.stringify(data.goals) : null,
-        injuries: data.injuries ? JSON.stringify(data.injuries) : null,
-        availableEquipment: data.availableEquipment ? JSON.stringify(data.availableEquipment) : null,
-        gymType: data.gymType || null,
-        preferredWorkoutTime: data.preferredWorkoutTime || null,
-        preferredSets: data.preferredSets,
-        preferredRepRange: data.preferredRepRange || null,
-        restTime: data.restTime || null,
-        dietType: data.dietType || null,
-        allergies: data.allergies ? JSON.stringify(data.allergies) : null,
-        targetCalories: data.targetCalories,
-        targetProtein: data.targetProtein,
-        targetCarbs: data.targetCarbs,
-        targetFats: data.targetFats,
-        mealsPerDay: data.mealsPerDay,
-        bmr: data.bmr,
-        tdee: data.tdee,
-        activityLevel: data.activityLevel,
-        hormoneTreatmentDuration: data.hormoneTreatmentDuration,
-        physicalLimitations: data.physicalLimitations ? JSON.stringify(data.physicalLimitations) : null,
-        motorLimitations: data.motorLimitations ? JSON.stringify(data.motorLimitations) : null,
-        medicalConditions: data.medicalConditions ? JSON.stringify(data.medicalConditions) : null,
-        limitationDetails: data.limitationDetails ? JSON.stringify(data.limitationDetails) : null,
-        dailyAvailableHours: data.dailyAvailableHours,
-    };
-
-    await StudentDomainService.upsertProfile(studentId, profileData);
-
-    // 3. Garantir que progresso existe
-    await db.studentProgress.upsert({
-        where: { studentId },
-        create: { studentId },
-        update: {},
-    });
-
+    const { studentId } = studentContext!;
+    await StudentDomainService.updateFullProfile(studentId, body);
     return NextResponse.json({ message: "Perfil salvo com sucesso" });
   },
   {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ZodSchema } from "zod";
+import { ZodType } from "zod";
 import { getGymContext, GymContext } from "@/lib/utils/gym-context";
 import { getStudentContext, StudentContext } from "@/lib/utils/student-context";
 
@@ -8,8 +8,8 @@ type AuthStrategy = "gym" | "student" | "none";
 interface HandlerOptions<TBody = any, TQuery = any> {
   auth?: AuthStrategy;
   schema?: {
-    body?: ZodSchema<TBody>;
-    query?: ZodSchema<TQuery>;
+    body?: ZodType<TBody, any, any>;
+    query?: ZodType<TQuery, any, any>;
   };
 }
 

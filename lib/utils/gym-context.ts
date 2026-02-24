@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/utils/session";
@@ -15,7 +15,17 @@ type GymContextResult =
 
 export async function getGymContext(): Promise<GymContextResult> {
 	const cookieStore = await cookies();
-	const sessionToken = cookieStore.get("auth_token")?.value;
+	const headerList = await headers();
+
+	let sessionToken = cookieStore.get("auth_token")?.value || 
+                     cookieStore.get("better-auth.session_token")?.value;
+
+	if (!sessionToken) {
+		const authHeader = headerList.get("authorization");
+		if (authHeader) {
+			sessionToken = authHeader.replace(/^Bearer\s+/i, "").trim() || undefined;
+		}
+	}
 
 	if (!sessionToken) {
 		return {
