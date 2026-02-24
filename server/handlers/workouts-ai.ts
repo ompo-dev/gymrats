@@ -4,6 +4,7 @@ import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 import {
 	calculateReps,
 	calculateRest,
@@ -543,16 +544,7 @@ export async function chatWorkoutsHandler({
 			};
 		}
 
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-		const hasPremium =
-			subscription.plan === "premium" &&
-			(isActive || isTrialing || isTrialActive);
-
-		if (!hasPremium) {
+		if (!hasActivePremiumStatus(subscription)) {
 			set.status = 403;
 			return {
 				error: "Recurso premium",
@@ -813,16 +805,7 @@ export async function chatStreamWorkoutsHandler({
 					return;
 				}
 
-				const now = new Date();
-				const isTrialActive =
-					subscription.trialEnd && new Date(subscription.trialEnd) > now;
-				const isActive = subscription.status === "active";
-				const isTrialing = subscription.status === "trialing";
-				const hasPremium =
-					subscription.plan === "premium" &&
-					(isActive || isTrialing || isTrialActive);
-
-				if (!hasPremium) {
+				if (!hasActivePremiumStatus(subscription)) {
 					sendSSE("error", {
 						error: "Recurso premium",
 						message:

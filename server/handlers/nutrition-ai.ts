@@ -3,6 +3,7 @@ import { chatCompletion } from "@/lib/ai/client";
 import { parseNutritionResponse } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { db } from "@/lib/db";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 import { badRequestResponse, internalErrorResponse } from "../utils/response";
 
 type NutritionAiContext = {
@@ -29,16 +30,7 @@ export async function nutritionChatHandler({
 			};
 		}
 
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-		const hasPremium =
-			subscription.plan === "premium" &&
-			(isActive || isTrialing || isTrialActive);
-
-		if (!hasPremium) {
+		if (!hasActivePremiumStatus(subscription)) {
 			set.status = 403;
 			return {
 				error: "Recurso premium",

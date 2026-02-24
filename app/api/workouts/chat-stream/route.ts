@@ -17,6 +17,7 @@ import {
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 /**
  * Enviar evento SSE
@@ -69,16 +70,7 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        const now = new Date();
-        const isTrialActive =
-          subscription.trialEnd && new Date(subscription.trialEnd) > now;
-        const isActive = subscription.status === "active";
-        const isTrialing = subscription.status === "trialing";
-        const hasPremium =
-          subscription.plan === "premium" &&
-          (isActive || isTrialing || isTrialActive);
-
-        if (!hasPremium) {
+        if (!hasActivePremiumStatus(subscription)) {
           sendSSE(controller, "error", {
             error: "Recurso premium",
             message:

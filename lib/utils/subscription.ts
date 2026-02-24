@@ -2,20 +2,56 @@ import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 
+// ─── Utilitários puros (sem DB) ───────────────────────────────────────────────
+
+/**
+ * Verifica se o nome do plano corresponde a um plano premium.
+ * Aceita qualquer variação: "premium", "Premium Mensal", "Premium Anual", etc.
+ */
+export function isPremiumPlan(plan: string): boolean {
+	return plan.toLowerCase().includes("premium");
+}
+
+/**
+ * Verifica se o usuário tem status de premium ativo (plano premium + status válido).
+ * Função pura — não acessa o banco de dados.
+ */
+export function hasActivePremiumStatus(subscription: {
+	plan: string;
+	status: string;
+	trialEnd?: Date | string | null;
+}): boolean {
+	if (!isPremiumPlan(subscription.plan)) return false;
+
+	const now = new Date();
+	const isTrialActive =
+		subscription.trialEnd && new Date(subscription.trialEnd) > now;
+
+	return (
+		subscription.status === "active" ||
+		subscription.status === "trialing" ||
+		!!isTrialActive
+	);
+}
+
+/**
+ * Extrai o período de cobrança a partir do nome do plano.
+ * Retorna "annual" se contém "Anual", senão "monthly".
+ */
+export function getBillingPeriodFromPlan(plan: string): "monthly" | "annual" {
+	return plan.toLowerCase().includes("anual") ? "annual" : "monthly";
+}
+
+// ─── Funções com acesso ao DB ─────────────────────────────────────────────────
+
 export async function hasPremiumAccess(studentId: string): Promise<boolean> {
 	const subscription = await db.subscription.findUnique({
 		where: { studentId },
 	});
 
 	// Verificar se tem trial ativo ou premium ativo
-	if (subscription?.plan === "premium") {
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-
-		if (isActive || isTrialing || isTrialActive) {
+	if (subscription && isPremiumPlan(subscription.plan)) {
+		if (hasActivePremiumStatus(subscription)) {
 			return true;
 		}
 	}

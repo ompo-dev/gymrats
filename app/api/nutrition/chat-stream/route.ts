@@ -18,6 +18,7 @@ import {
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 const MAX_HISTORY = 4; // Últimas 4 mensagens para reduzir tokens
 
@@ -72,16 +73,7 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        const now = new Date();
-        const isTrialActive =
-          subscription.trialEnd && new Date(subscription.trialEnd) > now;
-        const hasPremium =
-          subscription.plan === "premium" &&
-          (subscription.status === "active" ||
-            subscription.status === "trialing" ||
-            isTrialActive);
-
-        if (!hasPremium) {
+        if (!hasActivePremiumStatus(subscription)) {
           sendSSE(controller, "error", {
             error: "Recurso premium",
             message:

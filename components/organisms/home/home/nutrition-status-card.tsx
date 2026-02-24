@@ -8,6 +8,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 interface NutritionStatusCardProps {
 	dailyNutrition: DailyNutrition | null | undefined;
@@ -21,18 +22,8 @@ export function NutritionStatusCard({
 	// Verificar se é premium/trial
 	const subscription = useStudent("subscription");
 	const isPremium = useMemo(() => {
-		if (!subscription) return false;
-
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-
-		return (
-			subscription.plan === "premium" &&
-			(isActive || isTrialing || isTrialActive)
-		);
+		if (!subscription || !subscription.plan || !subscription.status) return false;
+		return hasActivePremiumStatus(subscription as { plan: string; status: string; trialEnd?: Date | string | null });
 	}, [subscription]);
 
 	// Handler para navegação: se premium, abre chat; senão, redireciona para dieta

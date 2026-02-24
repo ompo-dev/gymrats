@@ -16,6 +16,7 @@ import { parseNutritionResponse } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -49,16 +50,7 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		const now = new Date();
-		const isTrialActive =
-			subscription.trialEnd && new Date(subscription.trialEnd) > now;
-		const isActive = subscription.status === "active";
-		const isTrialing = subscription.status === "trialing";
-		const hasPremium =
-			subscription.plan === "premium" &&
-			(isActive || isTrialing || isTrialActive);
-
-		if (!hasPremium) {
+		if (!hasActivePremiumStatus(subscription)) {
 			return NextResponse.json(
 				{
 					error: "Recurso premium",
