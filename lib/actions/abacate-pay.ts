@@ -186,6 +186,23 @@ export async function confirmAbacatePayment(): Promise<{
 			};
 		}
 
+		// Se o usuário CANCELOU explicitamente, não devemos reativar automaticamente
+		// mesmo que a cobrança no AbacatePay esteja PAID.
+		if (subscription.status === "canceled") {
+			console.log(`[confirmAbacatePayment] Subscription ${subscription.id} está cancelada. Pulando reativação automática.`);
+			const billingPeriod = subscription.plan.toLowerCase().includes("anual")
+				? "annual"
+				: "monthly";
+			return {
+				success: true, // Retornamos sucesso pois o carregamento foi ok, mas sem mudar status
+				subscription: {
+					plan: subscription.plan,
+					status: subscription.status,
+					billingPeriod,
+				},
+			};
+		}
+
 		// Verificar status do billing no AbacatePay usando listBillings
 		// (AbacatePay não possui endpoint /billing/get individual)
 		if (!subscription.abacatePayBillingId) {

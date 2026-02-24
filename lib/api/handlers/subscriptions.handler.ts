@@ -86,7 +86,7 @@ export async function createSubscriptionHandler(
 			return validation.response;
 		}
 
-		const { plan } = validation.data;
+		const { plan } = validation.data as any;
 
 		// Verificar se existe subscription
 		const existingSubscription = await db.subscription.findUnique({
@@ -169,7 +169,7 @@ export async function startTrialHandler(
 		}
 
 		// Inicializar trial
-		await initializeStudentTrial(studentId);
+		await initializeStudentTrial(studentId!);
 
 		return successResponse({ message: "Trial iniciado com sucesso" });
 	} catch (error: any) {
@@ -201,14 +201,16 @@ export async function cancelSubscriptionHandler(
 		}
 
 		const subscription = await db.subscription.findUnique({
-			where: { studentId },
+			where: { studentId: studentId! },
 		});
 
 		if (!subscription) {
 			return notFoundResponse("Assinatura não encontrada");
 		}
 
-		await db.subscription.update({
+		console.log(`[cancelSubscriptionHandler] Student ${studentId} cancelando sub ${subscription.id}`);
+
+		const canceled = await db.subscription.update({
 			where: { id: subscription.id },
 			data: {
 				status: "canceled",
@@ -217,7 +219,12 @@ export async function cancelSubscriptionHandler(
 			},
 		});
 
-		return successResponse({ message: "Assinatura cancelada com sucesso" });
+		console.log(`[cancelSubscriptionHandler] Sucesso. Novo status: ${canceled.status}`);
+
+		return successResponse({
+			subscription: canceled,
+			message: "Assinatura cancelada com sucesso"
+		});
 	} catch (error: any) {
 		console.error("[cancelSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao cancelar assinatura", error);

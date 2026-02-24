@@ -153,14 +153,18 @@ export async function cancelSubscriptionHandler({
 			return notFoundResponse(set, "Assinatura não encontrada");
 		}
 
+		console.log(`[Elysia][cancelSubscriptionHandler] Cancelando subscription ${subscription.id} para student ${studentId}`);
+
 		const canceled = await db.subscription.update({
 			where: { id: subscription.id },
 			data: {
 				status: "canceled",
 				canceledAt: new Date(),
-				cancelAtPeriodEnd: false,
+				cancelAtPeriodEnd: true, // Alterado para true para consistência
 			},
 		});
+
+		console.log(`[Elysia][cancelSubscriptionHandler] Subscription cancelada. Novo status: ${canceled.status}`);
 
 		return successResponse(set, {
 			subscription: canceled,

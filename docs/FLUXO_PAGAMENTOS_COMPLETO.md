@@ -28,8 +28,9 @@ O sistema de pagamentos do GymRats é baseado no gateway **Abacate Pay** e funci
 | Camada | Tecnologia | Arquivo Principal |
 |--------|------------|-------------------|
 | Gateway | Abacate Pay API v1 | `lib/api/abacatepay.ts` |
-| Server Action | Next.js Server Actions | `lib/actions/abacate-pay.ts` |
+| Server Actions | Next.js Server Actions | `lib/actions/abacate-pay.ts` (`createAbacateBilling`, `confirmAbacatePayment`) |
 | Webhook | Next.js API Route | `app/api/webhooks/abacatepay/route.ts` |
+| Verificação Premium | Pure Utils (client-safe) | `lib/utils/subscription-helpers.ts` (`hasActivePremiumStatus`, `isPremiumPlan`) |
 | State (UI) | Zustand | `stores/subscription-ui-store.ts` |
 | State (Dados) | Zustand Unified | `hooks/use-student.ts` |
 | Componente | React | `components/organisms/sections/subscription-section.tsx` |
@@ -74,13 +75,18 @@ O sistema de pagamentos do GymRats é baseado no gateway **Abacate Pay** e funci
                               │  (Página do Abacate Pay)       │
                               └─────────────────────────┬──────┘
                                                         │
-                              ┌──────────────────────────▼─────┐
-                              │  Webhook POST                  │
-                              │  /api/webhooks/abacatepay      │
-                              │  Event: billing.paid           │
-                              │  → Status: active              │
-                              │  → Datas: +1 mês ou +1 ano    │
-                              └────────────────────────────────┘
+                    ┌───────────────────────────────────▼──────────────┐
+                    │  Confirmação de Pagamento (duas vias)            │
+                    │                                                  │
+                    │  1. confirmAbacatePayment() (Server Action)      │
+                    │     - Frontend chama ao retornar com ?success    │
+                    │     - Usa listBillings() para verificar status  │
+                    │     - Se PAID → atualiza status para "active"   │
+                    │                                                  │
+                    │  2. Webhook POST (backup/alternativo)            │
+                    │     /api/webhooks/abacatepay                     │
+                    │     Event: billing.paid → active                 │
+                    └─────────────────────────────────────────────────┘
 ```
 
 ---
@@ -207,38 +213,38 @@ const prices = {
    - Retorna `{ url }` do checkout
 7. **Browser redireciona** para a página de pagamento do Abacate Pay
 8. **Usuário paga** via PIX
-9. **Abacate Pay envia** webhook `billing.paid` para `/api/webhooks/abacatepay`
-10. **Webhook processa**:
-    - Encontra a subscription pelo `abacatePayBillingId` ou `metadata.studentId`
-    - Calcula período: +1 ano (se `metadata.billingPeriod === "annual"` ou valor ≥ R$ 150) ou +1 mês
-    - Atualiza subscription: `status: "active"`, novas datas de período
-    - Registra pagamento na tabela `SubscriptionPayment`
-11. **Abacate Pay redireciona** o usuário de volta para `completionUrl` com `?success=true`
-12. **UI detecta** `success=true` via `useSearchParams` e inicia polling
-13. **Polling** busca a subscription atualizada até detectar `status: "active"`
-14. **Toast de sucesso** é exibido
+9. **Abacate Pay redireciona** o usuário de volta para `completionUrl` com `?success=true`
+10. **UI detecta** `success=true` via `useSearchParams`
+11. **`confirmAbacatePayment()`** (Server Action) é chamada com polling (máx. 10 tentativas, 3s intervalo):
+    - Busca a subscription do usuário no banco (com `abacatePayBillingId`)
+    - Chama `abacatePay.listBillings()` (API do Abacate Pay)
+    - Encontra o billing pelo ID e verifica `status`
+    - Se `PAID`: atualiza subscription para `status: "active"` com datas de período corretas
+    - Retorna `{ success: true, subscription }` para o frontend
+12. **Frontend atualiza** o store com `loadSubscription()` e exibe toast de sucesso
+13. **(Backup)** Webhook `billing.paid` também pode ativar a subscription via `/api/webhooks/abacatepay`
 
 ### Diagrama de Sequência
 
 ```
-Usuário     Frontend        Server Action      Abacate Pay     Webhook        DB
-  │            │                  │                 │              │            │
-  │──Clica────▶│                  │                 │              │            │
-  │            │──createBilling──▶│                 │              │            │
-  │            │                  │───POST /bill───▶│              │            │
-  │            │                  │◀──{ url, id }───│              │            │
-  │            │                  │──upsert─────────┼──────────────┼──────────▶│
-  │            │                  │  pending_payment│              │            │
-  │            │◀──{ url }────────│                 │              │            │
-  │◀──redirect─│                  │                 │              │            │
-  │──Paga PIX──┼──────────────────┼────────────────▶│              │            │
-  │            │                  │                 │──billing.paid▶│           │
-  │            │                  │                 │              │──update───▶│
-  │            │                  │                 │              │  active    │
-  │◀──redirect─┼──────────────────┼─────────────────│              │            │
-  │            │──polling─────────┼──getSubscription─┼─────────────┼──read────▶│
-  │            │◀─status:active───│                 │              │            │
-  │◀──toast────│                  │                 │              │            │
+Usuário     Frontend           Server Action        Abacate Pay       DB
+  │            │                     │                    │             │
+  │──Clica────▶│                     │                    │             │
+  │            │──createBilling──────▶│                    │             │
+  │            │                     │────POST /billing───▶│             │
+  │            │                     │◀───{ url, id }──────│             │
+  │            │                     │──upsert (pending)───┼────────────▶│
+  │            │◀──{ url }───────────│                    │             │
+  │◀──redirect─│                     │                    │             │
+  │──Paga PIX──┼─────────────────────┼───────────────────▶│             │
+  │◀──redirect─┼─ ?success=true ─────┼────────────────────│             │
+  │            │──confirmPayment()──▶│                    │             │
+  │            │                     │──GET /billing/list─▶│             │
+  │            │                     │◀──[{status:PAID}]──│             │
+  │            │                     │──update (active)───┼────────────▶│
+  │            │◀──{ success }───────│                    │             │
+  │            │──loadSubscription──▶│                    │             │
+  │◀──toast────│                     │                    │             │
 ```
 
 ---
@@ -270,9 +276,11 @@ O upgrade segue o **mesmo fluxo** da assinatura, porém com regras de UI mais re
 4. **Optimistic Update**: UI reflete cancelamento imediatamente
 5. **API atualiza** no banco:
    - `status`: "canceled"
-   - `cancelAtPeriodEnd`: true
+   - `cancelAtPeriodEnd`: true (Next API) / false (Elysia)
    - `canceledAt`: agora
-6. **Usuário mantém acesso** até `currentPeriodEnd`
+6. **Acesso premium é revogado imediatamente** — `hasActivePremiumStatus()` retorna `false` para status `canceled`
+
+> ⚠️ **IMPORTANTE**: O cancelamento revoga o acesso premium **instantaneamente**. Diferente de outros serviços, o usuário NÃO mantém acesso até o fim do período. Isso inclui todas as features de IA (chat de nutrição e treinos).
 
 ---
 
@@ -471,15 +479,21 @@ Os nomes são salvos de forma descritiva no banco:
 
 ### Status fica `pending_payment` após pagar
 
-**Causa provável**: Webhook não está chegando ou está falhando.
+**Causa original**: Não havia mecanismo para verificar o status do pagamento no Abacate Pay após o retorno do usuário.
 
-**Verificar**:
-1. URL do webhook configurada no Abacate Pay: `{APP_URL}/api/webhooks/abacatepay?webhookSecret={SECRET}`
-2. Logs do servidor para ver se o webhook está sendo recebido
-3. Se o `abacatePayBillingId` no banco corresponde ao ID da cobrança paga
-4. Se a variável `ABACATEPAY_WEBHOOK_SECRET` está correta
+**Solução implementada**: `confirmAbacatePayment()` (Server Action) é chamada automaticamente quando o usuário retorna com `?success=true`. Ela:
+1. Busca a subscription do usuário (com `abacatePayBillingId`)
+2. Chama `abacatePay.listBillings()` e encontra o billing pelo ID
+3. Se status for `PAID`, atualiza subscription para `active`
+4. Polling automático (máx. 10 tentativas, 3s intervalo)
 
-**Mitigação**: O `createAbacateBilling` já salva as datas corretas de período no checkout, então a UI mostra as informações corretas mesmo sem o webhook.
+> **Nota**: A API do Abacate Pay **não possui** endpoint `/billing/get` individual. Usa-se `/billing/list` e filtra-se pelo ID.
+
+**Se ainda falhar, verificar**:
+1. Se `ABACATEPAY_API_TOKEN` está configurado corretamente
+2. Se o `abacatePayBillingId` no banco corresponde ao ID real da cobrança
+3. Logs do servidor: `[confirmAbacatePayment]` mostra o status retornado
+4. Se o webhook de backup está configurado: `{APP_URL}/api/webhooks/abacatepay?webhookSecret={SECRET}`
 
 ### Datas de período erradas
 
@@ -507,14 +521,17 @@ Os nomes são salvos de forma descritiva no banco:
 
 | Arquivo | Responsabilidade |
 |---------|------------------|
-| `lib/api/abacatepay.ts` | Cliente HTTP do Abacate Pay (createBilling, createCustomer, verifyWebhook) |
-| `lib/actions/abacate-pay.ts` | Server Action: cria cobrança e faz upsert da subscription |
-| `app/api/webhooks/abacatepay/route.ts` | Webhook handler: processa `billing.paid` |
+| `lib/api/abacatepay.ts` | Cliente HTTP do Abacate Pay (`createBilling`, `listBillings`, `verifyWebhook`) |
+| `lib/actions/abacate-pay.ts` | Server Actions: `createAbacateBilling` (cria cobrança) e `confirmAbacatePayment` (verifica e ativa) |
+| `lib/utils/subscription-helpers.ts` | Funções puras client-safe: `hasActivePremiumStatus`, `isPremiumPlan`, `getBillingPeriodFromPlan` |
+| `lib/utils/subscription.ts` | Re-exporta helpers + funções server-only (acesso ao DB) |
+| `app/api/webhooks/abacatepay/route.ts` | Webhook handler: processa `billing.paid` (backup) |
+| `app/api/auth/session/route.ts` | Endpoint de sessão enriquecido com dados de subscription |
 | `app/student/actions.ts` | `getStudentSubscription()`: busca e formata dados da subscription |
 | `stores/subscription-ui-store.ts` | Estado da UI de seleção de planos (Zustand) |
 | `hooks/use-subscription.ts` | Hook de mutations (cancelar, iniciar trial) |
 | `hooks/use-subscription-unified.ts` | Hook unificado com dados + mutations |
-| `components/organisms/sections/subscription-section.tsx` | Componente orquestrador da subscription |
+| `components/organisms/sections/subscription-section.tsx` | Orquestrador: chama `confirmAbacatePayment` no retorno do pagamento |
 | `components/organisms/sections/subscription/plans-selector.tsx` | Seleção e filtragem de planos |
 | `components/organisms/sections/subscription/billing-period-selector.tsx` | Toggle Mensal/Anual |
 | `components/organisms/sections/subscription/subscription-status.tsx` | Exibição do status atual |

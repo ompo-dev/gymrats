@@ -713,14 +713,16 @@ export async function getStudentSubscription() {
 			: null;
 		const isTrialActive = trialEndDate ? trialEndDate > now : false;
 
-		// Se a subscription está cancelada mas o trial ainda está ativo, retornar os dados
-		// Só retornar null se estiver cancelada E não houver trial ativo
+		// REMOVIDO: Não retornar null se estiver cancelada. 
+		// Precisamos retornar o objeto para que a UI mostre o status "canceled" corretamente.
+		/*
 		if (subscription.status === "canceled" && !isTrialActive) {
 			console.log(
 				`[getStudentSubscription] Subscription cancelada e trial expirado, retornando null`,
 			);
 			return null;
 		}
+		*/
 		const daysRemaining = trialEndDate
 			? Math.max(
 					0,

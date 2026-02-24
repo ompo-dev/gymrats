@@ -146,6 +146,10 @@ export function SubscriptionSection({
 							title: "Assinatura Ativada! 🎉",
 							description: `Seu plano ${result.subscription?.plan || "Premium"} está ativo. Aproveite!`,
 						});
+						// Limpar a URL para não disparar novamente em re-renders ou navegação
+						const url = new URL(window.location.href);
+						url.searchParams.delete("success");
+						window.history.replaceState({}, "", url.toString());
 						return;
 					}
 				} catch (error) {
