@@ -10,7 +10,7 @@ import {
 	Wallet,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
@@ -392,6 +392,23 @@ export function StudentPaymentsPage({
 	const _hasNoSubscription =
 		!isLoadingSubscription && !isStartingTrial && !subscription;
 
+	const availablePlans = useMemo(() => [
+		{
+			id: "premium",
+			name: "Premium",
+			monthlyPrice: 15,
+			annualPrice: 150.0,
+			features: [
+				"Gerador de treinos com IA",
+				"Gerador de dietas com IA",
+				"Análise de postura avançada",
+				"Coach pessoal virtual",
+				"Consultoria nutricional",
+				"Relatórios avançados",
+			],
+		},
+	], []);
+
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
 			<div className="text-center">
@@ -687,22 +704,7 @@ export function StudentPaymentsPage({
 					onStartTrial={handleStartTrial}
 					onSubscribe={handleUpgrade}
 					onCancel={handleCancelConfirm}
-					plans={[
-						{
-							id: "premium",
-							name: "Premium",
-							monthlyPrice: 15,
-							annualPrice: 150.0,
-							features: [
-								"Gerador de treinos com IA",
-								"Gerador de dietas com IA",
-								"Análise de postura avançada",
-								"Coach pessoal virtual",
-								"Consultoria nutricional",
-								"Relatórios avançados",
-							],
-						},
-					]}
+					plans={availablePlans}
 					showPlansWhen="always"
 				/>
 			)}

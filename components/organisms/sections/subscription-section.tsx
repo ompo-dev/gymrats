@@ -120,37 +120,54 @@ export function SubscriptionSection({
 	const isSuccess = searchParams.get("success") === "true";
 	const { loadSubscription } = useStudent("loaders");
 	const pollCount = useRef(0);
+	const initialBillingPeriod = useRef(subscription?.billingPeriod);
+	const initialPlan = useRef(subscription?.plan);
 
 	// Efeito para atualizar automaticamente quando volta do Abacate Pay com sucesso
 	useEffect(() => {
-		if (isSuccess && subscription?.status !== "active") {
-			toast({
-				title: "Pagamento recebido!",
-				description: "Ativando sua assinatura Premium...",
-			});
+		if (isSuccess) {
+			const isUpgrade = 
+				subscription?.status === "active" && 
+				(subscription?.billingPeriod !== initialBillingPeriod.current || 
+				 subscription?.plan !== initialPlan.current);
 
-			// Carregar imediatamente
-			loadSubscription();
+			if (subscription?.status !== "active" || isUpgrade) {
+				toast({
+					title: isUpgrade ? "Atualizando assinatura..." : "Pagamento recebido!",
+					description: isUpgrade 
+						? "Processando seu upgrade de plano..." 
+						: "Ativando sua assinatura Premium...",
+				});
 
-			// Tentar carregar a cada 3 segundos (máximo 5 vezes) até que esteja ativo
-			const interval = setInterval(() => {
-				if (subscription?.status === "active" || pollCount.current >= 5) {
-					clearInterval(interval);
-					if (subscription?.status === "active") {
-						toast({
-							title: "Premium Ativado!",
-							description: "Sua assinatura já está ativa. Aproveite!",
-						});
-					}
-					return;
-				}
-				pollCount.current += 1;
+				// Carregar imediatamente
 				loadSubscription();
-			}, 3000);
 
-			return () => clearInterval(interval);
+				// Tentar carregar a cada 3 segundos (máximo 10 vezes) até que mude
+				const interval = setInterval(() => {
+					const hasChanged = 
+						(subscription?.status === "active" && !isUpgrade) ||
+						(isUpgrade && 
+						 (subscription?.billingPeriod !== initialBillingPeriod.current || 
+						  subscription?.plan !== initialPlan.current));
+
+					if (hasChanged || pollCount.current >= 10) {
+						clearInterval(interval);
+						if (hasChanged) {
+							toast({
+								title: "Assinatura Atualizada!",
+								description: "Suas mudanças já estão ativas. Aproveite!",
+							});
+						}
+						return;
+					}
+					pollCount.current += 1;
+					loadSubscription();
+				}, 3000);
+
+				return () => clearInterval(interval);
+			}
 		}
-	}, [isSuccess, subscription?.status, loadSubscription, toast]);
+	}, [isSuccess, subscription?.status, subscription?.billingPeriod, subscription?.plan, loadSubscription, toast]);
 
 	// Inicializar estado baseado na subscription atual
 	useEffect(() => {

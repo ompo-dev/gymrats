@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 			await db.subscription.update({
 				where: { id: subscription.id },
 				data: {
-					plan: "premium",
+					plan: `Premium ${isAnnual ? "Anual" : "Mensal"}`,
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
