@@ -1,47 +1,43 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/utils/session";
-import { getGymContext } from "@/lib/utils/gym-context";
-import { cookies } from "next/headers";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { z } from "zod";
 
-export async function POST(request: NextRequest) {
-	try {
-	const { ctx, errorResponse } = await getGymContext();
-		if (errorResponse) return errorResponse;
-		const { gymId } = ctx;
+const createEquipmentSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  type: z.string().min(1, "Tipo é obrigatório"),
+  brand: z.string().optional().nullable(),
+  model: z.string().optional().nullable(),
+  serialNumber: z.string().optional().nullable(),
+  purchaseDate: z.string().optional().nullable(),
+});
 
-		const body = await request.json();
-		const { name, type, brand, model, serialNumber, purchaseDate } = body;
+export const POST = createSafeHandler(
+  async ({ body, gymContext }) => {
+    const { gymId } = gymContext!;
+    const { name, type, brand, model, serialNumber, purchaseDate } = body;
 
-		if (!name || !type) {
-			return NextResponse.json(
-				{ error: "Nome e tipo são obrigatórios" },
-				{ status: 400 },
-			);
-		}
+    const equipment = await db.equipment.create({
+      data: {
+        gymId,
+        name,
+        type,
+        brand: brand || null,
+        model: model || null,
+        serialNumber: serialNumber || null,
+        purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
+        status: "available",
+      },
+    });
 
-		const equipment = await db.equipment.create({
-			data: {
-				gymId,
-				name,
-				type,
-				brand: brand || null,
-				model: model || null,
-				serialNumber: serialNumber || null,
-				purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
-				status: "available",
-			},
-		});
+    // Atualizar contagem de equipamentos no perfil da academia
+    await GymDomainService.incrementEquipmentCount(gymId);
 
-		// Atualizar contagem de equipamentos no perfil da academia
-		await db.gymProfile.update({
-			where: { gymId },
-			data: { equipmentCount: { increment: 1 } },
-		});
-
-		return NextResponse.json({ equipment }, { status: 201 });
-	} catch (error) {
-		console.error("[POST /api/gyms/equipment]", error);
-		return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-	}
-}
+    return NextResponse.json({ equipment }, { status: 201 });
+  },
+  {
+    auth: "gym",
+    schema: { body: createEquipmentSchema },
+  }
+);
