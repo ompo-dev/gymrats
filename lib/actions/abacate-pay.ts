@@ -105,7 +105,10 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},
 			update: {
+				plan: `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`,
 				status: "pending_payment",
+				cancelAtPeriodEnd: false, // Resetar estado de cancelamento
+				canceledAt: null,         // Resetar data de cancelamento
 				abacatePayBillingId: abacatePayData.id,
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},

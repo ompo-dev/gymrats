@@ -170,23 +170,34 @@ export function SubscriptionSection({
 	}, [isSuccess, subscription?.status, subscription?.billingPeriod, subscription?.plan, loadSubscription, toast]);
 
 	// Inicializar estado baseado na subscription atual
+	const prevSubscriptionId = useRef<string | null>(null);
+
 	useEffect(() => {
 		if (plans.length > 0) {
-			initializeFromSubscription(
-				plans,
-				subscription?.plan,
-				subscription?.billingPeriod,
-				userType,
-			);
+			// Apenas re-inicializar se a assinatura mudou de verdade (ID ou plano base)
+			const subId = subscription?.id || "no-subscription";
+			const subPlan = subscription?.plan || "free";
+			const subPeriod = subscription?.billingPeriod || "monthly";
+			const checkKey = `${subId}-${subPlan}-${subPeriod}`;
+
+			if (prevSubscriptionId.current !== checkKey) {
+				console.log("[Subscription] Re-inicializando UI Store:", checkKey);
+				initializeFromSubscription(
+					plans,
+					subscription?.plan,
+					subscription?.billingPeriod,
+					userType,
+				);
+				prevSubscriptionId.current = checkKey;
+			}
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
-		plans.length,
+		plans,
+		subscription?.id,
 		subscription?.plan,
 		subscription?.billingPeriod,
 		userType,
 		initializeFromSubscription,
-		plans,
 	]);
 
 	// Textos padrão
@@ -306,30 +317,32 @@ export function SubscriptionSection({
 	const handleSubscribe = async () => {
 		if (!selectedPlanData) return;
 
+		// Se o componente pai forneceu um callback, usar ele (mantém consistência)
+		if (onSubscribe) {
+			await onSubscribe(selectedPlanData.id, selectedBillingPeriod);
+			return;
+		}
+
+		// Fallback para comportamento padrão (checkout direto)
 		setIsProcessingPayment(true);
 		try {
-			console.log("[Subscription] Iniciando checkout para:", selectedPlanData.id, selectedBillingPeriod);
+			console.log("[Subscription] Iniciando checkout direto para:", selectedPlanData.id, selectedBillingPeriod);
 			const result = await createAbacateBilling(
 				selectedPlanData.id,
 				selectedBillingPeriod,
 			);
 
 			if (result && result.url) {
-				// Redirecionar para o Abacate Pay
 				window.location.href = result.url;
 			} else {
 				throw new Error("URL de checkout não recebida do servidor.");
 			}
 		} catch (error: any) {
 			console.error("[Subscription] Erro no checkout:", error);
-			
-			// Usar toast do hook
 			toast({
 				variant: "destructive",
 				title: "Erro ao iniciar checkout",
-				description:
-					error.message ||
-					"Erro ao processar checkout com Abacate Pay. Verifique se a sua sessão está ativa.",
+				description: error.message || "Erro ao processar checkout.",
 			});
 		} finally {
 			setIsProcessingPayment(false);
