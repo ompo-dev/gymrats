@@ -186,19 +186,18 @@ export async function confirmAbacatePayment(): Promise<{
 			};
 		}
 
-		// Verificar status do billing no AbacatePay
+		// Verificar status do billing no AbacatePay usando listBillings
+		// (AbacatePay não possui endpoint /billing/get individual)
 		if (!subscription.abacatePayBillingId) {
 			return { success: false, error: "ID de billing não encontrado." };
 		}
 
-		const billingResponse = await abacatePay.getBilling(
-			subscription.abacatePayBillingId,
-		);
+		const listResponse = await abacatePay.listBillings();
 
-		if (billingResponse.error || !billingResponse.data) {
+		if (listResponse.error || !listResponse.data) {
 			console.error(
-				"[confirmAbacatePayment] Erro ao consultar billing:",
-				billingResponse.error,
+				"[confirmAbacatePayment] Erro ao listar billings:",
+				listResponse.error,
 			);
 			return {
 				success: false,
@@ -206,7 +205,21 @@ export async function confirmAbacatePayment(): Promise<{
 			};
 		}
 
-		const billingStatus = billingResponse.data.status;
+		const billing = listResponse.data.find(
+			(b) => b.id === subscription.abacatePayBillingId,
+		);
+
+		if (!billing) {
+			console.error(
+				`[confirmAbacatePayment] Billing ${subscription.abacatePayBillingId} não encontrado na lista`,
+			);
+			return {
+				success: false,
+				error: "Cobrança não encontrada no AbacatePay.",
+			};
+		}
+
+		const billingStatus = billing.status;
 		console.log(
 			`[confirmAbacatePayment] Billing ${subscription.abacatePayBillingId} status: ${billingStatus}`,
 		);
