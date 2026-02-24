@@ -6,6 +6,7 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
 import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/abacate-pay";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
@@ -232,7 +233,9 @@ export function SubscriptionSection({
 	);
 	const isPremiumActive = !!(
 		subscription &&
-		(subscription.status === "active" || subscription.status === "pending_payment") &&
+		subscription.plan &&
+		subscription.status &&
+		hasActivePremiumStatus(subscription as { plan: string; status: string; trialEnd?: Date | string | null }) &&
 		!hasTrial
 	);
 	const isPendingPayment = subscription?.status === "pending_payment";

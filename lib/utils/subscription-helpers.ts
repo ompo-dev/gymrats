@@ -19,6 +19,8 @@ export function isPremiumPlan(plan: string): boolean {
 /**
  * Verifica se o usuário tem status de premium ativo (plano premium + status válido).
  * Função pura — não acessa o banco de dados.
+ *
+ * IMPORTANTE: status "canceled" NUNCA retorna true — cancelamento revoga acesso imediato.
  */
 export function hasActivePremiumStatus(subscription: {
 	plan: string;
@@ -26,6 +28,11 @@ export function hasActivePremiumStatus(subscription: {
 	trialEnd?: Date | string | null;
 }): boolean {
 	if (!isPremiumPlan(subscription.plan)) return false;
+
+	// Cancelamento revoga acesso imediatamente, independentemente do trial restante
+	if (subscription.status === "canceled" || subscription.status === "expired") {
+		return false;
+	}
 
 	const now = new Date();
 	const isTrialActive =

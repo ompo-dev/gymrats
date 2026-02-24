@@ -150,14 +150,14 @@ export function SubscriptionStatus({
 								/>
 								<div className="flex-1">
 									<h3 className="font-bold text-duo-text">
-										{isCanceled
-											? "Trial Ativo (Cancelada)"
+							{isCanceled
+											? "Assinatura Cancelada"
 											: "Trial Gratuito Ativo"}
 									</h3>
 									{isCanceled && (
 										<p className="text-xs text-duo-orange mt-1 font-bold">
-											Sua assinatura foi cancelada, mas você ainda pode usar o
-											trial até o fim do período.
+											Sua assinatura foi cancelada. O acesso premium foi
+											revogado.
 										</p>
 									)}
 									<div className="mt-2 flex items-baseline gap-2">
