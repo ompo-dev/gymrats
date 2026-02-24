@@ -5,8 +5,8 @@ import { getSession } from "@/lib/utils/session";
 
 export type GymContext = {
 	gymId: string;
-	session: NonNullable<Awaited<ReturnType<typeof getSession>>>;
-	user: NonNullable<Awaited<ReturnType<typeof getSession>>>["user"];
+	session: any;
+	user: any;
 };
 
 type GymContextResult =
@@ -14,63 +14,122 @@ type GymContextResult =
 	| { ctx?: undefined; errorResponse: NextResponse };
 
 export async function getGymContext(): Promise<GymContextResult> {
-	const cookieStore = await cookies();
-	const headerList = await headers();
+	try {
+		const headerList = await headers();
 
-	let sessionToken = cookieStore.get("auth_token")?.value || 
-                     cookieStore.get("better-auth.session_token")?.value;
+		// 1. Tentar Better Auth Primeiro
+		try {
+			const { auth } = await import("@/lib/auth-config");
+			const betterAuthSession = await auth.api.getSession({
+				headers: headerList,
+			});
 
-	if (!sessionToken) {
-		const authHeader = headerList.get("authorization");
-		if (authHeader) {
-			sessionToken = authHeader.replace(/^Bearer\s+/i, "").trim() || undefined;
+			if (betterAuthSession?.user) {
+				const user = await db.user.findUnique({
+					where: { id: betterAuthSession.user.id },
+					include: { gyms: { select: { id: true } } },
+				});
+
+				if (user) {
+					const isAdmin = user.role === "ADMIN";
+					let gymId = user.activeGymId || user.gyms?.[0]?.id;
+
+					if (isAdmin && !gymId) {
+						const existingGym = await db.gym.findFirst({ where: { userId: user.id } });
+						if (existingGym) {
+							gymId = existingGym.id;
+						} else {
+							const newGym = await db.gym.create({
+								data: {
+									userId: user.id,
+									name: user.name || "Admin Gym",
+									address: "",
+									phone: "",
+									email: user.email,
+									isActive: true,
+								},
+							});
+							gymId = newGym.id;
+						}
+						
+						// Atualizar activeGymId para o admin
+						await db.user.update({
+							where: { id: user.id },
+							data: { activeGymId: gymId }
+						});
+					}
+
+					if (gymId) {
+						return {
+							ctx: {
+								gymId,
+								session: betterAuthSession.session,
+								user,
+							},
+						};
+					}
+				}
+			}
+		} catch (error) {
+			console.error("[getGymContext] Erro Better Auth:", error);
 		}
-	}
 
-	if (!sessionToken) {
+		// 2. Fallback Token manual
+		const cookieStore = await cookies();
+		let sessionToken =
+			cookieStore.get("auth_token")?.value ||
+			cookieStore.get("better-auth.session_token")?.value;
+
+		if (!sessionToken) {
+			const authHeader = headerList.get("authorization");
+			if (authHeader) {
+				sessionToken = authHeader.replace(/^Bearer\s+/i, "").trim() || undefined;
+			}
+		}
+
+		if (!sessionToken) {
+			return {
+				errorResponse: NextResponse.json(
+					{ error: "Não autenticado" },
+					{ status: 401 },
+				),
+			};
+		}
+
+		const session = await getSession(sessionToken);
+		if (!session) {
+			return {
+				errorResponse: NextResponse.json(
+					{ error: "Sessão inválida" },
+					{ status: 401 },
+				),
+			};
+		}
+
+		const gymId = session.user.activeGymId || session.user.gyms?.[0]?.id;
+		if (!gymId) {
+			return {
+				errorResponse: NextResponse.json(
+					{ error: "Academia não encontrada" },
+					{ status: 403 },
+				),
+			};
+		}
+
 		return {
-			errorResponse: NextResponse.json({ error: "Não autenticado" }, { status: 401 }),
+			ctx: {
+				gymId,
+				session,
+				user: session.user,
+			},
 		};
-	}
-
-	const session = await getSession(sessionToken);
-	if (!session) {
-		return {
-			errorResponse: NextResponse.json({ error: "Sessão inválida" }, { status: 401 }),
-		};
-	}
-
-	if (session.user.role !== "GYM" && session.user.role !== "ADMIN") {
-		return {
-			errorResponse: NextResponse.json({ error: "Acesso negado" }, { status: 403 }),
-		};
-	}
-
-	// Tenta obter activeGymId da sessão ou busca no banco se não estiver disponível
-	let gymId = session.user.activeGymId;
-
-	if (!gymId) {
-		const user = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-		gymId = user?.activeGymId ?? null;
-	}
-
-	if (!gymId) {
+	} catch (error) {
+		console.error("[getGymContext] Erro:", error);
 		return {
 			errorResponse: NextResponse.json(
-				{ error: "Nenhuma academia ativa configurada" },
-				{ status: 400 },
+				{ error: "Erro ao processar autenticação" },
+				{ status: 500 },
 			),
 		};
 	}
-
-	return {
-		ctx: {
-			gymId,
-			session,
-			user: session.user,
-		},
-	};
 }
