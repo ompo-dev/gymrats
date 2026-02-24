@@ -2,45 +2,18 @@ import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 
-// ─── Utilitários puros (sem DB) ───────────────────────────────────────────────
+// Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
+// Para imports em componentes client-side, use "@/lib/utils/subscription-helpers" diretamente.
+export {
+	isPremiumPlan,
+	hasActivePremiumStatus,
+	getBillingPeriodFromPlan,
+} from "./subscription-helpers";
 
-/**
- * Verifica se o nome do plano corresponde a um plano premium.
- * Aceita qualquer variação: "premium", "Premium Mensal", "Premium Anual", etc.
- */
-export function isPremiumPlan(plan: string): boolean {
-	return plan.toLowerCase().includes("premium");
-}
-
-/**
- * Verifica se o usuário tem status de premium ativo (plano premium + status válido).
- * Função pura — não acessa o banco de dados.
- */
-export function hasActivePremiumStatus(subscription: {
-	plan: string;
-	status: string;
-	trialEnd?: Date | string | null;
-}): boolean {
-	if (!isPremiumPlan(subscription.plan)) return false;
-
-	const now = new Date();
-	const isTrialActive =
-		subscription.trialEnd && new Date(subscription.trialEnd) > now;
-
-	return (
-		subscription.status === "active" ||
-		subscription.status === "trialing" ||
-		!!isTrialActive
-	);
-}
-
-/**
- * Extrai o período de cobrança a partir do nome do plano.
- * Retorna "annual" se contém "Anual", senão "monthly".
- */
-export function getBillingPeriodFromPlan(plan: string): "monthly" | "annual" {
-	return plan.toLowerCase().includes("anual") ? "annual" : "monthly";
-}
+import {
+	isPremiumPlan,
+	hasActivePremiumStatus,
+} from "./subscription-helpers";
 
 // ─── Funções com acesso ao DB ─────────────────────────────────────────────────
 

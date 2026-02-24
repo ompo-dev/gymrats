@@ -9,7 +9,7 @@ import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type { FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { hasActivePremiumStatus } from "@/lib/utils/subscription";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { FoodSearchChat } from "./food-search-chat";
 
 interface FoodSearchProps {

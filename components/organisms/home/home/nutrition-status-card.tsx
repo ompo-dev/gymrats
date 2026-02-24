@@ -8,7 +8,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
-import { hasActivePremiumStatus } from "@/lib/utils/subscription";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 
 interface NutritionStatusCardProps {
 	dailyNutrition: DailyNutrition | null | undefined;
