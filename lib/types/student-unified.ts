@@ -110,7 +110,7 @@ export interface WeightHistoryItem {
 export interface SubscriptionData {
 	id: string;
 	plan: "free" | "premium";
-	status: "active" | "canceled" | "expired" | "past_due" | "trialing";
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment";
 	currentPeriodStart: Date;
 	currentPeriodEnd: Date;
 	cancelAtPeriodEnd: boolean;

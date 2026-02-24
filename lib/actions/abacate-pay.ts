@@ -105,6 +105,7 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},
 			update: {
+				status: "pending_payment",
 				abacatePayBillingId: abacatePayData.id,
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},

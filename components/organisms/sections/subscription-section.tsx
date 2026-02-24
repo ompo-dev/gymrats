@@ -207,9 +207,10 @@ export function SubscriptionSection({
 	);
 	const isPremiumActive = !!(
 		subscription &&
-		subscription.status === "active" &&
+		(subscription.status === "active" || subscription.status === "pending_payment") &&
 		!hasTrial
 	);
+	const isPendingPayment = subscription?.status === "pending_payment";
 	const isCanceledAndTrialExpired = isCanceled && !hasTrial;
 	const hasNoSubscription =
 		(!isLoading && !isStartingTrial && !subscription) ||
@@ -356,8 +357,9 @@ export function SubscriptionSection({
 					}}
 					isCanceled={!!isCanceled}
 					hasTrial={!!hasTrial}
-					isTrialActive={!!isTrialActive}
-					isPremiumActive={!!isPremiumActive}
+					isTrialActive={isTrialActive}
+					isPremiumActive={isPremiumActive}
+					isPendingPayment={isPendingPayment}
 					daysRemaining={daysRemaining}
 					isLoading={isLoadingState}
 					onStartTrial={onStartTrial}

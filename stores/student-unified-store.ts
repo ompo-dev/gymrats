@@ -401,8 +401,12 @@ function transformSectionResponse(
 			return { personalRecords: data.records || data.personalRecords || [] };
 
 		case "subscription":
-			// Subscription pode ser null
-			return { subscription: data.subscription || data || null };
+			// Se vier no formato { success: true, subscription: ... }
+			if (data && typeof data === "object" && "success" in data) {
+				return { subscription: data.subscription || null };
+			}
+			// Se vier direto (objeto subscription ou null)
+			return { subscription: data || null };
 
 		case "memberships":
 			// Memberships vem como array

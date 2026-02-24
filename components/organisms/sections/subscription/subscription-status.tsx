@@ -36,6 +36,7 @@ interface SubscriptionStatusProps {
 	hasTrial: boolean;
 	isTrialActive: boolean;
 	isPremiumActive: boolean;
+	isPendingPayment?: boolean;
 	daysRemaining: number | null;
 	isLoading: boolean;
 	onStartTrial: () => Promise<void>;
@@ -50,6 +51,7 @@ export function SubscriptionStatus({
 	hasTrial,
 	isTrialActive,
 	isPremiumActive,
+	isPendingPayment,
 	daysRemaining,
 	isLoading,
 	onStartTrial,
@@ -99,9 +101,11 @@ export function SubscriptionStatus({
 										? "Trial Ativo"
 										: isPremiumActive
 											? "Ativo"
-											: isCanceled
-												? "Cancelada"
-												: "Sem assinatura"}
+											: isPendingPayment
+												? "Processando..."
+												: isCanceled
+													? "Cancelada"
+													: "Sem assinatura"}
 							</p>
 						</div>
 					</div>
@@ -125,9 +129,11 @@ export function SubscriptionStatus({
 								? "Trial Ativo"
 								: isPremiumActive
 									? "Ativo"
-									: isCanceled
-										? "Cancelada"
-										: "Free"}
+									: isPendingPayment
+										? "Aguardando"
+										: isCanceled
+											? "Cancelada"
+											: "Free"}
 					</span>
 				</div>
 

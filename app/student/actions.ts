@@ -691,6 +691,8 @@ export async function getStudentSubscription() {
 			where: { studentId },
 		});
 
+		console.log(`[getStudentSubscription] Fim da busca. studentId: ${studentId}, Encontrado:`, !!subscription);
+
 		if (!subscription) {
 			console.log(
 				`[getStudentSubscription] Nenhuma subscription encontrada para studentId: ${studentId}`,
