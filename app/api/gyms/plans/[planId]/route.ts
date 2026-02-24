@@ -12,12 +12,6 @@ export async function PATCH(
 	{ params }: { params: Promise<{ planId: string }> },
 ) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse) return errorResponse;
 
@@ -61,12 +55,6 @@ export async function DELETE(
 	{ params }: { params: Promise<{ planId: string }> },
 ) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse) return errorResponse;
 

@@ -1,31 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/utils/session";
+import { getGymContext } from "@/lib/utils/gym-context";
 
 export async function GET(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken) {
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-		}
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
 
-		const session = await getSession(sessionToken);
-		if (!session || (session.user.role !== "GYM" && session.user.role !== "ADMIN")) {
-			return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
-		}
+		const { activeGymId } = ctx.user; // Use from context
 
-		const gymUser = await db.user.findUnique({
-			where: { id: session.user.id },
-			select: { activeGymId: true },
-		});
-		if (!gymUser?.activeGymId) {
-			return NextResponse.json(
-				{ error: "Academia não configurada" },
-				{ status: 400 },
-			);
-		}
 
 		const { searchParams } = new URL(request.url);
 		const email = searchParams.get("email")?.toLowerCase().trim();
@@ -44,7 +27,7 @@ export async function GET(request: NextRequest) {
 						profile: true,
 						progress: true,
 						memberships: {
-							where: { gymId: gymUser.activeGymId },
+							where: { gymId: ctx.gymId },
 						},
 					},
 				},

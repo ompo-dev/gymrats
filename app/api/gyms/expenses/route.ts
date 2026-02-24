@@ -9,12 +9,6 @@ import { getGymContext } from "@/lib/utils/gym-context";
 // GET — listar despesas
 export async function GET(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse) return errorResponse;
 
@@ -56,14 +50,9 @@ export async function GET(request: NextRequest) {
 // POST — criar nova despesa
 export async function POST(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse) return errorResponse;
+		const { gymId } = ctx;
 
 		const body = await request.json();
 		const { type, description, amount, date, category } = body;

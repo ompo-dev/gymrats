@@ -15,17 +15,10 @@ async function getActiveGymId(sessionUserId: string) {
 // GET — listar membros da academia (com suporte a ?status= e ?search=)
 export async function GET(request: NextRequest) {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse) return errorResponse;
+		const { gymId } = ctx;
 
-		const session = await getSession(sessionToken);
-		if (!session)
-			return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
-
-		const gymId = await getActiveGymId(session.user.id);
-		if (!gymId) return NextResponse.json({ members: [] });
 
 		const { searchParams } = new URL(request.url);
 		const status = searchParams.get("status"); // active | suspended | canceled | all
