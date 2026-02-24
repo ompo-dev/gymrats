@@ -6,7 +6,8 @@ export async function initializeStudentTrial(studentId: string) {
 			where: { studentId },
 		});
 
-		if (existingSubscription) {
+		// Se já teve trial no passado, não permite iniciar novamente (apenas uma única vez)
+		if (existingSubscription?.trialStart) {
 			return existingSubscription;
 		}
 
@@ -14,6 +15,24 @@ export async function initializeStudentTrial(studentId: string) {
 		const trialEnd = new Date(now);
 		trialEnd.setDate(trialEnd.getDate() + 14);
 
+		// Se já existe um registro (plano free ou algo do tipo), atualiza para trial
+		if (existingSubscription) {
+			return await db.subscription.update({
+				where: { id: existingSubscription.id },
+				data: {
+					plan: "premium",
+					status: "trialing",
+					currentPeriodStart: now,
+					currentPeriodEnd: trialEnd,
+					trialStart: now,
+					trialEnd: trialEnd,
+					canceledAt: null,
+					cancelAtPeriodEnd: false,
+				},
+			});
+		}
+
+		// Caso contrário, cria um novo registro de assinatura com trial
 		const subscription = await db.subscription.create({
 			data: {
 				studentId,

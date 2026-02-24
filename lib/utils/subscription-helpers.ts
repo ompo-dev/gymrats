@@ -13,7 +13,11 @@
  * Aceita qualquer variação: "premium", "Premium Mensal", "Premium Anual", etc.
  */
 export function isPremiumPlan(plan: string): boolean {
-	return plan.toLowerCase().includes("premium");
+	return (
+		plan.toLowerCase().includes("premium") ||
+		plan.toLowerCase().includes("basic") ||
+		plan.toLowerCase().includes("enterprise")
+	);
 }
 
 /**

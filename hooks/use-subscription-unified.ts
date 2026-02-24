@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 // Tipo unificado para subscription de student
 export interface StudentSubscriptionData {
@@ -54,9 +55,26 @@ interface UseSubscriptionOptions {
 
 export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	const queryClient = useQueryClient();
-	const store = useSubscriptionStore();
-	const { setSubscription, setGymSubscription } = store;
 	const { userType, enabled = true } = options;
+
+	const { setSubscription, setGymSubscription } = useSubscriptionStore();
+	const studentUnifiedStore = useStudentUnifiedStore();
+
+	// Helper para atualizar ambos os stores
+	const syncStores = (sub: SubscriptionData | null) => {
+		if (userType === "student") {
+			setSubscription(sub as any);
+			if (sub) {
+				studentUnifiedStore.updateSubscription(sub as any);
+			} else {
+				// Se for null, o updateSubscription do unified store pode não aceitar null diretamente
+				// dependendo da tipagem, mas o store costuma ter assinatura como opcional ou nula
+				studentUnifiedStore.updateSubscription(null as any);
+			}
+		} else {
+			setGymSubscription(sub as any);
+		}
+	};
 
 	const queryKey = userType === "student" ? "subscription" : "gym-subscription";
 	const currentEndpoint =
@@ -179,28 +197,17 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		if (data !== undefined) {
 			if (data === null) {
 				const storeState = useSubscriptionStore.getState();
-				if (userType === "student") {
-					const currentStore = storeState.subscription;
-					if (currentStore && currentStore.id === "temp-trial-id") {
-						return;
-					}
-					setSubscription(null);
-				} else {
-					const currentStore = storeState.gymSubscription;
-					if (currentStore && currentStore.id === "temp-trial-id") {
-						return;
-					}
-					setGymSubscription(null);
+				const currentSub = userType === "student" ? storeState.subscription : storeState.gymSubscription;
+				
+				if (currentSub && currentSub.id === "temp-trial-id") {
+					return;
 				}
+				syncStores(null);
 			} else {
-				if (userType === "student") {
-					setSubscription(data as any);
-				} else {
-					setGymSubscription(data as any);
-				}
+				syncStores(data);
 			}
 		}
-	}, [data, userType, setSubscription, setGymSubscription]);
+	}, [data, userType]);
 
 	const startTrialMutation = useMutation({
 		mutationFn: async () => {
@@ -261,11 +268,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 							totalAmount: 150,
 						} as GymSubscriptionData);
 
-			if (userType === "student") {
-				setSubscription(optimisticSubscription as any);
-			} else {
-				setGymSubscription(optimisticSubscription as any);
-			}
+			syncStores(optimisticSubscription);
 
 			queryClient.setQueryData<SubscriptionData | null>(
 				[queryKey],
@@ -279,15 +282,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				err.response?.data?.error || err.message || "Erro ao iniciar trial";
 
 			if (context?.previousSubscription !== undefined) {
-				if (userType === "student") {
-					setSubscription(
-						context.previousSubscription as any,
-					);
-				} else {
-					setGymSubscription(
-						context.previousSubscription as any,
-					);
-				}
+				syncStores(context.previousSubscription);
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					context.previousSubscription,
@@ -323,11 +318,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				cachedData !== undefined &&
 				cachedData.id !== "temp-trial-id"
 			) {
-				if (userType === "student") {
-					setSubscription(cachedData as any);
-				} else {
-					setGymSubscription(cachedData as any);
-				}
+				syncStores(cachedData);
 			}
 		},
 	});
@@ -372,22 +363,14 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					cancelAtPeriodEnd: true,
 				};
 
-				if (userType === "student") {
-					setSubscription(canceledSubscription as any);
-				} else {
-					setGymSubscription(canceledSubscription as any);
-				}
-
+				syncStores(canceledSubscription);
+				
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					canceledSubscription,
 				);
 			} else {
-				if (userType === "student") {
-					setSubscription(null);
-				} else {
-					setGymSubscription(null);
-				}
+				syncStores(null);
 				queryClient.setQueryData<SubscriptionData | null>([queryKey], null);
 			}
 
@@ -395,15 +378,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		},
 		onError: (_err, _variables, context) => {
 			if (context?.previousSubscription) {
-				if (userType === "student") {
-					setSubscription(
-						context.previousSubscription as any,
-					);
-				} else {
-					setGymSubscription(
-						context.previousSubscription as any,
-					);
-				}
+				syncStores(context.previousSubscription);
 				queryClient.setQueryData<SubscriptionData | null>(
 					[queryKey],
 					context.previousSubscription,
@@ -428,11 +403,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey,
 			]);
 			if (updatedData !== undefined) {
-				if (userType === "student") {
-					setSubscription(updatedData as any);
-				} else {
-					setGymSubscription(updatedData as any);
-				}
+				syncStores(updatedData);
 			}
 		},
 	});

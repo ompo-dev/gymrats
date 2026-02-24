@@ -1739,19 +1739,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				set((state) => ({
 					data: {
 						...state.data,
-						subscription: state.data.subscription
-							? { ...state.data.subscription, ...updates }
+						subscription: updates 
+							? { ...(state.data.subscription || {}), ...updates } as any
 							: null,
 					},
 				}));
-
-				// Sync com backend se necessário
 			},
 
-			// === ACTIONS - WORKOUT MANAGEMENT ===
-			// Segue padrão offline-first: optimistic update → command → syncManager
 			createUnit: async (data) => {
-				// 1. Optimistic update - atualiza UI imediatamente
 				const command = createCommand("CREATE_UNIT", data);
 				await logCommand(command);
 
