@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
+import { useShallow } from "zustand/react/shallow";
 import { useWorkoutStore } from "@/stores";
 import { useStudent } from "@/hooks/use-student";
 import type { 
@@ -27,11 +28,28 @@ export function useWorkoutExecution() {
   );
   
   const activeWorkout = useWorkoutStore((state) => state.activeWorkout);
+  
+  // Use stable selectors for student hooks to avoid unnecessary re-renders
   const units = useStudent("units");
-  const actions = useStudent("actions");
+  const studentActions = useStudent("actions");
+  const completeStudentWorkout = studentActions?.completeWorkout;
   
-  const completeStudentWorkout = actions?.completeWorkout;
-  
+  // Use useShallow for stable store actions
+  const workoutActions = useWorkoutStore(
+    useShallow((state) => ({
+      setActiveWorkout: state.setActiveWorkout,
+      setCurrentExerciseIndex: state.setCurrentExerciseIndex,
+      addExerciseLog: state.addExerciseLog,
+      saveWorkoutProgress: state.saveWorkoutProgress,
+      loadWorkoutProgress: state.loadWorkoutProgress,
+      completeWorkout: state.completeWorkout,
+      calculateWorkoutStats: state.calculateWorkoutStats,
+      isWorkoutCompleted: state.isWorkoutCompleted,
+      skipExercise: state.skipExercise,
+      selectAlternative: state.selectAlternative,
+    }))
+  );
+
   const {
     setActiveWorkout,
     setCurrentExerciseIndex,
@@ -43,7 +61,7 @@ export function useWorkoutExecution() {
     isWorkoutCompleted,
     skipExercise,
     selectAlternative,
-  } = useWorkoutStore();
+  } = workoutActions;
 
   // Cardio state
   const [isRunning, setIsRunning] = useState(false);
@@ -68,10 +86,10 @@ export function useWorkoutExecution() {
   const cardioConfigInitialized = useRef(false);
   const lastInitializedKey = useRef<string | null>(null);
 
-  // Helper to find workout in units
+  // Helper to find workout in units - memoized
   const findWorkoutInUnits = useCallback(
-    (workoutId: string): WorkoutSession | null => {
-      if (!units || !Array.isArray(units) || units.length === 0) return null;
+    (workoutId: string | null): WorkoutSession | null => {
+      if (!workoutId || !units || !Array.isArray(units) || units.length === 0) return null;
       for (const unit of units) {
         const workout = unit.workouts.find((w: WorkoutSession) => w.id === workoutId);
         if (workout) return workout;
@@ -81,25 +99,37 @@ export function useWorkoutExecution() {
     [units],
   );
 
-  const workoutBase = openWorkoutId ? (findWorkoutInUnits(openWorkoutId) ?? null) : null;
+  const workoutBase = useMemo(() => 
+    openWorkoutId ? findWorkoutInUnits(openWorkoutId) : null,
+  [openWorkoutId, findWorkoutInUnits]);
 
-  // Workout derivation (Cardio injection)
-  const workout = workoutBase ? (() => {
+  // Workout derivation (Cardio injection) - MUST be memoized to avoid infinite loops
+  const workout = useMemo(() => {
+    if (!workoutBase) return null;
+    
     if (!activeWorkout?.cardioPreference || activeWorkout.cardioPreference === "none") {
       return workoutBase;
     }
-    const cardioExercises = createCardioExercises(activeWorkout.cardioDuration || 10, activeWorkout.selectedCardioType);
+    
+    const cardioExercises = createCardioExercises(
+      activeWorkout.cardioDuration || 10, 
+      activeWorkout.selectedCardioType
+    );
+    
     return {
       ...workoutBase,
       exercises: activeWorkout.cardioPreference === "before" 
         ? [...cardioExercises, ...workoutBase.exercises] 
         : [...workoutBase.exercises, ...cardioExercises],
     };
-  })() : null;
+  }, [workoutBase, activeWorkout?.cardioPreference, activeWorkout?.cardioDuration, activeWorkout?.selectedCardioType]);
 
-  // Derived Values
+  // Derived Values - stabilize by deriving from memoized workout
   const currentIndex = activeWorkout?.currentExerciseIndex || 0;
-  const currentExercise = activeWorkout && workout?.exercises ? workout.exercises[currentIndex] : null;
+  const currentExercise = useMemo(() => 
+    (activeWorkout && workout?.exercises) ? workout.exercises[currentIndex] : null,
+  [activeWorkout, workout?.exercises, currentIndex]);
+  
   const totalExercises = workout?.exercises.length || 0;
   const completedCount = activeWorkout?.exerciseLogs?.length || 0;
   const skippedCount = activeWorkout?.skippedExercises?.length || 0;
@@ -109,20 +139,28 @@ export function useWorkoutExecution() {
   const totalSeen = Math.max(currentIndex, completedCount + skippedCount);
   const workoutProgress = totalExercises > 0 ? Math.min(100, Math.round((totalSeen / totalExercises) * 100)) : 0;
 
-  // Internal initialization logic
+  // Internal initialization logic - improved guards
   useEffect(() => {
     const init = async () => {
+      // 1. Handle closing modal
       if (!openWorkoutId) {
-        lastInitializedKey.current = null;
-        setActiveWorkout(null);
-        setShowCompletion(false);
+        if (lastInitializedKey.current !== null) {
+          lastInitializedKey.current = null;
+          setActiveWorkout(null);
+          setShowCompletion(false);
+        }
         return;
       }
+
+      // 2. Wait for workout data to be available
       if (!workout) return;
 
+      // 3. Prevent redundant re-initialization
       const initKey = `${openWorkoutId}:${exerciseIndexParam ?? ""}`;
       if (lastInitializedKey.current === initKey) return;
       lastInitializedKey.current = initKey;
+
+      console.log(`[useWorkoutExecution] Initializing workout: ${openWorkoutId}`);
 
       setShowCompletion(false);
       const savedProgress = loadWorkoutProgress(workout.id);
@@ -136,24 +174,35 @@ export function useWorkoutExecution() {
       }
 
       if (savedProgress) {
-        useWorkoutStore.setState({
+        // Use setState and extend existing progress to avoid lost data
+        useWorkoutStore.setState((state) => ({
           activeWorkout: {
             ...savedProgress,
+            ...state.activeWorkout, // Keep current state if any (e.g. cardio pref set in this tick)
             workoutId: workout.id,
             currentExerciseIndex: initialIndex,
             lastUpdated: new Date(),
           },
-        });
+        }));
+        
         if (!cardioConfigInitialized.current && workout.type === "strength" && !savedProgress.cardioPreference && initialIndex === 0 && !isCompleted) {
           cardioConfigModal.open();
         }
       } else {
-        setActiveWorkout(workout);
-        if (initialIndex > 0) setCurrentExerciseIndex(initialIndex);
-        if (!cardioConfigInitialized.current && workout.type === "strength") cardioConfigModal.open();
+        // Only set active workout if it's actually different
+        const currentActive = useWorkoutStore.getState().activeWorkout;
+        if (!currentActive || currentActive.workoutId !== workout.id) {
+          setActiveWorkout(workout);
+          if (initialIndex > 0) setCurrentExerciseIndex(initialIndex);
+        }
+        
+        if (!cardioConfigInitialized.current && workout.type === "strength") {
+          cardioConfigModal.open();
+        }
       }
       cardioConfigInitialized.current = true;
     };
+    
     init();
   }, [openWorkoutId, workout, exerciseIndexParam, setActiveWorkout, loadWorkoutProgress, isWorkoutCompleted, setCurrentExerciseIndex, cardioConfigModal]);
 
