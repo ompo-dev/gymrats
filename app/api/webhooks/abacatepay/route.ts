@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
+					cancelAtPeriodEnd: false,
+					canceledAt: null,
 					abacatePayBillingId: billingId, // Garantir que está salvo
 					abacatePayCustomerId: billing.customer?.id || subscription.abacatePayCustomerId,
 				},

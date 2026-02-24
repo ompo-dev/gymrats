@@ -730,16 +730,20 @@ export async function getStudentSubscription() {
 				)
 			: null;
 
-		// Inferir billingPeriod baseado na diferença entre currentPeriodStart e currentPeriodEnd
-		// Se a diferença for aproximadamente 1 ano (330-370 dias), é anual
-		// Caso contrário, assume mensal (padrão)
+		// Inferir billingPeriod baseado na diferença de datas OU no nome do plano salvo no DB
 		const periodStart = new Date(subscription.currentPeriodStart);
 		const periodEnd = new Date(subscription.currentPeriodEnd);
 		const daysDiff = Math.ceil(
 			(periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24),
 		);
-		const billingPeriod: "monthly" | "annual" =
-			daysDiff >= 330 && daysDiff <= 370 ? "annual" : "monthly";
+		
+		// Priorizar o que está no nome do plano se ele for descritivo
+		let billingPeriod: "monthly" | "annual" = "monthly";
+		if (subscription.plan.toLowerCase().includes("anual")) {
+			billingPeriod = "annual";
+		} else if (daysDiff >= 330 && daysDiff <= 370) {
+			billingPeriod = "annual";
+		}
 
 		return {
 			id: subscription.id,
