@@ -92,7 +92,6 @@ export interface StudentUnifiedState {
 	updateSubscription: (
 		subscription: Partial<StudentData["subscription"]>,
 	) => Promise<void>;
-	cancelSubscription: () => Promise<{ success: boolean; error?: string }>;
 	addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
 
 	// === ACTIONS - WORKOUT MANAGEMENT ===
@@ -1747,53 +1746,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}));
 
 				// Sync com backend se necessário
-			},
-
-			cancelSubscription: async () => {
-				const currentState = get();
-				const subscription = currentState.data.subscription;
-
-				if (!subscription) {
-					return { success: false, error: "Nenhuma assinatura encontrada" };
-				}
-
-				// Optimistic update
-				set((state) => ({
-					data: {
-						...state.data,
-						subscription: state.data.subscription
-							? {
-									...state.data.subscription,
-									status: "active", // Mantém ativo mas com cancelAtPeriodEnd
-									cancelAtPeriodEnd: true,
-									canceledAt: new Date(),
-								}
-							: null,
-					},
-				}));
-
-				try {
-					const response = await apiClient.post<{
-						success: boolean;
-						message?: string;
-						error?: string;
-					}>("/api/subscriptions/cancel");
-
-					if (response.data.success) {
-						// Refetch real data to be sure
-						await get().loadSubscription();
-						return { success: true };
-					}
-
-					throw new Error(response.data.error || "Erro ao cancelar");
-				} catch (error: any) {
-					// Revert optimistic update on error? 
-					// For now just return error
-					return {
-						success: false,
-						error: error.message || "Erro ao cancelar assinatura",
-					};
-				}
 			},
 
 			// === ACTIONS - WORKOUT MANAGEMENT ===

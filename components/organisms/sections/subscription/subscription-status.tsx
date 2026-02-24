@@ -37,7 +37,6 @@ interface SubscriptionStatusProps {
 	isTrialActive: boolean;
 	isPremiumActive: boolean;
 	isPendingPayment?: boolean;
-	isPendingCancellation?: boolean;
 	daysRemaining: number | null;
 	isLoading: boolean;
 	onStartTrial: () => Promise<void>;
@@ -53,7 +52,6 @@ export function SubscriptionStatus({
 	isTrialActive,
 	isPremiumActive,
 	isPendingPayment,
-	isPendingCancellation,
 	daysRemaining,
 	isLoading,
 	onStartTrial,
@@ -103,13 +101,11 @@ export function SubscriptionStatus({
 										? "Trial Ativo"
 										: isPremiumActive
 											? "Ativo"
-											: isPendingCancellation
-												? "Cancelamento Pendente"
-												: isPendingPayment
-													? "Processando..."
-													: isCanceled
-														? "Cancelada"
-														: "Sem assinatura"}
+											: isPendingPayment
+												? "Processando..."
+												: isCanceled
+													? "Cancelada"
+													: "Sem assinatura"}
 							</p>
 						</div>
 					</div>
@@ -133,13 +129,11 @@ export function SubscriptionStatus({
 								? "Trial Ativo"
 								: isPremiumActive
 									? "Ativo"
-									: isPendingCancellation
-										? "Expira em breve"
-										: isPendingPayment
-											? "Aguardando"
-											: isCanceled
-												? "Cancelada"
-												: "Free"}
+									: isPendingPayment
+										? "Aguardando"
+										: isCanceled
+											? "Cancelada"
+											: "Free"}
 					</span>
 				</div>
 
@@ -256,9 +250,7 @@ export function SubscriptionStatus({
 								</div>
 							)}
 						<div className="flex items-center justify-between text-sm">
-							<span className="text-duo-gray-dark">
-								{isPendingCancellation ? "Acesso até" : texts.nextRenewal}
-							</span>
+							<span className="text-duo-gray-dark">{texts.nextRenewal}</span>
 							<span className="font-bold text-duo-text">
 								{new Date(subscription.currentPeriodEnd).toLocaleDateString(
 									"pt-BR",

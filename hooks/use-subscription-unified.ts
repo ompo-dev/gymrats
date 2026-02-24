@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useSubscriptionStore } from "@/stores/subscription-store";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 // Tipo unificado para subscription de student
 export interface StudentSubscriptionData {
@@ -50,13 +49,14 @@ interface UseSubscriptionOptions {
 	includeDaysRemaining?: boolean;
 	includeTrialInfo?: boolean;
 	includeActiveStudents?: boolean;
+	enabled?: boolean; // Nova opção para controlar a query
 }
 
 export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	const queryClient = useQueryClient();
 	const store = useSubscriptionStore();
 	const { setSubscription, setGymSubscription } = store;
-	const { userType } = options;
+	const { userType, enabled = true } = options;
 
 	const queryKey = userType === "student" ? "subscription" : "gym-subscription";
 	const currentEndpoint =
@@ -80,18 +80,6 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 		{
 			queryKey: [queryKey],
 			queryFn: async () => {
-				if (userType === "student") {
-					try {
-						const unifiedStore = useStudentUnifiedStore.getState();
-						await unifiedStore.loadSubscription();
-						return unifiedStore.data.subscription as any;
-					} catch (error) {
-						console.error("[useSubscriptionUnified] Erro ao carregar via store:", error);
-						return null;
-					}
-				}
-
-				// Lógica para GYM permanece a mesma por enquanto
 				try {
 					const response = await apiClient.get<{
 						subscription: SubscriptionData | null;
@@ -178,6 +166,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			},
 			staleTime: 1000 * 60, // 1 minuto (aumentado para evitar refetches desnecessários)
 			retry: 2,
+			enabled: enabled, // Usar opção enabled
 			refetchOnMount: false, // Desabilitado para evitar loops - dados vêm do store unificado
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false, // Desabilitado para evitar loops
@@ -292,11 +281,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			if (context?.previousSubscription !== undefined) {
 				if (userType === "student") {
 					setSubscription(
-						context.previousSubscription as StudentSubscriptionData | null,
+						context.previousSubscription as any,
 					);
 				} else {
 					setGymSubscription(
-						context.previousSubscription as GymSubscriptionData | null,
+						context.previousSubscription as any,
 					);
 				}
 				queryClient.setQueryData<SubscriptionData | null>(
@@ -321,7 +310,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey: [queryKey],
 			});
 
-			const _refetchedData = await queryClient.refetchQueries({
+			await queryClient.refetchQueries({
 				queryKey: [queryKey],
 			});
 
@@ -335,9 +324,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				cachedData.id !== "temp-trial-id"
 			) {
 				if (userType === "student") {
-					setSubscription(cachedData as StudentSubscriptionData);
+					setSubscription(cachedData as any);
 				} else {
-					setGymSubscription(cachedData as GymSubscriptionData);
+					setGymSubscription(cachedData as any);
 				}
 			}
 		},
@@ -378,9 +367,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			if (previousSubscription) {
 				const canceledSubscription = {
 					...previousSubscription,
-					status: "canceled" as const,
+					status: "canceled",
 					canceledAt: new Date(),
-					cancelAtPeriodEnd: false,
+					cancelAtPeriodEnd: true,
 				};
 
 				if (userType === "student") {
@@ -408,11 +397,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			if (context?.previousSubscription) {
 				if (userType === "student") {
 					setSubscription(
-						context.previousSubscription as StudentSubscriptionData | null,
+						context.previousSubscription as any,
 					);
 				} else {
 					setGymSubscription(
-						context.previousSubscription as GymSubscriptionData | null,
+						context.previousSubscription as any,
 					);
 				}
 				queryClient.setQueryData<SubscriptionData | null>(
@@ -430,7 +419,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				queryKey: [queryKey],
 			});
 
-			const _refetchedData = await queryClient.refetchQueries({
+			await queryClient.refetchQueries({
 				queryKey: [queryKey],
 			});
 

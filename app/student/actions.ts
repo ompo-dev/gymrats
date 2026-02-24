@@ -743,7 +743,10 @@ export async function getStudentSubscription() {
 
 		return {
 			id: subscription.id,
-			plan: subscription.plan,
+			plan:
+				subscription.plan === "premium"
+					? `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`
+					: subscription.plan,
 			status: subscription.status,
 			currentPeriodStart: subscription.currentPeriodStart,
 			currentPeriodEnd: subscription.currentPeriodEnd,

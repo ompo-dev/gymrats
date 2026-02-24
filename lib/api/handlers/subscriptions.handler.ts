@@ -106,7 +106,7 @@ export async function createSubscriptionHandler(
 			await db.subscription.update({
 				where: { id: existingSubscription.id },
 				data: {
-					plan: "premium",
+					plan: `Premium ${plan === "annual" ? "Anual" : "Mensal"}`,
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
@@ -211,6 +211,7 @@ export async function cancelSubscriptionHandler(
 		await db.subscription.update({
 			where: { id: subscription.id },
 			data: {
+				status: "canceled",
 				cancelAtPeriodEnd: true,
 				canceledAt: new Date(),
 			},
