@@ -228,20 +228,13 @@ export function SubscriptionSection({
 	const isLoadingState = isLoading || isStartingTrial || isCreatingSubscription;
 
 	const hasTrial = !!(
-		subscription?.trialEnd && new Date(subscription.trialEnd) > new Date()
+		subscription?.status === "trialing" &&
+		subscription?.trialEnd && 
+		new Date(subscription.trialEnd) > new Date()
 	);
 	const isCanceled = subscription?.status === "canceled" || false;
-	const isTrialActive = !!(
-		subscription &&
-		(subscription.status === "trialing" || hasTrial)
-	);
-	const isPremiumActive = !!(
-		subscription &&
-		subscription.plan &&
-		subscription.status &&
-		hasActivePremiumStatus(subscription as { plan: string; status: string; trialEnd?: Date | string | null }) &&
-		!hasTrial
-	);
+	const isTrialActive = subscription?.status === "trialing";
+	const isPremiumActive = subscription?.status === "active";
 	const isPendingPayment = subscription?.status === "pending_payment";
 	const isCanceledAndTrialExpired = isCanceled && !hasTrial;
 	const hasNoSubscription =

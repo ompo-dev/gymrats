@@ -146,7 +146,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 						trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
 						trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
 						canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
-						isTrial: sub.trialEnd ? new Date(sub.trialEnd) > new Date() : false,
+						isTrial:
+						(sub.status === "trialing" || sub.status === "canceled") &&
+						sub.trialEnd
+							? new Date(sub.trialEnd) > new Date()
+							: false,
 						daysRemaining: sub.trialEnd
 							? Math.max(
 									0,
