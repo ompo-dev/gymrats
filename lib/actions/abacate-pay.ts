@@ -92,23 +92,34 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 
 		const abacatePayData = billingResponse.data;
 
+		// Calcular datas de período corretas
+		const periodStart = new Date();
+		const periodEnd = new Date();
+		if (billingPeriod === "annual") {
+			periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+		} else {
+			periodEnd.setMonth(periodEnd.getMonth() + 1);
+		}
+
 		// Upsert subscription salvando IDs do Abacate Pay
 		await db.subscription.upsert({
 			where: { studentId },
 			create: {
 				studentId,
-				plan: "free",
+				plan: `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`,
 				status: "pending_payment",
-				currentPeriodStart: new Date(),
-				currentPeriodEnd: new Date(),
+				currentPeriodStart: periodStart,
+				currentPeriodEnd: periodEnd,
 				abacatePayBillingId: abacatePayData.id,
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},
 			update: {
 				plan: `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`,
 				status: "pending_payment",
-				cancelAtPeriodEnd: false, // Resetar estado de cancelamento
-				canceledAt: null,         // Resetar data de cancelamento
+				currentPeriodStart: periodStart,
+				currentPeriodEnd: periodEnd,
+				cancelAtPeriodEnd: false,
+				canceledAt: null,
 				abacatePayBillingId: abacatePayData.id,
 				abacatePayCustomerId: abacatePayData.customer?.id,
 			},
