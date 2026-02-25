@@ -86,6 +86,7 @@ export async function createMembershipPaymentPix(
 			status: "pending",
 			paymentMethod: "pix",
 			abacatePayBillingId: pix.id,
+			reference: options?.membershipId ? `membership:${options.membershipId}` : null,
 		},
 	});
 
@@ -180,6 +181,7 @@ export async function createChangePlanPaymentPix(
 			status: "pending",
 			paymentMethod: "pix",
 			abacatePayBillingId: pix.id,
+			reference: `membership:${membershipId}`,
 		},
 	});
 

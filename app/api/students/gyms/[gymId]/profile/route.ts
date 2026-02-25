@@ -8,8 +8,9 @@ const paramsSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ params }) => {
+  async ({ params, studentContext }) => {
     const { gymId } = paramsSchema.parse(params);
+    const studentId = studentContext?.studentId;
 
     const gym = await db.gym.findUnique({
       where: { id: gymId, isActive: true },
@@ -52,13 +53,41 @@ export const GET = createSafeHandler(
       } catch {}
     }
 
+    let photos: string[] = [];
+    if (gym.photos) {
+      try {
+        photos = JSON.parse(gym.photos);
+      } catch {}
+    }
+
+    let myMembership: {
+      id: string;
+      status: string;
+      planId: string | null;
+    } | null = null;
+
+    if (studentId) {
+      const membership = await db.gymMembership.findFirst({
+        where: { gymId, studentId, status: { in: ["active", "pending"] } },
+        select: { id: true, status: true, planId: true },
+      });
+      if (membership) {
+        myMembership = {
+          id: membership.id,
+          status: membership.status,
+          planId: membership.planId,
+        };
+      }
+    }
+
     return NextResponse.json({
       id: gym.id,
       name: gym.name,
       address: gym.address,
       phone: gym.phone,
       email: gym.email,
-      logo: gym.logo || undefined,
+      logo: gym.image || gym.logo || undefined,
+      photos: photos.length > 0 ? photos : undefined,
       rating: gym.rating || 0,
       totalReviews: gym.totalReviews || 0,
       openingHours,
@@ -80,10 +109,11 @@ export const GET = createSafeHandler(
         duration: p.duration,
         benefits: p.benefits ? JSON.parse(p.benefits) : [],
       })),
+      myMembership,
     });
   },
   {
-    auth: "none",
+    auth: "student",
     schema: { params: paramsSchema },
   },
 );

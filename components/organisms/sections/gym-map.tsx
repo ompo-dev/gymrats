@@ -19,22 +19,26 @@ import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { useStudent } from "@/hooks/use-student";
-import type { DayPass, GymLocation } from "@/lib/types";
+import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface GymMapProps {
 	gyms: GymLocation[];
 	dayPasses: DayPass[];
+	memberships?: StudentGymMembership[];
 	onPurchaseDayPass: (gymId: string) => void;
 	onJoinPlan?: (gymId: string, planId: string) => void;
+	onChangePlan?: (membershipId: string, planId: string) => void;
 	onViewGymProfile?: (gymId: string) => void;
 }
 
 export function GymMap({
 	gyms,
 	dayPasses,
+	memberships = [],
 	onPurchaseDayPass,
 	onJoinPlan,
+	onChangePlan,
 	onViewGymProfile,
 }: GymMapProps) {
 	const [selectedGym, setSelectedGym] = useState<GymLocation | null>(null);
@@ -141,7 +145,11 @@ export function GymMap({
 										<div className="flex items-start gap-3">
 											<div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
 												<img
-													src={gym.logo || "/placeholder.svg"}
+													src={
+														gym.logo ||
+														(gym.photos && gym.photos[0]) ||
+														"/placeholder.svg"
+													}
 													alt={gym.name}
 													className="h-full w-full object-cover"
 												/>
@@ -224,35 +232,72 @@ export function GymMap({
 													</p>
 													{gym.membershipPlans && gym.membershipPlans.length > 0 ? (
 														<div className="space-y-2">
-															{gym.membershipPlans.map((plan) => (
-																<DuoCard
-																	key={plan.id}
-																	variant="default"
-																	size="sm"
-																	className="flex cursor-pointer items-center justify-between transition-all hover:border-duo-blue"
-																	onClick={(e) => {
-																		e.stopPropagation();
-																		onJoinPlan?.(gym.id, plan.id);
-																	}}
-																>
-																	<div>
-																		<p className="text-xs font-bold text-duo-text">
-																			{plan.name}
-																		</p>
-																		<p className="text-[10px] text-duo-gray-dark">
-																			{plan.duration} dias • {plan.type}
-																		</p>
-																	</div>
-																	<div className="text-right">
-																		<p className="text-sm font-bold text-duo-green">
-																			R$ {plan.price.toFixed(2)}
-																		</p>
-																		<p className="text-[10px] text-duo-gray-dark">
-																			Contratar
-																		</p>
-																	</div>
-																</DuoCard>
-															))}
+															{gym.membershipPlans.map((plan) => {
+																const myMembership = memberships.find(
+																	(m) => m.gymId === gym.id && m.status !== "canceled",
+																);
+																const isMyPlan = myMembership?.planId === plan.id;
+																const isActive = myMembership?.status === "active";
+																const isPending = myMembership?.status === "pending";
+																const canContract = !myMembership;
+																const canChangePlan =
+																	myMembership &&
+																	isActive &&
+																	!isMyPlan &&
+																	!!onChangePlan;
+
+																return (
+																	<DuoCard
+																		key={plan.id}
+																		variant="default"
+																		size="sm"
+																		className={cn(
+																			(canContract || canChangePlan) &&
+																				"flex cursor-pointer items-center justify-between transition-all hover:border-duo-blue",
+																		)}
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			if (canContract) onJoinPlan?.(gym.id, plan.id);
+																			if (canChangePlan)
+																				onChangePlan?.(myMembership!.id, plan.id);
+																		}}
+																	>
+																		<div>
+																			<p className="text-xs font-bold text-duo-text">
+																				{plan.name}
+																			</p>
+																			<p className="text-[10px] text-duo-gray-dark">
+																				{plan.duration} dias • {plan.type}
+																			</p>
+																		</div>
+																		<div className="text-right">
+																			<p className="text-sm font-bold text-duo-green">
+																				R$ {plan.price.toFixed(2)}
+																			</p>
+																			{isMyPlan && isActive && (
+																				<p className="text-[10px] font-bold text-duo-green">
+																					Plano ativo
+																				</p>
+																			)}
+																			{isMyPlan && isPending && (
+																				<p className="text-[10px] font-bold text-duo-yellow">
+																					Matrícula pendente
+																				</p>
+																			)}
+																			{canContract && (
+																				<p className="text-[10px] text-duo-gray-dark">
+																					Contratar
+																				</p>
+																			)}
+																			{canChangePlan && (
+																				<p className="text-[10px] font-bold text-duo-blue">
+																					Trocar de plano
+																				</p>
+																			)}
+																		</div>
+																	</DuoCard>
+																);
+															})}
 														</div>
 													) : (
 														<div className="grid grid-cols-3 gap-2">

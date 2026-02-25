@@ -89,7 +89,7 @@ export const GET = createSafeHandler(
 			return {
 				id: gym.id,
 				name: gym.name,
-				logo: gym.logo || undefined,
+				logo: gym.image || gym.logo || undefined,
 				address: gym.address,
 				phone: gym.phone || undefined,
 				coordinates: {

@@ -57,10 +57,22 @@ export function StudentMembershipPixModal({
 				`/api/students/payments/${paymentId}/simulate-pix`,
 				{},
 			);
-			toast({
-				title: "Pagamento simulado!",
-				description: "Aguardando confirmação...",
-			});
+			// Poll imediato (simulate já atualizou Payment localmente, igual ao gym)
+			const status = await pollPaymentStatus();
+			if (status === "paid" && !hasClosedRef.current) {
+				hasClosedRef.current = true;
+				onPaymentConfirmed?.();
+				onClose();
+				toast({
+					title: "Pagamento confirmado!",
+					description: "Sua matrícula está ativa.",
+				});
+			} else {
+				toast({
+					title: "Pagamento simulado!",
+					description: "Aguardando confirmação...",
+				});
+			}
 		} catch (err: unknown) {
 			const msg =
 				err && typeof err === "object" && "response" in err
@@ -77,13 +89,18 @@ export function StudentMembershipPixModal({
 		} finally {
 			setIsSimulating(false);
 		}
-	}, [paymentId, toast]);
+	}, [paymentId, pollPaymentStatus, onPaymentConfirmed, onClose, toast]);
 
-	// Poll para detectar pagamento confirmado
+	// Poll para detectar pagamento confirmado (GET /api/payments/[paymentId])
+	// Para após 20 min ou quando modal fechar, evitando polling infinito
+	const MAX_POLL_MS = 20 * 60 * 1000;
 	useEffect(() => {
 		if (!isOpen) return;
 
+		const startedAt = Date.now();
+
 		const checkAndClose = async () => {
+			if (Date.now() - startedAt > MAX_POLL_MS) return;
 			const status = await pollPaymentStatus();
 			if (status === "paid" && !hasClosedRef.current) {
 				hasClosedRef.current = true;
@@ -97,10 +114,10 @@ export function StudentMembershipPixModal({
 		};
 
 		const interval = setInterval(() => {
-			if (document.visibilityState === "visible") {
+			if (document.visibilityState === "visible" && Date.now() - startedAt <= MAX_POLL_MS) {
 				checkAndClose();
 			}
-		}, 5000);
+		}, 8000);
 
 		const onVisibilityChange = () => {
 			if (document.visibilityState === "visible") checkAndClose();

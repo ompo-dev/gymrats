@@ -111,6 +111,7 @@ function StudentHomeContent() {
 		user: storeUser,
 		gymLocations: storeGymLocations,
 		dayPasses: storeDayPasses,
+		memberships: storeMemberships,
 		workoutHistory: storeWorkoutHistory,
 		weightHistory: storeWeightHistory,
 		weightGain: storeWeightGain,
@@ -126,6 +127,7 @@ function StudentHomeContent() {
 		"user",
 		"gymLocations",
 		"dayPasses",
+		"memberships",
 		"workoutHistory",
 		"weightHistory",
 		"weightGain",
@@ -166,6 +168,7 @@ function StudentHomeContent() {
 	// Dados do store (sem fallback SSR)
 	const currentGymLocations = storeGymLocations || [];
 	const currentDayPasses = storeDayPasses || [];
+	const currentMemberships = storeMemberships || [];
 	const currentUser = storeUser;
 	const currentWorkoutHistory = storeWorkoutHistory || [];
 	const currentWeightHistory = storeWeightHistory || [];
@@ -215,6 +218,38 @@ function StudentHomeContent() {
 					: err instanceof Error
 						? err.message
 						: "Erro ao contratar";
+			toast({
+				variant: "destructive",
+				title: "Erro",
+				description: String(msg),
+			});
+		}
+	};
+
+	const handleChangePlan = async (membershipId: string, planId: string) => {
+		try {
+			const { apiClient } = await import("@/lib/api/client");
+			const res = await apiClient.post<{
+				brCode: string;
+				brCodeBase64: string;
+				amount: number;
+				paymentId: string;
+			}>(`/api/students/memberships/${membershipId}/change-plan`, { planId });
+			setPixModal({
+				open: true,
+				paymentId: res.data.paymentId,
+				brCode: res.data.brCode,
+				brCodeBase64: res.data.brCodeBase64,
+				amount: res.data.amount,
+			});
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data
+							?.error
+					: err instanceof Error
+						? err.message
+						: "Erro ao trocar de plano";
 			toast({
 				variant: "destructive",
 				title: "Erro",
@@ -426,13 +461,16 @@ function StudentHomeContent() {
 							gymId={gymId}
 							onBack={() => setGymId(null)}
 							onJoinPlan={handleJoinGym}
+							onChangePlan={handleChangePlan}
 						/>
 					) : (
 						<GymMap
 							gyms={currentGymLocations}
 							dayPasses={currentDayPasses}
+							memberships={currentMemberships}
 							onPurchaseDayPass={handlePurchaseDayPass}
 							onJoinPlan={handleJoinGym}
+							onChangePlan={handleChangePlan}
 							onViewGymProfile={handleViewGymProfile}
 						/>
 					)}

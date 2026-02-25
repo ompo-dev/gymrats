@@ -258,6 +258,7 @@ model Gym {
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name     String
   logo     String?
+  image    String? // Imagem de perfil da academia (prioridade sobre logo)
   address  String
   phone    String
   email    String

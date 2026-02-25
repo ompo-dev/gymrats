@@ -26,6 +26,7 @@ interface GymProfileData {
 	phone?: string;
 	email?: string;
 	logo?: string;
+	photos?: string[];
 	rating: number;
 	totalReviews: number;
 	openingHours?: { open?: string; close?: string };
@@ -42,18 +43,25 @@ interface GymProfileData {
 		duration: number;
 		benefits?: string[];
 	}>;
+	myMembership?: {
+		id: string;
+		status: string;
+		planId: string | null;
+	} | null;
 }
 
 interface GymProfileViewProps {
 	gymId: string;
 	onBack: () => void;
 	onJoinPlan: (gymId: string, planId: string) => void;
+	onChangePlan?: (membershipId: string, planId: string) => void;
 }
 
 export function GymProfileView({
 	gymId,
 	onBack,
 	onJoinPlan,
+	onChangePlan,
 }: GymProfileViewProps) {
 	const [profile, setProfile] = useState<GymProfileData | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -120,13 +128,31 @@ export function GymProfileView({
 			<FadeIn>
 				<SectionCard title={profile.name} icon={Dumbbell}>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-						{profile.logo && (
-							<div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border">
-								<img
-									src={profile.logo}
-									alt={profile.name}
-									className="h-full w-full object-cover"
-								/>
+						{(profile.logo || profile.photos?.[0]) && (
+							<div className="flex shrink-0 gap-2">
+								<div className="h-20 w-20 overflow-hidden rounded-xl border-2 border-duo-border">
+									<img
+										src={profile.logo || profile.photos?.[0]}
+										alt={profile.name}
+										className="h-full w-full object-cover"
+									/>
+								</div>
+								{profile.photos && profile.photos.length > 1 && (
+									<div className="flex gap-1 overflow-x-auto">
+										{profile.photos.slice(1, 4).map((url, i) => (
+											<div
+												key={i}
+												className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-duo-border"
+											>
+												<img
+													src={url}
+													alt={`${profile.name} ${i + 2}`}
+													className="h-full w-full object-cover"
+												/>
+											</div>
+										))}
+									</div>
+								)}
 							</div>
 						)}
 						<div className="flex-1 space-y-2">
@@ -230,32 +256,70 @@ export function GymProfileView({
 							Nenhum plano disponível no momento
 						</p>
 					) : (
-						profile.plans.map((plan) => (
-							<DuoCard
-								key={plan.id}
-								variant="default"
-								size="default"
-								className="cursor-pointer transition-all hover:border-duo-blue"
-								onClick={() => onJoinPlan(profile.id, plan.id)}
-							>
-								<div className="flex items-center justify-between">
-									<div>
-										<p className="font-bold text-duo-text">{plan.name}</p>
-										<p className="text-xs text-duo-gray-dark">
-											{plan.duration} dias • Tipo: {plan.type}
-										</p>
+						profile.plans.map((plan) => {
+							const hasMembership = !!profile.myMembership;
+							const isMyPlan =
+								profile.myMembership?.planId === plan.id;
+							const isActive = profile.myMembership?.status === "active";
+							const isPending = profile.myMembership?.status === "pending";
+							const canContract = !hasMembership;
+							const canChangePlan =
+								hasMembership &&
+								isActive &&
+								!isMyPlan &&
+								!!onChangePlan;
+
+							return (
+								<DuoCard
+									key={plan.id}
+									variant="default"
+									size="default"
+									className={cn(
+										(canContract || canChangePlan) &&
+											"cursor-pointer transition-all hover:border-duo-blue",
+									)}
+									onClick={() => {
+										if (canContract) onJoinPlan(profile.id, plan.id);
+										if (canChangePlan && profile.myMembership)
+											onChangePlan!(profile.myMembership.id, plan.id);
+									}}
+								>
+									<div className="flex items-center justify-between">
+										<div>
+											<p className="font-bold text-duo-text">{plan.name}</p>
+											<p className="text-xs text-duo-gray-dark">
+												{plan.duration} dias • Tipo: {plan.type}
+											</p>
+										</div>
+										<div className="text-right">
+											<p className="text-lg font-bold text-duo-green">
+												R$ {plan.price.toFixed(2)}
+											</p>
+											{isMyPlan && isActive && (
+												<span className="mt-2 inline-flex items-center rounded-full border-2 border-duo-green bg-duo-green/10 px-3 py-1 text-xs font-bold text-duo-green">
+													Plano ativo
+												</span>
+											)}
+											{isMyPlan && isPending && (
+												<span className="mt-2 inline-flex items-center rounded-full border-2 border-duo-yellow bg-duo-yellow/10 px-3 py-1 text-xs font-bold text-duo-yellow">
+													Matrícula pendente
+												</span>
+											)}
+											{canContract && (
+												<Button size="sm" variant="default" className="mt-2">
+													Contratar
+												</Button>
+											)}
+											{canChangePlan && (
+												<Button size="sm" variant="outline" className="mt-2">
+													Trocar de plano
+												</Button>
+											)}
+										</div>
 									</div>
-									<div className="text-right">
-										<p className="text-lg font-bold text-duo-green">
-											R$ {plan.price.toFixed(2)}
-										</p>
-										<Button size="sm" variant="default" className="mt-2">
-											Contratar
-										</Button>
-									</div>
-								</div>
-							</DuoCard>
-						))
+								</DuoCard>
+							);
+						})
 					)}
 				</div>
 			</SectionCard>
