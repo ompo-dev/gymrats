@@ -30,9 +30,11 @@ export default function GymEquipmentPage({ equipment }: GymEquipmentPageProps) {
 	>("all");
 
 	const filteredEquipment = equipment.filter((equipment) => {
+		const name = equipment.name ?? "";
+		const type = equipment.type ?? "";
 		const matchesSearch =
-			equipment.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			equipment.type.toLowerCase().includes(searchQuery.toLowerCase());
+			name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			type.toLowerCase().includes(searchQuery.toLowerCase());
 		const matchesStatus =
 			statusFilter === "all" || equipment.status === statusFilter;
 		return matchesSearch && matchesStatus;

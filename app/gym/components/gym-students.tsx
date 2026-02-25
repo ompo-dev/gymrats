@@ -36,9 +36,12 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 	const [studentId, setStudentId] = useQueryState("studentId");
 
 	const filteredStudents = students.filter((student) => {
+		const s = student as { name?: string; email?: string; student?: { user?: { name?: string; email?: string } } };
+		const name = s.name ?? s.student?.user?.name ?? "";
+		const email = s.email ?? s.student?.user?.email ?? "";
 		const matchesSearch =
-			student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			student.email.toLowerCase().includes(searchQuery.toLowerCase());
+			name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			email.toLowerCase().includes(searchQuery.toLowerCase());
 		const matchesStatus =
 			statusFilter === "all" || student.membershipStatus === statusFilter;
 		return matchesSearch && matchesStatus;

@@ -12,7 +12,7 @@ interface FinancialExpensesTabProps {
 }
 
 export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
-	const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+	const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
 
 	return (
 		<SectionCard
@@ -67,7 +67,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 						Total de Despesas
 					</span>
 					<span className="text-xl font-bold text-duo-red">
-						R$ {totalExpenses.toLocaleString()}
+						R$ {(totalExpenses ?? 0).toLocaleString("pt-BR")}
 					</span>
 				</div>
 			</DuoCard>

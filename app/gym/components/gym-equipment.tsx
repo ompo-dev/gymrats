@@ -50,9 +50,11 @@ export function GymEquipmentPage({
 	const [equipmentId, setEquipmentId] = useQueryState("equipmentId");
 
 	const filteredEquipment = equipmentList.filter((item) => {
+		const name = item.name ?? "";
+		const type = item.type ?? "";
 		const matchesSearch =
-			item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			item.type.toLowerCase().includes(searchQuery.toLowerCase());
+			name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			type.toLowerCase().includes(searchQuery.toLowerCase());
 		const matchesStatus =
 			statusFilter === "all" || item.status === statusFilter;
 		return matchesSearch && matchesStatus;

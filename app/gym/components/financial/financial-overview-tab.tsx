@@ -21,7 +21,8 @@ export function FinancialOverviewTab({
 	financialSummary,
 	payments,
 }: FinancialOverviewTabProps) {
-	const formatCurrency = (value: number) => {
+	const formatCurrency = (value: number | undefined | null) => {
+		if (value == null || Number.isNaN(value)) return "R$ 0,00";
 		return `R$ ${value.toLocaleString("pt-BR")}`;
 	};
 
@@ -57,7 +58,7 @@ export function FinancialOverviewTab({
 				/>
 			</div>
 
-			{financialSummary.overduePayments > 0 && (
+			{(financialSummary.overduePayments ?? 0) > 0 && (
 				<DuoCard
 					variant="default"
 					size="default"
@@ -71,7 +72,7 @@ export function FinancialOverviewTab({
 							</div>
 							<div className="text-xs text-duo-red">
 								{payments.filter((p) => p.status === "overdue").length}{" "}
-								pagamento(s) atrasado(s) - R$ {financialSummary.overduePayments}
+								pagamento(s) atrasado(s) - {formatCurrency(financialSummary.overduePayments)}
 							</div>
 						</div>
 					</div>
@@ -84,7 +85,7 @@ export function FinancialOverviewTab({
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-duo-gray-dark">Ticket Médio</span>
 							<span className="text-sm font-bold text-duo-text">
-								R$ {financialSummary.averageTicket}
+								{formatCurrency(financialSummary.averageTicket)}
 							</span>
 						</div>
 					</DuoCard>
@@ -92,7 +93,7 @@ export function FinancialOverviewTab({
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-duo-gray-dark">Taxa de Churn</span>
 							<span className="text-sm font-bold text-duo-red">
-								{financialSummary.churnRate}%
+								{(financialSummary.churnRate ?? 0)}%
 							</span>
 						</div>
 					</DuoCard>
@@ -102,7 +103,7 @@ export function FinancialOverviewTab({
 								Pagamentos Pendentes
 							</span>
 							<span className="text-sm font-bold text-duo-yellow">
-								R$ {financialSummary.pendingPayments}
+								{formatCurrency(financialSummary.pendingPayments)}
 							</span>
 						</div>
 					</DuoCard>
