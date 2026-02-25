@@ -46,6 +46,14 @@ const GYM_COMMANDS: Record<string, CommandType> = {
 	GYM_PAYMENT_STATUS_UPDATE: "GYM_PAYMENT_STATUS_UPDATE",
 	GYM_MEMBERSHIP_UPDATE_STATUS: "GYM_MEMBERSHIP_UPDATE_STATUS",
 	GYM_EQUIPMENT_CREATE: "GYM_EQUIPMENT_CREATE",
+	GYM_EQUIPMENT_UPDATE: "GYM_EQUIPMENT_UPDATE",
+	GYM_MAINTENANCE_CREATE: "GYM_MAINTENANCE_CREATE",
+	GYM_PLAN_CREATE: "GYM_PLAN_CREATE",
+	GYM_PLAN_UPDATE: "GYM_PLAN_UPDATE",
+	GYM_PLAN_DELETE: "GYM_PLAN_DELETE",
+	GYM_MEMBER_ENROLL_CREATE: "GYM_MEMBER_ENROLL_CREATE",
+	GYM_SUBSCRIPTION_CREATE: "GYM_SUBSCRIPTION_CREATE",
+	GYM_SUBSCRIPTION_CANCEL: "GYM_SUBSCRIPTION_CANCEL",
 };
 
 function addPendingAction(
@@ -199,6 +207,53 @@ export interface GymUnifiedState {
 		serialNumber?: string | null;
 		purchaseDate?: string | null;
 	}) => Promise<void>;
+	updateEquipment: (
+		equipmentId: string,
+		data: {
+			name?: string;
+			type?: string;
+			brand?: string | null;
+			model?: string | null;
+			serialNumber?: string | null;
+			purchaseDate?: string | null;
+			status?: "available" | "in-use" | "maintenance" | "broken";
+		},
+	) => Promise<void>;
+	createMaintenance: (
+		equipmentId: string,
+		data: {
+			type: string;
+			description: string;
+			performedBy: string;
+			cost?: string | number;
+			nextScheduled?: string;
+		},
+	) => Promise<void>;
+	createMembershipPlan: (data: {
+		name: string;
+		type: string;
+		price: number;
+		duration: number;
+		benefits?: string[];
+	}) => Promise<void>;
+	updateMembershipPlan: (
+		planId: string,
+		data: {
+			name?: string;
+			type?: string;
+			price?: number;
+			duration?: number;
+			benefits?: string[];
+		},
+	) => Promise<void>;
+	deleteMembershipPlan: (planId: string) => Promise<void>;
+	enrollStudent: (data: {
+		studentId: string;
+		planId?: string | null;
+		amount: number;
+	}) => Promise<void>;
+	createGymSubscription: (data: { billingPeriod?: "monthly" | "annual" }) => Promise<void>;
+	cancelGymSubscription: () => Promise<void>;
 }
 
 export const useGymUnifiedStore = create<GymUnifiedState>()(
@@ -479,6 +534,167 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
 				});
 				await Promise.all([get().loadSection("equipment"), get().loadSection("stats")]);
+			},
+
+			updateEquipment: async (equipmentId, payload) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_EQUIPMENT_UPDATE,
+					{ equipmentId, ...payload },
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					`/api/gyms/equipment/${equipmentId}`,
+					"PATCH",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+				});
+				await Promise.all([get().loadSection("equipment"), get().loadSection("stats")]);
+			},
+
+			createMaintenance: async (equipmentId, payload) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_MAINTENANCE_CREATE,
+					{ equipmentId, ...payload },
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					`/api/gyms/equipment/${equipmentId}/maintenance`,
+					"POST",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+				});
+				await get().loadSection("equipment");
+			},
+
+			createMembershipPlan: async (payload) => {
+				const command = createCommand(GYM_COMMANDS.GYM_PLAN_CREATE, payload, {
+					idempotencyKey: generateIdempotencyKey(),
+				});
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(migrated, "/api/gyms/plans", "POST");
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+				});
+				await get().loadSection("membershipPlans");
+			},
+
+			updateMembershipPlan: async (planId, payload) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_PLAN_UPDATE,
+					{ planId, ...payload },
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					`/api/gyms/plans/${planId}`,
+					"PATCH",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+				});
+				await get().loadSection("membershipPlans");
+			},
+
+			deleteMembershipPlan: async (planId) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_PLAN_DELETE,
+					{ planId },
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					`/api/gyms/plans/${planId}`,
+					"DELETE",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+				});
+				await get().loadSection("membershipPlans");
+			},
+
+			enrollStudent: async (payload) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_MEMBER_ENROLL_CREATE,
+					payload,
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(migrated, "/api/gyms/members", "POST");
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+					priority: "high",
+				});
+				await Promise.all([get().loadSection("students"), get().loadSection("stats")]);
+			},
+
+			createGymSubscription: async (payload) => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_SUBSCRIPTION_CREATE,
+					payload,
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					"/api/gym-subscriptions/create",
+					"POST",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+					priority: "high",
+				});
+				await get().loadSection("subscription");
+			},
+
+			cancelGymSubscription: async () => {
+				const command = createCommand(
+					GYM_COMMANDS.GYM_SUBSCRIPTION_CANCEL,
+					{},
+					{ idempotencyKey: generateIdempotencyKey() },
+				);
+				await logCommand(command);
+				const migrated = migrateCommand(command);
+				const options = commandToSyncManager(
+					migrated,
+					"/api/gym-subscriptions/cancel",
+					"POST",
+				);
+				await syncManager({
+					...options,
+					commandId: migrated.id,
+					idempotencyKey: options.idempotencyKey || migrated.meta.idempotencyKey,
+					priority: "high",
+				});
+				await get().loadSection("subscription");
 			},
 		}),
 		{

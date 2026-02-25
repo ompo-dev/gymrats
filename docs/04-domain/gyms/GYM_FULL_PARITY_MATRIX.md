@@ -75,11 +75,11 @@ Seções que passam a representar o shape canonico do estado de `gym`:
 | -------------------------- | ------------------------------------------------ | ---------------------------------- | ---------- |
 | Check-in                   | `POST /api/gyms/checkin`                         | `GYM_CHECKIN_CREATE`               | high       |
 | Check-out                  | `POST /api/gyms/checkout`                        | `GYM_CHECKOUT_UPDATE`              | high       |
-| Matricular aluno           | `POST /api/gyms/members`                         | `GYM_MEMBERSHIP_CREATE`            | high       |
+| Matricular aluno           | `POST /api/gyms/members`                         | `GYM_MEMBER_ENROLL_CREATE`         | high       |
 | Atualizar status matricula | `PATCH /api/gyms/members/[membershipId]`         | `GYM_MEMBERSHIP_UPDATE_STATUS`     | high       |
 | Criar equipamento          | `POST /api/gyms/equipment`                       | `GYM_EQUIPMENT_CREATE`             | normal     |
 | Atualizar equipamento      | `PATCH /api/gyms/equipment/[equipId]`            | `GYM_EQUIPMENT_UPDATE`             | normal     |
-| Registrar manutencao       | `POST /api/gyms/equipment/[equipId]/maintenance` | `GYM_EQUIPMENT_MAINTENANCE_CREATE` | normal     |
+| Registrar manutencao       | `POST /api/gyms/equipment/[equipId]/maintenance` | `GYM_MAINTENANCE_CREATE`           | normal     |
 | Criar despesa              | `POST /api/gyms/expenses`                        | `GYM_EXPENSE_CREATE`               | normal     |
 | Criar pagamento            | `POST /api/gyms/payments`                        | `GYM_PAYMENT_CREATE`               | high       |
 | Atualizar status pagamento | `PATCH /api/gyms/payments/[paymentId]`           | `GYM_PAYMENT_STATUS_UPDATE`        | high       |
@@ -109,4 +109,17 @@ Seções que passam a representar o shape canonico do estado de `gym`:
 - UI `app/gym` sem bootstrap server-heavy para todas as secoes.
 - p95 de carga por contexto reduzido e sem explosao de requests duplicadas.
 - Logs de sync/queue/comandos habilitados para troubleshooting.
+
+---
+
+## 7) Snapshot de Revalidacao (estado atual)
+
+- Borda API padronizada (`createSafeHandler`): **fechado**
+- Dominio centralizado: **parcial avancado**
+- Store unificado + persistencia IndexedDB: **fechado (base)**
+- Carregamento priorizado por contexto: **fechado (base)**
+- Offline-first + Command Pattern: **fechado para mutacoes criticas da matriz**
+- Idempotencia ponta a ponta: **fechado em baseline**
+- Single-flight de sessao: **fechado**
+- Observabilidade operacional: **fechado em baseline**, com evolucao pendente para backend central de metricas/alertas
 

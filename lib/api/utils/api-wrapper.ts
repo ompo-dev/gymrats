@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodType } from "zod";
 import { requireGym, requireStudent } from "../middleware/auth.middleware";
+import {
+	completeIdempotencyKey,
+	failIdempotencyKey,
+	getReplayRecord,
+	reserveIdempotencyKey,
+} from "./idempotency-store";
 
 type AuthStrategy = "gym" | "student" | "none";
 
@@ -39,6 +45,14 @@ export function createSafeHandler<TBody = any, TQuery = any>(
   options: HandlerOptions<TBody, TQuery> = {}
 ) {
   return async (req: NextRequest, routeContext?: { params?: Promise<Record<string, string>> | Record<string, string> }) => {
+    const startedAt = Date.now();
+    const pathname = req.nextUrl.pathname;
+    const method = req.method.toUpperCase();
+    const logMetaBase = {
+      route: pathname,
+      method,
+      auth: options.auth || "none",
+    };
     try {
       let gymContext: SafeHandlerContext["gymContext"];
       let studentContext: SafeHandlerContext["studentContext"];
@@ -93,10 +107,118 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         params = await Promise.resolve(routeContext.params);
       }
 
-      // 3. Execute handler
-      return await handler({ req, body, query, gymContext, studentContext, params });
+      // 3. Execute handler (idempotent for mutations when X-Idempotency-Key is present)
+      const shouldUseIdempotency =
+        (method === "POST" || method === "PATCH" || method === "DELETE") &&
+        !!req.headers.get("x-idempotency-key");
+
+      if (!shouldUseIdempotency) {
+        const response = await handler({ req, body, query, gymContext, studentContext, params });
+        const latencyMs = Date.now() - startedAt;
+        response.headers.set("X-Response-Time-Ms", String(latencyMs));
+        console.info(
+          "[api-observability]",
+          JSON.stringify({
+            ...logMetaBase,
+            status: response.status,
+            latencyMs,
+            idempotencyReplay: false,
+          }),
+        );
+        return response;
+      }
+
+      const idemKey = req.headers.get("x-idempotency-key") as string;
+      const replay = await getReplayRecord(idemKey);
+      if (replay && replay.status === "completed" && replay.response_status) {
+        try {
+          const parsedBody = replay.response_body ? JSON.parse(replay.response_body) : null;
+          const replayResponse = NextResponse.json(parsedBody, {
+            status: replay.response_status,
+          });
+          replayResponse.headers.set("X-Idempotency-Replay", "true");
+          replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
+          console.info(
+            "[api-observability]",
+            JSON.stringify({
+              ...logMetaBase,
+              status: replay.response_status,
+              latencyMs: Date.now() - startedAt,
+              idempotencyReplay: true,
+            }),
+          );
+          return replayResponse;
+        } catch {
+          const replayResponse = NextResponse.json(
+            { ok: true, replay: true },
+            { status: replay.response_status },
+          );
+          replayResponse.headers.set("X-Idempotency-Replay", "true");
+          replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
+          console.info(
+            "[api-observability]",
+            JSON.stringify({
+              ...logMetaBase,
+              status: replay.response_status,
+              latencyMs: Date.now() - startedAt,
+              idempotencyReplay: true,
+            }),
+          );
+          return replayResponse;
+        }
+      }
+
+      if (replay && replay.status === "processing") {
+        return NextResponse.json(
+          { error: "Requisição idempotente em processamento" },
+          { status: 409 },
+        );
+      }
+
+      await reserveIdempotencyKey({
+        key: idemKey,
+        route: req.nextUrl.pathname,
+        method,
+        body,
+      });
+
+      try {
+        const response = await handler({ req, body, query, gymContext, studentContext, params });
+        const responseClone = response.clone();
+        const responseText = await responseClone.text();
+        await completeIdempotencyKey({
+          key: idemKey,
+          statusCode: response.status,
+          responseBody: responseText || "null",
+        });
+        const latencyMs = Date.now() - startedAt;
+        response.headers.set("X-Response-Time-Ms", String(latencyMs));
+        console.info(
+          "[api-observability]",
+          JSON.stringify({
+            ...logMetaBase,
+            status: response.status,
+            latencyMs,
+            idempotencyReplay: false,
+            idempotencyKey: idemKey,
+          }),
+        );
+        return response;
+      } catch (innerError) {
+        await failIdempotencyKey(idemKey);
+        throw innerError;
+      }
     } catch (error: any) {
       console.error("[SafeHandler] Error:", error);
+      console.error(
+        "[api-observability]",
+        JSON.stringify({
+          ...logMetaBase,
+          status: error?.name === "ZodError" ? 400 : 500,
+          latencyMs: Date.now() - startedAt,
+          error: error?.message || "unknown",
+        }),
+      );
       
       if (error.name === "ZodError") {
         return NextResponse.json(

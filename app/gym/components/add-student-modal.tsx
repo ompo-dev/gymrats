@@ -41,7 +41,7 @@ export function AddStudentModal({
 	onSuccess,
 	membershipPlans,
 }: AddStudentModalProps) {
-	const { loaders } = useGym("loaders");
+	const { actions, loaders } = useGym("actions", "loaders");
 	const [email, setEmail] = useState("");
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchResult, setSearchResult] =
@@ -85,20 +85,11 @@ export function AddStudentModal({
 		setIsSubmitting(true);
 		setError("");
 		try {
-			const res = await fetch("/api/gyms/members", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					studentId: searchResult.student.id,
-					planId: selectedPlanId || null,
-					amount,
-				}),
+			await actions.enrollStudent({
+				studentId: searchResult.student.id,
+				planId: selectedPlanId || null,
+				amount,
 			});
-			const data = await res.json();
-			if (!res.ok) {
-				setError(data.error ?? "Erro ao matricular aluno.");
-				return;
-			}
 			await loaders.loadSection("students");
 			await loaders.loadSection("stats");
 			onSuccess();

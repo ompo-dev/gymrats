@@ -238,6 +238,77 @@ Mudanças:
 
 ### 11.5 Pendências remanescentes (objetivas)
 
-1. **Idempotência server-side persistente** (tabela + middleware/serviço de deduplicação por `X-Idempotency-Key`)
-2. **Migração total dos componentes de UI para ações do store** (eliminar `fetch` ad hoc residual)
-3. **Telemetria operacional backend** (latência, erros, fila, retries, replay) com visibilidade de produção
+1. **Refino de observabilidade operacional em produção**
+   - base já aplicada no `createSafeHandler` (`X-Response-Time-Ms` + logs estruturados por rota/metodo/status/latencia/replay)
+   - pendente apenas integração com backend central de métricas/alertas (dashboard e SLOs)
+
+## 12) Última milha de paridade aplicada (execução atual)
+
+### 12.1 Idempotência server-side persistente (fechado em baseline)
+
+Arquivos:
+- `lib/api/utils/idempotency-store.ts` (novo)
+- `lib/api/utils/api-wrapper.ts`
+
+Implementado:
+- armazenamento persistente de chaves idempotentes em tabela `api_idempotency_keys` (criação automática se inexistente)
+- fluxo de reserva/processamento/conclusão por `X-Idempotency-Key`
+- replay de resposta já concluída com header `X-Idempotency-Replay: true`
+- proteção contra concorrência para mesma chave em estado `processing` (retorno `409`)
+
+### 12.2 Command Pattern expandido para mutações críticas faltantes (fechado)
+
+Arquivos:
+- `lib/offline/command-pattern.ts`
+- `lib/offline/command-migrations.ts`
+- `stores/gym-unified-store.ts`
+- `hooks/use-gym.ts`
+
+Novos comandos adicionados:
+- `GYM_EQUIPMENT_UPDATE`
+- `GYM_MAINTENANCE_CREATE`
+- `GYM_PLAN_CREATE`
+- `GYM_PLAN_UPDATE`
+- `GYM_PLAN_DELETE`
+- `GYM_MEMBER_ENROLL_CREATE`
+- `GYM_SUBSCRIPTION_CREATE`
+- `GYM_SUBSCRIPTION_CANCEL`
+
+Resultado:
+- mutações críticas restantes passaram a usar pipeline de command + sync manager + idempotency key
+- ações expostas no `useGym("actions")` para consumo uniforme de UI
+
+### 12.3 Eliminação de fetch mutável ad hoc no `app/gym/components` (fechado)
+
+Arquivos atualizados:
+- `app/gym/components/add-student-modal.tsx`
+- `app/gym/components/maintenance-modal.tsx`
+- `app/gym/components/membership-plans-page.tsx`
+- `app/gym/components/add-equipment-modal.tsx`
+- `app/gym/components/gym-students.tsx`
+
+Resultado:
+- mutações migradas para `useGym("actions")`
+- `fetch` residual nos componentes ficou apenas para consultas pontuais (busca/listagem), sem mutação de domínio
+
+### 12.4 Observabilidade backend na borda API (fechado em baseline)
+
+Arquivo:
+- `lib/api/utils/api-wrapper.ts`
+
+Implementado:
+- header de latência por resposta (`X-Response-Time-Ms`)
+- logs estruturados `[api-observability]` com:
+  - `route`, `method`, `auth`
+  - `status`, `latencyMs`
+  - flag de replay idempotente
+  - erro resumido em falhas
+
+## 13) Status final de convergência
+
+- API boundary: **fechado**
+- domínio: **parcial avançado** (alto nível de centralização, com pontos históricos menores)
+- store/runtime: **fechado (base)**
+- offline/command: **fechado para mutações críticas da matriz**
+- idempotência ponta a ponta: **fechado em baseline** (cliente + deduplicação persistente no wrapper)
+- observabilidade: **fechado em baseline** (logs estruturados + latência por resposta); integração em plataforma central ainda evolutiva

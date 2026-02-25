@@ -27,7 +27,7 @@ export function MaintenanceModal({
 	equipmentId,
 	onSuccess,
 }: MaintenanceModalProps) {
-	const { loaders } = useGym("loaders");
+	const { actions, loaders } = useGym("actions", "loaders");
 	const [form, setForm] = useState({
 		type: "preventive",
 		description: "",
@@ -47,19 +47,23 @@ export function MaintenanceModal({
 		setError("");
 
 		try {
-			const res = await fetch(`/api/gyms/equipment/${equipmentId}/maintenance`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(form),
+			await actions.createMaintenance(equipmentId, {
+				type: form.type,
+				description: form.description,
+				performedBy: form.performedBy,
+				cost: form.cost,
+				nextScheduled: form.nextScheduled,
 			});
-
-			const data = await res.json();
-			if (!res.ok) {
-				setError(data.error ?? "Erro ao registrar manutenção");
-				return;
-			}
 			await loaders.loadSection("equipment");
-			onSuccess(data.record);
+			onSuccess({
+				id: `${Date.now()}`,
+				date: new Date(),
+				type: form.type,
+				description: form.description,
+				performedBy: form.performedBy,
+				cost: form.cost ? Number(form.cost) : undefined,
+				nextScheduled: form.nextScheduled ? new Date(form.nextScheduled) : null,
+			} as MaintenanceRecord);
 			onClose();
 			setForm({
 				type: "preventive",

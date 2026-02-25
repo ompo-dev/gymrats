@@ -53,6 +53,24 @@ export function useGym<T extends GymSelector>(
 	);
 	const updateMemberStatus = useGymUnifiedStore((state) => state.updateMemberStatus);
 	const createEquipment = useGymUnifiedStore((state) => state.createEquipment);
+	const updateEquipment = useGymUnifiedStore((state) => state.updateEquipment);
+	const createMaintenance = useGymUnifiedStore((state) => state.createMaintenance);
+	const createMembershipPlan = useGymUnifiedStore(
+		(state) => state.createMembershipPlan,
+	);
+	const updateMembershipPlan = useGymUnifiedStore(
+		(state) => state.updateMembershipPlan,
+	);
+	const deleteMembershipPlan = useGymUnifiedStore(
+		(state) => state.deleteMembershipPlan,
+	);
+	const enrollStudent = useGymUnifiedStore((state) => state.enrollStudent);
+	const createGymSubscription = useGymUnifiedStore(
+		(state) => state.createGymSubscription,
+	);
+	const cancelGymSubscription = useGymUnifiedStore(
+		(state) => state.cancelGymSubscription,
+	);
 
 	if (selectors.length === 0) {
 		return data as any;
@@ -69,6 +87,14 @@ export function useGym<T extends GymSelector>(
 				updatePaymentStatus,
 				updateMemberStatus,
 				createEquipment,
+				updateEquipment,
+				createMaintenance,
+				createMembershipPlan,
+				updateMembershipPlan,
+				deleteMembershipPlan,
+				enrollStudent,
+				createGymSubscription,
+				cancelGymSubscription,
 				hydrateInitial,
 			} as any;
 		}
@@ -93,6 +119,14 @@ export function useGym<T extends GymSelector>(
 				updatePaymentStatus,
 				updateMemberStatus,
 				createEquipment,
+				updateEquipment,
+				createMaintenance,
+				createMembershipPlan,
+				updateMembershipPlan,
+				deleteMembershipPlan,
+				enrollStudent,
+				createGymSubscription,
+				cancelGymSubscription,
 				hydrateInitial,
 			};
 		} else if (selector === "loaders") {
