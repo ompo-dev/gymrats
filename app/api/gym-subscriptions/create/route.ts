@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
-import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
+import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 
 export const POST = createSafeHandler(
 	async ({ gymContext, body }) => {
@@ -30,7 +30,14 @@ export const POST = createSafeHandler(
 			premium: { base: 250, perStudent: 1 },
 			enterprise: { base: 400, perStudent: 0.5 },
 		};
+		const annualDiscounts = { basic: 0.95, premium: 0.9, enterprise: 0.85 };
 		const prices = planPrices[plan];
+
+		const basePrice =
+			billingPeriod === "annual"
+				? Math.round(prices.base * 12 * annualDiscounts[plan])
+				: prices.base;
+		const pricePerStudent = billingPeriod === "annual" ? 0 : prices.perStudent;
 
 		let subscriptionId = existingSubscription?.id;
 
@@ -41,8 +48,8 @@ export const POST = createSafeHandler(
 					plan,
 					billingPeriod,
 					status: "active",
-					basePrice: prices.base,
-					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+					basePrice,
+					pricePerStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
 					trialStart: null,
@@ -58,8 +65,8 @@ export const POST = createSafeHandler(
 					plan,
 					billingPeriod,
 					status: "pending",
-					basePrice: prices.base,
-					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+					basePrice,
+					pricePerStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
 				},
@@ -67,16 +74,17 @@ export const POST = createSafeHandler(
 			subscriptionId = created.id;
 		}
 
-		const billing = await createGymSubscriptionBilling(
+		const pix = await createGymSubscriptionPix(
 			gymId,
 			plan,
 			activeStudents,
 			billingPeriod,
+			subscriptionId!,
 		);
 
-		if (!billing || !billing.id) {
+		if (!pix || !pix.id) {
 			return NextResponse.json(
-				{ error: "Erro ao criar cobrança: resposta inválida da AbacatePay" },
+				{ error: "Erro ao criar PIX: resposta inválida da AbacatePay" },
 				{ status: 500 },
 			);
 		}
@@ -84,13 +92,15 @@ export const POST = createSafeHandler(
 		if (subscriptionId) {
 			await db.gymSubscription.update({
 				where: { id: subscriptionId },
-				data: { abacatePayBillingId: billing.id },
+				data: { abacatePayBillingId: pix.id },
 			});
 		}
 
 		return NextResponse.json({
-			billingUrl: String(billing.url || ""),
-			billingId: String(billing.id || ""),
+			pixId: pix.id,
+			brCode: pix.brCode,
+			brCodeBase64: pix.brCodeBase64,
+			amount: pix.amount,
 		});
 	},
 	{

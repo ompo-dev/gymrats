@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { PixPaymentModal } from "./pix-payment-modal";
 
 interface FinancialSubscriptionTabProps {
 	subscription?: {
@@ -30,6 +32,12 @@ export function FinancialSubscriptionTab({
 }: FinancialSubscriptionTabProps) {
 	const { toast } = useToast();
 	const { gymSubscription: storeSubscription } = useSubscriptionStore();
+	const [pendingPix, setPendingPix] = useState<{
+		pixId: string;
+		brCode: string;
+		brCodeBase64: string;
+		amount: number;
+	} | null>(null);
 	const {
 		subscription: subscriptionData,
 		isLoading: isLoadingSubscription,
@@ -119,8 +127,15 @@ export function FinancialSubscriptionTab({
 				});
 				return;
 			}
-			if (result.billingUrl) {
-				window.location.href = result.billingUrl;
+			// Gym usa PIX inline (valor dinâmico, sem produtos)
+			const pix = result as { pixId?: string; brCode?: string; brCodeBase64?: string; amount?: number };
+			if (pix.pixId && pix.brCode) {
+				setPendingPix({
+					pixId: pix.pixId,
+					brCode: pix.brCode,
+					brCodeBase64: pix.brCodeBase64 ?? "",
+					amount: pix.amount ?? 0,
+				});
 			}
 		} catch (error: unknown) {
 			const msg =
@@ -184,6 +199,7 @@ export function FinancialSubscriptionTab({
 	};
 
 	return (
+		<>
 		<SubscriptionSection
 			userType="gym"
 			subscription={
@@ -277,5 +293,18 @@ export function FinancialSubscriptionTab({
 				nextRenewal: "Próxima renovação",
 			}}
 		/>
+		{pendingPix && (
+			<PixPaymentModal
+				isOpen={!!pendingPix}
+				onClose={() => setPendingPix(null)}
+				brCode={pendingPix.brCode}
+				brCodeBase64={pendingPix.brCodeBase64}
+				amount={pendingPix.amount}
+				refetchSubscription={refetchSubscription}
+				subscriptionStatus={subscription?.status}
+				onPaymentConfirmed={() => refetchSubscription()}
+			/>
+		)}
+		</>
 	);
 }

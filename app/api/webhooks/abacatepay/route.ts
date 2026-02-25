@@ -34,13 +34,21 @@ export async function POST(request: NextRequest) {
 		console.log(`[Webhook] Evento recebido: ${event}`, JSON.stringify(data, null, 2));
 
 		if (event === "billing.paid") {
+			// Payload pode vir de billing (checkout) ou pixQrCode (PIX inline)
+			const pixQrCode = data.pixQrCode;
 			const billing = data.billing;
-			const billingId = billing.id;
-			const amount = billing.amount; // centavos
-			const metadata = billing.metadata || {};
-			// 1. Tentar GymSubscription (a create route salva abacatePayBillingId antes do redirect)
+			const paymentId = pixQrCode?.id ?? billing?.id;
+			const amount = data.payment?.amount ?? billing?.amount ?? pixQrCode?.amount ?? 0;
+			const metadata = billing?.metadata ?? pixQrCode?.metadata ?? {};
+
+			if (!paymentId) {
+				console.error("[Webhook] billing.paid sem id em billing ou pixQrCode");
+				return successResponse({ processed: false, error: "Missing payment id" });
+			}
+
+			// 1. Tentar GymSubscription (abacatePayBillingId armazena billing id ou pix id)
 			const gymSub = await db.gymSubscription.findFirst({
-				where: { abacatePayBillingId: billingId },
+				where: { abacatePayBillingId: paymentId },
 			});
 
 			if (gymSub) {
@@ -68,11 +76,13 @@ export async function POST(request: NextRequest) {
 				return successResponse({ received: true, type: "gym" });
 			}
 
-			// 2. Tentar Subscription (aluno)
-			let subscription = await db.subscription.findUnique({
-				where: { abacatePayBillingId: billingId },
-				include: { student: true },
-			});
+			// 2. Tentar Subscription (aluno) - apenas billing, não pixQrCode
+			let subscription = pixQrCode
+				? null
+				: await db.subscription.findUnique({
+						where: { abacatePayBillingId: paymentId },
+						include: { student: true },
+					});
 
 			if (!subscription && metadata.studentId) {
 				subscription = await db.subscription.findUnique({
@@ -82,7 +92,7 @@ export async function POST(request: NextRequest) {
 			}
 
 			if (!subscription) {
-				console.error(`[Webhook] Subscription não encontrada para billingId: ${billingId} ou studentId: ${metadata.studentId}`);
+				console.error(`[Webhook] Subscription não encontrada para paymentId: ${paymentId} ou studentId: ${metadata.studentId}`);
 				return successResponse({ processed: false, error: "Subscription not found" });
 			}
 
@@ -107,8 +117,8 @@ export async function POST(request: NextRequest) {
 					currentPeriodEnd: periodEnd,
 					cancelAtPeriodEnd: false,
 					canceledAt: null,
-					abacatePayBillingId: billingId,
-					abacatePayCustomerId: billing.customer?.id || subscription.abacatePayCustomerId,
+					abacatePayBillingId: paymentId,
+					abacatePayCustomerId: billing?.customer?.id || subscription.abacatePayCustomerId,
 				},
 			});
 
@@ -118,8 +128,8 @@ export async function POST(request: NextRequest) {
 					subscriptionId: subscription.id,
 					amount: amount / 100,
 					status: "succeeded",
-					paymentMethod: billing.payment?.method || "pix",
-					abacatePayBillingId: billingId,
+					paymentMethod: billing?.payment?.method || "pix",
+					abacatePayBillingId: paymentId,
 					paidAt: now,
 				},
 			});
