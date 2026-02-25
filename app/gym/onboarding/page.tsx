@@ -131,7 +131,7 @@ export default function GymOnboardingPage() {
 				router.refresh();
 
 				setTimeout(() => {
-					router.push("/gym/dashboard");
+					router.push("/gym?tab=dashboard");
 				}, 1500);
 			} else {
 				// Onboarding original (primeira academia)
@@ -149,7 +149,7 @@ export default function GymOnboardingPage() {
 				router.refresh();
 
 				setTimeout(() => {
-					router.push("/gym/dashboard");
+					router.push("/gym?tab=dashboard");
 				}, 1500);
 			}
 		} catch (error: unknown) {
@@ -189,7 +189,7 @@ export default function GymOnboardingPage() {
 			{isNewGymMode && (
 				<div className="absolute top-4 left-4 z-50">
 					<Button
-						onClick={() => router.push("/gym/dashboard")}
+						onClick={() => router.push("/gym?tab=dashboard")}
 						variant="white"
 						className="gap-2"
 					>

@@ -75,7 +75,8 @@ export function StudentMoreMenu() {
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
 	// Rotas bloqueadas para não-admin (versão beta)
-	const blockedItems = ["cardio", "gyms", "payments", "subscription"];
+	// gyms, payments e subscription liberados para todos os alunos
+	const blockedItems = ["cardio"];
 
 	// Filtrar itens bloqueados se não for admin
 	const visibleMenuItems = userIsAdmin

@@ -15,6 +15,19 @@ export class GymInventoryService {
 
     if (!gym || !gym.profile) return null;
 
+    let openingHours: { open: string; close: string; days?: string[] } | undefined;
+    if (gym.openingHours) {
+      try {
+        openingHours = JSON.parse(gym.openingHours) as {
+          open: string;
+          close: string;
+          days?: string[];
+        };
+      } catch {
+        openingHours = undefined;
+      }
+    }
+
     return {
       id: gym.id,
       name: gym.name,
@@ -23,6 +36,9 @@ export class GymInventoryService {
       email: gym.email,
       logo: gym.logo || undefined,
       cnpj: gym.cnpj || "",
+      pixKey: gym.pixKey || undefined,
+      pixKeyType: gym.pixKeyType || undefined,
+      openingHours,
       plan: gym.plan as any,
       equipmentCount: gym.profile.equipmentCount,
       totalStudents: gym.profile.totalStudents,
@@ -61,6 +77,13 @@ export class GymInventoryService {
       lastMaintenance: eq.lastMaintenance || undefined,
       brand: eq.brand || undefined,
       model: eq.model || undefined,
+      currentUser: eq.currentUserId
+        ? {
+            studentId: eq.currentUserId,
+            studentName: eq.currentUserName ?? "Aluno",
+            startTime: eq.currentStartTime ?? new Date(),
+          }
+        : undefined,
       usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
       maintenanceHistory: [],
     } as any));
@@ -84,6 +107,13 @@ export class GymInventoryService {
       lastMaintenance: equipment.lastMaintenance || undefined,
       brand: equipment.brand || undefined,
       model: equipment.model || undefined,
+      currentUser: equipment.currentUserId
+        ? {
+            studentId: equipment.currentUserId,
+            studentName: equipment.currentUserName ?? "Aluno",
+            startTime: equipment.currentStartTime ?? new Date(),
+          }
+        : undefined,
       usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
       maintenanceHistory: [],
     } as any;
@@ -116,7 +146,9 @@ export class GymInventoryService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
-    const [todayCheckIns, activeNow, weekCheckIns, newMembers, canceledMembers, weekRevenueAgg, activeStudents] = await Promise.all([
+    const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+
+    const [todayCheckIns, activeNow, weekCheckIns, newMembers, canceledMembers, weekRevenueAgg, activeStudents, monthCheckIns, monthTopStudentsRaw] = await Promise.all([
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday } } }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday }, checkOut: null } }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
@@ -124,7 +156,39 @@ export class GymInventoryService {
       db.gymMembership.count({ where: { gymId, status: "canceled", updatedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
       db.payment.aggregate({ where: { gymId, status: "paid", date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, _sum: { amount: true } }),
       db.gymMembership.count({ where: { gymId, status: "active" } }),
+      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfMonth } } }),
+      db.checkIn.groupBy({
+        by: ["studentId", "studentName"],
+        where: { gymId, timestamp: { gte: startOfMonth } },
+        _count: { id: true },
+      }),
     ]);
+
+    const sortedTop = monthTopStudentsRaw
+      .sort((a, b) => b._count.id - a._count.id)
+      .slice(0, 5);
+
+    const year = startOfToday.getFullYear();
+    const month = startOfToday.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const topStudents = await Promise.all(
+      sortedTop.map(async (row) => {
+        const student = await db.student.findUnique({
+          where: { id: row.studentId },
+          select: { avatar: true },
+        });
+        const checkins = row._count.id;
+        const attendanceRate = Math.round((checkins / daysInMonth) * 100);
+        return {
+          id: row.studentId,
+          name: row.studentName,
+          avatar: student?.avatar ?? undefined,
+          totalVisits: checkins,
+          checkins,
+          attendanceRate,
+        };
+      }),
+    );
 
     return {
       today: {
@@ -141,10 +205,10 @@ export class GymInventoryService {
         revenue: weekRevenueAgg._sum.amount ?? 0,
       },
       month: {
-        totalCheckins: 0, // To be implemented
+        totalCheckins: monthCheckIns,
         retentionRate: 0,
         growthRate: 0,
-        topStudents: [],
+        topStudents,
         mostUsedEquipment: [],
       },
     };

@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -8,6 +9,7 @@ import { useGymsList } from "@/hooks/use-gyms-list";
 
 export function GymSelector() {
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const {
 		gyms,
 		activeGymId,
@@ -25,11 +27,20 @@ export function GymSelector() {
 
 	const handleSelectGym = async (gymId: string) => {
 		if (gymId === "create-new") {
-			// Redirecionar para o onboarding em modo "criar nova"
 			router.push("/gym/onboarding?mode=new");
 			return;
 		}
+		// 1. Limpar stores e cache para evitar dados da academia anterior
+		const { useGymUnifiedStore } = await import("@/stores/gym-unified-store");
+		const { useSubscriptionStore } = await import("@/stores/subscription-store");
+		useGymUnifiedStore.getState().resetForGymChange();
+		useSubscriptionStore.getState().resetForGymChange();
+		// Invalidar cache React Query (subscription, etc.)
+		queryClient.invalidateQueries({ queryKey: ["gym-subscription"] });
+		// 2. Atualizar academia ativa
 		await setActiveGymId(gymId);
+		// 3. Refetch dados da página para a nova academia
+		router.refresh();
 	};
 
 	// Preparar opções para o Select

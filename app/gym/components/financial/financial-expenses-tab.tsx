@@ -1,29 +1,37 @@
 "use client";
 
 import { Plus, Receipt } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
+import { AddExpenseModal } from "./add-expense-modal";
 
 interface FinancialExpensesTabProps {
 	expenses: Expense[];
 }
 
 export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
+	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 	const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
 
 	return (
-		<SectionCard
-			title="Despesas do Mês"
-			icon={Receipt}
-			headerAction={
-				<Button size="sm" variant="destructive">
-					<Plus className="h-4 w-4" />
-				</Button>
-			}
-		>
+		<>
+			<SectionCard
+				title="Despesas do Mês"
+				icon={Receipt}
+				headerAction={
+					<Button
+						size="sm"
+						variant="destructive"
+						onClick={() => setIsAddModalOpen(true)}
+					>
+						<Plus className="h-4 w-4" />
+					</Button>
+				}
+			>
 			<div className="space-y-3">
 				{expenses.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -72,5 +80,12 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 				</div>
 			</DuoCard>
 		</SectionCard>
+
+			<AddExpenseModal
+				isOpen={isAddModalOpen}
+				onClose={() => setIsAddModalOpen(false)}
+				onSuccess={() => setIsAddModalOpen(false)}
+			/>
+		</>
 	);
 }

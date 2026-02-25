@@ -217,6 +217,9 @@ export function useStudent<T extends StudentSelector>(
 	const loadGymLocations = useStudentUnifiedStore(
 		(state) => state.loadGymLocations,
 	);
+	const loadGymLocationsWithPosition = useStudentUnifiedStore(
+		(state) => state.loadGymLocationsWithPosition,
+	);
 	const loadFoodDatabase = useStudentUnifiedStore(
 		(state) => state.loadFoodDatabase,
 	);
@@ -286,6 +289,7 @@ export function useStudent<T extends StudentSelector>(
 				loadDayPasses,
 				loadFriends,
 				loadGymLocations,
+				loadGymLocationsWithPosition,
 				loadFoodDatabase,
 			}) as any;
 		}
@@ -354,6 +358,7 @@ export function useStudent<T extends StudentSelector>(
 				loadDayPasses,
 				loadFriends,
 				loadGymLocations,
+				loadGymLocationsWithPosition,
 				loadFoodDatabase,
 			});
 		} else if (selector === "dailyNutrition") {
@@ -456,6 +461,7 @@ function getLoaders(actions: {
 	loadDayPasses: StudentUnifiedState["loadDayPasses"];
 	loadFriends: StudentUnifiedState["loadFriends"];
 	loadGymLocations: StudentUnifiedState["loadGymLocations"];
+	loadGymLocationsWithPosition: StudentUnifiedState["loadGymLocationsWithPosition"];
 	loadFoodDatabase: StudentUnifiedState["loadFoodDatabase"];
 }) {
 	return {
@@ -476,6 +482,7 @@ function getLoaders(actions: {
 		loadDayPasses: actions.loadDayPasses,
 		loadFriends: actions.loadFriends,
 		loadGymLocations: actions.loadGymLocations,
+		loadGymLocationsWithPosition: actions.loadGymLocationsWithPosition,
 		loadFoodDatabase: actions.loadFoodDatabase,
 	};
 }

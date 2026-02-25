@@ -36,6 +36,9 @@ interface SubscriptionState {
 	// Student subscription (DEPRECATED - usar useStudent('subscription'))
 	subscription: GymSubscription | null;
 	setSubscription: (subscription: GymSubscription | null) => void;
+
+	/** Limpa dados ao trocar de academia */
+	resetForGymChange: () => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set) => ({
@@ -44,4 +47,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
 
 	subscription: null,
 	setSubscription: (subscription) => set({ subscription }),
+
+	resetForGymChange: () =>
+		set({ gymSubscription: null, subscription: null }),
 }));

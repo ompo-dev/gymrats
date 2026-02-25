@@ -258,6 +258,7 @@ model Gym {
   user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name     String
   logo     String?
+  image    String? // Imagem de perfil da academia (prioridade sobre logo)
   address  String
   phone    String
   email    String
@@ -275,6 +276,10 @@ model Gym {
   photos       String? // JSON array de URLs de fotos
   isPartner    Boolean @default(false) // Se está cadastrado como parceiro no GymRats
 
+  // Chave PIX para receber withdraws (pagamentos dos alunos)
+  pixKey     String? // CPF, CNPJ, telefone, email ou chave aleatória
+  pixKeyType String? // CPF | CNPJ | PHONE | EMAIL | RANDOM
+
   // Relacionamentos
   profile      GymProfile?
   students     GymMembership[]
@@ -285,6 +290,7 @@ model Gym {
   checkIns     CheckIn[]
   stats        GymStats?
   subscription GymSubscription?
+  withdraws    GymWithdraw[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -842,10 +848,34 @@ model Payment {
   paymentMethod String?
   reference     String?
 
+  // AbacatePay: PIX para pagamento de plano (membership)
+  abacatePayBillingId String?   @unique // ID do pixQrCode na AbacatePay
+  withdrawnAt         DateTime? // Quando foi sacado para a academia
+  withdrawId          String?   // externalId do withdraw na AbacatePay
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("payments")
+}
+
+model GymWithdraw {
+  id          String   @id @default(cuid())
+  gymId       String
+  gym         Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  amount      Float // Valor em reais
+  pixKey      String
+  pixKeyType  String
+  externalId  String   @unique // ID enviado à AbacatePay
+  abacateId   String?  // ID retornado pela AbacatePay
+  status      String   @default("pending") // pending | complete | failed
+  paymentIds  String?  // JSON array de IDs dos payments incluídos
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([gymId])
+  @@index([status])
+  @@map("gym_withdraws")
 }
 
 model Expense {

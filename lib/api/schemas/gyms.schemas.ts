@@ -16,6 +16,46 @@ export const setActiveGymSchema = z.object({
 	gymId: z.string().min(1, "gymId é obrigatório"),
 });
 
+export const updateGymProfileSchema = z.object({
+	// Campos opcionais: string vazia = não atualizar (permite salvar só horários)
+	address: z
+		.preprocess(
+			(val) =>
+				typeof val === "string" && val.trim() === "" ? undefined : val,
+			z.string().min(1, "Endereço é obrigatório").optional(),
+		),
+	phone: z
+		.preprocess(
+			(val) =>
+				typeof val === "string" && val.trim() === "" ? undefined : val,
+			z.string().min(1, "Telefone é obrigatório").optional(),
+		),
+	cnpj: z.string().optional().nullable(),
+	pixKey: z.string().optional().nullable(),
+	pixKeyType: z
+		.enum(["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"])
+		.optional()
+		.nullable(),
+	openingHours: z
+		.object({
+			open: z.string().optional(),
+			close: z.string().optional(),
+			days: z.array(z.string()).optional(),
+			// Horários por dia: { monday: { open, close }, ... }
+			byDay: z
+				.record(
+					z.string(),
+					z.object({
+						open: z.string(),
+						close: z.string(),
+					}),
+				)
+				.optional(),
+		})
+		.optional()
+		.nullable(),
+});
+
 export const gymLocationsQuerySchema = z.object({
 	lat: z
 		.string()

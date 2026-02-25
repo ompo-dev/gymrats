@@ -71,17 +71,27 @@ export const GET = createSafeHandler(
 			}
 
 			const plansByType: { daily?: number; weekly?: number; monthly?: number } = {};
+			const membershipPlans: Array<{ id: string; name: string; type: string; price: number; duration: number }> = [];
+
 			gym.plans.forEach((plan) => {
 				if (plan.type === "daily") plansByType.daily = plan.price;
 				if (plan.type === "weekly") plansByType.weekly = plan.price;
 				if (plan.type === "monthly") plansByType.monthly = plan.price;
+				membershipPlans.push({
+					id: plan.id,
+					name: plan.name,
+					type: plan.type,
+					price: plan.price,
+					duration: plan.duration,
+				});
 			});
 
 			return {
 				id: gym.id,
 				name: gym.name,
-				logo: gym.logo || undefined,
+				logo: gym.image || gym.logo || undefined,
 				address: gym.address,
+				phone: gym.phone || undefined,
 				coordinates: {
 					lat: gym.latitude || 0,
 					lng: gym.longitude || 0,
@@ -90,6 +100,7 @@ export const GET = createSafeHandler(
 				rating: gym.rating || 0,
 				totalReviews: gym.totalReviews || 0,
 				plans: plansByType,
+				membershipPlans,
 				amenities,
 				openNow: true,
 				openingHours: openingHours || undefined,

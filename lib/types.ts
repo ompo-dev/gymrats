@@ -549,6 +549,15 @@ export interface GymProfile {
 	phone: string;
 	email: string;
 	cnpj: string;
+	pixKey?: string;
+	pixKeyType?: string;
+	openingHours?: {
+		open?: string;
+		close?: string;
+		days?: string[];
+		/** Horários por dia (ex: sexta 18h, outros 22h) */
+		byDay?: Record<string, { open: string; close: string }>;
+	};
 	plan: "basic" | "premium" | "enterprise";
 	totalStudents: number;
 	activeStudents: number;
@@ -617,7 +626,7 @@ export interface StudentGymMembership {
 	planName: string;
 	planType: "monthly" | "quarterly" | "semi-annual" | "annual";
 	startDate: Date;
-	nextBillingDate: Date;
+	nextBillingDate?: Date;
 	amount: number;
 	status: "active" | "suspended" | "canceled" | "pending";
 	autoRenew: boolean;
@@ -637,7 +646,7 @@ export interface StudentPayment {
 	amount: number;
 	date: Date;
 	dueDate: Date;
-	status: "paid" | "pending" | "overdue" | "canceled";
+	status: "paid" | "pending" | "overdue" | "canceled" | "withdrawn";
 	paymentMethod: "credit-card" | "debit-card" | "pix" | "cash";
 	reference?: string;
 	receiptUrl?: string;
@@ -703,6 +712,16 @@ export interface EquipmentUsage {
 	exercisesPerformed?: string[];
 }
 
+/** Resumo de aluno para ranking (top alunos do mês) */
+export interface TopStudentStats {
+	id: string;
+	name: string;
+	avatar?: string;
+	totalVisits: number;
+	checkins?: number;
+	attendanceRate?: number;
+}
+
 export interface GymStats {
 	today: {
 		checkins: number;
@@ -721,7 +740,7 @@ export interface GymStats {
 		totalCheckins: number;
 		retentionRate: number;
 		growthRate: number;
-		topStudents: StudentData[];
+		topStudents: TopStudentStats[];
 		mostUsedEquipment: Equipment[];
 	};
 }
@@ -754,7 +773,7 @@ export interface Payment {
 	amount: number;
 	date: Date;
 	dueDate: Date;
-	status: "paid" | "pending" | "overdue" | "canceled";
+	status: "paid" | "pending" | "overdue" | "canceled" | "withdrawn";
 	paymentMethod:
 		| "credit-card"
 		| "debit-card"
@@ -762,6 +781,12 @@ export interface Payment {
 		| "pix"
 		| "bank-transfer";
 	reference?: string;
+	/** ID do pixQrCode na AbacatePay (pagamento via PIX) */
+	abacatePayBillingId?: string;
+	/** Quando foi sacado para a academia */
+	withdrawnAt?: Date;
+	/** externalId do withdraw na AbacatePay */
+	withdrawId?: string;
 }
 
 export interface Coupon {
@@ -813,6 +838,7 @@ export interface GymLocation {
 	name: string;
 	logo?: string;
 	address: string;
+	phone?: string;
 	coordinates: {
 		lat: number;
 		lng: number;
@@ -825,6 +851,13 @@ export interface GymLocation {
 		weekly: number;
 		monthly: number;
 	};
+	membershipPlans?: Array<{
+		id: string;
+		name: string;
+		type: string;
+		price: number;
+		duration: number;
+	}>;
 	amenities: string[];
 	openNow: boolean;
 	openingHours: {

@@ -7,7 +7,7 @@ export interface GymData {
 	logo?: string;
 	address: string;
 	email: string;
-	phone: string;
+	phone?: string;
 	cnpj?: string;
 	plan: "basic" | "premium" | "enterprise";
 	hasActiveSubscription: boolean;

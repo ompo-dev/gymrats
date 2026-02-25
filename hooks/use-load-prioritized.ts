@@ -61,6 +61,7 @@ type ContextType =
 	| "diet"
 	| "profile"
 	| "payments"
+	| "gyms"
 	| "home"
 	| "default";
 
@@ -73,6 +74,7 @@ const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
 	diet: ["dailyNutrition", "progress"],
 	profile: ["profile", "weightHistory", "progress", "personalRecords"],
 	payments: ["subscription", "payments", "paymentMethods", "memberships"],
+	gyms: ["gymLocations"],
 	home: ["progress", "workoutHistory", "profile", "units", "dailyNutrition"],
 	default: ["progress", "units", "profile"],
 };
@@ -90,7 +92,7 @@ function detectContextFromPath(
 ): ContextType {
 	// Se tab está definido, usar ele
 	if (tab && tab !== "home") {
-		if (["learn", "diet", "profile", "payments"].includes(tab)) {
+		if (["learn", "diet", "profile", "payments", "gyms"].includes(tab)) {
 			return tab as ContextType;
 		}
 	}

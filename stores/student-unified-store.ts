@@ -80,6 +80,7 @@ export interface StudentUnifiedState {
 	loadDayPasses: () => Promise<void>;
 	loadFriends: () => Promise<void>;
 	loadGymLocations: () => Promise<void>;
+	loadGymLocationsWithPosition: (lat: number, lng: number) => Promise<void>;
 	loadFoodDatabase: () => Promise<void>;
 
 	// === ACTIONS - ATUALIZAR DADOS ===
@@ -433,9 +434,11 @@ function transformSectionResponse(
 			return { friends: data };
 
 		case "gymLocations":
-			// Gym locations vem como array
+			// API retorna gyms ou gymLocations
 			return {
-				gymLocations: Array.isArray(data) ? data : data.gymLocations || [],
+				gymLocations: Array.isArray(data)
+					? data
+					: data.gymLocations || data.gyms || [],
 			};
 
 		default:
@@ -1174,6 +1177,29 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						gymLocations: section.gymLocations || state.data.gymLocations,
 					},
 				}));
+			},
+
+			loadGymLocationsWithPosition: async (lat: number, lng: number) => {
+				try {
+					const response = await apiClient.get<{
+						gyms?: any[];
+						gymLocations?: any[];
+					}>("/api/gyms/locations", {
+						params: { lat: String(lat), lng: String(lng) },
+						timeout: 30000,
+					});
+					const data = response.data;
+					const gymLocations = Array.isArray(data)
+						? data
+						: data.gymLocations || data.gyms || [];
+					set((state) => ({
+						data: { ...state.data, gymLocations },
+					}));
+				} catch (error) {
+					if (process.env.NODE_ENV === "development") {
+						console.warn("[loadGymLocationsWithPosition] Erro:", error);
+					}
+				}
 			},
 
 			loadFoodDatabase: async () => {

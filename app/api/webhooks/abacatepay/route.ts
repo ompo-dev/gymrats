@@ -46,6 +46,78 @@ export async function POST(request: NextRequest) {
 				return successResponse({ processed: false, error: "Missing payment id" });
 			}
 
+			// 0. Tentar Payment (membership-payment ou membership-change-plan)
+			const payment = await db.payment.findUnique({
+				where: { abacatePayBillingId: paymentId },
+				include: { plan: true },
+			});
+
+			if (payment && payment.status === "pending") {
+				const kind = metadata.kind as string | undefined;
+
+				if (kind === "membership-payment") {
+					const membershipId = metadata.membershipId as string | undefined;
+					if (membershipId) {
+						await db.$transaction([
+							db.payment.update({
+								where: { id: payment.id },
+								data: { status: "paid" },
+							}),
+							db.gymMembership.update({
+								where: { id: membershipId },
+								data: {
+									status: "active",
+									startDate: new Date(),
+									nextBillingDate: payment.dueDate,
+								},
+							}),
+						]);
+						console.log(
+							`[Webhook] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
+						);
+						return successResponse({ received: true, type: "membership-payment" });
+					}
+				}
+
+				if (kind === "membership-change-plan") {
+					const membershipId = metadata.membershipId as string | undefined;
+					const planId = metadata.planId as string | undefined;
+					if (membershipId && planId && payment.plan) {
+						const nextBillingDate = new Date();
+						nextBillingDate.setDate(
+							nextBillingDate.getDate() + payment.plan.duration,
+						);
+						await db.$transaction([
+							db.payment.update({
+								where: { id: payment.id },
+								data: { status: "paid" },
+							}),
+							db.gymMembership.update({
+								where: { id: membershipId },
+								data: {
+									planId,
+									amount: payment.plan.price,
+									nextBillingDate,
+									status: "active",
+								},
+							}),
+						]);
+						console.log(
+							`[Webhook] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
+						);
+						return successResponse({
+							received: true,
+							type: "membership-change-plan",
+						});
+					}
+				}
+			}
+
+			// Idempotência: se Payment já paid, retornar success
+			if (payment && payment.status === "paid") {
+				return successResponse({ received: true, type: "payment-already-paid" });
+			}
+
 			// 1. Tentar GymSubscription (abacatePayBillingId armazena billing id ou pix id)
 			const gymSub = await db.gymSubscription.findFirst({
 				where: { abacatePayBillingId: paymentId },

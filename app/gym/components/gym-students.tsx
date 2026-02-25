@@ -1,10 +1,10 @@
 "use client";
 
-import { Flame, Search, UserPlus } from "lucide-react";
+import { Flame, Loader2, Search, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,66 @@ import { SectionCard } from "@/components/ui/section-card";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { getGymStudentById, getGymStudentPayments } from "../actions";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
+
+interface StudentDetailLoaderProps {
+	studentId: string;
+	fallbackStudent: StudentData | null;
+	onBack: () => void;
+}
+
+function StudentDetailLoader({
+	studentId,
+	fallbackStudent,
+	onBack,
+}: StudentDetailLoaderProps) {
+	const [student, setStudent] = useState<StudentData | null>(fallbackStudent);
+	const [payments, setPayments] = useState<any[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+
+	useEffect(() => {
+		let cancelled = false;
+		async function load() {
+			setIsLoading(true);
+			try {
+				const [fullStudent, studentPayments] = await Promise.all([
+					getGymStudentById(studentId),
+					getGymStudentPayments(studentId),
+				]);
+				if (!cancelled) {
+					setStudent(fullStudent ?? fallbackStudent);
+					setPayments(studentPayments ?? []);
+				}
+			} catch {
+				if (!cancelled) setStudent(fallbackStudent);
+			} finally {
+				if (!cancelled) setIsLoading(false);
+			}
+		}
+		load();
+		return () => {
+			cancelled = true;
+		};
+	}, [studentId, fallbackStudent]);
+
+	if (isLoading && !student) {
+		return (
+			<div className="flex min-h-[200px] items-center justify-center">
+				<Loader2 className="h-8 w-8 animate-spin text-duo-gray-dark" />
+			</div>
+		);
+	}
+
+	return (
+		<GymStudentDetail
+			student={student}
+			payments={payments}
+			onBack={onBack}
+		/>
+	);
+}
 
 interface GymStudentsPageProps {
 	students?: StudentData[];
@@ -78,10 +136,10 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	];
 
 	if (studentId) {
-		const student = safeStudents.find((s) => s.id === studentId);
 		return (
-			<GymStudentDetail
-				student={student || null}
+			<StudentDetailLoader
+				studentId={studentId}
+				fallbackStudent={safeStudents.find((s) => s.id === studentId) ?? null}
 				onBack={() => setStudentId(null)}
 			/>
 		);

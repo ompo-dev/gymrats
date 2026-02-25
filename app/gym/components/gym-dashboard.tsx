@@ -262,7 +262,7 @@ export function GymDashboardPage({
 												</div>
 												<div className="text-right">
 													<p className="text-sm font-bold text-duo-green">
-														{student.attendanceRate}%
+														{student.attendanceRate ?? 0}%
 													</p>
 													<p className="text-xs text-duo-gray-dark">
 														frequência

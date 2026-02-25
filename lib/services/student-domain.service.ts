@@ -664,7 +664,7 @@ export class StudentDomainService {
             amount: p.amount,
             date: p.date,
             dueDate: p.dueDate,
-            status: p.status,
+            status: p.withdrawnAt ? "withdrawn" : p.status,
             paymentMethod: p.paymentMethod || undefined,
             reference: p.reference || undefined,
         }));
