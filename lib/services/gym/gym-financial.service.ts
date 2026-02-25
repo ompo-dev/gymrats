@@ -10,31 +10,45 @@ export class GymFinancialService {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [revenue, expenses, pendingPayments] = await Promise.all([
-      db.payment.aggregate({
-        where: { gymId, status: "paid", date: { gte: startOfMonth } },
-        _sum: { amount: true },
-      }),
-      db.expense.aggregate({
-        where: { gymId, date: { gte: startOfMonth } },
-        _sum: { amount: true },
-      }),
-      db.payment.aggregate({
-        where: { gymId, status: "pending", dueDate: { gte: startOfMonth } },
-        _sum: { amount: true },
-      }),
-    ]);
+    const [revenue, expenses, pendingPayments, overduePayments, paidCount] =
+      await Promise.all([
+        db.payment.aggregate({
+          where: { gymId, status: "paid", date: { gte: startOfMonth } },
+          _sum: { amount: true },
+        }),
+        db.expense.aggregate({
+          where: { gymId, date: { gte: startOfMonth } },
+          _sum: { amount: true },
+        }),
+        db.payment.aggregate({
+          where: { gymId, status: "pending", dueDate: { gte: startOfMonth } },
+          _sum: { amount: true },
+        }),
+        db.payment.aggregate({
+          where: { gymId, status: "overdue" },
+          _sum: { amount: true },
+        }),
+        db.payment.count({
+          where: { gymId, status: "paid", date: { gte: startOfMonth } },
+        }),
+      ]);
 
     const totalRevenue = revenue._sum.amount ?? 0;
     const totalExpenses = expenses._sum.amount ?? 0;
     const netProfit = totalRevenue - totalExpenses;
+    const pending = pendingPayments._sum.amount ?? 0;
+    const overdue = overduePayments._sum.amount ?? 0;
 
     return {
-      monthlyRevenue: totalRevenue,
-      monthlyExpenses: totalExpenses,
-      netProfit: netProfit,
-      pendingPayments: pendingPayments._sum.amount ?? 0,
-      growth: 0, // Mocked for now
+      totalRevenue,
+      totalExpenses,
+      netProfit,
+      monthlyRecurring: totalRevenue,
+      pendingPayments: pending,
+      overduePayments: overdue,
+      averageTicket: paidCount > 0 ? totalRevenue / paidCount : 0,
+      churnRate: 0,
+      revenueGrowth: 0,
     };
   }
 

@@ -74,6 +74,7 @@ export function StudentPaymentsPage({
 		"subTab",
 		parseAsString.withDefault("memberships"),
 	);
+	const [, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
 
 	// Usar hook unificado
 	const {
@@ -478,9 +479,11 @@ export function StudentPaymentsPage({
 														Próxima cobrança
 													</p>
 													<p className="text-sm font-bold text-duo-text mt-0.5">
-														{membership.nextBillingDate.toLocaleDateString(
-															"pt-BR",
-														)}
+														{membership.nextBillingDate
+															? new Date(membership.nextBillingDate).toLocaleDateString(
+																	"pt-BR",
+																)
+															: "N/A"}
 													</p>
 												</div>
 											</div>
@@ -505,6 +508,7 @@ export function StudentPaymentsPage({
 						variant="default"
 						size="default"
 						className="border-dashed cursor-pointer hover:border-duo-blue transition-colors"
+						onClick={() => void setTab("gyms")}
 					>
 						<div className="flex items-center justify-center gap-2 py-2">
 							<Plus className="h-5 w-5 text-duo-gray-dark" />
@@ -589,7 +593,9 @@ export function StudentPaymentsPage({
 														Vencimento
 													</p>
 													<p className="text-sm font-bold text-duo-text mt-0.5">
-														{payment.dueDate.toLocaleDateString("pt-BR")}
+														{payment.dueDate
+															? new Date(payment.dueDate).toLocaleDateString("pt-BR")
+															: "N/A"}
 													</p>
 												</div>
 												<div className="text-right">

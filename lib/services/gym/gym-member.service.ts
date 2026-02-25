@@ -62,6 +62,7 @@ export class GymMemberService {
         studentId,
       },
       include: {
+        gym: { select: { name: true, address: true } },
         student: {
           include: {
             user: true,
@@ -130,8 +131,18 @@ export class GymMemberService {
       })) ?? [],
       gymMembership: {
         id: membership.id,
-        status: membership.status,
-        planId: membership.planId,
+        gymId: membership.gymId,
+        gymName: membership.gym?.name ?? "",
+        gymAddress: membership.gym?.address ?? "",
+        planId: membership.planId ?? "",
+        planName: membership.plan?.name ?? "",
+        planType: (membership.plan?.type as any) ?? "monthly",
+        startDate: membership.startDate,
+        nextBillingDate: membership.nextBillingDate ?? undefined,
+        amount: membership.amount,
+        status: membership.status as any,
+        autoRenew: membership.autoRenew,
+        benefits: [],
       },
     };
 

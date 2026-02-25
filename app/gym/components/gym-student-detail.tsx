@@ -289,6 +289,56 @@ export function GymStudentDetail({
 			{activeTab === "overview" && (
 				<SlideIn delay={0.4}>
 					<div className="grid gap-6 lg:grid-cols-2">
+						{student.gymMembership && (
+							<SectionCard title="Plano e Matrícula" icon={DollarSign}>
+								<div className="space-y-3">
+									<DuoCard variant="default" size="sm">
+										<div className="flex justify-between items-center">
+											<span className="font-bold text-duo-gray-dark">Plano</span>
+											<span className="text-duo-text font-bold">
+												{student.gymMembership.planName}
+											</span>
+										</div>
+									</DuoCard>
+									<DuoCard variant="default" size="sm">
+										<div className="flex justify-between items-center">
+											<span className="font-bold text-duo-gray-dark">Valor</span>
+											<span className="text-duo-green font-bold">
+												R$ {student.gymMembership.amount?.toFixed(2) ?? "0,00"}/mês
+											</span>
+										</div>
+									</DuoCard>
+									<DuoCard variant="default" size="sm">
+										<div className="flex justify-between items-center">
+											<span className="font-bold text-duo-gray-dark">Próxima cobrança</span>
+											<span className="text-duo-text font-bold">
+												{student.gymMembership.nextBillingDate
+													? formatDatePtBr(student.gymMembership.nextBillingDate) ?? "N/A"
+													: "N/A"}
+											</span>
+										</div>
+									</DuoCard>
+									<DuoCard variant="default" size="sm">
+										<div className="flex justify-between items-center">
+											<span className="font-bold text-duo-gray-dark">Status</span>
+											<span
+												className={cn(
+													"font-bold",
+													student.gymMembership.status === "active" && "text-duo-green",
+													student.gymMembership.status === "suspended" && "text-duo-orange",
+													student.gymMembership.status === "canceled" && "text-duo-red",
+												)}
+											>
+												{student.gymMembership.status === "active" && "Ativo"}
+												{student.gymMembership.status === "suspended" && "Suspenso"}
+												{student.gymMembership.status === "canceled" && "Cancelado"}
+												{student.gymMembership.status === "pending" && "Pendente"}
+											</span>
+										</div>
+									</DuoCard>
+								</div>
+							</SectionCard>
+						)}
 						<SectionCard title="Informações do Perfil" icon={Users}>
 							<div className="space-y-3">
 								{[

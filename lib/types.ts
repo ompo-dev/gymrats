@@ -626,7 +626,7 @@ export interface StudentGymMembership {
 	planName: string;
 	planType: "monthly" | "quarterly" | "semi-annual" | "annual";
 	startDate: Date;
-	nextBillingDate: Date;
+	nextBillingDate?: Date;
 	amount: number;
 	status: "active" | "suspended" | "canceled" | "pending";
 	autoRenew: boolean;
