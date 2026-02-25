@@ -72,15 +72,28 @@ export function PixPaymentModal({
 		}
 	}, [pixId, refetchSubscription, toast]);
 
-	// Poll para detectar pagamento confirmado
+	// Poll para detectar pagamento confirmado (só quando aba visível, evita requisições em background)
 	useEffect(() => {
 		if (!isOpen || subscriptionStatus === "active") return;
 
-		const interval = setInterval(async () => {
-			await refetchSubscription();
-		}, 5000);
+		const poll = () => {
+			refetchSubscription().catch(() => {});
+		};
 
-		return () => clearInterval(interval);
+		// Refetch imediato ao voltar para a aba
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "visible") poll();
+		};
+		document.addEventListener("visibilitychange", onVisibilityChange);
+
+		const interval = setInterval(() => {
+			if (document.visibilityState === "visible") poll();
+		}, 8000);
+
+		return () => {
+			clearInterval(interval);
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+		};
 	}, [isOpen, refetchSubscription, subscriptionStatus]);
 
 	// Só fecha quando pending -> active (evita fechar se já tinha assinatura ativa)
@@ -160,7 +173,7 @@ export function PixPaymentModal({
 				</div>
 
 				<p className="text-xs text-duo-gray-dark text-center">
-					O pagamento é confirmado automaticamente. Esta janela pode ser fechada após pagar.
+					O pagamento é confirmado automaticamente. Você pode fechar e ir ao app do banco — ao voltar aqui, o PIX estará disponível novamente.
 				</p>
 			</div>
 		</ModalContainer>
