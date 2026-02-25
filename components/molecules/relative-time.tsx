@@ -3,7 +3,7 @@
 import { useRelativeTime } from "@/hooks/use-relative-time";
 
 interface RelativeTimeProps {
-	timestamp: Date;
+	timestamp: Date | string | number;
 }
 
 export function RelativeTime({ timestamp }: RelativeTimeProps) {
