@@ -1,10 +1,15 @@
-# 03 Backend
+# 03-backend
 
-## Objetivo
+- Caminho: `docs/03-backend`
+- Finalidade: documentação técnica e funcional organizada por domínio.
 
-Concentrar documentacao de API, rotas e backend operacional.
+## Subpastas
+- `api/`: subdomínio de `docs/03-backend/api`.
+- `references/`: subdomínio de `docs/03-backend/references`.
 
-## Documentos desta secao
+## Arquivos
+- Nenhum arquivo além do README.
 
-- `../api/API_COMPLETA.md`
-- `../elysiajs/llms-full.txt` (historico/referencia)
+## Observações
+- Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.
+- Para operação em produção, complementar com contratos de payload, códigos de erro, invariantes e cenários de falha.

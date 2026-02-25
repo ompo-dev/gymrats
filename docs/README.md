@@ -1,55 +1,31 @@
-# Documentacao GymRats
+# docs
 
-Este indice organiza a documentacao por dominio e estado de manutencao.
-Os arquivos originais foram mantidos nos caminhos atuais para evitar quebra
-de links durante a migracao moderada.
+- Caminho: `docs`
+- Finalidade: documentação técnica e funcional organizada por domínio.
 
-## Taxonomia alvo
+## Subpastas
+- `00-getting-started/`: subdomínio de `docs/00-getting-started`.
+- `01-architecture/`: subdomínio de `docs/01-architecture`.
+- `02-frontend/`: subdomínio de `docs/02-frontend`.
+- `03-backend/`: subdomínio de `docs/03-backend`.
+- `04-domain/`: subdomínio de `docs/04-domain`.
+- `05-devops/`: subdomínio de `docs/05-devops`.
+- `06-releases/`: subdomínio de `docs/06-releases`.
 
-- `00-getting-started`: entrada rapida, guias e convencoes.
-- `01-architecture`: arquitetura, analises e decisoes estruturais.
-- `02-frontend`: UI, componentes e estado no cliente.
-- `03-backend`: API, rotas e documentacao tecnica de backend.
-- `04-domain`: documentos por dominio de negocio (students, pagamentos, IA).
-- `05-devops`: ambiente, docker, seed, seguranca operacional.
-- `06-releases`: checklists e governanca de release.
+## Arquivos
+- `RELATORIO_AUDITORIA_DOCS_2026-02-25.md`: Arquivo da camada local.
 
-## Estado dos documentos atuais
+## Detalhamento técnico por arquivo
 
-- `ATIVO`: deve ser mantido e revisado continuamente.
-- `REVISAO`: valido, mas com pontos defasados.
-- `HISTORICO`: referencia de contexto; nao deve guiar implementacao nova.
+### `RELATORIO_AUDITORIA_DOCS_2026-02-25.md`
+- O que faz: documenta decisões e operação referentes a `docs/RELATORIO_AUDITORIA_DOCS_2026-02-25.md`.
+- Como: organiza instruções, contexto de arquitetura e referências de manutenção para o time.
+- Por que: reduz custo de onboarding e evita conhecimento implícito disperso.
+- Importa principalmente: sem imports relevantes detectados.
+- Expõe: sem exports nomeados (ou apenas default).
+- Comunica com: camada local sem integrações explícitas detectadas.
+- Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
 
-## Mapa rapido (arquivo atual -> secao alvo -> status)
-
-- `docs/00-getting-started/IA_GUIDE.md` -> `00-getting-started` -> `REVISAO`
-- `docs/00-getting-started/COMMIT_CONVENTION.md` -> `00-getting-started` -> `ATIVO`
-
-- `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md` -> `01-architecture` -> `REVISAO`
-- `docs/01-architecture/ANALISE_COMPLETA_PROJETO.md` -> `01-architecture` -> `REVISAO`
-- `docs/01-architecture/plan.md` -> `01-architecture` -> `HISTORICO`
-
-- `docs/02-frontend/UI_UX_SYSTEM_DESIGN.md` -> `02-frontend` -> `ATIVO`
-- `docs/02-frontend/components/ATOMIC_DESIGN_COMPLETO.md` -> `02-frontend` -> `ATIVO`
-- `docs/02-frontend/state/HOOKS_STORE_COMPLETO.md` -> `02-frontend` -> `REVISAO`
-- `docs/02-frontend/navigation/NUQS_MODAIS_COMPLETO.md` -> `02-frontend` -> `ATIVO`
-
-- `docs/03-backend/api/API_COMPLETA.md` -> `03-backend` -> `REVISAO`
-- `docs/03-backend/references/llms-full.txt` -> `03-backend` -> `HISTORICO`
-
-- `docs/04-domain/students/DADOS_STUDENT_COMPLETO.md` -> `04-domain/students` -> `REVISAO`
-- `docs/04-domain/payments/FLUXO_PAGAMENTOS_COMPLETO.md` -> `04-domain/payments` -> `ATIVO`
-- `docs/04-domain/ai/CHAT_IA_FLUXO_COMPLETO.md` -> `04-domain/ai` -> `ATIVO`
-- `docs/04-domain/ai/agno/ESTUDO_LLMS_FULL.md` -> `04-domain/ai` -> `HISTORICO`
-- `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md` -> `04-domain/ai` -> `HISTORICO`
-
-- `docs/05-devops/DOCKER.md` -> `05-devops` -> `ATIVO`
-- `docs/05-devops/SEED_DATABASE.md` -> `05-devops` -> `REVISAO`
-- `docs/05-devops/SEGURANCA_LOCALSTORAGE.md` -> `05-devops` -> `ATIVO`
-
-- `docs/06-releases/STUDENT_RELEASE_CHECKLIST.md` -> `06-releases` -> `REVISAO`
-
-## Proximo passo recomendado
-
-Usar os indices de cada secao para navegar no conteudo consolidado e priorizar
-atualizacoes com severidade P0/P1 primeiro.
+## Observações
+- Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.
+- Para operação em produção, complementar com contratos de payload, códigos de erro, invariantes e cenários de falha.

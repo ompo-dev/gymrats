@@ -1,19 +1,16 @@
-# 04 Domain
+# 04-domain
 
-## Objetivo
+- Caminho: `docs/04-domain`
+- Finalidade: documentação técnica e funcional organizada por domínio.
 
-Agrupar documentacao por dominio de negocio.
+## Subpastas
+- `ai/`: subdomínio de `docs/04-domain/ai`.
+- `payments/`: subdomínio de `docs/04-domain/payments`.
+- `students/`: subdomínio de `docs/04-domain/students`.
 
-## Students
+## Arquivos
+- Nenhum arquivo além do README.
 
-- `../datastudent/DADOS_STUDENT_COMPLETO.md`
-
-## Payments
-
-- `../FLUXO_PAGAMENTOS_COMPLETO.md`
-
-## AI
-
-- `../CHAT_IA_FLUXO_COMPLETO.md`
-- `../agno/ESTUDO_LLMS_FULL.md` (historico)
-- `../agno/PLANO_IMPLEMENTACAO_CHAT_IA.md` (historico)
+## Observações
+- Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.
+- Para operação em produção, complementar com contratos de payload, códigos de erro, invariantes e cenários de falha.
