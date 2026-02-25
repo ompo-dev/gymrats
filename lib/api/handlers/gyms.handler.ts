@@ -416,9 +416,14 @@ export async function getGymLocationsHandler(
 			return R * c; // Distância em km
 		};
 
-		// Função para calcular se está aberto agora
+		// Função para calcular se está aberto agora (suporta byDay)
 		const calculateOpenNow = (
-			openingHours: { open: string; close: string; days?: string[] } | null,
+			openingHours: {
+				open?: string;
+				close?: string;
+				days?: string[];
+				byDay?: Record<string, { open: string; close: string }>;
+			} | null,
 		): boolean => {
 			if (!openingHours) return true;
 
@@ -441,8 +446,11 @@ export async function getGymLocationsHandler(
 				}
 			}
 
-			const [openHour, openMin] = openingHours.open.split(":").map(Number);
-			const [closeHour, closeMin] = openingHours.close.split(":").map(Number);
+			const dayHours = openingHours.byDay?.[currentDayName];
+			const openStr = dayHours?.open ?? openingHours.open ?? "06:00";
+			const closeStr = dayHours?.close ?? openingHours.close ?? "22:00";
+			const [openHour, openMin] = openStr.split(":").map(Number);
+			const [closeHour, closeMin] = closeStr.split(":").map(Number);
 			const openTime = openHour * 60 + openMin;
 			const closeTime = closeHour * 60 + closeMin;
 

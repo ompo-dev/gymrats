@@ -17,14 +17,35 @@ export const setActiveGymSchema = z.object({
 });
 
 export const updateGymProfileSchema = z.object({
-	address: z.string().min(1, "Endereço é obrigatório").optional(),
-	phone: z.string().min(1, "Telefone é obrigatório").optional(),
+	// Campos opcionais: string vazia = não atualizar (permite salvar só horários)
+	address: z
+		.preprocess(
+			(val) =>
+				typeof val === "string" && val.trim() === "" ? undefined : val,
+			z.string().min(1, "Endereço é obrigatório").optional(),
+		),
+	phone: z
+		.preprocess(
+			(val) =>
+				typeof val === "string" && val.trim() === "" ? undefined : val,
+			z.string().min(1, "Telefone é obrigatório").optional(),
+		),
 	cnpj: z.string().optional().nullable(),
 	openingHours: z
 		.object({
-			open: z.string(),
-			close: z.string(),
+			open: z.string().optional(),
+			close: z.string().optional(),
 			days: z.array(z.string()).optional(),
+			// Horários por dia: { monday: { open, close }, ... }
+			byDay: z
+				.record(
+					z.string(),
+					z.object({
+						open: z.string(),
+						close: z.string(),
+					}),
+				)
+				.optional(),
 		})
 		.optional()
 		.nullable(),

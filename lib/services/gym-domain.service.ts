@@ -46,7 +46,12 @@ export class GymDomainService {
       address?: string;
       phone?: string;
       cnpj?: string | null;
-      openingHours?: { open: string; close: string; days?: string[] } | null;
+      openingHours?: {
+        open?: string;
+        close?: string;
+        days?: string[];
+        byDay?: Record<string, { open: string; close: string }>;
+      } | null;
     },
   ) {
     const updateData: Record<string, unknown> = {};

@@ -25,11 +25,12 @@ export function GymSelector() {
 
 	const handleSelectGym = async (gymId: string) => {
 		if (gymId === "create-new") {
-			// Redirecionar para o onboarding em modo "criar nova"
 			router.push("/gym/onboarding?mode=new");
 			return;
 		}
 		await setActiveGymId(gymId);
+		// Refetch dados da página para a nova academia
+		router.refresh();
 	};
 
 	// Preparar opções para o Select

@@ -549,7 +549,13 @@ export interface GymProfile {
 	phone: string;
 	email: string;
 	cnpj: string;
-	openingHours?: { open: string; close: string; days?: string[] };
+	openingHours?: {
+		open?: string;
+		close?: string;
+		days?: string[];
+		/** Horários por dia (ex: sexta 18h, outros 22h) */
+		byDay?: Record<string, { open: string; close: string }>;
+	};
 	plan: "basic" | "premium" | "enterprise";
 	totalStudents: number;
 	activeStudents: number;

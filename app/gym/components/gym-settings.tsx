@@ -39,6 +39,11 @@ const WEEKDAYS = [
 	{ id: "sunday", label: "Domingo" },
 ] as const;
 
+const DEFAULT_OPEN = "06:00";
+const DEFAULT_CLOSE = "22:00";
+
+type DaySchedule = { open: string; close: string; enabled: boolean };
+
 interface GymSettingsPageProps {
 	profile: GymProfile;
 	plans: MembershipPlan[];
@@ -52,24 +57,30 @@ export function GymSettingsPage({
 }: GymSettingsPageProps) {
 	const router = useRouter();
 	const [profile, setProfile] = useState(initialProfile);
-	const [address, setAddress] = useState(initialProfile.address);
-	const [phone, setPhone] = useState(initialProfile.phone);
+	const [address, setAddress] = useState(initialProfile.address ?? "");
+	const [phone, setPhone] = useState(initialProfile.phone ?? "");
 	const [cnpj, setCnpj] = useState(initialProfile.cnpj ?? "");
-	const [openTime, setOpenTime] = useState(
-		initialProfile.openingHours?.open ?? "06:00",
-	);
-	const [closeTime, setCloseTime] = useState(
-		initialProfile.openingHours?.close ?? "22:00",
-	);
-	const [openDays, setOpenDays] = useState<string[]>(
-		initialProfile.openingHours?.days ?? [
-			"monday",
-			"tuesday",
-			"wednesday",
-			"thursday",
-			"friday",
-			"saturday",
-		],
+
+	// Horários por dia (ex: sexta 18h, outros 22h)
+	const parseInitialSchedules = (): Record<string, DaySchedule> => {
+		const oh = initialProfile.openingHours;
+		const days = oh?.days ?? ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+		const defaultOpen = oh?.open ?? DEFAULT_OPEN;
+		const defaultClose = oh?.close ?? DEFAULT_CLOSE;
+		const byDay = oh?.byDay ?? {};
+		const result: Record<string, DaySchedule> = {};
+		for (const d of WEEKDAYS) {
+			const override = byDay[d.id];
+			result[d.id] = {
+				open: override?.open ?? defaultOpen,
+				close: override?.close ?? defaultClose,
+				enabled: days.includes(d.id),
+			};
+		}
+		return result;
+	};
+	const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(
+		parseInitialSchedules,
 	);
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState("");
@@ -82,10 +93,11 @@ export function GymSettingsPage({
 
 	const isAdmin = serverIsAdmin || serverRole === "ADMIN";
 
-	const toggleDay = (day: string) => {
-		setOpenDays((prev) =>
-			prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-		);
+	const updateDaySchedule = (dayId: string, field: keyof DaySchedule, value: string | boolean) => {
+		setDaySchedules((prev) => ({
+			...prev,
+			[dayId]: { ...prev[dayId], [field]: value },
+		}));
 	};
 
 	const handleSaveProfile = async () => {
@@ -93,38 +105,70 @@ export function GymSettingsPage({
 		setSaveError("");
 		try {
 			const { apiClient } = await import("@/lib/api/client");
+			const openDays = Object.entries(daySchedules)
+				.filter(([, s]) => s.enabled)
+				.map(([id]) => id);
+			const byDay: Record<string, { open: string; close: string }> = {};
+			for (const [id, s] of Object.entries(daySchedules)) {
+				if (s.enabled) byDay[id] = { open: s.open, close: s.close };
+			}
 			const { data } = await apiClient.patch<{ profile: GymProfile }>(
 				"/api/gyms/profile",
 				{
-					address,
-					phone,
+					address: address.trim() || undefined,
+					phone: phone.trim() || undefined,
 					cnpj: cnpj.trim() || null,
 					openingHours: {
-						open: openTime,
-						close: closeTime,
 						days: openDays,
+						byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
+						open: DEFAULT_OPEN,
+						close: DEFAULT_CLOSE,
 					},
 				},
 			);
 			if (data.profile) setProfile(data.profile);
 			router.refresh();
-		} catch (err) {
-			setSaveError(
-				err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.",
-			);
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { details?: unknown } } }).response?.data
+					: null;
+			const details = msg && typeof msg === "object" && "details" in msg ? (msg as { details?: unknown }).details : null;
+			const errMsg =
+				Array.isArray(details) && details.length > 0
+					? (details[0] as { message?: string }).message ?? "Erro de validação"
+					: err instanceof Error
+						? err.message
+						: "Erro ao salvar. Tente novamente.";
+			setSaveError(errMsg);
 		} finally {
 			setSaving(false);
 		}
 	};
 
-	const hasChanges =
-		address !== profile.address ||
-		phone !== profile.phone ||
-		cnpj !== (profile.cnpj ?? "") ||
-		openTime !== (profile.openingHours?.open ?? "06:00") ||
-		closeTime !== (profile.openingHours?.close ?? "22:00") ||
-		JSON.stringify(openDays.sort()) !==
-			JSON.stringify((profile.openingHours?.days ?? []).sort());
+	const hasInfoChanges =
+		address !== (profile.address ?? "") ||
+		phone !== (profile.phone ?? "") ||
+		cnpj !== (profile.cnpj ?? "");
+
+	const hasScheduleChanges = (() => {
+		const oh = profile.openingHours;
+		const prevDays = (oh?.days ?? []).sort();
+		const currDays = Object.entries(daySchedules)
+			.filter(([, s]) => s.enabled)
+			.map(([id]) => id)
+			.sort();
+		if (JSON.stringify(prevDays) !== JSON.stringify(currDays)) return true;
+		const prevByDay = oh?.byDay ?? {};
+		for (const [id, s] of Object.entries(daySchedules)) {
+			if (!s.enabled) continue;
+			const prev = prevByDay[id] ?? { open: oh?.open ?? DEFAULT_OPEN, close: oh?.close ?? DEFAULT_CLOSE };
+			if (prev.open !== s.open || prev.close !== s.close) return true;
+		}
+		return false;
+	})();
+
+	const hasChanges = hasInfoChanges || hasScheduleChanges;
 
 	const handleLogout = async () => {
 		try {
@@ -158,11 +202,11 @@ export function GymSettingsPage({
 			<SlideIn delay={0.1}>
 				<SectionCard title={profile.name} icon={Building2} variant="orange">
 					<div className="mb-4">
-						<p className="text-sm text-duo-gray-dark">Plano {profile.plan}</p>
+						<p className="text-sm font-medium text-duo-text">Plano {profile.plan}</p>
 					</div>
-					<div className="space-y-3">
+					<div className="space-y-4">
 						<div>
-							<Label htmlFor="address" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+							<Label htmlFor="address" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
 								<MapPin className="h-4 w-4" />
 								Endereço
 							</Label>
@@ -170,11 +214,12 @@ export function GymSettingsPage({
 								id="address"
 								value={address}
 								onChange={(e) => setAddress(e.target.value)}
-								className="mt-1"
+								placeholder="Opcional"
+								className="mt-1.5"
 							/>
 						</div>
 						<div>
-							<Label htmlFor="phone" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+							<Label htmlFor="phone" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
 								<Phone className="h-4 w-4" />
 								Telefone
 							</Label>
@@ -182,15 +227,16 @@ export function GymSettingsPage({
 								id="phone"
 								value={phone}
 								onChange={(e) => setPhone(e.target.value)}
-								className="mt-1"
+								placeholder="Opcional"
+								className="mt-1.5"
 							/>
 						</div>
 						<div>
-							<Label className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+							<Label className="flex items-center gap-2 text-sm font-semibold text-duo-text">
 								<Mail className="h-4 w-4" />
 								Email
 							</Label>
-							<p className="mt-1 text-sm font-bold text-duo-text">
+							<p className="mt-1.5 text-sm font-medium text-duo-text">
 								{profile.email}
 							</p>
 							<p className="text-xs text-duo-gray-dark">
@@ -198,7 +244,7 @@ export function GymSettingsPage({
 							</p>
 						</div>
 						<div>
-							<Label htmlFor="cnpj" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+							<Label htmlFor="cnpj" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
 								<FileText className="h-4 w-4" />
 								CNPJ
 							</Label>
@@ -207,7 +253,7 @@ export function GymSettingsPage({
 								value={cnpj}
 								onChange={(e) => setCnpj(e.target.value)}
 								placeholder="Opcional"
-								className="mt-1"
+								className="mt-1.5"
 							/>
 						</div>
 						{hasChanges && (
@@ -224,7 +270,7 @@ export function GymSettingsPage({
 							</Button>
 						)}
 						{saveError && (
-							<p className="text-sm text-red-600">{saveError}</p>
+							<p className="text-sm font-medium text-red-600">{saveError}</p>
 						)}
 					</div>
 				</SectionCard>
@@ -236,63 +282,83 @@ export function GymSettingsPage({
 					icon={Clock}
 					variant="blue"
 				>
-					<div className="space-y-4">
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<Label htmlFor="openTime">Abertura</Label>
-								<Input
-									id="openTime"
-									type="time"
-									value={openTime}
-									onChange={(e) => setOpenTime(e.target.value)}
-									className="mt-1"
-								/>
-							</div>
-							<div>
-								<Label htmlFor="closeTime">Fechamento</Label>
-								<Input
-									id="closeTime"
-									type="time"
-									value={closeTime}
-									onChange={(e) => setCloseTime(e.target.value)}
-									className="mt-1"
-								/>
-							</div>
-						</div>
-						<div>
-							<Label className="mb-2 block">Dias de funcionamento</Label>
-							<div className="flex flex-wrap gap-2">
-								{WEEKDAYS.map((day) => (
-									<button
-										key={day.id}
-										type="button"
-										onClick={() => toggleDay(day.id)}
-										className={cn(
-											"rounded-lg px-3 py-2 text-sm font-bold transition-colors",
-											openDays.includes(day.id)
-												? "bg-duo-blue text-white"
-												: "bg-gray-100 text-duo-gray-dark hover:bg-gray-200",
-										)}
-									>
-										{day.label}
-									</button>
-								))}
-							</div>
-						</div>
-						{hasChanges && (
-							<Button
-								onClick={handleSaveProfile}
-								disabled={saving}
-								className="w-full"
-							>
-								{saving ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									"Salvar horários"
-								)}
-							</Button>
-						)}
+					<p className="mb-4 text-sm font-medium text-duo-text">
+						Configura horários diferentes por dia (ex: sexta fecha 18h, outros 22h)
+					</p>
+					<div className="space-y-3">
+						{WEEKDAYS.map((day) => {
+							const s = daySchedules[day.id];
+							if (!s) return null;
+							return (
+								<div
+									key={day.id}
+									className={cn(
+										"flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors",
+										s.enabled
+											? "border-duo-blue/30 bg-duo-blue/5"
+											: "border-gray-200 bg-gray-50/50",
+									)}
+								>
+									<label className="flex min-w-[100px] cursor-pointer items-center gap-2">
+										<input
+											type="checkbox"
+											checked={s.enabled}
+											onChange={(e) =>
+												updateDaySchedule(day.id, "enabled", e.target.checked)
+											}
+											className="h-4 w-4 rounded"
+										/>
+										<span className="text-sm font-semibold text-duo-text">
+											{day.label}
+										</span>
+									</label>
+									{s.enabled && (
+										<>
+											<div className="flex items-center gap-2">
+												<Label className="text-xs font-medium text-duo-gray-dark">
+													Abre
+												</Label>
+												<Input
+													type="time"
+													value={s.open}
+													onChange={(e) =>
+														updateDaySchedule(day.id, "open", e.target.value)
+													}
+													className="h-9 w-auto"
+												/>
+											</div>
+											<div className="flex items-center gap-2">
+												<Label className="text-xs font-medium text-duo-gray-dark">
+													Fecha
+												</Label>
+												<Input
+													type="time"
+													value={s.close}
+													onChange={(e) =>
+														updateDaySchedule(day.id, "close", e.target.value)
+													}
+													className="h-9 w-auto"
+												/>
+											</div>
+										</>
+									)}
+								</div>
+							);
+						})}
 					</div>
+					{hasChanges && (
+						<Button
+							onClick={handleSaveProfile}
+							disabled={saving}
+							className="mt-4 w-full"
+						>
+							{saving ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								"Salvar horários"
+							)}
+						</Button>
+					)}
 				</SectionCard>
 			</SlideIn>
 
