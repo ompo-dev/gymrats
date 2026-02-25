@@ -91,7 +91,9 @@ export async function getPaymentsHandler(
 			amount: payment.amount,
 			date: payment.date,
 			dueDate: payment.dueDate,
-			status: payment.status as "paid" | "pending" | "overdue" | "canceled",
+			status: (payment.withdrawnAt
+				? "withdrawn"
+				: payment.status) as "paid" | "pending" | "overdue" | "canceled" | "withdrawn",
 			paymentMethod: payment.paymentMethod as
 				| "credit-card"
 				| "debit-card"

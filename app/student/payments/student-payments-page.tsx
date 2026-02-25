@@ -545,15 +545,24 @@ export function StudentPaymentsPage({
 														"px-2 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1",
 														payment.status === "paid" &&
 															"bg-duo-green/20 text-duo-green",
+														payment.status === "withdrawn" &&
+															"bg-duo-blue/20 text-duo-blue",
 														payment.status === "pending" &&
 															"bg-duo-yellow/20 text-duo-yellow",
 														payment.status === "overdue" &&
 															"bg-duo-red/20 text-duo-red",
+														payment.status === "canceled" &&
+															"bg-gray-100 text-duo-gray-dark",
 													)}
 												>
 													{payment.status === "paid" && (
 														<>
 															<CheckCircle className="h-3 w-3" /> Pago
+														</>
+													)}
+													{payment.status === "withdrawn" && (
+														<>
+															<CheckCircle className="h-3 w-3" /> Sacado
 														</>
 													)}
 													{payment.status === "pending" && (
@@ -564,6 +573,11 @@ export function StudentPaymentsPage({
 													{payment.status === "overdue" && (
 														<>
 															<AlertCircle className="h-3 w-3" /> Atrasado
+														</>
+													)}
+													{payment.status === "canceled" && (
+														<>
+															<AlertCircle className="h-3 w-3" /> Cancelado
 														</>
 													)}
 												</span>

@@ -70,7 +70,8 @@ export function shouldBlockRoute(
 	if (isAdmin) return false;
 
 	// Rotas bloqueadas para não-admin (usando search params)
-	const blockedTabs = ["cardio", "gyms", "payments"];
+	// gyms e payments liberados para todos os alunos
+	const blockedTabs = ["cardio"];
 	const tab = searchParams.tab as string | undefined;
 
 	// Bloquear se tab estiver na lista de bloqueados

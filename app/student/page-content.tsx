@@ -11,7 +11,6 @@ import { LearningPath } from "@/app/student/learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/more/student-more-menu";
 import { StudentPaymentsPage } from "@/app/student/payments/student-payments-page";
 import { ProfilePage } from "@/app/student/profile/profile-page";
-import { AdminOnly } from "@/components/admin/admin-only";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
@@ -54,7 +53,8 @@ function StudentHomeContent() {
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
 	// Proteger rotas bloqueadas (versão beta)
-	const blockedTabs = ["cardio", "gyms", "payments"];
+	// gyms e payments liberados para todos os alunos
+	const blockedTabs = ["cardio"];
 	const isBlockedTab = tab && blockedTabs.includes(tab) && !userIsAdmin;
 
 	// Redirecionar se tentar acessar rota bloqueada
@@ -181,7 +181,7 @@ function StudentHomeContent() {
 
 	const handlePurchaseDayPass = (gymId: string) => {
 		const gym = currentGymLocations.find((g: GymLocation) => g.id === gymId);
-		if (!gym) return;
+		if (!gym || !gym.plans?.daily || gym.plans.daily <= 0) return;
 
 		const newPass = {
 			id: `pass-${Date.now()}`,
@@ -348,35 +348,31 @@ function StudentHomeContent() {
 			{tab === "diet" && <DietPage />}
 
 			{tab === "payments" && (
-				<AdminOnly>
-					<StudentPaymentsPage
-						subscription={currentSubscription}
-						startTrial={async () => {
-							// Usar axios client (API → syncManager → Store)
-							// syncManager gerencia offline/online automaticamente
-							const { apiClient } = await import("@/lib/api/client");
-							const response = await apiClient.post<{
-								error?: string;
-								success?: boolean;
-							}>("/api/subscriptions/start-trial");
-							// Após sucesso, recarregar subscription do store
-							if (response.data.success) {
-								await loadSubscription();
-							}
-							return response.data;
-						}}
-					/>
-				</AdminOnly>
+				<StudentPaymentsPage
+					subscription={currentSubscription}
+					startTrial={async () => {
+						// Usar axios client (API → syncManager → Store)
+						// syncManager gerencia offline/online automaticamente
+						const { apiClient } = await import("@/lib/api/client");
+						const response = await apiClient.post<{
+							error?: string;
+							success?: boolean;
+						}>("/api/subscriptions/start-trial");
+						// Após sucesso, recarregar subscription do store
+						if (response.data.success) {
+							await loadSubscription();
+						}
+						return response.data;
+					}}
+				/>
 			)}
 
 			{tab === "gyms" && (
-				<AdminOnly>
-					<GymMap
-						gyms={currentGymLocations}
-						dayPasses={currentDayPasses}
-						onPurchaseDayPass={handlePurchaseDayPass}
-					/>
-				</AdminOnly>
+				<GymMap
+					gyms={currentGymLocations}
+					dayPasses={currentDayPasses}
+					onPurchaseDayPass={handlePurchaseDayPass}
+				/>
 			)}
 
 			{(tab === "education" || exerciseId) && (

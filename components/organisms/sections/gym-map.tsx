@@ -18,6 +18,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,22 +35,22 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 		lat: number;
 		lng: number;
 	} | null>(null);
+	const { loadGymLocationsWithPosition } = useStudent("loaders");
 
 	useEffect(() => {
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
-					setUserLocation({
-						lat: position.coords.latitude,
-						lng: position.coords.longitude,
-					});
+					const { latitude, longitude } = position.coords;
+					setUserLocation({ lat: latitude, lng: longitude });
+					loadGymLocationsWithPosition(latitude, longitude);
 				},
 				() => {
 					setUserLocation({ lat: -23.5505, lng: -46.6333 });
 				},
 			);
 		}
-	}, []);
+	}, [loadGymLocationsWithPosition]);
 
 	const filteredGyms = gyms.filter((gym) => {
 		if (filter === "open") return gym.openNow;
@@ -223,7 +224,7 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 																Diária
 															</p>
 															<p className="mt-1 text-sm font-bold text-duo-yellow">
-																R$ {gym.plans.daily}
+																R$ {gym.plans?.daily ?? 0}
 															</p>
 														</DuoCard>
 														<DuoCard
@@ -235,7 +236,7 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 																Semanal
 															</p>
 															<p className="mt-1 text-sm font-bold text-duo-orange">
-																R$ {gym.plans.weekly}
+																R$ {gym.plans?.weekly ?? 0}
 															</p>
 														</DuoCard>
 														<DuoCard
@@ -247,7 +248,7 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 																Mensal
 															</p>
 															<p className="mt-1 text-sm font-bold text-duo-green">
-																R$ {gym.plans.monthly}
+																R$ {gym.plans?.monthly ?? 0}
 															</p>
 														</DuoCard>
 													</div>
@@ -285,6 +286,7 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 																e.stopPropagation();
 																onPurchaseDayPass(gym.id);
 															}}
+															disabled={!(gym.plans?.daily && gym.plans.daily > 0)}
 															className="flex items-center justify-center gap-2"
 														>
 															<CreditCard className="h-4 w-4" />

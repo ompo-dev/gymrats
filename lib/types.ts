@@ -646,7 +646,7 @@ export interface StudentPayment {
 	amount: number;
 	date: Date;
 	dueDate: Date;
-	status: "paid" | "pending" | "overdue" | "canceled";
+	status: "paid" | "pending" | "overdue" | "canceled" | "withdrawn";
 	paymentMethod: "credit-card" | "debit-card" | "pix" | "cash";
 	reference?: string;
 	receiptUrl?: string;
