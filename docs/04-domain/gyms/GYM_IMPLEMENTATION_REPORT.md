@@ -184,3 +184,60 @@ A convergencia tecnica do `gym` avançou de forma substancial para o alvo de par
 - melhor controle de requests redundantes de sessao
 
 Com os gaps finais (idempotencia persistente server-side, subscriptions handler e observabilidade) fechados, o modulo fica em paridade arquitetural plena com o baseline do `student`.
+
+## 11) Revalidacao e fechamento adicional (execucao atual)
+
+Nesta etapa adicional de execucao, foram aplicadas correcoes para reduzir os principais gaps apontados na revalidacao anterior.
+
+### 11.1 Rotas legadas de gyms convergidas para createSafeHandler
+
+Arquivos migrados:
+- `app/api/gyms/list/route.ts`
+- `app/api/gyms/profile/route.ts`
+- `app/api/gyms/create/route.ts`
+- `app/api/gyms/set-active/route.ts`
+- `app/api/gyms/locations/route.ts`
+
+Resultado:
+- borda API `gyms` muito mais homogênea
+- contratos com auth/schema centralizados no wrapper
+
+### 11.2 Rotas de gym-subscriptions convergidas para createSafeHandler
+
+Arquivos migrados:
+- `app/api/gym-subscriptions/current/route.ts`
+- `app/api/gym-subscriptions/start-trial/route.ts`
+- `app/api/gym-subscriptions/create/route.ts`
+- `app/api/gym-subscriptions/cancel/route.ts`
+
+Resultado:
+- remoção da dependência runtime dos handlers legados para essas rotas
+- fluxo de assinatura gym alinhado ao mesmo padrão estrutural das demais rotas modernas
+
+### 11.3 Adoção parcial do gym-unified-store em mutações de UI
+
+Arquivos atualizados:
+- `app/gym/components/checkin-modal.tsx`
+- `app/gym/components/add-student-modal.tsx`
+- `app/gym/components/gym-student-detail.tsx`
+- `app/gym/components/maintenance-modal.tsx`
+- `app/gym/components/membership-plans-page.tsx`
+
+Mudanças:
+- check-in e atualizações de membership/payment agora usam actions do `useGym("actions")`
+- operações que ainda fazem chamada direta passaram a recarregar seções via `useGym("loaders")` para manter o store consistente
+
+### 11.4 Estado de paridade após este fechamento
+
+- API boundary: **quase completo** (grande maioria em `createSafeHandler`)
+- domínio: **alto nível de centralização** (ainda com pontos de lógica remanescentes em fluxos históricos)
+- store/runtime: **adotado no fluxo principal**, com integração incremental em componentes
+- offline/command: **ativo para mutações críticas já conectadas ao store**
+- idempotência E2E: **cliente forte; servidor ainda sem deduplicação persistente**
+- observabilidade: **telemetria local disponível; falta consolidação backend**
+
+### 11.5 Pendências remanescentes (objetivas)
+
+1. **Idempotência server-side persistente** (tabela + middleware/serviço de deduplicação por `X-Idempotency-Key`)
+2. **Migração total dos componentes de UI para ações do store** (eliminar `fetch` ad hoc residual)
+3. **Telemetria operacional backend** (latência, erros, fila, retries, replay) com visibilidade de produção

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
+import { useGym } from "@/hooks/use-gym";
 
 interface ActiveMember {
 	id: string;
@@ -20,6 +21,7 @@ interface CheckInModalProps {
 }
 
 export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) {
+	const { actions } = useGym("actions");
 	const [search, setSearch] = useState("");
 	const [members, setMembers] = useState<ActiveMember[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
@@ -70,21 +72,12 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 		setChecking(studentId);
 		setError("");
 		try {
-			const res = await fetch("/api/gyms/checkin", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ studentId }),
-			});
-			const data = await res.json();
-			if (!res.ok) {
-				setError(data.error ?? "Erro ao registrar check-in");
-			} else {
-				setSuccess(studentName);
-				setTimeout(() => {
-					setSuccess(null);
-					onSuccess();
-				}, 1800);
-			}
+			await actions.checkInStudent(studentId);
+			setSuccess(studentName);
+			setTimeout(() => {
+				setSuccess(null);
+				onSuccess();
+			}, 1800);
 		} finally {
 			setChecking(null);
 		}
@@ -123,7 +116,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 					</div>
 					<button
 						onClick={handleClose}
-						className="flex h-8 w-8 items-center justify-center rounded-full text-duo-gray-dark transition-colors hover:bg-duo-gray-lighter hover:text-duo-text"
+						className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-duo-gray-dark transition-colors hover:bg-duo-gray-lighter hover:text-duo-text"
 						type="button"
 					>
 						<X className="h-4 w-4" />
@@ -134,7 +127,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 				{success && (
 					<DuoCard variant="highlighted" size="sm" className="mb-4">
 						<div className="flex items-center gap-2">
-							<CheckCircle className="h-5 w-5 flex-shrink-0 text-duo-green" />
+							<CheckCircle className="h-5 w-5 shrink-0 text-duo-green" />
 							<p className="font-bold text-duo-green">
 								Check-in registrado para {success}!
 							</p>
@@ -184,7 +177,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 							<div className="flex items-center justify-between gap-3">
 								<div className="flex min-w-0 items-center gap-2">
 									{member.avatar ? (
-										<div className="relative h-9 w-9 flex-shrink-0 overflow-hidden rounded-full">
+										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
 											<Image
 												src={member.avatar}
 												alt={member.name}
@@ -193,7 +186,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 											/>
 										</div>
 									) : (
-										<div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-duo-green/15 text-sm font-bold text-duo-green">
+										<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-duo-green/15 text-sm font-bold text-duo-green">
 											{member.name.charAt(0).toUpperCase()}
 										</div>
 									)}
@@ -205,7 +198,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 									size="sm"
 									onClick={() => handleCheckIn(member.id, member.name)}
 									disabled={checking === member.id || !!success}
-									className="flex-shrink-0"
+									className="shrink-0"
 								>
 									{checking === member.id ? (
 										<Loader2 className="h-3 w-3 animate-spin" />

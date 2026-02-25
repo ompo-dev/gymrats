@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { MaintenanceRecord } from "@/lib/types";
 
 interface MaintenanceModalProps {
@@ -26,6 +27,7 @@ export function MaintenanceModal({
 	equipmentId,
 	onSuccess,
 }: MaintenanceModalProps) {
+	const { loaders } = useGym("loaders");
 	const [form, setForm] = useState({
 		type: "preventive",
 		description: "",
@@ -56,6 +58,7 @@ export function MaintenanceModal({
 				setError(data.error ?? "Erro ao registrar manutenção");
 				return;
 			}
+			await loaders.loadSection("equipment");
 			onSuccess(data.record);
 			onClose();
 			setForm({

@@ -1,6 +1,14 @@
-import type { NextRequest } from "next/server";
-import { getGymProfileHandler } from "@/lib/api/handlers/gyms.handler";
+import { NextResponse } from "next/server";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 
-export async function GET(request: NextRequest) {
-	return getGymProfileHandler(request);
-}
+export const GET = createSafeHandler(
+	async ({ gymContext }) => {
+		const profile = await GymInventoryService.getProfile(gymContext!.gymId);
+		return NextResponse.json({
+			hasProfile: !!profile,
+			profile,
+		});
+	},
+	{ auth: "gym" },
+);

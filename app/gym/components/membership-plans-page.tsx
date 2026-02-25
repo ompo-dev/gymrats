@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import {
@@ -41,6 +42,7 @@ export function MembershipPlansPage({
 	plans: MembershipPlan[];
 }) {
 	const router = useRouter();
+	const { loaders } = useGym("loaders");
 	const [plans, setPlans] = useState(initialPlans);
 	const [isCreating, setIsCreating] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -86,6 +88,7 @@ export function MembershipPlansPage({
 					// Add new
 					setPlans((prev) => [...prev, data.plan]);
 				}
+				await loaders.loadSection("membershipPlans");
 				resetForm();
 				router.refresh(); // Refresh server data
 			} else {
@@ -114,6 +117,7 @@ export function MembershipPlansPage({
 			});
 			if (res.ok) {
 				setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
+				await loaders.loadSection("membershipPlans");
 				router.refresh();
 			} else {
 				const data = await res.json();

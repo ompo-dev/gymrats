@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
 interface StudentSearchResult {
@@ -40,6 +41,7 @@ export function AddStudentModal({
 	onSuccess,
 	membershipPlans,
 }: AddStudentModalProps) {
+	const { loaders } = useGym("loaders");
 	const [email, setEmail] = useState("");
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchResult, setSearchResult] =
@@ -97,6 +99,8 @@ export function AddStudentModal({
 				setError(data.error ?? "Erro ao matricular aluno.");
 				return;
 			}
+			await loaders.loadSection("students");
+			await loaders.loadSection("stats");
 			onSuccess();
 			handleClose();
 		} catch {
@@ -216,7 +220,7 @@ export function AddStudentModal({
 									<DuoCard variant="highlighted" size="sm">
 										<div className="flex items-center gap-3">
 											{searchResult.student.avatar ? (
-												<div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full">
+												<div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
 													<Image
 														src={searchResult.student.avatar}
 														alt={searchResult.student.name}
@@ -225,7 +229,7 @@ export function AddStudentModal({
 													/>
 												</div>
 											) : (
-												<div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-duo-blue/15 text-lg font-bold text-duo-blue">
+												<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-duo-blue/15 text-lg font-bold text-duo-blue">
 													{searchResult.student.name.charAt(0).toUpperCase()}
 												</div>
 											)}
@@ -245,7 +249,7 @@ export function AddStudentModal({
 													</span>
 												</div>
 											</div>
-											<CheckCircle className="ml-auto h-5 w-5 flex-shrink-0 text-duo-green" />
+											<CheckCircle className="ml-auto h-5 w-5 shrink-0 text-duo-green" />
 										</div>
 									</DuoCard>
 

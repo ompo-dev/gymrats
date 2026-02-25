@@ -32,6 +32,7 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { useGym } from "@/hooks/use-gym";
 import type { Payment, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export function GymStudentDetail({
 	payments = [],
 	onBack,
 }: GymStudentDetailProps) {
+	const { actions } = useGym("actions");
 	const [studentPayments, setStudentPayments] = useState(payments);
 	const [activeTab, setActiveTab] = useState("overview");
 	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");
@@ -59,14 +61,8 @@ export function GymStudentDetail({
 		if (!membershipId) return;
 		setIsUpdatingStatus(true);
 		try {
-			const res = await fetch(`/api/gyms/members/${membershipId}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ status: action }),
-			});
-			if (res.ok) {
-				setMembershipStatus(action);
-			}
+			await actions.updateMemberStatus(membershipId, action);
+			setMembershipStatus(action);
 		} finally {
 			setIsUpdatingStatus(false);
 		}
@@ -103,19 +99,7 @@ export function GymStudentDetail({
 		);
 
 		try {
-			const res = await fetch(`/api/gyms/payments/${paymentId}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ status: newStatus }),
-			});
-
-			if (!res.ok) {
-				// Revert if failed
-				setStudentPayments((prev) =>
-					prev.map((p) => (p.id === paymentId ? payment : p))
-				);
-				console.error("Falha ao atualizar pagamento");
-			}
+			await actions.updatePaymentStatus(paymentId, newStatus);
 		} catch (error) {
 			console.error("Erro ao atualizar pagamento:", error);
 			// Revert if error
