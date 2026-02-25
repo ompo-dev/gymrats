@@ -67,6 +67,10 @@ export class GymMemberService {
             user: true,
             profile: true,
             progress: true,
+            weightHistory: {
+              orderBy: { date: "desc" },
+              take: 50,
+            },
             workouts: {
               orderBy: { date: "desc" },
               take: 5,
@@ -93,6 +97,7 @@ export class GymMemberService {
       phone: student.phone,
       joinDate: membership.createdAt,
       status: membership.status as any,
+      membershipStatus: membership.status as any,
       plan: membership.plan?.name || "Sem plano",
       profile: student.profile
         ? {
@@ -102,6 +107,7 @@ export class GymMemberService {
             goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
           }
         : null,
+      currentStreak: student.progress?.currentStreak ?? 0,
       progress: student.progress
         ? {
             currentLevel: student.progress.currentLevel,
@@ -118,6 +124,15 @@ export class GymMemberService {
           sets: JSON.parse(ex.sets),
         })),
       })),
+      weightHistory: (student as any).weightHistory?.map((wh: { date: Date; weight: number }) => ({
+        date: wh.date,
+        weight: wh.weight,
+      })) ?? [],
+      gymMembership: {
+        id: membership.id,
+        status: membership.status,
+        planId: membership.planId,
+      },
     };
 
     return studentData;

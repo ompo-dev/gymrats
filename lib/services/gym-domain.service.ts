@@ -38,6 +38,33 @@ export class GymDomainService {
   }
 
   /**
+   * Updates gym profile (address, phone, cnpj, openingHours only)
+   */
+  static async updateGymProfile(
+    gymId: string,
+    data: {
+      address?: string;
+      phone?: string;
+      cnpj?: string | null;
+      openingHours?: { open: string; close: string; days?: string[] } | null;
+    },
+  ) {
+    const updateData: Record<string, unknown> = {};
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;
+    if (data.openingHours !== undefined) {
+      updateData.openingHours = data.openingHours
+        ? JSON.stringify(data.openingHours)
+        : null;
+    }
+    return db.gym.update({
+      where: { id: gymId },
+      data: updateData,
+    });
+  }
+
+  /**
    * Lists gym members with optional status and search filters
    */
   static async getMembers(gymId: string, filters: { status?: string; search?: string }) {

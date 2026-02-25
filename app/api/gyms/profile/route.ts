@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { updateGymProfileSchema } from "@/lib/api/schemas/gyms.schemas";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 
 export const GET = createSafeHandler(
@@ -11,4 +13,17 @@ export const GET = createSafeHandler(
 		});
 	},
 	{ auth: "gym" },
+);
+
+export const PATCH = createSafeHandler(
+	async ({ gymContext, body }) => {
+		const gymId = gymContext!.gymId;
+		await GymDomainService.updateGymProfile(gymId, body);
+		const profile = await GymInventoryService.getProfile(gymId);
+		return NextResponse.json({ profile });
+	},
+	{
+		auth: "gym",
+		schema: { body: updateGymProfileSchema },
+	},
 );

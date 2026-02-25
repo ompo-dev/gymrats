@@ -5,8 +5,8 @@ import {
 	Bell,
 	Building2,
 	Clock,
-	Edit2,
 	FileText,
+	Loader2,
 	LogOut,
 	Mail,
 	MapPin,
@@ -16,28 +16,63 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { SectionCard } from "@/components/ui/section-card";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MembershipPlansPage } from "./membership-plans-page";
 
+const WEEKDAYS = [
+	{ id: "monday", label: "Segunda" },
+	{ id: "tuesday", label: "Terça" },
+	{ id: "wednesday", label: "Quarta" },
+	{ id: "thursday", label: "Quinta" },
+	{ id: "friday", label: "Sexta" },
+	{ id: "saturday", label: "Sábado" },
+	{ id: "sunday", label: "Domingo" },
+] as const;
+
 interface GymSettingsPageProps {
 	profile: GymProfile;
-	plans: MembershipPlan[]; // Recebe planos reais
+	plans: MembershipPlan[];
 	userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 export function GymSettingsPage({
-	profile,
-	plans, // Recebe planos reais
+	profile: initialProfile,
+	plans,
 	userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
 	const router = useRouter();
+	const [profile, setProfile] = useState(initialProfile);
+	const [address, setAddress] = useState(initialProfile.address);
+	const [phone, setPhone] = useState(initialProfile.phone);
+	const [cnpj, setCnpj] = useState(initialProfile.cnpj ?? "");
+	const [openTime, setOpenTime] = useState(
+		initialProfile.openingHours?.open ?? "06:00",
+	);
+	const [closeTime, setCloseTime] = useState(
+		initialProfile.openingHours?.close ?? "22:00",
+	);
+	const [openDays, setOpenDays] = useState<string[]>(
+		initialProfile.openingHours?.days ?? [
+			"monday",
+			"tuesday",
+			"wednesday",
+			"thursday",
+			"friday",
+			"saturday",
+		],
+	);
+	const [saving, setSaving] = useState(false);
+	const [saveError, setSaveError] = useState("");
 
 	const {
 		isAdmin: serverIsAdmin,
@@ -46,11 +81,50 @@ export function GymSettingsPage({
 	} = useUserSession();
 
 	const isAdmin = serverIsAdmin || serverRole === "ADMIN";
-	const operatingHours = [
-		{ day: "Segunda a Sexta", hours: "06:00 - 22:00" },
-		{ day: "Sábado", hours: "08:00 - 20:00" },
-		{ day: "Domingo", hours: "09:00 - 14:00" },
-	];
+
+	const toggleDay = (day: string) => {
+		setOpenDays((prev) =>
+			prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+		);
+	};
+
+	const handleSaveProfile = async () => {
+		setSaving(true);
+		setSaveError("");
+		try {
+			const { apiClient } = await import("@/lib/api/client");
+			const { data } = await apiClient.patch<{ profile: GymProfile }>(
+				"/api/gyms/profile",
+				{
+					address,
+					phone,
+					cnpj: cnpj.trim() || null,
+					openingHours: {
+						open: openTime,
+						close: closeTime,
+						days: openDays,
+					},
+				},
+			);
+			if (data.profile) setProfile(data.profile);
+			router.refresh();
+		} catch (err) {
+			setSaveError(
+				err instanceof Error ? err.message : "Erro ao salvar. Tente novamente.",
+			);
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	const hasChanges =
+		address !== profile.address ||
+		phone !== profile.phone ||
+		cnpj !== (profile.cnpj ?? "") ||
+		openTime !== (profile.openingHours?.open ?? "06:00") ||
+		closeTime !== (profile.openingHours?.close ?? "22:00") ||
+		JSON.stringify(openDays.sort()) !==
+			JSON.stringify((profile.openingHours?.days ?? []).sort());
 
 	const handleLogout = async () => {
 		try {
@@ -83,82 +157,145 @@ export function GymSettingsPage({
 
 			<SlideIn delay={0.1}>
 				<SectionCard title={profile.name} icon={Building2} variant="orange">
-					<div className="mb-4 flex items-center justify-between">
+					<div className="mb-4">
 						<p className="text-sm text-duo-gray-dark">Plano {profile.plan}</p>
-						<Button size="sm" variant="outline">
-							<Edit2 className="h-4 w-4" />
-						</Button>
 					</div>
 					<div className="space-y-3">
-						{[
-							{
-								icon: MapPin,
-								label: "Endereço",
-								value: profile.address,
-							},
-							{
-								icon: Phone,
-								label: "Telefone",
-								value: profile.phone,
-							},
-							{
-								icon: Mail,
-								label: "Email",
-								value: profile.email,
-							},
-							{
-								icon: FileText,
-								label: "CNPJ",
-								value: profile.cnpj,
-							},
-						].map((info) => (
-							<DuoCard key={info.label} variant="default" size="sm">
-								<div className="flex items-start gap-3">
-									<info.icon className="h-5 w-5 shrink-0 text-duo-gray-dark" />
-									<div className="flex-1">
-										<div className="text-xs font-bold text-duo-gray-dark">
-											{info.label}
-										</div>
-										<div className="text-sm font-bold text-duo-text">
-											{info.value}
-										</div>
-									</div>
-								</div>
-							</DuoCard>
-						))}
+						<div>
+							<Label htmlFor="address" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+								<MapPin className="h-4 w-4" />
+								Endereço
+							</Label>
+							<Input
+								id="address"
+								value={address}
+								onChange={(e) => setAddress(e.target.value)}
+								className="mt-1"
+							/>
+						</div>
+						<div>
+							<Label htmlFor="phone" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+								<Phone className="h-4 w-4" />
+								Telefone
+							</Label>
+							<Input
+								id="phone"
+								value={phone}
+								onChange={(e) => setPhone(e.target.value)}
+								className="mt-1"
+							/>
+						</div>
+						<div>
+							<Label className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+								<Mail className="h-4 w-4" />
+								Email
+							</Label>
+							<p className="mt-1 text-sm font-bold text-duo-text">
+								{profile.email}
+							</p>
+							<p className="text-xs text-duo-gray-dark">
+								Email não pode ser alterado aqui
+							</p>
+						</div>
+						<div>
+							<Label htmlFor="cnpj" className="flex items-center gap-2 text-xs font-bold text-duo-gray-dark">
+								<FileText className="h-4 w-4" />
+								CNPJ
+							</Label>
+							<Input
+								id="cnpj"
+								value={cnpj}
+								onChange={(e) => setCnpj(e.target.value)}
+								placeholder="Opcional"
+								className="mt-1"
+							/>
+						</div>
+						{hasChanges && (
+							<Button
+								onClick={handleSaveProfile}
+								disabled={saving}
+								className="w-full"
+							>
+								{saving ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Salvar alterações"
+								)}
+							</Button>
+						)}
+						{saveError && (
+							<p className="text-sm text-red-600">{saveError}</p>
+						)}
 					</div>
 				</SectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
 				<SectionCard
-					title="Horários de Funcionamento"
+					title="Horários e Dias de Funcionamento"
 					icon={Clock}
 					variant="blue"
-					headerAction={
-						<Button size="sm" variant="outline">
-							<Edit2 className="h-4 w-4" />
-						</Button>
-					}
 				>
-					<div className="space-y-3">
-						{operatingHours.map((schedule) => (
-							<DuoCard key={schedule.day} variant="default" size="sm">
-								<div className="flex items-center justify-between">
-									<span className="text-sm font-bold text-duo-text">
-										{schedule.day}
-									</span>
-									<span className="text-sm font-bold text-duo-blue">
-										{schedule.hours}
-									</span>
-								</div>
-							</DuoCard>
-						))}
+					<div className="space-y-4">
+						<div className="grid grid-cols-2 gap-4">
+							<div>
+								<Label htmlFor="openTime">Abertura</Label>
+								<Input
+									id="openTime"
+									type="time"
+									value={openTime}
+									onChange={(e) => setOpenTime(e.target.value)}
+									className="mt-1"
+								/>
+							</div>
+							<div>
+								<Label htmlFor="closeTime">Fechamento</Label>
+								<Input
+									id="closeTime"
+									type="time"
+									value={closeTime}
+									onChange={(e) => setCloseTime(e.target.value)}
+									className="mt-1"
+								/>
+							</div>
+						</div>
+						<div>
+							<Label className="mb-2 block">Dias de funcionamento</Label>
+							<div className="flex flex-wrap gap-2">
+								{WEEKDAYS.map((day) => (
+									<button
+										key={day.id}
+										type="button"
+										onClick={() => toggleDay(day.id)}
+										className={cn(
+											"rounded-lg px-3 py-2 text-sm font-bold transition-colors",
+											openDays.includes(day.id)
+												? "bg-duo-blue text-white"
+												: "bg-gray-100 text-duo-gray-dark hover:bg-gray-200",
+										)}
+									>
+										{day.label}
+									</button>
+								))}
+							</div>
+						</div>
+						{hasChanges && (
+							<Button
+								onClick={handleSaveProfile}
+								disabled={saving}
+								className="w-full"
+							>
+								{saving ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Salvar horários"
+								)}
+							</Button>
+						)}
 					</div>
 				</SectionCard>
 			</SlideIn>
 
-			{/* Seção de Planos - Agora usa o componente real */}
 			<SlideIn delay={0.3}>
 				<MembershipPlansPage plans={plans} />
 			</SlideIn>

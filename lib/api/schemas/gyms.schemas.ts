@@ -16,6 +16,20 @@ export const setActiveGymSchema = z.object({
 	gymId: z.string().min(1, "gymId é obrigatório"),
 });
 
+export const updateGymProfileSchema = z.object({
+	address: z.string().min(1, "Endereço é obrigatório").optional(),
+	phone: z.string().min(1, "Telefone é obrigatório").optional(),
+	cnpj: z.string().optional().nullable(),
+	openingHours: z
+		.object({
+			open: z.string(),
+			close: z.string(),
+			days: z.array(z.string()).optional(),
+		})
+		.optional()
+		.nullable(),
+});
+
 export const gymLocationsQuerySchema = z.object({
 	lat: z
 		.string()

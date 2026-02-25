@@ -549,6 +549,7 @@ export interface GymProfile {
 	phone: string;
 	email: string;
 	cnpj: string;
+	openingHours?: { open: string; close: string; days?: string[] };
 	plan: "basic" | "premium" | "enterprise";
 	totalStudents: number;
 	activeStudents: number;
@@ -703,6 +704,16 @@ export interface EquipmentUsage {
 	exercisesPerformed?: string[];
 }
 
+/** Resumo de aluno para ranking (top alunos do mês) */
+export interface TopStudentStats {
+	id: string;
+	name: string;
+	avatar?: string;
+	totalVisits: number;
+	checkins?: number;
+	attendanceRate?: number;
+}
+
 export interface GymStats {
 	today: {
 		checkins: number;
@@ -721,7 +732,7 @@ export interface GymStats {
 		totalCheckins: number;
 		retentionRate: number;
 		growthRate: number;
-		topStudents: StudentData[];
+		topStudents: TopStudentStats[];
 		mostUsedEquipment: Equipment[];
 	};
 }

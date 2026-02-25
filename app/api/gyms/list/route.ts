@@ -30,7 +30,9 @@ export const GET = createSafeHandler(
 				logo: gym.logo,
 				address: gym.address,
 				email: gym.email,
-				plan: gym.plan,
+				phone: gym.phone ?? "",
+				cnpj: gym.cnpj ?? undefined,
+				plan: (gym.subscription?.plan ?? gym.plan) as "basic" | "premium" | "enterprise",
 				isActive: gym.isActive,
 				hasActiveSubscription: gymHasActiveSubscription,
 			};

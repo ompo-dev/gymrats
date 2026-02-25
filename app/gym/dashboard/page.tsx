@@ -1,31 +1,5 @@
-import {
-	getGymEquipment,
-	getGymProfile,
-	getGymRecentCheckIns,
-	getGymStats,
-	getGymStudents,
-} from "../actions";
-import GymDashboardPage from "./page-content";
+import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
-	const [profile, stats, students, equipment, recentCheckIns] =
-		await Promise.all([
-			getGymProfile(),
-			getGymStats(),
-			getGymStudents(),
-			getGymEquipment(),
-			getGymRecentCheckIns(),
-		]);
-
-	if (!profile || !stats) return null;
-
-	return (
-		<GymDashboardPage
-			profile={profile}
-			stats={stats}
-			students={students}
-			equipment={equipment}
-			recentCheckIns={recentCheckIns}
-		/>
-	);
+export default function DashboardPage() {
+	redirect("/gym?tab=dashboard");
 }

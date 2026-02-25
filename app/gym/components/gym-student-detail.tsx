@@ -10,7 +10,6 @@ import {
 	CheckCircle,
 	DollarSign,
 	Dumbbell,
-	Edit,
 	Flame,
 	Loader2,
 	Mail,
@@ -169,10 +168,6 @@ export function GymStudentDetail({
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
-								<Button size="sm" className="flex-1 sm:flex-initial">
-									<Edit className="h-4 w-4" />
-									Editar Perfil
-								</Button>
 								<Button
 									size="sm"
 									variant="outline"
