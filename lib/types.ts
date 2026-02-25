@@ -838,6 +838,7 @@ export interface GymLocation {
 	name: string;
 	logo?: string;
 	address: string;
+	phone?: string;
 	coordinates: {
 		lat: number;
 		lng: number;
@@ -850,6 +851,13 @@ export interface GymLocation {
 		weekly: number;
 		monthly: number;
 	};
+	membershipPlans?: Array<{
+		id: string;
+		name: string;
+		type: string;
+		price: number;
+		duration: number;
+	}>;
 	amenities: string[];
 	openNow: boolean;
 	openingHours: {

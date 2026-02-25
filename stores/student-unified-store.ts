@@ -1181,10 +1181,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 			loadGymLocationsWithPosition: async (lat: number, lng: number) => {
 				try {
-					const response = await apiClient.get<{ gyms?: any[]; gymLocations?: any[] }>(
-						"/api/gyms/locations",
-						{ params: { lat: String(lat), lng: String(lng) }, timeout: 30000 },
-					);
+					const response = await apiClient.get<{
+						gyms?: any[];
+						gymLocations?: any[];
+					}>("/api/gyms/locations", {
+						params: { lat: String(lat), lng: String(lng) },
+						timeout: 30000,
+					});
 					const data = response.data;
 					const gymLocations = Array.isArray(data)
 						? data

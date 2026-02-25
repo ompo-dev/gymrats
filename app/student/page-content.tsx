@@ -23,6 +23,8 @@ import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import { GymMap } from "@/components/organisms/sections/gym-map";
+import { GymProfileView } from "@/app/student/gyms/gym-profile-view";
+import { StudentMembershipPixModal } from "@/app/student/components/student-membership-pix-modal";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +49,7 @@ function StudentHomeContent() {
 	const router = useRouter();
 	const [isMounted, setIsMounted] = useState(false);
 	const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
+	const [gymId, setGymId] = useQueryState("gymId", parseAsString);
 
 	// ✅ SEGURO: Verificar se é admin validando no servidor
 	const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
@@ -136,7 +139,7 @@ function StudentHomeContent() {
 	);
 
 	const { addDayPass } = useStudent("actions");
-	const { loadSubscription } = useStudent("loaders");
+	const { loadSubscription, loadMemberships, loadPayments } = useStudent("loaders");
 	const { toast } = useToast();
 
 	useEffect(() => {
@@ -177,6 +180,55 @@ function StudentHomeContent() {
 
 	const handleLessonSelect = (_lessonId: string) => {
 		// Lesson selection handled by workout store
+	};
+
+	const [pixModal, setPixModal] = useState<{
+		open: boolean;
+		paymentId: string;
+		brCode: string;
+		brCodeBase64: string;
+		amount: number;
+	} | null>(null);
+
+	const handleJoinGym = async (gymId: string, planId: string) => {
+		try {
+			const { apiClient } = await import("@/lib/api/client");
+			const res = await apiClient.post<{
+				brCode: string;
+				brCodeBase64: string;
+				amount: number;
+				paymentId: string;
+				membershipId?: string;
+			}>(`/api/students/gyms/${gymId}/join`, { planId });
+			setPixModal({
+				open: true,
+				paymentId: res.data.paymentId,
+				brCode: res.data.brCode,
+				brCodeBase64: res.data.brCodeBase64,
+				amount: res.data.amount,
+			});
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data
+							?.error
+					: err instanceof Error
+						? err.message
+						: "Erro ao contratar";
+			toast({
+				variant: "destructive",
+				title: "Erro",
+				description: String(msg),
+			});
+		}
+	};
+
+	const handleViewGymProfile = (id: string) => {
+		setGymId(id);
+	};
+
+	const handlePixConfirmed = async () => {
+		await Promise.all([loadMemberships(), loadPayments()]);
 	};
 
 	const handlePurchaseDayPass = (gymId: string) => {
@@ -368,10 +420,34 @@ function StudentHomeContent() {
 			)}
 
 			{tab === "gyms" && (
-				<GymMap
-					gyms={currentGymLocations}
-					dayPasses={currentDayPasses}
-					onPurchaseDayPass={handlePurchaseDayPass}
+				<>
+					{gymId ? (
+						<GymProfileView
+							gymId={gymId}
+							onBack={() => setGymId(null)}
+							onJoinPlan={handleJoinGym}
+						/>
+					) : (
+						<GymMap
+							gyms={currentGymLocations}
+							dayPasses={currentDayPasses}
+							onPurchaseDayPass={handlePurchaseDayPass}
+							onJoinPlan={handleJoinGym}
+							onViewGymProfile={handleViewGymProfile}
+						/>
+					)}
+				</>
+			)}
+
+			{pixModal && (
+				<StudentMembershipPixModal
+					isOpen={pixModal.open}
+					onClose={() => setPixModal(null)}
+					paymentId={pixModal.paymentId}
+					brCode={pixModal.brCode}
+					brCodeBase64={pixModal.brCodeBase64}
+					amount={pixModal.amount}
+					onPaymentConfirmed={handlePixConfirmed}
 				/>
 			)}
 

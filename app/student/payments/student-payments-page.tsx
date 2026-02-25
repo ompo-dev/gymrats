@@ -7,6 +7,8 @@ import {
 	CreditCard,
 	DollarSign,
 	Plus,
+	RefreshCw,
+	Trash2,
 	Wallet,
 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
@@ -19,6 +21,7 @@ import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
 // Removido useQuery - agora usando store unificado via useStudent() com axios
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
+import { StudentMembershipPixModal } from "@/app/student/components/student-membership-pix-modal";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
@@ -40,7 +43,6 @@ import { cn } from "@/lib/utils";
 const TAB_OPTIONS = [
 	{ value: "memberships", label: "Academias", emoji: "🏢" },
 	{ value: "payments", label: "Histórico", emoji: "📅" },
-	{ value: "methods", label: "Métodos", emoji: "💳" },
 	{ value: "subscription", label: "Assinatura", emoji: "👑" },
 ];
 
@@ -102,14 +104,12 @@ export function StudentPaymentsPage({
 	const cancelDialogModal = useModalState("cancel-subscription");
 
 	const [activeTab, setActiveTab] = useState<
-		"memberships" | "payments" | "methods" | "subscription"
+		"memberships" | "payments" | "subscription"
 	>("memberships");
 
 	useEffect(() => {
-		if (subTab) {
-			setActiveTab(
-				subTab as "memberships" | "payments" | "methods" | "subscription",
-			);
+		if (subTab && ["memberships", "payments", "subscription"].includes(subTab)) {
+			setActiveTab(subTab as "memberships" | "payments" | "subscription");
 		}
 	}, [subTab]);
 
@@ -218,12 +218,90 @@ export function StudentPaymentsPage({
 	const isLoadingPayments = !storePayments;
 	const isLoadingPaymentMethods = !storePaymentMethods;
 
-	// Carregar loaders apenas para refetchPaymentMethods se necessário
+	// Carregar loaders
 	const loaders = useStudent("loaders");
-	const { loadPaymentMethods } = loaders;
+	const { loadPaymentMethods, loadMemberships, loadPayments } = loaders;
+
+	const [expandedMembershipId, setExpandedMembershipId] = useState<string | null>(null);
+	const [changePlanPlans, setChangePlanPlans] = useState<
+		Array<{ id: string; name: string; type: string; price: number; duration: number }>
+	>([]);
+	const [changePlanMembershipId, setChangePlanMembershipId] = useState<string | null>(null);
+	const [pixModal, setPixModal] = useState<{
+		paymentId: string;
+		brCode: string;
+		brCodeBase64: string;
+		amount: number;
+	} | null>(null);
 
 	const _refetchPaymentMethods = async () => {
 		await loadPaymentMethods();
+	};
+
+	const handleCancelMembership = async (membershipId: string) => {
+		try {
+			await apiClient.post(`/api/students/memberships/${membershipId}/cancel`, {});
+			toast({ title: "Plano cancelado", description: "Sua matrícula foi cancelada." });
+			setExpandedMembershipId(null);
+			await loadMemberships();
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+					: err instanceof Error ? err.message : "Erro ao cancelar";
+			toast({ variant: "destructive", title: "Erro", description: String(msg) });
+		}
+	};
+
+	const handleTrocarPlanoClick = async (membership: StudentGymMembership) => {
+		try {
+			const res = await apiClient.get<{ plans: Array<{ id: string; name: string; type: string; price: number; duration: number }> }>(
+				`/api/students/gyms/${membership.gymId}/plans`,
+			);
+			const otherPlans = (res.data.plans || []).filter((p) => p.id !== membership.planId);
+			if (otherPlans.length === 0) {
+				toast({ title: "Sem opções", description: "Não há outros planos disponíveis nesta academia." });
+				return;
+			}
+			setChangePlanPlans(otherPlans);
+			setChangePlanMembershipId(membership.id);
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+					: err instanceof Error ? err.message : "Erro ao carregar planos";
+			toast({ variant: "destructive", title: "Erro", description: String(msg) });
+		}
+	};
+
+	const handleSelectChangePlan = async (planId: string) => {
+		if (!changePlanMembershipId) return;
+		try {
+			const res = await apiClient.post<{
+				brCode: string;
+				brCodeBase64: string;
+				amount: number;
+				paymentId: string;
+			}>(`/api/students/memberships/${changePlanMembershipId}/change-plan`, { planId });
+			setPixModal({
+				paymentId: res.data.paymentId,
+				brCode: res.data.brCode,
+				brCodeBase64: res.data.brCodeBase64,
+				amount: res.data.amount,
+			});
+			setChangePlanPlans([]);
+			setChangePlanMembershipId(null);
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+					: err instanceof Error ? err.message : "Erro ao trocar plano";
+			toast({ variant: "destructive", title: "Erro", description: String(msg) });
+		}
+	};
+
+	const handlePixConfirmed = async () => {
+		await Promise.all([loadMemberships(), loadPayments()]);
 	};
 
 	// Usar dados do store (API → Zustand → Component)
@@ -412,7 +490,6 @@ export function StudentPaymentsPage({
 						const newTab = value as
 							| "memberships"
 							| "payments"
-							| "methods"
 							| "subscription";
 						setActiveTab(newTab);
 						setSubTab(value);
@@ -426,83 +503,173 @@ export function StudentPaymentsPage({
 
 			{activeTab === "memberships" && (
 				<div className="space-y-3">
-					{memberships.map((membership: StudentGymMembership) => (
-						<div key={membership.id}>
-							<DuoCard variant="default" size="default">
-								<div className="flex items-start gap-3">
-									<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-green/20 flex items-center justify-center">
-										<Building2 className="h-6 w-6 text-duo-green" />
-									</div>
-									<div className="flex-1">
-										<h3 className="font-bold text-duo-text">
-											{membership.gymName}
-										</h3>
-										<p className="text-xs text-duo-gray-dark mt-0.5">
-											{membership.gymAddress}
-										</p>
+					{memberships.map((membership: StudentGymMembership) => {
+						const isExpanded = expandedMembershipId === membership.id;
+						const isActive = membership.status === "active";
+						const isChangePlanSelecting =
+							changePlanMembershipId === membership.id;
 
-										<div className="mt-3 flex items-center gap-2">
-											<span
-												className={cn(
-													"px-2 py-1 rounded-lg text-xs font-bold",
-													membership.status === "active" &&
-														"bg-duo-green/20 text-duo-green",
-													membership.status === "suspended" &&
-														"bg-duo-orange/20 text-duo-orange",
-													membership.status === "canceled" &&
-														"bg-duo-red/20 text-duo-red",
-												)}
-											>
-												{membership.status === "active" && "Ativo"}
-												{membership.status === "suspended" && "Suspenso"}
-												{membership.status === "canceled" && "Cancelado"}
-											</span>
-											{membership.autoRenew && (
-												<span className="px-2 py-1 bg-duo-blue/20 text-duo-blue rounded-lg text-xs font-bold">
-													Renovação automática
+						return (
+							<div key={membership.id}>
+								<DuoCard
+									variant="default"
+									size="default"
+									className={cn(
+										"cursor-pointer transition-all",
+										isExpanded && "border-duo-blue ring-2 ring-duo-blue/20",
+									)}
+									onClick={() =>
+										setExpandedMembershipId(isExpanded ? null : membership.id)
+									}
+								>
+									<div className="flex items-start gap-3">
+										<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-green/20 flex items-center justify-center">
+											<Building2 className="h-6 w-6 text-duo-green" />
+										</div>
+										<div className="flex-1">
+											<h3 className="font-bold text-duo-text">
+												{membership.gymName}
+											</h3>
+											<p className="text-xs text-duo-gray-dark mt-0.5">
+												{membership.gymAddress}
+											</p>
+
+											<div className="mt-3 flex items-center gap-2">
+												<span
+													className={cn(
+														"px-2 py-1 rounded-lg text-xs font-bold",
+														membership.status === "active" &&
+															"bg-duo-green/20 text-duo-green",
+														membership.status === "suspended" &&
+															"bg-duo-orange/20 text-duo-orange",
+														membership.status === "canceled" &&
+															"bg-duo-red/20 text-duo-red",
+														membership.status === "pending" &&
+															"bg-duo-yellow/20 text-duo-yellow",
+													)}
+												>
+													{membership.status === "active" && "Ativo"}
+													{membership.status === "suspended" && "Suspenso"}
+													{membership.status === "canceled" && "Cancelado"}
+													{membership.status === "pending" && "Pendente"}
 												</span>
+												{membership.autoRenew && (
+													<span className="px-2 py-1 bg-duo-blue/20 text-duo-blue rounded-lg text-xs font-bold">
+														Renovação automática
+													</span>
+												)}
+											</div>
+
+											<div className="mt-3 pt-3 border-t-2 border-duo-border">
+												<div className="flex items-center justify-between">
+													<div>
+														<p className="text-xs text-duo-gray-dark">
+															{membership.planName}
+														</p>
+														<p className="text-lg font-bold text-duo-green mt-0.5">
+															R$ {membership.amount.toFixed(2)}/mês
+														</p>
+													</div>
+													<div className="text-right">
+														<p className="text-xs text-duo-gray-dark">
+															Próxima cobrança
+														</p>
+														<p className="text-sm font-bold text-duo-text mt-0.5">
+															{membership.nextBillingDate
+																? new Date(membership.nextBillingDate).toLocaleDateString(
+																		"pt-BR",
+																	)
+																: "N/A"}
+														</p>
+													</div>
+												</div>
+											</div>
+
+											{isExpanded && isActive && (
+												<div
+													className="mt-4 pt-4 border-t-2 border-duo-border space-y-3"
+													onClick={(e) => e.stopPropagation()}
+												>
+													{isChangePlanSelecting ? (
+														<div className="space-y-2">
+															<p className="text-xs font-bold text-duo-gray-dark">
+																Selecione o novo plano:
+															</p>
+															{changePlanPlans.map((plan) => (
+																<DuoCard
+																	key={plan.id}
+																	variant="default"
+																	size="sm"
+																	className="cursor-pointer hover:border-duo-blue"
+																	onClick={() =>
+																		handleSelectChangePlan(plan.id)
+																	}
+																>
+																	<div className="flex justify-between items-center">
+																		<span className="font-bold text-sm">
+																			{plan.name}
+																		</span>
+																		<span className="text-duo-green font-bold">
+																			R$ {plan.price.toFixed(2)}
+																		</span>
+																	</div>
+																</DuoCard>
+															))}
+															<Button
+																variant="ghost"
+																size="sm"
+																onClick={() => {
+																	setChangePlanPlans([]);
+																	setChangePlanMembershipId(null);
+																}}
+															>
+																Cancelar
+															</Button>
+														</div>
+													) : (
+														<div className="flex gap-2">
+															<Button
+																variant="outline"
+																size="sm"
+																className="flex-1"
+																onClick={() =>
+																	handleTrocarPlanoClick(membership)
+																}
+															>
+																<RefreshCw className="h-4 w-4 mr-1" />
+																Trocar plano
+															</Button>
+															<Button
+																variant="outline"
+																size="sm"
+																className="flex-1 border-duo-red text-duo-red hover:bg-duo-red/10"
+																onClick={() =>
+																	handleCancelMembership(membership.id)
+																}
+															>
+																<Trash2 className="h-4 w-4 mr-1" />
+																Cancelar plano
+															</Button>
+														</div>
+													)}
+												</div>
+											)}
+
+											{membership.paymentMethod && (
+												<div className="mt-2 flex items-center gap-2 text-xs text-duo-gray-dark">
+													<CreditCard className="h-4 w-4" />
+													<span>
+														{membership.paymentMethod.brand} ••••{" "}
+														{membership.paymentMethod.last4}
+													</span>
+												</div>
 											)}
 										</div>
-
-										<div className="mt-3 pt-3 border-t-2 border-duo-border">
-											<div className="flex items-center justify-between">
-												<div>
-													<p className="text-xs text-duo-gray-dark">
-														{membership.planName}
-													</p>
-													<p className="text-lg font-bold text-duo-green mt-0.5">
-														R$ {membership.amount.toFixed(2)}/mês
-													</p>
-												</div>
-												<div className="text-right">
-													<p className="text-xs text-duo-gray-dark">
-														Próxima cobrança
-													</p>
-													<p className="text-sm font-bold text-duo-text mt-0.5">
-														{membership.nextBillingDate
-															? new Date(membership.nextBillingDate).toLocaleDateString(
-																	"pt-BR",
-																)
-															: "N/A"}
-													</p>
-												</div>
-											</div>
-										</div>
-
-										{membership.paymentMethod && (
-											<div className="mt-2 flex items-center gap-2 text-xs text-duo-gray-dark">
-												<CreditCard className="h-4 w-4" />
-												<span>
-													{membership.paymentMethod.brand} ••••{" "}
-													{membership.paymentMethod.last4}
-												</span>
-											</div>
-										)}
 									</div>
-								</div>
-							</DuoCard>
-						</div>
-					))}
+								</DuoCard>
+							</div>
+						);
+					})}
 
 					<DuoCard
 						variant="default"
@@ -620,69 +787,6 @@ export function StudentPaymentsPage({
 				</div>
 			)}
 
-			{activeTab === "methods" && (
-				<div className="space-y-3">
-					{isLoadingPaymentMethods ? (
-						<div className="text-center py-8 text-duo-gray-dark">
-							Carregando métodos de pagamento...
-						</div>
-					) : paymentMethods.length === 0 ? (
-						<div className="text-center py-8 text-duo-gray-dark">
-							Nenhum método de pagamento cadastrado
-						</div>
-					) : (
-						paymentMethods.map((method: PaymentMethod) => (
-							<div key={method.id}>
-								<DuoCard variant="default" size="default">
-									<div className="flex items-center gap-3">
-										<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-blue/20 flex items-center justify-center">
-											<CreditCard className="h-6 w-6 text-duo-blue" />
-										</div>
-										<div className="flex-1">
-											<div className="flex items-center gap-2">
-												<h3 className="font-bold text-duo-text">
-													{method.cardBrand} •••• {method.last4}
-												</h3>
-												{method.isDefault && (
-													<span className="px-2 py-0.5 bg-duo-green/20 text-duo-green rounded text-xs font-bold">
-														Padrão
-													</span>
-												)}
-											</div>
-											<p className="text-xs text-duo-gray-dark mt-1">
-												{method.type === "credit-card"
-													? "Cartão de Crédito"
-													: "Cartão de Débito"}
-											</p>
-											{method.expiryMonth && method.expiryYear && (
-												<p className="text-xs text-duo-gray-dark mt-1">
-													Validade:{" "}
-													{String(method.expiryMonth).padStart(2, "0")}/
-													{method.expiryYear}
-												</p>
-											)}
-										</div>
-									</div>
-								</DuoCard>
-							</div>
-						))
-					)}
-
-					<DuoCard
-						variant="default"
-						size="default"
-						className="border-dashed cursor-pointer hover:border-duo-blue transition-colors"
-					>
-						<div className="flex items-center justify-center gap-2 py-2">
-							<Plus className="h-5 w-5 text-duo-gray-dark" />
-							<span className="font-bold text-duo-gray-dark">
-								Adicionar método de pagamento
-							</span>
-						</div>
-					</DuoCard>
-				</div>
-			)}
-
 			{activeTab === "subscription" && (
 				<SubscriptionSection
 					userType="student"
@@ -712,6 +816,18 @@ export function StudentPaymentsPage({
 				isTrial={!!isTrialActive}
 				isLoading={isCancelingSubscription}
 			/>
+
+			{pixModal && (
+				<StudentMembershipPixModal
+					isOpen={true}
+					onClose={() => setPixModal(null)}
+					paymentId={pixModal.paymentId}
+					brCode={pixModal.brCode}
+					brCodeBase64={pixModal.brCodeBase64}
+					amount={pixModal.amount}
+					onPaymentConfirmed={handlePixConfirmed}
+				/>
+			)}
 		</div>
 	);
 }

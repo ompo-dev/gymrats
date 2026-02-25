@@ -303,9 +303,12 @@ export async function getMembershipsHandler(
 			id: membership.id,
 			gymId: membership.gymId,
 			gymName: membership.gym.name,
+			gymAddress: membership.gym.address || "",
+			planId: membership.planId || "",
 			planName: membership.plan?.name || undefined,
 			startDate: membership.startDate,
-			endDate: membership.nextBillingDate || undefined, // GymMembership usa nextBillingDate, não endDate
+			endDate: membership.nextBillingDate || undefined,
+			nextBillingDate: membership.nextBillingDate || undefined,
 			status: membership.status as
 				| "active"
 				| "expired"

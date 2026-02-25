@@ -26,9 +26,17 @@ interface GymMapProps {
 	gyms: GymLocation[];
 	dayPasses: DayPass[];
 	onPurchaseDayPass: (gymId: string) => void;
+	onJoinPlan?: (gymId: string, planId: string) => void;
+	onViewGymProfile?: (gymId: string) => void;
 }
 
-export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
+export function GymMap({
+	gyms,
+	dayPasses,
+	onPurchaseDayPass,
+	onJoinPlan,
+	onViewGymProfile,
+}: GymMapProps) {
 	const [selectedGym, setSelectedGym] = useState<GymLocation | null>(null);
 	const [filter, setFilter] = useState<"all" | "open" | "near">("all");
 	const [_userLocation, setUserLocation] = useState<{
@@ -214,53 +222,108 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 													<p className="mb-2 text-xs font-bold text-duo-gray-dark">
 														Planos disponíveis:
 													</p>
-													<div className="grid grid-cols-3 gap-2">
-														<DuoCard
-															variant="yellow"
-															size="sm"
-															className="p-2 text-center"
-														>
-															<p className="text-[10px] font-bold text-duo-gray-dark">
-																Diária
-															</p>
-															<p className="mt-1 text-sm font-bold text-duo-yellow">
-																R$ {gym.plans?.daily ?? 0}
-															</p>
-														</DuoCard>
-														<DuoCard
-															variant="orange"
-															size="sm"
-															className="p-2 text-center"
-														>
-															<p className="text-[10px] font-bold text-duo-gray-dark">
-																Semanal
-															</p>
-															<p className="mt-1 text-sm font-bold text-duo-orange">
-																R$ {gym.plans?.weekly ?? 0}
-															</p>
-														</DuoCard>
-														<DuoCard
-															variant="highlighted"
-															size="sm"
-															className="p-2 text-center"
-														>
-															<p className="text-[10px] font-bold text-duo-gray-dark">
-																Mensal
-															</p>
-															<p className="mt-1 text-sm font-bold text-duo-green">
-																R$ {gym.plans?.monthly ?? 0}
-															</p>
-														</DuoCard>
-													</div>
+													{gym.membershipPlans && gym.membershipPlans.length > 0 ? (
+														<div className="space-y-2">
+															{gym.membershipPlans.map((plan) => (
+																<DuoCard
+																	key={plan.id}
+																	variant="default"
+																	size="sm"
+																	className="flex cursor-pointer items-center justify-between transition-all hover:border-duo-blue"
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		onJoinPlan?.(gym.id, plan.id);
+																	}}
+																>
+																	<div>
+																		<p className="text-xs font-bold text-duo-text">
+																			{plan.name}
+																		</p>
+																		<p className="text-[10px] text-duo-gray-dark">
+																			{plan.duration} dias • {plan.type}
+																		</p>
+																	</div>
+																	<div className="text-right">
+																		<p className="text-sm font-bold text-duo-green">
+																			R$ {plan.price.toFixed(2)}
+																		</p>
+																		<p className="text-[10px] text-duo-gray-dark">
+																			Contratar
+																		</p>
+																	</div>
+																</DuoCard>
+															))}
+														</div>
+													) : (
+														<div className="grid grid-cols-3 gap-2">
+															{gym.plans?.daily != null && gym.plans.daily > 0 && (
+																<DuoCard
+																	variant="yellow"
+																	size="sm"
+																	className="p-2 text-center"
+																>
+																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																		Diária
+																	</p>
+																	<p className="mt-1 text-sm font-bold text-duo-yellow">
+																		R$ {gym.plans.daily}
+																	</p>
+																</DuoCard>
+															)}
+															{gym.plans?.weekly != null && gym.plans.weekly > 0 && (
+																<DuoCard
+																	variant="orange"
+																	size="sm"
+																	className="p-2 text-center"
+																>
+																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																		Semanal
+																	</p>
+																	<p className="mt-1 text-sm font-bold text-duo-orange">
+																		R$ {gym.plans.weekly}
+																	</p>
+																</DuoCard>
+															)}
+															{gym.plans?.monthly != null && gym.plans.monthly > 0 && (
+																<DuoCard
+																	variant="highlighted"
+																	size="sm"
+																	className="p-2 text-center"
+																>
+																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																		Mensal
+																	</p>
+																	<p className="mt-1 text-sm font-bold text-duo-green">
+																		R$ {gym.plans.monthly}
+																	</p>
+																</DuoCard>
+															)}
+														</div>
+													)}
 												</div>
 
 												<div className="grid grid-cols-2 gap-2">
+													{onViewGymProfile && (
+														<Button
+															variant="outline"
+															size="sm"
+															onClick={(e) => {
+																e.stopPropagation();
+																onViewGymProfile(gym.id);
+															}}
+															className="flex items-center justify-center gap-2"
+														>
+															<MapPin className="h-4 w-4" />
+															Ver perfil
+														</Button>
+													)}
 													<Button
 														variant="outline"
 														size="sm"
+														disabled={!gym.phone}
 														onClick={(e) => {
 															e.stopPropagation();
-															window.open(`tel:${gym.address}`, "_self");
+															if (gym.phone) window.open(`tel:${gym.phone}`, "_self");
 														}}
 														className="flex items-center justify-center gap-2"
 													>
@@ -273,10 +336,23 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 															variant="default"
 															size="sm"
 															disabled
-															className="flex items-center justify-center gap-2"
+															className="col-span-2 flex items-center justify-center gap-2"
 														>
 															<Check className="h-4 w-4" />
 															Passe Ativo
+														</Button>
+													) : gym.membershipPlans && gym.membershipPlans.length > 0 ? (
+														<Button
+															variant="default"
+															size="sm"
+															onClick={(e) => {
+																e.stopPropagation();
+																onJoinPlan?.(gym.id, gym.membershipPlans![0].id);
+															}}
+															className="col-span-2 flex items-center justify-center gap-2"
+														>
+															<CreditCard className="h-4 w-4" />
+															Assinar plano
 														</Button>
 													) : (
 														<Button
@@ -287,7 +363,7 @@ export function GymMap({ gyms, dayPasses, onPurchaseDayPass }: GymMapProps) {
 																onPurchaseDayPass(gym.id);
 															}}
 															disabled={!(gym.plans?.daily && gym.plans.daily > 0)}
-															className="flex items-center justify-center gap-2"
+															className="col-span-2 flex items-center justify-center gap-2"
 														>
 															<CreditCard className="h-4 w-4" />
 															Diária
