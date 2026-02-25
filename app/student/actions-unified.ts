@@ -7,10 +7,9 @@
 
 "use server";
 
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/utils/session";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
+import { getStudentContext } from "@/lib/utils/student-context";
 
 /**
  * HELPER: Obter Student ID e User ID da sessão atual
@@ -20,34 +19,14 @@ async function getStudentId(): Promise<{
 	userId: string | null;
 }> {
 	try {
-		const cookieStore = await cookies();
-		const sessionToken =
-			cookieStore.get("auth_token")?.value ||
-			cookieStore.get("better-auth.session_token")?.value;
+		const { ctx, error } = await getStudentContext();
 
-		if (!sessionToken) return { studentId: null, userId: null };
+		if (error || !ctx) return { studentId: null, userId: null };
 
-		const session = await getSession(sessionToken);
-		if (!session) return { studentId: null, userId: null };
-
-		const userId = session.userId;
-		let studentId: string | null = null;
-
-		if (session.user.role === "ADMIN") {
-			const existingStudent = await db.student.findUnique({
-				where: { userId: session.user.id },
-			});
-			if (!existingStudent) {
-				const newStudent = await db.student.create({ data: { userId: session.user.id } });
-				studentId = newStudent.id;
-			} else {
-				studentId = existingStudent.id;
-			}
-		} else if (session.user.student?.id) {
-			studentId = session.user.student.id;
-		}
-
-		return { studentId, userId };
+		return { 
+			studentId: ctx.studentId, 
+			userId: ctx.user.id 
+		};
 	} catch (error) {
 		console.error("[getStudentId] Erro:", error);
 		return { studentId: null, userId: null };
