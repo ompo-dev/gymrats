@@ -9,6 +9,7 @@ export { useGymsDataStore } from "./gyms-list-store";
 export { useNutritionStore } from "./nutrition-store"; // STUB TEMPORÁRIO - será removido após limpar cache
 // Store unificado para student (substitui student-store, nutrition-store, subscription-store)
 export { useStudentUnifiedStore } from "./student-unified-store";
+export { useGymUnifiedStore } from "./gym-unified-store";
 // Subscription store mantido apenas para Gym (student usa useStudent('subscription'))
 export { useSubscriptionStore } from "./subscription-store";
 export { useUIStore } from "./ui-store";

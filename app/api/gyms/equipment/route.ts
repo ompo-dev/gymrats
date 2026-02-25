@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { z } from "zod";
 
 const createEquipmentSchema = z.object({
@@ -12,6 +13,16 @@ const createEquipmentSchema = z.object({
   serialNumber: z.string().optional().nullable(),
   purchaseDate: z.string().optional().nullable(),
 });
+
+export const GET = createSafeHandler(
+  async ({ gymContext }) => {
+    const equipment = await GymInventoryService.getEquipment(gymContext!.gymId);
+    return NextResponse.json({ equipment });
+  },
+  {
+    auth: "gym",
+  },
+);
 
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {

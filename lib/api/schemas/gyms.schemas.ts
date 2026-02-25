@@ -100,3 +100,70 @@ export const createGymPlanSchema = z.object({
   duration: z.number().int().positive("Duração deve ser positiva"),
   benefits: z.array(z.string()).default([]),
 });
+
+export const gymMembershipIdParamsSchema = z.object({
+	membershipId: z.string().min(1, "membershipId é obrigatório"),
+});
+
+export const updateGymMemberSchema = z.object({
+	status: z.enum(["active", "suspended", "canceled"]).optional(),
+	planId: z.string().optional().nullable(),
+	amount: z.number().positive().optional(),
+});
+
+export const gymPaymentIdParamsSchema = z.object({
+	paymentId: z.string().min(1, "paymentId é obrigatório"),
+});
+
+export const updateGymPaymentStatusSchema = z.object({
+	status: z.enum(["paid", "pending", "overdue", "canceled"]),
+});
+
+export const gymEquipmentIdParamsSchema = z.object({
+	equipId: z.string().min(1, "equipId é obrigatório"),
+});
+
+export const updateGymEquipmentSchema = z.object({
+	name: z.string().min(1).optional(),
+	status: z.enum(["available", "in-use", "maintenance", "broken"]).optional(),
+	brand: z.string().optional().nullable(),
+	model: z.string().optional().nullable(),
+	serialNumber: z.string().optional().nullable(),
+	nextMaintenance: z
+		.string()
+		.datetime()
+		.optional()
+		.or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+});
+
+export const createGymMaintenanceSchema = z.object({
+	type: z.enum(["preventive", "corrective", "inspection"]),
+	description: z.string().min(1, "Descrição é obrigatória"),
+	performedBy: z.string().min(1, "Responsável é obrigatório"),
+	cost: z.number().positive().optional().nullable(),
+	nextScheduled: z
+		.string()
+		.datetime()
+		.optional()
+		.or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
+		.nullable(),
+});
+
+export const gymPlanIdParamsSchema = z.object({
+	planId: z.string().min(1, "planId é obrigatório"),
+});
+
+export const updateGymPlanSchema = z.object({
+	name: z.string().min(1).optional(),
+	type: z
+		.enum(["monthly", "quarterly", "semi-annual", "annual", "trial"])
+		.optional(),
+	price: z.number().positive().optional(),
+	duration: z.number().int().positive().optional(),
+	benefits: z.array(z.string()).optional(),
+	isActive: z.boolean().optional(),
+});
+
+export const gymStudentsSearchQuerySchema = z.object({
+	email: z.string().email("Email inválido").min(3, "Email muito curto"),
+});

@@ -9,6 +9,7 @@ interface HandlerOptions<TBody = any, TQuery = any> {
   schema?: {
     body?: ZodType<TBody, any, any>;
     query?: ZodType<TQuery, any, any>;
+    params?: ZodType<any, any, any>;
   };
 }
 
@@ -27,6 +28,7 @@ type SafeHandlerContext<TBody = any, TQuery = any> = {
     user: any;
     student: any;
   };
+  params?: any;
 };
 
 /**
@@ -36,7 +38,7 @@ export function createSafeHandler<TBody = any, TQuery = any>(
   handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<NextResponse>,
   options: HandlerOptions<TBody, TQuery> = {}
 ) {
-  return async (req: NextRequest) => {
+  return async (req: NextRequest, routeContext?: { params?: Promise<Record<string, string>> | Record<string, string> }) => {
     try {
       let gymContext: SafeHandlerContext["gymContext"];
       let studentContext: SafeHandlerContext["studentContext"];
@@ -81,8 +83,18 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         query = options.schema.query.parse(queryObject);
       }
 
+      let params: any = {};
+      if (options.schema?.params) {
+        const rawParams = routeContext?.params
+          ? await Promise.resolve(routeContext.params)
+          : {};
+        params = options.schema.params.parse(rawParams);
+      } else if (routeContext?.params) {
+        params = await Promise.resolve(routeContext.params);
+      }
+
       // 3. Execute handler
-      return await handler({ req, body, query, gymContext, studentContext });
+      return await handler({ req, body, query, gymContext, studentContext, params });
     } catch (error: any) {
       console.error("[SafeHandler] Error:", error);
       
