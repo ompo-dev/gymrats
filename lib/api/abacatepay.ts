@@ -88,6 +88,26 @@ interface PixQrCode {
 	metadata?: Record<string, any>;
 }
 
+interface CreateWithdrawRequest {
+	externalId: string;
+	amount: number; // centavos, mínimo 350
+	pix: { type: "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "RANDOM" | "BR_CODE"; key: string };
+	description?: string;
+}
+
+interface WithdrawTransaction {
+	id: string;
+	status: string;
+	devMode: boolean;
+	receiptUrl: string;
+	kind: "WITHDRAW";
+	amount: number;
+	platformFee: number;
+	externalId: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
 interface CreateCouponRequest {
 	code: string;
 	notes?: string;
@@ -336,6 +356,36 @@ class AbacatePayClient {
 	}
 
 	// ============================================
+	// WITHDRAW
+	// ============================================
+
+	/**
+	 * Cria um saque para transferir valores da conta para uma chave PIX.
+	 * Valor mínimo: 350 centavos (R$ 3,50).
+	 */
+	async createWithdraw(
+		data: CreateWithdrawRequest,
+	): Promise<AbacatePayResponse<WithdrawTransaction>> {
+		try {
+			const response = await this.client.post<
+				AbacatePayResponse<WithdrawTransaction>
+			>("/withdraw/create", {
+				externalId: data.externalId,
+				method: "PIX",
+				amount: data.amount,
+				pix: data.pix,
+				description: data.description,
+			});
+			return response.data;
+		} catch (error: any) {
+			return {
+				data: null,
+				error: error.response?.data?.error || error.message,
+			};
+		}
+	}
+
+	// ============================================
 	// CUPONS
 	// ============================================
 
@@ -379,6 +429,8 @@ export type {
 	CreateBillingRequest,
 	PixQrCode,
 	CreatePixQrCodeRequest,
+	CreateWithdrawRequest,
+	WithdrawTransaction,
 	Coupon,
 	CreateCouponRequest,
 };

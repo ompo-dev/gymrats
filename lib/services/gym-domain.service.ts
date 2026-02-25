@@ -46,6 +46,8 @@ export class GymDomainService {
       address?: string;
       phone?: string;
       cnpj?: string | null;
+      pixKey?: string | null;
+      pixKeyType?: string | null;
       openingHours?: {
         open?: string;
         close?: string;
@@ -58,6 +60,8 @@ export class GymDomainService {
     if (data.address !== undefined) updateData.address = data.address;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;
+    if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
+    if (data.pixKeyType !== undefined) updateData.pixKeyType = data.pixKeyType;
     if (data.openingHours !== undefined) {
       updateData.openingHours = data.openingHours
         ? JSON.stringify(data.openingHours)

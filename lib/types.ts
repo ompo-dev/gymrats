@@ -549,6 +549,8 @@ export interface GymProfile {
 	phone: string;
 	email: string;
 	cnpj: string;
+	pixKey?: string;
+	pixKeyType?: string;
 	openingHours?: {
 		open?: string;
 		close?: string;
@@ -771,7 +773,7 @@ export interface Payment {
 	amount: number;
 	date: Date;
 	dueDate: Date;
-	status: "paid" | "pending" | "overdue" | "canceled";
+	status: "paid" | "pending" | "overdue" | "canceled" | "withdrawn";
 	paymentMethod:
 		| "credit-card"
 		| "debit-card"
@@ -779,6 +781,12 @@ export interface Payment {
 		| "pix"
 		| "bank-transfer";
 	reference?: string;
+	/** ID do pixQrCode na AbacatePay (pagamento via PIX) */
+	abacatePayBillingId?: string;
+	/** Quando foi sacado para a academia */
+	withdrawnAt?: Date;
+	/** externalId do withdraw na AbacatePay */
+	withdrawId?: string;
 }
 
 export interface Coupon {

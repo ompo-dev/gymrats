@@ -160,7 +160,24 @@ function transformSectionResponse(
 			result = { membershipPlans: data.plans || [] };
 			break;
 		case "payments":
-			result = { payments: data.payments || [] };
+			result = {
+				payments: (data.payments || []).map((p: any) => ({
+					id: p.id,
+					studentId: p.studentId,
+					studentName: p.studentName,
+					planId: p.planId || "",
+					planName: p.plan?.name ?? p.planName ?? "",
+					amount: p.amount,
+					date: p.date,
+					dueDate: p.dueDate,
+					status: (p.withdrawnAt ? "withdrawn" : p.status) as any,
+					paymentMethod: p.paymentMethod || "pix",
+					reference: p.reference ?? undefined,
+					abacatePayBillingId: p.abacatePayBillingId ?? undefined,
+					withdrawnAt: p.withdrawnAt ?? undefined,
+					withdrawId: p.withdrawId ?? undefined,
+				})),
+			};
 			break;
 		case "expenses":
 			result = { expenses: data.expenses || [] };

@@ -92,8 +92,14 @@ export class GymFinancialService {
       amount: payment.amount,
       date: payment.date,
       dueDate: payment.dueDate,
-      status: payment.status as "paid" | "pending" | "overdue",
+      status: (payment.withdrawnAt
+        ? "withdrawn"
+        : payment.status) as "paid" | "pending" | "overdue" | "canceled" | "withdrawn",
       paymentMethod: (payment.paymentMethod as any) || "pix",
+      reference: payment.reference ?? undefined,
+      abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
+      withdrawnAt: payment.withdrawnAt ?? undefined,
+      withdrawId: payment.withdrawId ?? undefined,
     }));
   }
 }

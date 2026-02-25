@@ -36,6 +36,8 @@ export class GymInventoryService {
       email: gym.email,
       logo: gym.logo || undefined,
       cnpj: gym.cnpj || "",
+      pixKey: gym.pixKey || undefined,
+      pixKeyType: gym.pixKeyType || undefined,
       openingHours,
       plan: gym.plan as any,
       equipmentCount: gym.profile.equipmentCount,

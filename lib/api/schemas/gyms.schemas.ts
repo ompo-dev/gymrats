@@ -31,6 +31,11 @@ export const updateGymProfileSchema = z.object({
 			z.string().min(1, "Telefone é obrigatório").optional(),
 		),
 	cnpj: z.string().optional().nullable(),
+	pixKey: z.string().optional().nullable(),
+	pixKeyType: z
+		.enum(["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"])
+		.optional()
+		.nullable(),
 	openingHours: z
 		.object({
 			open: z.string().optional(),

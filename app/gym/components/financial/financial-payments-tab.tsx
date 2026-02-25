@@ -16,10 +16,14 @@ const getStatusColor = (status: string) => {
 	switch (status) {
 		case "paid":
 			return "bg-duo-green/20 text-duo-green border-duo-green";
+		case "withdrawn":
+			return "bg-duo-blue/20 text-duo-blue border-duo-blue";
 		case "pending":
 			return "bg-duo-yellow/20 text-duo-yellow border-duo-yellow";
 		case "overdue":
 			return "bg-duo-red/20 text-duo-red border-duo-red";
+		case "canceled":
+			return "bg-gray-50 text-duo-gray-dark border-duo-border";
 		default:
 			return "bg-gray-50 text-duo-gray-dark border-duo-border";
 	}
@@ -29,10 +33,14 @@ const getStatusLabel = (status: string) => {
 	switch (status) {
 		case "paid":
 			return "Pago";
+		case "withdrawn":
+			return "Sacado";
 		case "pending":
 			return "Pendente";
 		case "overdue":
 			return "Atrasado";
+		case "canceled":
+			return "Cancelado";
 		default:
 			return status;
 	}

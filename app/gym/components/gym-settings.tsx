@@ -5,6 +5,7 @@ import {
 	Bell,
 	Building2,
 	Clock,
+	CreditCard,
 	FileText,
 	Loader2,
 	LogOut,
@@ -60,6 +61,10 @@ export function GymSettingsPage({
 	const [address, setAddress] = useState(initialProfile.address ?? "");
 	const [phone, setPhone] = useState(initialProfile.phone ?? "");
 	const [cnpj, setCnpj] = useState(initialProfile.cnpj ?? "");
+	const [pixKeyType, setPixKeyType] = useState<string>(
+		initialProfile.pixKeyType ?? "",
+	);
+	const [pixKey, setPixKey] = useState(initialProfile.pixKey ?? "");
 
 	// Horários por dia (ex: sexta 18h, outros 22h)
 	const parseInitialSchedules = (): Record<string, DaySchedule> => {
@@ -91,6 +96,8 @@ export function GymSettingsPage({
 		setAddress(initialProfile.address ?? "");
 		setPhone(initialProfile.phone ?? "");
 		setCnpj(initialProfile.cnpj ?? "");
+		setPixKeyType(initialProfile.pixKeyType ?? "");
+		setPixKey(initialProfile.pixKey ?? "");
 		setDaySchedules(parseInitialSchedules());
 	}, [initialProfile?.id]);
 
@@ -127,6 +134,8 @@ export function GymSettingsPage({
 					address: address.trim() || undefined,
 					phone: phone.trim() || undefined,
 					cnpj: cnpj.trim() || null,
+					pixKey: pixKey.trim() || null,
+					pixKeyType: pixKeyType || null,
 					openingHours: {
 						days: openDays,
 						byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
@@ -158,7 +167,9 @@ export function GymSettingsPage({
 	const hasInfoChanges =
 		address !== (profile.address ?? "") ||
 		phone !== (profile.phone ?? "") ||
-		cnpj !== (profile.cnpj ?? "");
+		cnpj !== (profile.cnpj ?? "") ||
+		pixKey !== (profile.pixKey ?? "") ||
+		pixKeyType !== (profile.pixKeyType ?? "");
 
 	const hasScheduleChanges = (() => {
 		const oh = profile.openingHours;
@@ -264,6 +275,47 @@ export function GymSettingsPage({
 								placeholder="Opcional"
 								className="mt-1.5"
 							/>
+						</div>
+						<div>
+							<Label className="flex items-center gap-2 text-sm font-semibold text-duo-text">
+								<CreditCard className="h-4 w-4" />
+								Chave PIX para Recebimentos
+							</Label>
+							<p className="mt-1 text-xs text-duo-gray-dark">
+								Os pagamentos dos alunos serão transferidos para esta chave.
+							</p>
+							<div className="mt-2 flex flex-col gap-2 sm:flex-row">
+								<select
+									value={pixKeyType}
+									onChange={(e) => setPixKeyType(e.target.value)}
+									className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-duo-text"
+								>
+									<option value="">Tipo de chave</option>
+									<option value="CPF">CPF</option>
+									<option value="CNPJ">CNPJ</option>
+									<option value="PHONE">Telefone</option>
+									<option value="EMAIL">E-mail</option>
+									<option value="RANDOM">Chave aleatória</option>
+								</select>
+								<Input
+									value={pixKey}
+									onChange={(e) => setPixKey(e.target.value)}
+									placeholder={
+										pixKeyType === "CPF"
+											? "000.000.000-00"
+											: pixKeyType === "CNPJ"
+												? "00.000.000/0001-00"
+												: pixKeyType === "PHONE"
+													? "(00) 00000-0000"
+													: pixKeyType === "EMAIL"
+														? "email@exemplo.com"
+														: pixKeyType === "RANDOM"
+															? "Chave aleatória (e-mail)"
+															: "Selecione o tipo primeiro"
+									}
+									className="flex-1"
+								/>
+							</div>
 						</div>
 						{hasChanges && (
 							<Button
