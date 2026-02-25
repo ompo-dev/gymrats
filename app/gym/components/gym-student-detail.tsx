@@ -32,7 +32,9 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
+import { useGym } from "@/hooks/use-gym";
 import type { Payment, StudentData } from "@/lib/types";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
 interface GymStudentDetailProps {
@@ -46,6 +48,7 @@ export function GymStudentDetail({
 	payments = [],
 	onBack,
 }: GymStudentDetailProps) {
+	const actions = useGym("actions");
 	const [studentPayments, setStudentPayments] = useState(payments);
 	const [activeTab, setActiveTab] = useState("overview");
 	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");
@@ -59,14 +62,8 @@ export function GymStudentDetail({
 		if (!membershipId) return;
 		setIsUpdatingStatus(true);
 		try {
-			const res = await fetch(`/api/gyms/members/${membershipId}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ status: action }),
-			});
-			if (res.ok) {
-				setMembershipStatus(action);
-			}
+			await actions.updateMemberStatus(membershipId, action);
+			setMembershipStatus(action);
 		} finally {
 			setIsUpdatingStatus(false);
 		}
@@ -103,19 +100,7 @@ export function GymStudentDetail({
 		);
 
 		try {
-			const res = await fetch(`/api/gyms/payments/${paymentId}`, {
-				method: "PATCH",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ status: newStatus }),
-			});
-
-			if (!res.ok) {
-				// Revert if failed
-				setStudentPayments((prev) =>
-					prev.map((p) => (p.id === paymentId ? payment : p))
-				);
-				console.error("Falha ao atualizar pagamento");
-			}
+			await actions.updatePaymentStatus(paymentId, newStatus);
 		} catch (error) {
 			console.error("Erro ao atualizar pagamento:", error);
 			// Revert if error
@@ -179,7 +164,7 @@ export function GymStudentDetail({
 								<div className="flex items-center gap-2">
 									<Calendar className="h-4 w-4 shrink-0" />
 									<span>
-										Membro desde {student.joinDate.toLocaleDateString("pt-BR")}
+										Membro desde {formatDatePtBr(student.joinDate) || "N/A"}
 									</span>
 								</div>
 							</div>
@@ -272,7 +257,7 @@ export function GymStudentDetail({
 					/>
 					<StatCardLarge
 						icon={Trophy}
-						value={String(student.progress.currentLevel)}
+						value={String(student.progress?.currentLevel ?? 1)}
 						label="Nível"
 						iconColor="duo-blue"
 					/>
@@ -317,18 +302,18 @@ export function GymStudentDetail({
 										label: "Gênero",
 										value: student.gender === "male" ? "Masculino" : "Feminino",
 									},
-									{ label: "Altura", value: `${student.profile.height}cm` },
+									{ label: "Altura", value: `${student.profile?.height ?? 0}cm` },
 									{
 										label: "Peso Atual",
 										value: `${student.currentWeight}kg`,
 									},
 									{
 										label: "Nível",
-										value: student.profile.fitnessLevel,
+										value: student.profile?.fitnessLevel ?? "beginner",
 									},
 									{
 										label: "Frequência Semanal",
-										value: `${student.profile.weeklyWorkoutFrequency}x semana`,
+										value: `${student.profile?.weeklyWorkoutFrequency ?? 0}x semana`,
 									},
 								].map((info) => (
 									<DuoCard key={info.label} variant="default" size="sm">
@@ -347,7 +332,7 @@ export function GymStudentDetail({
 
 						<SectionCard title="Objetivos" icon={Target}>
 							<div className="space-y-2">
-								{student.profile.goals.map((goal) => (
+								{(student.profile?.goals ?? []).map((goal) => (
 									<DuoCard
 										key={goal}
 										variant="highlighted"
@@ -365,7 +350,7 @@ export function GymStudentDetail({
 								Equipamentos Favoritos
 							</h3>
 							<div className="space-y-2">
-								{student.favoriteEquipment.map((equipment) => (
+								{(student.favoriteEquipment ?? []).map((equipment) => (
 									<DuoCard key={equipment} variant="default" size="sm">
 										<div className="flex items-center gap-2">
 											<Dumbbell className="h-4 w-4 text-duo-orange" />
@@ -382,7 +367,7 @@ export function GymStudentDetail({
 							className="lg:col-span-2"
 						>
 							<div className="space-y-2">
-								{student.weightHistory.map((record, whIdx) => (
+								{(student.weightHistory ?? []).map((record, whIdx) => (
 									<DuoCard
 										key={`${record.date.toISOString()}-${record.weight}`}
 										variant="default"
@@ -392,7 +377,7 @@ export function GymStudentDetail({
 											<div className="flex items-center gap-2 flex-1 min-w-0">
 												<Calendar className="h-5 w-5 text-duo-gray-dark shrink-0" />
 												<span className="font-bold text-duo-text text-sm sm:text-base truncate">
-													{record.date.toLocaleDateString("pt-BR")}
+													{formatDatePtBr(record.date) || "N/A"}
 												</span>
 											</div>
 											<div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
@@ -453,7 +438,7 @@ export function GymStudentDetail({
 							</DuoCard>
 						) : (
 							<div className="space-y-3">
-								{student.workoutHistory.map((wh, idx) => (
+								{(student.workoutHistory ?? []).map((wh, idx) => (
 									<DuoCard
 										key={`wh-${idx}-${wh.date.toISOString()}`}
 										variant="default"
@@ -637,7 +622,7 @@ export function GymStudentDetail({
 
 										<h3 className="font-bold text-duo-text mt-4">Refeições</h3>
 										<div className="space-y-3">
-											{student.todayNutrition.meals.map((meal) => (
+											{(student.todayNutrition?.meals ?? []).map((meal) => (
 												<DuoCard
 													key={meal.id}
 													variant="default"
@@ -658,7 +643,7 @@ export function GymStudentDetail({
 													</div>
 													{meal.foods && meal.foods.length > 0 && (
 														<div className="space-y-1 pl-2 border-l-2 border-gray-100">
-															{meal.foods.map((food, idx) => (
+															{(meal.foods ?? []).map((food, idx) => (
 																<div
 																	// biome-ignore lint/suspicious/noArrayIndexKey: simple list
 																	key={idx}
@@ -702,11 +687,11 @@ export function GymStudentDetail({
 						<div className="mb-6">
 							<div className="mb-2 flex items-center justify-between">
 								<span className="font-bold text-duo-text">
-									Nível {student.progress.currentLevel}
+									Nível {student.progress?.currentLevel ?? 1}
 								</span>
 								<span className="text-sm text-duo-gray-dark">
-									{student.progress.totalXP} /{" "}
-									{student.progress.totalXP + student.progress.xpToNextLevel} XP
+									{student.progress?.totalXP ?? 0} /{" "}
+									{(student.progress?.totalXP ?? 0) + (student.progress?.xpToNextLevel ?? 100)} XP
 								</span>
 							</div>
 							<div className="h-4 overflow-hidden rounded-full bg-gray-200">
@@ -714,9 +699,9 @@ export function GymStudentDetail({
 									className="h-full bg-duo-green"
 									style={{
 										width: `${
-											(student.progress.totalXP /
-												(student.progress.totalXP +
-													student.progress.xpToNextLevel)) *
+											((student.progress?.totalXP ?? 0) /
+												((student.progress?.totalXP ?? 0) +
+													(student.progress?.xpToNextLevel ?? 100) || 1)) *
 											100
 										}%`,
 									}}
@@ -737,7 +722,7 @@ export function GymStudentDetail({
 										</p>
 										<DuoCard variant="default" size="sm" className="p-2 sm:p-3">
 											<p className="text-sm sm:text-lg font-bold text-duo-green">
-												{student.progress.weeklyXP[index]}
+												{student.progress?.weeklyXP?.[index] ?? 0}
 											</p>
 										</DuoCard>
 									</div>
@@ -752,7 +737,7 @@ export function GymStudentDetail({
 				<SlideIn delay={0.4}>
 					<SectionCard title="Recordes Pessoais" icon={Trophy}>
 						<div className="space-y-3">
-							{student.personalRecords.map((record) => (
+							{(student.personalRecords ?? []).map((record) => (
 								<DuoCard
 									key={`${record.exerciseName}-${record.date.toISOString()}-${record.value}`}
 									variant="orange"
@@ -764,7 +749,7 @@ export function GymStudentDetail({
 												{record.exerciseName}
 											</p>
 											<p className="text-xs sm:text-sm text-duo-gray-dark">
-												{record.date.toLocaleDateString("pt-BR")}
+												{formatDatePtBr(record.date) || "N/A"}
 											</p>
 										</div>
 										<div className="text-left sm:text-right">
@@ -856,11 +841,11 @@ export function GymStudentDetail({
 												</h3>
 												<p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
 													Vencimento:{" "}
-													{payment.dueDate.toLocaleDateString("pt-BR")}
+													{formatDatePtBr(payment.dueDate) || "N/A"}
 												</p>
 												{payment.status === "paid" && (
 													<p className="text-xs sm:text-sm text-duo-gray-dark">
-														Pago em: {payment.date.toLocaleDateString("pt-BR")}
+														Pago em: {formatDatePtBr(payment.date) || "N/A"}
 													</p>
 												)}
 												<p className="text-xs sm:text-sm text-duo-gray-dark capitalize">

@@ -57,25 +57,31 @@ export const useWorkoutStore = create<WorkoutState>()(
 			completedWorkouts: new Set<string>(),
 			openWorkoutId: null,
 			setActiveWorkout: (workout) =>
-				set({
-					activeWorkout: workout
-						? {
-								workoutId: workout.id,
-								currentExerciseIndex: 0,
-								exerciseLogs: [],
-								skippedExercises: [],
-								skippedExerciseIndices: [],
-								selectedAlternatives: {},
-								xpEarned: 0,
-								totalVolume: 0,
-								completionPercentage: 0,
-								startTime: new Date(),
-								lastUpdated: new Date(),
-								cardioPreference: undefined,
-								cardioDuration: undefined,
-								selectedCardioType: undefined,
-							}
-						: null,
+				set((state) => {
+					// Avoid redundant updates if the workout is already the same
+					if (!workout && !state.activeWorkout) return state;
+					if (workout && state.activeWorkout?.workoutId === workout.id) return state;
+
+					return {
+						activeWorkout: workout
+							? {
+									workoutId: workout.id,
+									currentExerciseIndex: 0,
+									exerciseLogs: [],
+									skippedExercises: [],
+									skippedExerciseIndices: [],
+									selectedAlternatives: {},
+									xpEarned: 0,
+									totalVolume: 0,
+									completionPercentage: 0,
+									startTime: new Date(),
+									lastUpdated: new Date(),
+									cardioPreference: undefined,
+									cardioDuration: undefined,
+									selectedCardioType: undefined,
+								}
+							: null,
+					};
 				}),
 			setCurrentExerciseIndex: (index) =>
 				set((state) => {

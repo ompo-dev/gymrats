@@ -4,6 +4,7 @@ import { AlertCircle, Crown, Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusCardProps {
@@ -127,9 +128,7 @@ export function SubscriptionStatusCard({
 						<div className="flex items-center justify-between text-sm pt-3 border-t border-duo-border">
 							<span className="text-duo-gray-dark">Próxima renovação</span>
 							<span className="font-bold text-duo-text">
-								{new Date(subscription.currentPeriodEnd).toLocaleDateString(
-									"pt-BR",
-								)}
+								{formatDatePtBr(subscription.currentPeriodEnd) || "N/A"}
 							</span>
 						</div>
 						{subscription.cancelAtPeriodEnd && (

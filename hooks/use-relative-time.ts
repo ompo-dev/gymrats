@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getTimeMs } from "@/lib/utils/date-safe";
 
-export function useRelativeTime(timestamp: Date) {
+export function useRelativeTime(timestamp: Date | string | number) {
 	const [timeAgo, setTimeAgo] = useState<string>("");
 	const [mounted, setMounted] = useState(false);
 
+	const tsMs = getTimeMs(timestamp);
+
 	const calculateTimeAgo = (baseTime: number) => {
-		const diff = baseTime - timestamp.getTime();
+		if (tsMs == null) return "—";
+		const diff = baseTime - tsMs;
+		if (diff < 0) return "agora";
 		const minutes = Math.floor(diff / 60000);
 		const hours = Math.floor(diff / 3600000);
 
@@ -30,7 +35,7 @@ export function useRelativeTime(timestamp: Date) {
 		const interval = setInterval(updateTime, 60000);
 
 		return () => clearInterval(interval);
-	}, [calculateTimeAgo]);
+	}, [tsMs]);
 
 	return { timeAgo, mounted };
 }

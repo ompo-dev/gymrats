@@ -11,9 +11,8 @@ export const createSubscriptionSchema = z.object({
 });
 
 export const createGymSubscriptionSchema = z.object({
-	billingPeriod: z.enum(["monthly", "annual"], {
-		errorMap: () => ({ message: "billingPeriod deve ser monthly ou annual" }),
-	}),
+	plan: z.enum(["basic", "premium", "enterprise"]).optional().default("basic"),
+	billingPeriod: z.enum(["monthly", "annual"]).optional().default("monthly"),
 });
 
 export const startTrialSchema = z.any();

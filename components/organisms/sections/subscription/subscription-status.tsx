@@ -91,8 +91,20 @@ export function SubscriptionStatus({
 							/>
 						</div>
 						<div>
-							<h3 className="font-bold text-duo-text capitalize">
-								{subscription.plan}
+							<h3 className="font-bold text-duo-text">
+								{subscription.plan === "basic"
+									? "Básico"
+									: subscription.plan === "premium"
+										? "Premium"
+										: subscription.plan === "enterprise"
+											? "Enterprise"
+											: String(subscription.plan).charAt(0).toUpperCase() +
+												String(subscription.plan).slice(1).toLowerCase()}
+								{subscription.billingPeriod && (
+									<span className="text-duo-gray-dark font-normal ml-1">
+										({subscription.billingPeriod === "annual" ? "Anual" : "Mensal"})
+									</span>
+								)}
 							</h3>
 							<p className="text-xs text-duo-gray-dark">
 								{isCanceled && hasTrial
@@ -241,7 +253,11 @@ export function SubscriptionStatus({
 									</div>
 									{subscription.totalAmount !== undefined && (
 										<div>
-											<p className="text-xs text-duo-gray-dark">Valor mensal</p>
+											<p className="text-xs text-duo-gray-dark">
+												{subscription.billingPeriod === "annual"
+													? "Valor anual"
+													: "Valor mensal"}
+											</p>
 											<p className="text-lg font-bold text-duo-green">
 												R$ {subscription.totalAmount.toFixed(2)}
 											</p>

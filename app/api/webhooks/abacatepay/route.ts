@@ -34,16 +34,55 @@ export async function POST(request: NextRequest) {
 		console.log(`[Webhook] Evento recebido: ${event}`, JSON.stringify(data, null, 2));
 
 		if (event === "billing.paid") {
+			// Payload pode vir de billing (checkout) ou pixQrCode (PIX inline)
+			const pixQrCode = data.pixQrCode;
 			const billing = data.billing;
-			const billingId = billing.id;
-			const amount = billing.amount; // centavos
-			const metadata = billing.metadata || {};
-			
-			// Tentar encontrar a subscription pelo billingId ou pelos metadados
-			let subscription = await db.subscription.findUnique({
-				where: { abacatePayBillingId: billingId },
-				include: { student: true },
+			const paymentId = pixQrCode?.id ?? billing?.id;
+			const amount = data.payment?.amount ?? billing?.amount ?? pixQrCode?.amount ?? 0;
+			const metadata = billing?.metadata ?? pixQrCode?.metadata ?? {};
+
+			if (!paymentId) {
+				console.error("[Webhook] billing.paid sem id em billing ou pixQrCode");
+				return successResponse({ processed: false, error: "Missing payment id" });
+			}
+
+			// 1. Tentar GymSubscription (abacatePayBillingId armazena billing id ou pix id)
+			const gymSub = await db.gymSubscription.findFirst({
+				where: { abacatePayBillingId: paymentId },
 			});
+
+			if (gymSub) {
+				const now = new Date();
+				const periodEnd = new Date(now);
+				const isAnnual = gymSub.billingPeriod === "annual";
+				if (isAnnual) {
+					periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+				} else {
+					periodEnd.setMonth(periodEnd.getMonth() + 1);
+				}
+
+				await db.gymSubscription.update({
+					where: { id: gymSub.id },
+					data: {
+						status: "active",
+						currentPeriodStart: now,
+						currentPeriodEnd: periodEnd,
+						cancelAtPeriodEnd: false,
+						canceledAt: null,
+					},
+				});
+
+				console.log(`[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`);
+				return successResponse({ received: true, type: "gym" });
+			}
+
+			// 2. Tentar Subscription (aluno) - apenas billing, não pixQrCode
+			let subscription = pixQrCode
+				? null
+				: await db.subscription.findUnique({
+						where: { abacatePayBillingId: paymentId },
+						include: { student: true },
+					});
 
 			if (!subscription && metadata.studentId) {
 				subscription = await db.subscription.findUnique({
@@ -53,17 +92,15 @@ export async function POST(request: NextRequest) {
 			}
 
 			if (!subscription) {
-				console.error(`[Webhook] Subscription não encontrada para billingId: ${billingId} ou studentId: ${metadata.studentId}`);
+				console.error(`[Webhook] Subscription não encontrada para paymentId: ${paymentId} ou studentId: ${metadata.studentId}`);
 				return successResponse({ processed: false, error: "Subscription not found" });
 			}
 
 			// Calcular novos períodos
 			const now = new Date();
 			const periodEnd = new Date(now);
-			
-			// Usar metadados se disponíveis, senão adivinhar pelo valor
 			const isAnnual = metadata.billingPeriod === "annual" || amount >= 15000;
-			
+
 			if (isAnnual) {
 				periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 			} else {
@@ -80,8 +117,8 @@ export async function POST(request: NextRequest) {
 					currentPeriodEnd: periodEnd,
 					cancelAtPeriodEnd: false,
 					canceledAt: null,
-					abacatePayBillingId: billingId, // Garantir que está salvo
-					abacatePayCustomerId: billing.customer?.id || subscription.abacatePayCustomerId,
+					abacatePayBillingId: paymentId,
+					abacatePayCustomerId: billing?.customer?.id || subscription.abacatePayCustomerId,
 				},
 			});
 
@@ -89,10 +126,10 @@ export async function POST(request: NextRequest) {
 			await db.subscriptionPayment.create({
 				data: {
 					subscriptionId: subscription.id,
-					amount: amount / 100, // converter centavos para reais
+					amount: amount / 100,
 					status: "succeeded",
-					paymentMethod: billing.payment?.method || "pix",
-					abacatePayBillingId: billingId,
+					paymentMethod: billing?.payment?.method || "pix",
+					abacatePayBillingId: paymentId,
 					paidAt: now,
 				},
 			});

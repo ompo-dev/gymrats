@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
-import { useRouter } from "next/navigation";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -40,7 +40,7 @@ export function MembershipPlansPage({
 }: {
 	plans: MembershipPlan[];
 }) {
-	const router = useRouter();
+	const { actions, loaders } = useGym("actions", "loaders");
 	const [plans, setPlans] = useState(initialPlans);
 	const [isCreating, setIsCreating] = useState(false);
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -56,41 +56,45 @@ export function MembershipPlansPage({
 	const handleCreate = async () => {
 		try {
 			setSaving(true);
-			const url = editingId
-				? `/api/gyms/plans/${editingId}`
-				: "/api/gyms/plans";
-			const method = editingId ? "PATCH" : "POST";
-
-			const res = await fetch(url, {
-				method,
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					...form,
-					price: Number(form.price),
-					duration: Number(form.duration),
-					benefits: form.benefits
-						.split(",")
-						.map((b) => b.trim())
-						.filter(Boolean),
-				}),
-			});
-
-			const data = await res.json();
-			if (res.ok) {
-				if (editingId) {
-					// Update local
-					setPlans((prev) =>
-						prev.map((p) => (p.id === editingId ? data.plan : p)),
-					);
-				} else {
-					// Add new
-					setPlans((prev) => [...prev, data.plan]);
-				}
-				resetForm();
-				router.refresh(); // Refresh server data
+			const payload = {
+				...form,
+				price: Number(form.price),
+				duration: Number(form.duration),
+				benefits: form.benefits
+					.split(",")
+					.map((b) => b.trim())
+					.filter(Boolean),
+			};
+			if (editingId) {
+				await actions.updateMembershipPlan(editingId, payload);
+				setPlans((prev) =>
+					prev.map((p) =>
+						p.id === editingId
+							? ({
+									...p,
+									...payload,
+									type: payload.type as MembershipPlan["type"],
+								} as MembershipPlan)
+							: p,
+					),
+				);
 			} else {
-				alert(data.error || "Erro ao salvar plano");
+				await actions.createMembershipPlan(payload);
+				setPlans((prev) => [
+					...prev,
+					{
+						id: `${Date.now()}`,
+						name: payload.name,
+						type: payload.type as MembershipPlan["type"],
+						price: payload.price,
+						duration: payload.duration,
+						benefits: payload.benefits,
+						isActive: true,
+					} as MembershipPlan,
+				]);
 			}
+			await loaders.loadSection("membershipPlans");
+			resetForm();
 		} catch (error) {
 			console.error("Erro ao salvar plano:", error);
 			alert("Erro ao salvar plano");
@@ -109,16 +113,9 @@ export function MembershipPlansPage({
 		if (!planToDelete) return;
 
 		try {
-			const res = await fetch(`/api/gyms/plans/${planToDelete}`, {
-				method: "DELETE",
-			});
-			if (res.ok) {
-				setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
-				router.refresh();
-			} else {
-				const data = await res.json();
-				alert(data.error || "Erro ao deletar plano");
-			}
+			await actions.deleteMembershipPlan(planToDelete);
+			setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
+			await loaders.loadSection("membershipPlans");
 		} catch (error) {
 			console.error("Erro ao deletar plano:", error);
 			alert("Erro ao deletar plano");

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
 interface StudentSearchResult {
@@ -40,6 +41,7 @@ export function AddStudentModal({
 	onSuccess,
 	membershipPlans,
 }: AddStudentModalProps) {
+	const { actions, loaders } = useGym("actions", "loaders");
 	const [email, setEmail] = useState("");
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchResult, setSearchResult] =
@@ -83,20 +85,13 @@ export function AddStudentModal({
 		setIsSubmitting(true);
 		setError("");
 		try {
-			const res = await fetch("/api/gyms/members", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					studentId: searchResult.student.id,
-					planId: selectedPlanId || null,
-					amount,
-				}),
+			await actions.enrollStudent({
+				studentId: searchResult.student.id,
+				planId: selectedPlanId || null,
+				amount,
 			});
-			const data = await res.json();
-			if (!res.ok) {
-				setError(data.error ?? "Erro ao matricular aluno.");
-				return;
-			}
+			await loaders.loadSection("students");
+			await loaders.loadSection("stats");
 			onSuccess();
 			handleClose();
 		} catch {
@@ -117,7 +112,7 @@ export function AddStudentModal({
 
 	if (!isOpen) return null;
 
-	const planOptions = membershipPlans.map((p) => ({
+	const planOptions = (membershipPlans ?? []).map((p) => ({
 		value: p.id,
 		label: `${p.name} — R$ ${p.price.toFixed(2).replace(".", ",")}`,
 	}));
@@ -216,7 +211,7 @@ export function AddStudentModal({
 									<DuoCard variant="highlighted" size="sm">
 										<div className="flex items-center gap-3">
 											{searchResult.student.avatar ? (
-												<div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-full">
+												<div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
 													<Image
 														src={searchResult.student.avatar}
 														alt={searchResult.student.name}
@@ -225,7 +220,7 @@ export function AddStudentModal({
 													/>
 												</div>
 											) : (
-												<div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-duo-blue/15 text-lg font-bold text-duo-blue">
+												<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-duo-blue/15 text-lg font-bold text-duo-blue">
 													{searchResult.student.name.charAt(0).toUpperCase()}
 												</div>
 											)}
@@ -245,7 +240,7 @@ export function AddStudentModal({
 													</span>
 												</div>
 											</div>
-											<CheckCircle className="ml-auto h-5 w-5 flex-shrink-0 text-duo-green" />
+											<CheckCircle className="ml-auto h-5 w-5 shrink-0 text-duo-green" />
 										</div>
 									</DuoCard>
 

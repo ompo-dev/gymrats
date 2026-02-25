@@ -2,6 +2,14 @@ import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 
+/** Resposta PIX QRCode - usado para gym (valor dinâmico, sem criar produtos) */
+export interface GymSubscriptionPixResponse {
+	id: string;
+	brCode: string;
+	brCodeBase64: string;
+	amount: number; // centavos
+}
+
 // Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
 // Para imports em componentes client-side, use "@/lib/utils/subscription-helpers" diretamente.
 export {
@@ -104,7 +112,7 @@ export async function createStudentSubscriptionBilling(
 
 	const billingData: CreateBillingRequest = {
 		frequency: plan === "monthly" ? "MULTIPLE_PAYMENTS" : "ONE_TIME",
-		methods: ["PIX", "CARD"],
+		methods: ["PIX"], // Abacate Pay: apenas PIX disponível por enquanto
 		products: [
 			{
 				externalId: `subscription-${plan}-${studentId}`,
@@ -244,7 +252,7 @@ export async function createGymSubscriptionBilling(
 
 	const billingData: CreateBillingRequest = {
 		frequency: billingPeriod === "annual" ? "ONE_TIME" : "MULTIPLE_PAYMENTS",
-		methods: ["PIX", "CARD"],
+		methods: ["PIX"], // Abacate Pay: apenas PIX disponível por enquanto
 		products: [
 			{
 				externalId: `gym-subscription-${plan}-${billingPeriod}-${gymId}`,
@@ -318,4 +326,86 @@ export async function createGymSubscriptionBilling(
 	}
 
 	return billingResponse.data;
+}
+
+/**
+ * Cria cobrança PIX para assinatura de academia via pixQrCode.
+ * Não cria produtos na AbacatePay - valor dinâmico (base + por aluno).
+ */
+export async function createGymSubscriptionPix(
+	gymId: string,
+	plan: "basic" | "premium" | "enterprise",
+	studentCount: number,
+	billingPeriod: "monthly" | "annual" = "monthly",
+	subscriptionId: string,
+): Promise<GymSubscriptionPixResponse | null> {
+	const gym = await db.gym.findUnique({
+		where: { id: gymId },
+		include: { user: true },
+	});
+
+	if (!gym) {
+		throw new Error("Academia não encontrada");
+	}
+
+	const prices = {
+		basic: { base: 15000, perStudent: 150 },
+		premium: { base: 25000, perStudent: 100 },
+		enterprise: { base: 40000, perStudent: 50 },
+	};
+
+	const planPrices = prices[plan];
+	let basePrice = planPrices.base;
+	let perStudentPrice = planPrices.perStudent;
+
+	if (billingPeriod === "annual") {
+		const annualDiscounts = { basic: 0.95, premium: 0.9, enterprise: 0.85 };
+		basePrice = Math.round(planPrices.base * 12 * annualDiscounts[plan]);
+		perStudentPrice = 0;
+	}
+
+	const totalAmount =
+		billingPeriod === "annual"
+			? basePrice
+			: basePrice + perStudentPrice * studentCount;
+
+	const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
+	const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
+	const description = `GymRats ${planName} ${periodLabel}`.slice(0, 37);
+
+	const pixResponse = await abacatePay.createPixQrCode({
+		amount: totalAmount,
+		expiresIn: 3600, // 1 hora
+		description,
+		metadata: {
+			gymId,
+			plan,
+			billingPeriod,
+			subscriptionId,
+			kind: "gym-subscription",
+		},
+		customer: gym.email
+			? {
+					name: gym.name,
+					email: gym.email,
+					cellphone: gym.phone || "",
+					taxId: gym.cnpj || "",
+				}
+			: undefined,
+	});
+
+	if (pixResponse.error || !pixResponse.data) {
+		console.error("[createGymSubscriptionPix] Erro:", pixResponse.error);
+		throw new Error(
+			pixResponse.error || "Erro ao criar PIX na AbacatePay",
+		);
+	}
+
+	const pix = pixResponse.data;
+	return {
+		id: pix.id,
+		brCode: pix.brCode,
+		brCodeBase64: pix.brCodeBase64,
+		amount: pix.amount,
+	};
 }

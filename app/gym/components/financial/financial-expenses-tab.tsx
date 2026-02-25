@@ -5,13 +5,14 @@ import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import type { Expense } from "@/lib/types";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
 
 interface FinancialExpensesTabProps {
 	expenses: Expense[];
 }
 
 export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
-	const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+	const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
 
 	return (
 		<SectionCard
@@ -48,7 +49,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 									-R$ {expense.amount}
 								</div>
 								<div className="text-xs text-duo-gray-dark">
-									{expense.date.toLocaleDateString("pt-BR")}
+									{formatDatePtBr(expense.date) || "N/A"}
 								</div>
 							</div>
 						</div>
@@ -66,7 +67,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 						Total de Despesas
 					</span>
 					<span className="text-xl font-bold text-duo-red">
-						R$ {totalExpenses.toLocaleString()}
+						R$ {(totalExpenses ?? 0).toLocaleString("pt-BR")}
 					</span>
 				</div>
 			</DuoCard>

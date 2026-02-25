@@ -50,7 +50,7 @@ function StudentHomeContent() {
 	const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
 
 	// ✅ SEGURO: Verificar se é admin validando no servidor
-	const { isAdmin, role } = useUserSession();
+	const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
 	// Proteger rotas bloqueadas (versão beta)
@@ -59,11 +59,14 @@ function StudentHomeContent() {
 
 	// Redirecionar se tentar acessar rota bloqueada
 	useEffect(() => {
+		// Não redirecionar se a sessão ainda estiver carregando
+		if (isSessionLoading) return;
+
 		if (isBlockedTab) {
 			// Redirecionar para home se tentar acessar rota bloqueada
 			router.push("/student?tab=home");
 		}
-	}, [isBlockedTab, router]);
+	}, [isBlockedTab, isSessionLoading, router]);
 	const [educationView, setEducationView] = useQueryState(
 		"view",
 		parseAsString.withDefault("menu"),

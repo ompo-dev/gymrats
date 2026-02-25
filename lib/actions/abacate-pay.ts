@@ -1,30 +1,17 @@
 "use server";
 
-import { auth } from "@/lib/auth-config";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { abacatePay } from "@/lib/api/abacatepay";
+import { getStudentContext } from "@/lib/utils/student-context";
 
 export async function createAbacateBilling(planId: string, billingPeriod: string) {
 	try {
-		const sessionResponse = await auth.api.getSession({
-			headers: await headers(),
-		});
-
-		const user = sessionResponse?.user;
-		if (!user) {
-			throw new Error("Usuário não autenticado. Por favor, faça login.");
+		const contextResult = await getStudentContext();
+		if (contextResult.error || !contextResult.ctx) {
+			throw new Error(contextResult.error || "Perfil de aluno não encontrado.");
 		}
 
-		// Buscar studentId
-		const student = await db.student.findUnique({
-			where: { userId: user.id },
-		});
-
-		if (!student) {
-			throw new Error("Perfil de aluno não encontrado.");
-		}
-
+		const { student, user } = contextResult.ctx;
 		const studentId = student.id;
 
 		// Preços em centavos
@@ -146,22 +133,12 @@ export async function confirmAbacatePayment(): Promise<{
 	error?: string;
 }> {
 	try {
-		const sessionResponse = await auth.api.getSession({
-			headers: await headers(),
-		});
-
-		const user = sessionResponse?.user;
-		if (!user) {
-			return { success: false, error: "Usuário não autenticado." };
+		const contextResult = await getStudentContext();
+		if (contextResult.error || !contextResult.ctx) {
+			return { success: false, error: contextResult.error || "Perfil de aluno não encontrado." };
 		}
 
-		const student = await db.student.findUnique({
-			where: { userId: user.id },
-		});
-
-		if (!student) {
-			return { success: false, error: "Perfil de aluno não encontrado." };
-		}
+		const { student } = contextResult.ctx;
 
 		const subscription = await db.subscription.findUnique({
 			where: { studentId: student.id },

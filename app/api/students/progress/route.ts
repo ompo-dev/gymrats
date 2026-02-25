@@ -1,13 +1,25 @@
-import type { NextRequest } from "next/server";
-import {
-	getStudentProgressHandler,
-	updateStudentProgressHandler,
-} from "@/lib/api/handlers/students.handler";
+import { NextResponse } from "next/server";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { StudentDomainService } from "@/lib/services/student-domain.service";
+import { updateStudentProgressSchema } from "@/lib/api/schemas/students.schemas";
 
-export async function GET(request: NextRequest) {
-	return getStudentProgressHandler(request);
-}
+export const GET = createSafeHandler(
+  async ({ studentContext }) => {
+    const { studentId } = studentContext!;
+    const progress = await StudentDomainService.getProgress(studentId);
+    return NextResponse.json(progress);
+  },
+  { auth: "student" }
+);
 
-export async function PUT(request: NextRequest) {
-	return updateStudentProgressHandler(request);
-}
+export const PUT = createSafeHandler(
+  async ({ body, studentContext }) => {
+    const { studentId } = studentContext!;
+    await StudentDomainService.updateProgress(studentId, body);
+    return NextResponse.json({ message: "Progresso atualizado com sucesso" });
+  },
+  {
+    auth: "student",
+    schema: { body: updateStudentProgressSchema },
+  }
+);

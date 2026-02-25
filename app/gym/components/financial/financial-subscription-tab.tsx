@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionStore } from "@/stores/subscription-store";
+import { PixPaymentModal } from "./pix-payment-modal";
 
 interface FinancialSubscriptionTabProps {
 	subscription?: {
@@ -25,11 +27,50 @@ interface FinancialSubscriptionTabProps {
 	} | null;
 }
 
+const PENDING_PIX_KEY = "gym-pending-pix";
+const PIX_EXPIRY_MS = 55 * 60 * 1000; // 55 min (PIX vale 1h)
+
+function loadPendingPixFromStorage(): {
+	pixId: string;
+	brCode: string;
+	brCodeBase64: string;
+	amount: number;
+} | null {
+	if (typeof window === "undefined") return null;
+	try {
+		const raw = sessionStorage.getItem(PENDING_PIX_KEY);
+		if (!raw) return null;
+		const data = JSON.parse(raw) as { pixId: string; brCode: string; brCodeBase64?: string; amount: number; createdAt: number };
+		if (Date.now() - data.createdAt > PIX_EXPIRY_MS) {
+			sessionStorage.removeItem(PENDING_PIX_KEY);
+			return null;
+		}
+		return { pixId: data.pixId, brCode: data.brCode, brCodeBase64: data.brCodeBase64 ?? "", amount: data.amount };
+	} catch {
+		return null;
+	}
+}
+
+function savePendingPixToStorage(pix: { pixId: string; brCode: string; brCodeBase64: string; amount: number }) {
+	sessionStorage.setItem(PENDING_PIX_KEY, JSON.stringify({ ...pix, createdAt: Date.now() }));
+}
+
+function clearPendingPixStorage() {
+	sessionStorage.removeItem(PENDING_PIX_KEY);
+}
+
 export function FinancialSubscriptionTab({
 	subscription: initialSubscription,
 }: FinancialSubscriptionTabProps) {
 	const { toast } = useToast();
 	const { gymSubscription: storeSubscription } = useSubscriptionStore();
+	const [pendingPix, setPendingPix] = useState<{
+		pixId: string;
+		brCode: string;
+		brCodeBase64: string;
+		amount: number;
+	} | null>(null);
+
 	const {
 		subscription: subscriptionData,
 		isLoading: isLoadingSubscription,
@@ -67,6 +108,29 @@ export function FinancialSubscriptionTab({
 						: subscriptionData === null
 							? null
 							: initialSubscription;
+
+	// Restaurar PIX pendente ao voltar (ex.: fechou modal, foi ao banco, voltou)
+	useEffect(() => {
+		if (isLoadingSubscription) return;
+		const stored = loadPendingPixFromStorage();
+		if (!stored) return;
+		if (subscriptionData?.status === "active") {
+			clearPendingPixStorage();
+			return;
+		}
+		if (subscriptionData?.status === "pending") {
+			setPendingPix(stored);
+		}
+	}, [isLoadingSubscription, subscriptionData?.status]);
+
+	// Refetch ao voltar para a aba (ex.: foi ao app do banco pagar)
+	useEffect(() => {
+		const hasPending = pendingPix || loadPendingPixFromStorage();
+		if (!hasPending) return;
+		const onFocus = () => refetchSubscription();
+		window.addEventListener("focus", onFocus);
+		return () => window.removeEventListener("focus", onFocus);
+	}, [pendingPix, refetchSubscription]);
 
 	const handleStartTrial = async () => {
 		try {
@@ -119,8 +183,18 @@ export function FinancialSubscriptionTab({
 				});
 				return;
 			}
-			if (result.billingUrl) {
-				window.location.href = result.billingUrl;
+			// Gym usa PIX inline (valor dinâmico, sem produtos)
+			const pix = result as { pixId?: string; brCode?: string; brCodeBase64?: string; amount?: number };
+			if (pix.pixId && pix.brCode) {
+				await refetchSubscription();
+				const pixData = {
+					pixId: pix.pixId,
+					brCode: pix.brCode,
+					brCodeBase64: pix.brCodeBase64 ?? "",
+					amount: pix.amount ?? 0,
+				};
+				setPendingPix(pixData);
+				savePendingPixToStorage(pixData);
 			}
 		} catch (error: unknown) {
 			const msg =
@@ -184,6 +258,7 @@ export function FinancialSubscriptionTab({
 	};
 
 	return (
+		<>
 		<SubscriptionSection
 			userType="gym"
 			subscription={
@@ -202,9 +277,11 @@ export function FinancialSubscriptionTab({
 							daysRemaining: subscription.daysRemaining,
 							activeStudents: subscription.activeStudents,
 							totalAmount: subscription.totalAmount,
+							billingPeriod: (subscription as { billingPeriod?: "monthly" | "annual" }).billingPeriod ?? "monthly",
 						}
 					: null
 			}
+			onPaymentSuccess={refetchSubscription}
 			isLoading={isLoadingSubscription}
 			isStartingTrial={isStartingTrial}
 			isCreatingSubscription={isCreatingSubscription}
@@ -275,5 +352,29 @@ export function FinancialSubscriptionTab({
 				nextRenewal: "Próxima renovação",
 			}}
 		/>
+		{pendingPix && (
+			<PixPaymentModal
+				isOpen={!!pendingPix}
+				onClose={() => {
+					setPendingPix(null);
+					toast({
+						title: "PIX salvo",
+						description: "Volte aqui para ver o PIX novamente ou verificar se o pagamento foi confirmado.",
+					});
+				}}
+				onPaymentConfirmed={() => {
+					clearPendingPixStorage();
+					refetchSubscription();
+				}}
+				pixId={pendingPix.pixId}
+				brCode={pendingPix.brCode}
+				brCodeBase64={pendingPix.brCodeBase64}
+				amount={pendingPix.amount}
+				refetchSubscription={refetchSubscription}
+				subscriptionStatus={subscription?.status}
+				initialStatus="pending"
+			/>
+		)}
+		</>
 	);
 }

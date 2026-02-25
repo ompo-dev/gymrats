@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { OptionSelector } from "@/components/ui/option-selector";
+import { useGym } from "@/hooks/use-gym";
 import type { Equipment } from "@/lib/types";
 
 const EQUIPMENT_TYPES = [
@@ -38,6 +39,7 @@ export function AddEquipmentModal({
 	onSuccess,
 	equipmentToEdit,
 }: AddEquipmentModalProps) {
+	const { actions, loaders } = useGym("actions", "loaders");
 	const [form, setForm] = useState({
 		name: "",
 		type: "Musculação",
@@ -90,24 +92,34 @@ export function AddEquipmentModal({
 		setError("");
 
 		try {
-			const url = equipmentToEdit
-				? `/api/gyms/equipment/${equipmentToEdit.id}`
-				: "/api/gyms/equipment";
-			const method = equipmentToEdit ? "PATCH" : "POST";
-
-			const res = await fetch(url, {
-				method,
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(form),
-			});
-
-			const data = await res.json();
-			if (!res.ok) {
-				setError(data.error || "Erro ao salvar equipamento");
-				return;
+			const payload = {
+				...form,
+				status: form.status as Equipment["status"],
+			};
+			if (equipmentToEdit) {
+				await actions.updateEquipment(equipmentToEdit.id, payload);
+			} else {
+				await actions.createEquipment(payload);
 			}
-
-			onSuccess(data.equipment);
+			await loaders.loadSection("equipment");
+			onSuccess({
+				id: equipmentToEdit?.id || `${Date.now()}`,
+				name: form.name,
+				type: form.type,
+				brand: form.brand || "",
+				model: form.model || "",
+				serialNumber: form.serialNumber || "",
+				status: form.status as Equipment["status"],
+				purchaseDate: form.purchaseDate ? new Date(form.purchaseDate) : null,
+				lastMaintenance: equipmentToEdit?.lastMaintenance ?? null,
+				nextMaintenance: equipmentToEdit?.nextMaintenance ?? null,
+				usageStats: equipmentToEdit?.usageStats ?? {
+					totalUses: 0,
+					avgUsageTime: 0,
+					popularTimes: [],
+				},
+				maintenanceHistory: equipmentToEdit?.maintenanceHistory ?? [],
+			} as Equipment);
 			onClose();
 		} catch (err) {
 			console.error(err);

@@ -1,127 +1,36 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { db } from "@/lib/db";
-import { getSession } from "@/lib/utils/session";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { NextResponse } from "next/server";
+import {
+	gymMembershipIdParamsSchema,
+	updateGymMemberSchema,
+} from "@/lib/api/schemas/gyms.schemas";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
 
-
-
-// PATCH — atualizar status da matrícula (ativo/suspenso/cancelado)
-export async function PATCH(
-	request: NextRequest,
-	{ params }: { params: Promise<{ membershipId: string }> },
-) {
-	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
-		const { ctx, errorResponse } = await getGymContext();
-		if (errorResponse) return errorResponse;
-
-		const { membershipId } = await params;
-		const body = await request.json();
-		const { status, planId, amount } = body;
-
-		const validStatuses = ["active", "suspended", "canceled"];
-		if (status && !validStatuses.includes(status)) {
-			return NextResponse.json({ error: "Status inválido" }, { status: 400 });
-		}
-
-		// Buscar estado anterior para ajustar contadores
-		const current = await db.gymMembership.findFirst({
-			where: { id: membershipId, gymId: ctx.gymId },
-			select: { status: true },
-		});
-		if (!current) {
-			return NextResponse.json(
-				{ error: "Matrícula não encontrada" },
-				{ status: 404 },
-			);
-		}
-
-		const membership = await db.gymMembership.update({
-			where: { id: membershipId, gymId: ctx.gymId },
-			data: {
-				...(status ? { status } : {}),
-				...(planId ? { planId } : {}),
-				...(amount ? { amount: Number(amount) } : {}),
-			},
-			include: { student: { include: { user: true } }, plan: true },
-		});
-
-		// Atualizar GymProfile.activeStudents ao mudar status
-		if (status && status !== current.status) {
-			const wasActive = current.status === "active";
-			const isNowActive = status === "active";
-
-			if (wasActive && !isNowActive) {
-				await db.gymProfile.updateMany({
-					where: { gymId: ctx.gymId },
-					data: { activeStudents: { decrement: 1 } },
-				});
-			} else if (!wasActive && isNowActive) {
-				await db.gymProfile.updateMany({
-					where: { gymId: ctx.gymId },
-					data: { activeStudents: { increment: 1 } },
-				});
-			}
-		}
-
+export const PATCH = createSafeHandler(
+	async ({ gymContext, params, body }) => {
+		const membership = await GymDomainService.updateMember(
+			gymContext!.gymId,
+			params.membershipId,
+			body,
+		);
 		return NextResponse.json({ success: true, membership });
-	} catch (error) {
-		console.error("[PATCH /api/gyms/members/[membershipId]]", error);
-		return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-	}
-}
+	},
+	{
+		auth: "gym",
+		schema: {
+			params: gymMembershipIdParamsSchema,
+			body: updateGymMemberSchema,
+		},
+	},
+);
 
-// DELETE — cancelar matrícula de vez
-export async function DELETE(
-	request: NextRequest,
-	{ params }: { params: Promise<{ membershipId: string }> },
-) {
-	try {
-		const cookieStore = await cookies();
-		const sessionToken = cookieStore.get("auth_token")?.value;
-		if (!sessionToken)
-			return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-
-
-		const { ctx, errorResponse } = await getGymContext();
-		if (errorResponse) return errorResponse;
-
-		const { membershipId } = await params;
-
-		const current = await db.gymMembership.findFirst({
-			where: { id: membershipId, gymId: ctx.gymId },
-			select: { status: true },
-		});
-		if (!current)
-			return NextResponse.json(
-				{ error: "Matrícula não encontrada" },
-				{ status: 404 },
-			);
-
-		await db.gymMembership.update({
-			where: { id: membershipId },
-			data: { status: "canceled" },
-		});
-
-		if (current.status === "active") {
-			await db.gymProfile.updateMany({
-				where: { gymId: ctx.gymId },
-				data: {
-					activeStudents: { decrement: 1 },
-					totalStudents: { decrement: 1 },
-				},
-			});
-		}
-
+export const DELETE = createSafeHandler(
+	async ({ gymContext, params }) => {
+		await GymDomainService.cancelMember(gymContext!.gymId, params.membershipId);
 		return NextResponse.json({ success: true });
-	} catch (error) {
-		console.error("[DELETE /api/gyms/members/[membershipId]]", error);
-		return NextResponse.json({ error: "Erro interno" }, { status: 500 });
-	}
-}
+	},
+	{
+		auth: "gym",
+		schema: { params: gymMembershipIdParamsSchema },
+	},
+);

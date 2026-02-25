@@ -1,8 +1,11 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
+import { useGymInitializer } from "@/hooks/use-gym-initializer";
+import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
+import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import type {
 	CheckIn,
 	Equipment,
@@ -45,37 +48,94 @@ function GymHomeContent({
 	initialPayments, // Added
 	initialExpenses, // Added
 }: GymHomeContentProps) {
+	const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
+	useGymInitializer();
+	useLoadPrioritizedGym({ onlyPriorities: true });
+
+	// Hidratacao inicial vinda do server para evitar tela vazia
+	// e permitir transicao para runtime client-driven.
+	useEffect(() => {
+		if (
+			initialProfile ||
+			initialStats ||
+			initialStudents.length > 0 ||
+			initialEquipment.length > 0
+		) {
+			hydrateInitial({
+				profile: initialProfile,
+				stats: initialStats,
+				students: initialStudents,
+				equipment: initialEquipment,
+				financialSummary: initialFinancialSummary,
+				recentCheckIns: initialRecentCheckIns || [],
+				membershipPlans: initialPlans,
+				payments: initialPayments,
+				expenses: initialExpenses,
+			});
+		}
+	}, [
+		hydrateInitial,
+		initialProfile,
+		initialStats,
+		initialStudents,
+		initialEquipment,
+		initialFinancialSummary,
+		initialRecentCheckIns,
+		initialPlans,
+		initialPayments,
+		initialExpenses,
+	]);
+
+	const store = useGymUnifiedStore((state) => state.data);
+
+	const profile = store.profile ?? initialProfile;
+	const stats = store.stats ?? initialStats;
+	const students = store.students.length > 0 ? store.students : initialStudents;
+	const equipment = store.equipment.length > 0 ? store.equipment : initialEquipment;
+	const financialSummary =
+		store.financialSummary ?? initialFinancialSummary;
+	const recentCheckIns =
+		store.recentCheckIns.length > 0
+			? store.recentCheckIns
+			: initialRecentCheckIns || [];
+	const plans =
+		store.membershipPlans.length > 0
+			? store.membershipPlans
+			: initialPlans;
+	const payments = store.payments.length > 0 ? store.payments : initialPayments;
+	const expenses = store.expenses.length > 0 ? store.expenses : initialExpenses;
+
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
 	return (
 		<div className="px-4 py-6">
-			{tab === "dashboard" && initialProfile && initialStats && (
+			{tab === "dashboard" && profile && stats && (
 				<GymDashboardPage
-					profile={initialProfile}
-					stats={initialStats}
-					students={initialStudents}
-					equipment={initialEquipment}
-					recentCheckIns={initialRecentCheckIns}
+					profile={profile}
+					stats={stats}
+					students={students}
+					equipment={equipment}
+					recentCheckIns={recentCheckIns}
 				/>
 			)}
-			{tab === "students" && <GymStudentsPage students={initialStudents} />}
-			{tab === "equipment" && <GymEquipmentPage equipment={initialEquipment} />}
+			{tab === "students" && <GymStudentsPage students={students ?? []} />}
+			{tab === "equipment" && <GymEquipmentPage equipment={equipment} />}
 			{tab === "financial" && (
 				<GymFinancialPage
-					financialSummary={initialFinancialSummary}
-					payments={initialPayments} // Added prop
-					expenses={initialExpenses} // Added prop
+					financialSummary={financialSummary}
+					payments={payments}
+					expenses={expenses}
 				/>
 			)}
-			{tab === "stats" && initialStats && (
-				<GymStatsPage stats={initialStats} equipment={initialEquipment} />
+			{tab === "stats" && stats && (
+				<GymStatsPage stats={stats} equipment={equipment} />
 			)}
-			{tab === "settings" && initialProfile && (
-				<GymSettingsPage profile={initialProfile} plans={initialPlans} />
+			{tab === "settings" && profile && (
+				<GymSettingsPage profile={profile} plans={plans} />
 			)}
-			{tab === "gamification" && initialProfile && (
-				<GymGamificationPage profile={initialProfile} />
+			{tab === "gamification" && profile && (
+				<GymGamificationPage profile={profile} />
 			)}
 			{tab === "more" && <GymMoreMenu />}
 		</div>

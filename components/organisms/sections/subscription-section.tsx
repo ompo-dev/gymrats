@@ -57,6 +57,8 @@ export interface SubscriptionSectionProps {
 		billingPeriod: "monthly" | "annual",
 	) => Promise<void>;
 	onCancel: () => Promise<void>;
+	/** Chamado após confirmar pagamento (ex.: refetch da assinatura). Para gym, passar refetch do useGymSubscription. */
+	onPaymentSuccess?: () => Promise<void>;
 
 	// Configurações de planos
 	plans: SubscriptionPlan[];
@@ -101,6 +103,7 @@ export function SubscriptionSection({
 	onStartTrial,
 	onSubscribe,
 	onCancel,
+	onPaymentSuccess,
 	plans,
 	texts = {},
 	showPlansWhen = "no-subscription",
@@ -130,23 +133,38 @@ export function SubscriptionSection({
 		const confirmPayment = async () => {
 			toast({
 				title: "Pagamento recebido!",
-				description: "Verificando e ativando sua assinatura Premium...",
+				description: "Verificando e ativando sua assinatura...",
 			});
 
-			// Tentar confirmar o pagamento com polling (máximo 10 tentativas)
+			// Para gym: webhook ativa a assinatura. Refetch com polling até obter dados atualizados.
+			if (userType === "gym" && onPaymentSuccess) {
+				for (let i = 0; i < 10; i++) {
+					if (cancelled) return;
+					await onPaymentSuccess();
+					await new Promise((resolve) => setTimeout(resolve, 2000));
+				}
+				toast({
+					title: "Assinatura Ativada! 🎉",
+					description: "Seu plano está ativo. Aproveite!",
+				});
+				const url = new URL(window.location.href);
+				url.searchParams.delete("success");
+				window.history.replaceState({}, "", url.toString());
+				return;
+			}
+
+			// Student: polling via confirmAbacatePayment
 			for (let i = 0; i < 10; i++) {
 				if (cancelled) return;
 
 				try {
 					const result = await confirmAbacatePayment();
 					if (result.success) {
-						// Atualizar o store com dados frescos após ativação
 						await loadSubscription();
 						toast({
 							title: "Assinatura Ativada! 🎉",
 							description: `Seu plano ${result.subscription?.plan || "Premium"} está ativo. Aproveite!`,
 						});
-						// Limpar a URL para não disparar novamente em re-renders ou navegação
 						const url = new URL(window.location.href);
 						url.searchParams.delete("success");
 						window.history.replaceState({}, "", url.toString());
@@ -156,11 +174,9 @@ export function SubscriptionSection({
 					console.error("[SubscriptionSection] Erro ao confirmar pagamento:", error);
 				}
 
-				// Aguardar 3 segundos antes de tentar novamente
 				await new Promise((resolve) => setTimeout(resolve, 3000));
 			}
 
-			// Se não confirmou em 10 tentativas, tentar só carregar do store
 			await loadSubscription();
 		};
 
@@ -169,7 +185,7 @@ export function SubscriptionSection({
 		return () => {
 			cancelled = true;
 		};
-	}, [isSuccess, loadSubscription, toast]);
+	}, [isSuccess, loadSubscription, toast, userType, onPaymentSuccess]);
 
 	// Inicializar estado baseado na subscription atual
 	const prevSubscriptionId = useRef<string | null>(null);

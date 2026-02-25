@@ -8,9 +8,19 @@
  * GET /api/students/all?sections=progress,profile,workouts
  */
 
-import type { NextRequest } from "next/server";
-import { getAllStudentDataHandler } from "@/lib/api/handlers/students.handler";
+import { NextResponse } from "next/server";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { StudentDomainService } from "@/lib/services/student-domain.service";
 
-export async function GET(request: NextRequest) {
-	return getAllStudentDataHandler(request);
-}
+export const GET = createSafeHandler(
+  async ({ query, studentContext }) => {
+    const { studentId, user } = studentContext!;
+    const userId = user.id;
+    const sectionsParam = query.sections as string | undefined;
+    const sections = sectionsParam ? sectionsParam.split(",") : undefined;
+    
+    const data = await StudentDomainService.getAllData(studentId, userId, sections);
+    return NextResponse.json(data);
+  },
+  { auth: "student" }
+);

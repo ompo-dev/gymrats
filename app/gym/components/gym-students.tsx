@@ -3,9 +3,8 @@
 import { Flame, Search, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -13,26 +12,19 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
-import type { MembershipPlan, StudentData } from "@/lib/types";
+import { useGym } from "@/hooks/use-gym";
+import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
 
 interface GymStudentsPageProps {
-	students: StudentData[];
+	students?: StudentData[];
 }
 
-export function GymStudentsPage({ students }: GymStudentsPageProps) {
-	const router = useRouter();
+export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [plans, setPlans] = useState<MembershipPlan[]>([]);
-
-	useEffect(() => {
-		fetch("/api/gyms/plans")
-			.then((r) => r.json())
-			.then((data) => setPlans(data.plans ?? []))
-			.catch(() => {});
-	}, []);
+	const membershipPlans = useGym("membershipPlans");
 
 	const [searchQuery, setSearchQuery] = useQueryState("search", {
 		defaultValue: "",
@@ -43,12 +35,26 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 	);
 	const [studentId, setStudentId] = useQueryState("studentId");
 
-	const filteredStudents = students.filter((student) => {
+	const safeStudents = Array.isArray(students) ? students : [];
+	const filteredStudents = safeStudents.filter((student) => {
+		const s = student as {
+			name?: string;
+			email?: string;
+			membershipStatus?: string;
+			status?: string;
+			student?: { user?: { name?: string; email?: string } };
+		};
+		const name = s.name ?? s.student?.user?.name ?? "";
+		const email = s.email ?? s.student?.user?.email ?? "";
 		const matchesSearch =
-			student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-			student.email.toLowerCase().includes(searchQuery.toLowerCase());
+			name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+			email.toLowerCase().includes(searchQuery.toLowerCase());
+		const status = s.membershipStatus ?? (student as { status?: string }).status ?? "active";
+		const isActive = status === "active";
 		const matchesStatus =
-			statusFilter === "all" || student.membershipStatus === statusFilter;
+			statusFilter === "all" ||
+			(statusFilter === "active" && isActive) ||
+			(statusFilter === "inactive" && !isActive);
 		return matchesSearch && matchesStatus;
 	});
 
@@ -72,7 +78,7 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 	];
 
 	if (studentId) {
-		const student = students.find((s) => s.id === studentId);
+		const student = safeStudents.find((s) => s.id === studentId);
 		return (
 			<GymStudentDetail
 				student={student || null}
@@ -148,28 +154,28 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 									<div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
 										<Image
 											src={student.avatar || "/placeholder.svg"}
-											alt={student.name}
+											alt={student.name ?? ""}
 											fill
 											className="object-cover"
 										/>
 									</div>
 									<div className="flex-1">
 										<h3 className="text-xl font-bold text-duo-text">
-											{student.name}
+											{student.name ?? ""}
 										</h3>
 										<p className="text-sm text-duo-gray-dark">
-											{student.email}
+											{student.email ?? ""}
 										</p>
 										<div className="mt-1 flex items-center gap-2">
 											<span
 												className={cn(
 													"rounded-full px-2 py-1 text-xs font-bold",
-													student.membershipStatus === "active"
+													(student.membershipStatus ?? (student as { status?: string }).status) === "active"
 														? "bg-duo-green text-white"
 														: "bg-gray-300 text-duo-gray-dark",
 												)}
 											>
-												{student.membershipStatus === "active"
+												{(student.membershipStatus ?? (student as { status?: string }).status) === "active"
 													? "Ativo"
 													: "Inativo"}
 											</span>
@@ -184,7 +190,7 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 												<Flame
 													className={cn(
 														"h-5 w-5 fill-current",
-														getStreakColor(student.currentStreak),
+														getStreakColor(student.currentStreak ?? 0),
 													)}
 												/>
 												<span className="font-bold text-duo-text">
@@ -194,10 +200,10 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 											<span
 												className={cn(
 													"text-xl font-bold",
-													getStreakColor(student.currentStreak),
+													getStreakColor(student.currentStreak ?? 0),
 												)}
 											>
-												{student.currentStreak} dias
+												{student.currentStreak ?? 0} dias
 											</span>
 										</div>
 									</DuoCard>
@@ -208,16 +214,16 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 												Frequência
 											</span>
 											<span className="text-xl font-bold text-duo-text">
-												{student.attendanceRate}%
+												{student.attendanceRate ?? 0}%
 											</span>
 										</div>
 										<div className="h-2 overflow-hidden rounded-full bg-gray-200">
 											<div
 												className={cn(
 													"h-full transition-all",
-													getAttendanceColor(student.attendanceRate),
+													getAttendanceColor(student.attendanceRate ?? 0),
 												)}
-												style={{ width: `${student.attendanceRate}%` }}
+												style={{ width: `${student.attendanceRate ?? 0}%` }}
 											/>
 										</div>
 									</DuoCard>
@@ -229,7 +235,7 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 											className="p-3 text-center"
 										>
 											<p className="text-2xl font-bold text-duo-blue">
-												{student.totalVisits}
+												{student.totalVisits ?? 0}
 											</p>
 											<p className="text-xs font-bold text-duo-gray-dark">
 												Treinos
@@ -241,7 +247,7 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 											className="border-duo-purple bg-duo-purple/10 p-3 text-center"
 										>
 											<p className="text-2xl font-bold text-duo-purple">
-												{student.currentWeight}kg
+												{student.currentWeight ?? 0}kg
 											</p>
 											<p className="text-xs font-bold text-duo-gray-dark">
 												Peso
@@ -290,8 +296,8 @@ export function GymStudentsPage({ students }: GymStudentsPageProps) {
 			<AddStudentModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				onSuccess={() => router.refresh()}
-				membershipPlans={plans}
+				onSuccess={() => setIsModalOpen(false)}
+				membershipPlans={membershipPlans}
 			/>
 		</div>
 	);
