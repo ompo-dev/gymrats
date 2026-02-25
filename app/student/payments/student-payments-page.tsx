@@ -526,18 +526,18 @@ export function StudentPaymentsPage({
 										<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-green/20 flex items-center justify-center">
 											<Building2 className="h-6 w-6 text-duo-green" />
 										</div>
-										<div className="flex-1">
-											<h3 className="font-bold text-duo-text">
+										<div className="flex-1 min-w-0">
+											<h3 className="font-bold text-duo-text truncate">
 												{membership.gymName}
 											</h3>
-											<p className="text-xs text-duo-gray-dark mt-0.5">
+											<p className="text-xs text-duo-gray-dark mt-0.5 line-clamp-2 break-words">
 												{membership.gymAddress}
 											</p>
 
-											<div className="mt-3 flex items-center gap-2">
+											<div className="mt-3 flex flex-wrap items-center gap-2">
 												<span
 													className={cn(
-														"px-2 py-1 rounded-lg text-xs font-bold",
+														"px-2 py-1 rounded-lg text-xs font-bold shrink-0",
 														membership.status === "active" &&
 															"bg-duo-green/20 text-duo-green",
 														membership.status === "suspended" &&
@@ -554,15 +554,15 @@ export function StudentPaymentsPage({
 													{membership.status === "pending" && "Pendente"}
 												</span>
 												{membership.autoRenew && (
-													<span className="px-2 py-1 bg-duo-blue/20 text-duo-blue rounded-lg text-xs font-bold">
+													<span className="px-2 py-1 bg-duo-blue/20 text-duo-blue rounded-lg text-xs font-bold shrink-0">
 														Renovação automática
 													</span>
 												)}
 											</div>
 
 											<div className="mt-3 pt-3 border-t-2 border-duo-border">
-												<div className="flex items-center justify-between">
-													<div>
+												<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+													<div className="min-w-0">
 														<p className="text-xs text-duo-gray-dark">
 															{membership.planName}
 														</p>
@@ -570,7 +570,7 @@ export function StudentPaymentsPage({
 															R$ {membership.amount.toFixed(2)}/mês
 														</p>
 													</div>
-													<div className="text-right">
+													<div className="sm:text-right min-w-0">
 														<p className="text-xs text-duo-gray-dark">
 															Próxima cobrança
 														</p>
@@ -605,11 +605,11 @@ export function StudentPaymentsPage({
 																		handleSelectChangePlan(plan.id)
 																	}
 																>
-																	<div className="flex justify-between items-center">
-																		<span className="font-bold text-sm">
+																	<div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:items-center min-w-0">
+																		<span className="font-bold text-sm truncate">
 																			{plan.name}
 																		</span>
-																		<span className="text-duo-green font-bold">
+																		<span className="text-duo-green font-bold shrink-0">
 																			R$ {plan.price.toFixed(2)}
 																		</span>
 																	</div>
@@ -618,6 +618,7 @@ export function StudentPaymentsPage({
 															<Button
 																variant="ghost"
 																size="sm"
+																className="w-full sm:w-auto"
 																onClick={() => {
 																	setChangePlanPlans([]);
 																	setChangePlanMembershipId(null);
@@ -627,27 +628,27 @@ export function StudentPaymentsPage({
 															</Button>
 														</div>
 													) : (
-														<div className="flex gap-2">
+														<div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
 															<Button
 																variant="outline"
 																size="sm"
-																className="flex-1"
+																className="w-full sm:flex-1 justify-center"
 																onClick={() =>
 																	handleTrocarPlanoClick(membership)
 																}
 															>
-																<RefreshCw className="h-4 w-4 mr-1" />
+																<RefreshCw className="h-4 w-4 mr-1 shrink-0" />
 																Trocar plano
 															</Button>
 															<Button
 																variant="outline"
 																size="sm"
-																className="flex-1 border-duo-red text-duo-red hover:bg-duo-red/10"
+																className="w-full sm:flex-1 justify-center border-duo-red text-duo-red hover:bg-duo-red/10"
 																onClick={() =>
 																	handleCancelMembership(membership.id)
 																}
 															>
-																<Trash2 className="h-4 w-4 mr-1" />
+																<Trash2 className="h-4 w-4 mr-1 shrink-0" />
 																Cancelar plano
 															</Button>
 														</div>
