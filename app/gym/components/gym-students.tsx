@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { useGym } from "@/hooks/use-gym";
-import type { MembershipPlan, StudentData } from "@/lib/types";
+import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
@@ -24,7 +24,7 @@ interface GymStudentsPageProps {
 
 export function GymStudentsPage({ students }: GymStudentsPageProps) {
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const membershipPlans = useGym("membershipPlans") as MembershipPlan[];
+	const membershipPlans = useGym("membershipPlans");
 
 	const [searchQuery, setSearchQuery] = useQueryState("search", {
 		defaultValue: "",

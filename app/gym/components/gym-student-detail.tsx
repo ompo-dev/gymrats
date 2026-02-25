@@ -48,7 +48,7 @@ export function GymStudentDetail({
 	payments = [],
 	onBack,
 }: GymStudentDetailProps) {
-	const { actions } = useGym("actions");
+	const actions = useGym("actions");
 	const [studentPayments, setStudentPayments] = useState(payments);
 	const [activeTab, setActiveTab] = useState("overview");
 	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");

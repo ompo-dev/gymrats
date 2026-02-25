@@ -1,44 +1,32 @@
 "use client";
 
+import type { GymSelectorReturnMap } from "@/lib/utils/gym-selectors";
 import {
 	type GymUnifiedState,
 	useGymUnifiedStore,
 } from "@/stores/gym-unified-store";
 
-type GymSelector =
-	| "profile"
-	| "stats"
-	| "students"
-	| "equipment"
-	| "financialSummary"
-	| "recentCheckIns"
-	| "membershipPlans"
-	| "payments"
-	| "expenses"
-	| "subscription"
-	| "metadata"
-	| "actions"
-	| "loaders";
+type GymSelector = keyof GymSelectorReturnMap;
 
-const dataSelector = (selector: GymSelector, data: any) => {
+const dataSelector = (selector: GymSelector, data: GymUnifiedState["data"]) => {
 	switch (selector) {
 		case "actions":
 		case "loaders":
 			return undefined;
 		default:
-			return data[selector];
+			return data[selector as keyof typeof data];
 	}
 };
 
+// Overloads para inferência correta de tipo (ordem importa: mais específico primeiro)
+export function useGym(): GymUnifiedState["data"];
+export function useGym<S extends GymSelector>(selector: S): GymSelectorReturnMap[S];
+export function useGym<S extends [GymSelector, GymSelector, ...GymSelector[]]>(
+	...selectors: S
+): Pick<GymSelectorReturnMap, S[number]>;
 export function useGym<T extends GymSelector>(
 	...selectors: T[]
-): T extends []
-	? GymUnifiedState["data"]
-	: T extends [infer First]
-		? First extends GymSelector
-			? any
-			: never
-		: Record<string, any> {
+): GymUnifiedState["data"] | GymSelectorReturnMap[T] | { [K in T]: GymSelectorReturnMap[K] } {
 	const data = useGymUnifiedStore((state) => state.data);
 	const loadAll = useGymUnifiedStore((state) => state.loadAll);
 	const loadAllPrioritized = useGymUnifiedStore((state) => state.loadAllPrioritized);

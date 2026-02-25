@@ -16,6 +16,7 @@ import {
 	generateIdempotencyKey,
 	syncManager,
 } from "@/lib/offline/sync-manager";
+import { normalizeGymDates } from "@/lib/utils/date-safe";
 import type {
 	GymDataSection,
 	GymPendingAction,
@@ -74,30 +75,42 @@ function transformSectionResponse(
 	section: GymDataSection,
 	data: any,
 ): Partial<GymUnifiedData> {
+	let result: Partial<GymUnifiedData>;
 	switch (section) {
 		case "profile":
-			return { profile: data.profile || null };
+			result = { profile: data.profile || null };
+			break;
 		case "stats":
-			return { stats: data.stats || null };
+			result = { stats: data.stats || null };
+			break;
 		case "students":
-			return { students: data.members || [] };
+			result = { students: data.members || [] };
+			break;
 		case "equipment":
-			return { equipment: data.equipment || [] };
+			result = { equipment: data.equipment || [] };
+			break;
 		case "financialSummary":
-			return { financialSummary: data.summary || null };
+			result = { financialSummary: data.summary || null };
+			break;
 		case "recentCheckIns":
-			return { recentCheckIns: data.checkIns || [] };
+			result = { recentCheckIns: data.checkIns || [] };
+			break;
 		case "membershipPlans":
-			return { membershipPlans: data.plans || [] };
+			result = { membershipPlans: data.plans || [] };
+			break;
 		case "payments":
-			return { payments: data.payments || [] };
+			result = { payments: data.payments || [] };
+			break;
 		case "expenses":
-			return { expenses: data.expenses || [] };
+			result = { expenses: data.expenses || [] };
+			break;
 		case "subscription":
-			return { subscription: data.subscription || null };
+			result = { subscription: data.subscription || null };
+			break;
 		default:
-			return {};
+			result = {};
 	}
+	return normalizeGymDates(result) as Partial<GymUnifiedData>;
 }
 
 async function loadSection(section: GymDataSection): Promise<Partial<GymUnifiedData>> {
@@ -262,10 +275,11 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 			data: initialGymData,
 
 			hydrateInitial: (incoming) => {
+				const normalized = normalizeGymDates(incoming) as Partial<GymUnifiedData>;
 				set((state) => ({
 					data: {
 						...state.data,
-						...incoming,
+						...normalized,
 						metadata: {
 							...state.data.metadata,
 							isInitialized: true,

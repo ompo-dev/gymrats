@@ -21,7 +21,7 @@ interface CheckInModalProps {
 }
 
 export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) {
-	const { actions } = useGym("actions");
+	const actions = useGym("actions");
 	const [search, setSearch] = useState("");
 	const [members, setMembers] = useState<ActiveMember[]>([]);
 	const [isLoading, setIsLoading] = useState(false);

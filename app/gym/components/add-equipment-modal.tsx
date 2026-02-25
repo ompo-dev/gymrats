@@ -92,10 +92,14 @@ export function AddEquipmentModal({
 		setError("");
 
 		try {
+			const payload = {
+				...form,
+				status: form.status as Equipment["status"],
+			};
 			if (equipmentToEdit) {
-				await actions.updateEquipment(equipmentToEdit.id, form);
+				await actions.updateEquipment(equipmentToEdit.id, payload);
 			} else {
-				await actions.createEquipment(form);
+				await actions.createEquipment(payload);
 			}
 			await loaders.loadSection("equipment");
 			onSuccess({
