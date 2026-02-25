@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,15 @@ export function GymSettingsPage({
 	);
 	const [saving, setSaving] = useState(false);
 	const [saveError, setSaveError] = useState("");
+
+	// Sincroniza quando troca de academia (profile vem de outra gym)
+	useEffect(() => {
+		setProfile(initialProfile);
+		setAddress(initialProfile.address ?? "");
+		setPhone(initialProfile.phone ?? "");
+		setCnpj(initialProfile.cnpj ?? "");
+		setDaySchedules(parseInitialSchedules());
+	}, [initialProfile?.id]);
 
 	const {
 		isAdmin: serverIsAdmin,

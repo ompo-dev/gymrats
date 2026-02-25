@@ -240,6 +240,8 @@ async function loadSectionsIncremental(set: any, sections: GymDataSection[]) {
 
 export interface GymUnifiedState {
 	data: GymUnifiedData;
+	/** Limpa todos os dados ao trocar de academia (evita dados da academia anterior) */
+	resetForGymChange: () => void;
 	loadAll: () => Promise<void>;
 	loadAllPrioritized: (
 		priorities: GymDataSection[],
@@ -334,6 +336,21 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 	persist(
 		(set, get) => ({
 			data: initialGymData,
+
+			resetForGymChange: () => {
+				loadingSections.clear();
+				loadingPromises.clear();
+				set({
+					data: {
+						...initialGymData,
+						metadata: {
+							...initialGymData.metadata,
+							isInitialized: false,
+							lastSync: null,
+						},
+					},
+				});
+			},
 
 			hydrateInitial: (incoming) => {
 				const normalized = normalizeGymDates(incoming) as Partial<GymUnifiedData>;

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
-import { useState } from "react"; // Added import
+import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
@@ -35,8 +35,11 @@ interface GymEquipmentPageProps {
 export function GymEquipmentPage({
 	equipment: initialEquipment,
 }: GymEquipmentPageProps) {
-	// Local state for optimistic updates
+	// Local state para lista (sincroniza quando troca de academia)
 	const [equipmentList, setEquipmentList] = useState(initialEquipment);
+	useEffect(() => {
+		setEquipmentList(initialEquipment);
+	}, [initialEquipment]);
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
 	// URL state for filters and selection

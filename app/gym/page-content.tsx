@@ -4,6 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect } from "react";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
+import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import type {
@@ -48,6 +49,7 @@ function GymHomeContent({
 	initialPayments, // Added
 	initialExpenses, // Added
 }: GymHomeContentProps) {
+	const { activeGymId } = useGymsList();
 	const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
 	useGymInitializer();
 	useLoadPrioritizedGym({ onlyPriorities: true });
@@ -108,8 +110,9 @@ function GymHomeContent({
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
+	// key força remount ao trocar academia, evitando estado desatualizado
 	return (
-		<div className="px-4 py-6">
+		<div key={activeGymId || "gym"} className="px-4 py-6">
 			{tab === "dashboard" && profile && stats && (
 				<GymDashboardPage
 					profile={profile}
