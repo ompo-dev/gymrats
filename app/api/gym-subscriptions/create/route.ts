@@ -33,6 +33,8 @@ export const POST = createSafeHandler(
 		};
 		const prices = planPrices[plan];
 
+		let subscriptionId = existingSubscription?.id;
+
 		if (existingSubscription) {
 			await db.gymSubscription.update({
 				where: { id: existingSubscription.id },
@@ -50,6 +52,20 @@ export const POST = createSafeHandler(
 					cancelAtPeriodEnd: false,
 				},
 			});
+		} else {
+			const created = await db.gymSubscription.create({
+				data: {
+					gymId,
+					plan,
+					billingPeriod,
+					status: "pending",
+					basePrice: prices.base,
+					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+					currentPeriodStart: now,
+					currentPeriodEnd: periodEnd,
+				},
+			});
+			subscriptionId = created.id;
 		}
 
 		const billing = await createGymSubscriptionBilling(
@@ -66,9 +82,9 @@ export const POST = createSafeHandler(
 			);
 		}
 
-		if (existingSubscription) {
+		if (subscriptionId) {
 			await db.gymSubscription.update({
-				where: { id: existingSubscription.id },
+				where: { id: subscriptionId },
 				data: { abacatePayBillingId: billing.id },
 			});
 		}

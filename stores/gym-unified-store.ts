@@ -71,6 +71,65 @@ function addPendingAction(
 	];
 }
 
+/** Converte membros da API (formato Prisma) para StudentData flat esperado pela UI */
+function transformMembersToStudents(members: any[]): any[] {
+	return members.map((m: any) => {
+		const student = m.student ?? m;
+		const user = student.user ?? {};
+		const profile = student.profile ?? {};
+		const progress = student.progress ?? {};
+		const status = m.status ?? m.membershipStatus ?? "active";
+		const membershipStatus =
+			status === "active" ? "active" : status === "suspended" ? "suspended" : "inactive";
+		return {
+			id: student.id ?? m.studentId ?? m.id,
+			name: user.name ?? student.name ?? "",
+			email: user.email ?? student.email ?? "",
+			avatar: student.avatar ?? user.image ?? undefined,
+			age: student.age ?? 0,
+			gender: student.gender ?? "",
+			phone: student.phone ?? "",
+			membershipStatus,
+			joinDate: m.createdAt ?? m.joinDate,
+			totalVisits: progress.workoutsCompleted ?? 0,
+			currentStreak: progress.currentStreak ?? 0,
+			currentWeight: profile.weight ?? 0,
+			attendanceRate: 0,
+			profile: {
+				id: student.id,
+				height: profile.height ?? 0,
+				weight: profile.weight ?? 0,
+				fitnessLevel: profile.fitnessLevel ?? "beginner",
+				goals: Array.isArray(profile.goals)
+					? profile.goals
+					: typeof profile.goals === "string"
+						? (() => {
+								try {
+									return JSON.parse(profile.goals) ?? [];
+								} catch {
+									return [];
+								}
+							})()
+						: [],
+				weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency ?? 0,
+			},
+			progress: {
+				currentStreak: progress.currentStreak ?? 0,
+				totalXP: progress.totalXP ?? 0,
+				currentLevel: progress.currentLevel ?? 1,
+				xpToNextLevel: progress.xpToNextLevel ?? 100,
+				weeklyXP: Array.isArray(progress.weeklyXP)
+					? progress.weeklyXP
+					: [0, 0, 0, 0, 0, 0, 0],
+			},
+			workoutHistory: [],
+			personalRecords: [],
+			weightHistory: [],
+			favoriteEquipment: [],
+		};
+	});
+}
+
 function transformSectionResponse(
 	section: GymDataSection,
 	data: any,
@@ -84,7 +143,9 @@ function transformSectionResponse(
 			result = { stats: data.stats || null };
 			break;
 		case "students":
-			result = { students: data.members || [] };
+			result = {
+				students: transformMembersToStudents(data.members || []),
+			};
 			break;
 		case "equipment":
 			result = { equipment: data.equipment || [] };

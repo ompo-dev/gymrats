@@ -257,7 +257,7 @@ export function GymStudentDetail({
 					/>
 					<StatCardLarge
 						icon={Trophy}
-						value={String(student.progress.currentLevel)}
+						value={String(student.progress?.currentLevel ?? 1)}
 						label="Nível"
 						iconColor="duo-blue"
 					/>
@@ -302,18 +302,18 @@ export function GymStudentDetail({
 										label: "Gênero",
 										value: student.gender === "male" ? "Masculino" : "Feminino",
 									},
-									{ label: "Altura", value: `${student.profile.height}cm` },
+									{ label: "Altura", value: `${student.profile?.height ?? 0}cm` },
 									{
 										label: "Peso Atual",
 										value: `${student.currentWeight}kg`,
 									},
 									{
 										label: "Nível",
-										value: student.profile.fitnessLevel,
+										value: student.profile?.fitnessLevel ?? "beginner",
 									},
 									{
 										label: "Frequência Semanal",
-										value: `${student.profile.weeklyWorkoutFrequency}x semana`,
+										value: `${student.profile?.weeklyWorkoutFrequency ?? 0}x semana`,
 									},
 								].map((info) => (
 									<DuoCard key={info.label} variant="default" size="sm">
@@ -332,7 +332,7 @@ export function GymStudentDetail({
 
 						<SectionCard title="Objetivos" icon={Target}>
 							<div className="space-y-2">
-								{student.profile.goals.map((goal) => (
+								{(student.profile?.goals ?? []).map((goal) => (
 									<DuoCard
 										key={goal}
 										variant="highlighted"
@@ -687,11 +687,11 @@ export function GymStudentDetail({
 						<div className="mb-6">
 							<div className="mb-2 flex items-center justify-between">
 								<span className="font-bold text-duo-text">
-									Nível {student.progress.currentLevel}
+									Nível {student.progress?.currentLevel ?? 1}
 								</span>
 								<span className="text-sm text-duo-gray-dark">
-									{student.progress.totalXP} /{" "}
-									{student.progress.totalXP + student.progress.xpToNextLevel} XP
+									{student.progress?.totalXP ?? 0} /{" "}
+									{(student.progress?.totalXP ?? 0) + (student.progress?.xpToNextLevel ?? 100)} XP
 								</span>
 							</div>
 							<div className="h-4 overflow-hidden rounded-full bg-gray-200">
@@ -699,9 +699,9 @@ export function GymStudentDetail({
 									className="h-full bg-duo-green"
 									style={{
 										width: `${
-											(student.progress.totalXP /
-												(student.progress.totalXP +
-													student.progress.xpToNextLevel)) *
+											((student.progress?.totalXP ?? 0) /
+												((student.progress?.totalXP ?? 0) +
+													(student.progress?.xpToNextLevel ?? 100) || 1)) *
 											100
 										}%`,
 									}}
@@ -722,7 +722,7 @@ export function GymStudentDetail({
 										</p>
 										<DuoCard variant="default" size="sm" className="p-2 sm:p-3">
 											<p className="text-sm sm:text-lg font-bold text-duo-green">
-												{student.progress.weeklyXP[index]}
+												{student.progress?.weeklyXP?.[index] ?? 0}
 											</p>
 										</DuoCard>
 									</div>

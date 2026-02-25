@@ -104,7 +104,7 @@ export async function createStudentSubscriptionBilling(
 
 	const billingData: CreateBillingRequest = {
 		frequency: plan === "monthly" ? "MULTIPLE_PAYMENTS" : "ONE_TIME",
-		methods: ["PIX", "CARD"],
+		methods: ["PIX"], // Abacate Pay: apenas PIX disponível por enquanto
 		products: [
 			{
 				externalId: `subscription-${plan}-${studentId}`,
@@ -244,7 +244,7 @@ export async function createGymSubscriptionBilling(
 
 	const billingData: CreateBillingRequest = {
 		frequency: billingPeriod === "annual" ? "ONE_TIME" : "MULTIPLE_PAYMENTS",
-		methods: ["PIX", "CARD"],
+		methods: ["PIX"], // Abacate Pay: apenas PIX disponível por enquanto
 		products: [
 			{
 				externalId: `gym-subscription-${plan}-${billingPeriod}-${gymId}`,

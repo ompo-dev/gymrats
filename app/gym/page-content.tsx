@@ -119,7 +119,7 @@ function GymHomeContent({
 					recentCheckIns={recentCheckIns}
 				/>
 			)}
-			{tab === "students" && <GymStudentsPage students={students} />}
+			{tab === "students" && <GymStudentsPage students={students ?? []} />}
 			{tab === "equipment" && <GymEquipmentPage equipment={equipment} />}
 			{tab === "financial" && (
 				<GymFinancialPage

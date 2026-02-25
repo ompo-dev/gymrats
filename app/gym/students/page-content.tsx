@@ -10,24 +10,34 @@ import { Input } from "@/components/ui/input";
 import type { StudentData } from "@/lib/types";
 
 interface GymStudentsPageProps {
-	students: StudentData[];
+	students?: StudentData[];
 }
 
-export default function GymStudentsPage({ students }: GymStudentsPageProps) {
+export default function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [statusFilter, setStatusFilter] = useState<
 		"all" | "active" | "inactive"
 	>("all");
 
 	const filteredStudents = students.filter((student) => {
-		const s = student as { name?: string; email?: string; student?: { user?: { name?: string; email?: string } } };
+		const s = student as {
+			name?: string;
+			email?: string;
+			membershipStatus?: string;
+			status?: string;
+			student?: { user?: { name?: string; email?: string } };
+		};
 		const name = s.name ?? s.student?.user?.name ?? "";
 		const email = s.email ?? s.student?.user?.email ?? "";
 		const matchesSearch =
 			name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 			email.toLowerCase().includes(searchQuery.toLowerCase());
+		const status = s.membershipStatus ?? s.status ?? "active";
+		const isActive = status === "active";
 		const matchesStatus =
-			statusFilter === "all" || student.membershipStatus === statusFilter;
+			statusFilter === "all" ||
+			(statusFilter === "active" && isActive) ||
+			(statusFilter === "inactive" && !isActive);
 		return matchesSearch && matchesStatus;
 	});
 
