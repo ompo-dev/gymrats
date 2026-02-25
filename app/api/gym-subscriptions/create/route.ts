@@ -7,7 +7,7 @@ import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
 export const POST = createSafeHandler(
 	async ({ gymContext, body }) => {
 		const gymId = gymContext!.gymId;
-		const { billingPeriod = "monthly" } = body;
+		const { plan = "basic", billingPeriod = "monthly" } = body;
 
 		const activeStudents = await db.gymMembership.count({
 			where: { gymId, status: "active" },
@@ -25,7 +25,6 @@ export const POST = createSafeHandler(
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
 		}
 
-		const plan = "basic";
 		const planPrices = {
 			basic: { base: 150, perStudent: 1.5 },
 			premium: { base: 250, perStudent: 1 },

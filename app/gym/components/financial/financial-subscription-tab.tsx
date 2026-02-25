@@ -202,9 +202,11 @@ export function FinancialSubscriptionTab({
 							daysRemaining: subscription.daysRemaining,
 							activeStudents: subscription.activeStudents,
 							totalAmount: subscription.totalAmount,
+							billingPeriod: (subscription as { billingPeriod?: "monthly" | "annual" }).billingPeriod ?? "monthly",
 						}
 					: null
 			}
+			onPaymentSuccess={refetchSubscription}
 			isLoading={isLoadingSubscription}
 			isStartingTrial={isStartingTrial}
 			isCreatingSubscription={isCreatingSubscription}

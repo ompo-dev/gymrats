@@ -350,7 +350,7 @@ export function GymStudentDetail({
 								Equipamentos Favoritos
 							</h3>
 							<div className="space-y-2">
-								{student.favoriteEquipment.map((equipment) => (
+								{(student.favoriteEquipment ?? []).map((equipment) => (
 									<DuoCard key={equipment} variant="default" size="sm">
 										<div className="flex items-center gap-2">
 											<Dumbbell className="h-4 w-4 text-duo-orange" />
@@ -367,7 +367,7 @@ export function GymStudentDetail({
 							className="lg:col-span-2"
 						>
 							<div className="space-y-2">
-								{student.weightHistory.map((record, whIdx) => (
+								{(student.weightHistory ?? []).map((record, whIdx) => (
 									<DuoCard
 										key={`${record.date.toISOString()}-${record.weight}`}
 										variant="default"
@@ -438,7 +438,7 @@ export function GymStudentDetail({
 							</DuoCard>
 						) : (
 							<div className="space-y-3">
-								{student.workoutHistory.map((wh, idx) => (
+								{(student.workoutHistory ?? []).map((wh, idx) => (
 									<DuoCard
 										key={`wh-${idx}-${wh.date.toISOString()}`}
 										variant="default"
@@ -622,7 +622,7 @@ export function GymStudentDetail({
 
 										<h3 className="font-bold text-duo-text mt-4">Refeições</h3>
 										<div className="space-y-3">
-											{student.todayNutrition.meals.map((meal) => (
+											{(student.todayNutrition?.meals ?? []).map((meal) => (
 												<DuoCard
 													key={meal.id}
 													variant="default"
@@ -643,7 +643,7 @@ export function GymStudentDetail({
 													</div>
 													{meal.foods && meal.foods.length > 0 && (
 														<div className="space-y-1 pl-2 border-l-2 border-gray-100">
-															{meal.foods.map((food, idx) => (
+															{(meal.foods ?? []).map((food, idx) => (
 																<div
 																	// biome-ignore lint/suspicious/noArrayIndexKey: simple list
 																	key={idx}
@@ -737,7 +737,7 @@ export function GymStudentDetail({
 				<SlideIn delay={0.4}>
 					<SectionCard title="Recordes Pessoais" icon={Trophy}>
 						<div className="space-y-3">
-							{student.personalRecords.map((record) => (
+							{(student.personalRecords ?? []).map((record) => (
 								<DuoCard
 									key={`${record.exerciseName}-${record.date.toISOString()}-${record.value}`}
 									variant="orange"

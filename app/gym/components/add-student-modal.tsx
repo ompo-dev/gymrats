@@ -112,7 +112,7 @@ export function AddStudentModal({
 
 	if (!isOpen) return null;
 
-	const planOptions = membershipPlans.map((p) => ({
+	const planOptions = (membershipPlans ?? []).map((p) => ({
 		value: p.id,
 		label: `${p.name} — R$ ${p.price.toFixed(2).replace(".", ",")}`,
 	}));

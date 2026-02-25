@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { getTimeMs } from "@/lib/utils/date-safe";
 
 export const GET = createSafeHandler(
 	async ({ gymContext }) => {
@@ -10,7 +11,7 @@ export const GET = createSafeHandler(
 		if (
 			!subscription ||
 			(subscription.status === "canceled" &&
-				(!subscription.trialEnd || new Date() > subscription.trialEnd))
+				(!subscription.trialEnd || (getTimeMs(subscription.trialEnd) ?? 0) < Date.now()))
 		) {
 			return NextResponse.json({ subscription: null });
 		}
@@ -19,18 +20,18 @@ export const GET = createSafeHandler(
 			where: { gymId, status: "active" },
 		});
 
+		const trialEndMs = getTimeMs(subscription.trialEnd);
+		const isTrial = !!subscription.trialEnd && (trialEndMs ?? 0) > Date.now();
+		const daysRemaining = trialEndMs != null
+			? Math.max(0, Math.ceil((trialEndMs - Date.now()) / (1000 * 3600 * 24)))
+			: null;
+
 		return NextResponse.json({
 			subscription: {
 				...subscription,
-				isTrial: subscription.trialEnd ? new Date() < subscription.trialEnd : false,
-				daysRemaining: subscription.trialEnd
-					? Math.max(
-							0,
-							Math.ceil(
-								(subscription.trialEnd.getTime() - Date.now()) / (1000 * 3600 * 24),
-							),
-						)
-					: null,
+				billingPeriod: subscription.billingPeriod ?? "monthly",
+				isTrial,
+				daysRemaining,
 				activeStudents,
 				totalAmount:
 					subscription.billingPeriod === "annual"

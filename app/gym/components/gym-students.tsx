@@ -35,7 +35,8 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	);
 	const [studentId, setStudentId] = useQueryState("studentId");
 
-	const filteredStudents = students.filter((student) => {
+	const safeStudents = Array.isArray(students) ? students : [];
+	const filteredStudents = safeStudents.filter((student) => {
 		const s = student as {
 			name?: string;
 			email?: string;
@@ -77,7 +78,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	];
 
 	if (studentId) {
-		const student = students.find((s) => s.id === studentId);
+		const student = safeStudents.find((s) => s.id === studentId);
 		return (
 			<GymStudentDetail
 				student={student || null}

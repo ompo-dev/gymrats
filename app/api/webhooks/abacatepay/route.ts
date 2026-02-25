@@ -38,8 +38,37 @@ export async function POST(request: NextRequest) {
 			const billingId = billing.id;
 			const amount = billing.amount; // centavos
 			const metadata = billing.metadata || {};
-			
-			// Tentar encontrar a subscription pelo billingId ou pelos metadados
+			// 1. Tentar GymSubscription (a create route salva abacatePayBillingId antes do redirect)
+			const gymSub = await db.gymSubscription.findFirst({
+				where: { abacatePayBillingId: billingId },
+			});
+
+			if (gymSub) {
+				const now = new Date();
+				const periodEnd = new Date(now);
+				const isAnnual = gymSub.billingPeriod === "annual";
+				if (isAnnual) {
+					periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+				} else {
+					periodEnd.setMonth(periodEnd.getMonth() + 1);
+				}
+
+				await db.gymSubscription.update({
+					where: { id: gymSub.id },
+					data: {
+						status: "active",
+						currentPeriodStart: now,
+						currentPeriodEnd: periodEnd,
+						cancelAtPeriodEnd: false,
+						canceledAt: null,
+					},
+				});
+
+				console.log(`[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`);
+				return successResponse({ received: true, type: "gym" });
+			}
+
+			// 2. Tentar Subscription (aluno)
 			let subscription = await db.subscription.findUnique({
 				where: { abacatePayBillingId: billingId },
 				include: { student: true },
@@ -60,10 +89,8 @@ export async function POST(request: NextRequest) {
 			// Calcular novos períodos
 			const now = new Date();
 			const periodEnd = new Date(now);
-			
-			// Usar metadados se disponíveis, senão adivinhar pelo valor
 			const isAnnual = metadata.billingPeriod === "annual" || amount >= 15000;
-			
+
 			if (isAnnual) {
 				periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 			} else {
@@ -80,7 +107,7 @@ export async function POST(request: NextRequest) {
 					currentPeriodEnd: periodEnd,
 					cancelAtPeriodEnd: false,
 					canceledAt: null,
-					abacatePayBillingId: billingId, // Garantir que está salvo
+					abacatePayBillingId: billingId,
 					abacatePayCustomerId: billing.customer?.id || subscription.abacatePayCustomerId,
 				},
 			});
@@ -89,7 +116,7 @@ export async function POST(request: NextRequest) {
 			await db.subscriptionPayment.create({
 				data: {
 					subscriptionId: subscription.id,
-					amount: amount / 100, // converter centavos para reais
+					amount: amount / 100,
 					status: "succeeded",
 					paymentMethod: billing.payment?.method || "pix",
 					abacatePayBillingId: billingId,
