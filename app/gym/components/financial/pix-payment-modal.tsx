@@ -1,34 +1,42 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { Copy, QrCode } from "lucide-react";
+import { useEffect, useCallback, useState, useRef } from "react";
+import { Copy, QrCode, Play } from "lucide-react";
 import { ModalContainer } from "@/components/organisms/modals/modal-container";
 import { ModalHeader } from "@/components/organisms/modals/modal-header";
 import { Button } from "@/components/atoms/buttons/button";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api/client";
 
 interface PixPaymentModalProps {
 	isOpen: boolean;
 	onClose: () => void;
+	pixId: string;
 	brCode: string;
 	brCodeBase64: string;
 	amount: number; // centavos
 	onPaymentConfirmed?: () => void;
 	refetchSubscription: () => Promise<unknown>;
 	subscriptionStatus?: string;
+	/** Status ao abrir - só fecha quando pending -> active (evita fechar com assinatura já ativa) */
+	initialStatus?: string;
 }
 
 export function PixPaymentModal({
 	isOpen,
 	onClose,
+	pixId,
 	brCode,
 	brCodeBase64,
 	amount,
 	onPaymentConfirmed,
 	refetchSubscription,
 	subscriptionStatus,
+	initialStatus = "pending",
 }: PixPaymentModalProps) {
 	const { toast } = useToast();
+	const [isSimulating, setIsSimulating] = useState(false);
+	const hasClosedRef = useRef(false);
 
 	const copyCode = useCallback(() => {
 		navigator.clipboard.writeText(brCode);
@@ -37,6 +45,32 @@ export function PixPaymentModal({
 			description: "Cole no app do seu banco para pagar via PIX.",
 		});
 	}, [brCode, toast]);
+
+	const simulatePayment = useCallback(async () => {
+		setIsSimulating(true);
+		try {
+			await apiClient.post(
+				`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pixId)}`,
+				{},
+			);
+			toast({
+				title: "Pagamento simulado!",
+				description: "Aguardando confirmação...",
+			});
+			await refetchSubscription();
+		} catch (err: unknown) {
+			const msg = err && typeof err === "object" && "response" in err
+				? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+				: err instanceof Error ? err.message : "Erro ao simular";
+			toast({
+				variant: "destructive",
+				title: "Erro ao simular",
+				description: String(msg),
+			});
+		} finally {
+			setIsSimulating(false);
+		}
+	}, [pixId, refetchSubscription, toast]);
 
 	// Poll para detectar pagamento confirmado
 	useEffect(() => {
@@ -49,17 +83,24 @@ export function PixPaymentModal({
 		return () => clearInterval(interval);
 	}, [isOpen, refetchSubscription, subscriptionStatus]);
 
-	// Quando status vira active, fechar e notificar
+	// Só fecha quando pending -> active (evita fechar se já tinha assinatura ativa)
 	useEffect(() => {
-		if (isOpen && subscriptionStatus === "active") {
-			onPaymentConfirmed?.();
-			onClose();
-			toast({
-				title: "Pagamento confirmado!",
-				description: "Sua assinatura está ativa.",
-			});
+		if (
+			hasClosedRef.current ||
+			!isOpen ||
+			subscriptionStatus !== "active" ||
+			initialStatus !== "pending"
+		) {
+			return;
 		}
-	}, [isOpen, subscriptionStatus, onClose, onPaymentConfirmed, toast]);
+		hasClosedRef.current = true;
+		onPaymentConfirmed?.();
+		onClose();
+		toast({
+			title: "Pagamento confirmado!",
+			description: "Sua assinatura está ativa.",
+		});
+	}, [isOpen, subscriptionStatus, initialStatus, onClose, onPaymentConfirmed, toast]);
 
 	const valueReais = (amount / 100).toFixed(2);
 
@@ -104,6 +145,17 @@ export function PixPaymentModal({
 					>
 						<Copy className="w-4 h-4 mr-2" />
 						Copiar código PIX
+					</Button>
+
+					<Button
+						onClick={simulatePayment}
+						disabled={isSimulating}
+						variant="outline"
+						className="w-full border-dashed"
+						size="sm"
+					>
+						<Play className="w-4 h-4 mr-2" />
+						{isSimulating ? "Simulando..." : "Simular pagamento"}
 					</Button>
 				</div>
 

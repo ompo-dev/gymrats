@@ -47,7 +47,7 @@ export const POST = createSafeHandler(
 				data: {
 					plan,
 					billingPeriod,
-					status: "active",
+					status: "pending",
 					basePrice,
 					pricePerStudent,
 					currentPeriodStart: now,

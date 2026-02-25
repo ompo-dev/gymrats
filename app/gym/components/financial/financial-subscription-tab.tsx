@@ -130,6 +130,7 @@ export function FinancialSubscriptionTab({
 			// Gym usa PIX inline (valor dinâmico, sem produtos)
 			const pix = result as { pixId?: string; brCode?: string; brCodeBase64?: string; amount?: number };
 			if (pix.pixId && pix.brCode) {
+				await refetchSubscription();
 				setPendingPix({
 					pixId: pix.pixId,
 					brCode: pix.brCode,
@@ -297,11 +298,13 @@ export function FinancialSubscriptionTab({
 			<PixPaymentModal
 				isOpen={!!pendingPix}
 				onClose={() => setPendingPix(null)}
+				pixId={pendingPix.pixId}
 				brCode={pendingPix.brCode}
 				brCodeBase64={pendingPix.brCodeBase64}
 				amount={pendingPix.amount}
 				refetchSubscription={refetchSubscription}
 				subscriptionStatus={subscription?.status}
+				initialStatus="pending"
 				onPaymentConfirmed={() => refetchSubscription()}
 			/>
 		)}
