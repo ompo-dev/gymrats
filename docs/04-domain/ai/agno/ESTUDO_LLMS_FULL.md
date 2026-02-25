@@ -613,7 +613,7 @@ Após análise, identificamos que para as necessidades iniciais do GymRats, uma 
 - ✅ Controle total
 - ✅ Custo similar ou menor
 
-**Ver documento detalhado**: `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
+**Ver documento detalhado**: `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
 
 ### 7.3 Quando Usar Agno vs Abordagem Simplificada
 
@@ -646,7 +646,7 @@ Após análise, identificamos que para as necessidades iniciais do GymRats, uma 
 
 1. Implementar chat de nutrição (Fase 1)
 2. Implementar chat de treinos (Fase 2)
-3. Ver: `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
+3. Ver: `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
 
 **Opção B: Agno Completo**
 

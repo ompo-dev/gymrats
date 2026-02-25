@@ -33,41 +33,41 @@ Se uma mudança viola essa ordem, a IA deve **reprojetar** a solução antes de 
 Antes de mexer em qualquer parte do sistema, consulte a documentação correspondente:
 
 - **Visão geral, arquitetura e offline-first**
-  - `docs/ANALISE_COMPLETA_PROJETO.md`: visão de negócio, escopo e objetivos gerais.
-  - `docs/ARQUITETURA_COMPLETA_SISTEMA.md`: arquitetura **offline-first**, command pattern, sync, stores, rotas API, priorização de carregamento, deduplicação de requisições.
+  - `docs/01-architecture/ANALISE_COMPLETA_PROJETO.md`: visão de negócio, escopo e objetivos gerais.
+  - `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md`: arquitetura **offline-first**, command pattern, sync, stores, rotas API, priorização de carregamento, deduplicação de requisições.
 
 - **Dados do aluno (domínio student)**
-  - `docs/datastudent/DADOS_STUDENT_COMPLETO.md`: modelagem de `Student`, progressos, pesos, históricos, etc.
+  - `docs/04-domain/students/DADOS_STUDENT_COMPLETO.md`: modelagem de `Student`, progressos, pesos, históricos, etc.
 
 - **API e backend**
-  - `docs/api/API_COMPLETA.md`: panorama das rotas de API por domínio.
-  - `docs/api-refactor-plan.md`: decisões de refactor, padrões de handlers e rotas específicas.
+  - `docs/03-backend/api/API_COMPLETA.md`: panorama das rotas de API por domínio.
+  - `server/app.ts`: montagem real das rotas Elysia e plugins ativos.
 
 - **Frontend, componentes e design system**
-  - `docs/components/ATOMIC_DESIGN_COMPLETO.md`: filosofia de organização (átomos, moléculas, organismos).
-  - `docs/UI_UX_SYSTEM_DESIGN.md`: tokens de design, padrões de interação, componentes base (`Button`, `UnitSectionCard`, `WorkoutNodeButton`, `StatCardLarge`), princípios de UX.
+  - `docs/02-frontend/components/ATOMIC_DESIGN_COMPLETO.md`: filosofia de organização (átomos, moléculas, organismos).
+  - `docs/02-frontend/UI_UX_SYSTEM_DESIGN.md`: tokens de design, padrões de interação, componentes base (`Button`, `UnitSectionCard`, `WorkoutNodeButton`, `StatCardLarge`), princípios de UX.
 
 - **Stores, hooks e carregamento de dados**
-  - `docs/hookestore/HOOKS_STORE_COMPLETO.md`: como o estado global é organizado (Zustand, stores unificados).
-  - `docs/hookestore/CARREGAMENTO_PRIORITIZADO.md` (referenciado na arquitetura): detalhes de `useLoadPrioritized`, `loadAllPrioritized`, deduplicação de requests.
+  - `docs/02-frontend/state/HOOKS_STORE_COMPLETO.md`: como o estado global é organizado (Zustand, stores unificados).
+  - `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md`: contexto de carregamento priorizado, deduplicacao e sync.
 
 - **Modais, nuqs e navegação baseada em search params**
-  - `docs/nuqsmodals/NUQS_MODAIS_COMPLETO.md`: como funcionam modais e tabs via `nuqs` (query string).
+  - `docs/02-frontend/navigation/NUQS_MODAIS_COMPLETO.md`: como funcionam modais e tabs via `nuqs` (query string).
 
 - **Segurança, storage e infraestrutura**
-  - `docs/SEGURANCA_LOCALSTORAGE.md`: o que pode ou não ir para `localStorage`, como tratar tokens, segurança no client.
-  - `docs/SEED_DATABASE.md`: como povoar o banco, dados iniciais e suposições de domínio.
-  - `docs/DOCKER.md`: como subir o ambiente via Docker (útil para qualquer mudança que precise de ambiente rodando).
+  - `docs/05-devops/SEGURANCA_LOCALSTORAGE.md`: o que pode ou não ir para `localStorage`, como tratar tokens, segurança no client.
+  - `docs/05-devops/SEED_DATABASE.md`: como povoar o banco, dados iniciais e suposições de domínio.
+  - `docs/05-devops/DOCKER.md`: como subir o ambiente via Docker (útil para qualquer mudança que precise de ambiente rodando).
 
 - **IA / LLMs / features premium**
-  - `docs/CHAT_IA_FLUXO_COMPLETO.md`: **documentação ponta a ponta** do chat de IA – APIs, componentes, páginas, regras, prompts, parsers e fluxos.
-  - `docs/agno/ESTUDO_LLMS_FULL.md`: estudo de modelos, custos e decisões de LLM.
-  - `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`: arquitetura do chat de nutrição e treinos, rotas, prompts, parsers, custo, premium-check.
-  - `docs/elysiajs/llms-full.txt`: referências adicionais de LLM/infra (se for integrar com Elysia ou services externos).
+  - `docs/04-domain/ai/CHAT_IA_FLUXO_COMPLETO.md`: **documentação ponta a ponta** do chat de IA – APIs, componentes, páginas, regras, prompts, parsers e fluxos.
+  - `docs/04-domain/ai/agno/ESTUDO_LLMS_FULL.md`: estudo de modelos, custos e decisões de LLM.
+  - `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`: arquitetura do chat de nutrição e treinos, rotas, prompts, parsers, custo, premium-check.
+  - `docs/03-backend/references/llms-full.txt`: referências adicionais de LLM/infra (se for integrar com Elysia ou services externos).
 
 - **Processos de time**
-  - `docs/COMMIT_CONVENTION.md`: como escrever mensagens de commit.
-  - `docs/plan.md`: planos e roadmap macro do projeto.
+  - `docs/00-getting-started/COMMIT_CONVENTION.md`: como escrever mensagens de commit.
+  - `docs/01-architecture/plan.md`: planos e roadmap macro do projeto.
 
 Ao receber uma tarefa, a IA deve mapear rapidamente **qual seção acima é relevante** e ler esse `.md` antes de propor mudanças significativas.
 
@@ -102,22 +102,22 @@ Abaixo um mapa de **onde procurar primeiro** no código para cada tipo de tarefa
 
 - **Backend / APIs**
   - Diretórios:
-    - `app/api/**`: rotas HTTP (Next.js).
-    - `lib/api/handlers/**`: handlers com lógica de domínio para cada rota.
-    - `lib/api/middleware/**`: autenticação, autorização, premium-check, etc.
-    - `lib/utils/**`: utilitários de sessão, roles, responses, erros.
+    - `server/routes/**`: definicao de rotas HTTP (Elysia).
+    - `server/handlers/**`: handlers por dominio e casos de uso.
+    - `server/plugins/**`: autenticacao, roles, CORS, logging e db.
+    - `server/utils/**`: utilitarios de resposta, request e validacao.
+    - `lib/api/**`: compatibilidade e cliente API do frontend.
   - Uso: quando se fala em **nova regra de negócio**, **novo endpoint**, **refactor de API**.
 
 - **IA / LLM**
-  - Documentação completa: `docs/CHAT_IA_FLUXO_COMPLETO.md`.
+  - Documentação completa: `docs/04-domain/ai/CHAT_IA_FLUXO_COMPLETO.md`.
   - Diretórios implementados:
     - `lib/ai/client.ts`: cliente DeepSeek com cache e retry.
     - `lib/ai/cache.ts`: estratégia de cache para prompts similares.
     - `lib/ai/prompts/*.ts`: prompts para nutrição, treinos.
     - `lib/ai/parsers/*.ts`: parse e mapeamento de respostas de IA para estruturas do domínio.
-    - `app/api/nutrition/chat/route.ts`: rota de chat de nutrição.
-    - `app/api/workouts/chat/route.ts`, `app/api/workouts/chat-stream/route.ts`: rotas de chat de treinos.
-    - `app/api/workouts/process/route.ts`: processamento de comandos de treino.
+    - `server/routes/nutrition.ts`: rota de chat de nutrição.
+    - `server/routes/workouts.ts`: rotas de chat/processamento de treinos.
     - `components/organisms/modals/food-search-chat.tsx`, `workout-chat.tsx`: modais de chat.
   - Sempre validar o que já foi implementado antes de recriar algo do plano.
 
@@ -127,17 +127,17 @@ Abaixo um mapa de **onde procurar primeiro** no código para cada tipo de tarefa
 
 - **Alterar/estender regra de negócio**
   - Ler:
-    - `docs/ARQUITETURA_COMPLETA_SISTEMA.md`
+    - `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md`
     - O `.md` específico do domínio (ex.: `DADOS_STUDENT_COMPLETO.md`, `API_COMPLETA.md`).
   - Procurar:
-    - Handlers em `lib/api/handlers/**`.
+    - Handlers em `server/handlers/**` (principal) e `lib/api/handlers/**` (legado/compat).
     - Stores e hooks em `stores/**` e `hooks/**`.
   - Só depois tocar em componentes de UI.
 
 - **Criar ou alterar tela / componente**
   - Ler:
-    - `docs/UI_UX_SYSTEM_DESIGN.md`
-    - `docs/components/ATOMIC_DESIGN_COMPLETO.md`
+    - `docs/02-frontend/UI_UX_SYSTEM_DESIGN.md`
+    - `docs/02-frontend/components/ATOMIC_DESIGN_COMPLETO.md`
   - Procurar:
     - Componentes existentes em `components/**` que já resolvam parcialmente o problema.
   - Reutilizar padrões de:
@@ -145,28 +145,27 @@ Abaixo um mapa de **onde procurar primeiro** no código para cada tipo de tarefa
 
 - **Trabalhar com offline-first / sync / performance de carregamento**
   - Ler:
-    - `docs/ARQUITETURA_COMPLETA_SISTEMA.md`
-    - `docs/hookestore/HOOKS_STORE_COMPLETO.md`
-    - `docs/hookestore/CARREGAMENTO_PRIORITIZADO.md`
+    - `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md`
+    - `docs/02-frontend/state/HOOKS_STORE_COMPLETO.md`
   - Garantir:
     - Não quebrar command pattern, idempotência, fila offline, retry, deduplicação de requests.
 
 - **Funcionalidades de IA (chat de nutrição / treinos / novos fluxos LLM)**
   - Ler:
-    - `docs/CHAT_IA_FLUXO_COMPLETO.md` (fluxo ponta a ponta)
-    - `docs/agno/ESTUDO_LLMS_FULL.md`
-    - `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
+    - `docs/04-domain/ai/CHAT_IA_FLUXO_COMPLETO.md` (fluxo ponta a ponta)
+    - `docs/04-domain/ai/agno/ESTUDO_LLMS_FULL.md`
+    - `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md`
   - Verificar:
     - Cliente LLM em `lib/ai/client.ts`.
     - Parsers em `lib/ai/parsers/**`.
     - Prompts em `lib/ai/prompts/**`.
-    - Rotas em `app/api/nutrition/chat`, `app/api/workouts/chat`, `app/api/workouts/chat-stream`, `app/api/workouts/process`.
+    - Rotas em `server/routes/nutrition.ts` e `server/routes/workouts.ts`.
   - Focar em:
     - Idempotência, custo por chamada, cache, fallback em caso de erro da IA.
 
 - **Segurança, autenticação, premium e storage client-side**
   - Ler:
-    - `docs/SEGURANCA_LOCALSTORAGE.md`
+    - `docs/05-devops/SEGURANCA_LOCALSTORAGE.md`
     - Se for premium: seções de premium-check no plano de IA ou docs de subscriptions.
   - Verificar:
     - Middleware de auth em `lib/api/middleware/**`.

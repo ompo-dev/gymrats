@@ -47,10 +47,10 @@ Este script popula o banco de dados com dados iniciais necessários para o funci
 1. **Todas as migrations devem estar aplicadas:**
 
    ```bash
-   node scripts/apply-alternative-exercises-migration.js
-   node scripts/apply-weight-history-migration.js
-   node scripts/apply-gym-locations-payment-migration.js
-   node scripts/apply-nutrition-migration.js
+   node scripts/migration/apply-alternative-exercises-migration.js
+   node scripts/migration/apply-weight-history-migration.js
+   node scripts/migration/apply-gym-locations-payment-migration.js
+   node scripts/migration/apply-nutrition-migration.js
    ```
 
 2. **Prisma Client deve estar atualizado:**

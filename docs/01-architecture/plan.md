@@ -1,3 +1,8 @@
+## HISTORICO
+
+Este documento descreve o plano de migracao (estado passado) de Next.js API Routes para Elysia.
+Use `server/app.ts` e `server/routes/*.ts` como fonte de verdade atual.
+
 Plano de Migração: npm + Next.js API Routes → Bun + Elysia
 Visão Geral
 Migração do backend de Next.js API Routes para Elysia rodando em Bun, mantendo:

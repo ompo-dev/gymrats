@@ -243,16 +243,16 @@ Execute as migrations na ordem:
 
 ```bash
 # 1. Alternative Exercises
-node scripts/apply-alternative-exercises-migration.js
+node scripts/migration/apply-alternative-exercises-migration.js
 
 # 2. Weight History
-node scripts/apply-weight-history-migration.js
+node scripts/migration/apply-weight-history-migration.js
 
 # 3. Gym Locations e Payment Methods
-node scripts/apply-gym-locations-payment-migration.js
+node scripts/migration/apply-gym-locations-payment-migration.js
 
 # 4. Nutrition
-node scripts/apply-nutrition-migration.js
+node scripts/migration/apply-nutrition-migration.js
 
 # 5. Regenerar Prisma Client
 npx prisma generate

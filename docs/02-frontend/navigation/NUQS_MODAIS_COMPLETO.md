@@ -195,7 +195,7 @@ const isOpen = modal === "add-meal";
 ### Novos Arquivos
 
 - ✅ `hooks/use-modal-state.ts` - Hook utilitário
-- ✅ `docs/nuqsmodals/NUQS_MODAIS_COMPLETO.md` - Esta documentação
+- ✅ `docs/02-frontend/navigation/NUQS_MODAIS_COMPLETO.md` - Esta documentação
 
 ### Arquivos Atualizados
 

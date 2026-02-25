@@ -410,12 +410,12 @@ DEEPSEEK_API_KEY=sk-...
 
 | Documento | Conteúdo |
 |-----------|----------|
-| `docs/IA_GUIDE.md` | Guia geral para IA no projeto, ordem de pensamento, onde buscar contexto |
-| `docs/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md` | Plano original de implementação, custos, exemplos |
-| `docs/agno/ESTUDO_LLMS_FULL.md` | Estudo de modelos, custos e decisões de LLM |
-| `docs/api/API_COMPLETA.md` | Panorama geral das rotas de API |
-| `docs/ARQUITETURA_COMPLETA_SISTEMA.md` | Arquitetura offline-first, command pattern, sync |
-| `docs/nuqsmodals/NUQS_MODAIS_COMPLETO.md` | Modais via nuqs (food-search, editUnit) |
+| `docs/00-getting-started/IA_GUIDE.md` | Guia geral para IA no projeto, ordem de pensamento, onde buscar contexto |
+| `docs/04-domain/ai/agno/PLANO_IMPLEMENTACAO_CHAT_IA.md` | Plano original de implementação, custos, exemplos |
+| `docs/04-domain/ai/agno/ESTUDO_LLMS_FULL.md` | Estudo de modelos, custos e decisões de LLM |
+| `docs/03-backend/api/API_COMPLETA.md` | Panorama geral das rotas de API |
+| `docs/01-architecture/ARQUITETURA_COMPLETA_SISTEMA.md` | Arquitetura offline-first, command pattern, sync |
+| `docs/02-frontend/navigation/NUQS_MODAIS_COMPLETO.md` | Modais via nuqs (food-search, editUnit) |
 
 ### Rotas Elysia (Server Custom)
 

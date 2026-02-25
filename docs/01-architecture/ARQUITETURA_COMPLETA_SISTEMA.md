@@ -231,7 +231,7 @@ Promise.all([
                     ↓
 ┌─────────────────────────────────────────┐
 │      CAMADA DE API                      │
-│  (Next.js API Routes, Prisma)            │
+│  (Elysia Routes, Prisma)                │
 └─────────────────────────────────────────┘
 ```
 
@@ -316,7 +316,7 @@ Promise.all([
 ### Estrutura de Handlers
 
 ```typescript
-// lib/api/handlers/students.handler.ts
+// server/handlers/students.ts
 export async function getStudentProgressHandler(request: NextRequest) {
   // Lógica específica para progress
   // Retorna apenas dados de progress
@@ -1485,7 +1485,7 @@ progress → Reutiliza promise ✅ (sem nova requisição!)
 
 ### Documentação Completa
 
-Para mais detalhes, consulte: [`docs/hookestore/CARREGAMENTO_PRIORITIZADO.md`](./hookestore/CARREGAMENTO_PRIORITIZADO.md)
+Para mais detalhes, consulte as secoes de priorizacao e deduplicacao neste proprio documento e em `docs/02-frontend/state/HOOKS_STORE_COMPLETO.md`.
 
 ---
 
@@ -2065,7 +2065,7 @@ O sistema utiliza **duas vias** para ativar a subscription após pagamento PIX:
 
 O endpoint `GET /api/auth/session` inclui dados de subscription do aluno, permitindo que componentes client-side acessem o status da assinatura sem chamadas adicionais ao banco.
 
-> Documentação completa de pagamentos: `docs/FLUXO_PAGAMENTOS_COMPLETO.md`
+> Documentação completa de pagamentos: `docs/04-domain/payments/FLUXO_PAGAMENTOS_COMPLETO.md`
 
 
 **Este é um case técnico de alto nível que demonstra capacidade arquitetural excepcional!** 🏆

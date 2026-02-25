@@ -414,10 +414,8 @@ gymrats/
 
 3. **Configure as variáveis de ambiente**
    ```bash
-   # Copie o arquivo de exemplo
-   cp .env.example .env
-   
-   # Edite o arquivo .env com suas credenciais
+   # Crie manualmente o arquivo .env na raiz do projeto
+   # e preencha com as variaveis abaixo.
    ```
 
    Variáveis necessárias:
