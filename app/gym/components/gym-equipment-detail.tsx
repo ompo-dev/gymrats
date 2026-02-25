@@ -23,6 +23,7 @@ import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import type { Equipment } from "@/lib/types";
+import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 import { MaintenanceModal } from "./maintenance-modal"; // Import
 import { AddEquipmentModal } from "./add-equipment-modal";
@@ -239,11 +240,11 @@ export function GymEquipmentDetail({
 									Tempo de Uso
 								</p>
 								<p className="text-2xl sm:text-3xl font-bold text-duo-blue">
-									{Math.floor(
-										(Date.now() - equipment.currentUser.startTime.getTime()) /
-											60000,
-									)}{" "}
-									min
+									{(() => {
+										const startTimeMs = getTimeMs(equipment.currentUser.startTime);
+										if (!startTimeMs) return "--";
+										return `${Math.floor((Date.now() - startTimeMs) / 60000)} min`;
+									})()}
 								</p>
 							</div>
 						</div>
@@ -268,7 +269,7 @@ export function GymEquipmentDetail({
 					<StatCardLarge
 						icon={Calendar}
 						value={
-							equipment.lastMaintenance?.toLocaleDateString("pt-BR") || "N/A"
+							formatDatePtBr(equipment.lastMaintenance) || "N/A"
 						}
 						label="Última Manutenção"
 						iconColor="duo-green"
@@ -276,7 +277,7 @@ export function GymEquipmentDetail({
 					<StatCardLarge
 						icon={Calendar}
 						value={
-							equipment.nextMaintenance?.toLocaleDateString("pt-BR") || "N/A"
+							formatDatePtBr(equipment.nextMaintenance) || "N/A"
 						}
 						label="Próxima Manutenção"
 						iconColor="duo-orange"
@@ -395,7 +396,7 @@ export function GymEquipmentDetail({
 												</div>
 												<div className="text-left sm:text-right">
 													<p className="text-xs sm:text-sm font-bold text-duo-gray-dark">
-														{record.date.toLocaleDateString("pt-BR")}
+														{formatDatePtBr(record.date) || "N/A"}
 													</p>
 													{record.cost && (
 														<p className="text-base sm:text-lg font-bold text-duo-orange">
@@ -436,7 +437,7 @@ export function GymEquipmentDetail({
 								{
 									label: "Data de Compra",
 									value:
-										equipment.purchaseDate?.toLocaleDateString("pt-BR") ||
+										formatDatePtBr(equipment.purchaseDate) ||
 										"N/A",
 								},
 								{ label: "Marca", value: equipment.brand },

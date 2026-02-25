@@ -34,6 +34,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { useGym } from "@/hooks/use-gym";
 import type { Payment, StudentData } from "@/lib/types";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
 interface GymStudentDetailProps {
@@ -163,7 +164,7 @@ export function GymStudentDetail({
 								<div className="flex items-center gap-2">
 									<Calendar className="h-4 w-4 shrink-0" />
 									<span>
-										Membro desde {student.joinDate.toLocaleDateString("pt-BR")}
+										Membro desde {formatDatePtBr(student.joinDate) || "N/A"}
 									</span>
 								</div>
 							</div>
@@ -376,7 +377,7 @@ export function GymStudentDetail({
 											<div className="flex items-center gap-2 flex-1 min-w-0">
 												<Calendar className="h-5 w-5 text-duo-gray-dark shrink-0" />
 												<span className="font-bold text-duo-text text-sm sm:text-base truncate">
-													{record.date.toLocaleDateString("pt-BR")}
+													{formatDatePtBr(record.date) || "N/A"}
 												</span>
 											</div>
 											<div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
@@ -748,7 +749,7 @@ export function GymStudentDetail({
 												{record.exerciseName}
 											</p>
 											<p className="text-xs sm:text-sm text-duo-gray-dark">
-												{record.date.toLocaleDateString("pt-BR")}
+												{formatDatePtBr(record.date) || "N/A"}
 											</p>
 										</div>
 										<div className="text-left sm:text-right">
@@ -840,11 +841,11 @@ export function GymStudentDetail({
 												</h3>
 												<p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
 													Vencimento:{" "}
-													{payment.dueDate.toLocaleDateString("pt-BR")}
+													{formatDatePtBr(payment.dueDate) || "N/A"}
 												</p>
 												{payment.status === "paid" && (
 													<p className="text-xs sm:text-sm text-duo-gray-dark">
-														Pago em: {payment.date.toLocaleDateString("pt-BR")}
+														Pago em: {formatDatePtBr(payment.date) || "N/A"}
 													</p>
 												)}
 												<p className="text-xs sm:text-sm text-duo-gray-dark capitalize">

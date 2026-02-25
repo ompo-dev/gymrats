@@ -5,6 +5,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import type { Payment } from "@/lib/types";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
 interface FinancialPaymentsTabProps {
@@ -85,7 +86,7 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 							<div className="text-right">
 								<div className="text-xs text-duo-gray-dark">Vencimento</div>
 								<div className="text-sm font-bold text-duo-text">
-									{payment.dueDate.toLocaleDateString("pt-BR")}
+									{formatDatePtBr(payment.dueDate) || "N/A"}
 								</div>
 							</div>
 						</div>

@@ -23,6 +23,7 @@ import { OptionSelector } from "@/components/ui/option-selector";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatCardLarge } from "@/components/ui/stat-card-large";
 import type { Equipment } from "@/lib/types";
+import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 import { AddEquipmentModal } from "./add-equipment-modal";
 import { GymEquipmentDetail } from "./gym-equipment-detail";
@@ -290,12 +291,13 @@ export function GymEquipmentPage({
 											<div className="text-right">
 												<Clock className="mb-1 inline h-4 w-4 text-duo-blue" />
 												<p className="text-xs font-bold text-duo-blue">
-													{Math.floor(
-														(Date.now() -
-															equipment.currentUser.startTime.getTime()) /
-															60000,
-													)}{" "}
-													min
+													{(() => {
+														const startTimeMs = getTimeMs(
+															equipment.currentUser.startTime,
+														);
+														if (!startTimeMs) return "--";
+														return `${Math.floor((Date.now() - startTimeMs) / 60000)} min`;
+													})()}
 												</p>
 											</div>
 										</div>
@@ -342,7 +344,7 @@ export function GymEquipmentPage({
 											Próxima Manutenção
 										</p>
 										<p className="font-bold text-duo-text">
-											{equipment.nextMaintenance.toLocaleDateString("pt-BR")}
+											{formatDatePtBr(equipment.nextMaintenance) || "N/A"}
 										</p>
 									</DuoCard>
 								)}

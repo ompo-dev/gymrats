@@ -5,6 +5,7 @@ import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
 import { SectionCard } from "@/components/molecules/cards/section-card";
 import type { Coupon } from "@/lib/types";
+import { toValidDate } from "@/lib/utils/date-safe";
 
 interface FinancialCouponsTabProps {
 	coupons: Coupon[];
@@ -66,10 +67,10 @@ export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 							<div>
 								<div className="text-xs text-duo-gray-dark">Validade</div>
 								<div className="text-sm font-bold text-duo-text">
-									{coupon.expiryDate.toLocaleDateString("pt-BR", {
+									{toValidDate(coupon.expiryDate)?.toLocaleDateString("pt-BR", {
 										day: "2-digit",
 										month: "short",
-									})}
+									}) || "N/A"}
 								</div>
 							</div>
 						</div>
