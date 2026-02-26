@@ -142,24 +142,6 @@ export function DuoColorPicker({
 						)}
 					</button>
 				))}
-					<button
-						key={preset.id}
-						onClick={() => setActivePreset(preset.id)}
-						className={cn(
-							"flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-90",
-							activePresetId === preset.id
-								? "scale-110 border-white shadow-lg"
-								: "border-transparent",
-						)}
-						style={{ backgroundColor: preset.colors.primary }}
-						aria-label={`Tema: ${preset.name}`}
-						title={preset.name}
-					>
-						{activePresetId === preset.id && (
-							<Check size={14} className="mx-auto text-white drop-shadow-sm" />
-						)}
-					</button>
-				))}
 				<button
 					onClick={() => setIsOpen(true)}
 					className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-[var(--duo-fg-muted)] text-[var(--duo-fg-muted)] transition-all duration-200 hover:scale-110 hover:border-[var(--duo-primary)] hover:text-[var(--duo-primary)]"
