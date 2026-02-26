@@ -55,14 +55,14 @@ export function UnitSectionCard({
 
 			{/* Seção do ícone */}
 			{Icon && !buttonHref && !onButtonClick && (
-				<div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
+				<div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-[var(--duo-primary)] flex-none self-stretch border-l-2 border-[var(--duo-primary-dark)]">
 					<Icon className="h-[22px] w-[22px] text-white" />
 				</div>
 			)}
 
 			{/* Seção do botão */}
 			{(buttonHref || onButtonClick) && (
-				<div className="flex flex-row items-center justify-center px-4 py-4 bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
+				<div className="flex flex-row items-center justify-center px-4 py-4 bg-[var(--duo-primary)] flex-none self-stretch border-l-2 border-[var(--duo-primary-dark)]">
 					<DuoButton
 						asChild={!!buttonHref}
 						variant="white"

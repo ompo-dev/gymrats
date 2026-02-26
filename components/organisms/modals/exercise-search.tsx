@@ -306,7 +306,8 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 		const addPromises = exercisesToAdd.map((ex) =>
 			actions
 				.addWorkoutExercise(workoutId, {
-					educationalId: ex.id, // Apenas o ID - backend busca tudo
+					educationalId: ex.id,
+					name: ex.name, // Obrigatório para validação da API
 				})
 				.catch((e: any) => {
 					// Tratar erros em background (não bloqueia UI)

@@ -237,13 +237,13 @@ export function WorkoutNode({
 				<p
 					className={cn(
 						"text-sm font-bold leading-tight",
-						isLocked ? "text-[#afafaf]" : "text-[#3c3c3c]",
+						isLocked ? "text-[var(--duo-fg-muted)]" : "text-[var(--duo-fg)]",
 					)}
 				>
 					{workout.title}
 				</p>
 				{!isLocked && (
-					<div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-[#afafaf]">
+					<div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-[var(--duo-fg-muted)]">
 						<span>{workout.exercises.length} exercícios</span>
 						<span>•</span>
 						<span>{workout.estimatedTime}min</span>

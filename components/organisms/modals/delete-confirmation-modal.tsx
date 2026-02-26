@@ -40,15 +40,15 @@ export function DeleteConfirmationModal({
 							stiffness: 300,
 							duration: 0.3,
 						}}
-						className="w-full max-w-sm rounded-t-3xl bg-white sm:rounded-3xl p-6 shadow-xl space-y-4"
+						className="w-full max-w-sm rounded-t-3xl bg-[var(--duo-bg-card)] sm:rounded-3xl p-6 shadow-xl space-y-4 border border-[var(--duo-border)]"
 						onClick={(e) => e.stopPropagation()}
 					>
 						<div className="text-center">
-							<div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3">
-								<Trash2 className="h-6 w-6 text-red-600" />
+							<div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-3">
+								<Trash2 className="h-6 w-6 text-red-500" />
 							</div>
-							<h3 className="text-lg font-bold text-gray-900">{title}</h3>
-							<p className="text-sm text-gray-500 mt-1">{message}</p>
+							<h3 className="text-lg font-bold text-[var(--duo-fg)]">{title}</h3>
+							<p className="text-sm text-[var(--duo-fg-muted)] mt-1">{message}</p>
 						</div>
 						<div className="flex gap-3">
 							<DuoButton
