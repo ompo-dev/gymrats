@@ -29,7 +29,7 @@ export function DuoAchievementCard({
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-4 rounded-2xl p-4",
+				"flex flex-col rounded-2xl p-4",
 				"border border-[var(--duo-border)] bg-[var(--duo-bg-card)]",
 				"transition-all duration-300 ease-out",
 				"hover:scale-[1.01] hover:border-[var(--duo-primary)]/40 hover:shadow-md",
@@ -37,7 +37,10 @@ export function DuoAchievementCard({
 			)}
 			{...props}
 		>
-			<div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--duo-bg-elevated)]">
+			<span className="mb-3 truncate text-sm font-bold text-[var(--duo-fg)]">
+				{title}
+			</span>
+			<div className="relative mb-3 flex h-14 w-14 shrink-0 items-center justify-center self-start rounded-2xl bg-[var(--duo-bg-elevated)]">
 				<Icon
 					size={28}
 					style={{ color: iconColor ?? "var(--duo-accent)" }}
@@ -50,15 +53,10 @@ export function DuoAchievementCard({
 				)}
 			</div>
 			<div className="min-w-0 flex-1">
-				<div className="mb-1 flex items-baseline justify-between gap-2">
-					<span className="truncate text-sm font-bold text-[var(--duo-fg)]">
-						{title}
-					</span>
-					<span className="shrink-0 tabular-nums text-xs font-bold text-[var(--duo-fg-muted)]">
-						{current}/{total}
-					</span>
-				</div>
-				<DuoProgress value={current} max={total} variant="accent" size="sm" />
+				<span className="block tabular-nums text-xs font-bold text-[var(--duo-fg-muted)]">
+					{current}/{total}
+				</span>
+				<DuoProgress value={current} max={total} variant="accent" size="sm" className="mt-1" />
 				<p className="mt-1 truncate text-xs text-[var(--duo-fg-muted)]">
 					{description}
 				</p>

@@ -25,7 +25,6 @@
 - `educational-data.ts`: Arquivo da camada local.
 - `equipment-database.ts`: Arquivo da camada local.
 - `functional-exercises-data.ts`: Arquivo da camada local.
-- `gym-mock-data.ts`: Arquivo da camada local.
 - `metabolic-calculator.ts`: Arquivo da camada local.
 - `mock-data.ts`: Arquivo da camada local.
 - `posture-analysis.ts`: Arquivo da camada local.
@@ -106,15 +105,6 @@
 - Expõe: `functionalExercises`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `components/organisms/workout/functional-workout.tsx`
-
-### `gym-mock-data.ts`
-- O que faz: implementa o módulo `gym-mock-data.ts` da camada `lib`.
-- Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
-- Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `./types`
-- Expõe: `mockGymProfile`, `mockStudents`, `mockEquipment`, `mockGymStats`, `mockRecentCheckIns`, `mockMembershipPlans`, `mockPayments`, `mockCoupons`, `mockReferrals`, `mockExpenses`, `mockFinancialSummary`, `mockGymLocations`
-- Comunica com: Observabilidade/logs
-- Onde é usado/importado: `app/gym/students/[id]/page.tsx`, `stores/gym-store.ts`
 
 ### `metabolic-calculator.ts`
 - O que faz: implementa o módulo `metabolic-calculator.ts` da camada `lib`.

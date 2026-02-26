@@ -44,7 +44,7 @@
 - O que faz: define store de estado `gym-store`.
 - Como: concentra seleção de estado, mutações e fluxos de carregamento/sincronização; operações: `persist`, `set`, `map`.
 - Por que: garante fonte de verdade única e previsibilidade de estado para UI e hooks.
-- Importa principalmente: `zustand`, `zustand/middleware`, `@/lib/gym-mock-data`, `@/lib/types`
+- Importa principalmente: `zustand`, `zustand/middleware`, `@/lib/types`
 - Expõe: `useGymStore`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `stores/index.ts`

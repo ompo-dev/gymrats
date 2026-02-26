@@ -1,38 +1,12 @@
 "use client";
 
-import {
-	Activity,
-	AlertCircle,
-	Apple,
-	ArrowLeft,
-	Calendar,
-	CheckCircle,
-	DollarSign,
-	Dumbbell,
-	Edit,
-	Flame,
-	Mail,
-	Phone,
-	Target,
-	TrendingUp,
-	Trophy,
-	XCircle,
-} from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import { use, useState } from "react";
-import { FadeIn } from "@/components/animations/fade-in";
-import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import {
-	DuoCardHeader,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockPayments, mockStudents } from "@/lib/gym-mock-data";
-import { cn } from "@/lib/utils";
+import { use } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import type { Payment, StudentData } from "@/lib/types";
+import { getGymStudentById, getGymStudentPayments } from "../../actions";
+import { GymStudentDetail } from "../../components/gym-student-detail";
 
 export default function StudentDetailPage({
 	params,
@@ -40,537 +14,49 @@ export default function StudentDetailPage({
 	params: Promise<{ id: string }>;
 }) {
 	const { id } = use(params);
-	const student = mockStudents.find((s) => s.id === id);
-	const [studentPayments, setStudentPayments] = useState(
-		mockPayments.filter((p) => p.studentId === id),
-	);
+	const router = useRouter();
+	const [student, setStudent] = useState<StudentData | null>(null);
+	const [payments, setPayments] = useState<Payment[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
 
-	if (!student) {
+	useEffect(() => {
+		let cancelled = false;
+		async function load() {
+			setIsLoading(true);
+			try {
+				const [fullStudent, studentPayments] = await Promise.all([
+					getGymStudentById(id),
+					getGymStudentPayments(id),
+				]);
+				if (!cancelled) {
+					setStudent(fullStudent ?? null);
+					setPayments(studentPayments ?? []);
+				}
+			} catch {
+				if (!cancelled) setStudent(null);
+			} finally {
+				if (!cancelled) setIsLoading(false);
+			}
+		}
+		load();
+		return () => {
+			cancelled = true;
+		};
+	}, [id]);
+
+	if (isLoading && !student) {
 		return (
-			<div className="flex flex-1 items-center justify-center p-8">
-				<FadeIn>
-					<DuoCard variant="default" padding="md" className="text-center">
-						<DuoCardHeader>
-							<div className="flex items-center gap-2">
-								<AlertCircle className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-								<h2 className="font-bold text-[var(--duo-fg)]">Aluno não encontrado</h2>
-							</div>
-						</DuoCardHeader>
-						<p className="mb-4 text-xl font-bold text-duo-gray-dark">
-							Aluno não encontrado
-						</p>
-						<Link href="/gym/students">
-							<DuoButton className="mt-4">Voltar para Alunos</DuoButton>
-						</Link>
-					</DuoCard>
-				</FadeIn>
+			<div className="flex min-h-[300px] items-center justify-center px-4 py-6">
+				<Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
 			</div>
 		);
 	}
 
-	const togglePaymentStatus = (paymentId: string) => {
-		setStudentPayments((prev) =>
-			prev.map((p) => {
-				if (p.id === paymentId) {
-					return {
-						...p,
-						status: p.status === "paid" ? "pending" : "paid",
-						date: p.status === "paid" ? p.date : new Date(),
-					};
-				}
-				return p;
-			}),
-		);
-	};
-
 	return (
-		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
-			<FadeIn>
-				<Link href="/gym/students">
-					<DuoButton variant="ghost" className="mb-4 gap-2 font-bold">
-						<ArrowLeft className="h-4 w-4" />
-						Voltar para Alunos
-					</DuoButton>
-				</Link>
-			</FadeIn>
-
-			<SlideIn delay={0.1}>
-				<DuoCard variant="highlighted" padding="md">
-					<DuoCardHeader>
-						<div className="flex items-center gap-2">
-							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">{student.name}</h2>
-						</div>
-					</DuoCardHeader>
-					<div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-						<div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full">
-							<Image
-								src={student.avatar || "/placeholder.svg"}
-								alt={student.name}
-								fill
-								className="object-cover"
-							/>
-						</div>
-						<div className="flex-1">
-							<div className="mb-2 flex items-center gap-3">
-								<span
-									className={cn(
-										"rounded-full px-3 py-1 text-sm font-bold",
-										student.membershipStatus === "active"
-											? "bg-duo-green text-white"
-											: "bg-duo-gray text-duo-gray-dark",
-									)}
-								>
-									{student.membershipStatus === "active" ? "Ativo" : "Inativo"}
-								</span>
-							</div>
-							<div className="mb-4 space-y-1 text-duo-gray-dark">
-								<div className="flex items-center gap-2">
-									<Mail className="h-4 w-4" />
-									<span>{student.email}</span>
-								</div>
-								<div className="flex items-center gap-2">
-									<Phone className="h-4 w-4" />
-									<span>{student.phone}</span>
-								</div>
-								<div className="flex items-center gap-2">
-									<Calendar className="h-4 w-4" />
-									<span>
-										Membro desde {student.joinDate.toLocaleDateString("pt-BR")}
-									</span>
-								</div>
-							</div>
-							<div className="flex flex-wrap gap-2">
-								<DuoButton className="gap-2">
-									<Edit className="h-4 w-4" />
-									Editar Perfil
-								</DuoButton>
-								<DuoButton variant="outline" className="gap-2">
-									<Dumbbell className="h-4 w-4" />
-									Atribuir Treino
-								</DuoButton>
-								<DuoButton variant="outline" className="gap-2">
-									<Apple className="h-4 w-4" />
-									Atribuir Dieta
-								</DuoButton>
-							</div>
-						</div>
-					</div>
-				</DuoCard>
-			</SlideIn>
-
-			<SlideIn delay={0.2}>
-				<DuoStatsGrid columns={4}>
-					<DuoStatCard
-						icon={Flame}
-						value={String(student.currentStreak)}
-						label="Sequência"
-						iconColor="var(--duo-accent)"
-					/>
-					<DuoStatCard
-						icon={Trophy}
-						value={String(student.progress.currentLevel)}
-						label="Nível"
-						iconColor="var(--duo-secondary)"
-					/>
-					<DuoStatCard
-						icon={Activity}
-						value={String(student.totalVisits)}
-						label="Treinos"
-						iconColor="var(--duo-primary)"
-					/>
-					<DuoStatCard
-						icon={Target}
-						value={`${student.attendanceRate}%`}
-						label="Frequência"
-						iconColor="#A560E8"
-					/>
-				</DuoStatsGrid>
-			</SlideIn>
-
-			<SlideIn delay={0.3}>
-				<Tabs defaultValue="overview" className="space-y-6">
-					<TabsList className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-						<TabsTrigger value="overview">Visão Geral</TabsTrigger>
-						<TabsTrigger value="workouts">Treinos</TabsTrigger>
-						<TabsTrigger value="diet">Dieta</TabsTrigger>
-						<TabsTrigger value="progress">Progresso</TabsTrigger>
-						<TabsTrigger value="records">Recordes</TabsTrigger>
-						<TabsTrigger value="payments">Pagamentos</TabsTrigger>
-					</TabsList>
-
-					<TabsContent value="overview">
-						<div className="grid gap-6 lg:grid-cols-2">
-							<DuoCard variant="default" padding="md">
-								<DuoCardHeader>
-									<div className="flex items-center gap-2">
-										<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-										<h2 className="font-bold text-[var(--duo-fg)]">Informações do Perfil</h2>
-									</div>
-								</DuoCardHeader>
-								<div className="space-y-3">
-									{[
-										{ label: "Idade", value: `${student.age} anos` },
-										{
-											label: "Gênero",
-											value: student.gender === "male" ? "Masculino" : "Feminino",
-										},
-										{ label: "Altura", value: `${student.profile.height}cm` },
-										{ label: "Peso Atual", value: `${student.currentWeight}kg` },
-										{
-											label: "Nível",
-											value: student.profile.fitnessLevel,
-										},
-										{
-											label: "Frequência Semanal",
-											value: `${student.profile.weeklyWorkoutFrequency}x semana`,
-										},
-									].map((item) => (
-										<DuoCard key={item.label} variant="default" size="sm">
-											<div className="flex justify-between">
-												<span className="font-bold text-duo-gray-dark">
-													{item.label}
-												</span>
-												<span className="font-bold text-duo-text capitalize">
-													{item.value}
-												</span>
-											</div>
-										</DuoCard>
-									))}
-								</div>
-							</DuoCard>
-
-							<DuoCard variant="blue" padding="md">
-								<DuoCardHeader>
-									<div className="flex items-center gap-2">
-										<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-										<h2 className="font-bold text-[var(--duo-fg)]">Objetivos</h2>
-									</div>
-								</DuoCardHeader>
-								<div className="space-y-2">
-									{student.profile.goals.map((goal) => (
-										<DuoCard
-											key={goal}
-											variant="highlighted"
-											size="sm"
-										>
-											<p className="font-bold capitalize text-duo-text">
-												{goal.replace("-", " ")}
-											</p>
-										</DuoCard>
-									))}
-								</div>
-								<h3 className="mb-3 mt-6 font-bold text-duo-text">
-									Equipamentos Favoritos
-								</h3>
-								<div className="space-y-2">
-									{student.favoriteEquipment.map((equipment) => (
-										<DuoCard key={equipment} variant="default" size="sm">
-											<div className="flex items-center gap-2">
-												<Dumbbell className="h-4 w-4 text-duo-orange" />
-												<span className="text-sm text-duo-gray-dark">
-													{equipment}
-												</span>
-											</div>
-										</DuoCard>
-									))}
-								</div>
-							</DuoCard>
-
-							<DuoCard variant="default" padding="md" className="lg:col-span-2">
-								<DuoCardHeader>
-									<div className="flex items-center gap-2">
-										<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-										<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
-									</div>
-								</DuoCardHeader>
-								<div className="space-y-2">
-									{student.weightHistory.map((record, idx) => (
-										<DuoCard key={`${record.date.toISOString()}-${record.weight}`} variant="default" size="sm">
-											<div className="flex items-center gap-4">
-												<Calendar className="h-5 w-5 shrink-0 text-duo-gray-dark" />
-												<span className="flex-1 font-bold text-duo-text">
-													{record.date.toLocaleDateString("pt-BR")}
-												</span>
-												<span className="text-2xl font-bold text-duo-blue">
-													{record.weight}kg
-												</span>
-												{idx < student.weightHistory.length - 1 && (
-													<div className="flex items-center gap-1">
-														{record.weight <
-														student.weightHistory[idx + 1].weight ? (
-															<>
-																<TrendingUp className="h-4 w-4 text-duo-red" />
-																<span className="text-sm font-bold text-duo-red">
-																	+
-																	{(
-																		record.weight -
-																		student.weightHistory[idx + 1].weight
-																	).toFixed(1)}
-																	kg
-																</span>
-															</>
-														) : (
-															<>
-																<TrendingUp className="h-4 w-4 rotate-180 text-duo-green" />
-																<span className="text-sm font-bold text-duo-green">
-																	{(
-																		record.weight -
-																		student.weightHistory[idx + 1].weight
-																	).toFixed(1)}
-																	kg
-																</span>
-															</>
-														)}
-													</div>
-												)}
-											</div>
-										</DuoCard>
-									))}
-								</div>
-							</DuoCard>
-						</div>
-					</TabsContent>
-
-					<TabsContent value="workouts">
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<Activity className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Treinos</h2>
-								</div>
-							</DuoCardHeader>
-							<p className="text-duo-gray-dark">
-								Implementação do histórico de treinos em desenvolvimento...
-							</p>
-						</DuoCard>
-					</TabsContent>
-
-					<TabsContent value="diet">
-						<DuoCard variant="orange" padding="md">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<Apple className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Plano de Dieta</h2>
-								</div>
-							</DuoCardHeader>
-							<div className="space-y-4">
-								<DuoCard variant="orange" size="default">
-									<p className="font-bold text-duo-gray-dark">
-										Meta Calórica Diária
-									</p>
-									<p className="text-3xl font-bold text-duo-orange">
-										{student.profile.targetCalories} kcal
-									</p>
-								</DuoCard>
-								<DuoStatsGrid columns={3}>
-									<DuoStatCard
-										icon={Target}
-										value={`${student.profile.targetProtein}g`}
-										label="Proteína"
-										iconColor="var(--duo-primary)"
-									/>
-									<DuoStatCard
-										icon={Target}
-										value={`${student.profile.targetCarbs || 250}g`}
-										label="Carboidratos"
-										iconColor="var(--duo-secondary)"
-									/>
-									<DuoStatCard
-										icon={Target}
-										value={`${student.profile.targetFats || 70}g`}
-										label="Gorduras"
-										iconColor="#A560E8"
-									/>
-								</DuoStatsGrid>
-							</div>
-						</DuoCard>
-					</TabsContent>
-
-					<TabsContent value="progress">
-						<DuoCard variant="highlighted" padding="md">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Progresso e XP</h2>
-								</div>
-							</DuoCardHeader>
-							<div className="mb-6">
-								<div className="mb-2 flex items-center justify-between">
-									<span className="font-bold text-duo-text">
-										Nível {student.progress.currentLevel}
-									</span>
-									<span className="text-sm text-duo-gray-dark">
-										{student.progress.totalXP} /{" "}
-										{student.progress.totalXP + student.progress.xpToNextLevel}{" "}
-										XP
-									</span>
-								</div>
-								<div className="h-4 overflow-hidden rounded-full bg-duo-gray">
-									<div
-										className="h-full bg-duo-green transition-all"
-										style={{
-											width: `${
-												(student.progress.totalXP /
-													(student.progress.totalXP +
-														student.progress.xpToNextLevel)) *
-												100
-											}%`,
-										}}
-									/>
-								</div>
-							</div>
-							<h3 className="mb-3 font-bold text-duo-text">
-								Atividade Semanal
-							</h3>
-							<div className="grid grid-cols-7 gap-2">
-								{(["D", "S", "T", "Q", "Q", "S", "S"] as const).map(
-									(day, idx) => (
-										<div key={day} className="text-center">
-											<p className="mb-2 text-xs font-bold text-duo-gray-dark">
-												{day}
-											</p>
-											<DuoCard variant="highlighted" size="sm">
-												<p className="text-lg font-bold text-duo-green">
-													{student.progress.weeklyXP[idx]}
-												</p>
-											</DuoCard>
-										</div>
-									),
-								)}
-							</div>
-						</DuoCard>
-					</TabsContent>
-
-					<TabsContent value="records">
-						<DuoCard variant="orange" padding="md">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Recordes Pessoais</h2>
-								</div>
-							</DuoCardHeader>
-							<div className="space-y-3">
-								{student.personalRecords.map((record) => (
-									<DuoCard
-										key={`${record.exerciseName}-${record.date.toISOString()}-${record.value}`}
-										variant="orange"
-										size="default"
-									>
-										<div className="flex items-center justify-between">
-											<div>
-												<p className="text-lg font-bold text-duo-text">
-													{record.exerciseName}
-												</p>
-												<p className="text-sm text-duo-gray-dark">
-													{record.date.toLocaleDateString("pt-BR")}
-												</p>
-											</div>
-											<div className="text-right">
-												<p className="text-3xl font-bold text-duo-orange">
-													{record.value}kg
-												</p>
-												<p className="text-xs font-bold text-duo-gray-dark capitalize">
-													{record.type.replace("-", " ")}
-												</p>
-											</div>
-										</div>
-									</DuoCard>
-								))}
-							</div>
-						</DuoCard>
-					</TabsContent>
-
-					<TabsContent value="payments">
-						<DuoCard variant="blue" padding="md">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Pagamentos</h2>
-								</div>
-							</DuoCardHeader>
-							<DuoStatsGrid columns={3}>
-								<DuoStatCard
-									icon={CheckCircle}
-									value={String(
-										studentPayments.filter((p) => p.status === "paid").length,
-									)}
-									label="Pagos"
-									iconColor="var(--duo-primary)"
-								/>
-								<DuoStatCard
-									icon={AlertCircle}
-									value={String(
-										studentPayments.filter((p) => p.status === "pending")
-											.length,
-									)}
-									label="Pendentes"
-									iconColor="var(--duo-accent)"
-								/>
-								<DuoStatCard
-									icon={DollarSign}
-									value={`R$ ${studentPayments
-										.filter((p) => p.status === "paid")
-										.reduce((sum, p) => sum + p.amount, 0)
-										.toFixed(2)}`}
-									label="Total Pago"
-									iconColor="var(--duo-secondary)"
-								/>
-							</DuoStatsGrid>
-							<div className="space-y-3">
-								{studentPayments.map((payment) => (
-									<DuoCard key={payment.id} variant="default" size="default">
-										<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-											<div className="flex-1">
-												<h3 className="font-bold text-duo-text">
-													{payment.planName}
-												</h3>
-												<p className="mt-1 text-sm text-duo-gray-dark">
-													Vencimento:{" "}
-													{payment.dueDate.toLocaleDateString("pt-BR")}
-												</p>
-												{payment.status === "paid" && (
-													<p className="text-sm text-duo-gray-dark">
-														Pago em:{" "}
-														{payment.date.toLocaleDateString("pt-BR")}
-													</p>
-												)}
-												<p className="text-sm capitalize text-duo-gray-dark">
-													Método: {payment.paymentMethod.replace("-", " ")}
-												</p>
-											</div>
-											<div className="flex flex-col items-end gap-2">
-												<p className="text-2xl font-bold text-duo-blue">
-													R$ {payment.amount.toFixed(2)}
-												</p>
-												<DuoButton
-													size="sm"
-													variant={
-														payment.status === "paid" ? "outline" : "primary"
-													}
-													onClick={() => togglePaymentStatus(payment.id)}
-												>
-													{payment.status === "paid" ? (
-														<>
-															<CheckCircle className="h-4 w-4" />
-															Pago
-														</>
-													) : (
-														<>
-															<XCircle className="h-4 w-4" />
-															Marcar como Pago
-														</>
-													)}
-												</DuoButton>
-											</div>
-										</div>
-									</DuoCard>
-								))}
-							</div>
-						</DuoCard>
-					</TabsContent>
-				</Tabs>
-			</SlideIn>
-		</div>
+		<GymStudentDetail
+			student={student}
+			payments={payments}
+			onBack={() => router.push("/gym?tab=students")}
+		/>
 	);
 }

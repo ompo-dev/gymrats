@@ -162,7 +162,7 @@ node scripts/seed-database.js
 
 2. **Senha**: A senha do usuário admin é um placeholder. Em produção, deve ser uma senha hash real.
 
-3. **Dados Mock**: Os dados são baseados nos arquivos `lib/mock-data.ts` e `lib/gym-mock-data.ts`.
+3. **Dados Mock**: Os dados são baseados no arquivo `lib/mock-data.ts` (aluno, workout, dieta). Dados de academia vêm do banco.
 
 4. **Execução Segura**: O script verifica existência antes de criar, então é seguro executar múltiplas vezes.
 

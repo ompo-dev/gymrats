@@ -25,30 +25,6 @@ interface GymStatsPageProps {
 }
 
 export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
-	const weeklyData = [
-		{ day: "Seg", checkins: 58, value: 70 },
-		{ day: "Ter", checkins: 62, value: 75 },
-		{ day: "Qua", checkins: 71, value: 86 },
-		{ day: "Qui", checkins: 68, value: 82 },
-		{ day: "Sex", checkins: 75, value: 91 },
-		{ day: "Sáb", checkins: 54, value: 65 },
-		{ day: "Dom", checkins: 35, value: 42 },
-	];
-
-	const hourlyData = [
-		{ hour: "6h", students: 12 },
-		{ hour: "8h", students: 28 },
-		{ hour: "10h", students: 45 },
-		{ hour: "12h", students: 32 },
-		{ hour: "14h", students: 25 },
-		{ hour: "16h", students: 38 },
-		{ hour: "18h", students: 67 },
-		{ hour: "20h", students: 54 },
-		{ hour: "22h", students: 18 },
-	];
-
-	const maxHourlyStudents = Math.max(...hourlyData.map((d) => d.students));
-
 	return (
 		<div className="mx-auto max-w-4xl space-y-6  ">
 			<FadeIn>
@@ -96,79 +72,131 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="highlighted" padding="md">
+				<DuoCard variant="default" padding="md">
 					<DuoCardHeader>
 						<div className="flex items-center gap-2">
 							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Check-ins por Dia</h2>
 						</div>
 					</DuoCardHeader>
+					<p className="mb-4 text-sm font-medium text-duo-text">
+						Últimos 7 dias • Total: {stats.week.totalCheckins} check-ins
+					</p>
 					<div className="space-y-3">
-						{weeklyData.map((day, index) => (
-							<motion.div
-								key={day.day}
-								initial={{ opacity: 0, x: -20 }}
-								animate={{ opacity: 1, x: 0 }}
-								transition={{ delay: index * 0.05, duration: 0.4 }}
-							>
-								<div className="space-y-1">
-									<div className="flex items-center justify-between text-sm">
-										<span className="font-bold text-duo-gray-dark">
-											{day.day}
-										</span>
-										<span className="font-bold text-duo-text">
-											{day.checkins}
-										</span>
-									</div>
-									<div className="h-3 w-full overflow-hidden rounded-full bg-gray-100">
-										<div
-											className="h-full rounded-full bg-duo-green transition-all"
-											style={{ width: `${day.value}%` }}
-										/>
-									</div>
-								</div>
-							</motion.div>
-						))}
+						{(stats.week.checkinsByDay ?? []).length === 0 ? (
+							<DuoCard variant="default" size="default" className="p-8 text-center">
+								<Calendar className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+								<p className="font-bold text-duo-gray-dark">Nenhum check-in na última semana</p>
+								<p className="mt-1 text-sm text-duo-gray-dark">
+									Os dados aparecerão aqui conforme os alunos fizerem check-in.
+								</p>
+							</DuoCard>
+						) : (
+							(stats.week.checkinsByDay ?? []).map((day, index) => {
+								const maxCheckins = Math.max(
+									...(stats.week.checkinsByDay ?? []).map((d) => d.checkins),
+									1,
+								);
+								const percent = Math.round((day.checkins / maxCheckins) * 100);
+								return (
+									<motion.div
+										key={day.dayKey}
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ delay: index * 0.05, duration: 0.4 }}
+									>
+										<DuoCard variant="default" size="default">
+											<div className="flex items-center gap-3">
+												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-green/10">
+													<Calendar className="h-5 w-5 text-duo-green" />
+												</div>
+												<div className="min-w-0 flex-1">
+													<div className="flex items-center justify-between gap-2">
+														<span className="text-sm font-bold text-duo-text">
+															{day.day}
+														</span>
+														<span className="text-sm font-bold text-duo-green">
+															{day.checkins} check-ins
+														</span>
+													</div>
+													<div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+														<div
+															className="h-full rounded-full bg-duo-green transition-all duration-500"
+															style={{ width: `${percent}%` }}
+														/>
+													</div>
+												</div>
+											</div>
+										</DuoCard>
+									</motion.div>
+								);
+							})
+						)}
 					</div>
 				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="orange" padding="md">
+				<DuoCard variant="default" padding="md">
 					<DuoCardHeader>
 						<div className="flex items-center gap-2">
 							<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Horários Populares</h2>
 						</div>
 					</DuoCardHeader>
-					<div className="space-y-2">
-						{hourlyData.map((item, index) => (
-							<motion.div
-								key={item.hour}
-								initial={{ opacity: 0, x: -20 }}
-								animate={{ opacity: 1, x: 0 }}
-								transition={{ delay: index * 0.05, duration: 0.4 }}
-							>
-								<div className="flex items-center gap-3">
-									<div className="w-8 text-xs font-bold text-duo-gray-dark">
-										{item.hour}
-									</div>
-									<div className="relative h-8 flex-1 overflow-hidden rounded-lg bg-gray-100">
-										<div
-											className="flex h-full items-center rounded-lg bg-duo-orange px-2 text-xs font-bold text-white transition-all"
-											style={{
-												width: `${(item.students / maxHourlyStudents) * 100}%`,
-											}}
-										>
-											{item.students > 15 && item.students}
-										</div>
-									</div>
-									<div className="w-8 text-right text-xs font-bold text-duo-text">
-										{item.students}
-									</div>
-								</div>
-							</motion.div>
-						))}
+					<p className="mb-4 text-sm font-medium text-duo-text">
+						Distribuição por hora (6h–22h) • Pico: {stats.today.peakHour}
+					</p>
+					<div className="grid gap-3 sm:grid-cols-2">
+						{(stats.week.checkinsByHour ?? []).length === 0 ? (
+							<DuoCard variant="default" size="default" className="col-span-full p-8 text-center">
+								<Clock className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+								<p className="font-bold text-duo-gray-dark">Nenhum dado de horário ainda</p>
+								<p className="mt-1 text-sm text-duo-gray-dark">
+									Os horários mais movimentados aparecerão conforme os check-ins.
+								</p>
+							</DuoCard>
+						) : (
+							(stats.week.checkinsByHour ?? []).map((item, index) => {
+								const maxCheckins = Math.max(
+									...(stats.week.checkinsByHour ?? []).map((h) => h.checkins),
+									1,
+								);
+								const percent = Math.round((item.checkins / maxCheckins) * 100);
+								return (
+									<motion.div
+										key={item.hour}
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ delay: index * 0.03, duration: 0.4 }}
+									>
+										<DuoCard variant="default" size="default">
+											<div className="flex items-center gap-3">
+												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-orange/10">
+													<Clock className="h-5 w-5 text-duo-orange" />
+												</div>
+												<div className="min-w-0 flex-1">
+													<div className="flex items-center justify-between gap-2">
+														<span className="text-sm font-bold text-duo-text">
+															{item.hour}
+														</span>
+														<span className="text-sm font-bold text-duo-orange">
+															{item.checkins} check-ins
+														</span>
+													</div>
+													<div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+														<div
+															className="h-full rounded-full bg-duo-orange transition-all duration-500"
+															style={{ width: `${percent}%` }}
+														/>
+													</div>
+												</div>
+											</div>
+										</DuoCard>
+									</motion.div>
+								);
+							})
+						)}
 					</div>
 				</DuoCard>
 			</SlideIn>

@@ -722,6 +722,20 @@ export interface TopStudentStats {
 	attendanceRate?: number;
 }
 
+/** Check-ins por dia da semana (Seg-Dom), baseado na última semana */
+export interface CheckInsByDay {
+	day: string; // "Seg", "Ter", etc.
+	dayKey: string; // "monday", "tuesday", etc.
+	checkins: number;
+}
+
+/** Check-ins por hora (6h-22h), baseado na última semana */
+export interface CheckInsByHour {
+	hour: string; // "6h", "7h", etc.
+	hourNum: number; // 6, 7, etc.
+	checkins: number;
+}
+
 export interface GymStats {
 	today: {
 		checkins: number;
@@ -735,6 +749,10 @@ export interface GymStats {
 		newMembers: number;
 		canceledMembers: number;
 		revenue?: number;
+		/** Check-ins por dia da semana (últimos 7 dias) */
+		checkinsByDay?: CheckInsByDay[];
+		/** Check-ins por hora (últimos 7 dias) */
+		checkinsByHour?: CheckInsByHour[];
 	};
 	month: {
 		totalCheckins: number;

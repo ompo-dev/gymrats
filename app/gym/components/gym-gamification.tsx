@@ -28,61 +28,15 @@ interface GymGamificationPageProps {
 export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 	const { gamification } = profile;
 
-	const mockAchievements = [
+	const achievements = gamification.achievements ?? [];
+	const ranking = [
 		{
-			id: "1",
-			title: "100 Alunos Ativos",
-			description: "Alcance 100 alunos ativos simultaneamente",
-			icon: "👥",
-			progress: 87,
-			target: 100,
-			xpReward: 500,
-			unlocked: false,
-		},
-		{
-			id: "2",
-			title: "Sequência de 30 Dias",
-			description: "Mantenha a academia aberta por 30 dias consecutivos",
-			icon: "🔥",
-			progress: 30,
-			target: 30,
-			xpReward: 300,
-			unlocked: true,
-		},
-		{
-			id: "3",
-			title: "Taxa de Retenção 95%",
-			description: "Mantenha uma taxa de retenção acima de 95%",
-			icon: "💎",
-			progress: 94,
-			target: 95,
-			xpReward: 1000,
-			unlocked: false,
-		},
-		{
-			id: "4",
-			title: "200 Check-ins em um Dia",
-			description: "Alcance 200 check-ins em um único dia",
-			icon: "⚡",
-			progress: 67,
-			target: 200,
-			xpReward: 400,
-			unlocked: false,
-		},
-	];
-
-	const mockRanking = [
-		{ position: 1, name: "FitLife Academia", xp: 15670, city: "São Paulo" },
-		{ position: 2, name: "Strong Gym", xp: 12450, city: "Rio de Janeiro" },
-		{
-			position: 3,
-			name: "PowerFit Academia",
-			xp: 2450,
-			city: "São Paulo",
+			position: gamification.ranking ?? 0,
+			name: profile.name,
+			xp: gamification.xp,
+			city: profile.address?.split(",")[1]?.trim() ?? "—",
 			isCurrentGym: true,
 		},
-		{ position: 4, name: "Iron Paradise", xp: 2120, city: "Belo Horizonte" },
-		{ position: 5, name: "Muscle Factory", xp: 1980, city: "Curitiba" },
 	];
 
 	const progressToNextLevel =
@@ -200,68 +154,77 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 							</div>
 						</DuoCardHeader>
 						<div className="space-y-3">
-							{mockAchievements.map((achievement, index) => (
-								<motion.div
-									key={achievement.id}
-									initial={{ opacity: 0, y: 20 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: index * 0.05, duration: 0.4 }}
-								>
-									<DuoCard
-										variant={achievement.unlocked ? "highlighted" : "default"}
-										size="default"
-										className={cn(
-											achievement.unlocked &&
-												"border-duo-green bg-duo-green/10",
-										)}
-									>
-										<div className="mb-3 flex items-start justify-between">
-											<div className="flex items-start gap-3">
-												<div className="text-2xl">{achievement.icon}</div>
-												<div>
-													<h3 className="text-sm font-bold text-duo-text">
-														{achievement.title}
-													</h3>
-													<p className="text-xs text-duo-gray-dark">
-														{achievement.description}
-													</p>
-												</div>
-											</div>
-											{achievement.unlocked && (
-												<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-green">
-													<Trophy className="h-4 w-4 text-white" />
-												</div>
-											)}
-										</div>
-
-										<div className="mb-2">
-											<div className="mb-1 flex items-center justify-between text-sm">
-												<span className="font-bold text-duo-text">
-													{achievement.progress}/{achievement.target}
-												</span>
-												<span className="text-duo-orange">
-													+{achievement.xpReward} XP
-												</span>
-											</div>
-											<div className="h-2 overflow-hidden rounded-full bg-gray-200">
-												<div
-													className={cn(
-														"h-full",
-														achievement.unlocked
-															? "bg-duo-green"
-															: "bg-duo-orange",
+							{achievements.length === 0 ? (
+								<DuoCard variant="default" size="default" className="p-8 text-center">
+									<Award className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+									<p className="font-bold text-duo-gray-dark">Nenhuma conquista ainda</p>
+									<p className="mt-1 text-sm text-duo-gray-dark">
+										As conquistas aparecerão conforme você atingir metas da academia.
+									</p>
+								</DuoCard>
+							) : (
+								achievements.map((achievement, index) => {
+									const unlocked = !!achievement.unlockedAt;
+									const progress = achievement.progress ?? 0;
+									const target = achievement.target ?? 100;
+									return (
+										<motion.div
+											key={achievement.id}
+											initial={{ opacity: 0, y: 20 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: index * 0.05, duration: 0.4 }}
+										>
+											<DuoCard
+												variant={unlocked ? "highlighted" : "default"}
+												size="default"
+												className={cn(
+													unlocked && "border-duo-green bg-duo-green/10",
+												)}
+											>
+												<div className="mb-3 flex items-start justify-between">
+													<div className="flex items-start gap-3">
+														<div className="text-2xl">{achievement.icon}</div>
+														<div>
+															<h3 className="text-sm font-bold text-duo-text">
+																{achievement.title}
+															</h3>
+															<p className="text-xs text-duo-gray-dark">
+																{achievement.description}
+															</p>
+														</div>
+													</div>
+													{unlocked && (
+														<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-green">
+															<Trophy className="h-4 w-4 text-white" />
+														</div>
 													)}
-													style={{
-														width: `${
-															(achievement.progress / achievement.target) * 100
-														}%`,
-													}}
-												/>
-											</div>
-										</div>
-									</DuoCard>
-								</motion.div>
-							))}
+												</div>
+
+												{target > 0 && (
+													<div className="mb-2">
+														<div className="mb-1 flex items-center justify-between text-sm">
+															<span className="font-bold text-duo-text">
+																{progress}/{target}
+															</span>
+														</div>
+														<div className="h-2 overflow-hidden rounded-full bg-gray-200">
+															<div
+																className={cn(
+																	"h-full",
+																	unlocked ? "bg-duo-green" : "bg-duo-orange",
+																)}
+																style={{
+																	width: `${Math.min((progress / target) * 100, 100)}%`,
+																}}
+															/>
+														</div>
+													</div>
+												)}
+											</DuoCard>
+										</motion.div>
+									);
+								})
+							)}
 						</div>
 					</DuoCard>
 				</SlideIn>
@@ -274,10 +237,13 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 								<h2 className="font-bold text-[var(--duo-fg)]">Ranking Regional</h2>
 							</div>
 						</DuoCardHeader>
+						<p className="mb-4 text-sm font-medium text-duo-text">
+							Sua academia • Posição {(gamification.ranking ?? 0) > 0 ? `#${gamification.ranking}` : "—"}
+						</p>
 						<div className="space-y-2">
-							{mockRanking.map((gym, index) => (
+							{ranking.map((gym, index) => (
 								<motion.div
-									key={gym.position}
+									key={`${gym.name}-${index}`}
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05, duration: 0.4 }}

@@ -146,21 +146,37 @@ export class GymInventoryService {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
+    const startOfWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
 
-    const [todayCheckIns, activeNow, weekCheckIns, newMembers, canceledMembers, weekRevenueAgg, activeStudents, monthCheckIns, monthTopStudentsRaw] = await Promise.all([
+    const [
+      todayCheckIns,
+      activeNow,
+      weekCheckIns,
+      newMembers,
+      canceledMembers,
+      weekRevenueAgg,
+      activeStudents,
+      monthCheckIns,
+      monthTopStudentsRaw,
+      weekCheckInsRaw,
+    ] = await Promise.all([
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday } } }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday }, checkOut: null } }),
-      db.checkIn.count({ where: { gymId, timestamp: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
-      db.gymMembership.count({ where: { gymId, createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
-      db.gymMembership.count({ where: { gymId, status: "canceled", updatedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } } }),
-      db.payment.aggregate({ where: { gymId, status: "paid", date: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, _sum: { amount: true } }),
+      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfWeek } } }),
+      db.gymMembership.count({ where: { gymId, createdAt: { gte: startOfWeek } } }),
+      db.gymMembership.count({ where: { gymId, status: "canceled", updatedAt: { gte: startOfWeek } } }),
+      db.payment.aggregate({ where: { gymId, status: "paid", date: { gte: startOfWeek } }, _sum: { amount: true } }),
       db.gymMembership.count({ where: { gymId, status: "active" } }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfMonth } } }),
       db.checkIn.groupBy({
         by: ["studentId", "studentName"],
         where: { gymId, timestamp: { gte: startOfMonth } },
         _count: { id: true },
+      }),
+      db.checkIn.findMany({
+        where: { gymId, timestamp: { gte: startOfWeek } },
+        select: { timestamp: true },
       }),
     ]);
 
@@ -190,12 +206,48 @@ export class GymInventoryService {
       }),
     );
 
+    const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+    const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    const byDay: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const byHour: Record<number, number> = {};
+    for (let h = 6; h <= 22; h++) byHour[h] = 0;
+
+    for (const c of weekCheckInsRaw) {
+      const d = new Date(c.timestamp);
+      const dayOfWeek = d.getDay();
+      const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      byDay[dayIndex] = (byDay[dayIndex] ?? 0) + 1;
+      const hour = d.getHours();
+      if (hour >= 6 && hour <= 22) {
+        byHour[hour] = (byHour[hour] ?? 0) + 1;
+      }
+    }
+
+    const checkinsByDay = DAY_LABELS.map((day, i) => ({
+      day,
+      dayKey: DAY_KEYS[i],
+      checkins: byDay[i] ?? 0,
+    }));
+
+    const checkinsByHour = Object.entries(byHour)
+      .map(([h, count]) => ({
+        hour: `${h}h`,
+        hourNum: Number(h),
+        checkins: count,
+      }))
+      .sort((a, b) => a.hourNum - b.hourNum);
+
+    const peakHourNum = checkinsByHour.reduce(
+      (best, cur) => (cur.checkins > best.checkins ? cur : best),
+      { hourNum: 18, checkins: 0 },
+    );
+
     return {
       today: {
         checkins: todayCheckIns,
         activeStudents: activeNow,
         equipmentInUse: activeNow,
-        peakHour: "18:00", // Placeholder
+        peakHour: `${String(peakHourNum.hourNum).padStart(2, "0")}:00`,
       },
       week: {
         totalCheckins: weekCheckIns,
@@ -203,6 +255,8 @@ export class GymInventoryService {
         newMembers,
         canceledMembers,
         revenue: weekRevenueAgg._sum.amount ?? 0,
+        checkinsByDay,
+        checkinsByHour,
       },
       month: {
         totalCheckins: monthCheckIns,

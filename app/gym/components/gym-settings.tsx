@@ -22,10 +22,10 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import { Select } from "@/components/atoms/inputs/select";
-import { DuoInput } from "@/components/duo";
-import { Label } from "@/components/ui/label";
 import { DuoCardHeader } from "@/components/duo";
+import { DuoInput } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
+import { Label } from "@/components/ui/label";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -228,116 +228,173 @@ export function GymSettingsPage({
 							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
 						</div>
 					</DuoCardHeader>
-					<div className="mb-4">
-						<p className="text-sm font-medium text-duo-text">Plano {profile.plan}</p>
-					</div>
-					<div className="space-y-4">
-						<div>
-							<Label htmlFor="address" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
-								<MapPin className="h-4 w-4" />
-								Endereço
-							</Label>
-							<DuoInput
-								id="address"
-								value={address}
-								onChange={(e) => setAddress(e.target.value)}
-								placeholder="Opcional"
-								className="mt-1.5"
-							/>
-						</div>
-						<div>
-							<Label htmlFor="phone" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
-								<Phone className="h-4 w-4" />
-								Telefone
-							</Label>
-							<DuoInput
-								id="phone"
-								value={phone}
-								onChange={(e) => setPhone(e.target.value)}
-								placeholder="Opcional"
-								className="mt-1.5"
-							/>
-						</div>
-						<div>
-							<Label className="flex items-center gap-2 text-sm font-semibold text-duo-text">
-								<Mail className="h-4 w-4" />
-								Email
-							</Label>
-							<p className="mt-1.5 text-sm font-medium text-duo-text">
-								{profile.email}
-							</p>
-							<p className="text-xs text-duo-gray-dark">
-								Email não pode ser alterado aqui
-							</p>
-						</div>
-						<div>
-							<Label htmlFor="cnpj" className="flex items-center gap-2 text-sm font-semibold text-duo-text">
-								<FileText className="h-4 w-4" />
-								CNPJ
-							</Label>
-							<DuoInput
-								id="cnpj"
-								value={cnpj}
-								onChange={(e) => setCnpj(e.target.value)}
-								placeholder="Opcional"
-								className="mt-1.5"
-							/>
-						</div>
-						<div>
-							<Label className="flex items-center gap-2 text-sm font-semibold text-duo-text">
-								<CreditCard className="h-4 w-4" />
-								Chave PIX para Recebimentos
-							</Label>
-							<p className="mt-1 text-xs text-duo-gray-dark">
-								Os pagamentos dos alunos serão transferidos para esta chave.
-							</p>
-							<div className="mt-2 flex flex-col gap-2 sm:flex-row">
-								<Select
-									options={[
-										{ value: "", label: "Tipo de chave" },
-										{ value: "CPF", label: "CPF" },
-										{ value: "CNPJ", label: "CNPJ" },
-										{ value: "PHONE", label: "Telefone" },
-										{ value: "EMAIL", label: "E-mail" },
-										{ value: "RANDOM", label: "Chave aleatória" },
-									]}
-									value={pixKeyType}
-									onChange={setPixKeyType}
-									placeholder="Tipo de chave"
-									className="min-w-[180px]"
-								/>
-								<DuoInput
-									value={pixKey}
-									onChange={(e) => setPixKey(e.target.value)}
-									placeholder={
-										pixKeyType === "CPF"
-											? "000.000.000-00"
-											: pixKeyType === "CNPJ"
-												? "00.000.000/0001-00"
-												: pixKeyType === "PHONE"
-													? "(00) 00000-0000"
-													: pixKeyType === "EMAIL"
-														? "email@exemplo.com"
-														: pixKeyType === "RANDOM"
-															? "Chave aleatória (e-mail)"
-															: "Selecione o tipo primeiro"
-									}
-									className="flex-1"
-								/>
-							</div>
-						</div>
-						{hasChanges && (
-							<DuoButton
-								onClick={handleSaveProfile}
-								disabled={saving}
-								className="w-full"
+					<p className="mb-4 text-sm font-medium text-duo-text">Plano {profile.plan}</p>
+					<div className="space-y-3">
+						{[
+							{
+								icon: MapPin,
+								title: "Endereço",
+								description: "Opcional",
+								color: "duo-green",
+								content: (
+									<DuoInput
+										id="address"
+										value={address}
+										onChange={(e) => setAddress(e.target.value)}
+										placeholder="Opcional"
+										className="mt-2"
+									/>
+								),
+							},
+							{
+								icon: Phone,
+								title: "Telefone",
+								description: "Opcional",
+								color: "duo-blue",
+								content: (
+									<DuoInput
+										id="phone"
+										value={phone}
+										onChange={(e) => setPhone(e.target.value)}
+										placeholder="Opcional"
+										className="mt-2"
+									/>
+								),
+							},
+							{
+								icon: Mail,
+								title: "Email",
+								description: "Não pode ser alterado aqui",
+								color: "neutral",
+								content: (
+									<p className="mt-2 text-sm font-medium text-duo-text">
+										{profile.email}
+									</p>
+								),
+							},
+							{
+								icon: FileText,
+								title: "CNPJ",
+								description: "Opcional",
+								color: "duo-purple",
+								content: (
+									<DuoInput
+										id="cnpj"
+										value={cnpj}
+										onChange={(e) => setCnpj(e.target.value)}
+										placeholder="Opcional"
+										className="mt-2"
+									/>
+								),
+							},
+							{
+								icon: CreditCard,
+								title: "Chave PIX para Recebimentos",
+								description: "Os pagamentos dos alunos serão transferidos para esta chave",
+								color: "duo-yellow",
+								content: (
+									<div className="mt-2 flex flex-col gap-2 sm:flex-row">
+										<DuoSelect
+											options={[
+												{ value: "", label: "Tipo de chave" },
+												{ value: "CPF", label: "CPF" },
+												{ value: "CNPJ", label: "CNPJ" },
+												{ value: "PHONE", label: "Telefone" },
+												{ value: "EMAIL", label: "E-mail" },
+												{ value: "RANDOM", label: "Chave aleatória" },
+											]}
+											value={pixKeyType}
+											onChange={setPixKeyType}
+											placeholder="Tipo de chave"
+											className="min-w-[180px] sm:min-w-0 sm:flex-1"
+										/>
+										<DuoInput
+											value={pixKey}
+											onChange={(e) => setPixKey(e.target.value)}
+											placeholder={
+												pixKeyType === "CPF"
+													? "000.000.000-00"
+													: pixKeyType === "CNPJ"
+														? "00.000.000/0001-00"
+														: pixKeyType === "PHONE"
+															? "(00) 00000-0000"
+															: pixKeyType === "EMAIL"
+																? "email@exemplo.com"
+																: pixKeyType === "RANDOM"
+																	? "Chave aleatória (e-mail)"
+																	: "Selecione o tipo primeiro"
+											}
+											className="flex-1"
+										/>
+									</div>
+								),
+							},
+						].map((field, index) => (
+							<motion.div
+								key={field.title}
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: index * 0.05, duration: 0.4 }}
 							>
-								{saving ? (
-									<Loader2 className="h-4 w-4 animate-spin" />
-								) : (
-									"Salvar alterações"
-								)}
-							</DuoButton>
+								<DuoCard variant="default" size="default">
+									<div className="flex items-start gap-3">
+										<div
+											className={cn(
+												"shrink-0 rounded-xl p-3",
+												field.color === "duo-green" && "bg-duo-green/10",
+												field.color === "duo-blue" && "bg-duo-blue/10",
+												field.color === "neutral" && "bg-gray-100",
+												field.color === "duo-purple" && "bg-duo-purple/10",
+												field.color === "duo-yellow" && "bg-duo-yellow/10",
+											)}
+										>
+											{field.color === "duo-green" && (
+												<MapPin className="h-5 w-5 text-duo-green" />
+											)}
+											{field.color === "duo-blue" && (
+												<Phone className="h-5 w-5 text-duo-blue" />
+											)}
+											{field.color === "neutral" && (
+												<Mail className="h-5 w-5 text-duo-gray-dark" />
+											)}
+											{field.color === "duo-purple" && (
+												<FileText className="h-5 w-5 text-duo-purple" />
+											)}
+											{field.color === "duo-yellow" && (
+												<CreditCard className="h-5 w-5 text-duo-yellow" />
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<div className="text-sm font-bold text-duo-text">
+												{field.title}
+											</div>
+											<div className="text-xs text-duo-gray-dark">
+												{field.description}
+											</div>
+											{field.content}
+										</div>
+									</div>
+								</DuoCard>
+							</motion.div>
+						))}
+						{hasChanges && (
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.25, duration: 0.4 }}
+							>
+								<DuoButton
+									onClick={handleSaveProfile}
+									disabled={saving}
+									className="w-full"
+								>
+									{saving ? (
+										<Loader2 className="h-4 w-4 animate-spin" />
+									) : (
+										"Salvar alterações"
+									)}
+								</DuoButton>
+							</motion.div>
 						)}
 						{saveError && (
 							<p className="text-sm font-medium text-red-600">{saveError}</p>
@@ -358,78 +415,98 @@ export function GymSettingsPage({
 						Configura horários diferentes por dia (ex: sexta fecha 18h, outros 22h)
 					</p>
 					<div className="space-y-3">
-						{WEEKDAYS.map((day) => {
+						{WEEKDAYS.map((day, index) => {
 							const s = daySchedules[day.id];
 							if (!s) return null;
 							return (
-								<div
+								<motion.div
 									key={day.id}
-									className={cn(
-										"flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors",
-										s.enabled
-											? "border-duo-blue/30 bg-duo-blue/5"
-											: "border-gray-200 bg-gray-50/50",
-									)}
+									initial={{ opacity: 0, y: 20 }}
+									animate={{ opacity: 1, y: 0 }}
+									transition={{ delay: index * 0.05, duration: 0.4 }}
 								>
-									<label className="flex min-w-[100px] cursor-pointer items-center gap-2">
-										<input
-											type="checkbox"
-											checked={s.enabled}
-											onChange={(e) =>
-												updateDaySchedule(day.id, "enabled", e.target.checked)
-											}
-											className="h-4 w-4 rounded"
-										/>
-										<span className="text-sm font-semibold text-duo-text">
-											{day.label}
-										</span>
-									</label>
-									{s.enabled && (
-										<>
-											<div className="flex items-center gap-2">
-												<Label className="text-xs font-medium text-duo-gray-dark">
-													Abre
-												</Label>
-												<DuoInput
-													type="time"
-													value={s.open}
-													onChange={(e) =>
-														updateDaySchedule(day.id, "open", e.target.value)
-													}
-													className="h-9 w-auto"
-												/>
+									<DuoCard
+										variant="default"
+										size="default"
+										className={cn(
+											"transition-colors",
+											s.enabled && "border-duo-blue/30 bg-duo-blue/5",
+										)}
+									>
+										<div className="flex flex-wrap items-center gap-3">
+											<div className="shrink-0 rounded-xl bg-duo-blue/10 p-3">
+												<Clock className="h-5 w-5 text-duo-blue" />
 											</div>
-											<div className="flex items-center gap-2">
-												<Label className="text-xs font-medium text-duo-gray-dark">
-													Fecha
-												</Label>
-												<DuoInput
-													type="time"
-													value={s.close}
-													onChange={(e) =>
-														updateDaySchedule(day.id, "close", e.target.value)
-													}
-													className="h-9 w-auto"
-												/>
+											<div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+												<label className="flex cursor-pointer items-center gap-2">
+													<input
+														type="checkbox"
+														checked={s.enabled}
+														onChange={(e) =>
+															updateDaySchedule(day.id, "enabled", e.target.checked)
+														}
+														className="h-4 w-4 rounded"
+													/>
+													<span className="text-sm font-bold text-duo-text">
+														{day.label}
+													</span>
+												</label>
+												{s.enabled && (
+													<>
+														<div className="flex items-center gap-2">
+															<Label className="text-xs font-medium text-duo-gray-dark">
+																Abre
+															</Label>
+															<DuoInput
+																type="time"
+																value={s.open}
+																onChange={(e) =>
+																	updateDaySchedule(day.id, "open", e.target.value)
+																}
+																className="h-9 w-auto"
+															/>
+														</div>
+														<div className="flex items-center gap-2">
+															<Label className="text-xs font-medium text-duo-gray-dark">
+																Fecha
+															</Label>
+															<DuoInput
+																type="time"
+																value={s.close}
+																onChange={(e) =>
+																	updateDaySchedule(day.id, "close", e.target.value)
+																}
+																className="h-9 w-auto"
+															/>
+														</div>
+													</>
+												)}
 											</div>
-										</>
-									)}
-								</div>
+										</div>
+									</DuoCard>
+								</motion.div>
 							);
 						})}
 					</div>
 					{hasChanges && (
-						<DuoButton
-							onClick={handleSaveProfile}
-							disabled={saving}
-							className="mt-4 w-full"
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.35, duration: 0.4 }}
+							className="mt-4"
 						>
-							{saving ? (
-								<Loader2 className="h-4 w-4 animate-spin" />
-							) : (
-								"Salvar horários"
-							)}
-						</DuoButton>
+							<DuoButton
+								onClick={handleSaveProfile}
+								disabled={saving}
+								className="w-full"
+							>
+								{saving ? (
+									<Loader2 className="h-4 w-4 animate-spin" />
+								) : (
+									"Salvar horários"
+								)}
+							</DuoButton>
+						</motion.div>
 					)}
 				</DuoCard>
 			</SlideIn>
