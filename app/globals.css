@@ -133,6 +133,7 @@
   --color-duo-bg-elevated: var(--duo-bg-elevated);
   --color-duo-fg: var(--duo-fg);
   --color-duo-fg-muted: var(--duo-fg-muted);
+  --color-duo-text: var(--duo-text);
   --color-duo-border: var(--duo-border);
   /* Aliases legados */
   --color-duo-green: var(--duo-green);

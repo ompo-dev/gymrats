@@ -129,7 +129,7 @@ export function PixPaymentModal({
 				</p>
 
 				<div className="flex flex-col items-center gap-4">
-					<div className="bg-white p-4 rounded-xl border-2 border-duo-border">
+					<div className="bg-duo-bg-card p-4 rounded-xl border-2 border-duo-border">
 						{brCodeBase64 ? (
 							<img
 								src={brCodeBase64.startsWith("data:") ? brCodeBase64 : `data:image/png;base64,${brCodeBase64}`}
@@ -137,8 +137,8 @@ export function PixPaymentModal({
 								className="w-48 h-48 object-contain"
 							/>
 						) : (
-							<div className="w-48 h-48 flex items-center justify-center bg-gray-100 rounded">
-								<QrCode className="w-24 h-24 text-gray-400" />
+							<div className="w-48 h-48 flex items-center justify-center bg-duo-bg-elevated rounded">
+								<QrCode className="w-24 h-24 text-duo-fg-muted" />
 							</div>
 						)}
 					</div>

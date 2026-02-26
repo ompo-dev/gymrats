@@ -57,7 +57,7 @@ export function ExerciseAlternativeSelector({
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.9, y: 20 }}
 				onClick={(e) => e.stopPropagation()}
-				className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
+				className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-duo-bg-card shadow-2xl"
 			>
 				{/* Header */}
 				<div className="sticky top-0 z-10 border-b-2 border-duo-border bg-white p-4 sm:p-6">
@@ -75,7 +75,7 @@ export function ExerciseAlternativeSelector({
 						</div>
 						<button
 							onClick={onCancel}
-							className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+							className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
 						>
 							<X className="h-6 w-6 text-duo-gray-dark" />
 						</button>
@@ -192,7 +192,7 @@ export function ExerciseAlternativeSelector({
 				</div>
 
 				{/* Action Buttons */}
-				<div className="sticky bottom-0 border-t-2 border-duo-border bg-white p-4 sm:p-6 shadow-lg">
+				<div className="sticky bottom-0 border-t-2 border-duo-border bg-duo-bg-card p-4 sm:p-6 shadow-lg">
 					<div className="flex gap-3">
 						<DuoButton variant="white" onClick={onCancel} className="flex-1">
 							CANCELAR

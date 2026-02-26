@@ -76,7 +76,7 @@ export function WorkoutModal() {
     if (workoutModal.isOpen && !workout) {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="rounded-xl bg-white p-8">
+              <div className="rounded-xl bg-duo-bg-card p-8">
                   <div className="flex flex-col items-center gap-4">
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-blue border-t-transparent" />
                       <p className="text-sm text-duo-gray-dark">Carregando treino...</p>
@@ -97,7 +97,7 @@ export function WorkoutModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-50 flex h-screen flex-col bg-white overflow-hidden"
+          className="fixed inset-0 z-50 flex h-screen flex-col bg-duo-bg overflow-hidden"
         >
           {/* Sub-Modals & Overlays */}
           <WeightTrackerOverlay

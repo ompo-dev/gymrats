@@ -511,9 +511,9 @@ export function EditUnitModal() {
 						// --- UNIT VIEW ---
 						<div className="space-y-8" style={{ minHeight: "400px" }}>
 							{/* Unit Details */}
-							<div className="space-y-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+							<div className="space-y-4 bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border">
 								<div>
-									<label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
 										Nome do Plano
 									</label>
 									<input
@@ -522,12 +522,12 @@ export function EditUnitModal() {
 										onChange={(e) => setTitle(e.target.value)}
 										onFocus={() => setIsEditingUnitInputs(true)}
 										onBlur={() => setIsEditingUnitInputs(false)}
-										className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold text-lg"
+										className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold text-lg"
 										placeholder="Ex: Treino de Hipertrofia"
 									/>
 								</div>
 								<div>
-									<label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
 										Descrição
 									</label>
 									<textarea
@@ -535,7 +535,7 @@ export function EditUnitModal() {
 										onChange={(e) => setDescription(e.target.value)}
 										onFocus={() => setIsEditingUnitInputs(true)}
 										onBlur={() => setIsEditingUnitInputs(false)}
-										className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
+										className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
 										placeholder="Descreva o objetivo deste plano..."
 									/>
 								</div>
@@ -558,7 +558,7 @@ export function EditUnitModal() {
 							{/* Workouts List */}
 							<div className="space-y-4">
 								<div className="flex items-center justify-between px-1 mb-4">
-									<h3 className="text-lg font-bold text-gray-900">
+									<h3 className="text-lg font-bold text-duo-text">
 										Dias de Treino
 									</h3>
 									<div className="flex items-center gap-2">
@@ -582,7 +582,7 @@ export function EditUnitModal() {
 											size="sm"
 											variant="outline"
 											onClick={handleCreateWorkout}
-											className="border-2 font-bold hover:bg-gray-50 flex items-center gap-2 z-10 relative"
+											className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
 											style={{
 												opacity: 1,
 												visibility: "visible",
@@ -612,12 +612,12 @@ export function EditUnitModal() {
 													className="cursor-grab active:cursor-grabbing"
 												>
 													<DuoCard
-														variant="primary"
-														className="group hover:border-duo-green/50 transition-colors bg-white"
+														variant="highlighted"
+														className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
 													>
 														<div className="flex items-center gap-4">
 															{/* Handle de arrastar */}
-															<div className="flex-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-duo-green transition-colors">
+															<div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
 																<GripVertical className="h-5 w-5" />
 															</div>
 															<div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
@@ -627,10 +627,10 @@ export function EditUnitModal() {
 																className="flex-1 min-w-0 cursor-pointer"
 																onClick={() => setEditingWorkoutId(workout.id)}
 															>
-																<h4 className="font-bold text-gray-900 truncate text-lg">
+																<h4 className="font-bold text-duo-text truncate text-lg">
 																	{workout.title}
 																</h4>
-																<p className="text-sm text-gray-500 truncate">
+																<p className="text-sm text-duo-fg-muted truncate">
 																	{workout.exercises.length} exercícios •{" "}
 																	{workout.muscleGroup}
 																</p>
@@ -648,7 +648,7 @@ export function EditUnitModal() {
 																<DuoButton
 																	variant="ghost"
 																	size="icon"
-																	className="text-gray-400 hover:text-duo-green hover:bg-duo-green/10"
+																	className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
 																	onClick={(e) => {
 																		e.stopPropagation();
 																		setEditingWorkoutId(workout.id);
@@ -666,7 +666,7 @@ export function EditUnitModal() {
 																<DuoButton
 																	variant="ghost"
 																	size="icon"
-																	className="text-gray-400 hover:text-red-500 hover:bg-red-50"
+																	className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10"
 																	onClick={(e) => {
 																		e.stopPropagation();
 																		handleDeleteWorkoutClick(workout.id);
@@ -689,9 +689,9 @@ export function EditUnitModal() {
 										)}
 									</Reorder.Group>
 								) : (
-									<div className="text-center py-12 text-gray-400 bg-white rounded-2xl border-2 border-dashed border-gray-200">
-										<div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-											<Dumbbell className="h-6 w-6 text-gray-400" />
+									<div className="text-center py-12 text-duo-fg-muted bg-duo-bg-card rounded-2xl border-2 border-dashed border-duo-border">
+										<div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center mx-auto mb-3">
+											<Dumbbell className="h-6 w-6 text-duo-fg-muted" />
 										</div>
 										<p className="font-bold">Nenhum dia de treino adicionado</p>
 										<p className="text-sm mt-1">
@@ -705,9 +705,9 @@ export function EditUnitModal() {
 						// --- WORKOUT VIEW ---
 						<div className="space-y-6">
 							{/* Header do Workout */}
-							<div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+							<div className="bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border space-y-4">
 								<div>
-									<label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
 										Título do Dia
 									</label>
 									<input
@@ -728,11 +728,11 @@ export function EditUnitModal() {
 												setWorkoutTitle(activeWorkout?.title ?? "");
 											}
 										}}
-										className="w-full px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold"
+										className="w-full px-4 py-2 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold"
 									/>
 								</div>
 								<div>
-									<label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 block">
+									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
 										Grupo Muscular
 									</label>
 									<div className="flex flex-wrap gap-2">
@@ -753,7 +753,7 @@ export function EditUnitModal() {
 													"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
 													workoutMuscleGroup === category.value
 														? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
-														: "border-gray-300 bg-white text-gray-700 hover:border-duo-green/50",
+														: "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
 												)}
 											>
 												<span>{category.icon}</span>
@@ -770,7 +770,7 @@ export function EditUnitModal() {
 										<div className="text-lg font-bold text-duo-green">
 											{calculatedEstimatedTime} min
 										</div>
-										<div className="text-xs text-gray-600 mt-1">
+										<div className="text-xs text-duo-fg-muted mt-1">
 											Calculado automaticamente baseado nos exercícios
 										</div>
 									</div>
@@ -778,7 +778,7 @@ export function EditUnitModal() {
 							</div>
 
 							<div className="flex items-center justify-between px-1 mb-4">
-								<h3 className="text-lg font-bold text-gray-900">Exercícios</h3>
+								<h3 className="text-lg font-bold text-duo-text">Exercícios</h3>
 								<DuoButton
 									size="sm"
 									onClick={handleAddExercise}
@@ -811,14 +811,14 @@ export function EditUnitModal() {
 												className="cursor-grab active:cursor-grabbing"
 											>
 												<DuoCard
-													variant="primary"
+													variant="highlighted"
 													size="md"
-													className="group hover:border-duo-green/50 transition-all bg-white"
+													className="group hover:border-duo-green/50 transition-all bg-duo-bg-card"
 												>
 													{/* Primeira div: Número, Nome e Botão de excluir */}
 													<div className="flex items-center gap-4">
 														{/* Handle de arrastar */}
-														<div className="flex-none cursor-grab active:cursor-grabbing text-gray-400 hover:text-duo-green transition-colors">
+														<div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
 															<GripVertical className="h-5 w-5" />
 														</div>
 														{/* Número do exercício */}
@@ -836,7 +836,7 @@ export function EditUnitModal() {
 																		name: e.target.value,
 																	})
 																}
-																className="w-full px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 hover:bg-white hover:border-gray-300 focus:bg-white focus:border-duo-green focus:outline-none focus:ring-2 focus:ring-duo-green/20 font-bold text-base transition-all"
+																className="w-full px-4 py-2.5 rounded-xl bg-duo-bg-elevated border border-duo-border hover:bg-duo-bg-card hover:border-duo-border focus:bg-duo-bg-card focus:border-duo-green focus:outline-none focus:ring-2 focus:ring-duo-green/20 font-bold text-base transition-all"
 																placeholder="Nome do exercício"
 															/>
 														</div>
@@ -855,7 +855,7 @@ export function EditUnitModal() {
 															<DuoButton
 																variant="ghost"
 																size="icon"
-																className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+																className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10 transition-colors"
 																onClick={() =>
 																	handleDeleteExercise(exercise.id)
 																}
@@ -874,8 +874,8 @@ export function EditUnitModal() {
 
 													{/* Segunda div: Séries, Repetições e Descanso */}
 													<div className="grid grid-cols-3 gap-3 mt-4">
-														<div className="flex flex-col gap-1.5 bg-gray-50 rounded-xl p-3 border border-gray-100 hover:bg-gray-100 transition-colors items-center justify-center">
-															<label className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-full">
+														<div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
+															<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
 																Séries
 															</label>
 															<input
@@ -886,12 +886,12 @@ export function EditUnitModal() {
 																		sets: parseInt(e.target.value, 10) || 0,
 																	})
 																}
-																className="w-full bg-transparent font-bold text-gray-900 text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
+																className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
 																min="0"
 															/>
 														</div>
-														<div className="flex flex-col gap-1.5 bg-gray-50 rounded-xl p-3 border border-gray-100 hover:bg-gray-100 transition-colors items-center justify-center">
-															<label className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-full">
+														<div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
+															<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
 																Repetições
 															</label>
 															<input
@@ -902,12 +902,12 @@ export function EditUnitModal() {
 																		reps: e.target.value,
 																	})
 																}
-																className="w-full bg-transparent font-bold text-gray-900 text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
+																className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
 																placeholder="8-12"
 															/>
 														</div>
-														<div className="flex flex-col gap-1.5 bg-gray-50 rounded-xl p-3 border border-gray-100 hover:bg-gray-100 transition-colors items-center justify-center">
-															<label className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center w-full">
+														<div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
+															<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
 																Descanso
 															</label>
 															<div className="flex items-center justify-center gap-1">
@@ -919,10 +919,10 @@ export function EditUnitModal() {
 																			rest: parseInt(e.target.value, 10) || 0,
 																		})
 																	}
-																	className="w-full bg-transparent font-bold text-gray-900 text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
+																	className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
 																	min="0"
 																/>
-																<span className="text-xs font-bold text-gray-400">
+																<span className="text-xs font-bold text-duo-fg-muted">
 																	s
 																</span>
 															</div>
@@ -934,7 +934,7 @@ export function EditUnitModal() {
 									)}
 								</Reorder.Group>
 							) : (
-								<div className="text-center py-12 text-gray-400">
+								<div className="text-center py-12 text-duo-fg-muted">
 									<p>Nenhum exercício neste dia.</p>
 								</div>
 							)}

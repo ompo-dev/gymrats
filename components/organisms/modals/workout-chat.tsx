@@ -915,7 +915,7 @@ export function WorkoutChat({
             stiffness: 300,
             duration: 0.3,
           }}
-          className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl"
+          className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
           style={{
             maxHeight: "90vh",
@@ -924,18 +924,18 @@ export function WorkoutChat({
           }}
         >
           {/* Header */}
-          <div className="border-b-2 border-gray-300 p-6">
+          <div className="border-b-2 border-duo-border p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-duo-green" />
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-duo-text">
                   Chat IA - Treinos
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
               >
                 ✕
               </button>
@@ -948,7 +948,7 @@ export function WorkoutChat({
               >
                 Exportar treino
               </DuoButton>
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-duo-fg-muted">
                 Cole o JSON aqui para importar; o chat aplica automaticamente.
               </span>
             </div>
@@ -1063,7 +1063,7 @@ export function WorkoutChat({
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       msg.role === "user"
                         ? "bg-duo-green text-white"
-                        : "bg-gray-100 text-gray-900"
+                        : "bg-duo-bg-elevated text-duo-text"
                     }`}
                   >
                     {/* Mostrar referência visual se houver */}
@@ -1072,14 +1072,14 @@ export function WorkoutChat({
                         className={`mb-2 pb-2 border-b ${
                           msg.role === "user"
                             ? "border-white/30"
-                            : "border-gray-300"
+                            : "border-duo-border"
                         }`}
                       >
                         <div
                           className={`text-xs font-bold ${
                             msg.role === "user"
                               ? "text-white/80"
-                              : "text-gray-500"
+                              : "text-duo-fg-muted"
                           } uppercase mb-1`}
                         >
                           {msg.reference.type === "workout"
@@ -1090,7 +1090,7 @@ export function WorkoutChat({
                           className={`text-xs ${
                             msg.role === "user"
                               ? "text-white/90"
-                              : "text-gray-700"
+                              : "text-duo-text"
                           }`}
                         >
                           {msg.reference.type === "workout"
@@ -1134,7 +1134,7 @@ export function WorkoutChat({
                   onClick={handleRefazer}
                   disabled={isApproving || isProcessing}
                   variant="outline"
-                  className="flex items-center gap-2 border-2 border-gray-300 hover:bg-gray-50 font-bold px-6 py-3 rounded-xl"
+                  className="flex items-center gap-2 border-2 border-duo-border hover:bg-duo-bg-elevated font-bold px-6 py-3 rounded-xl"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Refazer
@@ -1144,7 +1144,7 @@ export function WorkoutChat({
 
             {isProcessing && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                <div className="bg-duo-bg-elevated rounded-2xl px-4 py-3">
                   <Loader2 className="h-4 w-4 animate-spin text-duo-green" />
                 </div>
               </div>
@@ -1154,9 +1154,9 @@ export function WorkoutChat({
           </div>
 
           {/* Input */}
-          <div className="border-t-2 border-gray-300 p-4">
+          <div className="border-t-2 border-duo-border p-4">
             {remainingMessages !== null && remainingMessages >= 0 && (
-              <div className="mb-2 text-xs text-gray-600 text-center">
+              <div className="mb-2 text-xs text-duo-fg-muted text-center">
                 {remainingMessages > 0 ? (
                   <span className="text-duo-green font-bold">
                     {remainingMessages} mensagem
@@ -1188,7 +1188,7 @@ export function WorkoutChat({
                           ? "Referenciando treino"
                           : "Referenciando exercício"}
                       </div>
-                      <div className="text-sm font-bold text-gray-900 truncate">
+                      <div className="text-sm font-bold text-duo-text truncate">
                         {reference.type === "workout"
                           ? reference.workoutTitle
                           : `${reference.exerciseName} (${reference.workoutTitle})`}
@@ -1198,7 +1198,7 @@ export function WorkoutChat({
                   <button
                     type="button"
                     onClick={() => setReference(null)}
-                    className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="shrink-0 text-duo-fg-muted hover:text-duo-text transition-colors"
                     title="Remover referência"
                   >
                     <X className="h-4 w-4" />
@@ -1220,7 +1220,7 @@ export function WorkoutChat({
                   }
                 }}
                 placeholder="Descreva o que você quer fazer no treino..."
-                className="flex-1 rounded-xl border-2 border-gray-300 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-green focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 rounded-xl border-2 border-duo-border px-4 py-3 text-sm font-bold text-duo-text placeholder:text-duo-fg-muted focus:border-duo-green focus:outline-none disabled:bg-duo-bg-elevated disabled:cursor-not-allowed"
                 disabled={
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
@@ -1234,7 +1234,7 @@ export function WorkoutChat({
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
                 }
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green text-white disabled:bg-duo-border disabled:cursor-not-allowed transition-colors"
               >
                 {isProcessing ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

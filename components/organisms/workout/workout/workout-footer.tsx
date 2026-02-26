@@ -35,7 +35,7 @@ export function WorkoutFooter({
 	onSkip,
 }: WorkoutFooterProps) {
 	return (
-		<div className="border-t-2 border-duo-border bg-white p-3 sm:p-4 shadow-lg shrink-0">
+		<div className="border-t-2 border-duo-border bg-duo-bg-card p-3 sm:p-4 shadow-lg shrink-0">
 			<div className="mx-auto max-w-2xl">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -118,7 +118,7 @@ export function WorkoutFooter({
 								whileHover={{ scale: 1.02 }}
 								whileTap={{ scale: 0.98 }}
 								onClick={onGoBack}
-								className="rounded-xl sm:rounded-2xl border-2 border-duo-border bg-white py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-gray-50"
+								className="rounded-xl sm:rounded-2xl border-2 border-duo-border bg-duo-bg-card py-3 sm:py-4 font-bold text-xs sm:text-sm text-duo-gray-dark transition-all hover:bg-duo-bg-elevated"
 							>
 								<span className="hidden sm:inline">← ANTERIOR</span>
 								<span className="sm:hidden">ANTERIOR</span>

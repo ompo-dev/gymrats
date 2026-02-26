@@ -347,7 +347,7 @@ export function WeightTracker({
 										? "border-duo-green bg-duo-green/10"
 										: isValid
 											? "border-duo-blue bg-duo-blue/10"
-											: "border-duo-border bg-white",
+											: "border-duo-border bg-duo-bg-card",
 								)}
 							>
 								<div className="mb-3 flex items-center justify-between">
@@ -459,7 +459,7 @@ export function WeightTracker({
 					<DuoButton
 						type="button"
 						variant="outline"
-						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-white py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
+						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-duo-bg-card py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
 						onClick={handleAddSet}
 					>
 						<Plus className="h-5 w-5" />
