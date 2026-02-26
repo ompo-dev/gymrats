@@ -14,3 +14,9 @@ export { useGymUnifiedStore } from "./gym-unified-store";
 export { useSubscriptionStore } from "./subscription-store";
 export { useUIStore } from "./ui-store";
 export { useWorkoutStore } from "./workout-store";
+export {
+	useThemeStore,
+	duolingoPresets,
+	type ThemeColors,
+	type ThemePreset,
+} from "./theme-store";

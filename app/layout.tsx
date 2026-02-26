@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
 import { AppUpdatingScreenWrapper } from "@/components/organisms/pwa/app-updating-screen-wrapper";
 import { PWAUpdateBanner } from "@/components/organisms/pwa/pwa-update-banner";
+import { DuoThemeProvider } from "@/components/duo/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { PWAProtection } from "./pwa-protection";
 import "./globals.css";
@@ -71,21 +72,23 @@ export default function RootLayout({
 	return (
 		<html lang="pt-BR">
 			<body
-				className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased`}
+				className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased bg-duo-bg text-duo-fg`}
 				suppressHydrationWarning
 			>
 				<NuqsAdapter>
 					<ErrorBoundary>
-						<QueryProvider>
-							<PerformanceOptimizer />
-							{children}
-							<Suspense fallback={null}>
-								<AppUpdatingScreenWrapper />
-								<PWAUpdateBanner />
-							</Suspense>
-							<PWAProtection />
-							<Analytics />
-						</QueryProvider>
+						<DuoThemeProvider>
+							<QueryProvider>
+								<PerformanceOptimizer />
+								{children}
+								<Suspense fallback={null}>
+									<AppUpdatingScreenWrapper />
+									<PWAUpdateBanner />
+								</Suspense>
+								<PWAProtection />
+								<Analytics />
+							</QueryProvider>
+						</DuoThemeProvider>
 					</ErrorBoundary>
 				</NuqsAdapter>
 			</body>

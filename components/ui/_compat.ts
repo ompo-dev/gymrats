@@ -12,8 +12,8 @@
 
 // Re-exportar atoms
 export { Button, buttonVariants } from "../atoms/buttons/button";
-export type { DuoButtonProps } from "../atoms/buttons/duo-button";
-export { DuoButton, duoButtonVariants } from "../atoms/buttons/duo-button";
+export type { DuoButtonProps } from "../duo/atoms/duo-button";
+export { DuoButton, duoButtonVariants } from "../duo/atoms/duo-button";
 export { Input } from "../atoms/inputs/input";
 export { Select, SelectOption } from "../atoms/inputs/select";
 export { Textarea } from "../atoms/inputs/textarea";
