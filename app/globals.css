@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Duolingo Design System - variáveis dinâmicas (fallback até DuoThemeProvider carregar) */
+  /* Duolingo Design System - variáveis dinâmicas (fallback light até DuoThemeProvider carregar) */
   --duo-primary: #58CC02;
   --duo-primary-dark: #46A302;
   --duo-primary-light: #89E219;
@@ -18,12 +18,13 @@
   --duo-warning-dark: #E0B000;
   --duo-danger: #FF4B4B;
   --duo-danger-dark: #E04040;
-  --duo-bg: #131F24;
-  --duo-bg-card: #1A2D35;
-  --duo-bg-elevated: #213C47;
-  --duo-fg: #FFFFFF;
-  --duo-fg-muted: #8B9DA5;
-  --duo-border: #2B4550;
+  /* Padrão light: fundo claro, texto escuro */
+  --duo-bg: #F5F7F6;
+  --duo-bg-card: #FFFFFF;
+  --duo-bg-elevated: #E8ECEA;
+  --duo-fg: #131F24;
+  --duo-fg-muted: #5A6B63;
+  --duo-border: #D1D9D6;
 
   /* Aliases legados (compatibilidade com duo-button-green, duo-node, etc.) */
   --duo-green: var(--duo-primary);

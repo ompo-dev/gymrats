@@ -1,15 +1,26 @@
 "use client";
 
-import { Check, Palette, Plus, Trash2 } from "lucide-react";
+import { Check, Moon, Palette, Plus, Sun, Trash2 } from "lucide-react";
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import {
 	duolingoPresets,
+	duolingoPresetsLight,
+	presetModeMap,
 	useThemeStore,
 	type ThemePreset,
 } from "@/stores/theme-store";
 import { DuoButton } from "../atoms/duo-button";
 import { DuoModal } from "../molecules/duo-modal";
+
+const BASE_PRESET_IDS = ["duo-green", "duo-blue", "duo-purple", "duo-pink", "duo-orange"] as const;
+const BASE_PRESET_NAMES: Record<(typeof BASE_PRESET_IDS)[number], string> = {
+	"duo-green": "Duolingo Classic",
+	"duo-blue": "Ocean Blue",
+	"duo-purple": "Royal Purple",
+	"duo-pink": "Flamingo Pink",
+	"duo-orange": "Sunset Orange",
+};
 
 interface DuoColorPickerProps extends HTMLAttributes<HTMLDivElement> {
 	compact?: boolean;
@@ -30,16 +41,20 @@ export function DuoColorPicker({
 }: DuoColorPickerProps) {
 	const {
 		activePresetId,
+		colorMode: rawColorMode,
 		setActivePreset,
+		setColorMode,
+		toggleColorMode,
 		customPresets,
 		addCustomPreset,
 		removeCustomPreset,
 	} = useThemeStore();
+	const colorMode = rawColorMode ?? "light";
 	const [isOpen, setIsOpen] = useState(false);
 	const [customColor, setCustomColor] = useState("#58CC02");
 	const [customName, setCustomName] = useState("");
 
-	const allPresets = [...duolingoPresets, ...customPresets];
+	const activeBaseId = presetModeMap[activePresetId]?.dark ?? activePresetId;
 
 	function handleAddCustom() {
 		if (!customName.trim()) return;
@@ -70,6 +85,7 @@ export function DuoColorPicker({
 		};
 		addCustomPreset(preset);
 		setActivePreset(preset.id);
+		setColorMode("dark");
 		setCustomName("");
 		setIsOpen(false);
 	}
@@ -77,7 +93,55 @@ export function DuoColorPicker({
 	if (compact) {
 		return (
 			<div className={cn("flex items-center gap-2", className)} {...props}>
-				{allPresets.map((preset) => (
+				<button
+					onClick={toggleColorMode}
+					className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--duo-border)] text-[var(--duo-fg-muted)] transition-all hover:scale-110 hover:border-[var(--duo-primary)] hover:text-[var(--duo-primary)]"
+					aria-label={colorMode === "light" ? "Modo escuro" : "Modo claro"}
+					title={colorMode === "light" ? "Mudar para escuro" : "Mudar para claro"}
+				>
+					{colorMode === "light" ? <Moon size={14} /> : <Sun size={14} />}
+				</button>
+				{BASE_PRESET_IDS.map((baseId) => {
+					const map = presetModeMap[baseId];
+					const resolvedId = colorMode === "light" ? map.light : map.dark;
+					const preset = [...duolingoPresets, ...duolingoPresetsLight].find((p) => p.id === resolvedId);
+					if (!preset) return null;
+					const isActive = activeBaseId === baseId;
+					return (
+						<button
+							key={baseId}
+							onClick={() => setActivePreset(baseId)}
+							className={cn(
+								"flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-90",
+								isActive ? "scale-110 border-white shadow-lg" : "border-transparent",
+							)}
+							style={{ backgroundColor: preset.colors.primary }}
+							aria-label={`Tema: ${preset.name}`}
+							title={preset.name}
+						>
+							{isActive && (
+								<Check size={14} className="mx-auto text-white drop-shadow-sm" />
+							)}
+						</button>
+					);
+				})}
+				{customPresets.map((preset) => (
+					<button
+						key={preset.id}
+						onClick={() => setActivePreset(preset.id)}
+						className={cn(
+							"flex h-7 w-7 items-center justify-center rounded-full border-2 transition-all duration-200 hover:scale-110 active:scale-90",
+							activePresetId === preset.id ? "scale-110 border-white shadow-lg" : "border-transparent",
+						)}
+						style={{ backgroundColor: preset.colors.primary }}
+						aria-label={`Tema: ${preset.name}`}
+						title={preset.name}
+					>
+						{activePresetId === preset.id && (
+							<Check size={14} className="mx-auto text-white drop-shadow-sm" />
+						)}
+					</button>
+				))}
 					<button
 						key={preset.id}
 						onClick={() => setActivePreset(preset.id)}
@@ -153,18 +217,80 @@ export function DuoColorPicker({
 
 	return (
 		<div className={cn("flex flex-col gap-4", className)} {...props}>
-			<div className="flex items-center gap-2">
-				<Palette size={18} className="text-[var(--duo-primary)]" />
-				<span className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg)]">
-					Tema
-				</span>
+			{/* Toggle Light / Dark */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="flex items-center gap-2">
+					<Palette size={18} className="text-[var(--duo-primary)]" />
+					<span className="text-sm font-bold uppercase tracking-wider text-[var(--duo-fg)]">
+						Tema
+					</span>
+				</div>
+				<button
+					onClick={toggleColorMode}
+					className={cn(
+						"flex items-center gap-2 rounded-xl border-2 px-3 py-2 transition-all duration-200",
+						"border-[var(--duo-border)] hover:border-[var(--duo-primary)]",
+						"text-[var(--duo-fg-muted)] hover:text-[var(--duo-primary)]",
+					)}
+					aria-label={colorMode === "light" ? "Mudar para modo escuro" : "Mudar para modo claro"}
+				>
+					{colorMode === "light" ? (
+						<>
+							<Sun size={16} />
+							<span className="text-xs font-bold">Claro</span>
+						</>
+					) : (
+						<>
+							<Moon size={16} />
+							<span className="text-xs font-bold">Escuro</span>
+						</>
+					)}
+				</button>
 			</div>
 
 			<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-				{allPresets.map((preset) => {
-					const isActive = activePresetId === preset.id;
-					const isCustom = !duolingoPresets.find((p) => p.id === preset.id);
+				{BASE_PRESET_IDS.map((baseId) => {
+					const map = presetModeMap[baseId];
+					const resolvedId = colorMode === "light" ? map.light : map.dark;
+					const preset = [...duolingoPresets, ...duolingoPresetsLight].find((p) => p.id === resolvedId);
+					if (!preset) return null;
+					const isActive = activeBaseId === baseId;
 
+					return (
+						<button
+							key={baseId}
+							onClick={() => setActivePreset(baseId)}
+							className={cn(
+								"relative flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 transition-all duration-200",
+								"hover:scale-[1.02] active:scale-[0.98]",
+								isActive
+									? "border-[var(--duo-primary)] bg-[var(--duo-primary)]/10"
+									: "border-[var(--duo-border)] hover:border-[var(--duo-fg-muted)]",
+							)}
+						>
+							<span
+								className="h-6 w-6 shrink-0 rounded-full shadow-sm"
+								style={{ backgroundColor: preset.colors.primary }}
+							/>
+							<span
+								className={cn(
+									"truncate text-xs font-bold",
+									isActive ? "text-[var(--duo-primary)]" : "text-[var(--duo-fg)]",
+								)}
+							>
+								{BASE_PRESET_NAMES[baseId]}
+							</span>
+							{isActive && (
+								<Check
+									size={14}
+									className="ml-auto shrink-0 text-[var(--duo-primary)]"
+								/>
+							)}
+						</button>
+					);
+				})}
+				{customPresets.map((preset) => {
+					const isActive = activePresetId === preset.id;
 					return (
 						<button
 							key={preset.id}
@@ -190,23 +316,18 @@ export function DuoColorPicker({
 								{preset.name}
 							</span>
 							{isActive && (
-								<Check
-									size={14}
-									className="ml-auto shrink-0 text-[var(--duo-primary)]"
-								/>
+								<Check size={14} className="ml-auto shrink-0 text-[var(--duo-primary)]" />
 							)}
-							{isCustom && (
-								<button
-									onClick={(e) => {
-										e.stopPropagation();
-										removeCustomPreset(preset.id);
-									}}
-									className="ml-auto shrink-0 text-[var(--duo-danger)] opacity-50 transition-opacity hover:opacity-100"
-									aria-label={`Remover tema ${preset.name}`}
-								>
-									<Trash2 size={12} />
-								</button>
-							)}
+							<button
+								onClick={(e) => {
+									e.stopPropagation();
+									removeCustomPreset(preset.id);
+								}}
+								className="ml-auto shrink-0 text-[var(--duo-danger)] opacity-50 transition-opacity hover:opacity-100"
+								aria-label={`Remover tema ${preset.name}`}
+							>
+								<Trash2 size={12} />
+							</button>
 						</button>
 					);
 				})}

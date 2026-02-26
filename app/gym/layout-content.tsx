@@ -101,7 +101,7 @@ export function GymLayoutContent({
 			stats={initialStats}
 			showLogo={true}
 			shouldDisableSwipe={() => isInDetailPage}
-			className="bg-gray-50"
+			className="bg-duo-bg"
 		>
 			{children}
 		</AppLayout>

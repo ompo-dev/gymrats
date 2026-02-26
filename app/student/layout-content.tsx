@@ -132,7 +132,7 @@ export function StudentLayoutContent({
 				</>
 			}
 			scrollResetEnabled={!isOnboarding}
-			className="bg-white"
+			className="bg-duo-bg"
 		>
 			{children}
 		</AppLayout>

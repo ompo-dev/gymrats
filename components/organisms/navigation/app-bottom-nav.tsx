@@ -33,7 +33,7 @@ export function AppBottomNav({
 			initial={{ y: 100 }}
 			animate={{ y: 0 }}
 			transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-			className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-duo-border bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] pointer-events-auto"
+			className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-duo-border bg-duo-bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.1)] pointer-events-auto"
 		>
 			<div className="flex items-center justify-around px-0.5 py-1">
 				{tabs.map((tab, index) => {
@@ -54,7 +54,7 @@ export function AppBottomNav({
 								onTabChange(tab.id);
 							}}
 							className={cn(
-								"flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-all hover:bg-gray-50 pointer-events-auto",
+								"flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-all hover:bg-duo-bg-elevated pointer-events-auto",
 								isActive && activeBgClass,
 							)}
 						>

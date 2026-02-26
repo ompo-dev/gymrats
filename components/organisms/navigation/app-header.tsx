@@ -33,9 +33,9 @@ export function AppHeader({
     <>
       <header
         className={cn(
-          "sticky top-0 z-50 w-full bg-white",
+          "sticky top-0 z-50 w-full bg-duo-bg-card",
           isGym
-            ? "border-b-2 border-gray-200 shadow-sm"
+            ? "border-b-2 border-duo-border shadow-sm"
             : "border-b border-duo-border",
         )}
       >
@@ -73,7 +73,7 @@ export function AppHeader({
               <button
                 onClick={() => setStreakModalOpen(true)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-2xl border-2 bg-white transition-all",
+                  "flex items-center gap-1.5 rounded-2xl border-2 bg-duo-bg-card transition-all",
                   isGym
                     ? "border-[#FF9600] px-3 py-1.5 hover:bg-orange-50"
                     : "border-duo-orange px-4 py-2 hover:bg-orange-50",

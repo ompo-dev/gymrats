@@ -6,6 +6,7 @@ import { useThemeStore } from "@/stores/theme-store";
 export function DuoThemeProvider({ children }: { children: React.ReactNode }) {
 	const getActiveColors = useThemeStore((s) => s.getActiveColors);
 	const activePresetId = useThemeStore((s) => s.activePresetId);
+	const colorMode = useThemeStore((s) => s.colorMode ?? "light");
 
 	useEffect(() => {
 		const colors = getActiveColors();
@@ -49,7 +50,7 @@ export function DuoThemeProvider({ children }: { children: React.ReactNode }) {
 		root.style.setProperty("--sidebar-primary", colors.primary);
 		root.style.setProperty("--sidebar-accent", colors.backgroundElevated);
 		root.style.setProperty("--sidebar-border", colors.border);
-	}, [activePresetId, getActiveColors]);
+	}, [activePresetId, colorMode, getActiveColors]);
 
 	return <>{children}</>;
 }
