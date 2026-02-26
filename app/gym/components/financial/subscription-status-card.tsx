@@ -47,7 +47,7 @@ export function SubscriptionStatusCard({
 									? "bg-duo-blue/20"
 									: isPremiumActive
 										? "bg-duo-green/20"
-										: "bg-gray-200",
+										: "bg-duo-gray",
 							)}
 						>
 							<Crown
@@ -57,7 +57,7 @@ export function SubscriptionStatusCard({
 										? "text-duo-blue"
 										: isPremiumActive
 											? "text-duo-green"
-											: "text-gray-600",
+											: "text-duo-gray-dark",
 								)}
 							/>
 						</div>
@@ -81,7 +81,7 @@ export function SubscriptionStatusCard({
 								? "bg-duo-blue/20 text-duo-blue"
 								: isPremiumActive
 									? "bg-duo-green/20 text-duo-green"
-									: "bg-gray-200 text-gray-600",
+									: "bg-duo-gray text-duo-gray-dark",
 						)}
 					>
 						{isTrialActive

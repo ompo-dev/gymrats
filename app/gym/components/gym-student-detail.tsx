@@ -206,7 +206,7 @@ export function GymStudentDetail({
 											<Button
 												size="sm"
 												variant="outline"
-												className="flex-1 sm:flex-initial border-green-300 text-green-700 hover:bg-green-50"
+												className="flex-1 sm:flex-initial border-duo-green text-duo-green hover:bg-duo-green/10"
 												onClick={() => handleMembershipAction("active")}
 												disabled={isUpdatingStatus}
 											>
@@ -222,7 +222,7 @@ export function GymStudentDetail({
 											<Button
 												size="sm"
 												variant="outline"
-												className="flex-1 sm:flex-initial border-red-300 text-red-700 hover:bg-red-50"
+												className="flex-1 sm:flex-initial border-duo-red text-duo-red hover:bg-duo-red/10"
 												onClick={() => handleMembershipAction("canceled")}
 												disabled={isUpdatingStatus}
 											>
@@ -577,7 +577,7 @@ export function GymStudentDetail({
 														{student.todayNutrition.waterIntake} / 3000 ml
 													</p>
 												</div>
-												<div className="h-4 overflow-hidden rounded-full bg-blue-200">
+												<div className="h-4 overflow-hidden rounded-full bg-duo-gray">
 													<div
 														className="h-full bg-duo-blue"
 														style={{
@@ -623,7 +623,7 @@ export function GymStudentDetail({
 													{student.todayNutrition.totalCarbs.toFixed(0)} /{" "}
 													{student.profile.targetCarbs}g
 												</p>
-												<div className="mt-1 h-2 overflow-hidden rounded-full bg-blue-100">
+												<div className="mt-1 h-2 overflow-hidden rounded-full bg-duo-gray">
 													<div
 														className="h-full bg-duo-blue"
 														style={{

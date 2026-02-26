@@ -46,8 +46,8 @@ export function FinancialTabsNavigation({
 						onClick={() => onTabChange(tab.id)}
 						className={`flex flex-col items-center gap-1 rounded-xl px-2 py-3 text-xs font-bold transition-all ${
 							isActive
-								? "bg-[#FF9600] text-white shadow-md"
-								: "bg-white text-duo-gray-dark hover:bg-gray-50"
+								? "bg-duo-orange text-white shadow-[0_2px_0_#E68A00]"
+								: "border-2 border-duo-border bg-white text-duo-gray-dark hover:bg-gray-50"
 						}`}
 					>
 						<Icon className="h-4 w-4 shrink-0" />

@@ -66,12 +66,12 @@ export function GymLayoutContent({
 	// Não renderizar nada se não for admin
 	if (!userIsAdmin) {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
+			<div className="flex min-h-screen items-center justify-center">
 				<div className="text-center">
-					<h1 className="text-2xl font-bold text-gray-900 mb-2">
+					<h1 className="mb-2 text-2xl font-bold text-duo-text">
 						Acesso Negado
 					</h1>
-					<p className="text-gray-600">
+					<p className="text-duo-gray-dark">
 						Esta área está disponível apenas para administradores durante a
 						versão beta.
 					</p>

@@ -21,8 +21,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { use, useState } from "react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { DuoCard } from "@/components/ui/duo-card";
+import { SectionCard } from "@/components/ui/section-card";
+import { StatCardLarge } from "@/components/ui/stat-card-large";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockPayments, mockStudents } from "@/lib/gym-mock-data";
 import { cn } from "@/lib/utils";
@@ -41,19 +45,24 @@ export default function StudentDetailPage({
 	if (!student) {
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
-				<Card className="border-2 p-12 text-center">
-					<p className="text-xl font-bold text-gray-500">
-						Aluno não encontrado
-					</p>
-					<Link href="/gym/students">
-						<Button className="mt-4">Voltar para Alunos</Button>
-					</Link>
-				</Card>
+				<FadeIn>
+					<SectionCard
+						title="Aluno não encontrado"
+						icon={AlertCircle}
+						className="text-center"
+					>
+						<p className="mb-4 text-xl font-bold text-duo-gray-dark">
+							Aluno não encontrado
+						</p>
+						<Link href="/gym/students">
+							<Button className="mt-4">Voltar para Alunos</Button>
+						</Link>
+					</SectionCard>
+				</FadeIn>
 			</div>
 		);
 	}
 
-	// Function to toggle payment status
 	const togglePaymentStatus = (paymentId: string) => {
 		setStudentPayments((prev) =>
 			prev.map((p) => {
@@ -70,510 +79,447 @@ export default function StudentDetailPage({
 	};
 
 	return (
-		<div className="p-8">
-			{/* Back Button */}
-			<Link href="/gym/students">
-				<Button variant="ghost" className="mb-4 gap-2 font-bold">
-					<ArrowLeft className="h-4 w-4" />
-					Voltar para Alunos
-				</Button>
-			</Link>
+		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+			<FadeIn>
+				<Link href="/gym/students">
+					<Button variant="ghost" className="mb-4 gap-2 font-bold">
+						<ArrowLeft className="h-4 w-4" />
+						Voltar para Alunos
+					</Button>
+				</Link>
+			</FadeIn>
 
-			{/* Student Header */}
-			<Card className="mb-6 border-2 p-8">
-				<div className="flex items-start gap-6">
-					<div className="relative h-32 w-32 overflow-hidden rounded-full">
-						<Image
-							src={student.avatar || "/placeholder.svg"}
-							alt={student.name}
-							fill
-							className="object-cover"
-						/>
-					</div>
-					<div className="flex-1">
-						<div className="mb-2 flex items-center gap-3">
-							<h1 className="text-4xl font-black text-gray-900">
-								{student.name}
-							</h1>
-							<span
-								className={`rounded-full px-3 py-1 text-sm font-bold ${
-									student.membershipStatus === "active"
-										? "bg-[#58CC02] text-white"
-										: "bg-gray-300 text-gray-700"
-								}`}
-							>
-								{student.membershipStatus === "active" ? "Ativo" : "Inativo"}
-							</span>
+			<SlideIn delay={0.1}>
+				<SectionCard title={student.name} icon={Calendar} variant="highlighted">
+					<div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+						<div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full">
+							<Image
+								src={student.avatar || "/placeholder.svg"}
+								alt={student.name}
+								fill
+								className="object-cover"
+							/>
 						</div>
-						<div className="mb-4 space-y-1 text-gray-600">
-							<div className="flex items-center gap-2">
-								<Mail className="h-4 w-4" />
-								<span>{student.email}</span>
-							</div>
-							<div className="flex items-center gap-2">
-								<Phone className="h-4 w-4" />
-								<span>{student.phone}</span>
-							</div>
-							<div className="flex items-center gap-2">
-								<Calendar className="h-4 w-4" />
-								<span>
-									Membro desde {student.joinDate.toLocaleDateString("pt-BR")}
+						<div className="flex-1">
+							<div className="mb-2 flex items-center gap-3">
+								<span
+									className={cn(
+										"rounded-full px-3 py-1 text-sm font-bold",
+										student.membershipStatus === "active"
+											? "bg-duo-green text-white"
+											: "bg-duo-gray text-duo-gray-dark",
+									)}
+								>
+									{student.membershipStatus === "active" ? "Ativo" : "Inativo"}
 								</span>
 							</div>
-						</div>
-						<div className="flex gap-2">
-							<Button className="gap-2 bg-[#58CC02] hover:bg-[#47A302]">
-								<Edit className="h-4 w-4" />
-								Editar Perfil
-							</Button>
-							<Button variant="outline" className="gap-2 bg-transparent">
-								<Dumbbell className="h-4 w-4" />
-								Atribuir Treino
-							</Button>
-							<Button variant="outline" className="gap-2 bg-transparent">
-								<Apple className="h-4 w-4" />
-								Atribuir Dieta
-							</Button>
+							<div className="mb-4 space-y-1 text-duo-gray-dark">
+								<div className="flex items-center gap-2">
+									<Mail className="h-4 w-4" />
+									<span>{student.email}</span>
+								</div>
+								<div className="flex items-center gap-2">
+									<Phone className="h-4 w-4" />
+									<span>{student.phone}</span>
+								</div>
+								<div className="flex items-center gap-2">
+									<Calendar className="h-4 w-4" />
+									<span>
+										Membro desde {student.joinDate.toLocaleDateString("pt-BR")}
+									</span>
+								</div>
+							</div>
+							<div className="flex flex-wrap gap-2">
+								<Button className="gap-2">
+									<Edit className="h-4 w-4" />
+									Editar Perfil
+								</Button>
+								<Button variant="outline" className="gap-2">
+									<Dumbbell className="h-4 w-4" />
+									Atribuir Treino
+								</Button>
+								<Button variant="outline" className="gap-2">
+									<Apple className="h-4 w-4" />
+									Atribuir Dieta
+								</Button>
+							</div>
 						</div>
 					</div>
+				</SectionCard>
+			</SlideIn>
+
+			<SlideIn delay={0.2}>
+				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+					<StatCardLarge
+						icon={Flame}
+						value={String(student.currentStreak)}
+						label="Sequência"
+						iconColor="duo-orange"
+					/>
+					<StatCardLarge
+						icon={Trophy}
+						value={String(student.progress.currentLevel)}
+						label="Nível"
+						iconColor="duo-blue"
+					/>
+					<StatCardLarge
+						icon={Activity}
+						value={String(student.totalVisits)}
+						label="Treinos"
+						iconColor="duo-green"
+					/>
+					<StatCardLarge
+						icon={Target}
+						value={`${student.attendanceRate}%`}
+						label="Frequência"
+						iconColor="duo-purple"
+					/>
 				</div>
-			</Card>
+			</SlideIn>
 
-			{/* Quick Stats */}
-			<div className="mb-6 grid gap-4 md:grid-cols-4">
-				<Card className="border-2 border-[#FF9600] bg-linear-to-br from-[#FF9600]/10 to-white p-6">
-					<div className="flex items-center gap-3">
-						<Flame className="h-8 w-8 fill-[#FF9600] text-[#FF9600]" />
-						<div>
-							<p className="text-sm font-bold text-gray-600">Sequência</p>
-							<p className="text-3xl font-black text-[#FF9600]">
-								{student.currentStreak}
-							</p>
-						</div>
-					</div>
-				</Card>
+			<SlideIn delay={0.3}>
+				<Tabs defaultValue="overview" className="space-y-6">
+					<TabsList className="grid w-full grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+						<TabsTrigger value="overview">Visão Geral</TabsTrigger>
+						<TabsTrigger value="workouts">Treinos</TabsTrigger>
+						<TabsTrigger value="diet">Dieta</TabsTrigger>
+						<TabsTrigger value="progress">Progresso</TabsTrigger>
+						<TabsTrigger value="records">Recordes</TabsTrigger>
+						<TabsTrigger value="payments">Pagamentos</TabsTrigger>
+					</TabsList>
 
-				<Card className="border-2 border-[#1CB0F6] bg-linear-to-br from-[#1CB0F6]/10 to-white p-6">
-					<div className="flex items-center gap-3">
-						<Trophy className="h-8 w-8 text-[#1CB0F6]" />
-						<div>
-							<p className="text-sm font-bold text-gray-600">Nível</p>
-							<p className="text-3xl font-black text-[#1CB0F6]">
-								{student.progress.currentLevel}
-							</p>
-						</div>
-					</div>
-				</Card>
-
-				<Card className="border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-white p-6">
-					<div className="flex items-center gap-3">
-						<Activity className="h-8 w-8 text-[#58CC02]" />
-						<div>
-							<p className="text-sm font-bold text-gray-600">Treinos</p>
-							<p className="text-3xl font-black text-[#58CC02]">
-								{student.totalVisits}
-							</p>
-						</div>
-					</div>
-				</Card>
-
-				<Card className="border-2 border-[#CE82FF] bg-linear-to-br from-[#CE82FF]/10 to-white p-6">
-					<div className="flex items-center gap-3">
-						<Target className="h-8 w-8 text-[#CE82FF]" />
-						<div>
-							<p className="text-sm font-bold text-gray-600">Frequência</p>
-							<p className="text-3xl font-black text-[#CE82FF]">
-								{student.attendanceRate}%
-							</p>
-						</div>
-					</div>
-				</Card>
-			</div>
-
-			{/* Tabs */}
-			<Tabs defaultValue="overview" className="space-y-6">
-				<TabsList className="grid w-full grid-cols-6">
-					<TabsTrigger value="overview">Visão Geral</TabsTrigger>
-					<TabsTrigger value="workouts">Treinos</TabsTrigger>
-					<TabsTrigger value="diet">Dieta</TabsTrigger>
-					<TabsTrigger value="progress">Progresso</TabsTrigger>
-					<TabsTrigger value="records">Recordes</TabsTrigger>
-					<TabsTrigger value="payments">Pagamentos</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="overview">
-					<div className="grid gap-6 lg:grid-cols-2">
-						{/* Perfil */}
-						<Card className="border-2 p-6">
-							<h2 className="mb-4 text-xl font-bold">Informações do Perfil</h2>
-							<div className="space-y-3">
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">Idade</span>
-									<span className="text-gray-900">{student.age} anos</span>
+					<TabsContent value="overview">
+						<div className="grid gap-6 lg:grid-cols-2">
+							<SectionCard title="Informações do Perfil" icon={Calendar}>
+								<div className="space-y-3">
+									{[
+										{ label: "Idade", value: `${student.age} anos` },
+										{
+											label: "Gênero",
+											value: student.gender === "male" ? "Masculino" : "Feminino",
+										},
+										{ label: "Altura", value: `${student.profile.height}cm` },
+										{ label: "Peso Atual", value: `${student.currentWeight}kg` },
+										{
+											label: "Nível",
+											value: student.profile.fitnessLevel,
+										},
+										{
+											label: "Frequência Semanal",
+											value: `${student.profile.weeklyWorkoutFrequency}x semana`,
+										},
+									].map((item) => (
+										<DuoCard key={item.label} variant="default" size="sm">
+											<div className="flex justify-between">
+												<span className="font-bold text-duo-gray-dark">
+													{item.label}
+												</span>
+												<span className="font-bold text-duo-text capitalize">
+													{item.value}
+												</span>
+											</div>
+										</DuoCard>
+									))}
 								</div>
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">Gênero</span>
-									<span className="text-gray-900">
-										{student.gender === "male" ? "Masculino" : "Feminino"}
-									</span>
-								</div>
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">Altura</span>
-									<span className="text-gray-900">
-										{student.profile.height}cm
-									</span>
-								</div>
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">Peso Atual</span>
-									<span className="text-gray-900">
-										{student.currentWeight}kg
-									</span>
-								</div>
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">Nível</span>
-									<span className="text-gray-900 capitalize">
-										{student.profile.fitnessLevel}
-									</span>
-								</div>
-								<div className="flex justify-between rounded-xl border-2 p-3">
-									<span className="font-bold text-gray-600">
-										Frequência Semanal
-									</span>
-									<span className="text-gray-900">
-										{student.profile.weeklyWorkoutFrequency}x semana
-									</span>
-								</div>
-							</div>
-						</Card>
+							</SectionCard>
 
-						{/* Objetivos */}
-						<Card className="border-2 p-6">
-							<h2 className="mb-4 text-xl font-bold">Objetivos</h2>
-							<div className="space-y-2">
-								{student.profile.goals.map((goal) => (
-									<div
-										key={goal}
-										className="rounded-xl border-2 border-[#58CC02] bg-[#58CC02]/10 p-3"
-									>
-										<p className="font-bold capitalize text-gray-900">
-											{goal.replace("-", " ")}
-										</p>
-									</div>
-								))}
-							</div>
+							<SectionCard title="Objetivos" icon={Target} variant="blue">
+								<div className="space-y-2">
+									{student.profile.goals.map((goal) => (
+										<DuoCard
+											key={goal}
+											variant="highlighted"
+											size="sm"
+										>
+											<p className="font-bold capitalize text-duo-text">
+												{goal.replace("-", " ")}
+											</p>
+										</DuoCard>
+									))}
+								</div>
+								<h3 className="mb-3 mt-6 font-bold text-duo-text">
+									Equipamentos Favoritos
+								</h3>
+								<div className="space-y-2">
+									{student.favoriteEquipment.map((equipment) => (
+										<DuoCard key={equipment} variant="default" size="sm">
+											<div className="flex items-center gap-2">
+												<Dumbbell className="h-4 w-4 text-duo-orange" />
+												<span className="text-sm text-duo-gray-dark">
+													{equipment}
+												</span>
+											</div>
+										</DuoCard>
+									))}
+								</div>
+							</SectionCard>
 
-							<h3 className="mb-3 mt-6 font-bold text-gray-700">
-								Equipamentos Favoritos
-							</h3>
-							<div className="space-y-2">
-								{student.favoriteEquipment.map((equipment) => (
-									<div
-										key={equipment}
-										className="flex items-center gap-2 rounded-xl border-2 p-2"
-									>
-										<Dumbbell className="h-4 w-4 text-[#FF9600]" />
-										<span className="text-sm text-gray-700">{equipment}</span>
-									</div>
-								))}
-							</div>
-						</Card>
-
-						{/* Evolução de Peso */}
-						<Card className="border-2 p-6 lg:col-span-2">
-							<h2 className="mb-4 text-xl font-bold">Evolução de Peso</h2>
-							<div className="space-y-2">
-								{student.weightHistory.map((record) => (
-									<div
-										key={`${record.date.toISOString()}-${record.weight}`}
-										className="flex items-center gap-4 rounded-xl border-2 p-3"
-									>
-										<Calendar className="h-5 w-5 text-gray-400" />
-										<span className="flex-1 font-bold text-gray-700">
-											{record.date.toLocaleDateString("pt-BR")}
-										</span>
-										<span className="text-2xl font-black text-[#1CB0F6]">
-											{record.weight}kg
-										</span>
-										{student.weightHistory.indexOf(record) <
-											student.weightHistory.length - 1 && (
-											<div className="flex items-center gap-1">
-												{record.weight <
-												student.weightHistory[
-													student.weightHistory.indexOf(record) + 1
-												].weight ? (
-													<>
-														<TrendingUp className="h-4 w-4 text-red-500" />
-														<span className="text-sm font-bold text-red-500">
-															+
-															{(
-																record.weight -
-																student.weightHistory[
-																	student.weightHistory.indexOf(record) + 1
-																].weight
-															).toFixed(1)}
-															kg
-														</span>
-													</>
-												) : (
-													<>
-														<TrendingUp className="h-4 w-4 rotate-180 text-[#58CC02]" />
-														<span className="text-sm font-bold text-[#58CC02]">
-															{(
-																record.weight -
-																student.weightHistory[
-																	student.weightHistory.indexOf(record) + 1
-																].weight
-															).toFixed(1)}
-															kg
-														</span>
-													</>
+							<SectionCard
+								title="Evolução de Peso"
+								icon={Calendar}
+								className="lg:col-span-2"
+							>
+								<div className="space-y-2">
+									{student.weightHistory.map((record, idx) => (
+										<DuoCard key={`${record.date.toISOString()}-${record.weight}`} variant="default" size="sm">
+											<div className="flex items-center gap-4">
+												<Calendar className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+												<span className="flex-1 font-bold text-duo-text">
+													{record.date.toLocaleDateString("pt-BR")}
+												</span>
+												<span className="text-2xl font-bold text-duo-blue">
+													{record.weight}kg
+												</span>
+												{idx < student.weightHistory.length - 1 && (
+													<div className="flex items-center gap-1">
+														{record.weight <
+														student.weightHistory[idx + 1].weight ? (
+															<>
+																<TrendingUp className="h-4 w-4 text-duo-red" />
+																<span className="text-sm font-bold text-duo-red">
+																	+
+																	{(
+																		record.weight -
+																		student.weightHistory[idx + 1].weight
+																	).toFixed(1)}
+																	kg
+																</span>
+															</>
+														) : (
+															<>
+																<TrendingUp className="h-4 w-4 rotate-180 text-duo-green" />
+																<span className="text-sm font-bold text-duo-green">
+																	{(
+																		record.weight -
+																		student.weightHistory[idx + 1].weight
+																	).toFixed(1)}
+																	kg
+																</span>
+															</>
+														)}
+													</div>
 												)}
 											</div>
-										)}
-									</div>
+										</DuoCard>
+									))}
+								</div>
+							</SectionCard>
+						</div>
+					</TabsContent>
+
+					<TabsContent value="workouts">
+						<SectionCard title="Histórico de Treinos" icon={Activity}>
+							<p className="text-duo-gray-dark">
+								Implementação do histórico de treinos em desenvolvimento...
+							</p>
+						</SectionCard>
+					</TabsContent>
+
+					<TabsContent value="diet">
+						<SectionCard title="Plano de Dieta" icon={Apple} variant="orange">
+							<div className="space-y-4">
+								<DuoCard variant="orange" size="default">
+									<p className="font-bold text-duo-gray-dark">
+										Meta Calórica Diária
+									</p>
+									<p className="text-3xl font-bold text-duo-orange">
+										{student.profile.targetCalories} kcal
+									</p>
+								</DuoCard>
+								<div className="grid grid-cols-3 gap-4">
+									<StatCardLarge
+										icon={Target}
+										value={`${student.profile.targetProtein}g`}
+										label="Proteína"
+										iconColor="duo-green"
+									/>
+									<StatCardLarge
+										icon={Target}
+										value={`${student.profile.targetCarbs || 250}g`}
+										label="Carboidratos"
+										iconColor="duo-blue"
+									/>
+									<StatCardLarge
+										icon={Target}
+										value={`${student.profile.targetFats || 70}g`}
+										label="Gorduras"
+										iconColor="duo-purple"
+									/>
+								</div>
+							</div>
+						</SectionCard>
+					</TabsContent>
+
+					<TabsContent value="progress">
+						<SectionCard title="Progresso e XP" icon={Trophy} variant="highlighted">
+							<div className="mb-6">
+								<div className="mb-2 flex items-center justify-between">
+									<span className="font-bold text-duo-text">
+										Nível {student.progress.currentLevel}
+									</span>
+									<span className="text-sm text-duo-gray-dark">
+										{student.progress.totalXP} /{" "}
+										{student.progress.totalXP + student.progress.xpToNextLevel}{" "}
+										XP
+									</span>
+								</div>
+								<div className="h-4 overflow-hidden rounded-full bg-duo-gray">
+									<div
+										className="h-full bg-duo-green transition-all"
+										style={{
+											width: `${
+												(student.progress.totalXP /
+													(student.progress.totalXP +
+														student.progress.xpToNextLevel)) *
+												100
+											}%`,
+										}}
+									/>
+								</div>
+							</div>
+							<h3 className="mb-3 font-bold text-duo-text">
+								Atividade Semanal
+							</h3>
+							<div className="grid grid-cols-7 gap-2">
+								{(["D", "S", "T", "Q", "Q", "S", "S"] as const).map(
+									(day, idx) => (
+										<div key={day} className="text-center">
+											<p className="mb-2 text-xs font-bold text-duo-gray-dark">
+												{day}
+											</p>
+											<DuoCard variant="highlighted" size="sm">
+												<p className="text-lg font-bold text-duo-green">
+													{student.progress.weeklyXP[idx]}
+												</p>
+											</DuoCard>
+										</div>
+									),
+								)}
+							</div>
+						</SectionCard>
+					</TabsContent>
+
+					<TabsContent value="records">
+						<SectionCard title="Recordes Pessoais" icon={Trophy} variant="orange">
+							<div className="space-y-3">
+								{student.personalRecords.map((record) => (
+									<DuoCard
+										key={`${record.exerciseName}-${record.date.toISOString()}-${record.value}`}
+										variant="orange"
+										size="default"
+									>
+										<div className="flex items-center justify-between">
+											<div>
+												<p className="text-lg font-bold text-duo-text">
+													{record.exerciseName}
+												</p>
+												<p className="text-sm text-duo-gray-dark">
+													{record.date.toLocaleDateString("pt-BR")}
+												</p>
+											</div>
+											<div className="text-right">
+												<p className="text-3xl font-bold text-duo-orange">
+													{record.value}kg
+												</p>
+												<p className="text-xs font-bold text-duo-gray-dark capitalize">
+													{record.type.replace("-", " ")}
+												</p>
+											</div>
+										</div>
+									</DuoCard>
 								))}
 							</div>
-						</Card>
-					</div>
-				</TabsContent>
+						</SectionCard>
+					</TabsContent>
 
-				<TabsContent value="workouts">
-					<Card className="border-2 p-6">
-						<h2 className="mb-4 text-xl font-bold">Histórico de Treinos</h2>
-						<p className="text-gray-500">
-							Implementação do histórico de treinos em desenvolvimento...
-						</p>
-					</Card>
-				</TabsContent>
-
-				<TabsContent value="diet">
-					<Card className="border-2 p-6">
-						<h2 className="mb-4 text-xl font-bold">Plano de Dieta</h2>
-						<div className="space-y-4">
-							<div className="rounded-xl border-2 p-4">
-								<p className="font-bold text-gray-700">Meta Calórica Diária</p>
-								<p className="text-3xl font-black text-[#FF9600]">
-									{student.profile.targetCalories} kcal
-								</p>
-							</div>
-							<div className="grid grid-cols-3 gap-4">
-								<div className="rounded-xl border-2 p-4 text-center">
-									<p className="text-sm font-bold text-gray-600">Proteína</p>
-									<p className="text-2xl font-black text-[#58CC02]">
-										{student.profile.targetProtein}g
-									</p>
-								</div>
-								<div className="rounded-xl border-2 p-4 text-center">
-									<p className="text-sm font-bold text-gray-600">
-										Carboidratos
-									</p>
-									<p className="text-2xl font-black text-[#1CB0F6]">
-										{student.profile.targetCarbs || 250}g
-									</p>
-								</div>
-								<div className="rounded-xl border-2 p-4 text-center">
-									<p className="text-sm font-bold text-gray-600">Gorduras</p>
-									<p className="text-2xl font-black text-[#CE82FF]">
-										{student.profile.targetFats || 70}g
-									</p>
-								</div>
-							</div>
-						</div>
-					</Card>
-				</TabsContent>
-
-				<TabsContent value="progress">
-					<Card className="border-2 p-6">
-						<h2 className="mb-4 text-xl font-bold">Progresso e XP</h2>
-						<div className="mb-6">
-							<div className="mb-2 flex items-center justify-between">
-								<span className="font-bold text-gray-700">
-									Nível {student.progress.currentLevel}
-								</span>
-								<span className="text-sm text-gray-600">
-									{student.progress.totalXP} /{" "}
-									{student.progress.totalXP + student.progress.xpToNextLevel} XP
-								</span>
-							</div>
-							<div className="h-4 overflow-hidden rounded-full bg-gray-200">
-								<div
-									className="h-full bg-linear-to-r from-[#58CC02] to-[#47A302]"
-									style={{
-										width: `${
-											(student.progress.totalXP /
-												(student.progress.totalXP +
-													student.progress.xpToNextLevel)) *
-											100
-										}%`,
-									}}
+					<TabsContent value="payments">
+						<SectionCard
+							title="Histórico de Pagamentos"
+							icon={DollarSign}
+							variant="blue"
+						>
+							<div className="mb-6 grid gap-4 md:grid-cols-3">
+								<StatCardLarge
+									icon={CheckCircle}
+									value={String(
+										studentPayments.filter((p) => p.status === "paid").length,
+									)}
+									label="Pagos"
+									iconColor="duo-green"
+								/>
+								<StatCardLarge
+									icon={AlertCircle}
+									value={String(
+										studentPayments.filter((p) => p.status === "pending")
+											.length,
+									)}
+									label="Pendentes"
+									iconColor="duo-orange"
+								/>
+								<StatCardLarge
+									icon={DollarSign}
+									value={`R$ ${studentPayments
+										.filter((p) => p.status === "paid")
+										.reduce((sum, p) => sum + p.amount, 0)
+										.toFixed(2)}`}
+									label="Total Pago"
+									iconColor="duo-blue"
 								/>
 							</div>
-						</div>
-
-						<h3 className="mb-3 font-bold">Atividade Semanal</h3>
-						<div className="grid grid-cols-7 gap-2">
-							{Array.from({ length: 7 }, (_, i) => ({
-								id: `wd-${i}`,
-								day: (["D", "S", "T", "Q", "Q", "S", "S"] as const)[i],
-								idx: i,
-							})).map(({ id, day, idx }) => (
-								<div key={id} className="text-center">
-									<p className="mb-2 text-xs font-bold text-gray-600">{day}</p>
-									<div className="rounded-xl border-2 p-3">
-										<p className="text-lg font-black text-[#58CC02]">
-											{student.progress.weeklyXP[idx]}
-										</p>
-									</div>
-								</div>
-							))}
-						</div>
-					</Card>
-				</TabsContent>
-
-				<TabsContent value="records">
-					<Card className="border-2 p-6">
-						<h2 className="mb-4 text-xl font-bold">Recordes Pessoais</h2>
-						<div className="space-y-3">
-							{student.personalRecords.map((record) => (
-								<div
-									key={`${record.exerciseName}-${record.date.toISOString()}-${record.value}`}
-									className="rounded-xl border-2 border-[#FF9600] bg-[#FF9600]/10 p-4"
-								>
-									<div className="flex items-center justify-between">
-										<div>
-											<p className="text-lg font-bold text-gray-900">
-												{record.exerciseName}
-											</p>
-											<p className="text-sm text-gray-600">
-												{record.date.toLocaleDateString("pt-BR")}
-											</p>
-										</div>
-										<div className="text-right">
-											<p className="text-3xl font-black text-[#FF9600]">
-												{record.value}kg
-											</p>
-											<p className="text-xs font-bold text-gray-600 capitalize">
-												{record.type.replace("-", " ")}
-											</p>
-										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					</Card>
-				</TabsContent>
-
-				<TabsContent value="payments">
-					<Card className="border-2 p-6">
-						<h2 className="mb-4 text-xl font-bold">Histórico de Pagamentos</h2>
-
-						<div className="mb-6 grid gap-4 md:grid-cols-3">
-							<div className="rounded-xl border-2 border-[#58CC02] bg-[#58CC02]/10 p-4">
-								<div className="flex items-center gap-3">
-									<CheckCircle className="h-6 w-6 text-[#58CC02]" />
-									<div>
-										<p className="text-sm font-bold text-gray-600">Pagos</p>
-										<p className="text-2xl font-black text-[#58CC02]">
-											{
-												studentPayments.filter((p) => p.status === "paid")
-													.length
-											}
-										</p>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-xl border-2 border-[#FF9600] bg-[#FF9600]/10 p-4">
-								<div className="flex items-center gap-3">
-									<AlertCircle className="h-6 w-6 text-[#FF9600]" />
-									<div>
-										<p className="text-sm font-bold text-gray-600">Pendentes</p>
-										<p className="text-2xl font-black text-[#FF9600]">
-											{
-												studentPayments.filter((p) => p.status === "pending")
-													.length
-											}
-										</p>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-xl border-2 border-[#1CB0F6] bg-[#1CB0F6]/10 p-4">
-								<div className="flex items-center gap-3">
-									<DollarSign className="h-6 w-6 text-[#1CB0F6]" />
-									<div>
-										<p className="text-sm font-bold text-gray-600">
-											Total Pago
-										</p>
-										<p className="text-xl font-black text-[#1CB0F6]">
-											R${" "}
-											{studentPayments
-												.filter((p) => p.status === "paid")
-												.reduce((sum, p) => sum + p.amount, 0)
-												.toFixed(2)}
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<div className="space-y-3">
-							{studentPayments.map((payment) => (
-								<div key={payment.id} className="rounded-xl border-2 p-4">
-									<div className="flex items-start justify-between">
-										<div className="flex-1">
-											<h3 className="font-bold text-gray-900">
-												{payment.planName}
-											</h3>
-											<p className="text-sm text-gray-600 mt-1">
-												Vencimento:{" "}
-												{payment.dueDate.toLocaleDateString("pt-BR")}
-											</p>
-											{payment.status === "paid" && (
-												<p className="text-sm text-gray-600">
-													Pago em: {payment.date.toLocaleDateString("pt-BR")}
+							<div className="space-y-3">
+								{studentPayments.map((payment) => (
+									<DuoCard key={payment.id} variant="default" size="default">
+										<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+											<div className="flex-1">
+												<h3 className="font-bold text-duo-text">
+													{payment.planName}
+												</h3>
+												<p className="mt-1 text-sm text-duo-gray-dark">
+													Vencimento:{" "}
+													{payment.dueDate.toLocaleDateString("pt-BR")}
 												</p>
-											)}
-											<p className="text-sm text-gray-600 capitalize">
-												Método: {payment.paymentMethod.replace("-", " ")}
-											</p>
-										</div>
-
-										<div className="text-right">
-											<p className="text-2xl font-black text-[#1CB0F6] mb-2">
-												R$ {payment.amount.toFixed(2)}
-											</p>
-
-											<button
-												type="button"
-												onClick={() => togglePaymentStatus(payment.id)}
-												className={cn(
-													"px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2",
-													payment.status === "paid"
-														? "bg-[#58CC02] text-white hover:bg-[#47A302]"
-														: "bg-[#FF9600] text-white hover:bg-[#E68600]",
+												{payment.status === "paid" && (
+													<p className="text-sm text-duo-gray-dark">
+														Pago em:{" "}
+														{payment.date.toLocaleDateString("pt-BR")}
+													</p>
 												)}
-											>
-												{payment.status === "paid" ? (
-													<>
-														<CheckCircle className="h-4 w-4" />
-														Pago
-													</>
-												) : (
-													<>
-														<XCircle className="h-4 w-4" />
-														Marcar como Pago
-													</>
-												)}
-											</button>
+												<p className="text-sm capitalize text-duo-gray-dark">
+													Método: {payment.paymentMethod.replace("-", " ")}
+												</p>
+											</div>
+											<div className="flex flex-col items-end gap-2">
+												<p className="text-2xl font-bold text-duo-blue">
+													R$ {payment.amount.toFixed(2)}
+												</p>
+												<Button
+													size="sm"
+													variant={
+														payment.status === "paid" ? "secondary" : "default"
+													}
+													onClick={() => togglePaymentStatus(payment.id)}
+												>
+													{payment.status === "paid" ? (
+														<>
+															<CheckCircle className="h-4 w-4" />
+															Pago
+														</>
+													) : (
+														<>
+															<XCircle className="h-4 w-4" />
+															Marcar como Pago
+														</>
+													)}
+												</Button>
+											</div>
 										</div>
-									</div>
-								</div>
-							))}
-						</div>
-					</Card>
-				</TabsContent>
-			</Tabs>
+									</DuoCard>
+								))}
+							</div>
+						</SectionCard>
+					</TabsContent>
+				</Tabs>
+			</SlideIn>
 		</div>
 	);
 }
