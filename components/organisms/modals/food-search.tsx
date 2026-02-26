@@ -4,6 +4,7 @@ import { Loader2, Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
+import { DuoInput } from "@/components/duo/molecules/duo-input";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
@@ -483,16 +484,14 @@ export function FoodSearch({
 						</div>
 
 						{/* Campo de busca */}
-						<div className="relative">
-							<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-600" />
-							<input
-								type="text"
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								placeholder="Buscar alimentos..."
-								className="w-full rounded-xl border-2 border-gray-300 py-3 pl-12 pr-4 font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-blue focus:outline-none"
-							/>
-						</div>
+						<DuoInput
+							type="text"
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							placeholder="Buscar alimentos..."
+							leftIcon={<Search className="h-5 w-5" />}
+							className="font-bold"
+						/>
 					</motion.div>
 
 					{/* Lista de alimentos com scroll infinito */}

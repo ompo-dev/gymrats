@@ -22,6 +22,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
+import { Select } from "@/components/atoms/inputs/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SectionCard } from "@/components/ui/section-card";
@@ -285,18 +286,20 @@ export function GymSettingsPage({
 								Os pagamentos dos alunos serão transferidos para esta chave.
 							</p>
 							<div className="mt-2 flex flex-col gap-2 sm:flex-row">
-								<select
+								<Select
+									options={[
+										{ value: "", label: "Tipo de chave" },
+										{ value: "CPF", label: "CPF" },
+										{ value: "CNPJ", label: "CNPJ" },
+										{ value: "PHONE", label: "Telefone" },
+										{ value: "EMAIL", label: "E-mail" },
+										{ value: "RANDOM", label: "Chave aleatória" },
+									]}
 									value={pixKeyType}
-									onChange={(e) => setPixKeyType(e.target.value)}
-									className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-sm font-medium text-duo-text"
-								>
-									<option value="">Tipo de chave</option>
-									<option value="CPF">CPF</option>
-									<option value="CNPJ">CNPJ</option>
-									<option value="PHONE">Telefone</option>
-									<option value="EMAIL">E-mail</option>
-									<option value="RANDOM">Chave aleatória</option>
-								</select>
+									onChange={setPixKeyType}
+									placeholder="Tipo de chave"
+									className="min-w-[180px]"
+								/>
 								<Input
 									value={pixKey}
 									onChange={(e) => setPixKey(e.target.value)}

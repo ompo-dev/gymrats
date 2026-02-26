@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/atoms/inputs/select";
 import { useGym } from "@/hooks/use-gym";
 
 const EXPENSE_TYPES = [
@@ -107,23 +108,18 @@ export function AddExpenseModal({
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
 						<Label htmlFor="type">Tipo</Label>
-						<select
-							id="type"
+						<Select
+							options={EXPENSE_TYPES.map((t) => ({ value: t.value, label: t.label }))}
 							value={form.type}
-							onChange={(e) =>
+							onChange={(v) =>
 								setForm((f) => ({
 									...f,
-									type: e.target.value as (typeof EXPENSE_TYPES)[number]["value"],
+									type: v as (typeof EXPENSE_TYPES)[number]["value"],
 								}))
 							}
-							className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-						>
-							{EXPENSE_TYPES.map((t) => (
-								<option key={t.value} value={t.value}>
-									{t.label}
-								</option>
-							))}
-						</select>
+							placeholder="Selecione o tipo"
+							className="mt-1"
+						/>
 					</div>
 					<div>
 						<Label htmlFor="description">Descrição (opcional)</Label>
