@@ -446,7 +446,6 @@ export function GymStudentDetail({
 									<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
 								</div>
 							</DuoCardHeader>
-						>
 							<div className="space-y-2">
 								{(student.weightHistory ?? []).map((record, whIdx) => (
 									<DuoCard
