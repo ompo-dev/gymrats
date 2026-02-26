@@ -4,8 +4,7 @@ import { ArrowLeft, BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,7 +49,13 @@ export function LessonDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title={lesson.title} icon={BookOpen} variant="blue">
+				<DuoCard variant="blue" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<BookOpen className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{lesson.title}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="mb-4 text-4xl">
 						{getCategoryIcon(lesson.category)}
 					</div>
@@ -74,7 +79,7 @@ export function LessonDetail({
 						</span>
 					</div>
 					<MarkdownRenderer content={lesson.content} />
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>

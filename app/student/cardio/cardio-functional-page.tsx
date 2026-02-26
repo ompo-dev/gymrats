@@ -5,12 +5,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/duo";
-import {
-	DuoSectionCard,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
+import { DuoCard, DuoCardHeader, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { BackButton } from "@/components/organisms/navigation/back-button";
 import { CardioTracker } from "@/components/organisms/trackers/cardio-tracker";
 import { FunctionalWorkout } from "@/components/organisms/workout/functional-workout";
@@ -171,16 +166,18 @@ export function CardioFunctionalPage() {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.4, duration: 0.4 }}
 					>
-						<DuoSectionCard
-							icon={Target}
-							title="Cálculo Personalizado"
-							variant="yellow"
-						>
+						<DuoCard variant="yellow" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Cálculo Personalizado</h2>
+								</div>
+							</DuoCardHeader>
 							<p className="text-sm text-duo-gray-dark">
 								As calorias são calculadas baseadas no seu peso, idade, gênero e
 								perfil hormonal para máxima precisão
 							</p>
-						</DuoSectionCard>
+						</DuoCard>
 					</motion.div>
 				</div>
 			</SlideIn>

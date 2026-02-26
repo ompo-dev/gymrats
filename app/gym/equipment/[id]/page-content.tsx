@@ -20,7 +20,7 @@ import { RelativeTime } from "@/components/molecules/relative-time";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -39,18 +39,20 @@ export default function EquipmentDetailPage({
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
 				<FadeIn>
-					<DuoSectionCard
-						title="Equipamento não encontrado"
-						icon={AlertTriangle}
-						className="text-center"
-					>
+					<DuoCard variant="default" padding="md" className="text-center">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<AlertTriangle className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Equipamento não encontrado</h2>
+							</div>
+						</DuoCardHeader>
 						<p className="mb-4 text-xl font-bold text-duo-gray-dark">
 							Equipamento não encontrado
 						</p>
 						<Link href="/gym/equipment">
 							<Button className="mt-4">Voltar para Equipamentos</Button>
 						</Link>
-					</DuoSectionCard>
+					</DuoCard>
 				</FadeIn>
 			</div>
 		);
@@ -114,7 +116,13 @@ export default function EquipmentDetailPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title={equipment.name} icon={Dumbbell} variant="highlighted">
+				<DuoCard variant="highlighted" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{equipment.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
 						<div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-duo-green sm:h-32 sm:w-32">
 							<Dumbbell className="h-12 w-12 text-white sm:h-16 sm:w-16" />
@@ -166,7 +174,7 @@ export default function EquipmentDetailPage({
 							</div>
 						</div>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			{equipment.status === "in-use" && equipment.currentUser && (
@@ -244,11 +252,13 @@ export default function EquipmentDetailPage({
 
 					<TabsContent value="usage">
 						<div className="grid gap-6 lg:grid-cols-2">
-							<DuoSectionCard
-								title="Horários Mais Populares"
-								icon={Clock}
-								variant="highlighted"
-							>
+							<DuoCard variant="highlighted" padding="md">
+								<DuoCardHeader>
+									<div className="flex items-center gap-2">
+										<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+										<h2 className="font-bold text-[var(--duo-fg)]">Horários Mais Populares</h2>
+									</div>
+								</DuoCardHeader>
 								<div className="space-y-3">
 									{equipment.usageStats.popularTimes.map((time) => (
 										<DuoCard key={time} variant="highlighted" size="sm">
@@ -264,13 +274,15 @@ export default function EquipmentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</DuoSectionCard>
+							</DuoCard>
 
-							<DuoSectionCard
-								title="Métricas de Performance"
-								icon={BarChart3}
-								variant="blue"
-							>
+							<DuoCard variant="blue" padding="md">
+								<DuoCardHeader>
+									<div className="flex items-center gap-2">
+										<BarChart3 className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+										<h2 className="font-bold text-[var(--duo-fg)]">Métricas de Performance</h2>
+									</div>
+								</DuoCardHeader>
 								<div className="space-y-4">
 									<DuoCard variant="default" size="default">
 										<p className="text-sm font-bold text-duo-gray-dark">
@@ -300,16 +312,18 @@ export default function EquipmentDetailPage({
 										</p>
 									</DuoCard>
 								</div>
-							</DuoSectionCard>
+							</DuoCard>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="maintenance">
-						<DuoSectionCard
-							title="Histórico de Manutenção"
-							icon={Wrench}
-							variant="orange"
-						>
+						<DuoCard variant="orange" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Wrench className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Manutenção</h2>
+								</div>
+							</DuoCardHeader>
 							{equipment.maintenanceHistory.length > 0 ? (
 								<div className="space-y-3">
 									{equipment.maintenanceHistory.map((record) => (
@@ -354,14 +368,17 @@ export default function EquipmentDetailPage({
 									</div>
 								</DuoCard>
 							)}
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 
 					<TabsContent value="info">
-						<DuoSectionCard
-							title="Informações do Equipamento"
-							icon={Dumbbell}
-						>
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Informações do Equipamento</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="space-y-3">
 								{[
 									{
@@ -399,7 +416,7 @@ export default function EquipmentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 				</Tabs>
 			</SlideIn>

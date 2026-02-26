@@ -17,7 +17,7 @@ import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -485,7 +485,13 @@ export function StudentPaymentsPage({
 				/>
 			</DuoStatsGrid>
 
-			<DuoSectionCard title="Selecione a Categoria" icon={Wallet}>
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<Wallet className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
+					</div>
+				</DuoCardHeader>
 				<OptionSelector
 					options={TAB_OPTIONS}
 					value={activeTab}
@@ -502,7 +508,7 @@ export function StudentPaymentsPage({
 					textAlign="center"
 					animate={false}
 				/>
-			</DuoSectionCard>
+			</DuoCard>
 
 			{activeTab === "memberships" && (
 				<div className="space-y-3">

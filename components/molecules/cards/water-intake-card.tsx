@@ -1,7 +1,7 @@
 import { Droplets } from "lucide-react";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 
 export interface WaterIntakeCardProps
 	extends React.HTMLAttributes<HTMLDivElement> {
@@ -25,17 +25,16 @@ export function WaterIntakeCard({
 	const totalGlasses = 12;
 
 	return (
-		<DuoSectionCard
-			icon={Droplets}
-			title="Hidratação"
-			headerAction={
+		<DuoCard variant="default" padding="md" className={className} {...props}>
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<Droplets className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
+				</div>
 				<span className="text-sm font-bold text-duo-gray-dark">
 					{current}ml / {target}ml
 				</span>
-			}
-			className={className}
-			{...props}
-		>
+			</DuoCardHeader>
 			<div className="mb-3 h-2 overflow-hidden rounded-full bg-gray-200">
 				<div
 					className="h-full rounded-full bg-duo-blue transition-all duration-300"
@@ -64,6 +63,6 @@ export function WaterIntakeCard({
 					</button>
 				))}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

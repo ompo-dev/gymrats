@@ -5,8 +5,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { functionalExercises } from "@/lib/functional-exercises-data";
 import type { FunctionalCategory } from "@/lib/types";
@@ -68,7 +67,13 @@ export function FunctionalWorkout() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Para quem?" icon={Users}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Para quem?</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={audienceOptions}
 						value={selectedAudience}
@@ -83,11 +88,17 @@ export function FunctionalWorkout() {
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoSectionCard title="Categoria" icon={Target}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Categoria</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={categoryOptions}
 						value={selectedCategory}
@@ -100,7 +111,7 @@ export function FunctionalWorkout() {
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

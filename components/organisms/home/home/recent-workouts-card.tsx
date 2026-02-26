@@ -2,7 +2,7 @@
 
 import { Calendar, Clock, Trophy } from "lucide-react";
 import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCardHeader } from "@/components/duo";
 import type { WorkoutHistory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -17,15 +17,17 @@ export function RecentWorkoutsCard({
 
 	if (recentWorkouts.length === 0) {
 		return (
-			<DuoSectionCard
-				icon={Calendar}
-				title="Treinos Recentes"
-				className="space-y-4"
-			>
+			<DuoCard variant="default" padding="md" className="space-y-4">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Treinos Recentes</h2>
+					</div>
+				</DuoCardHeader>
 				<div className="py-4 text-center text-sm text-duo-gray-dark">
 					Nenhum treino registrado ainda
 				</div>
-			</DuoSectionCard>
+			</DuoCard>
 		);
 	}
 
@@ -63,7 +65,13 @@ export function RecentWorkoutsCard({
 	};
 
 	return (
-		<DuoSectionCard icon={Calendar} title="Treinos Recentes" className="space-y-3">
+		<DuoCard variant="default" padding="md" className="space-y-3">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Treinos Recentes</h2>
+				</div>
+			</DuoCardHeader>
 			<div className="space-y-2">
 				{recentWorkouts.map((workout, index) => (
 					<DuoCard key={index} variant="default" size="sm" className="p-3">
@@ -105,6 +113,6 @@ export function RecentWorkoutsCard({
 					</DuoCard>
 				))}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

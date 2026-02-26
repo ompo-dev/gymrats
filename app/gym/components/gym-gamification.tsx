@@ -14,7 +14,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -102,7 +102,13 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Nível e Progresso" icon={Trophy} variant="orange">
+				<DuoCard variant="orange" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Nível e Progresso</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="mb-6 flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-duo-orange">
@@ -149,7 +155,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 						</span>{" "}
 						para o próximo nível
 					</p>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -186,7 +192,13 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<SlideIn delay={0.3}>
-					<DuoSectionCard title="Conquistas" icon={Award} variant="orange">
+					<DuoCard variant="orange" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Award className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Conquistas</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-3">
 							{mockAchievements.map((achievement, index) => (
 								<motion.div
@@ -251,11 +263,17 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 								</motion.div>
 							))}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 
 				<SlideIn delay={0.4}>
-					<DuoSectionCard title="Ranking Regional" icon={Star} variant="default">
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Star className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Ranking Regional</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-2">
 							{mockRanking.map((gym, index) => (
 								<motion.div
@@ -313,7 +331,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 								</motion.div>
 							))}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 			</div>
 		</div>

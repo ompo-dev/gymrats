@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 import { FinancialCouponsTab } from "./financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "./financial/financial-expenses-tab";
@@ -81,7 +81,13 @@ export function GymFinancialPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Selecione a Categoria" icon={DollarSign}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={tabOptions}
 						value={viewMode}
@@ -101,7 +107,7 @@ export function GymFinancialPage({
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			{viewMode === "overview" && financialSummary && (

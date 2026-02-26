@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
@@ -40,7 +40,13 @@ export function NutritionStatusCard({
 	// Se não houver dailyNutrition, mostrar empty state
 	if (!dailyNutrition) {
 		return (
-			<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<UtensilsCrossed className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Nutrição de Hoje</h2>
+					</div>
+				</DuoCardHeader>
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -60,7 +66,7 @@ export function NutritionStatusCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</DuoSectionCard>
+			</DuoCard>
 		);
 	}
 
@@ -78,7 +84,13 @@ export function NutritionStatusCard({
 	// Se não tem nada registrado
 	if (!hasMeals && !hasWater) {
 		return (
-			<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<UtensilsCrossed className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Nutrição de Hoje</h2>
+					</div>
+				</DuoCardHeader>
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -98,13 +110,19 @@ export function NutritionStatusCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</DuoSectionCard>
+			</DuoCard>
 		);
 	}
 
 	// Se tem dados, mostrar status rápido
 	return (
-		<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<UtensilsCrossed className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Nutrição de Hoje</h2>
+				</div>
+			</DuoCardHeader>
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -163,6 +181,6 @@ export function NutritionStatusCard({
 						: "Adicionar Refeição ou Água"}
 				</Button>
 			</motion.div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

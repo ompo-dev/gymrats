@@ -15,8 +15,7 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
@@ -94,7 +93,13 @@ export function GymMap({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Filtros" icon={MapPin}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Filtros</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={filterOptions}
 						value={filter}
@@ -104,7 +109,7 @@ export function GymMap({
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -120,7 +125,13 @@ export function GymMap({
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoSectionCard title="Academias Cadastradas" icon={MapPin}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Academias Cadastradas</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-3">
 						{sortedGyms.map((gym, index) => {
 							const hasActivePass = dayPasses.some(
@@ -422,7 +433,7 @@ export function GymMap({
 							);
 						})}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 		</div>
 	);

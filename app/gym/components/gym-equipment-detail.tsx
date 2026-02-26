@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { OptionSelector } from "@/components/ui/option-selector";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -121,7 +121,13 @@ export function GymEquipmentDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title={equipment.name} icon={Dumbbell} variant="default">
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{equipment.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
 						<div className="flex h-24 w-24 sm:h-32 sm:w-32 shrink-0 items-center justify-center rounded-2xl bg-duo-green">
 							<Dumbbell className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
@@ -180,7 +186,7 @@ export function GymEquipmentDetail({
 							</div>
 						</div>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<MaintenanceModal
@@ -289,7 +295,13 @@ export function GymEquipmentDetail({
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoSectionCard title="Selecione a Categoria" icon={Dumbbell}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={tabOptions}
 						value={activeTab}
@@ -299,13 +311,19 @@ export function GymEquipmentDetail({
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			{activeTab === "usage" && (
 				<SlideIn delay={0.4}>
 					<div className="grid gap-6 lg:grid-cols-2">
-						<DuoSectionCard title="Horários Mais Populares" icon={Clock}>
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Horários Mais Populares</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="space-y-3">
 								{equipment.usageStats.popularTimes.map((time) => (
 									<DuoCard
@@ -328,9 +346,15 @@ export function GymEquipmentDetail({
 									</DuoCard>
 								))}
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 
-						<DuoSectionCard title="Métricas de Performance" icon={BarChart3}>
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<BarChart3 className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Métricas de Performance</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="space-y-4">
 								<DuoCard
 									variant="default"
@@ -367,14 +391,20 @@ export function GymEquipmentDetail({
 									</p>
 								</DuoCard>
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</div>
 				</SlideIn>
 			)}
 
 			{activeTab === "maintenance" && (
 				<SlideIn delay={0.4}>
-					<DuoSectionCard title="Histórico de Manutenção" icon={Wrench}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Wrench className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Manutenção</h2>
+							</div>
+						</DuoCardHeader>
 						{equipment.maintenanceHistory.length > 0 ? (
 							<div className="space-y-3">
 								{equipment.maintenanceHistory.map((record, index) => (
@@ -428,13 +458,19 @@ export function GymEquipmentDetail({
 								<Button className="mt-4">Registrar Manutenção</Button>
 							</DuoCard>
 						)}
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "info" && (
 				<SlideIn delay={0.4}>
-					<DuoSectionCard title="Informações do Equipamento" icon={Dumbbell}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Informações do Equipamento</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-3">
 							{[
 								{
@@ -469,7 +505,7 @@ export function GymEquipmentDetail({
 								</DuoCard>
 							))}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 			)}
 		</div>

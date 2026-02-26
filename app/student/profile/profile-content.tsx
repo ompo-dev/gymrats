@@ -24,7 +24,7 @@ import { HistoryCard } from "@/components/ui/history-card";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import { RecordCard } from "@/components/ui/record-card";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -493,11 +493,13 @@ export function ProfilePageContent() {
 				/>
 			</DuoStatsGrid>
 
-			<DuoSectionCard
-				icon={TrendingUp}
-				title="Evolução de Peso"
-				headerAction={
-					weightGain !== null && weightGain !== undefined ? (
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<TrendingUp className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
+					</div>
+					{weightGain !== null && weightGain !== undefined ? (
 						<div className="text-right">
 							<div
 								className={`text-2xl font-bold ${
@@ -529,9 +531,8 @@ export function ProfilePageContent() {
 								no último mês
 							</div>
 						</div>
-					) : null
-				}
-			>
+					) : null}
+				</DuoCardHeader>
 				{weightHistoryLocal.length > 0 ? (
 					<div className="space-y-3">
 						{weightHistoryLocal.map((record: WeightHistoryItem) => (
@@ -583,10 +584,16 @@ export function ProfilePageContent() {
 						</Button>
 					</motion.div>
 				)}
-			</DuoSectionCard>
+			</DuoCard>
 
 			<div className="grid gap-6 lg:grid-cols-2">
-				<DuoSectionCard icon={Calendar} title="Histórico Recente">
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Histórico Recente</h2>
+						</div>
+					</DuoCardHeader>
 					{recentWorkoutHistory.length > 0 ? (
 						<div className="space-y-3">
 							{recentWorkoutHistory.map((workout: WorkoutHistory) => (
@@ -661,9 +668,15 @@ export function ProfilePageContent() {
 							</Button>
 						</motion.div>
 					)}
-				</DuoSectionCard>
+				</DuoCard>
 
-				<DuoSectionCard icon={Award} title="Recordes Pessoais">
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Award className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Recordes Pessoais</h2>
+						</div>
+					</DuoCardHeader>
 					{personalRecords.length > 0 ? (
 						<div className="space-y-3">
 							{personalRecords.map((record: PersonalRecord) => (
@@ -701,10 +714,16 @@ export function ProfilePageContent() {
 							</Button>
 						</motion.div>
 					)}
-				</DuoSectionCard>
+				</DuoCard>
 			</div>
 
-			<DuoSectionCard title="Conta" icon={Shield} variant="blue">
+			<DuoCard variant="blue" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<Shield className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
+					</div>
+				</DuoCardHeader>
 				<div className="space-y-3">
 					{/* Mostrar botão de trocar apenas se for admin */}
 					{/* Verificar todas as fontes possíveis para garantir que funcione */}
@@ -749,7 +768,7 @@ export function ProfilePageContent() {
 						</div>
 					</DuoCard>
 				</div>
-			</DuoSectionCard>
+			</DuoCard>
 
 			{/* Modal para editar peso */}
 			<AnimatePresence>

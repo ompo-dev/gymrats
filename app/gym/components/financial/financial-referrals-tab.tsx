@@ -1,8 +1,7 @@
 "use client";
 
 import { UsersIcon } from "lucide-react";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Referral } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,13 @@ export function FinancialReferralsTab({
 	referrals,
 }: FinancialReferralsTabProps) {
 	return (
-		<DuoSectionCard title="Programa de Indicações" icon={UsersIcon}>
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<UsersIcon className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Programa de Indicações</h2>
+				</div>
+			</DuoCardHeader>
 			<div className="space-y-3">
 				{referrals.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -63,6 +68,6 @@ export function FinancialReferralsTab({
 					</DuoCard>
 				))}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

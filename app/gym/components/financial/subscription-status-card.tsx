@@ -2,8 +2,7 @@
 
 import { AlertCircle, Crown, Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +35,13 @@ export function SubscriptionStatusCard({
 		!subscription.isTrial;
 
 	return (
-		<DuoSectionCard title="Status da Assinatura" icon={Crown}>
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<Crown className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Status da Assinatura</h2>
+				</div>
+			</DuoCardHeader>
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
@@ -151,6 +156,6 @@ export function SubscriptionStatusCard({
 					</div>
 				)}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

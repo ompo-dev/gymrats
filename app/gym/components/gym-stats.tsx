@@ -13,7 +13,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -96,11 +96,13 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoSectionCard
-					title="Check-ins por Dia"
-					icon={Calendar}
-					variant="highlighted"
-				>
+				<DuoCard variant="highlighted" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Check-ins por Dia</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-3">
 						{weeklyData.map((day, index) => (
 							<motion.div
@@ -128,11 +130,17 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoSectionCard title="Horários Populares" icon={Clock} variant="orange">
+				<DuoCard variant="orange" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Horários Populares</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-2">
 						{hourlyData.map((item, index) => (
 							<motion.div
@@ -162,15 +170,17 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<DuoSectionCard
-					title="Equipamentos Mais Usados"
-					icon={Dumbbell}
-					variant="blue"
-				>
+				<DuoCard variant="blue" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos Mais Usados</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-3">
 						{equipment.slice(0, 5).map((eq: Equipment, index: number) => (
 							<motion.div
@@ -203,7 +213,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 		</div>
 	);

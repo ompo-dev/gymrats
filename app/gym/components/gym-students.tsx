@@ -8,10 +8,9 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { DuoSectionCard } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -167,7 +166,13 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Buscar e Filtrar" icon={Search}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Search className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-4">
 						<div className="relative">
 							<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -190,7 +195,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							animate={true}
 						/>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>

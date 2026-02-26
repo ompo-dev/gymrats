@@ -2,7 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
 import { BillingPeriodSelector } from "./billing-period-selector";
@@ -82,16 +82,19 @@ export function PlansSelector({
 		: annualDiscount;
 
 	return (
-		<DuoSectionCard
-			title={
-				userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
-					? "Mudar para Plano Anual"
-					: isTrialActive
-						? texts.upgradeTitle
-						: texts.choosePlanTitle
-			}
-			icon={Sparkles}
-		>
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<Sparkles className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">
+						{userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
+							? "Mudar para Plano Anual"
+							: isTrialActive
+								? texts.upgradeTitle
+								: texts.choosePlanTitle}
+					</h2>
+				</div>
+			</DuoCardHeader>
 			<div className="space-y-4">
 				{/* Para student com subscription ativa mensal: mostrar apenas opção anual */}
 				{userType === "student" && isPremiumActive && (
@@ -221,6 +224,6 @@ export function PlansSelector({
 					</>
 				)}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

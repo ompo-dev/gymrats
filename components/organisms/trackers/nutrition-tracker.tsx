@@ -1,65 +1,25 @@
 "use client";
 
-import { Droplets, Plus, UtensilsCrossed } from "lucide-react";
+import {
+	Beef,
+	Droplets,
+	Flame,
+	Plus,
+	UtensilsCrossed,
+	Wheat,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard, DuoStatsGrid } from "@/components/duo";
+import {
+	DuoAchievementCard,
+	DuoCard,
+	DuoCardHeader,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { MealCard } from "@/components/molecules/cards/meal-card";
-import { DuoSectionCard } from "@/components/duo";
 import { WaterIntakeCard } from "@/components/molecules/cards/water-intake-card";
 import type { DailyNutrition } from "@/lib/types";
-
-function MacroCardContent({
-	label,
-	current,
-	target,
-	unit,
-	progress,
-	progressColor,
-}: {
-	label: string;
-	current: number;
-	target: number;
-	unit: string;
-	progress: number;
-	progressColor: string;
-}) {
-	const displayCurrent =
-		unit === "kcal" ? Math.round(current) : Math.round(current * 10) / 10;
-	const hasExcess = current > target;
-	const excess = hasExcess
-		? unit === "kcal"
-			? Math.round(current - target)
-			: Math.round((current - target) * 10) / 10
-		: 0;
-
-	return (
-		<DuoCard variant="default" padding="sm">
-			<div className="mb-2 text-xs font-bold uppercase text-[var(--duo-fg-muted)]">
-				{label}
-			</div>
-			<div className="mb-2 flex items-center justify-between text-2xl font-bold text-[var(--duo-fg)]">
-				<span>
-					{displayCurrent}
-					<span className="text-base text-[var(--duo-fg-muted)]">/{target}</span>
-				</span>
-				{hasExcess && (
-					<span className="text-sm font-bold text-[var(--duo-danger)]">
-						+{excess} {unit}
-					</span>
-				)}
-			</div>
-			<div className="mb-1 h-2 overflow-hidden rounded-full bg-gray-200">
-				<div
-					className={`h-full rounded-full transition-all duration-300 ${progressColor}`}
-					style={{ width: `${Math.min(progress, 100)}%` }}
-				/>
-			</div>
-			<div className="text-xs font-bold text-[var(--duo-fg-muted)]">{unit}</div>
-		</DuoCard>
-	);
-}
 
 interface NutritionTrackerProps {
 	nutrition: DailyNutrition;
@@ -107,15 +67,6 @@ export function NutritionTracker({
 		[nutrition.waterIntake],
 	);
 
-	// Progresso calculado baseado nos totais de refeições COMPLETADAS (com check)
-	// Os totais são atualizados automaticamente quando refeições são marcadas como completadas
-	const caloriesProgress =
-		(nutrition.totalCalories / nutrition.targetCalories) * 100;
-	const proteinProgress =
-		(nutrition.totalProtein / nutrition.targetProtein) * 100;
-	const carbsProgress = (nutrition.totalCarbs / nutrition.targetCarbs) * 100;
-	const fatsProgress = (nutrition.totalFats / nutrition.targetFats) * 100;
-
 	const handleToggleWaterGlass = (index: number) => {
 		if (onToggleWaterGlass) {
 			onToggleWaterGlass(index);
@@ -125,50 +76,51 @@ export function NutritionTracker({
 	return (
 		<div className="space-y-6">
 			<DuoStatsGrid columns={2} className="gap-3">
-				<MacroCardContent
-					label="Calorias"
+				<DuoAchievementCard
+					icon={Flame}
+					iconColor="var(--duo-accent)"
+					title="Calorias"
+					description="kcal"
 					current={nutrition.totalCalories}
-					target={nutrition.targetCalories}
-					unit="kcal"
-					progress={caloriesProgress}
-					progressColor="bg-[var(--duo-accent)]"
+					total={nutrition.targetCalories}
 				/>
-				<MacroCardContent
-					label="Proteínas"
+				<DuoAchievementCard
+					icon={Beef}
+					iconColor="var(--duo-danger)"
+					title="Proteínas"
+					description="g"
 					current={nutrition.totalProtein}
-					target={nutrition.targetProtein}
-					unit="g"
-					progress={proteinProgress}
-					progressColor="bg-[var(--duo-danger)]"
+					total={nutrition.targetProtein}
 				/>
-				<MacroCardContent
-					label="Carboidratos"
+				<DuoAchievementCard
+					icon={Wheat}
+					iconColor="var(--duo-secondary)"
+					title="Carboidratos"
+					description="g"
 					current={nutrition.totalCarbs}
-					target={nutrition.targetCarbs}
-					unit="g"
-					progress={carbsProgress}
-					progressColor="bg-[var(--duo-secondary)]"
+					total={nutrition.targetCarbs}
 				/>
-				<MacroCardContent
-					label="Gorduras"
+				<DuoAchievementCard
+					icon={Droplets}
+					iconColor="var(--duo-warning)"
+					title="Gorduras"
+					description="g"
 					current={nutrition.totalFats}
-					target={nutrition.targetFats}
-					unit="g"
-					progress={fatsProgress}
-					progressColor="bg-[var(--duo-warning)]"
+					total={nutrition.targetFats}
 				/>
 			</DuoStatsGrid>
 
 			{nutrition.waterIntake === 0 ? (
-				<DuoSectionCard
-					icon={Droplets}
-					title="Hidratação"
-					headerAction={
-						<span className="text-sm font-bold text-duo-gray-dark">
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Droplets className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
+							<h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
+						</div>
+						<span className="text-sm font-bold text-[var(--duo-fg-muted)]">
 							{nutrition.waterIntake}ml / {nutrition.targetWater}ml
 						</span>
-					}
-				>
+					</DuoCardHeader>
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
@@ -190,7 +142,7 @@ export function NutritionTracker({
 							Registrar Primeiro Copo
 						</Button>
 					</motion.div>
-				</DuoSectionCard>
+				</DuoCard>
 			) : (
 				<WaterIntakeCard
 					current={nutrition.waterIntake}
@@ -200,16 +152,17 @@ export function NutritionTracker({
 				/>
 			)}
 
-			<DuoSectionCard
-				icon={UtensilsCrossed}
-				title="Refeições de Hoje"
-				headerAction={
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<UtensilsCrossed className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
+						<h2 className="font-bold text-[var(--duo-fg)]">Refeições de Hoje</h2>
+					</div>
 					<Button variant="white" size="sm" onClick={onAddMeal}>
 						<Plus className="h-4 w-4" />
 						Adicionar
 					</Button>
-				}
-			>
+				</DuoCardHeader>
 				{nutrition.meals.length === 0 ? (
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
@@ -280,7 +233,7 @@ export function NutritionTracker({
 						</div>
 					</AnimatePresence>
 				)}
-			</DuoSectionCard>
+			</DuoCard>
 		</div>
 	);
 }

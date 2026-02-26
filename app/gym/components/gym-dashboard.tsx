@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { CheckInModal } from "./checkin-modal";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -103,7 +103,13 @@ export function GymDashboardPage({
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<SlideIn delay={0.2}>
-					<DuoSectionCard title="Check-ins Recentes" icon={Users}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Check-ins Recentes</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-3">
 							{recentCheckIns.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -147,11 +153,17 @@ export function GymDashboardPage({
 								);
 							})}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 
 				<SlideIn delay={0.3}>
-					<DuoSectionCard title="Equipamentos em Tempo Real" icon={Dumbbell}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos em Tempo Real</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-3">
 							{equipmentInUse.length === 0 && equipmentMaintenance.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -213,11 +225,17 @@ export function GymDashboardPage({
 								</>
 							)}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 
 				<SlideIn delay={0.4}>
-					<DuoSectionCard title="Top Alunos do Mês" icon={Users}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Top Alunos do Mês</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-3">
 							{month.topStudents.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -277,11 +295,17 @@ export function GymDashboardPage({
 								);
 							})}
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 
 				<SlideIn delay={0.5}>
-					<DuoSectionCard title="Estatísticas da Semana" icon={Users}>
+					<DuoCard variant="default" padding="md">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Estatísticas da Semana</h2>
+							</div>
+						</DuoCardHeader>
 						<div className="space-y-4">
 							<DuoCard variant="highlighted" size="sm">
 								<p className="text-xs font-bold text-duo-gray-dark">
@@ -322,7 +346,7 @@ export function GymDashboardPage({
 								<p className="text-xs text-duo-gray-dark">últimos 30 dias</p>
 							</DuoCard>
 						</div>
-					</DuoSectionCard>
+					</DuoCard>
 				</SlideIn>
 			</div>
 			<CheckInModal

@@ -26,7 +26,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -49,18 +49,20 @@ export default function StudentDetailPage({
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
 				<FadeIn>
-					<DuoSectionCard
-						title="Aluno não encontrado"
-						icon={AlertCircle}
-						className="text-center"
-					>
+					<DuoCard variant="default" padding="md" className="text-center">
+						<DuoCardHeader>
+							<div className="flex items-center gap-2">
+								<AlertCircle className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+								<h2 className="font-bold text-[var(--duo-fg)]">Aluno não encontrado</h2>
+							</div>
+						</DuoCardHeader>
 						<p className="mb-4 text-xl font-bold text-duo-gray-dark">
 							Aluno não encontrado
 						</p>
 						<Link href="/gym/students">
 							<Button className="mt-4">Voltar para Alunos</Button>
 						</Link>
-					</DuoSectionCard>
+					</DuoCard>
 				</FadeIn>
 			</div>
 		);
@@ -93,7 +95,13 @@ export default function StudentDetailPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title={student.name} icon={Calendar} variant="highlighted">
+				<DuoCard variant="highlighted" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{student.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-col gap-6 sm:flex-row sm:items-start">
 						<div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full">
 							<Image
@@ -148,7 +156,7 @@ export default function StudentDetailPage({
 							</div>
 						</div>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -193,7 +201,13 @@ export default function StudentDetailPage({
 
 					<TabsContent value="overview">
 						<div className="grid gap-6 lg:grid-cols-2">
-							<DuoSectionCard title="Informações do Perfil" icon={Calendar}>
+							<DuoCard variant="default" padding="md">
+								<DuoCardHeader>
+									<div className="flex items-center gap-2">
+										<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+										<h2 className="font-bold text-[var(--duo-fg)]">Informações do Perfil</h2>
+									</div>
+								</DuoCardHeader>
 								<div className="space-y-3">
 									{[
 										{ label: "Idade", value: `${student.age} anos` },
@@ -224,9 +238,15 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</DuoSectionCard>
+							</DuoCard>
 
-							<DuoSectionCard title="Objetivos" icon={Target} variant="blue">
+							<DuoCard variant="blue" padding="md">
+								<DuoCardHeader>
+									<div className="flex items-center gap-2">
+										<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+										<h2 className="font-bold text-[var(--duo-fg)]">Objetivos</h2>
+									</div>
+								</DuoCardHeader>
 								<div className="space-y-2">
 									{student.profile.goals.map((goal) => (
 										<DuoCard
@@ -255,13 +275,15 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</DuoSectionCard>
+							</DuoCard>
 
-							<DuoSectionCard
-								title="Evolução de Peso"
-								icon={Calendar}
-								className="lg:col-span-2"
-							>
+							<DuoCard variant="default" padding="md" className="lg:col-span-2">
+								<DuoCardHeader>
+									<div className="flex items-center gap-2">
+										<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+										<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
+									</div>
+								</DuoCardHeader>
 								<div className="space-y-2">
 									{student.weightHistory.map((record, idx) => (
 										<DuoCard key={`${record.date.toISOString()}-${record.weight}`} variant="default" size="sm">
@@ -306,20 +328,32 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</DuoSectionCard>
+							</DuoCard>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="workouts">
-						<DuoSectionCard title="Histórico de Treinos" icon={Activity}>
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Activity className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Treinos</h2>
+								</div>
+							</DuoCardHeader>
 							<p className="text-duo-gray-dark">
 								Implementação do histórico de treinos em desenvolvimento...
 							</p>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 
 					<TabsContent value="diet">
-						<DuoSectionCard title="Plano de Dieta" icon={Apple} variant="orange">
+						<DuoCard variant="orange" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Apple className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Plano de Dieta</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="space-y-4">
 								<DuoCard variant="orange" size="default">
 									<p className="font-bold text-duo-gray-dark">
@@ -350,11 +384,17 @@ export default function StudentDetailPage({
 									/>
 								</DuoStatsGrid>
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 
 					<TabsContent value="progress">
-						<DuoSectionCard title="Progresso e XP" icon={Trophy} variant="highlighted">
+						<DuoCard variant="highlighted" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Progresso e XP</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="mb-6">
 								<div className="mb-2 flex items-center justify-between">
 									<span className="font-bold text-duo-text">
@@ -399,11 +439,17 @@ export default function StudentDetailPage({
 									),
 								)}
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 
 					<TabsContent value="records">
-						<DuoSectionCard title="Recordes Pessoais" icon={Trophy} variant="orange">
+						<DuoCard variant="orange" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Recordes Pessoais</h2>
+								</div>
+							</DuoCardHeader>
 							<div className="space-y-3">
 								{student.personalRecords.map((record) => (
 									<DuoCard
@@ -432,15 +478,17 @@ export default function StudentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 
 					<TabsContent value="payments">
-						<DuoSectionCard
-							title="Histórico de Pagamentos"
-							icon={DollarSign}
-							variant="blue"
-						>
+						<DuoCard variant="blue" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Pagamentos</h2>
+								</div>
+							</DuoCardHeader>
 							<DuoStatsGrid columns={3}>
 								<DuoStatCard
 									icon={CheckCircle}
@@ -519,7 +567,7 @@ export default function StudentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</DuoSectionCard>
+						</DuoCard>
 					</TabsContent>
 				</Tabs>
 			</SlideIn>

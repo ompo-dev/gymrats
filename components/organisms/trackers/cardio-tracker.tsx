@@ -14,12 +14,7 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import {
-	DuoSectionCard,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
+import { DuoCard, DuoCardHeader, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import {
 	calculateCardioCalories,
@@ -161,7 +156,13 @@ export function CardioTracker() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title="Selecione a Modalidade" icon={Heart}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Modalidade</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={cardioOptions}
 						value={selectedType}
@@ -172,7 +173,7 @@ export function CardioTracker() {
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<DuoStatsGrid columns={4} className="gap-4">
@@ -230,7 +231,13 @@ export function CardioTracker() {
 			</DuoStatsGrid>
 
 			<SlideIn delay={0.4}>
-				<DuoSectionCard title="Zona de FC Alvo (Cardio)" icon={Heart}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Zona de FC Alvo (Cardio)</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
 						<span>{targetHRZone.min} bpm</span>
 						<span>{targetHRZone.max} bpm</span>
@@ -243,14 +250,20 @@ export function CardioTracker() {
 									heartRate > 0
 										? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%`
 										: "0%",
-							}}
-						/>
+						}}
+					/>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<DuoSectionCard title="Intensidade" icon={Flame}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Flame className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
+						</div>
+					</DuoCardHeader>
 					<OptionSelector
 						options={intensityOptions}
 						value={intensity}
@@ -265,7 +278,7 @@ export function CardioTracker() {
 						textAlign="center"
 						animate={true}
 					/>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.6}>

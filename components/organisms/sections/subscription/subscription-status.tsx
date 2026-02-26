@@ -2,8 +2,7 @@
 
 import { Crown, Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusProps {
@@ -58,7 +57,13 @@ export function SubscriptionStatus({
 	onCancel,
 }: SubscriptionStatusProps) {
 	return (
-		<DuoSectionCard title={texts.subscriptionStatusTitle} icon={Crown}>
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<Crown className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">{texts.subscriptionStatusTitle}</h2>
+				</div>
+			</DuoCardHeader>
 			<div className="space-y-4">
 				{/* Header com status */}
 				<div className="flex items-center justify-between">
@@ -297,6 +302,6 @@ export function SubscriptionStatus({
 					</div>
 				)}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

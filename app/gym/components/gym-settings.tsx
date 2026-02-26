@@ -25,7 +25,7 @@ import { DuoCard } from "@/components/duo";
 import { Select } from "@/components/atoms/inputs/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCardHeader } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -221,7 +221,13 @@ export function GymSettingsPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard title={profile.name} icon={Building2} variant="orange">
+				<DuoCard variant="orange" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Building2 className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="mb-4">
 						<p className="text-sm font-medium text-duo-text">Plano {profile.plan}</p>
 					</div>
@@ -337,15 +343,17 @@ export function GymSettingsPage({
 							<p className="text-sm font-medium text-red-600">{saveError}</p>
 						)}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoSectionCard
-					title="Horários e Dias de Funcionamento"
-					icon={Clock}
-					variant="blue"
-				>
+				<DuoCard variant="blue" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Horários e Dias de Funcionamento</h2>
+						</div>
+					</DuoCardHeader>
 					<p className="mb-4 text-sm font-medium text-duo-text">
 						Configura horários diferentes por dia (ex: sexta fecha 18h, outros 22h)
 					</p>
@@ -423,7 +431,7 @@ export function GymSettingsPage({
 							)}
 						</Button>
 					)}
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
@@ -431,7 +439,13 @@ export function GymSettingsPage({
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<DuoSectionCard title="Outras Configurações" icon={Shield}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Shield className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Outras Configurações</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-3">
 						{[
 							{
@@ -496,11 +510,17 @@ export function GymSettingsPage({
 							</motion.div>
 						))}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<DuoSectionCard title="Conta" icon={Shield}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Shield className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-3">
 						{(isAdmin || userInfo?.role === "ADMIN") && (
 							<DuoCard
@@ -543,7 +563,7 @@ export function GymSettingsPage({
 							</div>
 						</DuoCard>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 		</div>
 	);

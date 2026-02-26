@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -82,7 +82,13 @@ export function FinancialOverviewTab({
 				</DuoCard>
 			)}
 
-			<DuoSectionCard title="Métricas do Mês" icon={DollarSign}>
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Métricas do Mês</h2>
+					</div>
+				</DuoCardHeader>
 				<div className="space-y-3">
 					<DuoCard variant="default" size="sm">
 						<div className="flex items-center justify-between">
@@ -111,7 +117,7 @@ export function FinancialOverviewTab({
 						</div>
 					</DuoCard>
 				</div>
-			</DuoSectionCard>
+			</DuoCard>
 		</div>
 	);
 }

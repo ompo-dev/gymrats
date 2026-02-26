@@ -2,8 +2,7 @@
 
 import { CreditCard, Plus } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -48,15 +47,16 @@ const getStatusLabel = (status: string) => {
 
 export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 	return (
-		<DuoSectionCard
-			title="Pagamentos Recentes"
-			icon={CreditCard}
-			headerAction={
+		<DuoCard variant="default" padding="md">
+			<DuoCardHeader>
+				<div className="flex items-center gap-2">
+					<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Pagamentos Recentes</h2>
+				</div>
 				<Button size="sm">
 					<Plus className="h-4 w-4" />
 				</Button>
-			}
-		>
+			</DuoCardHeader>
 			<div className="space-y-3">
 				{payments.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -101,6 +101,6 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 					</DuoCard>
 				))}
 			</div>
-		</DuoSectionCard>
+		</DuoCard>
 	);
 }

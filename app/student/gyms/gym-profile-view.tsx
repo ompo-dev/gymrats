@@ -14,7 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCardHeader } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -126,7 +126,13 @@ export function GymProfileView({
 			</Button>
 
 			<FadeIn>
-				<DuoSectionCard title={profile.name} icon={Dumbbell}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
 						{(profile.logo || profile.photos?.[0]) && (
 							<div className="flex shrink-0 gap-2">
@@ -185,7 +191,7 @@ export function GymProfileView({
 							)}
 						</div>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</FadeIn>
 
 			<div className="grid gap-4 sm:grid-cols-2">
@@ -210,7 +216,13 @@ export function GymProfileView({
 			</div>
 
 			{profile.amenities && profile.amenities.length > 0 && (
-				<DuoSectionCard title="Comodidades" icon={Check}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Check className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Comodidades</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-wrap gap-2">
 						{profile.amenities.map((a) => (
 							<span
@@ -221,11 +233,17 @@ export function GymProfileView({
 							</span>
 						))}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			)}
 
 			{profile.equipment && profile.equipment.length > 0 && (
-				<DuoSectionCard title="Equipamentos" icon={Dumbbell}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="flex flex-wrap gap-2">
 						{profile.equipment.slice(0, 12).map((e) => (
 							<span
@@ -246,10 +264,16 @@ export function GymProfileView({
 							</span>
 						)}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			)}
 
-			<DuoSectionCard title="Planos disponíveis" icon={CreditCard}>
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Planos disponíveis</h2>
+					</div>
+				</DuoCardHeader>
 				<div className="space-y-3">
 					{profile.plans.length === 0 ? (
 						<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -322,7 +346,7 @@ export function GymProfileView({
 						})
 					)}
 				</div>
-			</DuoSectionCard>
+			</DuoCard>
 		</div>
 	);
 }

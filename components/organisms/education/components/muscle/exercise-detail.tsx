@@ -4,7 +4,7 @@ import { ArrowLeft, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCardHeader } from "@/components/duo";
 import type { ExerciseInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,11 +34,13 @@ export function ExerciseDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoSectionCard
-					title={exercise.name}
-					icon={Dumbbell}
-					variant="highlighted"
-				>
+				<DuoCard variant="highlighted" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{exercise.name}</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="mb-4 flex flex-wrap gap-2">
 						<span
 							className={cn(
@@ -91,11 +93,17 @@ export function ExerciseDetail({
 							</div>
 						)}
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoSectionCard title="Como Executar" icon={Dumbbell}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Como Executar</h2>
+						</div>
+					</DuoCardHeader>
 					<ol className="space-y-3">
 						{exercise.instructions.map((instruction, i) => (
 							<li key={i} className="flex gap-3">
@@ -106,7 +114,7 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ol>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

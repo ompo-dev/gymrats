@@ -3,8 +3,7 @@
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/duo";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -19,10 +18,12 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 
 	return (
 		<>
-			<DuoSectionCard
-				title="Despesas do Mês"
-				icon={Receipt}
-				headerAction={
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<Receipt className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Despesas do Mês</h2>
+					</div>
 					<Button
 						size="sm"
 						variant="destructive"
@@ -30,9 +31,8 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					>
 						<Plus className="h-4 w-4" />
 					</Button>
-				}
-			>
-			<div className="space-y-3">
+				</DuoCardHeader>
+				<div className="space-y-3">
 				{expenses.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
 						Nenhuma despesa registrada.
@@ -79,7 +79,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					</span>
 				</div>
 			</DuoCard>
-		</DuoSectionCard>
+		</DuoCard>
 
 			<AddExpenseModal
 				isOpen={isAddModalOpen}

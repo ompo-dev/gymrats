@@ -21,7 +21,7 @@ import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import {
-	DuoSectionCard,
+	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -209,7 +209,13 @@ export function GymEquipmentPage({
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoSectionCard title="Buscar e Filtrar" icon={Search}>
+				<DuoCard variant="default" padding="md">
+					<DuoCardHeader>
+						<div className="flex items-center gap-2">
+							<Search className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
+						</div>
+					</DuoCardHeader>
 					<div className="space-y-4">
 						<div className="relative">
 							<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -240,7 +246,7 @@ export function GymEquipmentPage({
 							animate={true}
 						/>
 					</div>
-				</DuoSectionCard>
+				</DuoCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

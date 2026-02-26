@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoSectionCard } from "@/components/duo";
+import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { CreateUnitModal } from "@/components/organisms/modals/create-unit-modal";
 import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
@@ -299,7 +299,13 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 				</p>
 			</div>
 
-			<DuoSectionCard icon={Dumbbell} title="Meus Treinos">
+			<DuoCard variant="default" padding="md">
+				<DuoCardHeader>
+					<div className="flex items-center gap-2">
+						<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Meus Treinos</h2>
+					</div>
+				</DuoCardHeader>
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -320,7 +326,7 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 						Criar Primeiro Plano
 					</Button>
 				</motion.div>
-			</DuoSectionCard>
+			</DuoCard>
 		</div>
 	);
 }
