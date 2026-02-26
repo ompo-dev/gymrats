@@ -27,12 +27,12 @@ export function WorkoutHeader({
 	skippedIndices = [],
 }: WorkoutHeaderProps) {
 	return (
-		<div className="border-b-2 border-duo-border bg-white p-3 sm:p-4 shadow-sm shrink-0">
+		<div className="border-b-2 border-duo-border bg-duo-bg-card p-3 sm:p-4 shadow-sm shrink-0">
 			<div className="mb-3 flex items-center justify-between">
 				<button
 					type="button"
 					onClick={onClose}
-					className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+					className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
 					aria-label="Fechar workout"
 				>
 					<X className="h-5 w-5 sm:h-6 sm:w-6 text-duo-gray-dark" />

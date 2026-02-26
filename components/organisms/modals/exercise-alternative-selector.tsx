@@ -60,7 +60,7 @@ export function ExerciseAlternativeSelector({
 				className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-duo-bg-card shadow-2xl"
 			>
 				{/* Header */}
-				<div className="sticky top-0 z-10 border-b-2 border-duo-border bg-white p-4 sm:p-6">
+				<div className="sticky top-0 z-10 border-b-2 border-duo-border bg-duo-bg-card p-4 sm:p-6">
 					<div className="mb-3 flex items-start justify-between">
 						<div className="flex-1">
 							<div className="mb-1 flex items-center gap-2">

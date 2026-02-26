@@ -123,13 +123,13 @@ export function PixPaymentModal({
 				title="Pagamento PIX"
 				onClose={onClose}
 			/>
-			<div className="p-6 space-y-6">
-				<p className="text-sm text-duo-gray-dark">
+			<div className="p-6 space-y-6 bg-duo-bg-card">
+				<p className="text-sm text-duo-fg-muted">
 					Escaneie o QR Code ou copie o código PIX para pagar no app do seu banco.
 				</p>
 
 				<div className="flex flex-col items-center gap-4">
-					<div className="bg-duo-bg-card p-4 rounded-xl border-2 border-duo-border">
+					<div className="bg-duo-bg-elevated p-4 rounded-xl border-2 border-duo-border">
 						{brCodeBase64 ? (
 							<img
 								src={brCodeBase64.startsWith("data:") ? brCodeBase64 : `data:image/png;base64,${brCodeBase64}`}
@@ -144,7 +144,7 @@ export function PixPaymentModal({
 					</div>
 
 					<div className="text-center">
-						<p className="text-xs text-duo-gray-dark">Valor a pagar</p>
+						<p className="text-xs text-duo-fg-muted">Valor a pagar</p>
 						<p className="text-2xl font-bold text-duo-green">
 							R$ {valueReais}
 						</p>
@@ -172,7 +172,7 @@ export function PixPaymentModal({
 					</DuoButton>
 				</div>
 
-				<p className="text-xs text-duo-gray-dark text-center">
+				<p className="text-xs text-duo-fg-muted text-center">
 					O pagamento é confirmado automaticamente. Você pode fechar e ir ao app do banco — ao voltar aqui, o PIX estará disponível novamente.
 				</p>
 			</div>

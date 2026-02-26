@@ -41,7 +41,7 @@ export function ModalContainer({
 							stiffness: 300,
 							duration: 0.3,
 						}}
-						className={`w-full ${maxWidth} rounded-t-3xl bg-white sm:rounded-3xl sm:scale-100`}
+						className={`w-full ${maxWidth} rounded-t-3xl bg-duo-bg-card sm:rounded-3xl sm:scale-100`}
 						onClick={(e) => e.stopPropagation()}
 						style={{
 							maxHeight: "90vh",

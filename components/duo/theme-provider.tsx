@@ -32,6 +32,7 @@ export function DuoThemeProvider({ children }: { children: React.ReactNode }) {
 		root.style.setProperty("--duo-fg", colors.foreground);
 		root.style.setProperty("--duo-fg-muted", colors.foregroundMuted);
 		root.style.setProperty("--duo-border", colors.border);
+		root.style.setProperty("--duo-gray-dark", colors.foregroundMuted);
 
 		// Tokens shadcn compatíveis (para componentes que usam bg-background, text-foreground, etc.)
 		root.style.setProperty("--background", colors.background);

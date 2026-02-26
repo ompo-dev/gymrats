@@ -791,24 +791,24 @@ export function ProfilePageContent() {
 								stiffness: 300,
 								duration: 0.3,
 							}}
-							className="w-full max-w-md rounded-t-3xl bg-white sm:rounded-3xl"
+							className="w-full max-w-md rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
 							onClick={(e) => e.stopPropagation()}
 						>
 							<motion.div
 								initial={{ opacity: 0, y: -10 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.1, duration: 0.3 }}
-								className="border-b-2 border-gray-300 p-6"
+								className="border-b-2 border-duo-border p-6"
 							>
 								<div className="mb-4 flex items-center justify-between">
-									<h2 className="text-2xl font-bold text-gray-900">
+									<h2 className="text-2xl font-bold text-duo-text">
 										Atualizar Peso
 									</h2>
 									<motion.button
 										whileHover={{ scale: 1.1 }}
 										whileTap={{ scale: 0.9 }}
 										onClick={weightModal.close}
-										className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+										className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
 									>
 										<X className="h-5 w-5" />
 									</motion.button>
@@ -823,7 +823,7 @@ export function ProfilePageContent() {
 									<div className="space-y-2">
 										<label
 											htmlFor="weight"
-											className="block text-sm font-bold text-gray-600"
+											className="block text-sm font-bold text-duo-fg-muted"
 										>
 											Peso Atual (kg)
 										</label>
@@ -835,9 +835,9 @@ export function ProfilePageContent() {
 											value={newWeight}
 											onChange={(e) => setNewWeight(e.target.value)}
 											placeholder="Ex: 91.5"
-											className="w-full rounded-xl border-2 border-gray-300 py-3 px-4 font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-green focus:outline-none text-lg"
+											className="w-full rounded-xl border-2 border-duo-border py-3 px-4 font-bold text-duo-text placeholder:text-duo-fg-muted focus:border-duo-green focus:outline-none text-lg"
 										/>
-										<p className="text-xs text-gray-600">
+										<p className="text-xs text-duo-fg-muted">
 											Digite seu peso atual em quilogramas
 										</p>
 									</div>
@@ -849,11 +849,11 @@ export function ProfilePageContent() {
 												animate={{ opacity: 1, scale: 1 }}
 												exit={{ opacity: 0, scale: 0.95 }}
 												transition={{ delay: 0.2, duration: 0.3 }}
-												className="rounded-xl border-2 border-gray-200 bg-gray-50 p-4"
+												className="rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-4"
 											>
-												<p className="text-sm text-gray-600">
+												<p className="text-sm text-duo-fg-muted">
 													Peso anterior:{" "}
-													<span className="font-bold text-gray-900">
+													<span className="font-bold text-duo-text">
 														{currentWeight.toFixed(1)}kg
 													</span>
 												</p>
@@ -896,7 +896,7 @@ export function ProfilePageContent() {
 									animate={{ opacity: 1, y: 0 }}
 									exit={{ opacity: 0, y: 20 }}
 									transition={{ duration: 0.3 }}
-									className="border-t-2 border-gray-300 p-6"
+									className="border-t-2 border-duo-border p-6"
 								>
 									<div className="flex gap-3">
 										<DuoButton
