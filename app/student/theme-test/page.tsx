@@ -1,0 +1,205 @@
+"use client";
+
+import {
+	Dumbbell,
+	Flame,
+	Target,
+	Trophy,
+	TrendingUp,
+	Zap,
+} from "lucide-react";
+import Link from "next/link";
+import {
+	DuoAchievementCard,
+	DuoCard,
+	DuoCardContent,
+	DuoCardFooter,
+	DuoCardHeader,
+	DuoColorPicker,
+	DuoStatCard,
+	DuoStatsGrid,
+	DuoTabs,
+} from "@/components/duo";
+
+export default function StudentThemeTestPage() {
+	return (
+		<div className="space-y-8 p-4 pb-24">
+			<div className="flex items-center justify-between gap-4">
+				<h1 className="text-2xl font-extrabold text-[var(--duo-fg)]">
+					Teste de Tema
+				</h1>
+				<Link
+					href="/student"
+					className="text-sm font-bold text-[var(--duo-primary)] hover:underline"
+				>
+					← Voltar
+				</Link>
+			</div>
+
+			{/* Color Picker Full */}
+			<DuoCard variant="elevated" padding="lg">
+				<DuoColorPicker />
+			</DuoCard>
+
+			{/* Tabs */}
+			<section>
+				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">Tabs</h2>
+				<DuoTabs
+					tabs={[
+						{
+							id: "pill",
+							label: "Pill",
+							content: (
+								<p className="text-sm text-[var(--duo-fg-muted)]">
+									Conteúdo da tab Pill. Variante padrão.
+								</p>
+							),
+						},
+						{
+							id: "underline",
+							label: "Underline",
+							content: (
+								<p className="text-sm text-[var(--duo-fg-muted)]">
+									Conteúdo da tab Underline.
+								</p>
+							),
+						},
+						{
+							id: "button",
+							label: "Button",
+							content: (
+								<p className="text-sm text-[var(--duo-fg-muted)]">
+									Conteúdo da tab Button.
+								</p>
+							),
+						},
+					]}
+					variant="pill"
+				/>
+			</section>
+
+			{/* Cards */}
+			<section>
+				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">Cards</h2>
+				<div className="grid gap-4 sm:grid-cols-2">
+					<DuoCard variant="default">
+						<DuoCardHeader>
+							<span className="font-bold">Card Default</span>
+						</DuoCardHeader>
+						<DuoCardContent>
+							<p className="text-sm text-[var(--duo-fg-muted)]">
+								Card com borda e fundo padrão.
+							</p>
+						</DuoCardContent>
+					</DuoCard>
+					<DuoCard variant="elevated">
+						<DuoCardHeader>
+							<span className="font-bold">Card Elevated</span>
+						</DuoCardHeader>
+						<DuoCardContent>
+							<p className="text-sm text-[var(--duo-fg-muted)]">
+								Card com sombra elevada.
+							</p>
+						</DuoCardContent>
+					</DuoCard>
+					<DuoCard variant="outlined">
+						<DuoCardHeader>
+							<span className="font-bold">Card Outlined</span>
+						</DuoCardHeader>
+						<DuoCardContent>
+							<p className="text-sm text-[var(--duo-fg-muted)]">
+								Card apenas com borda.
+							</p>
+						</DuoCardContent>
+					</DuoCard>
+					<DuoCard variant="interactive">
+						<DuoCardHeader>
+							<span className="font-bold">Card Interactive</span>
+						</DuoCardHeader>
+						<DuoCardContent>
+							<p className="text-sm text-[var(--duo-fg-muted)]">
+								Card clicável com hover.
+							</p>
+						</DuoCardContent>
+					</DuoCard>
+				</div>
+			</section>
+
+			{/* Stat Cards */}
+			<section>
+				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">
+					Stat Cards
+				</h2>
+				<DuoStatsGrid columns={2}>
+					<DuoStatCard
+						icon={Flame}
+						value={12}
+						label="Streak"
+						iconColor="var(--duo-accent)"
+					/>
+					<DuoStatCard
+						icon={Zap}
+						value={450}
+						label="XP"
+						iconColor="var(--duo-primary)"
+					/>
+					<DuoStatCard
+						icon={Trophy}
+						value={3}
+						label="Nível"
+						badge="Novo"
+					/>
+					<DuoStatCard
+						icon={TrendingUp}
+						value="#42"
+						label="Ranking"
+					/>
+				</DuoStatsGrid>
+			</section>
+
+			{/* Achievement Cards */}
+			<section>
+				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">
+					Achievement Cards
+				</h2>
+				<div className="space-y-3">
+					<DuoAchievementCard
+						icon={Dumbbell}
+						title="Primeiro Treino"
+						description="Complete seu primeiro treino"
+						current={1}
+						total={1}
+						level={1}
+					/>
+					<DuoAchievementCard
+						icon={Target}
+						title="Meta Semanal"
+						description="Complete 5 treinos esta semana"
+						current={3}
+						total={5}
+						level={2}
+					/>
+					<DuoAchievementCard
+						icon={Flame}
+						title="Streak de 7 dias"
+						description="Treine 7 dias seguidos"
+						current={2}
+						total={7}
+					/>
+				</div>
+			</section>
+
+			{/* Stats Grid */}
+			<section>
+				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">
+					Stats Grid (3 colunas)
+				</h2>
+				<DuoStatsGrid columns={3}>
+					<DuoStatCard icon={Flame} value={12} label="Streak" />
+					<DuoStatCard icon={Zap} value={450} label="XP" />
+					<DuoStatCard icon={Trophy} value={3} label="Nível" />
+				</DuoStatsGrid>
+			</section>
+		</div>
+	);
+}

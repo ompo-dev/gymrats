@@ -1,9 +1,11 @@
 "use client";
 
-import { Flame, TrendingUp, Trophy } from "lucide-react";
+import { Flame, Palette, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { DuoColorPicker } from "@/components/duo/organisms/duo-color-picker";
+import { DuoModal } from "@/components/duo/molecules/duo-modal";
 import { StreakModal } from "../modals/streak-modal";
 import { GymSelector } from "./gym-selector";
 
@@ -24,6 +26,7 @@ export function AppHeader({
   showLogo = true,
 }: AppHeaderProps) {
   const [streakModalOpen, setStreakModalOpen] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const isGym = userType === "gym";
 
   return (
@@ -57,6 +60,14 @@ export function AppHeader({
           </div>
 
           <div className={cn("flex items-center", isGym ? "gap-2" : "gap-3")}>
+            {/* Color Picker - teste de temas */}
+            <button
+              onClick={() => setThemeModalOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg-card)] text-[var(--duo-primary)] transition-all hover:border-[var(--duo-primary)] hover:bg-[var(--duo-primary)]/10"
+              aria-label="Testar temas"
+            >
+              <Palette size={18} />
+            </button>
             {/* Streak only for students */}
             {!isGym && (
               <button
@@ -95,6 +106,15 @@ export function AppHeader({
           currentStreak={stats.streak}
         />
       )}
+
+      <DuoModal
+        isOpen={themeModalOpen}
+        onClose={() => setThemeModalOpen(false)}
+        title="Teste de Cores"
+        size="md"
+      >
+        <DuoColorPicker />
+      </DuoModal>
     </>
   );
 }
