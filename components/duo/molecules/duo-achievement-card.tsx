@@ -40,26 +40,28 @@ export function DuoAchievementCard({
 			<span className="mb-3 truncate text-sm font-bold text-[var(--duo-fg)]">
 				{title}
 			</span>
-			<div className="relative mb-3 flex h-14 w-14 shrink-0 items-center justify-center self-start rounded-2xl bg-[var(--duo-bg-elevated)]">
-				<Icon
-					size={28}
-					style={{ color: iconColor ?? "var(--duo-accent)" }}
-					aria-hidden="true"
-				/>
-				{level !== undefined && (
-					<span className="absolute -bottom-1 -right-1 rounded-full bg-[var(--duo-accent)] px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-white">
-						{level}
+			<div className="flex items-start gap-3">
+				<div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--duo-bg-elevated)]">
+					<Icon
+						size={28}
+						style={{ color: iconColor ?? "var(--duo-accent)" }}
+						aria-hidden="true"
+					/>
+					{level !== undefined && (
+						<span className="absolute -bottom-1 -right-1 rounded-full bg-[var(--duo-accent)] px-1.5 py-0.5 text-[9px] font-extrabold leading-none text-white">
+							{level}
+						</span>
+					)}
+				</div>
+				<div className="min-w-0 flex-1">
+					<span className="block tabular-nums text-xs font-bold text-[var(--duo-fg-muted)]">
+						{current}/{total}
 					</span>
-				)}
-			</div>
-			<div className="min-w-0 flex-1">
-				<span className="block tabular-nums text-xs font-bold text-[var(--duo-fg-muted)]">
-					{current}/{total}
-				</span>
-				<DuoProgress value={current} max={total} variant="accent" size="sm" className="mt-1" />
-				<p className="mt-1 truncate text-xs text-[var(--duo-fg-muted)]">
-					{description}
-				</p>
+					<DuoProgress value={current} max={total} variant="accent" size="sm" className="mt-1" />
+					<p className="mt-1 truncate text-xs text-[var(--duo-fg-muted)]">
+						{description}
+					</p>
+				</div>
 			</div>
 		</div>
 	);

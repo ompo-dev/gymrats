@@ -337,42 +337,44 @@ export function GymSettingsPage({
 								transition={{ delay: index * 0.05, duration: 0.4 }}
 							>
 								<DuoCard variant="default" size="default">
-									<div className="flex items-start gap-3">
-										<div
-											className={cn(
-												"shrink-0 rounded-xl p-3",
-												field.color === "duo-green" && "bg-duo-green/10",
-												field.color === "duo-blue" && "bg-duo-blue/10",
-												field.color === "neutral" && "bg-gray-100",
-												field.color === "duo-purple" && "bg-duo-purple/10",
-												field.color === "duo-yellow" && "bg-duo-yellow/10",
-											)}
-										>
-											{field.color === "duo-green" && (
-												<MapPin className="h-5 w-5 text-duo-green" />
-											)}
-											{field.color === "duo-blue" && (
-												<Phone className="h-5 w-5 text-duo-blue" />
-											)}
-											{field.color === "neutral" && (
-												<Mail className="h-5 w-5 text-duo-gray-dark" />
-											)}
-											{field.color === "duo-purple" && (
-												<FileText className="h-5 w-5 text-duo-purple" />
-											)}
-											{field.color === "duo-yellow" && (
-												<CreditCard className="h-5 w-5 text-duo-yellow" />
-											)}
-										</div>
-										<div className="min-w-0 flex-1">
-											<div className="text-sm font-bold text-duo-text">
-												{field.title}
+									<div className="flex flex-col gap-3">
+										<div className="flex items-center gap-3">
+											<div
+												className={cn(
+													"shrink-0 rounded-xl p-3",
+													field.color === "duo-green" && "bg-duo-green/10",
+													field.color === "duo-blue" && "bg-duo-blue/10",
+													field.color === "neutral" && "bg-gray-100",
+													field.color === "duo-purple" && "bg-duo-purple/10",
+													field.color === "duo-yellow" && "bg-duo-yellow/10",
+												)}
+											>
+												{field.color === "duo-green" && (
+													<MapPin className="h-5 w-5 text-duo-green" />
+												)}
+												{field.color === "duo-blue" && (
+													<Phone className="h-5 w-5 text-duo-blue" />
+												)}
+												{field.color === "neutral" && (
+													<Mail className="h-5 w-5 text-duo-gray-dark" />
+												)}
+												{field.color === "duo-purple" && (
+													<FileText className="h-5 w-5 text-duo-purple" />
+												)}
+												{field.color === "duo-yellow" && (
+													<CreditCard className="h-5 w-5 text-duo-yellow" />
+												)}
 											</div>
-											<div className="text-xs text-duo-gray-dark">
-												{field.description}
+											<div className="min-w-0 flex-1">
+												<div className="text-sm font-bold text-duo-text">
+													{field.title}
+												</div>
+												<div className="text-xs text-duo-gray-dark">
+													{field.description}
+												</div>
 											</div>
-											{field.content}
 										</div>
+										<div>{field.content}</div>
 									</div>
 								</DuoCard>
 							</motion.div>
@@ -433,11 +435,11 @@ export function GymSettingsPage({
 											s.enabled && "border-duo-blue/30 bg-duo-blue/5",
 										)}
 									>
-										<div className="flex flex-wrap items-center gap-3">
-											<div className="shrink-0 rounded-xl bg-duo-blue/10 p-3">
-												<Clock className="h-5 w-5 text-duo-blue" />
-											</div>
-											<div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+										<div className="flex flex-col gap-3">
+											<div className="flex items-center gap-3">
+												<div className="shrink-0 rounded-xl bg-duo-blue/10 p-3">
+													<Clock className="h-5 w-5 text-duo-blue" />
+												</div>
 												<label className="flex cursor-pointer items-center gap-2">
 													<input
 														type="checkbox"
@@ -451,37 +453,37 @@ export function GymSettingsPage({
 														{day.label}
 													</span>
 												</label>
-												{s.enabled && (
-													<>
-														<div className="flex items-center gap-2">
-															<Label className="text-xs font-medium text-duo-gray-dark">
-																Abre
-															</Label>
-															<DuoInput
-																type="time"
-																value={s.open}
-																onChange={(e) =>
-																	updateDaySchedule(day.id, "open", e.target.value)
-																}
-																className="h-9 w-auto"
-															/>
-														</div>
-														<div className="flex items-center gap-2">
-															<Label className="text-xs font-medium text-duo-gray-dark">
-																Fecha
-															</Label>
-															<DuoInput
-																type="time"
-																value={s.close}
-																onChange={(e) =>
-																	updateDaySchedule(day.id, "close", e.target.value)
-																}
-																className="h-9 w-auto"
-															/>
-														</div>
-													</>
-												)}
 											</div>
+											{s.enabled && (
+												<div className="flex flex-wrap items-center gap-3 sm:gap-4">
+													<div className="flex items-center gap-2">
+														<Label className="shrink-0 text-xs font-medium text-duo-gray-dark">
+															Abre
+														</Label>
+														<DuoInput
+															type="time"
+															value={s.open}
+															onChange={(e) =>
+																updateDaySchedule(day.id, "open", e.target.value)
+															}
+															className="h-9 w-auto min-w-0"
+														/>
+													</div>
+													<div className="flex items-center gap-2">
+														<Label className="shrink-0 text-xs font-medium text-duo-gray-dark">
+															Fecha
+														</Label>
+														<DuoInput
+															type="time"
+															value={s.close}
+															onChange={(e) =>
+																updateDaySchedule(day.id, "close", e.target.value)
+															}
+															className="h-9 w-auto min-w-0"
+														/>
+													</div>
+												</div>
+											)}
 										</div>
 									</DuoCard>
 								</motion.div>
