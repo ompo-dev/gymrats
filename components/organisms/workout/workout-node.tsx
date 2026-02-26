@@ -165,7 +165,7 @@ export function WorkoutNode({
 				>
 					<div className="relative">
 						<div
-							className="flex items-center justify-center bg-white border-2 border-[#E5E5E5] rounded-[10px]"
+							className="flex items-center justify-center bg-duo-bg-card border-2 border-duo-border rounded-[10px]"
 							style={{
 								padding: "14.6px 15.24px 13.4px 14px",
 								width: "81.24px",
@@ -196,7 +196,7 @@ export function WorkoutNode({
 							}}
 						>
 							<div
-								className="absolute bg-white border-2 border-[#E5E5E5]"
+								className="absolute bg-duo-bg-card border-2 border-duo-border"
 								style={{
 									width: "14.14px",
 									height: "14.14px",

@@ -70,10 +70,10 @@ export function ContinueWorkoutCard({
           className="flex flex-col items-center justify-center space-y-4 py-6 text-center"
         >
           <Dumbbell className="h-10 w-10 text-duo-green" />
-          <p className="text-base font-bold text-gray-900">
+          <p className="text-base font-bold text-duo-text">
             Comece sua jornada!
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-duo-fg-muted">
             Seus treinos personalizados estão prontos. Comece agora!
           </p>
           <DuoButton
@@ -119,12 +119,12 @@ export function ContinueWorkoutCard({
               💪
             </div>
             <div className="flex-1">
-              <p className="font-bold text-gray-900">
+              <p className="font-bold text-duo-text">
                 {nextWorkout.workout.title}
               </p>
-              <p className="text-xs text-gray-600">{nextWorkout.unitTitle}</p>
+              <p className="text-xs text-duo-fg-muted">{nextWorkout.unitTitle}</p>
               {nextWorkout.workout.estimatedTime && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-duo-fg-muted">
                   ⏱️ {nextWorkout.workout.estimatedTime} min
                 </p>
               )}
@@ -170,10 +170,10 @@ export function ContinueWorkoutCard({
               ✅
             </div>
             <div className="flex-1">
-              <p className="font-bold text-gray-900">
+              <p className="font-bold text-duo-text">
                 Último treino: {lastCompleted.workoutName}
               </p>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-duo-fg-muted">
                 {new Date(lastCompleted.date).toLocaleDateString("pt-BR", {
                   day: "numeric",
                   month: "long",

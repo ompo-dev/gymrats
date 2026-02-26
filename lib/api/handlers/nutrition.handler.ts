@@ -406,6 +406,7 @@ export async function searchFoodsHandler(
 		const query = queryValidation.data.q || "";
 		const category = queryValidation.data.category;
 		const limit = queryValidation.data.limit || 20;
+		const offset = queryValidation.data.offset || 0;
 
 		// Construir filtros
 		const where: any = {};
@@ -426,6 +427,7 @@ export async function searchFoodsHandler(
 		try {
 			foods = await db.foodItem.findMany({
 				where: where,
+				skip: offset,
 				take: limit,
 				orderBy: {
 					name: "asc",

@@ -93,7 +93,7 @@ export function MealCard({
 			>
 				<div className="mb-3 flex items-start justify-between">
 					<div className="flex gap-3 flex-1">
-						<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-2xl">
+						<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-bg-elevated text-2xl">
 							{getMealIcon(meal.type, meal.name)}
 						</div>
 						<div className="flex-1">
@@ -177,7 +177,7 @@ export function MealCard({
 							className="overflow-hidden"
 						>
 							<div
-								className="mt-3 space-y-2 border-t border-gray-300 pt-3"
+								className="mt-3 space-y-2 border-t border-duo-border pt-3"
 								onClick={(e) => e.stopPropagation()}
 							>
 								<AnimatePresence mode="popLayout">
@@ -231,7 +231,7 @@ export function MealCard({
 							className="overflow-hidden"
 						>
 							<div
-								className="mt-3 border-t border-gray-300 pt-3"
+								className="mt-3 border-t border-duo-border pt-3"
 								onClick={(e) => e.stopPropagation()}
 							>
 								<motion.div

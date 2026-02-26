@@ -19,12 +19,6 @@ import { ModalContent } from "./modal-content";
 import { ModalHeader } from "./modal-header";
 import { SearchInput } from "./search-input";
 
-// Guardas globais para evitar re-fetch em remount com mesmos filtros
-const __lastInitKey = "";
-const __lastInitTs = 0;
-const __lastReqKey = "";
-const __lastReqTs = 0;
-
 interface ExerciseSearchProps {
 	workoutId: string;
 	onClose: () => void;
@@ -120,12 +114,15 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 		return () => clearTimeout(timer);
 	}, [query]);
 
+	const isFetchingRef = useRef(false);
+	const fetchIdRef = useRef(0);
+
 	// Resetar paginação quando query, categoria ou músculo mudar
 	useEffect(() => {
 		setCurrentPage(0);
 		setExercises([]);
 		setHasMore(true);
-	}, []);
+	}, [debouncedQuery, selectedCategory, selectedMuscle]);
 
 	// Quando uma categoria principal é selecionada, mudar para view de subcategorias
 	const handleCategorySelect = (categoryValue: string) => {
@@ -158,17 +155,12 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 		setSelectedMuscle("");
 	};
 
-	// Controla inicializações por combinação de filtros para evitar chamadas duplicadas
-	const _initializedKeyRef = useRef<string>("");
-
-	const _isFetchingRef = useRef(false);
-	const _lastRequestKeyRef = useRef<string>("");
-	const _lastRequestTsRef = useRef<number>(0);
-
+	// Buscar exercícios (sem isLoading/isLoadingMore nas deps para evitar loop)
 	const fetchExercises = useCallback(
 		async (page: number, reset: boolean = false) => {
-			// Prevenir múltiplas chamadas simultâneas
-			if (isLoading || isLoadingMore) return;
+			if (page > 0 && isFetchingRef.current) return;
+			isFetchingRef.current = true;
+			const id = ++fetchIdRef.current;
 
 			try {
 				if (page === 0) {
@@ -196,8 +188,8 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 				}>(`/api/exercises/search?${params.toString()}`);
 
 				const newExercises = response.data.exercises || [];
+				if (id !== fetchIdRef.current) return;
 
-				// Adicionar ao cache
 				newExercises.forEach((ex: ExerciseResult) => {
 					exercisesCacheRef.current.set(ex.id, ex);
 				});
@@ -208,26 +200,21 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 					setExercises((prev) => [...prev, ...newExercises]);
 				}
 
-				// Se retornou menos que o limite, não há mais páginas
 				setHasMore(newExercises.length === ITEMS_PER_PAGE);
 			} catch (error) {
+				if (id !== fetchIdRef.current) return;
 				console.error("[ExerciseSearch] Erro ao buscar exercícios:", error);
 				if (page === 0) {
 					setExercises([]);
 				}
 				setHasMore(false);
 			} finally {
+				if (id === fetchIdRef.current) isFetchingRef.current = false;
 				setIsLoading(false);
 				setIsLoadingMore(false);
 			}
 		},
-		[
-			debouncedQuery,
-			selectedCategory,
-			selectedMuscle,
-			isLoading,
-			isLoadingMore,
-		],
+		[debouncedQuery, selectedCategory, selectedMuscle],
 	);
 
 	// Carregar primeira página quando query, categoria ou músculo mudar

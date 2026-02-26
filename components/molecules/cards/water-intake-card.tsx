@@ -35,7 +35,7 @@ export function WaterIntakeCard({
 					{current}ml / {target}ml
 				</span>
 			</DuoCardHeader>
-			<div className="mb-3 h-2 overflow-hidden rounded-full bg-gray-200">
+			<div className="mb-3 h-2 overflow-hidden rounded-full bg-duo-bg-elevated">
 				<div
 					className="h-full rounded-full bg-duo-blue transition-all duration-300"
 					style={{ width: `${Math.min(progress, 100)}%` }}
@@ -51,13 +51,13 @@ export function WaterIntakeCard({
 							"aspect-square rounded-lg border-2 transition-all active:scale-95",
 							i < glasses
 								? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
-								: "border-gray-300 bg-white hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
+								: "border-duo-border bg-duo-bg-card hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
 						)}
 					>
 						<Droplets
 							className={cn(
 								"mx-auto h-4 w-4",
-								i < glasses ? "text-duo-blue" : "text-gray-300",
+								i < glasses ? "text-duo-blue" : "text-duo-border",
 							)}
 						/>
 					</button>

@@ -122,18 +122,23 @@ export function FoodSearch({
 		return () => clearTimeout(timer);
 	}, [searchQuery]);
 
+	const isFetchingRef = useRef(false);
+	const fetchIdRef = useRef(0);
+
 	// Resetar paginação quando query ou categoria mudar
 	useEffect(() => {
 		setCurrentPage(0);
 		setFoods([]);
 		setHasMore(true);
-	}, []);
+	}, [debouncedQuery, selectedCategory]);
 
-	// Buscar alimentos da API
+	// Buscar alimentos da API (sem isLoading/isLoadingMore nas deps para evitar loop)
 	const fetchFoods = useCallback(
 		async (page: number, reset: boolean = false) => {
-			// Prevenir múltiplas chamadas simultâneas
-			if (isLoading || isLoadingMore) return;
+			// Load more: evitar chamadas concorrentes. Página 0: permitir (filtros mudaram)
+			if (page > 0 && isFetchingRef.current) return;
+			isFetchingRef.current = true;
+			const id = ++fetchIdRef.current;
 
 			try {
 				if (page === 0) {
@@ -150,12 +155,16 @@ export function FoodSearch({
 					params.append("category", selectedCategory);
 				}
 				params.append("limit", ITEMS_PER_PAGE.toString());
+				if (page > 0) {
+					params.append("offset", (page * ITEMS_PER_PAGE).toString());
+				}
 
 				const response = await apiClient.get<{ foods: FoodItem[] }>(
 					`/api/foods/search?${params.toString()}`,
 				);
 
 				const newFoods = response.data.foods || [];
+				if (id !== fetchIdRef.current) return; // Resposta obsoleta, descartar
 
 				if (reset || page === 0) {
 					setFoods(newFoods);
@@ -163,20 +172,21 @@ export function FoodSearch({
 					setFoods((prev) => [...prev, ...newFoods]);
 				}
 
-				// Se retornou menos que o limite, não há mais páginas
 				setHasMore(newFoods.length === ITEMS_PER_PAGE);
 			} catch (error) {
+				if (id !== fetchIdRef.current) return;
 				console.error("[FoodSearch] Erro ao buscar alimentos:", error);
 				if (page === 0) {
 					setFoods([]);
 				}
 				setHasMore(false);
 			} finally {
+				if (id === fetchIdRef.current) isFetchingRef.current = false;
 				setIsLoading(false);
 				setIsLoadingMore(false);
 			}
 		},
-		[debouncedQuery, selectedCategory, isLoading, isLoadingMore],
+		[debouncedQuery, selectedCategory],
 	);
 
 	// Carregar primeira página quando query ou categoria mudar
@@ -336,7 +346,7 @@ export function FoodSearch({
 						stiffness: 300,
 						duration: 0.3,
 					}}
-					className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl sm:scale-100"
+					className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl sm:scale-100"
 					onClick={(e) => e.stopPropagation()}
 					style={{
 						maxHeight: "90vh",
@@ -348,10 +358,10 @@ export function FoodSearch({
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.1, duration: 0.3 }}
-						className="border-b-2 border-gray-300 p-6"
+						className="border-b-2 border-duo-border p-6"
 					>
 						<div className="mb-4 flex items-center justify-between">
-							<h2 className="text-2xl font-bold text-gray-900">
+							<h2 className="text-2xl font-bold text-duo-text">
 								Adicionar Alimento
 							</h2>
 							<DuoButton
@@ -372,7 +382,7 @@ export function FoodSearch({
 								transition={{ delay: 0.15, duration: 0.3 }}
 								className="mb-4"
 							>
-								<label className="mb-2 block text-sm font-bold text-gray-600">
+								<label className="mb-2 block text-sm font-bold text-duo-fg-muted">
 									Selecione as refeições ({selectedMealIds.size} selecionada
 									{selectedMealIds.size !== 1 ? "s" : ""}):
 								</label>
@@ -405,10 +415,10 @@ export function FoodSearch({
 												<div className="mb-1 text-2xl">
 													{getMealIcon(meal.type, meal.name)}
 												</div>
-												<div className="text-xs font-bold text-gray-900">
+												<div className="text-xs font-bold text-duo-text">
 													{meal.name}
 												</div>
-												<div className="text-xs text-gray-600">
+												<div className="text-xs text-duo-fg-muted">
 													{getMealTime(meal.type, meal.name)}
 												</div>
 											</DuoButton>
@@ -438,10 +448,10 @@ export function FoodSearch({
 										)}
 									</motion.span>
 									<div>
-										<div className="text-sm font-bold text-gray-900">
+										<div className="text-sm font-bold text-duo-text">
 											{meals.find((m) => m.id === selectedMealId)?.name}
 										</div>
-										<div className="text-xs text-gray-600">
+										<div className="text-xs text-duo-fg-muted">
 											{getMealTime(
 												meals.find((m) => m.id === selectedMealId)?.type || "",
 												meals.find((m) => m.id === selectedMealId)?.name,
@@ -454,7 +464,7 @@ export function FoodSearch({
 
 						{/* Filtros por categoria */}
 						<div className="mb-4">
-							<label className="mb-2 block text-sm font-bold text-gray-600">
+							<label className="mb-2 block text-sm font-bold text-duo-fg-muted">
 								Categoria:
 							</label>
 							<div className="flex flex-wrap gap-2">
@@ -502,7 +512,7 @@ export function FoodSearch({
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
-								className="flex flex-col items-center justify-center py-8 text-gray-600"
+								className="flex flex-col items-center justify-center py-8 text-duo-fg-muted"
 							>
 								<Loader2 className="mb-2 h-8 w-8 animate-spin text-duo-green" />
 								<div className="text-sm font-bold">Carregando alimentos...</div>
@@ -511,7 +521,7 @@ export function FoodSearch({
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
-								className="py-8 text-center text-gray-600"
+								className="py-8 text-center text-duo-fg-muted"
 							>
 								{debouncedQuery || selectedCategory
 									? `Nenhum alimento encontrado${
@@ -535,7 +545,7 @@ export function FoodSearch({
 										className="flex items-center justify-center py-4"
 									>
 										<Loader2 className="h-6 w-6 animate-spin text-duo-green" />
-										<span className="ml-2 text-sm text-gray-600">
+										<span className="ml-2 text-sm text-duo-fg-muted">
 											Carregando mais alimentos...
 										</span>
 									</motion.div>
@@ -544,7 +554,7 @@ export function FoodSearch({
 									<motion.div
 										initial={{ opacity: 0 }}
 										animate={{ opacity: 1 }}
-										className="py-4 text-center text-xs text-gray-500"
+										className="py-4 text-center text-xs text-duo-fg-muted"
 									>
 										Todos os alimentos foram carregados ({foods.length} total)
 									</motion.div>
@@ -560,14 +570,14 @@ export function FoodSearch({
 								animate={{ opacity: 1, y: 0 }}
 								exit={{ opacity: 0, y: 20 }}
 								transition={{ duration: 0.3 }}
-								className="border-t-2 border-gray-300 p-6 space-y-4"
+								className="border-t-2 border-duo-border p-6 space-y-4"
 							>
 								<motion.div
 									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
 									transition={{ delay: 0.1 }}
 								>
-									<label className="mb-3 block text-sm font-bold text-gray-600">
+									<label className="mb-3 block text-sm font-bold text-duo-fg-muted">
 										Ajustar Porções ({selectedFoodIds.length} alimento
 										{selectedFoodIds.length !== 1 ? "s" : ""} selecionado
 										{selectedFoodIds.length !== 1 ? "s" : ""})
@@ -591,13 +601,13 @@ export function FoodSearch({
 														animate={{ opacity: 1, y: 0 }}
 														exit={{ opacity: 0, scale: 0.9, height: 0 }}
 														transition={{ delay: index * 0.05, duration: 0.2 }}
-														className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
+														className="flex items-center justify-between rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-3"
 													>
 														<div className="flex-1">
-															<div className="text-sm font-bold text-gray-900">
+															<div className="text-sm font-bold text-duo-text">
 																{food.name}
 															</div>
-															<div className="text-xs text-gray-600">
+															<div className="text-xs text-duo-fg-muted">
 																{food.servingSize}
 															</div>
 														</div>
@@ -606,15 +616,15 @@ export function FoodSearch({
 																onClick={() =>
 																	handleServingsChange(foodId, -0.5)
 																}
-																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 active:scale-90"
+																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-border bg-duo-bg-card text-duo-text transition-all hover:bg-duo-bg-elevated active:scale-90"
 															>
 																<Minus className="h-4 w-4" />
 															</button>
 															<div className="w-16 text-center">
-																<div className="text-sm font-bold text-gray-900">
+																<div className="text-sm font-bold text-duo-text">
 																	{servings}
 																</div>
-																<div className="text-xs text-gray-600">
+																<div className="text-xs text-duo-fg-muted">
 																	{servings === 1 ? "porção" : "porções"}
 																</div>
 															</div>
@@ -659,7 +669,7 @@ export function FoodSearch({
 									animate={{ opacity: 1, y: 0 }}
 									exit={{ opacity: 0, y: 20 }}
 									transition={{ duration: 0.3 }}
-									className="border-t-2 border-gray-300 p-6"
+									className="border-t-2 border-duo-border p-6"
 								>
 									<div className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-4 text-center text-sm font-bold text-duo-orange">
 										Selecione pelo menos uma refeição para adicionar o(s)

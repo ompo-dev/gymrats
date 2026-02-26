@@ -82,6 +82,7 @@ export const searchFoodsQuerySchema = z.object({
 		])
 		.optional(),
 	limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+	offset: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
 export const foodSearchQuerySchema = searchFoodsQuerySchema;
