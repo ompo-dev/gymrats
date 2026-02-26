@@ -9,7 +9,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
@@ -174,15 +174,13 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 						</div>
 					</DuoCardHeader>
 					<div className="space-y-4">
-						<div className="relative">
-							<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
-							<Input
-								placeholder="Buscar por nome ou email..."
-								value={searchQuery || ""}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								className="h-12 pl-10"
-							/>
-						</div>
+						<DuoInput
+							placeholder="Buscar por nome ou email..."
+							value={searchQuery || ""}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							leftIcon={<Search className="h-5 w-5" />}
+							className="h-12"
+						/>
 						<DuoSelect
 							options={statusOptions}
 							value={statusFilter || "all"}

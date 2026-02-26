@@ -3,10 +3,7 @@
 import { CheckCircle, Loader2, Search, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { Input } from "@/components/ui/input";
-import { DuoSelect } from "@/components/duo";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -149,20 +146,16 @@ export function AddStudentModal({
 
 				{/* Campo de busca */}
 				<div className="mb-4">
-					<p className="mb-2 text-sm font-semibold text-duo-text">
-						Buscar por e-mail
-					</p>
 					<div className="flex gap-2">
-						<div className="relative flex-1">
-							<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-duo-gray-dark" />
-							<Input
-								placeholder="email@exemplo.com"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-								className="pl-9"
-							/>
-						</div>
+						<DuoInput
+							label="Buscar por e-mail"
+							placeholder="email@exemplo.com"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+							leftIcon={<Search className="h-4 w-4" />}
+							className="flex-1"
+						/>
 						<DuoButton
 							onClick={handleSearch}
 							disabled={isSearching || email.length < 3}
@@ -263,25 +256,23 @@ export function AddStudentModal({
 									)}
 
 									{/* Valor */}
-									<div>
-										<p className="mb-1 text-sm font-semibold text-duo-text">
-											{selectedPlanId
+									<DuoInput
+										label={
+											selectedPlanId
 												? "Valor (deixe em branco para usar o valor do plano)"
-												: "Valor da Matrícula (R$)"}
-										</p>
-										<Input
-											type="number"
-											min="0"
-											step="0.01"
-											placeholder={
-												selectedPlanId
-													? `Padrão: R$ ${membershipPlans.find((p) => p.id === selectedPlanId)?.price.toFixed(2).replace(".", ",") ?? "0,00"}`
-													: "Ex: 120,00"
-											}
-											value={customAmount}
-											onChange={(e) => setCustomAmount(e.target.value)}
-										/>
-									</div>
+												: "Valor da Matrícula (R$)"
+										}
+										type="number"
+										min="0"
+										step="0.01"
+										placeholder={
+											selectedPlanId
+												? `Padrão: R$ ${membershipPlans.find((p) => p.id === selectedPlanId)?.price.toFixed(2).replace(".", ",") ?? "0,00"}`
+												: "Ex: 120,00"
+										}
+										value={customAmount}
+										onChange={(e) => setCustomAmount(e.target.value)}
+									/>
 
 									{/* Erro */}
 									{error && (

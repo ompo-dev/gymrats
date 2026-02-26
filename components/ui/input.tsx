@@ -1,12 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { DuoInput } from "@/components/duo/molecules/duo-input";
+import { DuoInput } from "@/components/duo";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-	({ className, ...props }, ref) => (
-		<DuoInput ref={ref} className={className} {...props} />
-	),
+/** @deprecated Use DuoInput from @/components/duo diretamente */
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<typeof DuoInput>>(
+	(props, ref) => <DuoInput ref={ref} {...props} />,
 );
 
 Input.displayName = "Input";

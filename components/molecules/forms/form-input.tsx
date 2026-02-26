@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import { forwardRef } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { DuoInput } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface FormInputProps {
@@ -63,44 +62,20 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 				transition={{ delay, type: "spring" }}
 				className={cn("space-y-2", className)}
 			>
-				{label && (
-					<Label className="block text-sm font-bold text-gray-900">
-						{label}
-						{required && <span className="ml-1 text-red-500">*</span>}
-					</Label>
-				)}
-				<div className="relative">
-					{icon && (
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-							{icon}
-						</div>
-					)}
-					<Input
-						ref={ref}
-						type={type}
-						value={String(value || "")}
-						onChange={handleChange}
-						placeholder={placeholder}
-						disabled={disabled}
-						maxLength={maxLength}
-						className={cn(
-							sizeClasses[size],
-							"border-2 border-gray-300 font-semibold transition-all focus:border-duo-green focus:ring-2 focus:ring-duo-green/20",
-							error &&
-								"border-red-500 focus:border-red-500 focus:ring-red-500/20",
-							icon && "pl-10",
-						)}
-					/>
-				</div>
-				{error && (
-					<motion.p
-						initial={{ opacity: 0, y: -5 }}
-						animate={{ opacity: 1, y: 0 }}
-						className="text-sm text-red-500"
-					>
-						{error}
-					</motion.p>
-				)}
+				<DuoInput
+					ref={ref}
+					label={label ? `${label}${required ? " *" : ""}` : undefined}
+					leftIcon={icon}
+					error={error}
+					type={type}
+					value={String(value || "")}
+					onChange={handleChange}
+					placeholder={placeholder}
+					disabled={disabled}
+					maxLength={maxLength}
+					required={required}
+					className={cn(sizeClasses[size])}
+				/>
 			</motion.div>
 		);
 	},

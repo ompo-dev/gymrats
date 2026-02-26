@@ -4,7 +4,7 @@ import { Check, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
@@ -239,7 +239,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
 								Nome do Plano
 							</label>
-							<Input
+							<DuoInput
 								placeholder="Ex: Mensal Básico"
 								value={form.name}
 								onChange={(e) =>
@@ -263,7 +263,7 @@ export function MembershipPlansPage({
 								<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
 									Preço (R$)
 								</label>
-								<Input
+								<DuoInput
 									type="number"
 									placeholder="0.00"
 									value={form.price}
@@ -276,7 +276,7 @@ export function MembershipPlansPage({
 								<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
 									Duração (dias)
 								</label>
-								<Input
+								<DuoInput
 									type="number"
 									placeholder="30"
 									value={form.duration}
@@ -290,7 +290,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
 								Benefícios (separados por vírgula)
 							</label>
-							<Input
+							<DuoInput
 								placeholder="Acesso total, Avaliação física..."
 								value={form.benefits}
 								onChange={(e) =>

@@ -17,7 +17,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { Label } from "@/components/ui/label";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
@@ -262,71 +262,61 @@ export function AcademiasPageContent() {
 					</DialogHeader>
 
 					<form onSubmit={handleCreateGym} className="space-y-4">
-						<div>
-							<Label htmlFor="name">Nome da Academia *</Label>
-							<Input
-								id="name"
-								value={formData.name}
-								onChange={(e) =>
-									setFormData({ ...formData, name: e.target.value })
-								}
-								required
-								placeholder="Ex: Minha Academia Centro"
-							/>
-						</div>
+						<DuoInput
+							id="name"
+							label="Nome da Academia *"
+							value={formData.name}
+							onChange={(e) =>
+								setFormData({ ...formData, name: e.target.value })
+							}
+							required
+							placeholder="Ex: Minha Academia Centro"
+						/>
 
-						<div>
-							<Label htmlFor="address">Endereço *</Label>
-							<Input
-								id="address"
-								value={formData.address}
-								onChange={(e) =>
-									setFormData({ ...formData, address: e.target.value })
-								}
-								required
-								placeholder="Rua, número, bairro"
-							/>
-						</div>
+						<DuoInput
+							id="address"
+							label="Endereço *"
+							value={formData.address}
+							onChange={(e) =>
+								setFormData({ ...formData, address: e.target.value })
+							}
+							required
+							placeholder="Rua, número, bairro"
+						/>
 
-						<div>
-							<Label htmlFor="phone">Telefone *</Label>
-							<Input
-								id="phone"
-								type="tel"
-								value={formData.phone}
-								onChange={(e) =>
-									setFormData({ ...formData, phone: e.target.value })
-								}
-								required
-								placeholder="(00) 00000-0000"
-							/>
-						</div>
+						<DuoInput
+							id="phone"
+							label="Telefone *"
+							type="tel"
+							value={formData.phone}
+							onChange={(e) =>
+								setFormData({ ...formData, phone: e.target.value })
+							}
+							required
+							placeholder="(00) 00000-0000"
+						/>
 
-						<div>
-							<Label htmlFor="email">Email *</Label>
-							<Input
-								id="email"
-								type="email"
-								value={formData.email}
-								onChange={(e) =>
-									setFormData({ ...formData, email: e.target.value })
-								}
-								required
-								placeholder="contato@minhaacademia.com"
-							/>
-						</div>
+						<DuoInput
+							id="email"
+							label="Email *"
+							type="email"
+							value={formData.email}
+							onChange={(e) =>
+								setFormData({ ...formData, email: e.target.value })
+							}
+							required
+							placeholder="contato@minhaacademia.com"
+						/>
 
-						<div>
-							<Label htmlFor="cnpj">CNPJ (opcional)</Label>
-							<Input
-								id="cnpj"
-								value={formData.cnpj}
-								onChange={(e) =>
-									setFormData({ ...formData, cnpj: e.target.value })
-								}
-								placeholder="00.000.000/0000-00"
-							/>
-						</div>
+						<DuoInput
+							id="cnpj"
+							label="CNPJ (opcional)"
+							value={formData.cnpj}
+							onChange={(e) =>
+								setFormData({ ...formData, cnpj: e.target.value })
+							}
+							placeholder="00.000.000/0000-00"
+						/>
 
 						{createError && (
 							<div className="text-sm text-red-500 bg-red-50 p-3 rounded border border-red-200">

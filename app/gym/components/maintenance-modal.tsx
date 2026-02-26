@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MaintenanceRecord } from "@/lib/types";
@@ -105,54 +105,44 @@ export function MaintenanceModal({
 						/>
 					</div>
 
-					<div>
-						<p className="mb-1 text-sm font-bold text-duo-text">
-							Descrição do Serviço *
-						</p>
-						<Input
-							placeholder="O que foi feito?"
-							value={form.description}
-							onChange={(e) =>
-								setForm((f) => ({ ...f, description: e.target.value }))
-							}
-						/>
-					</div>
+					<DuoInput
+						label="Descrição do Serviço *"
+						placeholder="O que foi feito?"
+						value={form.description}
+						onChange={(e) =>
+							setForm((f) => ({ ...f, description: e.target.value }))
+						}
+					/>
 
-					<div>
-						<p className="mb-1 text-sm font-bold text-duo-text">
-							Realizado por *
-						</p>
-						<Input
-							placeholder="Nome do técnico ou empresa"
-							value={form.performedBy}
-							onChange={(e) =>
-								setForm((f) => ({ ...f, performedBy: e.target.value }))
-							}
-						/>
-					</div>
+					<DuoInput
+						label="Realizado por *"
+						placeholder="Nome do técnico ou empresa"
+						value={form.performedBy}
+						onChange={(e) =>
+							setForm((f) => ({ ...f, performedBy: e.target.value }))
+						}
+					/>
 
 					<div className="flex gap-2">
-						<div className="flex-1">
-							<p className="mb-1 text-sm text-duo-gray-dark">Custo (R$)</p>
-							<Input
-								type="number"
-								placeholder="0.00"
-								value={form.cost}
-								onChange={(e) =>
-									setForm((f) => ({ ...f, cost: e.target.value }))
-								}
-							/>
-						</div>
-						<div className="flex-1">
-							<p className="mb-1 text-sm text-duo-gray-dark">Próxima Visita</p>
-							<Input
-								type="date"
-								value={form.nextScheduled}
-								onChange={(e) =>
-									setForm((f) => ({ ...f, nextScheduled: e.target.value }))
-								}
-							/>
-						</div>
+						<DuoInput
+							label="Custo (R$)"
+							type="number"
+							placeholder="0.00"
+							value={form.cost}
+							onChange={(e) =>
+								setForm((f) => ({ ...f, cost: e.target.value }))
+							}
+							className="flex-1"
+						/>
+						<DuoInput
+							label="Próxima Visita"
+							type="date"
+							value={form.nextScheduled}
+							onChange={(e) =>
+								setForm((f) => ({ ...f, nextScheduled: e.target.value }))
+							}
+							className="flex-1"
+						/>
 					</div>
 
 					{error && <p className="text-sm text-duo-red">{error}</p>}

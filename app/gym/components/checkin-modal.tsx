@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 
 interface ActiveMember {
@@ -143,16 +143,14 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 				)}
 
 				{/* Campo de busca */}
-				<div className="relative mb-4">
-					<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-duo-gray-dark" />
-					<Input
-						ref={inputRef}
-						placeholder="Buscar aluno pelo nome..."
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						className="pl-9"
-					/>
-				</div>
+				<DuoInput
+					ref={inputRef}
+					placeholder="Buscar aluno pelo nome..."
+					value={search}
+					onChange={(e) => setSearch(e.target.value)}
+					leftIcon={<Search className="h-4 w-4" />}
+					className="mb-4"
+				/>
 
 				{/* Lista de membros */}
 				<div className="max-h-64 space-y-2 overflow-y-auto">

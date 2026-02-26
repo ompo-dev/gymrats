@@ -23,7 +23,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Select } from "@/components/atoms/inputs/select";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { Label } from "@/components/ui/label";
 import { DuoCardHeader } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
@@ -237,7 +237,7 @@ export function GymSettingsPage({
 								<MapPin className="h-4 w-4" />
 								Endereço
 							</Label>
-							<Input
+							<DuoInput
 								id="address"
 								value={address}
 								onChange={(e) => setAddress(e.target.value)}
@@ -250,7 +250,7 @@ export function GymSettingsPage({
 								<Phone className="h-4 w-4" />
 								Telefone
 							</Label>
-							<Input
+							<DuoInput
 								id="phone"
 								value={phone}
 								onChange={(e) => setPhone(e.target.value)}
@@ -275,7 +275,7 @@ export function GymSettingsPage({
 								<FileText className="h-4 w-4" />
 								CNPJ
 							</Label>
-							<Input
+							<DuoInput
 								id="cnpj"
 								value={cnpj}
 								onChange={(e) => setCnpj(e.target.value)}
@@ -306,7 +306,7 @@ export function GymSettingsPage({
 									placeholder="Tipo de chave"
 									className="min-w-[180px]"
 								/>
-								<Input
+								<DuoInput
 									value={pixKey}
 									onChange={(e) => setPixKey(e.target.value)}
 									placeholder={
@@ -390,7 +390,7 @@ export function GymSettingsPage({
 												<Label className="text-xs font-medium text-duo-gray-dark">
 													Abre
 												</Label>
-												<Input
+												<DuoInput
 													type="time"
 													value={s.open}
 													onChange={(e) =>
@@ -403,7 +403,7 @@ export function GymSettingsPage({
 												<Label className="text-xs font-medium text-duo-gray-dark">
 													Fecha
 												</Label>
-												<Input
+												<DuoInput
 													type="time"
 													value={s.close}
 													onChange={(e) =>

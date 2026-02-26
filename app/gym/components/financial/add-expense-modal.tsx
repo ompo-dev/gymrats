@@ -11,7 +11,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/atoms/inputs/select";
 import { useGym } from "@/hooks/use-gym";
@@ -121,48 +121,39 @@ export function AddExpenseModal({
 							className="mt-1"
 						/>
 					</div>
-					<div>
-						<Label htmlFor="description">Descrição (opcional)</Label>
-						<Input
-							id="description"
-							value={form.description}
-							onChange={(e) =>
-								setForm((f) => ({ ...f, description: e.target.value }))
-							}
-							placeholder="Ex: Conserto do ar condicionado"
-							className="mt-1"
-						/>
-					</div>
-					<div>
-						<Label htmlFor="amount">Valor (R$)</Label>
-						<Input
-							id="amount"
-							type="text"
-							inputMode="decimal"
-							value={form.amount}
-							onChange={(e) =>
-								setForm((f) => ({
-									...f,
-									amount: e.target.value.replace(/[^\d,.-]/g, ""),
-								}))
-							}
-							placeholder="0,00"
-							className="mt-1"
-							required
-						/>
-					</div>
-					<div>
-						<Label htmlFor="category">Categoria (opcional)</Label>
-						<Input
-							id="category"
-							value={form.category}
-							onChange={(e) =>
-								setForm((f) => ({ ...f, category: e.target.value }))
-							}
-							placeholder="Ex: Manutenção geral"
-							className="mt-1"
-						/>
-					</div>
+					<DuoInput
+						id="description"
+						label="Descrição (opcional)"
+						value={form.description}
+						onChange={(e) =>
+							setForm((f) => ({ ...f, description: e.target.value }))
+						}
+						placeholder="Ex: Conserto do ar condicionado"
+					/>
+					<DuoInput
+						id="amount"
+						label="Valor (R$)"
+						type="text"
+						inputMode="decimal"
+						value={form.amount}
+						onChange={(e) =>
+							setForm((f) => ({
+								...f,
+								amount: e.target.value.replace(/[^\d,.-]/g, ""),
+							}))
+						}
+						placeholder="0,00"
+						required
+					/>
+					<DuoInput
+						id="category"
+						label="Categoria (opcional)"
+						value={form.category}
+						onChange={(e) =>
+							setForm((f) => ({ ...f, category: e.target.value }))
+						}
+						placeholder="Ex: Manutenção geral"
+					/>
 					{error && (
 						<p className="text-sm text-red-600">{error}</p>
 					)}

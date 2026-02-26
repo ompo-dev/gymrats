@@ -1,15 +1,20 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { createPortal } from "react-dom";
 import {
 	useEffect,
 	useId,
+	useLayoutEffect,
 	useRef,
 	useState,
 	type HTMLAttributes,
 	type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+
+/** Altura máxima do dropdown (max-h-60 = 240px) - usado para decidir direção */
+const DROPDOWN_MAX_HEIGHT = 240;
 
 export interface DuoSelectOption {
 	value: string;
@@ -47,10 +52,52 @@ export function DuoSelect({
 	...props
 }: DuoSelectProps) {
 	const [isOpen, setIsOpen] = useState(false);
+	const [opensUpward, setOpensUpward] = useState(false);
 	const [focusedIndex, setFocusedIndex] = useState(-1);
+	const [dropdownStyle, setDropdownStyle] = useState<{
+		top: number;
+		left: number;
+		width: number;
+	} | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const listboxRef = useRef<HTMLUListElement>(null);
 	const listboxId = useId();
 	const labelId = useId();
+
+	// Calcula posição do dropdown e direção (cima/baixo) - usa Portal com position fixed
+	function updateDropdownPosition() {
+		if (!triggerRef.current) return;
+		const rect = triggerRef.current.getBoundingClientRect();
+		const spaceBelow = window.innerHeight - rect.bottom;
+		const spaceAbove = rect.top;
+		const opensUp = spaceBelow < DROPDOWN_MAX_HEIGHT && spaceAbove > spaceBelow;
+		setOpensUpward(opensUp);
+		setDropdownStyle({
+			left: rect.left,
+			width: rect.width,
+			top: opensUp ? rect.top - DROPDOWN_MAX_HEIGHT - 4 : rect.bottom + 4,
+		});
+	}
+
+	useLayoutEffect(() => {
+		if (!isOpen) {
+			setDropdownStyle(null);
+			return;
+		}
+		updateDropdownPosition();
+	}, [isOpen]);
+
+	// Atualiza posição em scroll/resize quando aberto
+	useEffect(() => {
+		if (!isOpen) return;
+		window.addEventListener("scroll", updateDropdownPosition, true);
+		window.addEventListener("resize", updateDropdownPosition);
+		return () => {
+			window.removeEventListener("scroll", updateDropdownPosition, true);
+			window.removeEventListener("resize", updateDropdownPosition);
+		};
+	}, [isOpen]);
 
 	const valueArr = Array.isArray(value) ? value : value ? [value] : [];
 	const selectedOption = multiple
@@ -64,10 +111,10 @@ export function DuoSelect({
 
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
-			if (
-				containerRef.current &&
-				!containerRef.current.contains(e.target as Node)
-			) {
+			const target = e.target as Node;
+			const isInsideTrigger = containerRef.current?.contains(target);
+			const isInsideDropdown = listboxRef.current?.contains(target);
+			if (!isInsideTrigger && !isInsideDropdown) {
 				setIsOpen(false);
 			}
 		}
@@ -112,6 +159,7 @@ export function DuoSelect({
 			)}
 			<div className="relative">
 				<button
+					ref={triggerRef}
 					type="button"
 					role="combobox"
 					aria-expanded={isOpen}
@@ -173,62 +221,74 @@ export function DuoSelect({
 					/>
 				</button>
 
-				<ul
-					id={listboxId}
-					role="listbox"
-					aria-multiselectable={multiple}
-					className={cn(
-						"absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border-2 border-[var(--duo-border)] py-1",
-						"bg-[var(--duo-bg-card)] shadow-xl shadow-black/20",
-						"origin-top transition-all duration-200",
-						isOpen
-							? "translate-y-0 scale-100 opacity-100"
-							: "-translate-y-2 scale-95 opacity-0 pointer-events-none",
-					)}
-				>
-					{options.map((option, index) => (
-						<li
-							key={option.value}
-							role="option"
-							aria-selected={isSelected(option.value)}
-							aria-disabled={option.disabled}
+				{/* Dropdown via Portal para evitar z-index/stacking context e cliques indo para elementos abaixo */}
+				{isOpen &&
+					dropdownStyle &&
+					typeof document !== "undefined" &&
+					createPortal(
+						<ul
+							ref={listboxRef}
+							id={listboxId}
+							role="listbox"
+							aria-multiselectable={multiple}
 							className={cn(
-								"flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all duration-150",
-								"hover:bg-[var(--duo-bg-elevated)]",
-								isSelected(option.value) &&
-									"bg-[var(--duo-primary)]/10 text-[var(--duo-primary)]",
-								focusedIndex === index && "bg-[var(--duo-bg-elevated)]",
-								option.disabled && "cursor-not-allowed opacity-50",
+								"fixed z-[9999] max-h-60 overflow-y-auto rounded-xl border-2 border-[var(--duo-border)] py-1",
+								"bg-[var(--duo-bg-card)] shadow-xl shadow-black/20",
+								"animate-in fade-in zoom-in-95 duration-200",
 							)}
-							onClick={() => {
-								if (option.disabled) return;
-								onChange?.(option.value);
-								if (!multiple) setIsOpen(false);
+							style={{
+								top: dropdownStyle.top,
+								left: dropdownStyle.left,
+								width: dropdownStyle.width,
 							}}
+							onMouseDown={(e) => e.stopPropagation()}
 						>
-							{multiple && isSelected(option.value) && (
-								<span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--duo-primary)] text-white text-xs">
-									✓
-								</span>
-							)}
-							{option.emoji && (
-								<span className="shrink-0 text-lg">{option.emoji}</span>
-							)}
-							{option.icon && <span className="shrink-0">{option.icon}</span>}
-							<div className="flex min-w-0 flex-1 flex-col">
-								<span className="text-sm font-semibold text-[var(--duo-fg)]">
-									{option.label}
-								</span>
-								{option.description && (
-									<span className="text-xs text-[var(--duo-fg-muted)]">
-										{option.description}
-									</span>
-								)}
-							</div>
-							{option.badge}
-						</li>
-					))}
-				</ul>
+							{options.map((option, index) => (
+								<li
+									key={option.value}
+									role="option"
+									aria-selected={isSelected(option.value)}
+									aria-disabled={option.disabled}
+									className={cn(
+										"flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all duration-150",
+										"hover:bg-[var(--duo-bg-elevated)]",
+										isSelected(option.value) &&
+											"bg-[var(--duo-primary)]/10 text-[var(--duo-primary)]",
+										focusedIndex === index && "bg-[var(--duo-bg-elevated)]",
+										option.disabled && "cursor-not-allowed opacity-50",
+									)}
+									onMouseDown={(e) => e.stopPropagation()}
+									onClick={() => {
+										if (option.disabled) return;
+										onChange?.(option.value);
+										if (!multiple) setIsOpen(false);
+									}}
+								>
+									{multiple && isSelected(option.value) && (
+										<span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--duo-primary)] text-white text-xs">
+											✓
+										</span>
+									)}
+									{option.emoji && (
+										<span className="shrink-0 text-lg">{option.emoji}</span>
+									)}
+									{option.icon && <span className="shrink-0">{option.icon}</span>}
+									<div className="flex min-w-0 flex-1 flex-col">
+										<span className="text-sm font-semibold text-[var(--duo-fg)]">
+											{option.label}
+										</span>
+										{option.description && (
+											<span className="text-xs text-[var(--duo-fg-muted)]">
+												{option.description}
+											</span>
+										)}
+									</div>
+									{option.badge}
+								</li>
+							))}
+						</ul>,
+						document.body,
+					)}
 			</div>
 			{error && (
 				<span

@@ -10,7 +10,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { DuoInput } from "@/components/duo";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { DuoSelect } from "@/components/duo";
@@ -144,15 +144,13 @@ export function AddEquipmentModal({
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
-					<div className="grid gap-2">
-						<Label htmlFor="name">Nome *</Label>
-						<Input
-							id="name"
-							value={form.name}
-							onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-							placeholder="Ex: Supino Reto"
-						/>
-					</div>
+					<DuoInput
+						id="name"
+						label="Nome *"
+						value={form.name}
+						onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+						placeholder="Ex: Supino Reto"
+					/>
 					
 					<div className="grid gap-2">
 						<Label>Tipo *</Label>
@@ -165,45 +163,37 @@ export function AddEquipmentModal({
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
-						<div className="grid gap-2">
-							<Label htmlFor="brand">Marca</Label>
-							<Input
-								id="brand"
-								value={form.brand}
-								onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
-								placeholder="Ex: Technogym"
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="model">Modelo</Label>
-							<Input
-								id="model"
-								value={form.model}
-								onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
-								placeholder="Ex: Selection 900"
-							/>
-						</div>
+						<DuoInput
+							id="brand"
+							label="Marca"
+							value={form.brand}
+							onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+							placeholder="Ex: Technogym"
+						/>
+						<DuoInput
+							id="model"
+							label="Modelo"
+							value={form.model}
+							onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+							placeholder="Ex: Selection 900"
+						/>
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
-						<div className="grid gap-2">
-							<Label htmlFor="serialNumber">Nº Série</Label>
-							<Input
-								id="serialNumber"
-								value={form.serialNumber}
-								onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
-								placeholder="Ex: SN123456"
-							/>
-						</div>
-						<div className="grid gap-2">
-							<Label htmlFor="purchaseDate">Data Aquisição</Label>
-							<Input
-								id="purchaseDate"
-								type="date"
-								value={form.purchaseDate}
-								onChange={(e) => setForm((f) => ({ ...f, purchaseDate: e.target.value }))}
-							/>
-						</div>
+						<DuoInput
+							id="serialNumber"
+							label="Nº Série"
+							value={form.serialNumber}
+							onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
+							placeholder="Ex: SN123456"
+						/>
+						<DuoInput
+							id="purchaseDate"
+							label="Data Aquisição"
+							type="date"
+							value={form.purchaseDate}
+							onChange={(e) => setForm((f) => ({ ...f, purchaseDate: e.target.value }))}
+						/>
 					</div>
 
 					<div className="grid gap-2">
