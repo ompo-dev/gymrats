@@ -6,7 +6,7 @@ import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { FormInput } from "@/components/ui/form-input";
-import { DuoSelect } from "@/components/duo";
+import { DuoButton, DuoSelect } from "@/components/duo";
 import { type step1Schema, validateStep1 } from "../schemas";
 import type { DifficultyLevel, OnboardingData, StepProps } from "./types";
 
@@ -167,16 +167,10 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
               { value: "female", label: "Feminino" },
               { value: "trans-female", label: "Trans Feminino" },
             ].map((option, index) => (
-              <motion.button
+              <DuoButton
                 key={option.value}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: 0.7 + index * 0.1,
-                  type: "spring",
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.99 }}
+                type="button"
+                variant={formData.gender === option.value ? "primary" : "outline"}
                 onClick={() => {
                   const isTrans = option.value.includes("trans");
                   setFormData({
@@ -187,14 +181,14 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
                     hormoneType: isTrans ? formData.hormoneType : "",
                   });
                 }}
-                className={`rounded-2xl border-2 py-3 font-bold uppercase tracking-wider transition-all active:shadow-none active:translate-y-[4px] ${
-                  formData.gender === option.value
-                    ? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-                    : "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]"
+                className={`rounded-2xl py-3 ${
+                  formData.gender !== option.value
+                    ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+                    : ""
                 }`}
               >
                 {option.label}
-              </motion.button>
+              </DuoButton>
             ))}
           </div>
           {(formData.gender === "trans-male" ||

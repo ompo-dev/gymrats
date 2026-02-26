@@ -2,6 +2,7 @@
 
 import { Check, Dumbbell, Users } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { DuoButton } from "@/components/duo";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores";
@@ -202,15 +203,15 @@ export default function UserTypePage() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ delay: 0.3, duration: 0.5 }}
 						>
-							<motion.button
-								whileHover={{ scale: 1.02, y: -4 }}
-								whileTap={{ scale: 0.98 }}
+							<DuoButton
+								type="button"
+								variant="outline"
 								onClick={() => handleSelectType("student")}
 								disabled={isLoading}
-								className={`w-full p-8 rounded-3xl border-2 transition-all text-left ${
+								className={`w-full p-8 rounded-3xl border-2 transition-all justify-start text-left normal-case ${
 									selectedType === "student"
-										? "border-[#58CC02] bg-[#58CC02]/5 shadow-xl"
-										: "border-gray-200 bg-white hover:border-[#58CC02]/50 hover:shadow-lg"
+										? "border-duo-green bg-duo-green/5 shadow-xl"
+										: "border-duo-border bg-duo-bg-card hover:border-duo-green/50 hover:shadow-lg"
 								}`}
 							>
 								<div className="text-center mb-6">
@@ -278,7 +279,7 @@ export default function UserTypePage() {
 										</motion.div>
 									)}
 								</AnimatePresence>
-							</motion.button>
+							</DuoButton>
 						</motion.div>
 
 						{/* Gym Type - DESABILITADO (versão beta apenas para students) */}

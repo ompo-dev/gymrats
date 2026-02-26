@@ -804,14 +804,15 @@ export function ProfilePageContent() {
 									<h2 className="text-2xl font-bold text-duo-text">
 										Atualizar Peso
 									</h2>
-									<motion.button
-										whileHover={{ scale: 1.1 }}
-										whileTap={{ scale: 0.9 }}
+									<DuoButton
+										type="button"
+										variant="ghost"
+										size="icon"
 										onClick={weightModal.close}
-										className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
+										className="h-10 w-10 rounded-full"
 									>
 										<X className="h-5 w-5" />
-									</motion.button>
+									</DuoButton>
 								</div>
 
 								<motion.div

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { DuoButton } from "@/components/duo";
 
 interface CardioConfigModalProps {
 	isOpen: boolean;
@@ -60,27 +61,27 @@ export function CardioConfigModal({
 
 					<div className="space-y-3">
 						{/* Não fazer cardio */}
-						<motion.button
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
+						<DuoButton
+							type="button"
+							variant="outline"
 							onClick={() => {
 								onSelectPreference("none", undefined);
 								onClose();
 							}}
-							className="w-full rounded-2xl border-2 border-duo-border bg-white p-4 text-left transition-all hover:border-duo-gray hover:bg-gray-50"
+							className="w-full rounded-2xl p-4 justify-start hover:border-duo-gray hover:bg-duo-bg-elevated"
 						>
-							<div className="flex items-center gap-3">
+							<div className="flex items-center gap-3 w-full">
 								<div className="text-2xl">❌</div>
-								<div className="flex-1">
+								<div className="flex-1 text-left">
 									<div className="font-bold text-duo-text">
 										Não Fazer Cardio
 									</div>
-									<div className="text-sm text-duo-gray-dark">
+									<div className="text-sm text-duo-gray-dark normal-case">
 										Apenas treino de força hoje
 									</div>
 								</div>
 							</div>
-						</motion.button>
+						</DuoButton>
 
 						{/* Cardio ANTES */}
 						<div className="space-y-2">
@@ -89,21 +90,21 @@ export function CardioConfigModal({
 							</div>
 							<div className="grid grid-cols-4 gap-2">
 								{[5, 10, 15, 20].map((duration) => (
-									<motion.button
+									<DuoButton
 										key={`before-${duration}`}
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
+										type="button"
+										variant="outline"
 										onClick={() => {
 											onSelectPreference("before", duration);
 											onClose();
 										}}
-										className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 text-center transition-all hover:bg-duo-blue/20"
+										className="rounded-xl border-2 border-duo-blue bg-duo-blue/10 p-3 hover:bg-duo-blue/20 flex flex-col gap-0"
 									>
 										<div className="text-xl font-black text-duo-blue">
 											{duration}
 										</div>
-										<div className="text-xs text-duo-gray-dark">min</div>
-									</motion.button>
+										<div className="text-xs text-duo-gray-dark normal-case">min</div>
+									</DuoButton>
 								))}
 							</div>
 						</div>
@@ -115,21 +116,21 @@ export function CardioConfigModal({
 							</div>
 							<div className="grid grid-cols-4 gap-2">
 								{[5, 10, 15, 20].map((duration) => (
-									<motion.button
+									<DuoButton
 										key={`after-${duration}`}
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
+										type="button"
+										variant="outline"
 										onClick={() => {
 											onSelectPreference("after", duration);
 											onClose();
 										}}
-										className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 text-center transition-all hover:bg-duo-orange/20"
+										className="rounded-xl border-2 border-duo-orange bg-duo-orange/10 p-3 hover:bg-duo-orange/20 flex flex-col gap-0"
 									>
 										<div className="text-xl font-black text-duo-orange">
 											{duration}
 										</div>
-										<div className="text-xs text-duo-gray-dark">min</div>
-									</motion.button>
+										<div className="text-xs text-duo-gray-dark normal-case">min</div>
+									</DuoButton>
 								))}
 							</div>
 						</div>

@@ -354,14 +354,15 @@ export function FoodSearch({
 							<h2 className="text-2xl font-bold text-gray-900">
 								Adicionar Alimento
 							</h2>
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
+							<DuoButton
+								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClose}
-								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+								className="h-10 w-10 rounded-full"
 							>
 								✕
-							</motion.button>
+							</DuoButton>
 						</div>
 
 						{!isSpecificMeal && meals.length > 0 && (
@@ -379,22 +380,16 @@ export function FoodSearch({
 									{meals.map((meal, index) => {
 										const isSelected = selectedMealIds.has(meal.id);
 										return (
-											<motion.button
+											<DuoButton
 												key={meal.id}
-												initial={{ opacity: 0, scale: 0.9 }}
-												animate={{ opacity: 1, scale: 1 }}
-												transition={{
-													delay: 0.2 + index * 0.05,
-													duration: 0.2,
-												}}
-												whileHover={{ scale: 1.02 }}
-												whileTap={{ scale: 0.98 }}
+												type="button"
+												variant="outline"
 												onClick={() => handleToggleMeal(meal.id)}
 												className={cn(
-													"relative rounded-xl border-2 p-3 text-left transition-all",
+													"relative rounded-xl border-2 p-3 justify-start text-left",
 													isSelected
 														? "border-duo-green bg-duo-green/10 shadow-[0_2px_0_#58A700]"
-														: "border-gray-300 bg-white shadow-[0_2px_0_#D1D5DB] hover:border-duo-green/50",
+														: "border-duo-border bg-duo-bg-card shadow-[0_2px_0_#D1D5DB] hover:border-duo-green/50",
 												)}
 											>
 												{isSelected && (
@@ -416,7 +411,7 @@ export function FoodSearch({
 												<div className="text-xs text-gray-600">
 													{getMealTime(meal.type, meal.name)}
 												</div>
-											</motion.button>
+											</DuoButton>
 										);
 									})}
 								</div>
@@ -464,21 +459,21 @@ export function FoodSearch({
 							</label>
 							<div className="flex flex-wrap gap-2">
 								{categories.map((category) => (
-									<motion.button
+									<DuoButton
 										key={category.value}
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
+										type="button"
+										variant="outline"
 										onClick={() => setSelectedCategory(category.value)}
 										className={cn(
-											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
+											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs min-h-0",
 											selectedCategory === category.value
 												? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
-												: "border-gray-300 bg-white text-gray-700 hover:border-duo-green/50",
+												: "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
 										)}
 									>
 										<span>{category.icon}</span>
 										<span>{category.label}</span>
-									</motion.button>
+									</DuoButton>
 								))}
 							</div>
 						</div>

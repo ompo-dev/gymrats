@@ -130,14 +130,15 @@ export function EquipmentSearch({
 							<h2 className="text-2xl font-bold text-gray-900">
 								Adicionar Equipamentos
 							</h2>
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
+							<DuoButton
+								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClose}
-								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+								className="h-10 w-10 rounded-full"
 							>
 								✕
-							</motion.button>
+							</DuoButton>
 						</div>
 
 						<div className="relative">

@@ -380,55 +380,56 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 							</label>
 							<div className="flex flex-wrap gap-2">
 								{muscleCategories.map((category) => (
-									<motion.button
+									<DuoButton
 										key={category.value}
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
+										type="button"
+										variant="outline"
 										onClick={() => handleCategorySelect(category.value)}
 										className={cn(
-											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
+											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs min-h-0",
 											selectedCategory === category.value
 												? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
-												: "border-gray-300 bg-white text-gray-700 hover:border-duo-green/50",
+												: "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
 										)}
 									>
 										<span>{category.icon}</span>
 										<span>{category.label}</span>
-									</motion.button>
+									</DuoButton>
 								))}
 							</div>
 						</>
 					) : (
 						<>
 							<div className="mb-3 flex items-center gap-2">
-								<motion.button
-									whileHover={{ scale: 1.1 }}
-									whileTap={{ scale: 0.9 }}
+								<DuoButton
+									type="button"
+									variant="outline"
+									size="icon-sm"
 									onClick={handleBackToMain}
-									className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100"
+									className="h-8 w-8 rounded-full"
 								>
 									<ArrowLeft className="h-4 w-4" />
-								</motion.button>
+								</DuoButton>
 								<label className="text-sm font-bold text-gray-600">
 									{muscleGroupLabels[selectedGroup]} - Selecione o músculo:
 								</label>
 							</div>
 							<div className="flex flex-wrap gap-2">
 								{musclesByGroup.map((muscle: MuscleInfo) => (
-									<motion.button
+									<DuoButton
 										key={muscle.id}
-										whileHover={{ scale: 1.05 }}
-										whileTap={{ scale: 0.95 }}
+										type="button"
+										variant="outline"
 										onClick={() => handleMuscleSelect(muscle.name)}
 										className={cn(
-											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
+											"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs min-h-0",
 											selectedMuscle === muscle.name
 												? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
-												: "border-gray-300 bg-white text-gray-700 hover:border-duo-green/50",
+												: "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
 										)}
 									>
 										<span>{muscle.name}</span>
-									</motion.button>
+									</DuoButton>
 								))}
 							</div>
 						</>

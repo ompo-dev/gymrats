@@ -7,7 +7,7 @@ import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { FormInput } from "@/components/ui/form-input";
-import { DuoSelect } from "@/components/duo";
+import { DuoButton, DuoSelect } from "@/components/duo";
 import { RangeSlider } from "@/components/ui/range-slider";
 import {
   type consolidatedStep1Schema,
@@ -266,10 +266,10 @@ export function ConsolidatedStep1({
                 { value: "female", label: "Feminino" },
                 { value: "trans-female", label: "Trans Feminino" },
               ].map((option) => (
-                <motion.button
+                <DuoButton
                   key={option.value}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.99 }}
+                  type="button"
+                  variant={formData.gender === option.value ? "primary" : "outline"}
                   onClick={() => {
                     const isTrans = option.value.includes("trans");
                     setFormData({
@@ -281,14 +281,14 @@ export function ConsolidatedStep1({
                     });
                     setTouched((prev) => ({ ...prev, gender: true }));
                   }}
-                  className={`rounded-2xl border-2 py-3 font-bold uppercase tracking-wider transition-all ${
-                    formData.gender === option.value
-                      ? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-                      : "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50"
+                  className={`rounded-2xl py-3 ${
+                    formData.gender !== option.value
+                      ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+                      : ""
                   }`}
                 >
                   {option.label}
-                </motion.button>
+                </DuoButton>
               ))}
             </div>
             {(formData.gender === "trans-male" ||

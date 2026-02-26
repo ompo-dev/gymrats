@@ -3,6 +3,7 @@
 import { ArrowLeft, X } from "lucide-react";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { DuoButton } from "@/components/duo";
 
 interface ModalHeaderProps {
 	title: string;
@@ -27,25 +28,27 @@ export function ModalHeader({
 			<div className="mb-4 flex items-center justify-between">
 				<div className="flex items-center gap-2">
 					{onBack && (
-						<motion.button
-							whileHover={{ scale: 1.1 }}
-							whileTap={{ scale: 0.9 }}
+						<DuoButton
+							type="button"
+							variant="ghost"
+							size="icon"
 							onClick={onBack}
-							className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
+							className="h-10 w-10 rounded-full"
 						>
 							<ArrowLeft className="h-5 w-5" />
-						</motion.button>
+						</DuoButton>
 					)}
 					<h2 className="text-2xl font-bold text-duo-text">{title}</h2>
 				</div>
-				<motion.button
-					whileHover={{ scale: 1.1 }}
-					whileTap={{ scale: 0.9 }}
+				<DuoButton
+					type="button"
+					variant="ghost"
+					size="icon"
 					onClick={onClose}
-					className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
+					className="h-10 w-10 rounded-full"
 				>
 					<X className="h-5 w-5" />
-				</motion.button>
+				</DuoButton>
 			</div>
 			{children}
 		</motion.div>

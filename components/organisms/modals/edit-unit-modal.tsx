@@ -737,10 +737,10 @@ export function EditUnitModal() {
 									</label>
 									<div className="flex flex-wrap gap-2">
 										{muscleCategories.map((category) => (
-											<motion.button
+											<DuoButton
 												key={category.value}
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
+												type="button"
+												variant="outline"
 												onClick={() => {
 													setWorkoutMuscleGroup(category.value);
 													if (activeWorkout) {
@@ -750,7 +750,7 @@ export function EditUnitModal() {
 													}
 												}}
 												className={cn(
-													"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs font-bold transition-all",
+													"flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs min-h-0",
 													workoutMuscleGroup === category.value
 														? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
 														: "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
@@ -758,7 +758,7 @@ export function EditUnitModal() {
 											>
 												<span>{category.icon}</span>
 												<span>{category.label}</span>
-											</motion.button>
+											</DuoButton>
 										))}
 									</div>
 								</div>
