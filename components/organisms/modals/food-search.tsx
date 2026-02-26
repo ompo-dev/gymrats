@@ -3,9 +3,8 @@
 import { Loader2, Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DuoButton } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo/molecules/duo-input";
-import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type { FoodItem, Meal } from "@/lib/types";
@@ -319,13 +318,6 @@ export function FoodSearch({
 	const hasSelectedMeals = selectedMealIds.size > 0;
 	const hasSelectedFoods = selectedFoodIds.length > 0;
 
-	// Prepara opções para o DuoSelect
-	const foodOptions = foods.map((food: FoodItem) => ({
-		value: food.id,
-		label: food.name,
-		description: `${food.calories} cal • P: ${food.protein}g • C: ${food.carbs}g • G: ${food.fats}g • ${food.servingSize}`,
-	}));
-
 	return (
 		<AnimatePresence>
 			<motion.div
@@ -531,13 +523,61 @@ export function FoodSearch({
 							</motion.div>
 						) : (
 							<>
-								<DuoSelect
-									options={foodOptions}
-									value={selectedFoodIds}
-									onChange={handleFoodSelection}
-									multiple
-									placeholder="Selecione os alimentos"
-								/>
+								<div className="space-y-3">
+									{foods.map((food, idx) => {
+										const isSelected = selectedFoodIds.includes(food.id);
+										return (
+											<motion.div
+												key={food.id}
+												initial={{ opacity: 0, y: -10 }}
+												animate={{ opacity: 1, y: 0 }}
+												transition={{ delay: idx * 0.03, duration: 0.2 }}
+											>
+												<DuoCard
+													variant={isSelected ? "highlighted" : "interactive"}
+													padding="md"
+													className="cursor-pointer"
+													onClick={() => handleFoodSelection(food.id)}
+												>
+													<div className="flex items-start justify-between gap-3">
+														<div className="flex-1 min-w-0">
+															<div className="mb-1.5 font-bold text-[var(--duo-fg)]">
+																{food.name}
+															</div>
+															<div className="mb-2 text-xs text-[var(--duo-fg-muted)]">
+																{food.servingSize}
+															</div>
+															<div className="flex flex-wrap gap-2">
+																<span className="rounded-full bg-[var(--duo-primary)]/20 px-2 py-0.5 text-xs font-bold text-[var(--duo-primary)]">
+																	{food.calories} cal
+																</span>
+																<span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																	P: {food.protein}g
+																</span>
+																<span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																	C: {food.carbs}g
+																</span>
+																<span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																	G: {food.fats}g
+																</span>
+															</div>
+														</div>
+														{isSelected && (
+															<motion.div
+																initial={{ scale: 0 }}
+																animate={{ scale: 1 }}
+																transition={{ type: "spring", stiffness: 200 }}
+																className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--duo-primary)] text-white"
+															>
+																✓
+															</motion.div>
+														)}
+													</div>
+												</DuoCard>
+											</motion.div>
+										);
+									})}
+								</div>
 								{isLoadingMore && (
 									<motion.div
 										initial={{ opacity: 0 }}
@@ -577,7 +617,7 @@ export function FoodSearch({
 									animate={{ opacity: 1 }}
 									transition={{ delay: 0.1 }}
 								>
-									<label className="mb-3 block text-sm font-bold text-duo-fg-muted">
+									<label className="mb-3 block text-sm font-bold text-[var(--duo-fg-muted)]">
 										Ajustar Porções ({selectedFoodIds.length} alimento
 										{selectedFoodIds.length !== 1 ? "s" : ""} selecionado
 										{selectedFoodIds.length !== 1 ? "s" : ""})
@@ -588,7 +628,6 @@ export function FoodSearch({
 									>
 										<AnimatePresence>
 											{selectedFoodIds.map((foodId, index) => {
-												// Buscar alimento no array foods (vindos da API)
 												const food = foods.find(
 													(f: FoodItem) => f.id === foodId,
 												);
@@ -601,42 +640,51 @@ export function FoodSearch({
 														animate={{ opacity: 1, y: 0 }}
 														exit={{ opacity: 0, scale: 0.9, height: 0 }}
 														transition={{ delay: index * 0.05, duration: 0.2 }}
-														className="flex items-center justify-between rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-3"
 													>
-														<div className="flex-1">
-															<div className="text-sm font-bold text-duo-text">
-																{food.name}
-															</div>
-															<div className="text-xs text-duo-fg-muted">
-																{food.servingSize}
-															</div>
-														</div>
-														<div className="flex items-center gap-3">
-															<button
-																onClick={() =>
-																	handleServingsChange(foodId, -0.5)
-																}
-																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-border bg-duo-bg-card text-duo-text transition-all hover:bg-duo-bg-elevated active:scale-90"
-															>
-																<Minus className="h-4 w-4" />
-															</button>
-															<div className="w-16 text-center">
-																<div className="text-sm font-bold text-duo-text">
-																	{servings}
+														<DuoCard
+															variant="outlined"
+															padding="sm"
+															className="flex items-center justify-between gap-3"
+														>
+															<div className="flex-1 min-w-0">
+																<div className="text-sm font-bold text-[var(--duo-fg)]">
+																	{food.name}
 																</div>
-																<div className="text-xs text-duo-fg-muted">
-																	{servings === 1 ? "porção" : "porções"}
+																<div className="text-xs text-[var(--duo-fg-muted)]">
+																	{food.servingSize}
 																</div>
 															</div>
-															<button
-																onClick={() =>
-																	handleServingsChange(foodId, 0.5)
-																}
-																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green bg-duo-green text-white transition-all hover:bg-duo-green/90 active:scale-90"
-															>
-																<Plus className="h-4 w-4" />
-															</button>
-														</div>
+															<div className="flex items-center gap-3">
+																<DuoButton
+																	variant="outline"
+																	size="icon-sm"
+																	onClick={() =>
+																		handleServingsChange(foodId, -0.5)
+																	}
+																	className="h-8 w-8 rounded-full"
+																>
+																	<Minus className="h-4 w-4" />
+																</DuoButton>
+																<div className="w-16 text-center">
+																	<div className="text-sm font-bold text-[var(--duo-fg)]">
+																		{servings}
+																	</div>
+																	<div className="text-xs text-[var(--duo-fg-muted)]">
+																		{servings === 1 ? "porção" : "porções"}
+																	</div>
+																</div>
+																<DuoButton
+																	variant="primary"
+																	size="icon-sm"
+																	onClick={() =>
+																		handleServingsChange(foodId, 0.5)
+																	}
+																	className="h-8 w-8 rounded-full"
+																>
+																	<Plus className="h-4 w-4" />
+																</DuoButton>
+															</div>
+														</DuoCard>
 													</motion.div>
 												);
 											})}

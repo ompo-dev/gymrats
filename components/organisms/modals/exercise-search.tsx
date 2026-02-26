@@ -4,7 +4,7 @@ import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { DuoButton } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import { muscleDatabase } from "@/lib/educational-data";
@@ -362,7 +362,7 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 				>
 					{viewMode === "main" ? (
 						<>
-							<label className="mb-2 block text-sm font-bold text-gray-600">
+							<label className="mb-2 block text-sm font-bold text-[var(--duo-fg-muted)]">
 								Categoria:
 							</label>
 							<div className="flex flex-wrap gap-2">
@@ -397,7 +397,7 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 								>
 									<ArrowLeft className="h-4 w-4" />
 								</DuoButton>
-								<label className="text-sm font-bold text-gray-600">
+								<label className="text-sm font-bold text-[var(--duo-fg-muted)]">
 									{muscleGroupLabels[selectedGroup]} - Selecione o músculo:
 								</label>
 							</div>
@@ -464,103 +464,103 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 										initial={{ opacity: 0, y: -10 }}
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: idx * 0.05, duration: 0.2 }}
-										className={cn(
-											"rounded-xl border-2 p-4 transition-all cursor-pointer",
-											isSelected
-												? "border-duo-green bg-duo-green/10 shadow-[0_2px_0_#58A700]"
-												: "border-gray-200 bg-white hover:border-duo-green/50 hover:bg-gray-50",
-										)}
-										onClick={() => handleExerciseSelection(ex.id)}
 									>
-										<div className="flex items-start justify-between gap-3">
-											<div className="flex-1 min-w-0">
-												{/* Nome e Dificuldade */}
-												<div className="mb-2 flex items-center gap-2 flex-wrap">
-													<span className="font-bold text-gray-900 text-base">
-														{ex.name}
-													</span>
-													{ex.difficulty && (
-														<span
-															className={cn(
-																"rounded-full px-2 py-0.5 text-xs font-bold capitalize shrink-0",
-																getDifficultyClasses(ex.difficulty),
-															)}
-														>
-															{ex.difficulty}
+										<DuoCard
+											variant={isSelected ? "highlighted" : "interactive"}
+											padding="md"
+											className="cursor-pointer"
+											onClick={() => handleExerciseSelection(ex.id)}
+										>
+											<div className="flex items-start justify-between gap-3">
+												<div className="flex-1 min-w-0">
+													{/* Nome e Dificuldade */}
+													<div className="mb-2 flex items-center gap-2 flex-wrap">
+														<span className="font-bold text-[var(--duo-fg)] text-base">
+															{ex.name}
 														</span>
-													)}
-												</div>
-
-												{/* Músculos Primários */}
-												{ex.primaryMuscles && ex.primaryMuscles.length > 0 && (
-													<div className="mb-2 flex flex-wrap gap-1.5">
-														{ex.primaryMuscles.map((muscle, i) => (
+														{ex.difficulty && (
 															<span
-																key={i}
-																className="rounded-full bg-duo-green/20 px-2 py-0.5 text-xs font-bold capitalize text-duo-green"
+																className={cn(
+																	"rounded-full px-2 py-0.5 text-xs font-bold capitalize shrink-0",
+																	getDifficultyClasses(ex.difficulty),
+																)}
 															>
-																{muscleGroupLabels[muscle.toLowerCase()] ||
-																	muscle}
+																{ex.difficulty}
 															</span>
-														))}
+														)}
 													</div>
-												)}
 
-												{/* Músculos Secundários */}
-												{ex.secondaryMuscles &&
-													ex.secondaryMuscles.length > 0 && (
+													{/* Músculos Primários */}
+													{ex.primaryMuscles && ex.primaryMuscles.length > 0 && (
 														<div className="mb-2 flex flex-wrap gap-1.5">
-															{ex.secondaryMuscles
-																.slice(0, 3)
-																.map((muscle, i) => (
-																	<span
-																		key={i}
-																		className="rounded-full bg-duo-blue/20 px-2 py-0.5 text-xs font-bold capitalize text-duo-blue"
-																	>
-																		{muscleGroupLabels[muscle.toLowerCase()] ||
-																			muscle}
+															{ex.primaryMuscles.map((muscle, i) => (
+																<span
+																	key={i}
+																	className="rounded-full bg-[var(--duo-primary)]/20 px-2 py-0.5 text-xs font-bold capitalize text-[var(--duo-primary)]"
+																>
+																	{muscleGroupLabels[muscle.toLowerCase()] ||
+																		muscle}
+																</span>
+															))}
+														</div>
+													)}
+
+													{/* Músculos Secundários */}
+													{ex.secondaryMuscles &&
+														ex.secondaryMuscles.length > 0 && (
+															<div className="mb-2 flex flex-wrap gap-1.5">
+																{ex.secondaryMuscles
+																	.slice(0, 3)
+																	.map((muscle, i) => (
+																		<span
+																			key={i}
+																			className="rounded-full bg-[var(--duo-secondary)]/20 px-2 py-0.5 text-xs font-bold capitalize text-[var(--duo-secondary)]"
+																		>
+																			{muscleGroupLabels[muscle.toLowerCase()] ||
+																				muscle}
+																		</span>
+																	))}
+																{ex.secondaryMuscles.length > 3 && (
+																	<span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																		+{ex.secondaryMuscles.length - 3}
 																	</span>
-																))}
-															{ex.secondaryMuscles.length > 3 && (
-																<span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-600">
-																	+{ex.secondaryMuscles.length - 3}
+																)}
+															</div>
+														)}
+
+													{/* Equipamento */}
+													{ex.equipment && ex.equipment.length > 0 && (
+														<div className="flex flex-wrap gap-1.5">
+															{ex.equipment.slice(0, 2).map((eq, i) => (
+																<span
+																	key={i}
+																	className="rounded-lg bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]"
+																>
+																	{eq}
+																</span>
+															))}
+															{ex.equipment.length > 2 && (
+																<span className="rounded-lg bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																	+{ex.equipment.length - 2}
 																</span>
 															)}
 														</div>
 													)}
+												</div>
 
-												{/* Equipamento */}
-												{ex.equipment && ex.equipment.length > 0 && (
-													<div className="flex flex-wrap gap-1.5">
-														{ex.equipment.slice(0, 2).map((eq, i) => (
-															<span
-																key={i}
-																className="rounded-lg bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700"
-															>
-																{eq}
-															</span>
-														))}
-														{ex.equipment.length > 2 && (
-															<span className="rounded-lg bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-600">
-																+{ex.equipment.length - 2}
-															</span>
-														)}
-													</div>
+												{/* Checkbox de seleção */}
+												{isSelected && (
+													<motion.div
+														initial={{ scale: 0 }}
+														animate={{ scale: 1 }}
+														transition={{ type: "spring", stiffness: 200 }}
+														className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--duo-primary)] text-white"
+													>
+														✓
+													</motion.div>
 												)}
 											</div>
-
-											{/* Checkbox de seleção */}
-											{isSelected && (
-												<motion.div
-													initial={{ scale: 0 }}
-													animate={{ scale: 1 }}
-													transition={{ type: "spring", stiffness: 200 }}
-													className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-green text-white"
-												>
-													✓
-												</motion.div>
-											)}
-										</div>
+										</DuoCard>
 									</motion.div>
 								);
 							})}
@@ -582,14 +582,14 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: 20 }}
 						transition={{ duration: 0.3 }}
-						className="border-t-2 border-gray-300 p-6 space-y-4"
+						className="border-t-2 border-[var(--duo-border)] p-6 space-y-4"
 					>
 						<motion.div
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
 							transition={{ delay: 0.1 }}
 						>
-							<label className="mb-3 block text-sm font-bold text-gray-600">
+							<label className="mb-3 block text-sm font-bold text-[var(--duo-fg-muted)]">
 								Exercícios Selecionados ({selectedExerciseIds.length} exercício
 								{selectedExerciseIds.length !== 1 ? "s" : ""})
 							</label>
@@ -599,7 +599,6 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 							>
 								<AnimatePresence>
 									{selectedExerciseIds.map((exerciseId, index) => {
-										// Usar cache para encontrar exercícios selecionados
 										const exercise =
 											exercises.find((e) => e.id === exerciseId) ||
 											exercisesCacheRef.current.get(exerciseId);
@@ -611,56 +610,63 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 												animate={{ opacity: 1, y: 0 }}
 												exit={{ opacity: 0, scale: 0.9, height: 0 }}
 												transition={{ delay: index * 0.05, duration: 0.2 }}
-												className="flex items-start justify-between gap-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
 											>
-												<div className="flex-1 min-w-0">
-													<div className="mb-1.5 flex items-center gap-2 flex-wrap">
-														<div className="text-sm font-bold text-gray-900">
-															{exercise.name}
-														</div>
-														{exercise.difficulty && (
-															<span
-																className={cn(
-																	"rounded-full px-2 py-0.5 text-xs font-bold capitalize shrink-0",
-																	getDifficultyClasses(exercise.difficulty),
-																)}
-															>
-																{exercise.difficulty}
-															</span>
-														)}
-													</div>
-													{exercise.primaryMuscles &&
-														exercise.primaryMuscles.length > 0 && (
-															<div className="flex flex-wrap gap-1">
-																{exercise.primaryMuscles
-																	.slice(0, 2)
-																	.map((muscle, i) => (
-																		<span
-																			key={i}
-																			className="rounded-full bg-duo-green/20 px-1.5 py-0.5 text-xs font-bold capitalize text-duo-green"
-																		>
-																			{muscleGroupLabels[
-																				muscle.toLowerCase()
-																			] || muscle}
-																		</span>
-																	))}
-																{exercise.primaryMuscles.length > 2 && (
-																	<span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-bold text-gray-600">
-																		+{exercise.primaryMuscles.length - 2}
-																	</span>
-																)}
-															</div>
-														)}
-												</div>
-												<button
-													onClick={(e) => {
-														e.stopPropagation();
-														handleExerciseSelection(exerciseId);
-													}}
-													className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 active:scale-90"
+												<DuoCard
+													variant="outlined"
+													padding="sm"
+													className="flex items-start justify-between gap-3"
 												>
-													<Minus className="h-4 w-4" />
-												</button>
+													<div className="flex-1 min-w-0">
+														<div className="mb-1.5 flex items-center gap-2 flex-wrap">
+															<div className="text-sm font-bold text-[var(--duo-fg)]">
+																{exercise.name}
+															</div>
+															{exercise.difficulty && (
+																<span
+																	className={cn(
+																		"rounded-full px-2 py-0.5 text-xs font-bold capitalize shrink-0",
+																		getDifficultyClasses(exercise.difficulty),
+																	)}
+																>
+																	{exercise.difficulty}
+																</span>
+															)}
+														</div>
+														{exercise.primaryMuscles &&
+															exercise.primaryMuscles.length > 0 && (
+																<div className="flex flex-wrap gap-1">
+																	{exercise.primaryMuscles
+																		.slice(0, 2)
+																		.map((muscle, i) => (
+																			<span
+																				key={i}
+																				className="rounded-full bg-[var(--duo-primary)]/20 px-1.5 py-0.5 text-xs font-bold capitalize text-[var(--duo-primary)]"
+																			>
+																				{muscleGroupLabels[
+																					muscle.toLowerCase()
+																				] || muscle}
+																			</span>
+																		))}
+																	{exercise.primaryMuscles.length > 2 && (
+																		<span className="rounded-full bg-[var(--duo-border)] px-1.5 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
+																			+{exercise.primaryMuscles.length - 2}
+																		</span>
+																	)}
+																</div>
+															)}
+													</div>
+													<DuoButton
+														variant="outline"
+														size="icon-sm"
+														onClick={(e) => {
+															e.stopPropagation();
+															handleExerciseSelection(exerciseId);
+														}}
+														className="h-8 w-8 shrink-0 rounded-full"
+													>
+														<Minus className="h-4 w-4" />
+													</DuoButton>
+												</DuoCard>
 											</motion.div>
 										);
 									})}
