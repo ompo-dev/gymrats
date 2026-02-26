@@ -40,13 +40,13 @@ export function CardioConfigModal({
 					exit={{ opacity: 0, scale: 0.9 }}
 					transition={{ duration: 0.3 }}
 					onClick={(e) => e.stopPropagation()}
-					className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-duo-border bg-white p-6 sm:p-8 shadow-2xl"
+					className="relative w-full max-w-md mx-4 rounded-3xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg-card)] p-6 sm:p-8 shadow-2xl"
 				>
 					<button
 						onClick={onClose}
-						className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-gray-100"
+						className="absolute right-4 top-4 rounded-xl p-2 transition-colors hover:bg-[var(--duo-bg-elevated)]"
 					>
-						<X className="h-5 w-5 text-duo-gray-dark" />
+						<X className="h-5 w-5 text-[var(--duo-fg-muted)]" />
 					</button>
 
 					<div className="mb-6 text-center">

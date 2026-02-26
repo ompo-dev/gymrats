@@ -83,15 +83,15 @@ export function ProgressRing({
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: `conic-gradient(from 0deg, ${color} 0deg ${progressDegrees}deg, #E5E5E5 ${progressDegrees}deg 360deg)`,
+          background: `conic-gradient(from 0deg, ${color} 0deg ${progressDegrees}deg, var(--duo-border) ${progressDegrees}deg 360deg)`,
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       />
-      {/* Círculo interno branco para criar o efeito de anel - maior para mostrar mais do progresso */}
+      {/* Círculo interno com cor de fundo do app para efeito de anel "transparente" */}
       <div
-        className="absolute rounded-full bg-transparent z-10"
+        className="absolute rounded-full bg-[var(--duo-bg)] z-10"
         style={{
           width: "82px",
           height: "82px",

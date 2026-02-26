@@ -35,6 +35,14 @@ const PLAN_TYPES = [
 	{ value: "trial", label: "Trial / Experimental" },
 ];
 
+const DURATION_BY_TYPE: Record<string, number> = {
+	monthly: 30,
+	quarterly: 90,
+	"semi-annual": 180,
+	annual: 365,
+	trial: 7,
+};
+
 export function MembershipPlansPage({
 	plans: initialPlans,
 }: {
@@ -51,6 +59,14 @@ export function MembershipPlansPage({
 		duration: "30",
 		benefits: "",
 	});
+
+	const updateFormType = (type: string) => {
+		setForm((f) => ({
+			...f,
+			type,
+			duration: String(DURATION_BY_TYPE[type] ?? 30),
+		}));
+	};
 	const [saving, setSaving] = useState(false);
 
 	const handleCreate = async () => {
@@ -151,7 +167,7 @@ export function MembershipPlansPage({
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
-				<h2 className="text-xl font-bold text-duo-text">Planos de Matrícula</h2>
+				<h2 className="text-xl font-bold text-[var(--duo-fg)]">Planos de Matrícula</h2>
 				{!isCreating && (
 					<DuoButton onClick={() => setIsCreating(true)} className="flex gap-2">
 						<Plus className="h-4 w-4" />
@@ -164,7 +180,7 @@ export function MembershipPlansPage({
 			{!isCreating && (
 				<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 					{plans.length === 0 && (
-						<div className="col-span-full py-8 text-center text-duo-gray-dark">
+						<div className="col-span-full py-8 text-center text-[var(--duo-fg-muted)]">
 							Nenhum plano cadastrado.
 						</div>
 					)}
@@ -172,18 +188,15 @@ export function MembershipPlansPage({
 						<DuoCard key={plan.id} variant="default" size="default">
 							<div className="mb-2 flex items-start justify-between">
 								<div>
-									<p className="font-bold text-duo-text">{plan.name}</p>
-									<p className="text-sm capitalize text-duo-gray-dark">
+									<p className="font-bold text-[var(--duo-fg)]">{plan.name}</p>
+									<p className="text-sm text-[var(--duo-fg-muted)]">
 										{PLAN_TYPES.find((t) => t.value === plan.type)?.label ||
-											plan.type}
+											plan.type} • {plan.duration} dias
 									</p>
 								</div>
 								<div className="text-right">
-									<p className="text-xl font-bold text-duo-green">
+									<p className="text-xl font-bold text-[var(--duo-primary)]">
 										R$ {plan.price.toFixed(2)}
-									</p>
-									<p className="text-xs text-duo-gray-dark">
-										{plan.duration} dias
 									</p>
 								</div>
 							</div>
@@ -192,14 +205,14 @@ export function MembershipPlansPage({
 									{plan.benefits.slice(0, 3).map((b, i) => (
 										<li
 											key={i}
-											className="flex items-center gap-1 text-xs text-duo-gray-dark"
+											className="flex items-center gap-1 text-xs text-[var(--duo-fg-muted)]"
 										>
-											<Check className="h-3 w-3 text-duo-green" />
+											<Check className="h-3 w-3 text-[var(--duo-primary)]" />
 											{b}
 										</li>
 									))}
 									{plan.benefits.length > 3 && (
-										<li className="text-xs text-duo-gray-dark italic">
+										<li className="text-xs text-[var(--duo-fg-muted)] italic">
 											+{plan.benefits.length - 3} benefícios
 										</li>
 									)}
@@ -217,7 +230,7 @@ export function MembershipPlansPage({
 								<DuoButton
 									size="sm"
 									variant="outline"
-									className="border-duo-red text-duo-red hover:bg-duo-red/10"
+									className="border-[var(--duo-danger)] text-[var(--duo-danger)] hover:bg-[var(--duo-danger)]/10"
 									onClick={() => handleDelete(plan.id)}
 								>
 									<Trash2 className="h-4 w-4" />
@@ -231,12 +244,12 @@ export function MembershipPlansPage({
 			{/* Form de criação / edição */}
 			{isCreating && (
 				<DuoCard variant="default" size="default" className="w-full max-w-md">
-					<h3 className="mb-4 text-lg font-bold text-duo-text">
+					<h3 className="mb-4 text-lg font-bold text-[var(--duo-fg)]">
 						{editingId ? "Editar Plano" : "Novo Plano"}
 					</h3>
 					<div className="space-y-3">
 						<div>
-							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
+							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Nome do Plano
 							</label>
 							<DuoInput
@@ -248,46 +261,34 @@ export function MembershipPlansPage({
 							/>
 						</div>
 						<div>
-							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
-								Tipo
+							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+								Tipo (duração definida automaticamente)
 							</label>
 							<DuoSelect
 								options={PLAN_TYPES}
 								value={form.type}
-								onChange={(v) => setForm((f) => ({ ...f, type: v }))}
+								onChange={updateFormType}
 								placeholder="Tipo"
 							/>
-						</div>
-						<div className="grid grid-cols-2 gap-3">
-							<div>
-								<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
-									Preço (R$)
-								</label>
-								<DuoInput
-									type="number"
-									placeholder="0.00"
-									value={form.price}
-									onChange={(e) =>
-										setForm((f) => ({ ...f, price: e.target.value }))
-									}
-								/>
-							</div>
-							<div>
-								<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
-									Duração (dias)
-								</label>
-								<DuoInput
-									type="number"
-									placeholder="30"
-									value={form.duration}
-									onChange={(e) =>
-										setForm((f) => ({ ...f, duration: e.target.value }))
-									}
-								/>
-							</div>
+							<p className="mt-1 text-[10px] text-[var(--duo-fg-muted)]">
+								{form.type && `${DURATION_BY_TYPE[form.type] ?? 30} dias`}
+							</p>
 						</div>
 						<div>
-							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
+							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
+								Preço (R$)
+							</label>
+							<DuoInput
+								type="number"
+								placeholder="0.00"
+								value={form.price}
+								onChange={(e) =>
+									setForm((f) => ({ ...f, price: e.target.value }))
+								}
+							/>
+						</div>
+						<div>
+							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Benefícios (separados por vírgula)
 							</label>
 							<DuoInput

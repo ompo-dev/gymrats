@@ -445,101 +445,83 @@ export function GymSettingsPage({
               </h2>
             </div>
           </DuoCardHeader>
-          <p className="mb-4 text-sm font-medium text-duo-text">
-            Configura horários diferentes por dia (ex: sexta fecha 18h, outros
-            22h)
+          <p className="mb-4 text-sm text-[var(--duo-fg-muted)]">
+            Marque os dias em que a academia abre e defina o horário de cada um
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {WEEKDAYS.map((day, index) => {
               const s = daySchedules[day.id];
               if (!s) return null;
               return (
                 <motion.div
                   key={day.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                  transition={{ delay: index * 0.03, duration: 0.3 }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl border-2 p-3 transition-all",
+                    s.enabled
+                      ? "border-[var(--duo-secondary)]/40 bg-[var(--duo-secondary)]/5"
+                      : "border-[var(--duo-border)] bg-[var(--duo-bg-elevated)]/50",
+                  )}
                 >
-                  <DuoCard
-                    variant="default"
-                    size="default"
-                    className={cn(
-                      "transition-colors",
-                      s.enabled && "border-duo-blue/30 bg-duo-blue/5",
-                    )}
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="shrink-0 rounded-xl bg-duo-blue/10 p-3">
-                          <Clock className="h-5 w-5 text-duo-blue" />
-                        </div>
-                        <label className="flex cursor-pointer items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={s.enabled}
-                            onChange={(e) =>
-                              updateDaySchedule(
-                                day.id,
-                                "enabled",
-                                e.target.checked,
-                              )
-                            }
-                            className="h-4 w-4 rounded"
-                          />
-                          <span className="text-sm font-bold text-duo-text">
-                            {day.label}
-                          </span>
-                        </label>
-                      </div>
-                      {s.enabled && (
-                        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                          <div className="flex flex-col items-center gap-2">
-                            <Label className="shrink-0 text-xs font-medium text-duo-gray-dark">
-                              Abre
-                            </Label>
-                            <DuoInput
-                              type="time"
-                              value={s.open}
-                              onChange={(e) =>
-                                updateDaySchedule(
-                                  day.id,
-                                  "open",
-                                  e.target.value,
-                                )
-                              }
-                              className="h-9 w-auto min-w-0"
-                            />
-                          </div>
-                          <div className="flex flex-col items-center gap-2">
-                            <Label className="shrink-0 text-xs font-medium text-duo-gray-dark">
-                              Fecha
-                            </Label>
-                            <DuoInput
-                              type="time"
-                              value={s.close}
-                              onChange={(e) =>
-                                updateDaySchedule(
-                                  day.id,
-                                  "close",
-                                  e.target.value,
-                                )
-                              }
-                              className="h-9 w-auto min-w-0"
-                            />
-                          </div>
-                        </div>
-                      )}
+                  <label className="flex min-w-[100px] cursor-pointer items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={s.enabled}
+                        onChange={(e) =>
+                          updateDaySchedule(day.id, "enabled", e.target.checked)
+                        }
+                        className="peer sr-only"
+                      />
+                      <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
+                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
                     </div>
-                  </DuoCard>
+                    <span className="text-sm font-bold text-[var(--duo-fg)]">
+                      {day.label}
+                    </span>
+                  </label>
+                  {s.enabled && (
+                    <div className="flex flex-1 items-center gap-2 sm:gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-[10px] font-medium text-[var(--duo-fg-muted)]">
+                          Abre
+                        </Label>
+                        <DuoInput
+                          type="time"
+                          value={s.open}
+                          onChange={(e) =>
+                            updateDaySchedule(day.id, "open", e.target.value)
+                          }
+                          className="h-8 w-24 min-w-0 text-sm"
+                        />
+                      </div>
+                      <span className="text-[var(--duo-fg-muted)]">–</span>
+                      <div className="flex items-center gap-1.5">
+                        <Label className="text-[10px] font-medium text-[var(--duo-fg-muted)]">
+                          Fecha
+                        </Label>
+                        <DuoInput
+                          type="time"
+                          value={s.close}
+                          onChange={(e) =>
+                            updateDaySchedule(day.id, "close", e.target.value)
+                          }
+                          className="h-8 w-24 min-w-0 text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               );
             })}
           </div>
           {hasChanges && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
+              transition={{ delay: 0.2, duration: 0.3 }}
               className="mt-4"
             >
               <DuoButton

@@ -79,6 +79,16 @@ export function GymMap({
 		{ value: "open", label: "Abertas" },
 	];
 
+	const planTypeLabel: Record<string, string> = {
+		daily: "Diária",
+		weekly: "Semanal",
+		monthly: "Mensal",
+		quarterly: "Trimestral",
+		"semi-annual": "Semestral",
+		annual: "Anual",
+		trial: "Trial",
+	};
+
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
 			<FadeIn>
@@ -270,38 +280,44 @@ export function GymMap({
 																				onChangePlan?.(myMembership!.id, plan.id);
 																		}}
 																	>
-																		<div>
-																			<p className="text-xs font-bold text-duo-text">
-																				{plan.name}
-																			</p>
-																			<p className="text-[10px] text-duo-gray-dark">
-																				{plan.duration} dias • {plan.type}
-																			</p>
-																		</div>
-																		<div className="text-right">
-																			<p className="text-sm font-bold text-duo-green">
-																				R$ {plan.price.toFixed(2)}
-																			</p>
-																			{isMyPlan && isActive && (
-																				<p className="text-[10px] font-bold text-duo-green">
-																					Plano ativo
+																		<div className="flex flex-col gap-0.5 min-w-0">
+																			<div className="flex items-center justify-between gap-2">
+																				<p className="text-xs font-bold text-[var(--duo-fg)] truncate">
+																					{plan.name}
 																				</p>
-																			)}
-																			{isMyPlan && isPending && (
-																				<p className="text-[10px] font-bold text-duo-yellow">
-																					Matrícula pendente
+																				<p className="text-sm font-bold text-[var(--duo-primary)] shrink-0">
+																					R$ {plan.price.toFixed(2)}
 																				</p>
-																			)}
-																			{canContract && (
-																				<p className="text-[10px] text-duo-gray-dark">
-																					Contratar
-																				</p>
-																			)}
-																			{canChangePlan && (
-																				<p className="text-[10px] font-bold text-duo-blue">
-																					Trocar de plano
-																				</p>
-																			)}
+																			</div>
+																			<div className="flex items-center gap-1.5 text-[10px] text-[var(--duo-fg-muted)]">
+																				<span>{plan.duration} dias</span>
+																				<span>•</span>
+																				<span>{planTypeLabel[plan.type] || plan.type}</span>
+																				{(isMyPlan && isActive) && (
+																					<>
+																						<span>•</span>
+																						<span className="font-bold text-[var(--duo-primary)]">Plano ativo</span>
+																					</>
+																				)}
+																				{isMyPlan && isPending && (
+																					<>
+																						<span>•</span>
+																						<span className="font-bold text-[var(--duo-warning)]">Matrícula pendente</span>
+																					</>
+																				)}
+																				{canContract && (
+																					<>
+																						<span>•</span>
+																						<span>Contratar</span>
+																					</>
+																				)}
+																				{canChangePlan && (
+																					<>
+																						<span>•</span>
+																						<span className="font-bold text-[var(--duo-secondary)]">Trocar de plano</span>
+																					</>
+																				)}
+																			</div>
 																		</div>
 																	</DuoCard>
 																);
@@ -313,12 +329,12 @@ export function GymMap({
 																<DuoCard
 																	variant="yellow"
 																	size="sm"
-																	className="p-2 text-center"
+																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
 																		Diária
 																	</p>
-																	<p className="mt-1 text-sm font-bold text-duo-yellow">
+																	<p className="text-sm font-bold text-[var(--duo-warning)]">
 																		R$ {gym.plans.daily}
 																	</p>
 																</DuoCard>
@@ -327,12 +343,12 @@ export function GymMap({
 																<DuoCard
 																	variant="orange"
 																	size="sm"
-																	className="p-2 text-center"
+																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
 																		Semanal
 																	</p>
-																	<p className="mt-1 text-sm font-bold text-duo-orange">
+																	<p className="text-sm font-bold text-[var(--duo-accent)]">
 																		R$ {gym.plans.weekly}
 																	</p>
 																</DuoCard>
@@ -341,12 +357,12 @@ export function GymMap({
 																<DuoCard
 																	variant="highlighted"
 																	size="sm"
-																	className="p-2 text-center"
+																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-duo-gray-dark">
+																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
 																		Mensal
 																	</p>
-																	<p className="mt-1 text-sm font-bold text-duo-green">
+																	<p className="text-sm font-bold text-[var(--duo-primary)]">
 																		R$ {gym.plans.monthly}
 																	</p>
 																</DuoCard>
