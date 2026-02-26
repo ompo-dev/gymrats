@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
 import { useGym } from "@/hooks/use-gym";

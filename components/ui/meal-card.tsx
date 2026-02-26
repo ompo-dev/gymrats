@@ -4,7 +4,7 @@ import type * as React from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import type { Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
+import { DuoCard } from "@/components/duo";
 import { FoodItemCard } from "./food-item-card";
 
 export interface MealCardProps extends React.HTMLAttributes<HTMLDivElement> {

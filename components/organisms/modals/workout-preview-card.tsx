@@ -3,7 +3,7 @@
 import { ChevronDown, Dumbbell, MessageSquare } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface Exercise {

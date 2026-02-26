@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { DuoSectionCard } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
 import { apiClient } from "@/lib/api/client";

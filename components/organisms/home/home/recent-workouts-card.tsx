@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, Clock, Trophy } from "lucide-react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { DuoSectionCard } from "@/components/duo";
 import type { WorkoutHistory } from "@/lib/types";
 import { cn } from "@/lib/utils";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown } from "lucide-react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
 

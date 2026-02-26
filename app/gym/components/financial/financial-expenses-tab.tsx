@@ -3,7 +3,7 @@
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { DuoSectionCard } from "@/components/duo";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";

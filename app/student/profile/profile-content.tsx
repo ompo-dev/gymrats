@@ -19,7 +19,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import { HistoryCard } from "@/components/ui/history-card";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import { RecordCard } from "@/components/ui/record-card";

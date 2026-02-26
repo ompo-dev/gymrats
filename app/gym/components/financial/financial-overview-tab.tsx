@@ -7,7 +7,7 @@ import {
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import {
 	DuoSectionCard,
 	DuoStatCard,

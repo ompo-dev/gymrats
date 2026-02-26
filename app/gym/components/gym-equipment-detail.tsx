@@ -18,7 +18,7 @@ import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import { OptionSelector } from "@/components/ui/option-selector";
 import {
 	DuoSectionCard,

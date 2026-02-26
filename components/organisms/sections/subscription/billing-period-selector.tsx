@@ -1,6 +1,6 @@
 "use client";
 
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface BillingPeriodSelectorProps {

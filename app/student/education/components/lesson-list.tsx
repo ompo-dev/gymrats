@@ -3,7 +3,7 @@
 import { BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

@@ -1,9 +1,6 @@
-export type { DuoCardProps } from "./duo-card";
-export { DuoCard, duoCardVariants } from "./duo-card";
+export { DuoCard } from "@/components/duo";
 export type { HistoryCardProps } from "./history-card";
 export { HistoryCard } from "./history-card";
-export type { MacroCardProps } from "./macro-card";
-export { MacroCard } from "./macro-card";
 export type { MealCardProps } from "./meal-card";
 export { MealCard } from "./meal-card";
 export type { RecordCardProps } from "./record-card";

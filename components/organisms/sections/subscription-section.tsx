@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";

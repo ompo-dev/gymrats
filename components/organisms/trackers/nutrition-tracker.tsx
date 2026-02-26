@@ -4,11 +4,62 @@ import { Droplets, Plus, UtensilsCrossed } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { MacroCard } from "@/components/molecules/cards/macro-card";
+import { DuoCard, DuoStatsGrid } from "@/components/duo";
 import { MealCard } from "@/components/molecules/cards/meal-card";
 import { DuoSectionCard } from "@/components/duo";
 import { WaterIntakeCard } from "@/components/molecules/cards/water-intake-card";
 import type { DailyNutrition } from "@/lib/types";
+
+function MacroCardContent({
+	label,
+	current,
+	target,
+	unit,
+	progress,
+	progressColor,
+}: {
+	label: string;
+	current: number;
+	target: number;
+	unit: string;
+	progress: number;
+	progressColor: string;
+}) {
+	const displayCurrent =
+		unit === "kcal" ? Math.round(current) : Math.round(current * 10) / 10;
+	const hasExcess = current > target;
+	const excess = hasExcess
+		? unit === "kcal"
+			? Math.round(current - target)
+			: Math.round((current - target) * 10) / 10
+		: 0;
+
+	return (
+		<DuoCard variant="default" padding="sm">
+			<div className="mb-2 text-xs font-bold uppercase text-[var(--duo-fg-muted)]">
+				{label}
+			</div>
+			<div className="mb-2 flex items-center justify-between text-2xl font-bold text-[var(--duo-fg)]">
+				<span>
+					{displayCurrent}
+					<span className="text-base text-[var(--duo-fg-muted)]">/{target}</span>
+				</span>
+				{hasExcess && (
+					<span className="text-sm font-bold text-[var(--duo-danger)]">
+						+{excess} {unit}
+					</span>
+				)}
+			</div>
+			<div className="mb-1 h-2 overflow-hidden rounded-full bg-gray-200">
+				<div
+					className={`h-full rounded-full transition-all duration-300 ${progressColor}`}
+					style={{ width: `${Math.min(progress, 100)}%` }}
+				/>
+			</div>
+			<div className="text-xs font-bold text-[var(--duo-fg-muted)]">{unit}</div>
+		</DuoCard>
+	);
+}
 
 interface NutritionTrackerProps {
 	nutrition: DailyNutrition;
@@ -73,40 +124,40 @@ export function NutritionTracker({
 
 	return (
 		<div className="space-y-6">
-			<div className="grid grid-cols-2 gap-3">
-				<MacroCard
+			<DuoStatsGrid columns={2} className="gap-3">
+				<MacroCardContent
 					label="Calorias"
 					current={nutrition.totalCalories}
 					target={nutrition.targetCalories}
 					unit="kcal"
-					color="duo-orange"
 					progress={caloriesProgress}
+					progressColor="bg-[var(--duo-accent)]"
 				/>
-				<MacroCard
+				<MacroCardContent
 					label="Proteínas"
 					current={nutrition.totalProtein}
 					target={nutrition.targetProtein}
 					unit="g"
-					color="duo-red"
 					progress={proteinProgress}
+					progressColor="bg-[var(--duo-danger)]"
 				/>
-				<MacroCard
+				<MacroCardContent
 					label="Carboidratos"
 					current={nutrition.totalCarbs}
 					target={nutrition.targetCarbs}
 					unit="g"
-					color="duo-blue"
 					progress={carbsProgress}
+					progressColor="bg-[var(--duo-secondary)]"
 				/>
-				<MacroCard
+				<MacroCardContent
 					label="Gorduras"
 					current={nutrition.totalFats}
 					target={nutrition.targetFats}
 					unit="g"
-					color="duo-yellow"
 					progress={fatsProgress}
+					progressColor="bg-[var(--duo-warning)]"
 				/>
-			</div>
+			</DuoStatsGrid>
 
 			{nutrition.waterIntake === 0 ? (
 				<DuoSectionCard

@@ -2,7 +2,7 @@
 
 import { CreditCard, Plus } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { DuoSectionCard } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";

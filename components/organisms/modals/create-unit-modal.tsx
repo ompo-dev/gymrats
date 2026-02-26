@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 

@@ -1,6 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
+import { DuoCard } from "@/components/duo";
 import { StatCard } from "./stat-card";
 
 export interface ProfileHeaderProps

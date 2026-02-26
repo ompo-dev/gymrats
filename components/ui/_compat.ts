@@ -23,13 +23,11 @@ export { Badge } from "../molecules/badges/badge";
 export { StatusBadge } from "../molecules/badges/status-badge";
 export type { SubscriptionBadgeProps } from "../molecules/badges/subscription-badge";
 export { SubscriptionBadge } from "../molecules/badges/subscription-badge";
-export type { DuoCardProps } from "../molecules/cards/duo-card";
 // Re-exportar molecules
-export { DuoCard, duoCardVariants } from "../molecules/cards/duo-card";
+export { DuoCard } from "@/components/duo";
 export type { HistoryCardProps } from "../molecules/cards/history-card";
 export { HistoryCard } from "../molecules/cards/history-card";
-export type { MacroCardProps } from "../molecules/cards/macro-card";
-export { MacroCard } from "../molecules/cards/macro-card";
+export type { MealCardProps } from "../molecules/cards/meal-card";
 export type { MealCardProps } from "../molecules/cards/meal-card";
 export { MealCard } from "../molecules/cards/meal-card";
 export type { RecordCardProps } from "../molecules/cards/record-card";

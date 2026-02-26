@@ -4,7 +4,7 @@ import { AlertCircle, BookOpen, CheckCircle2, Info, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import type { WorkoutExercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

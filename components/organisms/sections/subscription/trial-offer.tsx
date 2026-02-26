@@ -2,7 +2,7 @@
 
 import { Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 
 interface TrialOfferProps {
 	title: string;

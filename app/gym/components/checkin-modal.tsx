@@ -4,7 +4,7 @@ import { CheckCircle, Loader2, LogIn, Search, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { useGym } from "@/hooks/use-gym";
 

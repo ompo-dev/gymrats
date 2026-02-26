@@ -1,7 +1,7 @@
 "use client";
 
 import { UsersIcon } from "lucide-react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { DuoSectionCard } from "@/components/duo";
 import type { Referral } from "@/lib/types";
 import { cn } from "@/lib/utils";

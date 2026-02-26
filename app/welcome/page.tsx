@@ -12,7 +12,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
 import { authClient } from "@/lib/auth-client";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";

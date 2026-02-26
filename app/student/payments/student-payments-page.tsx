@@ -15,7 +15,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import {
 	DuoSectionCard,
 	DuoStatCard,

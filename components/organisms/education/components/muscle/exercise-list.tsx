@@ -3,7 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 

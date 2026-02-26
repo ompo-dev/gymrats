@@ -1,6 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
+import { DuoCard } from "@/components/duo";
 
 export interface RecordCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	exerciseName: string;
