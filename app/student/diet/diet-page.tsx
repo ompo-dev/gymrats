@@ -13,7 +13,7 @@
 
 import { Calendar, TrendingUp } from "lucide-react";
 import { useEffect } from "react";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
@@ -105,20 +105,20 @@ export function DietPage() {
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4">
-				<StatCardLarge
+			<DuoStatsGrid columns={2} className="gap-4">
+				<DuoStatCard
 					icon={Calendar}
 					value={`${completedMeals}/${totalMeals}`}
 					label="refeições hoje"
-					iconColor="duo-blue"
+					iconColor="var(--duo-secondary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={TrendingUp}
 					value={`${caloriesPercentage}%`}
 					label="meta calórica"
-					iconColor="duo-green"
+					iconColor="var(--duo-primary)"
 				/>
-			</div>
+			</DuoStatsGrid>
 
 			<NutritionTracker
 				nutrition={dailyNutrition}

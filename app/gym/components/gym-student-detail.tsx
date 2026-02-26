@@ -29,8 +29,11 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { Payment, StudentData } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
@@ -128,7 +131,7 @@ export function GymStudentDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={student.name} icon={Users} variant="default">
+				<DuoSectionCard title={student.name} icon={Users} variant="default">
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
 						<div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-full sm:mx-0 sm:h-32 sm:w-32">
 							<Image
@@ -239,40 +242,40 @@ export function GymStudentDetail({
 							</div>
 						</div>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4} className="gap-4">
+					<DuoStatCard
 						icon={Flame}
 						value={String(student.currentStreak)}
 						label="Sequência"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Trophy}
 						value={String(student.progress?.currentLevel ?? 1)}
 						label="Nível"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Activity}
 						value={String(student.totalVisits)}
 						label="Treinos"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Target}
 						value={`${student.attendanceRate}%`}
 						label="Frequência"
-						iconColor="duo-purple"
+						iconColor="#A560E8"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<SectionCard title="Selecione a Categoria" icon={Dumbbell}>
+				<DuoSectionCard title="Selecione a Categoria" icon={Dumbbell}>
 					<OptionSelector
 						options={tabOptions}
 						value={activeTab}
@@ -283,14 +286,14 @@ export function GymStudentDetail({
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			{activeTab === "overview" && (
 				<SlideIn delay={0.4}>
 					<div className="grid gap-6 lg:grid-cols-2">
 						{student.gymMembership && (
-							<SectionCard title="Plano e Matrícula" icon={DollarSign}>
+							<DuoSectionCard title="Plano e Matrícula" icon={DollarSign}>
 								<div className="space-y-3">
 									<DuoCard variant="default" size="sm">
 										<div className="flex justify-between items-center">
@@ -337,9 +340,9 @@ export function GymStudentDetail({
 										</div>
 									</DuoCard>
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 						)}
-						<SectionCard title="Informações do Perfil" icon={Users}>
+						<DuoSectionCard title="Informações do Perfil" icon={Users}>
 							<div className="space-y-3">
 								{[
 									{ label: "Idade", value: `${student.age} anos` },
@@ -373,9 +376,9 @@ export function GymStudentDetail({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 
-						<SectionCard title="Objetivos" icon={Target}>
+						<DuoSectionCard title="Objetivos" icon={Target}>
 							<div className="space-y-2">
 								{(student.profile?.goals ?? []).map((goal) => (
 									<DuoCard
@@ -404,9 +407,9 @@ export function GymStudentDetail({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 
-						<SectionCard
+						<DuoSectionCard
 							title="Evolução de Peso"
 							icon={TrendingUp}
 							className="lg:col-span-2"
@@ -465,14 +468,14 @@ export function GymStudentDetail({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</div>
 				</SlideIn>
 			)}
 
 			{activeTab === "workouts" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Histórico de Treinos" icon={Dumbbell}>
+					<DuoSectionCard title="Histórico de Treinos" icon={Dumbbell}>
 						{student.workoutHistory.length === 0 ? (
 							<DuoCard variant="default" size="default" className="p-8 text-center">
 								<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
@@ -532,13 +535,13 @@ export function GymStudentDetail({
 								))}
 							</div>
 						)}
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "diet" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Nutrição e Dieta" icon={Apple}>
+					<DuoSectionCard title="Nutrição e Dieta" icon={Apple}>
 						<div className="space-y-6">
 							{/* Targets vs Consumed */}
 							<div className="space-y-4">
@@ -722,13 +725,13 @@ export function GymStudentDetail({
 								)}
 							</div>
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "progress" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Progresso e XP" icon={Activity}>
+					<DuoSectionCard title="Progresso e XP" icon={Activity}>
 						<div className="mb-6">
 							<div className="mb-2 flex items-center justify-between">
 								<span className="font-bold text-duo-text">
@@ -774,13 +777,13 @@ export function GymStudentDetail({
 								),
 							)}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "records" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Recordes Pessoais" icon={Trophy}>
+					<DuoSectionCard title="Recordes Pessoais" icon={Trophy}>
 						<div className="space-y-3">
 							{(student.personalRecords ?? []).map((record) => (
 								<DuoCard
@@ -809,13 +812,13 @@ export function GymStudentDetail({
 								</DuoCard>
 							))}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "payments" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Histórico de Pagamentos" icon={DollarSign}>
+					<DuoSectionCard title="Histórico de Pagamentos" icon={DollarSign}>
 						<div className="mb-6 grid gap-4 md:grid-cols-3">
 							<DuoCard variant="highlighted" size="sm">
 								<div className="flex items-center gap-3">
@@ -932,7 +935,7 @@ export function GymStudentDetail({
 								</motion.div>
 							))}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 		</div>

@@ -8,8 +8,11 @@ import {
 	TrendingUp,
 } from "lucide-react";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type { FinancialSummary, Payment } from "@/lib/types";
 
 interface FinancialOverviewTabProps {
@@ -28,35 +31,35 @@ export function FinancialOverviewTab({
 
 	return (
 		<div className="space-y-6">
-			<div className="grid grid-cols-2 gap-3">
-				<StatCardLarge
+			<DuoStatsGrid columns={2} className="gap-3">
+				<DuoStatCard
 					icon={TrendingUp}
 					value={formatCurrency(financialSummary.totalRevenue)}
 					label="Receita Total"
-					subtitle={`+${financialSummary.revenueGrowth}%`}
-					iconColor="duo-green"
+					badge={`+${financialSummary.revenueGrowth}%`}
+					iconColor="var(--duo-primary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={TrendingDown}
 					value={formatCurrency(financialSummary.totalExpenses)}
 					label="Despesas"
-					subtitle="Mensal"
-					iconColor="duo-red"
+					badge="Mensal"
+					iconColor="var(--duo-danger)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={DollarSign}
 					value={formatCurrency(financialSummary.netProfit)}
 					label="Lucro Líquido"
-					iconColor="duo-blue"
+					iconColor="var(--duo-secondary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={CreditCard}
 					value={formatCurrency(financialSummary.monthlyRecurring)}
 					label="Recorrente Mensal"
-					subtitle="MRR"
-					iconColor="duo-purple"
+					badge="MRR"
+					iconColor="#A560E8"
 				/>
-			</div>
+			</DuoStatsGrid>
 
 			{(financialSummary.overduePayments ?? 0) > 0 && (
 				<DuoCard
@@ -79,7 +82,7 @@ export function FinancialOverviewTab({
 				</DuoCard>
 			)}
 
-			<SectionCard title="Métricas do Mês" icon={DollarSign}>
+			<DuoSectionCard title="Métricas do Mês" icon={DollarSign}>
 				<div className="space-y-3">
 					<DuoCard variant="default" size="sm">
 						<div className="flex items-center justify-between">
@@ -108,7 +111,7 @@ export function FinancialOverviewTab({
 						</div>
 					</DuoCard>
 				</div>
-			</SectionCard>
+			</DuoSectionCard>
 		</div>
 	);
 }

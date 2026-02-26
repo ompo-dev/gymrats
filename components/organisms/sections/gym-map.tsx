@@ -16,7 +16,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
@@ -94,7 +94,7 @@ export function GymMap({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Filtros" icon={MapPin}>
+				<DuoSectionCard title="Filtros" icon={MapPin}>
 					<OptionSelector
 						options={filterOptions}
 						value={filter}
@@ -104,7 +104,7 @@ export function GymMap({
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -120,7 +120,7 @@ export function GymMap({
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<SectionCard title="Academias Cadastradas" icon={MapPin}>
+				<DuoSectionCard title="Academias Cadastradas" icon={MapPin}>
 					<div className="space-y-3">
 						{sortedGyms.map((gym, index) => {
 							const hasActivePass = dayPasses.some(
@@ -422,7 +422,7 @@ export function GymMap({
 							);
 						})}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 		</div>
 	);

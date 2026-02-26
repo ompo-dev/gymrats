@@ -13,8 +13,11 @@ import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type { GymProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -99,7 +102,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Nível e Progresso" icon={Trophy} variant="orange">
+				<DuoSectionCard title="Nível e Progresso" icon={Trophy} variant="orange">
 					<div className="mb-6 flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-duo-orange">
@@ -146,44 +149,44 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 						</span>{" "}
 						para o próximo nível
 					</p>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4} className="gap-4">
+					<DuoStatCard
 						icon={Flame}
 						value={String(gamification.currentStreak)}
 						label="Sequência"
-						subtitle={`Recorde: ${gamification.longestStreak} dias`}
-						iconColor="duo-orange"
+						badge={`Recorde: ${gamification.longestStreak} dias`}
+						iconColor="var(--duo-accent)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={TrendingUp}
 						value={`#${gamification.ranking}`}
 						label="Ranking"
-						subtitle="Entre academias da região"
-						iconColor="duo-purple"
+						badge="Entre academias da região"
+						iconColor="#A560E8"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Users}
 						value={`${profile.totalStudents}/${gamification.monthlyStudentGoal}`}
 						label="Meta de Alunos"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Target}
 						value={`${gamification.equipmentUtilization}%`}
 						label="Utilização"
-						subtitle="Equipamentos em uso"
-						iconColor="duo-green"
+						badge="Equipamentos em uso"
+						iconColor="var(--duo-primary)"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<SlideIn delay={0.3}>
-					<SectionCard title="Conquistas" icon={Award} variant="orange">
+					<DuoSectionCard title="Conquistas" icon={Award} variant="orange">
 						<div className="space-y-3">
 							{mockAchievements.map((achievement, index) => (
 								<motion.div
@@ -248,11 +251,11 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 								</motion.div>
 							))}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 
 				<SlideIn delay={0.4}>
-					<SectionCard title="Ranking Regional" icon={Star} variant="default">
+					<DuoSectionCard title="Ranking Regional" icon={Star} variant="default">
 						<div className="space-y-2">
 							{mockRanking.map((gym, index) => (
 								<motion.div
@@ -310,7 +313,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 								</motion.div>
 							))}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			</div>
 		</div>

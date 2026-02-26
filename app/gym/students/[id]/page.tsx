@@ -25,8 +25,11 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mockPayments, mockStudents } from "@/lib/gym-mock-data";
 import { cn } from "@/lib/utils";
@@ -46,7 +49,7 @@ export default function StudentDetailPage({
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
 				<FadeIn>
-					<SectionCard
+					<DuoSectionCard
 						title="Aluno não encontrado"
 						icon={AlertCircle}
 						className="text-center"
@@ -57,7 +60,7 @@ export default function StudentDetailPage({
 						<Link href="/gym/students">
 							<Button className="mt-4">Voltar para Alunos</Button>
 						</Link>
-					</SectionCard>
+					</DuoSectionCard>
 				</FadeIn>
 			</div>
 		);
@@ -90,7 +93,7 @@ export default function StudentDetailPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={student.name} icon={Calendar} variant="highlighted">
+				<DuoSectionCard title={student.name} icon={Calendar} variant="highlighted">
 					<div className="flex flex-col gap-6 sm:flex-row sm:items-start">
 						<div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full">
 							<Image
@@ -145,36 +148,36 @@ export default function StudentDetailPage({
 							</div>
 						</div>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4}>
+					<DuoStatCard
 						icon={Flame}
 						value={String(student.currentStreak)}
 						label="Sequência"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Trophy}
 						value={String(student.progress.currentLevel)}
 						label="Nível"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Activity}
 						value={String(student.totalVisits)}
 						label="Treinos"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Target}
 						value={`${student.attendanceRate}%`}
 						label="Frequência"
-						iconColor="duo-purple"
+						iconColor="#A560E8"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
@@ -190,7 +193,7 @@ export default function StudentDetailPage({
 
 					<TabsContent value="overview">
 						<div className="grid gap-6 lg:grid-cols-2">
-							<SectionCard title="Informações do Perfil" icon={Calendar}>
+							<DuoSectionCard title="Informações do Perfil" icon={Calendar}>
 								<div className="space-y-3">
 									{[
 										{ label: "Idade", value: `${student.age} anos` },
@@ -221,9 +224,9 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 
-							<SectionCard title="Objetivos" icon={Target} variant="blue">
+							<DuoSectionCard title="Objetivos" icon={Target} variant="blue">
 								<div className="space-y-2">
 									{student.profile.goals.map((goal) => (
 										<DuoCard
@@ -252,9 +255,9 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 
-							<SectionCard
+							<DuoSectionCard
 								title="Evolução de Peso"
 								icon={Calendar}
 								className="lg:col-span-2"
@@ -303,20 +306,20 @@ export default function StudentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="workouts">
-						<SectionCard title="Histórico de Treinos" icon={Activity}>
+						<DuoSectionCard title="Histórico de Treinos" icon={Activity}>
 							<p className="text-duo-gray-dark">
 								Implementação do histórico de treinos em desenvolvimento...
 							</p>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 
 					<TabsContent value="diet">
-						<SectionCard title="Plano de Dieta" icon={Apple} variant="orange">
+						<DuoSectionCard title="Plano de Dieta" icon={Apple} variant="orange">
 							<div className="space-y-4">
 								<DuoCard variant="orange" size="default">
 									<p className="font-bold text-duo-gray-dark">
@@ -326,32 +329,32 @@ export default function StudentDetailPage({
 										{student.profile.targetCalories} kcal
 									</p>
 								</DuoCard>
-								<div className="grid grid-cols-3 gap-4">
-									<StatCardLarge
+								<DuoStatsGrid columns={3}>
+									<DuoStatCard
 										icon={Target}
 										value={`${student.profile.targetProtein}g`}
 										label="Proteína"
-										iconColor="duo-green"
+										iconColor="var(--duo-primary)"
 									/>
-									<StatCardLarge
+									<DuoStatCard
 										icon={Target}
 										value={`${student.profile.targetCarbs || 250}g`}
 										label="Carboidratos"
-										iconColor="duo-blue"
+										iconColor="var(--duo-secondary)"
 									/>
-									<StatCardLarge
+									<DuoStatCard
 										icon={Target}
 										value={`${student.profile.targetFats || 70}g`}
 										label="Gorduras"
-										iconColor="duo-purple"
+										iconColor="#A560E8"
 									/>
-								</div>
+								</DuoStatsGrid>
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 
 					<TabsContent value="progress">
-						<SectionCard title="Progresso e XP" icon={Trophy} variant="highlighted">
+						<DuoSectionCard title="Progresso e XP" icon={Trophy} variant="highlighted">
 							<div className="mb-6">
 								<div className="mb-2 flex items-center justify-between">
 									<span className="font-bold text-duo-text">
@@ -396,11 +399,11 @@ export default function StudentDetailPage({
 									),
 								)}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 
 					<TabsContent value="records">
-						<SectionCard title="Recordes Pessoais" icon={Trophy} variant="orange">
+						<DuoSectionCard title="Recordes Pessoais" icon={Trophy} variant="orange">
 							<div className="space-y-3">
 								{student.personalRecords.map((record) => (
 									<DuoCard
@@ -429,43 +432,43 @@ export default function StudentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 
 					<TabsContent value="payments">
-						<SectionCard
+						<DuoSectionCard
 							title="Histórico de Pagamentos"
 							icon={DollarSign}
 							variant="blue"
 						>
-							<div className="mb-6 grid gap-4 md:grid-cols-3">
-								<StatCardLarge
+							<DuoStatsGrid columns={3}>
+								<DuoStatCard
 									icon={CheckCircle}
 									value={String(
 										studentPayments.filter((p) => p.status === "paid").length,
 									)}
 									label="Pagos"
-									iconColor="duo-green"
+									iconColor="var(--duo-primary)"
 								/>
-								<StatCardLarge
+								<DuoStatCard
 									icon={AlertCircle}
 									value={String(
 										studentPayments.filter((p) => p.status === "pending")
 											.length,
 									)}
 									label="Pendentes"
-									iconColor="duo-orange"
+									iconColor="var(--duo-accent)"
 								/>
-								<StatCardLarge
+								<DuoStatCard
 									icon={DollarSign}
 									value={`R$ ${studentPayments
 										.filter((p) => p.status === "paid")
 										.reduce((sum, p) => sum + p.amount, 0)
 										.toFixed(2)}`}
 									label="Total Pago"
-									iconColor="duo-blue"
+									iconColor="var(--duo-secondary)"
 								/>
-							</div>
+							</DuoStatsGrid>
 							<div className="space-y-3">
 								{studentPayments.map((payment) => (
 									<DuoCard key={payment.id} variant="default" size="default">
@@ -516,7 +519,7 @@ export default function StudentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 				</Tabs>
 			</SlideIn>

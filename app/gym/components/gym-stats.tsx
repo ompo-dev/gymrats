@@ -12,8 +12,11 @@ import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type { Equipment, GymStats } from "@/lib/types";
 
 interface GymStatsPageProps {
@@ -60,40 +63,40 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<div className="grid grid-cols-2 gap-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={2} className="gap-4">
+					<DuoStatCard
 						icon={Users}
 						value={String(stats.week.totalCheckins)}
 						label="Check-ins Semana"
-						subtitle="+8%"
-						iconColor="duo-blue"
+						badge="+8%"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Activity}
 						value={`${stats.month.retentionRate}%`}
 						label="Taxa Retenção"
-						subtitle="+5%"
-						iconColor="duo-green"
+						badge="+5%"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Target}
 						value={String(stats.week.avgDailyCheckins)}
 						label="Média Diária"
-						subtitle="85%"
-						iconColor="duo-purple"
+						badge="85%"
+						iconColor="#A560E8"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Dumbbell}
 						value={String(equipment.length)}
 						label="Equipamentos Ativos"
-						subtitle="78%"
-						iconColor="duo-orange"
+						badge="78%"
+						iconColor="var(--duo-accent)"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard
+				<DuoSectionCard
 					title="Check-ins por Dia"
 					icon={Calendar}
 					variant="highlighted"
@@ -125,11 +128,11 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<SectionCard title="Horários Populares" icon={Clock} variant="orange">
+				<DuoSectionCard title="Horários Populares" icon={Clock} variant="orange">
 					<div className="space-y-2">
 						{hourlyData.map((item, index) => (
 							<motion.div
@@ -159,11 +162,11 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<SectionCard
+				<DuoSectionCard
 					title="Equipamentos Mais Usados"
 					icon={Dumbbell}
 					variant="blue"
@@ -200,7 +203,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 							</motion.div>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 		</div>
 	);

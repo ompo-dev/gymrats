@@ -3,7 +3,7 @@
 import { AlertCircle, Crown, Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function SubscriptionStatusCard({
 		!subscription.isTrial;
 
 	return (
-		<SectionCard title="Status da Assinatura" icon={Crown}>
+		<DuoSectionCard title="Status da Assinatura" icon={Crown}>
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
@@ -151,6 +151,6 @@ export function SubscriptionStatusCard({
 					</div>
 				)}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

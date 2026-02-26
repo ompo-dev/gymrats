@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
@@ -40,7 +40,7 @@ export function NutritionStatusCard({
 	// Se não houver dailyNutrition, mostrar empty state
 	if (!dailyNutrition) {
 		return (
-			<SectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+			<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -60,7 +60,7 @@ export function NutritionStatusCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 
@@ -78,7 +78,7 @@ export function NutritionStatusCard({
 	// Se não tem nada registrado
 	if (!hasMeals && !hasWater) {
 		return (
-			<SectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+			<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -98,13 +98,13 @@ export function NutritionStatusCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 
 	// Se tem dados, mostrar status rápido
 	return (
-		<SectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
+		<DuoSectionCard icon={UtensilsCrossed} title="Nutrição de Hoje">
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -163,6 +163,6 @@ export function NutritionStatusCard({
 						: "Adicionar Refeição ou Água"}
 				</Button>
 			</motion.div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

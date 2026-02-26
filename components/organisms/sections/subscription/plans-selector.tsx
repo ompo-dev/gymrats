@@ -2,7 +2,7 @@
 
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
 import { BillingPeriodSelector } from "./billing-period-selector";
@@ -82,7 +82,7 @@ export function PlansSelector({
 		: annualDiscount;
 
 	return (
-		<SectionCard
+		<DuoSectionCard
 			title={
 				userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
 					? "Mudar para Plano Anual"
@@ -221,6 +221,6 @@ export function PlansSelector({
 					</>
 				)}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

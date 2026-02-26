@@ -4,7 +4,7 @@ import { Check, Plus, TrendingUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoStatCard } from "@/components/duo";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -473,12 +473,12 @@ export function WeightTracker({
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
 				>
-					<StatCardLarge
+					<DuoStatCard
 						icon={TrendingUp}
-						iconColor="duo-yellow"
+						iconColor="var(--duo-warning)"
 						value={`${totalVolume.toFixed(0)} kg`}
 						label="Volume total do exercício"
-						subtitle="Soma de todas as séries válidas"
+						badge="Soma de todas as séries válidas"
 						className="w-full"
 					/>
 				</motion.div>

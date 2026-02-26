@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { CreateUnitModal } from "@/components/organisms/modals/create-unit-modal";
 import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
@@ -299,7 +299,7 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 				</p>
 			</div>
 
-			<SectionCard icon={Dumbbell} title="Meus Treinos">
+			<DuoSectionCard icon={Dumbbell} title="Meus Treinos">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -320,7 +320,7 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 						Criar Primeiro Plano
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		</div>
 	);
 }

@@ -4,7 +4,7 @@ import { ArrowRight, Dumbbell, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/atoms/buttons/button";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { Unit } from "@/lib/types";
 
 interface ContinueWorkoutCardProps {
@@ -50,7 +50,7 @@ export function ContinueWorkoutCard({
 	// Se não houver próximo workout e não houver histórico, mostrar empty state
 	if (!nextWorkout && !lastCompleted) {
 		return (
-			<SectionCard icon={Dumbbell} title="Continue seu Treino">
+			<DuoSectionCard icon={Dumbbell} title="Continue seu Treino">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -74,7 +74,7 @@ export function ContinueWorkoutCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 
@@ -83,7 +83,7 @@ export function ContinueWorkoutCard({
 		const workoutUrl = `/student?tab=learn&modal=workout&workoutId=${nextWorkout.workout.id}`;
 
 		return (
-			<SectionCard icon={Dumbbell} title="Continue seu Treino">
+			<DuoSectionCard icon={Dumbbell} title="Continue seu Treino">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -116,14 +116,14 @@ export function ContinueWorkoutCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 
 	// Se não houver próximo workout mas houver histórico, mostrar último completado
 	if (lastCompleted) {
 		return (
-			<SectionCard icon={Dumbbell} title="Continue seu Treino">
+			<DuoSectionCard icon={Dumbbell} title="Continue seu Treino">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
@@ -156,7 +156,7 @@ export function ContinueWorkoutCard({
 						<ArrowRight className="h-4 w-4 ml-2" />
 					</Button>
 				</motion.div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 

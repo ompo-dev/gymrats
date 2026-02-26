@@ -6,7 +6,7 @@ import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { functionalExercises } from "@/lib/functional-exercises-data";
 import type { FunctionalCategory } from "@/lib/types";
@@ -68,7 +68,7 @@ export function FunctionalWorkout() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Para quem?" icon={Users}>
+				<DuoSectionCard title="Para quem?" icon={Users}>
 					<OptionSelector
 						options={audienceOptions}
 						value={selectedAudience}
@@ -83,11 +83,11 @@ export function FunctionalWorkout() {
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Categoria" icon={Target}>
+				<DuoSectionCard title="Categoria" icon={Target}>
 					<OptionSelector
 						options={categoryOptions}
 						value={selectedCategory}
@@ -100,7 +100,7 @@ export function FunctionalWorkout() {
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

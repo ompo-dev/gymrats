@@ -5,7 +5,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,7 @@ export function LessonDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={lesson.title} icon={BookOpen} variant="blue">
+				<DuoSectionCard title={lesson.title} icon={BookOpen} variant="blue">
 					<div className="mb-4 text-4xl">
 						{getCategoryIcon(lesson.category)}
 					</div>
@@ -73,7 +73,7 @@ export function LessonDetail({
 						</span>
 					</div>
 					<MarkdownRenderer content={lesson.content} />
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>

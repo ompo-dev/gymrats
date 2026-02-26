@@ -2,7 +2,7 @@
 
 import { Calendar, Clock, Trophy } from "lucide-react";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { WorkoutHistory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ export function RecentWorkoutsCard({
 
 	if (recentWorkouts.length === 0) {
 		return (
-			<SectionCard
+			<DuoSectionCard
 				icon={Calendar}
 				title="Treinos Recentes"
 				className="space-y-4"
@@ -25,7 +25,7 @@ export function RecentWorkoutsCard({
 				<div className="py-4 text-center text-sm text-duo-gray-dark">
 					Nenhum treino registrado ainda
 				</div>
-			</SectionCard>
+			</DuoSectionCard>
 		);
 	}
 
@@ -63,7 +63,7 @@ export function RecentWorkoutsCard({
 	};
 
 	return (
-		<SectionCard icon={Calendar} title="Treinos Recentes" className="space-y-3">
+		<DuoSectionCard icon={Calendar} title="Treinos Recentes" className="space-y-3">
 			<div className="space-y-2">
 				{recentWorkouts.map((workout) => (
 					<DuoCard
@@ -110,6 +110,6 @@ export function RecentWorkoutsCard({
 					</DuoCard>
 				))}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

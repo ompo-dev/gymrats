@@ -15,8 +15,11 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import {
 	calculateCardioCalories,
@@ -158,7 +161,7 @@ export function CardioTracker() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Selecione a Modalidade" icon={Heart}>
+				<DuoSectionCard title="Selecione a Modalidade" icon={Heart}>
 					<OptionSelector
 						options={cardioOptions}
 						value={selectedType}
@@ -169,20 +172,20 @@ export function CardioTracker() {
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+			<DuoStatsGrid columns={4} className="gap-4">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Timer}
 						value={formatTime(duration)}
 						label="Duração"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
 				</motion.div>
 
@@ -191,11 +194,11 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.25, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Flame}
 						value={estimatedCalories}
 						label="Calorias"
-						iconColor="duo-red"
+						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
 
@@ -204,11 +207,11 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.3, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard
 						icon={TrendingUp}
 						value={distance.toFixed(2)}
 						label="Distância (km)"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
 				</motion.div>
 
@@ -217,17 +220,17 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.35, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Heart}
 						value={heartRate}
 						label="FC (bpm)"
-						iconColor="duo-red"
+						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
-			</div>
+			</DuoStatsGrid>
 
 			<SlideIn delay={0.4}>
-				<SectionCard title="Zona de FC Alvo (Cardio)" icon={Heart}>
+				<DuoSectionCard title="Zona de FC Alvo (Cardio)" icon={Heart}>
 					<div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
 						<span>{targetHRZone.min} bpm</span>
 						<span>{targetHRZone.max} bpm</span>
@@ -243,11 +246,11 @@ export function CardioTracker() {
 							}}
 						/>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<SectionCard title="Intensidade" icon={Flame}>
+				<DuoSectionCard title="Intensidade" icon={Flame}>
 					<OptionSelector
 						options={intensityOptions}
 						value={intensity}
@@ -262,7 +265,7 @@ export function CardioTracker() {
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.6}>

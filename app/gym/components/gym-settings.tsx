@@ -25,7 +25,7 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { Select } from "@/components/atoms/inputs/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -221,7 +221,7 @@ export function GymSettingsPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={profile.name} icon={Building2} variant="orange">
+				<DuoSectionCard title={profile.name} icon={Building2} variant="orange">
 					<div className="mb-4">
 						<p className="text-sm font-medium text-duo-text">Plano {profile.plan}</p>
 					</div>
@@ -337,11 +337,11 @@ export function GymSettingsPage({
 							<p className="text-sm font-medium text-red-600">{saveError}</p>
 						)}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard
+				<DuoSectionCard
 					title="Horários e Dias de Funcionamento"
 					icon={Clock}
 					variant="blue"
@@ -423,7 +423,7 @@ export function GymSettingsPage({
 							)}
 						</Button>
 					)}
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
@@ -431,7 +431,7 @@ export function GymSettingsPage({
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<SectionCard title="Outras Configurações" icon={Shield}>
+				<DuoSectionCard title="Outras Configurações" icon={Shield}>
 					<div className="space-y-3">
 						{[
 							{
@@ -496,11 +496,11 @@ export function GymSettingsPage({
 							</motion.div>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<SectionCard title="Conta" icon={Shield}>
+				<DuoSectionCard title="Conta" icon={Shield}>
 					<div className="space-y-3">
 						{(isAdmin || userInfo?.role === "ADMIN") && (
 							<DuoCard
@@ -543,7 +543,7 @@ export function GymSettingsPage({
 							</div>
 						</DuoCard>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 		</div>
 	);

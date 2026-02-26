@@ -20,8 +20,11 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type { Equipment } from "@/lib/types";
 import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -118,7 +121,7 @@ export function GymEquipmentDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={equipment.name} icon={Dumbbell} variant="default">
+				<DuoSectionCard title={equipment.name} icon={Dumbbell} variant="default">
 					<div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
 						<div className="flex h-24 w-24 sm:h-32 sm:w-32 shrink-0 items-center justify-center rounded-2xl bg-duo-green">
 							<Dumbbell className="h-12 w-12 sm:h-16 sm:w-16 text-white" />
@@ -177,7 +180,7 @@ export function GymEquipmentDetail({
 							</div>
 						</div>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<MaintenanceModal
@@ -253,40 +256,40 @@ export function GymEquipmentDetail({
 			)}
 
 			<SlideIn delay={0.2}>
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4} className="gap-3 sm:gap-4">
+					<DuoStatCard
 						icon={BarChart3}
 						value={String(equipment.usageStats.totalUses)}
 						label="Total de Usos"
-						iconColor="duo-purple"
+						iconColor="#A560E8"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Clock}
 						value={`${equipment.usageStats.avgUsageTime}min`}
 						label="Tempo Médio"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Calendar}
 						value={
 							formatDatePtBr(equipment.lastMaintenance) || "N/A"
 						}
 						label="Última Manutenção"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Calendar}
 						value={
 							formatDatePtBr(equipment.nextMaintenance) || "N/A"
 						}
 						label="Próxima Manutenção"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<SectionCard title="Selecione a Categoria" icon={Dumbbell}>
+				<DuoSectionCard title="Selecione a Categoria" icon={Dumbbell}>
 					<OptionSelector
 						options={tabOptions}
 						value={activeTab}
@@ -296,13 +299,13 @@ export function GymEquipmentDetail({
 						textAlign="center"
 						animate={true}
 					/>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			{activeTab === "usage" && (
 				<SlideIn delay={0.4}>
 					<div className="grid gap-6 lg:grid-cols-2">
-						<SectionCard title="Horários Mais Populares" icon={Clock}>
+						<DuoSectionCard title="Horários Mais Populares" icon={Clock}>
 							<div className="space-y-3">
 								{equipment.usageStats.popularTimes.map((time) => (
 									<DuoCard
@@ -325,9 +328,9 @@ export function GymEquipmentDetail({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 
-						<SectionCard title="Métricas de Performance" icon={BarChart3}>
+						<DuoSectionCard title="Métricas de Performance" icon={BarChart3}>
 							<div className="space-y-4">
 								<DuoCard
 									variant="default"
@@ -364,14 +367,14 @@ export function GymEquipmentDetail({
 									</p>
 								</DuoCard>
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</div>
 				</SlideIn>
 			)}
 
 			{activeTab === "maintenance" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Histórico de Manutenção" icon={Wrench}>
+					<DuoSectionCard title="Histórico de Manutenção" icon={Wrench}>
 						{equipment.maintenanceHistory.length > 0 ? (
 							<div className="space-y-3">
 								{equipment.maintenanceHistory.map((record, index) => (
@@ -425,13 +428,13 @@ export function GymEquipmentDetail({
 								<Button className="mt-4">Registrar Manutenção</Button>
 							</DuoCard>
 						)}
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 
 			{activeTab === "info" && (
 				<SlideIn delay={0.4}>
-					<SectionCard title="Informações do Equipamento" icon={Dumbbell}>
+					<DuoSectionCard title="Informações do Equipamento" icon={Dumbbell}>
 						<div className="space-y-3">
 							{[
 								{
@@ -466,7 +469,7 @@ export function GymEquipmentDetail({
 								</DuoCard>
 							))}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			)}
 		</div>

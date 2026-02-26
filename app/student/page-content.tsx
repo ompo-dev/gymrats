@@ -13,7 +13,7 @@ import { StudentPaymentsPage } from "@/app/student/payments/student-payments-pag
 import { ProfilePage } from "@/app/student/profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { EducationPage } from "@/components/organisms/education/education-page";
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
@@ -325,18 +325,18 @@ function StudentHomeContent() {
 					)}
 
 					{/* Cards de Estatísticas Principais */}
-					<div className="grid grid-cols-2 gap-4">
+					<DuoStatsGrid columns={2} className="gap-4">
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.1, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard
 								icon={Flame}
 								value={displayProgress.currentStreak}
 								label="dias de sequência"
-								subtitle={`Recorde: ${displayProgress.longestStreak || 0}`}
-								iconColor="duo-orange"
+								badge={`Recorde: ${displayProgress.longestStreak || 0}`}
+								iconColor="var(--duo-accent)"
 							/>
 						</motion.div>
 
@@ -345,12 +345,12 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.15, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard
 								icon={Zap}
 								value={`${displayProgress.todayXP} XP`}
 								label="ganho hoje"
-								subtitle={`Total: ${displayProgress.totalXP || 0} XP`}
-								iconColor="duo-yellow"
+								badge={`Total: ${displayProgress.totalXP || 0} XP`}
+								iconColor="var(--duo-warning)"
 							/>
 						</motion.div>
 
@@ -359,12 +359,12 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.2, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard
 								icon={Trophy}
 								value={`#${displayProgress.currentLevel}`}
 								label="nível atual"
-								subtitle="Continue treinando"
-								iconColor="duo-blue"
+								badge="Continue treinando"
+								iconColor="var(--duo-secondary)"
 							/>
 						</motion.div>
 
@@ -373,19 +373,19 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.25, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard
 								icon={Dumbbell}
 								value={displayProgress.workoutsCompleted}
 								label="treinos completos"
-								subtitle={
+								badge={
 									currentWorkoutHistory.length > 0
 										? `${currentWorkoutHistory.length} treinos registrados`
 										: "Nenhum treino ainda"
 								}
-								iconColor="duo-green"
+								iconColor="var(--duo-primary)"
 							/>
 						</motion.div>
-					</div>
+					</DuoStatsGrid>
 
 					{/* Card de Evolução de Peso */}
 					{currentWeight && (

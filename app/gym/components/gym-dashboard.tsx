@@ -11,8 +11,11 @@ import { RelativeTime } from "@/components/molecules/relative-time";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { CheckInModal } from "./checkin-modal";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type {
 	CheckIn,
 	Equipment,
@@ -66,41 +69,41 @@ export function GymDashboardPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4} className="gap-4">
+					<DuoStatCard
 						icon={Users}
 						value={String(today.checkins)}
 						label="Check-ins Hoje"
-						subtitle={`Pico: ${today.peakHour}`}
-						iconColor="duo-green"
+						badge={`Pico: ${today.peakHour}`}
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Users}
 						value={String(today.activeStudents)}
 						label="Alunos Ativos"
-						subtitle={`Total: ${profile.totalStudents}`}
-						iconColor="duo-blue"
+						badge={`Total: ${profile.totalStudents}`}
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Dumbbell}
 						value={String(today.equipmentInUse)}
 						label="Equipamentos em Uso"
-						subtitle={`Total: ${equipment.length}`}
-						iconColor="duo-orange"
+						badge={`Total: ${equipment.length}`}
+						iconColor="var(--duo-accent)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Users}
 						value={`+${week.newMembers}`}
 						label="Novos Alunos"
-						subtitle="Esta semana"
-						iconColor="duo-purple"
+						badge="Esta semana"
+						iconColor="#A560E8"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<SlideIn delay={0.2}>
-					<SectionCard title="Check-ins Recentes" icon={Users}>
+					<DuoSectionCard title="Check-ins Recentes" icon={Users}>
 						<div className="space-y-3">
 							{recentCheckIns.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -144,11 +147,11 @@ export function GymDashboardPage({
 								);
 							})}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 
 				<SlideIn delay={0.3}>
-					<SectionCard title="Equipamentos em Tempo Real" icon={Dumbbell}>
+					<DuoSectionCard title="Equipamentos em Tempo Real" icon={Dumbbell}>
 						<div className="space-y-3">
 							{equipmentInUse.length === 0 && equipmentMaintenance.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -210,11 +213,11 @@ export function GymDashboardPage({
 								</>
 							)}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 
 				<SlideIn delay={0.4}>
-					<SectionCard title="Top Alunos do Mês" icon={Users}>
+					<DuoSectionCard title="Top Alunos do Mês" icon={Users}>
 						<div className="space-y-3">
 							{month.topStudents.length === 0 && (
 								<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -274,11 +277,11 @@ export function GymDashboardPage({
 								);
 							})}
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 
 				<SlideIn delay={0.5}>
-					<SectionCard title="Estatísticas da Semana" icon={Users}>
+					<DuoSectionCard title="Estatísticas da Semana" icon={Users}>
 						<div className="space-y-4">
 							<DuoCard variant="highlighted" size="sm">
 								<p className="text-xs font-bold text-duo-gray-dark">
@@ -319,7 +322,7 @@ export function GymDashboardPage({
 								<p className="text-xs text-duo-gray-dark">últimos 30 dias</p>
 							</DuoCard>
 						</div>
-					</SectionCard>
+					</DuoSectionCard>
 				</SlideIn>
 			</div>
 			<CheckInModal

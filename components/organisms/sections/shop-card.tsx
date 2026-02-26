@@ -3,7 +3,7 @@
 import { Dumbbell, Flame, ShoppingBag, Zap } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 
 interface ShopCardProps {
@@ -14,7 +14,7 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 	const { totalXP: storeXP } = useStudent("totalXP");
 	const currentXP = totalXP ?? storeXP ?? 0;
 	return (
-		<SectionCard
+		<DuoSectionCard
 			icon={ShoppingBag}
 			title="Loja de Recursos"
 			headerAction={
@@ -76,6 +76,6 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 					</Button>
 				</DuoCard>
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

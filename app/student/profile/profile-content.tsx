@@ -23,8 +23,11 @@ import { DuoCard } from "@/components/ui/duo-card";
 import { HistoryCard } from "@/components/ui/history-card";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import { RecordCard } from "@/components/ui/record-card";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
@@ -453,44 +456,44 @@ export function ProfilePageContent() {
 				}
 			/>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-				<StatCardLarge
+			<DuoStatsGrid columns={4} className="gap-4">
+				<DuoStatCard
 					icon={Flame}
 					value={displayProgress.currentStreak}
 					label="Dias seguidos"
-					subtitle={`Recorde: ${displayProgress.longestStreak}`}
-					iconColor="duo-orange"
+					badge={`Recorde: ${displayProgress.longestStreak}`}
+					iconColor="var(--duo-accent)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={Zap}
 					value={displayProgress.totalXP}
 					label="XP Total"
-					subtitle={`${displayProgress.xpToNextLevel} até nível ${
+					badge={`${displayProgress.xpToNextLevel} até nível ${
 						displayProgress.currentLevel + 1
 					}`}
-					iconColor="duo-yellow"
+					iconColor="var(--duo-warning)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={Trophy}
 					value={`#${displayProgress.currentLevel}`}
 					label="Nível atual"
-					subtitle="Continue treinando"
-					iconColor="duo-blue"
+					badge="Continue treinando"
+					iconColor="var(--duo-secondary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={TrendingUp}
 					value={displayProgress.workoutsCompleted}
 					label="Treinos"
-					subtitle={
+					badge={
 						weeklyWorkouts > 0
 							? `+${weeklyWorkouts} esta semana`
 							: "Nenhum esta semana"
 					}
-					iconColor="duo-green"
+					iconColor="var(--duo-primary)"
 				/>
-			</div>
+			</DuoStatsGrid>
 
-			<SectionCard
+			<DuoSectionCard
 				icon={TrendingUp}
 				title="Evolução de Peso"
 				headerAction={
@@ -580,10 +583,10 @@ export function ProfilePageContent() {
 						</Button>
 					</motion.div>
 				)}
-			</SectionCard>
+			</DuoSectionCard>
 
 			<div className="grid gap-6 lg:grid-cols-2">
-				<SectionCard icon={Calendar} title="Histórico Recente">
+				<DuoSectionCard icon={Calendar} title="Histórico Recente">
 					{recentWorkoutHistory.length > 0 ? (
 						<div className="space-y-3">
 							{recentWorkoutHistory.map((workout: WorkoutHistory) => (
@@ -658,9 +661,9 @@ export function ProfilePageContent() {
 							</Button>
 						</motion.div>
 					)}
-				</SectionCard>
+				</DuoSectionCard>
 
-				<SectionCard icon={Award} title="Recordes Pessoais">
+				<DuoSectionCard icon={Award} title="Recordes Pessoais">
 					{personalRecords.length > 0 ? (
 						<div className="space-y-3">
 							{personalRecords.map((record: PersonalRecord) => (
@@ -698,10 +701,10 @@ export function ProfilePageContent() {
 							</Button>
 						</motion.div>
 					)}
-				</SectionCard>
+				</DuoSectionCard>
 			</div>
 
-			<SectionCard title="Conta" icon={Shield} variant="blue">
+			<DuoSectionCard title="Conta" icon={Shield} variant="blue">
 				<div className="space-y-3">
 					{/* Mostrar botão de trocar apenas se for admin */}
 					{/* Verificar todas as fontes possíveis para garantir que funcione */}
@@ -746,7 +749,7 @@ export function ProfilePageContent() {
 						</div>
 					</DuoCard>
 				</div>
-			</SectionCard>
+			</DuoSectionCard>
 
 			{/* Modal para editar peso */}
 			<AnimatePresence>

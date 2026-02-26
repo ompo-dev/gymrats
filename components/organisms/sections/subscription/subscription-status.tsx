@@ -3,7 +3,7 @@
 import { Crown, Gift } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusProps {
@@ -58,7 +58,7 @@ export function SubscriptionStatus({
 	onCancel,
 }: SubscriptionStatusProps) {
 	return (
-		<SectionCard title={texts.subscriptionStatusTitle} icon={Crown}>
+		<DuoSectionCard title={texts.subscriptionStatusTitle} icon={Crown}>
 			<div className="space-y-4">
 				{/* Header com status */}
 				<div className="flex items-center justify-between">
@@ -297,6 +297,6 @@ export function SubscriptionStatus({
 					</div>
 				)}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

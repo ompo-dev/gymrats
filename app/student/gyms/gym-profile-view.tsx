@@ -14,7 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -126,7 +126,7 @@ export function GymProfileView({
 			</Button>
 
 			<FadeIn>
-				<SectionCard title={profile.name} icon={Dumbbell}>
+				<DuoSectionCard title={profile.name} icon={Dumbbell}>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
 						{(profile.logo || profile.photos?.[0]) && (
 							<div className="flex shrink-0 gap-2">
@@ -185,7 +185,7 @@ export function GymProfileView({
 							)}
 						</div>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</FadeIn>
 
 			<div className="grid gap-4 sm:grid-cols-2">
@@ -210,7 +210,7 @@ export function GymProfileView({
 			</div>
 
 			{profile.amenities && profile.amenities.length > 0 && (
-				<SectionCard title="Comodidades" icon={Check}>
+				<DuoSectionCard title="Comodidades" icon={Check}>
 					<div className="flex flex-wrap gap-2">
 						{profile.amenities.map((a) => (
 							<span
@@ -221,11 +221,11 @@ export function GymProfileView({
 							</span>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			)}
 
 			{profile.equipment && profile.equipment.length > 0 && (
-				<SectionCard title="Equipamentos" icon={Dumbbell}>
+				<DuoSectionCard title="Equipamentos" icon={Dumbbell}>
 					<div className="flex flex-wrap gap-2">
 						{profile.equipment.slice(0, 12).map((e) => (
 							<span
@@ -246,10 +246,10 @@ export function GymProfileView({
 							</span>
 						)}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			)}
 
-			<SectionCard title="Planos disponíveis" icon={CreditCard}>
+			<DuoSectionCard title="Planos disponíveis" icon={CreditCard}>
 				<div className="space-y-3">
 					{profile.plans.length === 0 ? (
 						<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -322,7 +322,7 @@ export function GymProfileView({
 						})
 					)}
 				</div>
-			</SectionCard>
+			</DuoSectionCard>
 		</div>
 	);
 }

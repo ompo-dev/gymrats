@@ -1,7 +1,7 @@
 import { Droplets } from "lucide-react";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard } from "./section-card";
+import { DuoSectionCard } from "@/components/duo";
 
 export interface WaterIntakeCardProps
 	extends React.HTMLAttributes<HTMLDivElement> {
@@ -25,7 +25,7 @@ export function WaterIntakeCard({
 	const totalGlasses = 12;
 
 	return (
-		<SectionCard
+		<DuoSectionCard
 			icon={Droplets}
 			title="Hidratação"
 			headerAction={
@@ -64,6 +64,6 @@ export function WaterIntakeCard({
 					</button>
 				))}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

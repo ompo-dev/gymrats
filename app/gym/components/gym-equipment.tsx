@@ -20,8 +20,11 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import type { Equipment } from "@/lib/types";
 import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -177,36 +180,36 @@ export function GymEquipmentPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4} className="gap-4">
+					<DuoStatCard
 						icon={Dumbbell}
 						value={String(statsOverview.total)}
 						label="Total"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={CheckCircle2}
 						value={String(statsOverview.available)}
 						label="Disponíveis"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Activity}
 						value={String(statsOverview.inUse)}
 						label="Em Uso"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Wrench}
 						value={String(statsOverview.maintenance)}
 						label="Manutenção"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Buscar e Filtrar" icon={Search}>
+				<DuoSectionCard title="Buscar e Filtrar" icon={Search}>
 					<div className="space-y-4">
 						<div className="relative">
 							<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -237,7 +240,7 @@ export function GymEquipmentPage({
 							animate={true}
 						/>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

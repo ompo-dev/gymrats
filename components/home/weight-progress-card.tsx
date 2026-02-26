@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface WeightProgressCardProps {
@@ -46,7 +46,7 @@ export function WeightProgressCard({
 	const range = maxWeight - minWeight || 1;
 
 	return (
-		<SectionCard
+		<DuoSectionCard
 			icon={TrendingUp}
 			title="Evolução de Peso"
 			className="space-y-4"
@@ -91,6 +91,6 @@ export function WeightProgressCard({
 					</div>
 				)}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

@@ -3,7 +3,7 @@
 import { CreditCard, Plus } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ const getStatusLabel = (status: string) => {
 
 export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 	return (
-		<SectionCard
+		<DuoSectionCard
 			title="Pagamentos Recentes"
 			icon={CreditCard}
 			headerAction={
@@ -101,6 +101,6 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 					</DuoCard>
 				))}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

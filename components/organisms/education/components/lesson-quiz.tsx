@@ -6,7 +6,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 
 						return (
 							<div key={qIndex}>
-								<SectionCard
+								<DuoSectionCard
 									title={`${qIndex + 1}. ${question.question}`}
 									icon={BookOpen}
 									className={cn(
@@ -147,7 +147,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 											);
 										})}
 									</div>
-								</SectionCard>
+								</DuoSectionCard>
 
 								{hasError && (
 									<SlideIn delay={0.05}>

@@ -16,8 +16,11 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 // Removido useQuery - agora usando store unificado via useStudent() com axios
 import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
@@ -467,22 +470,22 @@ export function StudentPaymentsPage({
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4">
-				<StatCardLarge
+			<DuoStatsGrid columns={2}>
+				<DuoStatCard
 					icon={DollarSign}
 					value={`R$ ${totalMonthly.toFixed(2)}`}
 					label="Total mensal"
-					iconColor="duo-green"
+					iconColor="var(--duo-primary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard
 					icon={AlertCircle}
 					value={String(pendingPayments.length)}
 					label="Pendentes"
-					iconColor={pendingPayments.length > 0 ? "duo-orange" : "duo-blue"}
+					iconColor={pendingPayments.length > 0 ? "var(--duo-accent)" : "var(--duo-secondary)"}
 				/>
-			</div>
+			</DuoStatsGrid>
 
-			<SectionCard title="Selecione a Categoria" icon={Wallet}>
+			<DuoSectionCard title="Selecione a Categoria" icon={Wallet}>
 				<OptionSelector
 					options={TAB_OPTIONS}
 					value={activeTab}
@@ -499,7 +502,7 @@ export function StudentPaymentsPage({
 					textAlign="center"
 					animate={false}
 				/>
-			</SectionCard>
+			</DuoSectionCard>
 
 			{activeTab === "memberships" && (
 				<div className="space-y-3">

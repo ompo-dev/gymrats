@@ -1,7 +1,7 @@
 "use client";
 
 import { Trophy } from "lucide-react";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 
 interface LevelProgressCardProps {
 	currentLevel: number;
@@ -31,7 +31,7 @@ export function LevelProgressCard({
 			: 0;
 
 	return (
-		<SectionCard icon={Trophy} title="Seu Nível" className="space-y-4">
+		<DuoSectionCard icon={Trophy} title="Seu Nível" className="space-y-4">
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
 					<div>
@@ -69,6 +69,6 @@ export function LevelProgressCard({
 					</div>
 				</div>
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

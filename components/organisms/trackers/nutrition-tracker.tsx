@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { MacroCard } from "@/components/molecules/cards/macro-card";
 import { MealCard } from "@/components/molecules/cards/meal-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { WaterIntakeCard } from "@/components/molecules/cards/water-intake-card";
 import type { DailyNutrition } from "@/lib/types";
 
@@ -109,7 +109,7 @@ export function NutritionTracker({
 			</div>
 
 			{nutrition.waterIntake === 0 ? (
-				<SectionCard
+				<DuoSectionCard
 					icon={Droplets}
 					title="Hidratação"
 					headerAction={
@@ -139,7 +139,7 @@ export function NutritionTracker({
 							Registrar Primeiro Copo
 						</Button>
 					</motion.div>
-				</SectionCard>
+				</DuoSectionCard>
 			) : (
 				<WaterIntakeCard
 					current={nutrition.waterIntake}
@@ -149,7 +149,7 @@ export function NutritionTracker({
 				/>
 			)}
 
-			<SectionCard
+			<DuoSectionCard
 				icon={UtensilsCrossed}
 				title="Refeições de Hoje"
 				headerAction={
@@ -229,7 +229,7 @@ export function NutritionTracker({
 						</div>
 					</AnimatePresence>
 				)}
-			</SectionCard>
+			</DuoSectionCard>
 		</div>
 	);
 }

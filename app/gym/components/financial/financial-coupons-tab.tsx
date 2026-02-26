@@ -3,7 +3,7 @@
 import { Gift, Plus } from "lucide-react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { Coupon } from "@/lib/types";
 import { toValidDate } from "@/lib/utils/date-safe";
 
@@ -13,7 +13,7 @@ interface FinancialCouponsTabProps {
 
 export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 	return (
-		<SectionCard
+		<DuoSectionCard
 			title="Cupons Ativos"
 			icon={Gift}
 			headerAction={
@@ -86,6 +86,6 @@ export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 					</DuoCard>
 				))}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

@@ -4,7 +4,7 @@ import { CheckCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionPlansSelectorProps {
@@ -37,7 +37,7 @@ export function SubscriptionPlansSelector({
 	};
 
 	return (
-		<SectionCard title="Escolha seu Plano" icon={Sparkles}>
+		<DuoSectionCard title="Escolha seu Plano" icon={Sparkles}>
 			<div className="mb-4 grid grid-cols-2 gap-3">
 				<DuoCard
 					variant={
@@ -177,6 +177,6 @@ export function SubscriptionPlansSelector({
 			>
 				{isLoading ? "Processando..." : "Assinar Agora"}
 			</Button>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

@@ -4,7 +4,7 @@ import { ArrowLeft, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { ExerciseInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export function ExerciseDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard
+				<DuoSectionCard
 					title={exercise.name}
 					icon={Dumbbell}
 					variant="highlighted"
@@ -91,11 +91,11 @@ export function ExerciseDetail({
 							</div>
 						)}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Como Executar" icon={Dumbbell}>
+				<DuoSectionCard title="Como Executar" icon={Dumbbell}>
 					<ol className="space-y-3">
 						{exercise.instructions.map((instruction, i) => (
 							<li key={i} className="flex gap-3">
@@ -106,7 +106,7 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ol>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

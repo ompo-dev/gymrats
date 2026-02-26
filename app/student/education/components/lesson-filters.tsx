@@ -3,7 +3,7 @@
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 
 interface LessonFiltersProps {
 	searchQuery: string;
@@ -22,7 +22,7 @@ export function LessonFilters({
 }: LessonFiltersProps) {
 	return (
 		<SlideIn delay={0.1}>
-			<SectionCard title="Buscar e Filtrar" icon={Filter}>
+			<DuoSectionCard title="Buscar e Filtrar" icon={Filter}>
 				<div className="space-y-4">
 					<div className="relative">
 						<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -60,7 +60,7 @@ export function LessonFilters({
 						/>
 					</div>
 				</div>
-			</SectionCard>
+			</DuoSectionCard>
 		</SlideIn>
 	);
 }

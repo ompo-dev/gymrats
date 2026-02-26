@@ -19,8 +19,11 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { RelativeTime } from "@/components/molecules/relative-time";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
-import { StatCardLarge } from "@/components/ui/stat-card-large";
+import {
+	DuoSectionCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -36,7 +39,7 @@ export default function EquipmentDetailPage({
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
 				<FadeIn>
-					<SectionCard
+					<DuoSectionCard
 						title="Equipamento não encontrado"
 						icon={AlertTriangle}
 						className="text-center"
@@ -47,7 +50,7 @@ export default function EquipmentDetailPage({
 						<Link href="/gym/equipment">
 							<Button className="mt-4">Voltar para Equipamentos</Button>
 						</Link>
-					</SectionCard>
+					</DuoSectionCard>
 				</FadeIn>
 			</div>
 		);
@@ -111,7 +114,7 @@ export default function EquipmentDetailPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={equipment.name} icon={Dumbbell} variant="highlighted">
+				<DuoSectionCard title={equipment.name} icon={Dumbbell} variant="highlighted">
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
 						<div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-duo-green sm:h-32 sm:w-32">
 							<Dumbbell className="h-12 w-12 text-white sm:h-16 sm:w-16" />
@@ -163,7 +166,7 @@ export default function EquipmentDetailPage({
 							</div>
 						</div>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			{equipment.status === "in-use" && equipment.currentUser && (
@@ -192,36 +195,36 @@ export default function EquipmentDetailPage({
 			)}
 
 			<SlideIn delay={0.2}>
-				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-					<StatCardLarge
+				<DuoStatsGrid columns={4}>
+					<DuoStatCard
 						icon={BarChart3}
 						value={String(equipment.usageStats.totalUses)}
 						label="Total de Usos"
-						iconColor="duo-purple"
+						iconColor="#A560E8"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Clock}
 						value={`${equipment.usageStats.avgUsageTime}min`}
 						label="Tempo Médio"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Calendar}
 						value={
 							equipment.lastMaintenance?.toLocaleDateString("pt-BR") || "N/A"
 						}
 						label="Última Manutenção"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
-					<StatCardLarge
+					<DuoStatCard
 						icon={Calendar}
 						value={
 							equipment.nextMaintenance?.toLocaleDateString("pt-BR") || "N/A"
 						}
 						label="Próxima Manutenção"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
-				</div>
+				</DuoStatsGrid>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
@@ -241,7 +244,7 @@ export default function EquipmentDetailPage({
 
 					<TabsContent value="usage">
 						<div className="grid gap-6 lg:grid-cols-2">
-							<SectionCard
+							<DuoSectionCard
 								title="Horários Mais Populares"
 								icon={Clock}
 								variant="highlighted"
@@ -261,9 +264,9 @@ export default function EquipmentDetailPage({
 										</DuoCard>
 									))}
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 
-							<SectionCard
+							<DuoSectionCard
 								title="Métricas de Performance"
 								icon={BarChart3}
 								variant="blue"
@@ -297,12 +300,12 @@ export default function EquipmentDetailPage({
 										</p>
 									</DuoCard>
 								</div>
-							</SectionCard>
+							</DuoSectionCard>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="maintenance">
-						<SectionCard
+						<DuoSectionCard
 							title="Histórico de Manutenção"
 							icon={Wrench}
 							variant="orange"
@@ -351,11 +354,11 @@ export default function EquipmentDetailPage({
 									</div>
 								</DuoCard>
 							)}
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 
 					<TabsContent value="info">
-						<SectionCard
+						<DuoSectionCard
 							title="Informações do Equipamento"
 							icon={Dumbbell}
 						>
@@ -396,7 +399,7 @@ export default function EquipmentDetailPage({
 									</DuoCard>
 								))}
 							</div>
-						</SectionCard>
+						</DuoSectionCard>
 					</TabsContent>
 				</Tabs>
 			</SlideIn>

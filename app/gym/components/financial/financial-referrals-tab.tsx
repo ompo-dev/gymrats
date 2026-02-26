@@ -2,7 +2,7 @@
 
 import { UsersIcon } from "lucide-react";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { Referral } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ export function FinancialReferralsTab({
 	referrals,
 }: FinancialReferralsTabProps) {
 	return (
-		<SectionCard title="Programa de Indicações" icon={UsersIcon}>
+		<DuoSectionCard title="Programa de Indicações" icon={UsersIcon}>
 			<div className="space-y-3">
 				{referrals.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -63,6 +63,6 @@ export function FinancialReferralsTab({
 					</DuoCard>
 				))}
 			</div>
-		</SectionCard>
+		</DuoSectionCard>
 	);
 }

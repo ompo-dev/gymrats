@@ -14,6 +14,7 @@ export {
 	DuoCardHeader,
 } from "./molecules/duo-card";
 export { DuoModal } from "./molecules/duo-modal";
+export { DuoSectionCard } from "./molecules/duo-section-card";
 export { DuoStatCard } from "./molecules/duo-stat-card";
 export { DuoTabs } from "./molecules/duo-tabs";
 export { DuoInput } from "./molecules/duo-input";

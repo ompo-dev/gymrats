@@ -4,7 +4,7 @@ import { ArrowLeft, Book, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { MuscleInfo } from "@/lib/types";
 
 interface MuscleDetailProps {
@@ -27,16 +27,16 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={muscle.name} icon={Book} variant="blue">
+				<DuoSectionCard title={muscle.name} icon={Book} variant="blue">
 					<div className="mb-4 text-sm font-bold italic text-duo-gray-dark">
 						{muscle.scientificName}
 					</div>
 					<p className="leading-relaxed text-duo-text">{muscle.description}</p>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Funções" icon={Book}>
+				<DuoSectionCard title="Funções" icon={Book}>
 					<ul className="space-y-3">
 						{muscle.functions.map((func) => (
 							<li key={func} className="flex items-start gap-3">
@@ -47,11 +47,11 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 							</li>
 						))}
 					</ul>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<SectionCard title="Exercícios Comuns" icon={Dumbbell}>
+				<DuoSectionCard title="Exercícios Comuns" icon={Dumbbell}>
 					<div className="flex flex-wrap gap-2">
 						{muscle.commonExercises.map((exercise) => (
 							<span
@@ -62,7 +62,7 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 							</span>
 						))}
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>

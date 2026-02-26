@@ -4,7 +4,7 @@ import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -19,7 +19,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 
 	return (
 		<>
-			<SectionCard
+			<DuoSectionCard
 				title="Despesas do Mês"
 				icon={Receipt}
 				headerAction={
@@ -79,7 +79,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					</span>
 				</div>
 			</DuoCard>
-		</SectionCard>
+		</DuoSectionCard>
 
 			<AddExpenseModal
 				isOpen={isAddModalOpen}

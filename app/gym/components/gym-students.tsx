@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/ui/duo-card";
 import { Input } from "@/components/ui/input";
 import { OptionSelector } from "@/components/ui/option-selector";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoSectionCard } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -167,7 +167,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Buscar e Filtrar" icon={Search}>
+				<DuoSectionCard title="Buscar e Filtrar" icon={Search}>
 					<div className="space-y-4">
 						<div className="relative">
 							<Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -190,7 +190,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							animate={true}
 						/>
 					</div>
-				</SectionCard>
+				</DuoSectionCard>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
