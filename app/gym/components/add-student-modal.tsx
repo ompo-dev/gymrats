@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -250,15 +250,14 @@ export function AddStudentModal({
 											<p className="mb-2 text-sm font-semibold text-duo-text">
 												Plano de Matrícula
 											</p>
-											<OptionSelector
+											<DuoSelect
 												options={[
 													{ value: "", label: "Sem plano (valor manual)" },
 													...planOptions,
 												]}
 												value={selectedPlanId}
 												onChange={setSelectedPlanId}
-												layout="list"
-												size="sm"
+												placeholder="Plano"
 											/>
 										</div>
 									)}

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 import {
@@ -251,12 +251,11 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-duo-gray-dark">
 								Tipo
 							</label>
-							<OptionSelector
+							<DuoSelect
 								options={PLAN_TYPES}
 								value={form.type}
 								onChange={(v) => setForm((f) => ({ ...f, type: v }))}
-								layout="grid"
-								size="sm"
+								placeholder="Tipo"
 							/>
 						</div>
 						<div className="grid grid-cols-2 gap-3">

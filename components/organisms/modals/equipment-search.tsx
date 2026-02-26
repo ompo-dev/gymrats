@@ -4,7 +4,7 @@ import { Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import type { EquipmentItem } from "@/lib/equipment-database";
 import { equipmentDatabase } from "@/lib/equipment-database";
 
@@ -168,16 +168,12 @@ export function EquipmentSearch({
 								Nenhum equipamento encontrado
 							</motion.div>
 						) : (
-							<OptionSelector
+							<DuoSelect
 								options={equipmentOptions}
 								value={selectedEquipmentIds}
 								onChange={handleEquipmentSelection}
-								multiple={true}
-								layout="list"
-								size="md"
-								textAlign="left"
-								animate={true}
-								delay={0.3}
+								multiple
+								placeholder="Selecione os equipamentos"
 							/>
 						)}
 					</motion.div>

@@ -42,5 +42,5 @@ export { Form } from "../molecules/forms/form";
 export { FormInput } from "../molecules/forms/form-input";
 export { InputGroup } from "../molecules/forms/input-group";
 export { Label } from "../molecules/forms/label";
-export type { OptionSelectorProps } from "../molecules/selectors/option-selector";
-export { OptionSelector } from "../molecules/selectors/option-selector";
+export type { DuoSelectOption } from "../duo/molecules/duo-select";
+export { DuoSelect } from "../duo/molecules/duo-select";

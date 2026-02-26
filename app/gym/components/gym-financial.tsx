@@ -5,7 +5,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 import { FinancialCouponsTab } from "./financial/financial-coupons-tab";
@@ -88,7 +88,7 @@ export function GymFinancialPage({
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={tabOptions}
 						value={viewMode}
 						onChange={(value) => {
@@ -102,10 +102,7 @@ export function GymFinancialPage({
 							setViewMode(newViewMode);
 							setSubTab(newViewMode);
 						}}
-						layout="list"
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Selecione a categoria"
 					/>
 				</DuoCard>
 			</SlideIn>

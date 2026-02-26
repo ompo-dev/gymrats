@@ -10,7 +10,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { Input } from "@/components/ui/input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -183,16 +183,13 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 								className="h-12 pl-10"
 							/>
 						</div>
-						<OptionSelector
+						<DuoSelect
 							options={statusOptions}
 							value={statusFilter || "all"}
 							onChange={(value) =>
 								setStatusFilter(value as "all" | "active" | "inactive")
 							}
-							layout="list"
-							size="md"
-							textAlign="center"
-							animate={true}
+							placeholder="Status"
 						/>
 					</div>
 				</DuoCard>

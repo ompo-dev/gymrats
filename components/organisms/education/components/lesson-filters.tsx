@@ -3,7 +3,7 @@
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 
 interface LessonFiltersProps {
 	searchQuery: string;
@@ -53,15 +53,12 @@ export function LessonFilters({
 						<div className="mb-2 text-xs font-bold text-duo-gray-dark">
 							CATEGORIA
 						</div>
-						<OptionSelector
+						<DuoSelect
 							options={categoryOptions}
 							value={selectedCategory}
 							onChange={onCategoryChange}
-							layout="grid"
-							columns={3}
-							size="sm"
-							textAlign="center"
-							animate={true}
+							label="Categoria"
+							placeholder="Selecione a categoria"
 						/>
 					</div>
 				</div>

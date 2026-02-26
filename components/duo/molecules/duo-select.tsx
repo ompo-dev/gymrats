@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 export interface DuoSelectOption {
 	value: string;
 	label: string;
+	emoji?: string;
 	icon?: ReactNode;
 	description?: string;
 	badge?: ReactNode;
@@ -24,11 +25,13 @@ export interface DuoSelectProps
 	extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
 	label?: string;
 	options: DuoSelectOption[];
-	value?: string;
+	value?: string | string[];
 	placeholder?: string;
 	onChange?: (value: string) => void;
 	error?: string;
 	disabled?: boolean;
+	/** Quando true, permite múltipla seleção. value deve ser string[], onChange recebe o valor clicado (parent faz toggle). */
+	multiple?: boolean;
 }
 
 export function DuoSelect({
@@ -40,6 +43,7 @@ export function DuoSelect({
 	error,
 	disabled,
 	className,
+	multiple = false,
 	...props
 }: DuoSelectProps) {
 	const [isOpen, setIsOpen] = useState(false);
@@ -48,7 +52,15 @@ export function DuoSelect({
 	const listboxId = useId();
 	const labelId = useId();
 
-	const selectedOption = options.find((o) => o.value === value);
+	const valueArr = Array.isArray(value) ? value : value ? [value] : [];
+	const selectedOption = multiple
+		? undefined
+		: options.find((o) => o.value === value);
+	const selectedOptions = multiple
+		? options.filter((o) => valueArr.includes(o.value))
+		: [];
+	const isSelected = (optValue: string) =>
+		multiple ? valueArr.includes(optValue) : value === optValue;
 
 	useEffect(() => {
 		function handleClickOutside(e: MouseEvent) {
@@ -77,7 +89,7 @@ export function DuoSelect({
 			e.preventDefault();
 			if (isOpen && focusedIndex >= 0 && !options[focusedIndex].disabled) {
 				onChange?.(options[focusedIndex].value);
-				setIsOpen(false);
+				if (!multiple) setIsOpen(false);
 			} else {
 				setIsOpen(true);
 			}
@@ -122,21 +134,34 @@ export function DuoSelect({
 					<span
 						className={cn(
 							"flex flex-1 items-center gap-2 truncate text-sm font-semibold",
-							selectedOption
+							(selectedOption || selectedOptions.length > 0)
 								? "text-[var(--duo-fg)]"
 								: "text-[var(--duo-fg-muted)]",
 						)}
 					>
-						{selectedOption?.icon}
-						<div className="flex min-w-0 flex-1 flex-col items-start">
-							<span className="truncate">{selectedOption?.label ?? placeholder}</span>
-							{selectedOption?.description && (
-								<span className="text-xs font-normal text-[var(--duo-fg-muted)] truncate">
-									{selectedOption.description}
-								</span>
-							)}
-						</div>
-						{selectedOption?.badge}
+						{multiple ? (
+							<span className="truncate">
+								{selectedOptions.length > 0
+									? `${selectedOptions.length} selecionado${selectedOptions.length !== 1 ? "s" : ""}`
+									: placeholder}
+							</span>
+						) : (
+							<>
+								{selectedOption?.emoji && (
+									<span className="shrink-0 text-lg">{selectedOption.emoji}</span>
+								)}
+								{selectedOption?.icon}
+								<div className="flex min-w-0 flex-1 flex-col items-start">
+									<span className="truncate">{selectedOption?.label ?? placeholder}</span>
+									{selectedOption?.description && (
+										<span className="text-xs font-normal text-[var(--duo-fg-muted)] truncate">
+											{selectedOption.description}
+										</span>
+									)}
+								</div>
+								{selectedOption?.badge}
+							</>
+						)}
 					</span>
 					<ChevronDown
 						size={18}
@@ -151,8 +176,9 @@ export function DuoSelect({
 				<ul
 					id={listboxId}
 					role="listbox"
+					aria-multiselectable={multiple}
 					className={cn(
-						"absolute z-50 mt-1 w-full rounded-xl border-2 border-[var(--duo-border)] py-1",
+						"absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border-2 border-[var(--duo-border)] py-1",
 						"bg-[var(--duo-bg-card)] shadow-xl shadow-black/20",
 						"origin-top transition-all duration-200",
 						isOpen
@@ -164,12 +190,12 @@ export function DuoSelect({
 						<li
 							key={option.value}
 							role="option"
-							aria-selected={option.value === value}
+							aria-selected={isSelected(option.value)}
 							aria-disabled={option.disabled}
 							className={cn(
 								"flex cursor-pointer items-center gap-3 px-4 py-2.5 transition-all duration-150",
 								"hover:bg-[var(--duo-bg-elevated)]",
-								option.value === value &&
+								isSelected(option.value) &&
 									"bg-[var(--duo-primary)]/10 text-[var(--duo-primary)]",
 								focusedIndex === index && "bg-[var(--duo-bg-elevated)]",
 								option.disabled && "cursor-not-allowed opacity-50",
@@ -177,9 +203,17 @@ export function DuoSelect({
 							onClick={() => {
 								if (option.disabled) return;
 								onChange?.(option.value);
-								setIsOpen(false);
+								if (!multiple) setIsOpen(false);
 							}}
 						>
+							{multiple && isSelected(option.value) && (
+								<span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-[var(--duo-primary)] text-white text-xs">
+									✓
+								</span>
+							)}
+							{option.emoji && (
+								<span className="shrink-0 text-lg">{option.emoji}</span>
+							)}
 							{option.icon && <span className="shrink-0">{option.icon}</span>}
 							<div className="flex min-w-0 flex-1 flex-col">
 								<span className="text-sm font-semibold text-[var(--duo-fg)]">

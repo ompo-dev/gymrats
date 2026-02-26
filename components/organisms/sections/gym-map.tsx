@@ -16,7 +16,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -100,14 +100,11 @@ export function GymMap({
 							<h2 className="font-bold text-[var(--duo-fg)]">Filtros</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={filterOptions}
 						value={filter}
 						onChange={(value) => setFilter(value as "all" | "open" | "near")}
-						layout="list"
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Filtro"
 					/>
 				</DuoCard>
 			</SlideIn>

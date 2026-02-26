@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MaintenanceRecord } from "@/lib/types";
 
@@ -97,12 +97,11 @@ export function MaintenanceModal({
 				<div className="space-y-3">
 					<div>
 						<p className="mb-1 text-sm font-bold text-duo-text">Tipo</p>
-						<OptionSelector
+						<DuoSelect
 							options={MAINTENANCE_TYPES}
 							value={form.type}
 							onChange={(v) => setForm((f) => ({ ...f, type: v }))}
-							layout="grid"
-							size="sm"
+							placeholder="Tipo"
 						/>
 					</div>
 

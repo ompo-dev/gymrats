@@ -2,7 +2,7 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 
 interface LessonFiltersProps {
@@ -50,21 +50,13 @@ export function LessonFilters({
 						)}
 					</div>
 
-					<div>
-						<div className="mb-2 text-xs font-bold text-duo-gray-dark">
-							CATEGORIA
-						</div>
-						<OptionSelector
-							options={categoryOptions}
-							value={selectedCategory}
-							onChange={onCategoryChange}
-							layout="grid"
-							columns={3}
-							size="sm"
-							textAlign="center"
-							animate={true}
-						/>
-					</div>
+					<DuoSelect
+						options={categoryOptions}
+						value={selectedCategory}
+						onChange={onCategoryChange}
+						label="Categoria"
+						placeholder="Selecione a categoria"
+					/>
 				</div>
 			</DuoCard>
 		</SlideIn>

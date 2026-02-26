@@ -19,7 +19,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import {
 	DuoCardHeader,
 	DuoStatCard,
@@ -226,7 +226,7 @@ export function GymEquipmentPage({
 								className="h-12 pl-10"
 							/>
 						</div>
-						<OptionSelector
+						<DuoSelect
 							options={statusOptions}
 							value={statusFilter || "all"}
 							onChange={(value) =>
@@ -239,11 +239,7 @@ export function GymEquipmentPage({
 										| "broken",
 								)
 							}
-							layout="grid"
-							columns={2}
-							size="md"
-							textAlign="center"
-							animate={true}
+							placeholder="Status"
 						/>
 					</div>
 				</DuoCard>

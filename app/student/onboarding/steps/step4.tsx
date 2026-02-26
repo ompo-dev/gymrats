@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { type step4Schema, validateStep4 } from "../schemas";
 import type { OnboardingData, StepProps } from "./types";
 
@@ -51,24 +51,12 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
     >
       <div className="space-y-6">
         <div>
-          <OptionSelector
+          <DuoSelect
             options={[
-              {
-                value: "academia-completa",
-                label: "Academia Completa",
-                emoji: "🏢",
-              },
-              {
-                value: "academia-basica",
-                label: "Academia Básica",
-                emoji: "🏠",
-              },
+              { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
+              { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },
               { value: "home-gym", label: "Home Gym", emoji: "🏡" },
-              {
-                value: "peso-corporal",
-                label: "Só Peso Corporal",
-                emoji: "🤸",
-              },
+              { value: "peso-corporal", label: "Só Peso Corporal", emoji: "🤸" },
             ]}
             value={formData.gymType || ""}
             onChange={(value) => {
@@ -78,12 +66,8 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
               });
               setTouched((prev) => ({ ...prev, gymType: true }));
             }}
-            layout="list"
-            size="md"
-            textAlign="center"
-            showCheck={false}
-            delay={0.3}
             label="Tipo de academia"
+            placeholder="Selecione"
           />
           {touched.gymType && errors.gymType && (
             <p className="mt-2 text-sm font-bold text-red-500">

@@ -6,7 +6,7 @@ import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { FormInput } from "@/components/ui/form-input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { type step1Schema, validateStep1 } from "../schemas";
 import type { DifficultyLevel, OnboardingData, StepProps } from "./types";
 
@@ -219,12 +219,9 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
                 delay={0.1}
               />
               {formData.usesHormones && (
-                <OptionSelector
+                <DuoSelect
                   options={[
-                    {
-                      value: "testosterone",
-                      label: "Testosterona",
-                    },
+                    { value: "testosterone", label: "Testosterona" },
                     { value: "estrogen", label: "Estrogênio" },
                   ]}
                   value={formData.hormoneType}
@@ -234,19 +231,15 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
                       hormoneType: value as OnboardingData["hormoneType"],
                     })
                   }
-                  layout="grid"
-                  columns={2}
-                  size="sm"
-                  showCheck={false}
-                  delay={0.2}
                   label="Tipo de hormônio"
+                  placeholder="Selecione"
                 />
               )}
             </motion.div>
           )}
         </div>
 
-        <OptionSelector
+        <DuoSelect
           options={[
             { value: "iniciante", label: "Iniciante" },
             { value: "intermediario", label: "Intermediário" },
@@ -259,11 +252,8 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
               fitnessLevel: value as DifficultyLevel,
             })
           }
-          layout="list"
-          size="md"
-          showCheck={false}
-          delay={0.7}
           label="Nível de Experiência"
+          placeholder="Selecione"
         />
       </div>
     </StepCard>

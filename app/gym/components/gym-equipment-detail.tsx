@@ -19,7 +19,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/ui/button";
 import { DuoCard } from "@/components/duo";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import {
 	DuoCardHeader,
 	DuoStatCard,
@@ -302,14 +302,11 @@ export function GymEquipmentDetail({
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={tabOptions}
 						value={activeTab}
 						onChange={(value) => setActiveTab(value)}
-						layout="list"
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Selecione a categoria"
 					/>
 				</DuoCard>
 			</SlideIn>

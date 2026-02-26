@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { FormInput } from "@/components/ui/form-input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 
 interface LimitationOption {
 	value: string;
@@ -197,7 +197,7 @@ export function LimitationSelector({
 										{detail.label || `Detalhes sobre ${limitationKey}`}
 									</p>
 									{detail.type === "selector" && detail.options && (
-										<OptionSelector
+										<DuoSelect
 											options={detail.options}
 											value={
 												Array.isArray(limitationDetails[limitationKey])
@@ -206,25 +206,9 @@ export function LimitationSelector({
 													: (limitationDetails[limitationKey] as string) || ""
 											}
 											onChange={(value) => {
-												const detailValue = Array.isArray(value)
-													? value[0]
-													: value;
-												onDetailChange?.(limitationKey, detailValue);
+												onDetailChange?.(limitationKey, value);
 											}}
-											multiple={false}
-											layout="grid"
-											columns={
-												Math.min(Math.max(1, detail.options.length), 7) as
-													| 1
-													| 2
-													| 3
-													| 4
-													| 5
-													| 6
-													| 7
-											}
-											size="sm"
-											delay={0}
+											placeholder="Selecione"
 										/>
 									)}
 									{detail.type === "text" && (

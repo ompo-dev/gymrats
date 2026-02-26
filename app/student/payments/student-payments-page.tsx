@@ -18,11 +18,11 @@ import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard } from "@/components/duo";
 import {
 	DuoCardHeader,
+	DuoSelect,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
 // Removido useQuery - agora usando store unificado via useStudent() com axios
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { StudentMembershipPixModal } from "@/app/student/components/student-membership-pix-modal";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
@@ -492,7 +492,7 @@ export function StudentPaymentsPage({
 						<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 					</div>
 				</DuoCardHeader>
-				<OptionSelector
+				<DuoSelect
 					options={TAB_OPTIONS}
 					value={activeTab}
 					onChange={(value) => {
@@ -503,10 +503,7 @@ export function StudentPaymentsPage({
 						setActiveTab(newTab);
 						setSubTab(value);
 					}}
-					layout="list"
-					size="md"
-					textAlign="center"
-					animate={false}
+					placeholder="Selecione a categoria"
 				/>
 			</DuoCard>
 

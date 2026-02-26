@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { type step3Schema, validateStep3 } from "../schemas";
 import type { OnboardingData, StepProps } from "./types";
 
@@ -58,7 +58,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
   return (
     <StepCard title="Preferências" description="Como você gosta de treinar?">
       <div className="space-y-6">
-        <OptionSelector
+        <DuoSelect
           options={[2, 3, 4, 5].map((num) => ({
             value: String(num),
             label: `${num}x`,
@@ -71,15 +71,11 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
             });
             setTouched((prev) => ({ ...prev, preferredSets: true }));
           }}
-          layout="grid"
-          columns={4}
-          size="md"
-          showCheck={false}
-          delay={0.3}
           label="Número de séries por exercício"
+          placeholder="Selecione"
         />
 
-        <OptionSelector
+        <DuoSelect
           options={[
             {
               value: "forca",
@@ -105,30 +101,15 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
             });
             setTouched((prev) => ({ ...prev, preferredRepRange: true }));
           }}
-          layout="list"
-          size="md"
-          textAlign="left"
-          delay={0.5}
           label="Faixa de repetições"
+          placeholder="Selecione"
         />
 
-        <OptionSelector
+        <DuoSelect
           options={[
-            {
-              value: "curto",
-              label: "Curto",
-              description: "30-45s",
-            },
-            {
-              value: "medio",
-              label: "Médio",
-              description: "60-90s",
-            },
-            {
-              value: "longo",
-              label: "Longo",
-              description: "2-3min",
-            },
+            { value: "curto", label: "Curto", description: "30-45s" },
+            { value: "medio", label: "Médio", description: "60-90s" },
+            { value: "longo", label: "Longo", description: "2-3min" },
           ]}
           value={formData.restTime}
           onChange={(value) => {
@@ -138,13 +119,8 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
             });
             setTouched((prev) => ({ ...prev, restTime: true }));
           }}
-          layout="grid"
-          columns={3}
-          size="sm"
-          textAlign="center"
-          showCheck={false}
-          delay={0.9}
           label="Tempo de descanso entre séries"
+          placeholder="Selecione"
         />
       </div>
     </StepCard>

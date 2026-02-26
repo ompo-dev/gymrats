@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoInput } from "@/components/duo/molecules/duo-input";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type { FoodItem, Meal } from "@/lib/types";
@@ -309,7 +309,7 @@ export function FoodSearch({
 	const hasSelectedMeals = selectedMealIds.size > 0;
 	const hasSelectedFoods = selectedFoodIds.length > 0;
 
-	// Prepara opções para o OptionSelector
+	// Prepara opções para o DuoSelect
 	const foodOptions = foods.map((food: FoodItem) => ({
 		value: food.id,
 		label: food.name,
@@ -526,16 +526,12 @@ export function FoodSearch({
 							</motion.div>
 						) : (
 							<>
-								<OptionSelector
+								<DuoSelect
 									options={foodOptions}
 									value={selectedFoodIds}
 									onChange={handleFoodSelection}
-									multiple={true}
-									layout="list"
-									size="md"
-									textAlign="left"
-									animate={true}
-									delay={0.3}
+									multiple
+									placeholder="Selecione os alimentos"
 								/>
 								{isLoadingMore && (
 									<motion.div

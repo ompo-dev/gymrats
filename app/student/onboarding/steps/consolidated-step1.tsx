@@ -7,7 +7,7 @@ import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { FormInput } from "@/components/ui/form-input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { RangeSlider } from "@/components/ui/range-slider";
 import {
   type consolidatedStep1Schema,
@@ -312,7 +312,7 @@ export function ConsolidatedStep1({
                 />
                 {formData.usesHormones && (
                   <>
-                    <OptionSelector
+                    <DuoSelect
                       options={[
                         { value: "testosterone", label: "Testosterona" },
                         { value: "estrogen", label: "Estrogênio" },
@@ -324,12 +324,8 @@ export function ConsolidatedStep1({
                           hormoneType: value as OnboardingData["hormoneType"],
                         })
                       }
-                      layout="grid"
-                      columns={2}
-                      size="sm"
-                      showCheck={false}
-                      delay={0}
                       label="Tipo de hormônio"
+                      placeholder="Selecione"
                     />
                     <FormInput
                       label="Meses de tratamento"
@@ -364,7 +360,7 @@ export function ConsolidatedStep1({
             )}
           </div>
 
-          <OptionSelector
+          <DuoSelect
             options={[
               { value: "iniciante", label: "Iniciante" },
               { value: "intermediario", label: "Intermediário" },
@@ -377,11 +373,8 @@ export function ConsolidatedStep1({
                 fitnessLevel: value as DifficultyLevel,
               })
             }
-            layout="list"
-            size="md"
-            showCheck={false}
-            delay={0}
             label="Nível de Experiência"
+            placeholder="Selecione"
           />
         </motion.div>
 
@@ -395,7 +388,7 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Objetivo Principal
           </h3>
-          <OptionSelector
+          <DuoSelect
             options={[
               { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
               { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
@@ -416,19 +409,15 @@ export function ConsolidatedStep1({
               });
               setTouched((prev) => ({ ...prev, goals: true }));
             }}
-            layout="grid"
-            columns={3}
-            size="md"
-            showCheck={false}
-            delay={0}
             label="O que você quer alcançar?"
+            placeholder="Selecione"
           />
           {touched.goals && errors.goals && (
             <p className="text-sm font-bold text-red-500">{errors.goals}</p>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <OptionSelector
+            <DuoSelect
               options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
                 value: String(num),
                 label: String(num),
@@ -444,12 +433,8 @@ export function ConsolidatedStep1({
                   weeklyWorkoutFrequency: true,
                 }));
               }}
-              layout="grid"
-              columns={7}
-              size="sm"
-              showCheck={false}
-              delay={0}
               label="Treinos por semana"
+              placeholder="Selecione"
             />
             <div>
               <RangeSlider
@@ -483,24 +468,12 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Equipamentos
           </h3>
-          <OptionSelector
+          <DuoSelect
             options={[
-              {
-                value: "academia-completa",
-                label: "Academia Completa",
-                emoji: "🏢",
-              },
-              {
-                value: "academia-basica",
-                label: "Academia Básica",
-                emoji: "🏠",
-              },
+              { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
+              { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },
               { value: "home-gym", label: "Home Gym", emoji: "🏡" },
-              {
-                value: "peso-corporal",
-                label: "Só Peso Corporal",
-                emoji: "🤸",
-              },
+              { value: "peso-corporal", label: "Só Peso Corporal", emoji: "🤸" },
             ]}
             value={formData.gymType || ""}
             onChange={(value) => {
@@ -510,12 +483,8 @@ export function ConsolidatedStep1({
               });
               setTouched((prev) => ({ ...prev, gymType: true }));
             }}
-            layout="list"
-            size="md"
-            textAlign="center"
-            showCheck={false}
-            delay={0}
             label="O que você tem acesso?"
+            placeholder="Selecione"
           />
           {touched.gymType && errors.gymType && (
             <p className="text-sm font-bold text-red-500">{errors.gymType}</p>

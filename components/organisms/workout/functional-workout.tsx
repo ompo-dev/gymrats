@@ -6,7 +6,7 @@ import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { functionalExercises } from "@/lib/functional-exercises-data";
 import type { FunctionalCategory } from "@/lib/types";
 
@@ -74,7 +74,7 @@ export function FunctionalWorkout() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Para quem?</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={audienceOptions}
 						value={selectedAudience}
 						onChange={(value) =>
@@ -82,11 +82,7 @@ export function FunctionalWorkout() {
 								value as "criancas" | "adultos" | "idosos" | "all",
 							)
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Público"
 					/>
 				</DuoCard>
 			</SlideIn>
@@ -99,17 +95,13 @@ export function FunctionalWorkout() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Categoria</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={categoryOptions}
 						value={selectedCategory}
 						onChange={(value) =>
 							setSelectedCategory(value as FunctionalCategory | "all")
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Categoria"
 					/>
 				</DuoCard>
 			</SlideIn>

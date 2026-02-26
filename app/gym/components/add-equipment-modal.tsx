@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { Equipment } from "@/lib/types";
 
@@ -156,13 +156,11 @@ export function AddEquipmentModal({
 					
 					<div className="grid gap-2">
 						<Label>Tipo *</Label>
-						<OptionSelector
+						<DuoSelect
 							options={EQUIPMENT_TYPES.map((t) => ({ value: t, label: t }))}
 							value={form.type}
 							onChange={(v) => setForm((f) => ({ ...f, type: v }))}
-							layout="grid"
-							size="sm"
-							columns={3}
+							placeholder="Selecione o tipo"
 						/>
 					</div>
 
@@ -210,7 +208,7 @@ export function AddEquipmentModal({
 
 					<div className="grid gap-2">
 						<Label>Status</Label>
-						<OptionSelector
+						<DuoSelect
 							options={[
 								{ value: "available", label: "Disponível" },
 								{ value: "in-use", label: "Em Uso (Manual)" },
@@ -219,9 +217,7 @@ export function AddEquipmentModal({
 							]}
 							value={form.status}
 							onChange={(v) => setForm((f) => ({ ...f, status: v }))}
-							layout="grid"
-							size="sm"
-							columns={2}
+							placeholder="Status"
 						/>
 					</div>
 

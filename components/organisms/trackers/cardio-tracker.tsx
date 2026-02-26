@@ -15,7 +15,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { Button } from "@/components/atoms/buttons/button";
 import { DuoCard, DuoCardHeader, DuoStatCard, DuoStatsGrid } from "@/components/duo";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import {
 	calculateCardioCalories,
 	calculateTargetHeartRateZone,
@@ -163,15 +163,11 @@ export function CardioTracker() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Modalidade</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={cardioOptions}
 						value={selectedType}
 						onChange={(value) => setSelectedType(value as CardioType)}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Modalidade"
 					/>
 				</DuoCard>
 			</SlideIn>
@@ -264,7 +260,7 @@ export function CardioTracker() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
 						</div>
 					</DuoCardHeader>
-					<OptionSelector
+					<DuoSelect
 						options={intensityOptions}
 						value={intensity}
 						onChange={(value) =>
@@ -272,11 +268,7 @@ export function CardioTracker() {
 								value as "baixa" | "moderada" | "alta" | "muito-alta",
 							)
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Intensidade"
 					/>
 				</DuoCard>
 			</SlideIn>

@@ -1,2 +1,2 @@
-export type { OptionSelectorProps } from "./option-selector";
-export { OptionSelector } from "./option-selector";
+export type { DuoSelectOption } from "@/components/duo";
+export { DuoSelect } from "@/components/duo";

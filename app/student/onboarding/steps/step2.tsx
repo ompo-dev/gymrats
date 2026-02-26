@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import { RangeSlider } from "@/components/ui/range-slider";
 import { type step2Schema, validateStep2 } from "../schemas";
 import type { StepProps } from "./types";
@@ -60,30 +60,14 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
     <StepCard title="Objetivos" description="O que você quer alcançar?">
       <div className="space-y-6">
         <div>
-          <OptionSelector
+          <DuoSelect
             options={[
-              {
-                value: "perder-peso",
-                label: "Perder Peso",
-                emoji: "⚖️",
-              },
-              {
-                value: "ganhar-massa",
-                label: "Ganhar Massa",
-                emoji: "💪",
-              },
-              {
-                value: "definir",
-                label: "Definir Músculos",
-                emoji: "✨",
-              },
+              { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
+              { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
+              { value: "definir", label: "Definir Músculos", emoji: "✨" },
               { value: "saude", label: "Saúde Geral", emoji: "❤️" },
               { value: "forca", label: "Ganhar Força", emoji: "🏋️" },
-              {
-                value: "resistencia",
-                label: "Resistência",
-                emoji: "🏃",
-              },
+              { value: "resistencia", label: "Resistência", emoji: "🏃" },
             ]}
             value={formData.goals}
             onChange={(value) => {
@@ -111,11 +95,8 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
               setTouched((prev) => ({ ...prev, goals: true }));
             }}
             multiple
-            layout="grid"
-            columns={2}
-            size="md"
-            delay={0.3}
             label="Selecione seus objetivos"
+            placeholder="Objetivos"
           />
           {touched.goals && errors.goals && (
             <p className="mt-2 text-sm font-bold text-red-500">
@@ -124,7 +105,7 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
           )}
         </div>
 
-        <OptionSelector
+        <DuoSelect
           options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
             value: String(num),
             label: String(num),
@@ -137,12 +118,8 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
             });
             setTouched((prev) => ({ ...prev, weeklyWorkoutFrequency: true }));
           }}
-          layout="grid"
-          columns={7}
-          size="sm"
-          showCheck={false}
-          delay={0.6}
           label="Quantas vezes por semana pode treinar?"
+          placeholder="Selecione"
         />
 
         <div>

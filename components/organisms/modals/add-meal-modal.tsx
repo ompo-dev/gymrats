@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { Button } from "@/components/atoms/buttons/button";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoSelect } from "@/components/duo";
 import type { DietType } from "@/lib/types";
 
 interface AddMealModalProps {
@@ -144,17 +144,12 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 							transition={{ delay: 0.15, duration: 0.3 }}
 							className="mb-4"
 						>
-							<OptionSelector
+							<DuoSelect
 								options={options}
 								value={selectedTypes}
 								onChange={handleTypeChange}
-								multiple={true}
-								layout="grid"
-								columns={2}
-								size="md"
-								textAlign="left"
-								animate={true}
-								delay={0.2}
+								multiple
+								placeholder="Selecione as refeições"
 							/>
 						</motion.div>
 
