@@ -1,6 +1,6 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { Nunito } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type React from "react";
 import { Suspense } from "react";
@@ -13,15 +13,9 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { PWAProtection } from "./pwa-protection";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const nunito = Nunito({
 	subsets: ["latin"],
-	variable: "--font-sans",
-	display: "swap",
-});
-
-const spaceGrotesk = Space_Grotesk({
-	subsets: ["latin"],
-	variable: "--font-display",
+	variable: "--font-nunito",
 	display: "swap",
 });
 
@@ -70,9 +64,9 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="pt-BR">
+		<html lang="pt-BR" className={nunito.variable}>
 			<body
-				className={`${dmSans.variable} ${spaceGrotesk.variable} font-sans antialiased bg-duo-bg text-duo-fg`}
+				className="font-sans antialiased bg-duo-bg text-duo-fg"
 				suppressHydrationWarning
 			>
 				<NuqsAdapter>

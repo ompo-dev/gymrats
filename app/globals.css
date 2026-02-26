@@ -109,7 +109,10 @@
 }
 
 @theme inline {
-  --font-mono: ui-monospace, monospace;
+  /* Duolingo typography - Nunito como fonte principal */
+  --font-sans: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-display: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
   /* Duo tokens dinâmicos */
   --color-duo-primary: var(--duo-primary);
   --color-duo-primary-dark: var(--duo-primary-dark);
