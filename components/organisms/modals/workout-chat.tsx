@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
@@ -941,13 +941,13 @@ export function WorkoutChat({
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
+              <DuoButton
                 size="sm"
                 variant="secondary"
                 onClick={handleExportWorkouts}
               >
                 Exportar treino
-              </Button>
+              </DuoButton>
               <span className="text-xs text-gray-600">
                 Cole o JSON aqui para importar; o chat aplica automaticamente.
               </span>
@@ -1112,10 +1112,11 @@ export function WorkoutChat({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-3 justify-center mt-4"
               >
-                <Button
+                <DuoButton
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="flex items-center gap-2 bg-duo-green hover:bg-duo-green/90 text-white font-bold px-6 py-3 rounded-xl shadow-[0_4px_0_#58A700]"
+                  variant="primary"
+                  className="flex items-center gap-2 px-6 py-3"
                 >
                   {isApproving ? (
                     <>
@@ -1128,8 +1129,8 @@ export function WorkoutChat({
                       Aprovar
                     </>
                   )}
-                </Button>
-                <Button
+                </DuoButton>
+                <DuoButton
                   onClick={handleRefazer}
                   disabled={isApproving || isProcessing}
                   variant="outline"
@@ -1137,7 +1138,7 @@ export function WorkoutChat({
                 >
                   <RotateCcw className="h-4 w-4" />
                   Refazer
-                </Button>
+                </DuoButton>
               </motion.div>
             )}
 

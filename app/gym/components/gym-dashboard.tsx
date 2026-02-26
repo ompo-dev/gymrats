@@ -8,7 +8,7 @@ import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { RelativeTime } from "@/components/molecules/relative-time";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { CheckInModal } from "./checkin-modal";
 import {
@@ -58,13 +58,13 @@ export function GymDashboardPage({
 							Visão geral da sua academia em tempo real
 						</p>
 					</div>
-					<Button
+					<DuoButton
 						onClick={() => setIsCheckInModalOpen(true)}
 						className="flex flex-shrink-0 items-center gap-2"
 					>
 						<LogIn className="h-4 w-4" />
 						Registrar Check-in
-					</Button>
+					</DuoButton>
 				</div>
 			</FadeIn>
 

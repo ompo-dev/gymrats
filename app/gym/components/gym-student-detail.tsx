@@ -26,7 +26,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import {
@@ -78,9 +78,9 @@ export function GymStudentDetail({
 					<p className="text-xl font-bold text-duo-gray-dark">
 						Aluno não encontrado
 					</p>
-					<Button onClick={onBack} className="mt-4">
+					<DuoButton onClick={onBack} className="mt-4">
 						Voltar para Alunos
-					</Button>
+					</DuoButton>
 				</DuoCard>
 			</div>
 		);
@@ -124,10 +124,10 @@ export function GymStudentDetail({
 	return (
 		<div className="mx-auto max-w-4xl space-y-6  ">
 			<FadeIn>
-				<Button variant="ghost" onClick={onBack} className="gap-2 font-bold">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
 					<ArrowLeft className="h-4 w-4" />
 					Voltar para Alunos
-				</Button>
+				</DuoButton>
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
@@ -177,27 +177,27 @@ export function GymStudentDetail({
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
-								<Button
+								<DuoButton
 									size="sm"
 									variant="outline"
 									className="flex-1 sm:flex-initial"
 								>
 									<Dumbbell className="h-4 w-4" />
 									Atribuir Treino
-								</Button>
-								<Button
+								</DuoButton>
+								<DuoButton
 									size="sm"
 									variant="outline"
 									className="flex-1 sm:flex-initial"
 								>
 									<Apple className="h-4 w-4" />
 									Atribuir Dieta
-								</Button>
+								</DuoButton>
 								{/* Botões de gestão de matrícula */}
 								{student.gymMembership?.id && (
 									<>
 										{membershipStatus === "active" ? (
-											<Button
+											<DuoButton
 												size="sm"
 												variant="outline"
 												className="flex-1 sm:flex-initial border-amber-300 text-amber-700 hover:bg-amber-50"
@@ -210,9 +210,9 @@ export function GymStudentDetail({
 													<PauseCircle className="h-4 w-4" />
 												)}
 												Suspender
-											</Button>
+											</DuoButton>
 										) : membershipStatus === "suspended" ? (
-											<Button
+											<DuoButton
 												size="sm"
 												variant="outline"
 												className="flex-1 sm:flex-initial border-duo-green text-duo-green hover:bg-duo-green/10"
@@ -225,10 +225,10 @@ export function GymStudentDetail({
 													<CheckCircle className="h-4 w-4" />
 												)}
 												Reativar
-											</Button>
+											</DuoButton>
 										) : null}
 										{membershipStatus !== "canceled" && (
-											<Button
+											<DuoButton
 												size="sm"
 												variant="outline"
 												className="flex-1 sm:flex-initial border-duo-red text-duo-red hover:bg-duo-red/10"
@@ -241,7 +241,7 @@ export function GymStudentDetail({
 													<Ban className="h-4 w-4" />
 												)}
 												Cancelar Matrícula
-											</Button>
+											</DuoButton>
 										)}
 									</>
 								)}
@@ -964,10 +964,10 @@ export function GymStudentDetail({
 													R$ {payment.amount.toFixed(2)}
 												</p>
 
-												<Button
+												<DuoButton
 													onClick={() => togglePaymentStatus(payment.id)}
 													variant={
-														payment.status === "paid" ? "default" : "outline"
+														payment.status === "paid" ? "primary" : "outline"
 													}
 													size="sm"
 													className="w-full sm:w-auto"
@@ -986,7 +986,7 @@ export function GymStudentDetail({
 															<span className="sm:hidden">Marcar Pago</span>
 														</>
 													)}
-												</Button>
+												</DuoButton>
 											</div>
 										</div>
 									</DuoCard>

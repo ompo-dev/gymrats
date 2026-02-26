@@ -3,7 +3,7 @@
 import { Loader2, Send, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
@@ -919,14 +919,14 @@ export function FoodSearchChat({
           {/* Confirm Button */}
           {extractedFoods.length > 0 && (
             <div className="border-t-2 border-gray-300 p-4">
-              <Button
+              <DuoButton
                 onClick={handleConfirmAdd}
                 className="w-full"
-                variant="default"
+                variant="primary"
               >
                 ADICIONAR {extractedFoods.length} ALIMENTO
                 {extractedFoods.length !== 1 ? "S" : ""}
-              </Button>
+              </DuoButton>
             </div>
           )}
         </motion.div>

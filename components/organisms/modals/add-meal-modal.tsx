@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import type { DietType } from "@/lib/types";
 
@@ -209,10 +209,10 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 								transition={{ duration: 0.3 }}
 								className="border-t-2 border-gray-300 p-6"
 							>
-								<Button onClick={handleAddMeals} className="w-full">
+								<DuoButton onClick={handleAddMeals} variant="primary" className="w-full">
 									ADICIONAR {selectedCount} REFEIÇÃO
 									{selectedCount > 1 ? "ÕES" : ""}
-								</Button>
+								</DuoButton>
 							</motion.div>
 						)}
 					</AnimatePresence>

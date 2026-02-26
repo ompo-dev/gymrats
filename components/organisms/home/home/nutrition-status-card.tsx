@@ -4,7 +4,7 @@ import { ArrowRight, Droplets, Plus, UtensilsCrossed } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DailyNutrition } from "@/lib/types";
@@ -60,11 +60,11 @@ export function NutritionStatusCard({
 					<p className="text-sm text-gray-600">
 						Registre suas refeições e hidratação para acompanhar seu progresso.
 					</p>
-					<Button onClick={handleNavigate} variant="default" className="w-fit">
+					<DuoButton onClick={handleNavigate} variant="primary" className="w-fit">
 						<Plus className="h-4 w-4 mr-2" />
 						{isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
 						<ArrowRight className="h-4 w-4 ml-2" />
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		);
@@ -104,11 +104,11 @@ export function NutritionStatusCard({
 					<p className="text-sm text-gray-600">
 						Registre suas refeições e hidratação para acompanhar seu progresso.
 					</p>
-					<Button onClick={handleNavigate} variant="default" className="w-fit">
+					<DuoButton onClick={handleNavigate} variant="primary" className="w-fit">
 						<Plus className="h-4 w-4 mr-2" />
 						{isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
 						<ArrowRight className="h-4 w-4 ml-2" />
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		);
@@ -145,9 +145,9 @@ export function NutritionStatusCard({
 						</div>
 					</div>
 					{hasMeals && (
-						<Button onClick={handleNavigate} variant="white" size="sm">
+						<DuoButton onClick={handleNavigate} variant="white" size="sm">
 							{isPremium ? "Chat" : "Ver"}
-						</Button>
+						</DuoButton>
 					)}
 				</div>
 
@@ -167,19 +167,19 @@ export function NutritionStatusCard({
 						</div>
 					</div>
 					{hasWater && (
-						<Button onClick={handleNavigate} variant="white" size="sm">
+						<DuoButton onClick={handleNavigate} variant="white" size="sm">
 							{isPremium ? "Chat" : "Ver"}
-						</Button>
+						</DuoButton>
 					)}
 				</div>
 
 				{/* CTA para adicionar mais */}
-				<Button onClick={handleNavigate} variant="default" className="w-full">
+				<DuoButton onClick={handleNavigate} variant="primary" className="w-full">
 					<Plus className="h-4 w-4 mr-2" />
 					{isPremium
 						? "Abrir Chat IA de Nutrição"
 						: "Adicionar Refeição ou Água"}
-				</Button>
+				</DuoButton>
 			</motion.div>
 		</DuoCard>
 	);

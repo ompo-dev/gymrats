@@ -12,7 +12,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoCardHeader } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -93,10 +93,10 @@ export function GymProfileView({
 	if (loading) {
 		return (
 			<div className="mx-auto max-w-4xl space-y-6">
-				<Button variant="ghost" onClick={onBack} className="gap-2">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2">
 					<ArrowLeft className="h-4 w-4" />
 					Voltar
-				</Button>
+				</DuoButton>
 				<div className="py-12 text-center text-duo-gray-dark">
 					Carregando perfil da academia...
 				</div>
@@ -107,10 +107,10 @@ export function GymProfileView({
 	if (error || !profile) {
 		return (
 			<div className="mx-auto max-w-4xl space-y-6">
-				<Button variant="ghost" onClick={onBack} className="gap-2">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2">
 					<ArrowLeft className="h-4 w-4" />
 					Voltar
-				</Button>
+				</DuoButton>
 				<div className="py-12 text-center text-duo-red">
 					{error || "Academia não encontrada"}
 				</div>
@@ -120,10 +120,10 @@ export function GymProfileView({
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
-			<Button variant="ghost" onClick={onBack} className="gap-2 font-bold">
+			<DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
 				<ArrowLeft className="h-4 w-4" />
 				Voltar
-			</Button>
+			</DuoButton>
 
 			<FadeIn>
 				<DuoCard variant="default" padding="md">
@@ -330,14 +330,14 @@ export function GymProfileView({
 												</span>
 											)}
 											{canContract && (
-												<Button size="sm" variant="default" className="mt-2">
+												<DuoButton size="sm" variant="primary" className="mt-2">
 													Contratar
-												</Button>
+												</DuoButton>
 											)}
 											{canChangePlan && (
-												<Button size="sm" variant="outline" className="mt-2">
+												<DuoButton size="sm" variant="outline" className="mt-2">
 													Trocar de plano
-												</Button>
+												</DuoButton>
 											)}
 										</div>
 									</div>

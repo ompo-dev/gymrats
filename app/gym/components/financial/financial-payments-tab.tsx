@@ -1,7 +1,7 @@
 "use client";
 
 import { CreditCard, Plus } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
@@ -53,9 +53,9 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 					<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Pagamentos Recentes</h2>
 				</div>
-				<Button size="sm">
+				<DuoButton size="sm">
 					<Plus className="h-4 w-4" />
-				</Button>
+				</DuoButton>
 			</DuoCardHeader>
 			<div className="space-y-3">
 				{payments.length === 0 && (

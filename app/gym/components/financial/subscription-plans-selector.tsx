@@ -2,7 +2,7 @@
 
 import { CheckCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
@@ -174,14 +174,14 @@ export function SubscriptionPlansSelector({
 				</div>
 			</div>
 
-			<Button
+			<DuoButton
 				onClick={handleSubscribe}
 				disabled={isLoading}
 				className="w-full"
 				size="lg"
 			>
 				{isLoading ? "Processando..." : "Assinar Agora"}
-			</Button>
+			</DuoButton>
 		</DuoCard>
 	);
 }

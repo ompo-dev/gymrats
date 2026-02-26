@@ -1,7 +1,7 @@
 import { Loader2, type LucideIcon, Pencil } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 export interface UnitSectionCardProps
@@ -63,7 +63,7 @@ export function UnitSectionCard({
 			{/* Seção do botão */}
 			{(buttonHref || onButtonClick) && (
 				<div className="flex flex-row items-center justify-center px-4 py-4 bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
-					<Button
+					<DuoButton
 						asChild={!!buttonHref}
 						variant="white"
 						size="icon-lg"
@@ -80,7 +80,7 @@ export function UnitSectionCard({
 						) : (
 							<Pencil className="h-6 w-6" />
 						)}
-					</Button>
+					</DuoButton>
 				</div>
 			)}
 		</div>

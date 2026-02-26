@@ -11,7 +11,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
@@ -188,14 +188,14 @@ export default function GymOnboardingPage() {
 			{/* Botão voltar para modo "nova academia" */}
 			{isNewGymMode && (
 				<div className="absolute top-4 left-4 z-50">
-					<Button
+					<DuoButton
 						onClick={() => router.push("/gym?tab=dashboard")}
 						variant="white"
 						className="gap-2"
 					>
 						<ArrowLeft className="h-4 w-4" />
 						Voltar ao Dashboard
-					</Button>
+					</DuoButton>
 				</div>
 			)}
 
@@ -271,30 +271,30 @@ export default function GymOnboardingPage() {
 					>
 						{step > 1 && (
 							<div className="flex-1">
-								<Button onClick={handleBack} variant="white" className="w-full">
+								<DuoButton onClick={handleBack} variant="white" className="w-full">
 									<ChevronLeft className="mr-2 h-4 w-4" />
 									VOLTAR
-								</Button>
+								</DuoButton>
 							</div>
 						)}
 						{step < 4 ? (
 							<div className="flex-1">
-								<Button
+								<DuoButton
 									onClick={handleNext}
 									disabled={!canProceed()}
-									variant={canProceed() ? "default" : "disabled"}
+									variant={canProceed() ? "primary" : "locked"}
 									className="w-full"
 								>
 									CONTINUAR
 									<ChevronRight className="ml-2 h-4 w-4" />
-								</Button>
+								</DuoButton>
 							</div>
 						) : (
 							<div className="flex-1">
-								<Button
+								<DuoButton
 									onClick={handleSubmit}
 									disabled={isLoading || !canProceed()}
-									variant={canProceed() && !isLoading ? "default" : "disabled"}
+									variant={canProceed() && !isLoading ? "primary" : "locked"}
 									className="w-full"
 								>
 									{isLoading ? (
@@ -309,7 +309,7 @@ export default function GymOnboardingPage() {
 											<Check className="ml-2 h-4 w-4" />
 										</>
 									)}
-								</Button>
+								</DuoButton>
 							</div>
 						)}
 					</motion.div>

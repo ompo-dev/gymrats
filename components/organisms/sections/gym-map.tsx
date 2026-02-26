@@ -14,7 +14,7 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
@@ -357,7 +357,7 @@ export function GymMap({
 
 												<div className="grid grid-cols-2 gap-2">
 													{onViewGymProfile && (
-														<Button
+														<DuoButton
 															variant="outline"
 															size="sm"
 															onClick={(e) => {
@@ -368,9 +368,9 @@ export function GymMap({
 														>
 															<MapPin className="h-4 w-4" />
 															Ver perfil
-														</Button>
+														</DuoButton>
 													)}
-													<Button
+													<DuoButton
 														variant="outline"
 														size="sm"
 														disabled={!gym.phone}
@@ -382,21 +382,21 @@ export function GymMap({
 													>
 														<Phone className="h-4 w-4" />
 														Ligar
-													</Button>
+													</DuoButton>
 
 													{hasActivePass ? (
-														<Button
-															variant="default"
+														<DuoButton
+															variant="primary"
 															size="sm"
 															disabled
 															className="col-span-2 flex items-center justify-center gap-2"
 														>
 															<Check className="h-4 w-4" />
 															Passe Ativo
-														</Button>
+														</DuoButton>
 													) : gym.membershipPlans && gym.membershipPlans.length > 0 ? (
-														<Button
-															variant="default"
+														<DuoButton
+															variant="primary"
 															size="sm"
 															onClick={(e) => {
 																e.stopPropagation();
@@ -406,10 +406,10 @@ export function GymMap({
 														>
 															<CreditCard className="h-4 w-4" />
 															Assinar plano
-														</Button>
+														</DuoButton>
 													) : (
-														<Button
-															variant="default"
+														<DuoButton
+															variant="primary"
 															size="sm"
 															onClick={(e) => {
 																e.stopPropagation();
@@ -420,7 +420,7 @@ export function GymMap({
 														>
 															<CreditCard className="h-4 w-4" />
 															Diária
-														</Button>
+														</DuoButton>
 													)}
 												</div>
 											</div>

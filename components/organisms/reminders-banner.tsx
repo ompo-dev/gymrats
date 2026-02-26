@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { useReminderNotifications } from "@/hooks/use-reminder-notifications";
 
 export function RemindersBanner() {
@@ -22,9 +22,9 @@ export function RemindersBanner() {
 						forem registradas.
 					</p>
 				</div>
-				<Button onClick={requestPermission} variant="default" size="sm">
+				<DuoButton onClick={requestPermission} variant="primary" size="sm">
 					Ativar
-				</Button>
+				</DuoButton>
 			</div>
 		</div>
 	);

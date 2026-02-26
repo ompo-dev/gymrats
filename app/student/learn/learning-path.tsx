@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { CreateUnitModal } from "@/components/organisms/modals/create-unit-modal";
 import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
@@ -321,10 +321,10 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 						Você tem controle total sobre seu treino e pode acompanhar seu
 						progresso.
 					</p>
-					<Button onClick={onCreateUnit} variant="default" className="w-fit">
+					<DuoButton onClick={onCreateUnit} variant="primary" className="w-fit">
 						<Plus className="h-4 w-4 mr-2" />
 						Criar Primeiro Plano
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		</div>

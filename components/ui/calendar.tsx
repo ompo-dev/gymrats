@@ -11,7 +11,7 @@ import {
 	DayPicker,
 	getDefaultClassNames,
 } from "react-day-picker";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { DuoButton, duoButtonVariants } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 function Calendar({
@@ -24,7 +24,7 @@ function Calendar({
 	components,
 	...props
 }: React.ComponentProps<typeof DayPicker> & {
-	buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+	buttonVariant?: React.ComponentProps<typeof DuoButton>["variant"];
 }) {
 	const defaultClassNames = getDefaultClassNames();
 
@@ -55,12 +55,12 @@ function Calendar({
 					defaultClassNames.nav,
 				),
 				button_previous: cn(
-					buttonVariants({ variant: buttonVariant }),
+					duoButtonVariants({ variant: buttonVariant }),
 					"size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
 					defaultClassNames.button_previous,
 				),
 				button_next: cn(
-					buttonVariants({ variant: buttonVariant }),
+					duoButtonVariants({ variant: buttonVariant }),
 					"size-(--cell-size) aria-disabled:opacity-50 p-0 select-none",
 					defaultClassNames.button_next,
 				),
@@ -189,7 +189,7 @@ function CalendarDayButton({
 	}, [modifiers.focused]);
 
 	return (
-		<Button
+		<DuoButton
 			ref={ref}
 			variant="ghost"
 			size="icon"

@@ -3,7 +3,7 @@
 import { AlertCircle, BookOpen, CheckCircle2, Info, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import type { WorkoutExercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -194,12 +194,12 @@ export function ExerciseAlternativeSelector({
 				{/* Action Buttons */}
 				<div className="sticky bottom-0 border-t-2 border-duo-border bg-white p-4 sm:p-6 shadow-lg">
 					<div className="flex gap-3">
-						<Button variant="white" onClick={onCancel} className="flex-1">
+						<DuoButton variant="white" onClick={onCancel} className="flex-1">
 							CANCELAR
-						</Button>
-						<Button variant="default" onClick={handleSelect} className="flex-1">
+						</DuoButton>
+						<DuoButton variant="primary" onClick={handleSelect} className="flex-1">
 							CONFIRMAR
-						</Button>
+						</DuoButton>
 					</div>
 				</div>
 			</motion.div>

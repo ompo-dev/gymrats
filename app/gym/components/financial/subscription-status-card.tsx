@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle, Crown, Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -143,7 +143,7 @@ export function SubscriptionStatusCard({
 							</div>
 						)}
 						{!subscription.cancelAtPeriodEnd && (
-							<Button
+							<DuoButton
 								onClick={onCancel}
 								disabled={isCanceling}
 								variant="outline"
@@ -151,7 +151,7 @@ export function SubscriptionStatusCard({
 								size="sm"
 							>
 								{isCanceling ? "Cancelando..." : "Cancelar Assinatura"}
-							</Button>
+							</DuoButton>
 						)}
 					</div>
 				)}

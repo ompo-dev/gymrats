@@ -3,7 +3,7 @@
 import { CheckCircle, Loader2, Search, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { DuoSelect } from "@/components/duo";
@@ -163,17 +163,17 @@ export function AddStudentModal({
 								className="pl-9"
 							/>
 						</div>
-						<Button
+						<DuoButton
 							onClick={handleSearch}
 							disabled={isSearching || email.length < 3}
-							variant="default"
+							variant="primary"
 						>
 							{isSearching ? (
 								<Loader2 className="h-4 w-4 animate-spin" />
 							) : (
 								"Buscar"
 							)}
-						</Button>
+						</DuoButton>
 					</div>
 				</div>
 
@@ -291,7 +291,7 @@ export function AddStudentModal({
 									)}
 
 									{/* Botão de confirmar */}
-									<Button
+									<DuoButton
 										onClick={handleEnroll}
 										disabled={isSubmitting}
 										className="w-full"
@@ -307,7 +307,7 @@ export function AddStudentModal({
 												Confirmar Matrícula
 											</>
 										)}
-									</Button>
+									</DuoButton>
 								</>
 							)}
 					</div>

@@ -3,7 +3,7 @@
 import { Minus, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { EquipmentSearch } from "@/components/organisms/modals/equipment-search";
 import type { EquipmentItem } from "@/lib/equipment-database";
@@ -91,14 +91,14 @@ export function Step4({ formData, setFormData }: StepProps) {
 				description="Quais equipamentos sua academia possui?"
 			>
 				<div className="space-y-5">
-					<Button
+					<DuoButton
 						onClick={() => setShowEquipmentSearch(true)}
-						variant="default"
+						variant="primary"
 						className="w-full"
 					>
 						<Plus className="mr-2 h-4 w-4" />
 						ADICIONAR EQUIPAMENTOS
-					</Button>
+					</DuoButton>
 
 					{equipmentGroups.length > 0 && (
 						<motion.div

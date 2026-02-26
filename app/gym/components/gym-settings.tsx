@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Select } from "@/components/atoms/inputs/select";
 import { Input } from "@/components/ui/input";
@@ -327,7 +327,7 @@ export function GymSettingsPage({
 							</div>
 						</div>
 						{hasChanges && (
-							<Button
+							<DuoButton
 								onClick={handleSaveProfile}
 								disabled={saving}
 								className="w-full"
@@ -337,7 +337,7 @@ export function GymSettingsPage({
 								) : (
 									"Salvar alterações"
 								)}
-							</Button>
+							</DuoButton>
 						)}
 						{saveError && (
 							<p className="text-sm font-medium text-red-600">{saveError}</p>
@@ -419,7 +419,7 @@ export function GymSettingsPage({
 						})}
 					</div>
 					{hasChanges && (
-						<Button
+						<DuoButton
 							onClick={handleSaveProfile}
 							disabled={saving}
 							className="mt-4 w-full"
@@ -429,7 +429,7 @@ export function GymSettingsPage({
 							) : (
 								"Salvar horários"
 							)}
-						</Button>
+						</DuoButton>
 					)}
 				</DuoCard>
 			</SlideIn>

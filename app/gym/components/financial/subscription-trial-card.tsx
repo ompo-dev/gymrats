@@ -1,7 +1,7 @@
 "use client";
 
 import { Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 
 interface SubscriptionTrialCardProps {
@@ -23,14 +23,14 @@ export function SubscriptionTrialCard({
 				Teste todas as funcionalidades e ofereça Premium aos seus alunos sem
 				compromisso
 			</p>
-			<Button
+			<DuoButton
 				onClick={onStartTrial}
 				disabled={isLoading}
 				className="w-full"
 				size="lg"
 			>
 				{isLoading ? "Iniciando..." : "Iniciar Trial Grátis"}
-			</Button>
+			</DuoButton>
 		</DuoCard>
 	);
 }

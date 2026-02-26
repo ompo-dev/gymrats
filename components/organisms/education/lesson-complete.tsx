@@ -1,7 +1,7 @@
 "use client";
 
 import { Star, Trophy, Zap } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface LessonCompleteProps {
@@ -87,9 +87,9 @@ export function LessonComplete({
 					</div>
 				</div>
 
-				<Button onClick={onContinue} size="lg" className="w-full">
+				<DuoButton onClick={onContinue} size="lg" variant="primary" className="w-full">
 					Continuar
-				</Button>
+				</DuoButton>
 			</div>
 		</div>
 	);

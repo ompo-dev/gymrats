@@ -1,7 +1,7 @@
 "use client";
 
 import { Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 
 interface TrialOfferProps {
@@ -24,14 +24,15 @@ export function TrialOffer({
 			<Gift className="mx-auto mb-4 h-16 w-16 text-duo-blue" />
 			<h2 className="mb-2 text-2xl font-bold text-duo-text">{title}</h2>
 			<p className="mb-6 text-sm text-duo-gray-dark">{description}</p>
-			<Button
+			<DuoButton
 				onClick={onStartTrial}
 				disabled={isLoading}
+				variant="primary"
 				className="w-full"
 				size="lg"
 			>
 				{isLoading ? "Iniciando..." : buttonText}
-			</Button>
+			</DuoButton>
 			{isLoading && (
 				<p className="mt-2 text-xs text-duo-gray-dark">
 					Aguarde, estamos configurando seu trial...

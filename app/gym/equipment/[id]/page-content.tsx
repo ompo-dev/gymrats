@@ -17,7 +17,7 @@ import Link from "next/link";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { RelativeTime } from "@/components/molecules/relative-time";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import {
 	DuoCardHeader,
@@ -50,7 +50,7 @@ export default function EquipmentDetailPage({
 							Equipamento não encontrado
 						</p>
 						<Link href="/gym/equipment">
-							<Button className="mt-4">Voltar para Equipamentos</Button>
+							<DuoButton className="mt-4">Voltar para Equipamentos</DuoButton>
 						</Link>
 					</DuoCard>
 				</FadeIn>
@@ -107,11 +107,11 @@ export default function EquipmentDetailPage({
 		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
 			<FadeIn>
 				<Link href="/gym/equipment">
-					<Button variant="ghost" className="mb-4 gap-2 font-bold">
+					<DuoButton variant="ghost" className="mb-4 gap-2 font-bold">
 						<ArrowLeft className="h-4 w-4" />
 						<span className="hidden sm:inline">Voltar para Equipamentos</span>
 						<span className="sm:hidden">Voltar</span>
-					</Button>
+					</DuoButton>
 				</Link>
 			</FadeIn>
 
@@ -156,21 +156,21 @@ export default function EquipmentDetailPage({
 								</p>
 							</div>
 							<div className="flex flex-col gap-2 sm:flex-row">
-								<Button className="w-full gap-2 sm:w-auto">
+								<DuoButton className="w-full gap-2 sm:w-auto">
 									<Edit className="h-4 w-4" />
 									<span className="hidden sm:inline">Editar Equipamento</span>
 									<span className="sm:hidden">Editar</span>
-								</Button>
-								<Button variant="outline" className="w-full gap-2 sm:w-auto">
+								</DuoButton>
+								<DuoButton variant="outline" className="w-full gap-2 sm:w-auto">
 									<Wrench className="h-4 w-4" />
 									<span className="hidden sm:inline">Agendar Manutenção</span>
 									<span className="sm:hidden">Manutenção</span>
-								</Button>
-								<Button variant="outline" className="w-full gap-2 sm:w-auto">
+								</DuoButton>
+								<DuoButton variant="outline" className="w-full gap-2 sm:w-auto">
 									<QrCode className="h-4 w-4" />
 									<span className="hidden sm:inline">Gerar QR Code</span>
 									<span className="sm:hidden">QR Code</span>
-								</Button>
+								</DuoButton>
 							</div>
 						</div>
 					</div>
@@ -364,7 +364,7 @@ export default function EquipmentDetailPage({
 										<p className="text-sm text-duo-gray-dark">
 											Esse equipamento ainda não teve manutenções registradas
 										</p>
-										<Button className="mt-4">Registrar Manutenção</Button>
+										<DuoButton className="mt-4">Registrar Manutenção</DuoButton>
 									</div>
 								</DuoCard>
 							)}

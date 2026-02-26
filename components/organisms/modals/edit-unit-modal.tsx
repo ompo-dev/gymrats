@@ -13,7 +13,7 @@ import { motion, Reorder } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
@@ -540,7 +540,7 @@ export function EditUnitModal() {
 									/>
 								</div>
 								<div className="flex justify-end pt-2">
-									<Button
+									<DuoButton
 										onClick={handleSaveUnit}
 										className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2"
 										style={{
@@ -551,7 +551,7 @@ export function EditUnitModal() {
 									>
 										<Save className="h-4 w-4" />
 										Salvar Alterações
-									</Button>
+									</DuoButton>
 								</div>
 							</div>
 
@@ -562,7 +562,7 @@ export function EditUnitModal() {
 										Dias de Treino
 									</h3>
 									<div className="flex items-center gap-2">
-										<Button
+										<DuoButton
 											size="sm"
 											variant="outline"
 											onClick={() => setShowWorkoutChat(true)}
@@ -577,8 +577,8 @@ export function EditUnitModal() {
 										>
 											<Sparkles className="h-4 w-4" />
 											Chat IA
-										</Button>
-										<Button
+										</DuoButton>
+										<DuoButton
 											size="sm"
 											variant="outline"
 											onClick={handleCreateWorkout}
@@ -593,7 +593,7 @@ export function EditUnitModal() {
 										>
 											<Plus className="h-4 w-4" />
 											Adicionar Dia
-										</Button>
+										</DuoButton>
 									</div>
 								</div>
 
@@ -612,7 +612,7 @@ export function EditUnitModal() {
 													className="cursor-grab active:cursor-grabbing"
 												>
 													<DuoCard
-														variant="default"
+														variant="primary"
 														className="group hover:border-duo-green/50 transition-colors bg-white"
 													>
 														<div className="flex items-center gap-4">
@@ -645,7 +645,7 @@ export function EditUnitModal() {
 																	zIndex: 10,
 																}}
 															>
-																<Button
+																<DuoButton
 																	variant="ghost"
 																	size="icon"
 																	className="text-gray-400 hover:text-duo-green hover:bg-duo-green/10"
@@ -662,8 +662,8 @@ export function EditUnitModal() {
 																	}}
 																>
 																	<Edit2 className="h-5 w-5" />
-																</Button>
-																<Button
+																</DuoButton>
+																<DuoButton
 																	variant="ghost"
 																	size="icon"
 																	className="text-gray-400 hover:text-red-500 hover:bg-red-50"
@@ -680,7 +680,7 @@ export function EditUnitModal() {
 																	}}
 																>
 																	<Trash2 className="h-5 w-5" />
-																</Button>
+																</DuoButton>
 															</div>
 														</div>
 													</DuoCard>
@@ -779,7 +779,7 @@ export function EditUnitModal() {
 
 							<div className="flex items-center justify-between px-1 mb-4">
 								<h3 className="text-lg font-bold text-gray-900">Exercícios</h3>
-								<Button
+								<DuoButton
 									size="sm"
 									onClick={handleAddExercise}
 									className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 z-10 relative"
@@ -793,7 +793,7 @@ export function EditUnitModal() {
 								>
 									<Plus className="h-4 w-4" />
 									Adicionar Exercício
-								</Button>
+								</DuoButton>
 							</div>
 
 							{exerciseItems.length > 0 ? (
@@ -811,7 +811,7 @@ export function EditUnitModal() {
 												className="cursor-grab active:cursor-grabbing"
 											>
 												<DuoCard
-													variant="default"
+													variant="primary"
 													size="md"
 													className="group hover:border-duo-green/50 transition-all bg-white"
 												>
@@ -852,7 +852,7 @@ export function EditUnitModal() {
 																zIndex: 10,
 															}}
 														>
-															<Button
+															<DuoButton
 																variant="ghost"
 																size="icon"
 																className="text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -868,7 +868,7 @@ export function EditUnitModal() {
 																}}
 															>
 																<Trash2 className="h-5 w-5" />
-															</Button>
+															</DuoButton>
 														</div>
 													</div>
 

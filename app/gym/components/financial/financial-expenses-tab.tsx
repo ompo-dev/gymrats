@@ -2,7 +2,7 @@
 
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
@@ -24,13 +24,13 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 						<Receipt className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Despesas do Mês</h2>
 					</div>
-					<Button
+					<DuoButton
 						size="sm"
-						variant="destructive"
+						variant="danger"
 						onClick={() => setIsAddModalOpen(true)}
 					>
 						<Plus className="h-4 w-4" />
-					</Button>
+					</DuoButton>
 				</DuoCardHeader>
 				<div className="space-y-3">
 				{expenses.length === 0 && (

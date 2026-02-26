@@ -3,7 +3,7 @@
 import { ArrowLeft, BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
@@ -96,9 +96,9 @@ export function LessonDetail({
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<Button onClick={onComplete} className="w-full">
+				<DuoButton onClick={onComplete} variant="primary" className="w-full">
 					{lesson.quiz ? "FAZER QUIZ" : "CONCLUIR LIÇÃO"}
-				</Button>
+				</DuoButton>
 			</SlideIn>
 		</div>
 	);

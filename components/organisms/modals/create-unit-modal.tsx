@@ -4,7 +4,7 @@ import { Dumbbell, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -193,17 +193,18 @@ export function CreateUnitModal({
 						className="border-t-2 border-gray-300 p-6 shrink-0"
 					>
 						<div className="flex gap-3">
-							<Button
+							<DuoButton
 								onClick={onClose}
 								variant="outline"
 								className="flex-1"
 								disabled={isCreating}
 							>
 								Cancelar
-							</Button>
-							<Button
+							</DuoButton>
+							<DuoButton
 								onClick={handleCreateUnit}
-								className="flex-1 bg-duo-green hover:bg-duo-green-dark"
+								variant="primary"
+								className="flex-1"
 								disabled={!canCreate}
 							>
 								{isCreating ? (
@@ -214,7 +215,7 @@ export function CreateUnitModal({
 								) : (
 									"CRIAR PLANO"
 								)}
-							</Button>
+							</DuoButton>
 						</div>
 					</motion.div>
 				</motion.div>

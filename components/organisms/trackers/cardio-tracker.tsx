@@ -13,7 +13,7 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import {
@@ -275,10 +275,10 @@ export function CardioTracker() {
 
 			<SlideIn delay={0.6}>
 				<div className="flex gap-3">
-					<Button
+					<DuoButton
 						onClick={() => setIsRunning(!isRunning)}
 						className="flex-1"
-						variant="default"
+						variant="primary"
 					>
 						{isRunning ? (
 							<>
@@ -291,8 +291,8 @@ export function CardioTracker() {
 								INICIAR
 							</>
 						)}
-					</Button>
-					<Button
+					</DuoButton>
+					<DuoButton
 						onClick={() => {
 							setIsRunning(false);
 							setDuration(0);
@@ -303,7 +303,7 @@ export function CardioTracker() {
 						size="icon-lg"
 					>
 						<Square className="h-5 w-5" />
-					</Button>
+					</DuoButton>
 				</div>
 			</SlideIn>
 

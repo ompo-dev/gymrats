@@ -1,7 +1,7 @@
 "use client";
 
 import { Gift, Plus } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoCardHeader } from "@/components/duo";
 import type { Coupon } from "@/lib/types";
@@ -19,9 +19,9 @@ export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 					<Gift className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Cupons Ativos</h2>
 				</div>
-				<Button size="sm">
+				<DuoButton size="sm">
 					<Plus className="h-4 w-4" />
-				</Button>
+				</DuoButton>
 			</DuoCardHeader>
 			<div className="space-y-3">
 				{coupons.length === 0 && (

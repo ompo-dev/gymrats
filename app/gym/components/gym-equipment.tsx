@@ -16,7 +16,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { DuoSelect } from "@/components/duo";
@@ -169,13 +169,13 @@ export function GymEquipmentPage({
 							{filteredEquipment.length !== 1 ? "s" : ""}
 						</p>
 					</div>
-					<Button
+					<DuoButton
 						onClick={() => setIsAddModalOpen(true)}
 						className="flex items-center gap-2"
 					>
 						<Plus className="h-5 w-5" />
 						Novo Equipamento
-					</Button>
+					</DuoButton>
 				</div>
 			</FadeIn>
 

@@ -1,7 +1,7 @@
 import { Check, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import type { Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { DuoCard } from "@/components/duo";
@@ -115,7 +115,7 @@ export function MealCard({
 								title="Adicionar alimento"
 							>
 								<Plus className="h-4 w-4" />
-							</Button>
+							</DuoButton>
 						)}
 						{!meal.completed ? (
 							<button
@@ -239,8 +239,8 @@ export function MealCard({
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.1, duration: 0.2 }}
 								>
-									<Button
-										variant="destructive"
+									<DuoButton
+										variant="danger"
 										className="w-full"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -249,7 +249,7 @@ export function MealCard({
 									>
 										<Trash2 className="h-4 w-4" />
 										Excluir Refeição
-									</Button>
+									</DuoButton>
 								</motion.div>
 							</div>
 						</motion.div>

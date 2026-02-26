@@ -2,7 +2,7 @@
 
 import { Loader2, Receipt } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import {
 	Dialog,
 	DialogContent,
@@ -167,16 +167,16 @@ export function AddExpenseModal({
 						<p className="text-sm text-red-600">{error}</p>
 					)}
 					<DialogFooter>
-						<Button type="button" variant="outline" onClick={onClose}>
+						<DuoButton type="button" variant="outline" onClick={onClose}>
 							Cancelar
-						</Button>
-						<Button type="submit" disabled={saving}>
+						</DuoButton>
+						<DuoButton type="submit" disabled={saving}>
 							{saving ? (
 								<Loader2 className="h-4 w-4 animate-spin" />
 							) : (
 								"Registrar"
 							)}
-						</Button>
+						</DuoButton>
 					</DialogFooter>
 				</form>
 			</DialogContent>

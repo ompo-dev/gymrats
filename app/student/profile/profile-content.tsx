@@ -18,7 +18,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { HistoryCard } from "@/components/ui/history-card";
 import { ProfileHeader } from "@/components/ui/profile-header";
@@ -434,9 +434,9 @@ export function ProfilePageContent() {
 					},
 				]}
 				quickStatsButtons={
-					<Button
+					<DuoButton
 						onClick={handleOpenWeightModal}
-						variant="light-blue"
+						variant="primary"
 						className="w-full h-auto p-3 text-center"
 					>
 						<div className="flex items-center justify-center gap-1 flex-col">
@@ -452,7 +452,7 @@ export function ProfilePageContent() {
 							</div>
 							<div className="text-xs font-semibold">kg Atual</div>
 						</div>
-					</Button>
+					</DuoButton>
 				}
 			/>
 
@@ -574,14 +574,14 @@ export function ProfilePageContent() {
 							Registre seu peso para acompanhar sua evolução e ver seu progresso
 							ao longo do tempo.
 						</p>
-						<Button
+						<DuoButton
 							onClick={handleOpenWeightModal}
-							variant="light-blue"
+							variant="primary"
 							className="w-full max-w-xs"
 						>
 							<Edit className="h-4 w-4 mr-2" />
 							Registrar Peso Inicial
-						</Button>
+						</DuoButton>
 					</motion.div>
 				)}
 			</DuoCard>
@@ -658,14 +658,14 @@ export function ProfilePageContent() {
 								Complete seu primeiro treino para ver seu histórico aqui. Vamos
 								começar com algo fácil e tranquilo!
 							</p>
-							<Button
+							<DuoButton
 								onClick={() => router.push(firstWorkoutUrl)}
-								variant="light-blue"
+								variant="primary"
 								className="w-full max-w-xs"
 							>
 								<Play className="h-4 w-4 mr-2" />
 								Primeiro Treino
-							</Button>
+							</DuoButton>
 						</motion.div>
 					)}
 				</DuoCard>
@@ -704,14 +704,14 @@ export function ProfilePageContent() {
 								Complete treinos e quebre seus próprios recordes. Cada treino é
 								uma oportunidade de superar seus limites!
 							</p>
-							<Button
+							<DuoButton
 								onClick={() => router.push(firstWorkoutUrl)}
-								variant="light-blue"
+								variant="primary"
 								className="w-full max-w-xs"
 							>
 								<Play className="h-4 w-4 mr-2" />
 								Primeiro Treino
-							</Button>
+							</DuoButton>
 						</motion.div>
 					)}
 				</DuoCard>
@@ -899,14 +899,14 @@ export function ProfilePageContent() {
 									className="border-t-2 border-gray-300 p-6"
 								>
 									<div className="flex gap-3">
-										<Button
+										<DuoButton
 											onClick={weightModal.close}
 											variant="white"
 											className="flex-1"
 										>
 											Cancelar
-										</Button>
-										<Button
+										</DuoButton>
+										<DuoButton
 											onClick={handleSaveWeight}
 											disabled={
 												!newWeight || Number.isNaN(parseFloat(newWeight))
@@ -914,7 +914,7 @@ export function ProfilePageContent() {
 											className="flex-1"
 										>
 											Salvar
-										</Button>
+										</DuoButton>
 									</div>
 								</motion.div>
 							</AnimatePresence>

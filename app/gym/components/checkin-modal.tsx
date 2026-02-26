@@ -3,7 +3,7 @@
 import { CheckCircle, Loader2, LogIn, Search, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { useGym } from "@/hooks/use-gym";
@@ -194,7 +194,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 										{member.name}
 									</p>
 								</div>
-								<Button
+								<DuoButton
 									size="sm"
 									onClick={() => handleCheckIn(member.id, member.name)}
 									disabled={checking === member.id || !!success}
@@ -208,7 +208,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 											Check-in
 										</>
 									)}
-								</Button>
+								</DuoButton>
 							</div>
 						</DuoCard>
 					))}

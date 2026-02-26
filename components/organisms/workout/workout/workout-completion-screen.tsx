@@ -3,7 +3,7 @@
 import { ArrowRight, CheckCircle2, Timer, Weight, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import type { ExerciseLog, WorkoutSession } from "@/lib/types";
 
 interface WorkoutCompletionScreenProps {
@@ -245,21 +245,21 @@ export function WorkoutCompletionScreen({
 						transition={{ delay: 0.6, duration: 0.4 }}
 						className="flex w-full max-w-md gap-2 sm:gap-3 mb-4 sm:mb-0"
 					>
-						<Button
+						<DuoButton
 							variant="white"
 							className="flex-1 text-sm sm:text-base"
 							onClick={onRepeat}
 						>
 							FAZER NOVAMENTE
-						</Button>
-						<Button
-							variant="default"
+						</DuoButton>
+						<DuoButton
+							variant="primary"
 							className="flex-1 text-sm sm:text-base"
 							onClick={onClose}
 						>
 							CONTINUAR
 							<ArrowRight className="h-5 w-5" />
-						</Button>
+						</DuoButton>
 					</motion.div>
 				</motion.div>
 			</motion.div>

@@ -4,7 +4,7 @@ import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import { muscleDatabase } from "@/lib/educational-data";
@@ -679,11 +679,11 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 								</AnimatePresence>
 							</div>
 						</motion.div>
-						<Button onClick={handleAddExercises} className="w-full">
+						<DuoButton onClick={handleAddExercises} variant="primary" className="w-full">
 							<Plus className="h-5 w-5" />
 							ADICIONAR {selectedExerciseIds.length} EXERCÍCIO
 							{selectedExerciseIds.length !== 1 ? "S" : ""}
-						</Button>
+						</DuoButton>
 					</motion.div>
 				)}
 			</AnimatePresence>

@@ -2,7 +2,7 @@
 
 import { Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 
 interface DeleteConfirmationModalProps {
 	isOpen: boolean;
@@ -51,16 +51,16 @@ export function DeleteConfirmationModal({
 							<p className="text-sm text-gray-500 mt-1">{message}</p>
 						</div>
 						<div className="flex gap-3">
-							<Button
+							<DuoButton
 								variant="outline"
 								className="flex-1 font-bold"
 								onClick={onCancel}
 							>
 								Cancelar
-							</Button>
-							<Button onClick={onConfirm} variant="destructive">
+							</DuoButton>
+							<DuoButton onClick={onConfirm} variant="danger">
 								Remover
-							</Button>
+							</DuoButton>
 						</div>
 					</motion.div>
 				</motion.div>

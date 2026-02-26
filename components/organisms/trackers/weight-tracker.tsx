@@ -3,7 +3,7 @@
 import { Check, Plus, TrendingUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoStatCard } from "@/components/duo";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -358,16 +358,16 @@ export function WeightTracker({
 									</div>
 									<div className="flex items-center gap-2">
 										{sets.length > 1 && (
-											<Button
+											<DuoButton
 												type="button"
-												variant="destructive"
+												variant="danger"
 												size="icon-sm"
 												onClick={() => handleRemoveSet(index)}
 												title="Remover série"
 												className="p-0"
 											>
 												<X className="h-4 w-4" />
-											</Button>
+											</DuoButton>
 										)}
 									</div>
 								</div>
@@ -422,14 +422,15 @@ export function WeightTracker({
 												animate={{ opacity: 1, scale: 1 }}
 												className="col-span-2"
 											>
-												<Button
+												<DuoButton
 													type="button"
 													onClick={() => handleSetComplete(index)}
+													variant="primary"
 													className="flex w-full items-center justify-center gap-2 text-[13px]"
 												>
 													<Check className="h-5 w-5" />
 													COMPLETAR SÉRIE
-												</Button>
+												</DuoButton>
 											</motion.div>
 										)}
 										{isEmpty && (
@@ -455,7 +456,7 @@ export function WeightTracker({
 
 				{/* Botão para adicionar nova série */}
 				<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-					<Button
+					<DuoButton
 						type="button"
 						variant="outline"
 						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-white py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
@@ -463,7 +464,7 @@ export function WeightTracker({
 					>
 						<Plus className="h-5 w-5" />
 						ADICIONAR SÉRIE
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</div>
 
@@ -510,13 +511,14 @@ export function WeightTracker({
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
 				>
-					<Button
+					<DuoButton
 						type="button"
 						onClick={handleFinish}
+						variant="primary"
 						className="w-full text-lg"
 					>
 						FINALIZAR EXERCÍCIO
-					</Button>
+					</DuoButton>
 				</motion.div>
 			)}
 		</div>

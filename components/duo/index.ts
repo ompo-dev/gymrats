@@ -1,6 +1,6 @@
 // Atoms
 export { DuoBadge } from "./atoms/duo-badge";
-export { DuoButton } from "./atoms/duo-button";
+export { DuoButton, duoButtonVariants } from "./atoms/duo-button";
 export { DuoIcon } from "./atoms/duo-icon";
 export { DuoProgress } from "./atoms/duo-progress";
 export { DuoText } from "./atoms/duo-text";

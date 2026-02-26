@@ -3,7 +3,7 @@
 import { ArrowRight, Dumbbell, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import type { Unit } from "@/lib/types";
 
@@ -70,15 +70,15 @@ export function ContinueWorkoutCard({
 					<p className="text-sm text-gray-600">
 						Seus treinos personalizados estão prontos. Comece agora!
 					</p>
-					<Button
+					<DuoButton
 						onClick={() => router.push("/student?tab=learn")}
-						variant="default"
+						variant="primary"
 						className="w-fit"
 					>
 						<Play className="h-4 w-4 mr-2" />
 						Ver Treinos
 						<ArrowRight className="h-4 w-4 ml-2" />
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		);
@@ -118,15 +118,15 @@ export function ContinueWorkoutCard({
 							)}
 						</div>
 					</div>
-					<Button
+					<DuoButton
 						onClick={() => router.push(workoutUrl)}
-						variant="default"
+						variant="primary"
 						className="w-full"
 					>
 						<Play className="h-4 w-4 mr-2" />
 						Continuar Treino
 						<ArrowRight className="h-4 w-4 ml-2" />
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		);
@@ -164,15 +164,15 @@ export function ContinueWorkoutCard({
 							</p>
 						</div>
 					</div>
-					<Button
+					<DuoButton
 						onClick={() => router.push("/student?tab=learn")}
-						variant="default"
+						variant="primary"
 						className="w-full"
 					>
 						<Play className="h-4 w-4 mr-2" />
 						Ver Próximo Treino
 						<ArrowRight className="h-4 w-4 ml-2" />
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</DuoCard>
 		);

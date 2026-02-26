@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import {
 	DuoAchievementCard,
 	DuoCard,
@@ -133,14 +133,14 @@ export function NutritionTracker({
 							A água é essencial para seu desempenho e recuperação. Comece
 							registrando seu primeiro copo de água.
 						</p>
-						<Button
+						<DuoButton
 							onClick={() => handleToggleWaterGlass(0)}
-							variant="default"
+							variant="primary"
 							className="w-fit"
 						>
 							<Droplets className="h-4 w-4 mr-2" />
 							Registrar Primeiro Copo
-						</Button>
+						</DuoButton>
 					</motion.div>
 				</DuoCard>
 			) : (
@@ -158,10 +158,10 @@ export function NutritionTracker({
 						<UtensilsCrossed className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
 						<h2 className="font-bold text-[var(--duo-fg)]">Refeições de Hoje</h2>
 					</div>
-					<Button variant="white" size="sm" onClick={onAddMeal}>
+					<DuoButton variant="white" size="sm" onClick={onAddMeal}>
 						<Plus className="h-4 w-4" />
 						Adicionar
-					</Button>
+					</DuoButton>
 				</DuoCardHeader>
 				{nutrition.meals.length === 0 ? (
 					<motion.div
@@ -178,10 +178,10 @@ export function NutritionTracker({
 							Acompanhe sua nutrição diária para alcançar seus objetivos.
 							Adicione sua primeira refeição e veja sua evolução.
 						</p>
-						<Button onClick={onAddMeal} variant="default" className="w-fit">
+						<DuoButton onClick={onAddMeal} variant="primary" className="w-fit">
 							<Plus className="h-4 w-4 mr-2" />
 							Adicionar Primeira Refeição
-						</Button>
+						</DuoButton>
 					</motion.div>
 				) : (
 					<AnimatePresence mode="popLayout">

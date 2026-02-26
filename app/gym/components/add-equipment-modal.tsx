@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import {
 	Dialog,
 	DialogContent,
@@ -225,13 +225,13 @@ export function AddEquipmentModal({
 				</div>
 
 				<DialogFooter>
-					<Button variant="outline" onClick={onClose} disabled={saving}>
+					<DuoButton variant="outline" onClick={onClose} disabled={saving}>
 						Cancelar
-					</Button>
-					<Button onClick={handleSubmit} disabled={saving}>
+					</DuoButton>
+					<DuoButton onClick={handleSubmit} disabled={saving}>
 						{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 						{equipmentToEdit ? "Salvar Alterações" : "Adicionar"}
-					</Button>
+					</DuoButton>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

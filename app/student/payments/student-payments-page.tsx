@@ -14,7 +14,7 @@ import {
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { createAbacateBilling } from "@/lib/actions/abacate-pay";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import {
 	DuoCardHeader,
@@ -621,7 +621,7 @@ export function StudentPaymentsPage({
 																	</div>
 																</DuoCard>
 															))}
-															<Button
+															<DuoButton
 																variant="ghost"
 																size="sm"
 																className="w-full sm:w-auto"
@@ -631,11 +631,11 @@ export function StudentPaymentsPage({
 																}}
 															>
 																Cancelar
-															</Button>
+															</DuoButton>
 														</div>
 													) : (
 														<div className="flex flex-col gap-2 sm:flex-row sm:gap-2">
-															<Button
+															<DuoButton
 																variant="outline"
 																size="sm"
 																className="w-full sm:flex-1 justify-center"
@@ -645,8 +645,8 @@ export function StudentPaymentsPage({
 															>
 																<RefreshCw className="h-4 w-4 mr-1 shrink-0" />
 																Trocar plano
-															</Button>
-															<Button
+															</DuoButton>
+															<DuoButton
 																variant="outline"
 																size="sm"
 																className="w-full sm:flex-1 justify-center border-duo-red text-duo-red hover:bg-duo-red/10"
@@ -656,7 +656,7 @@ export function StudentPaymentsPage({
 															>
 																<Trash2 className="h-4 w-4 mr-1 shrink-0" />
 																Cancelar plano
-															</Button>
+															</DuoButton>
 														</div>
 													)}
 												</div>
@@ -781,9 +781,9 @@ export function StudentPaymentsPage({
 											</div>
 
 											{payment.status === "pending" && (
-												<Button className="w-full mt-3" size="sm">
+												<DuoButton className="w-full mt-3" size="sm">
 													Pagar agora
-												</Button>
+												</DuoButton>
 											)}
 										</div>
 									</div>

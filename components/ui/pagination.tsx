@@ -4,7 +4,7 @@ import {
 	MoreHorizontalIcon,
 } from "lucide-react";
 import type * as React from "react";
-import { type Button, buttonVariants } from "@/components/ui/button";
+import { DuoButton, duoButtonVariants } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
@@ -37,7 +37,7 @@ function PaginationItem({ ...props }: React.ComponentProps<"li">) {
 
 type PaginationLinkProps = {
 	isActive?: boolean;
-} & Pick<React.ComponentProps<typeof Button>, "size"> &
+} & Pick<React.ComponentProps<typeof DuoButton>, "size"> &
 	React.ComponentProps<"a">;
 
 function PaginationLink({
@@ -52,7 +52,7 @@ function PaginationLink({
 			data-slot="pagination-link"
 			data-active={isActive}
 			className={cn(
-				buttonVariants({
+				duoButtonVariants({
 					variant: isActive ? "outline" : "ghost",
 					size,
 				}),

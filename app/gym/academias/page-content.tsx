@@ -9,7 +9,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import {
 	Dialog,
 	DialogContent,
@@ -207,14 +207,14 @@ export function AcademiasPageContent() {
 
 								<div>
 									{activeGymId !== gym.id ? (
-										<Button
+										<DuoButton
 											onClick={() => handleSelectGym(gym.id)}
 											variant="outline"
 											size="sm"
 											className="border-green-500 text-green-600 hover:bg-green-50"
 										>
 											Selecionar
-										</Button>
+										</DuoButton>
 									) : (
 										<div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
 											<Check className="w-5 h-5 text-green-600" />
@@ -335,7 +335,7 @@ export function AcademiasPageContent() {
 						)}
 
 						<div className="flex gap-2">
-							<Button
+							<DuoButton
 								type="button"
 								variant="outline"
 								onClick={() => setShowCreateDialog(false)}
@@ -343,14 +343,14 @@ export function AcademiasPageContent() {
 								className="flex-1"
 							>
 								Cancelar
-							</Button>
-							<Button
+							</DuoButton>
+							<DuoButton
 								type="submit"
 								disabled={isCreating}
 								className="flex-1 bg-green-600 hover:bg-green-700"
 							>
 								{isCreating ? "Criando..." : "Criar Academia"}
-							</Button>
+							</DuoButton>
 						</div>
 					</form>
 				</DialogContent>

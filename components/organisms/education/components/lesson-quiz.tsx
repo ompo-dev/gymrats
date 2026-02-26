@@ -4,7 +4,7 @@ import { BookOpen, CheckCircle, XCircle } from "lucide-react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
@@ -230,13 +230,14 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 
 			{quizScore === null ? (
 				<SlideIn delay={0.2}>
-					<Button
+					<DuoButton
 						onClick={handleSubmitQuiz}
 						disabled={quizAnswers.length < lesson.quiz.questions.length}
+						variant="primary"
 						className="w-full"
 					>
 						ENVIAR RESPOSTAS
-					</Button>
+					</DuoButton>
 				</SlideIn>
 			) : (
 				<SlideIn delay={0.2}>
@@ -256,7 +257,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 								? "Parabéns! Você passou!"
 								: "Continue estudando e tente novamente"}
 						</div>
-						<Button
+						<DuoButton
 							onClick={() => {
 								if (quizScore >= 70) {
 									onComplete(true);
@@ -267,10 +268,11 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 									onRetry();
 								}
 							}}
+							variant="primary"
 							className="w-full"
 						>
 							{quizScore >= 70 ? "CONTINUAR" : "TENTAR NOVAMENTE"}
-						</Button>
+						</DuoButton>
 					</DuoCard>
 				</SlideIn>
 			)}

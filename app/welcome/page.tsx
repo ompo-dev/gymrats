@@ -11,7 +11,7 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
 import { authClient } from "@/lib/auth-client";
@@ -493,10 +493,10 @@ function WelcomePageContent() {
 						transition={{ delay: 0.6, duration: 0.6 }}
 						className="mb-6"
 					>
-						<Button
+						<DuoButton
 							onClick={handleGoogleLogin}
 							disabled={isLoading}
-							variant="default"
+							variant="primary"
 							size="lg"
 							className="w-full flex items-center justify-center gap-3"
 						>
@@ -511,7 +511,7 @@ function WelcomePageContent() {
 									<span>Entrar com Google</span>
 								</>
 							)}
-						</Button>
+						</DuoButton>
 					</motion.div>
 
 					{/* Footer */}

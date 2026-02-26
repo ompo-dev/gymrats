@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Play, QrCode } from "lucide-react";
 import { ModalContainer } from "@/components/organisms/modals/modal-container";
 import { ModalHeader } from "@/components/organisms/modals/modal-header";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
 
@@ -171,7 +171,7 @@ export function StudentMembershipPixModal({
 						<p className="text-2xl font-bold text-duo-green">R$ {valueReais}</p>
 					</div>
 
-					<Button
+					<DuoButton
 						onClick={copyCode}
 						variant="outline"
 						className="w-full"
@@ -179,9 +179,9 @@ export function StudentMembershipPixModal({
 					>
 						<Copy className="mr-2 h-4 w-4" />
 						Copiar código PIX
-					</Button>
+					</DuoButton>
 
-					<Button
+					<DuoButton
 						onClick={simulatePayment}
 						disabled={isSimulating}
 						variant="outline"
@@ -190,7 +190,7 @@ export function StudentMembershipPixModal({
 					>
 						<Play className="mr-2 h-4 w-4" />
 						{isSimulating ? "Simulando..." : "Simular pagamento"}
-					</Button>
+					</DuoButton>
 				</div>
 
 				<p className="text-center text-xs text-duo-gray-dark">

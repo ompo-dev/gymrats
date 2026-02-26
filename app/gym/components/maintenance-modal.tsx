@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { DuoSelect } from "@/components/duo";
@@ -89,9 +89,9 @@ export function MaintenanceModal({
 					<h2 className="text-xl font-bold text-duo-text">
 						Registrar Manutenção
 					</h2>
-					<Button variant="ghost" size="sm" onClick={onClose}>
+					<DuoButton variant="ghost" size="sm" onClick={onClose}>
 						✕
-					</Button>
+					</DuoButton>
 				</div>
 
 				<div className="space-y-3">
@@ -159,17 +159,17 @@ export function MaintenanceModal({
 				</div>
 
 				<div className="mt-4 flex gap-2">
-					<Button
+					<DuoButton
 						variant="outline"
 						className="flex-1"
 						onClick={onClose}
 						disabled={saving}
 					>
 						Cancelar
-					</Button>
-					<Button className="flex-1" onClick={handleSubmit} disabled={saving}>
+					</DuoButton>
+					<DuoButton className="flex-1" onClick={handleSubmit} disabled={saving}>
 						{saving ? "Salvar" : "Registrar"}
-					</Button>
+					</DuoButton>
 				</div>
 			</DuoCard>
 		</div>

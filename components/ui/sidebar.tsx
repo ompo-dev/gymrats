@@ -4,7 +4,7 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -256,11 +256,11 @@ function SidebarTrigger({
 	className,
 	onClick,
 	...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof DuoButton>) {
 	const { toggleSidebar } = useSidebar();
 
 	return (
-		<Button
+		<DuoButton
 			data-sidebar="trigger"
 			data-slot="sidebar-trigger"
 			variant="ghost"
@@ -274,7 +274,7 @@ function SidebarTrigger({
 		>
 			<PanelLeftIcon />
 			<span className="sr-only">Toggle Sidebar</span>
-		</Button>
+		</DuoButton>
 	);
 }
 

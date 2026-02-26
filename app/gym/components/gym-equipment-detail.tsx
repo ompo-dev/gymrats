@@ -17,7 +17,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import {
@@ -51,9 +51,9 @@ export function GymEquipmentDetail({
 					<p className="text-xl font-bold text-duo-gray-dark">
 						Equipamento não encontrado
 					</p>
-					<Button onClick={onBack} className="mt-4">
+					<DuoButton onClick={onBack} className="mt-4">
 						Voltar para Equipamentos
-					</Button>
+					</DuoButton>
 				</DuoCard>
 			</div>
 		);
@@ -113,11 +113,11 @@ export function GymEquipmentDetail({
 	return (
 		<div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-4 sm:px-0">
 			<FadeIn>
-				<Button variant="ghost" onClick={onBack} className="gap-2 font-bold">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
 					<ArrowLeft className="h-4 w-4" />
 					<span className="hidden sm:inline">Voltar para Equipamentos</span>
 					<span className="sm:hidden">Voltar</span>
-				</Button>
+				</DuoButton>
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
@@ -161,15 +161,15 @@ export function GymEquipmentDetail({
 								</p>
 							</div>
 							<div className="flex flex-col sm:flex-row gap-2">
-								<Button 
+								<DuoButton 
 									className="w-full sm:w-auto"
 									onClick={() => setIsEditModalOpen(true)}
 								>
 									<Edit className="h-4 w-4" />
 									<span className="hidden sm:inline">Editar Equipamento</span>
 									<span className="sm:hidden">Editar</span>
-								</Button>
-								<Button
+								</DuoButton>
+								<DuoButton
 									variant="outline"
 									className="w-full sm:w-auto"
 									onClick={() => setIsMaintenanceModalOpen(true)}
@@ -177,12 +177,12 @@ export function GymEquipmentDetail({
 									<Wrench className="h-4 w-4" />
 									<span className="hidden sm:inline">Registrar Manutenção</span>
 									<span className="sm:hidden">Manutenção</span>
-								</Button>
-								<Button variant="outline" className="w-full sm:w-auto">
+								</DuoButton>
+								<DuoButton variant="outline" className="w-full sm:w-auto">
 									<QrCode className="h-4 w-4" />
 									<span className="hidden sm:inline">Gerar QR Code</span>
 									<span className="sm:hidden">QR Code</span>
-								</Button>
+								</DuoButton>
 							</div>
 						</div>
 					</div>
@@ -452,7 +452,7 @@ export function GymEquipmentDetail({
 								<p className="text-sm text-duo-gray-dark">
 									Esse equipamento ainda não teve manutenções registradas
 								</p>
-								<Button className="mt-4">Registrar Manutenção</Button>
+								<DuoButton className="mt-4">Registrar Manutenção</DuoButton>
 							</DuoCard>
 						)}
 					</DuoCard>

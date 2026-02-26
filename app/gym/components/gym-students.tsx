@@ -7,7 +7,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { DuoSelect } from "@/components/duo";
@@ -158,10 +158,10 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							{filteredStudents.length !== 1 ? "s" : ""}
 						</p>
 					</div>
-					<Button onClick={() => setIsModalOpen(true)}>
+					<DuoButton onClick={() => setIsModalOpen(true)}>
 						<UserPlus className="h-5 w-5" />
 						Novo Aluno
-					</Button>
+					</DuoButton>
 				</div>
 			</FadeIn>
 

@@ -1,7 +1,7 @@
 import { ChevronDown, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import type { MealFoodItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -112,8 +112,8 @@ export function FoodItemCard({
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: 0.15, duration: 0.2 }}
 									>
-										<Button
-											variant="destructive"
+										<DuoButton
+											variant="danger"
 											size="sm"
 											className="w-full"
 											onClick={(e) => {
@@ -123,7 +123,7 @@ export function FoodItemCard({
 										>
 											<Trash2 className="h-3.5 w-3.5" />
 											Excluir Alimento
-										</Button>
+										</DuoButton>
 									</motion.div>
 								)}
 							</div>

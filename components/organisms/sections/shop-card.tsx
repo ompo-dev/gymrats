@@ -1,7 +1,7 @@
 "use client";
 
 import { Dumbbell, Flame, ShoppingBag, Zap } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoCardHeader } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
@@ -39,15 +39,15 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 							<p className="text-xs text-duo-gray-dark">1 dia de proteção</p>
 						</div>
 					</div>
-					<Button
-						variant="light-blue"
+					<DuoButton
+						variant="secondary"
 						size="sm"
 						className="h-auto gap-1.5 px-3 py-1.5 text-xs"
 						disabled={currentXP < 200}
 					>
 						<Zap className="h-3 w-3" />
 						200
-					</Button>
+					</DuoButton>
 				</DuoCard>
 
 				<DuoCard
@@ -66,15 +66,15 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 							<p className="text-xs text-duo-gray-dark">Gerado por IA</p>
 						</div>
 					</div>
-					<Button
-						variant="light-blue"
+					<DuoButton
+						variant="secondary"
 						size="sm"
 						className="h-auto gap-1.5 px-3 py-1.5 text-xs"
 						disabled={currentXP < 500}
 					>
 						<Zap className="h-3 w-3" />
 						500
-					</Button>
+					</DuoButton>
 				</DuoCard>
 			</div>
 		</DuoCard>

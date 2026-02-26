@@ -23,7 +23,7 @@ import Link from "next/link";
 import { use, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import {
 	DuoCardHeader,
@@ -60,7 +60,7 @@ export default function StudentDetailPage({
 							Aluno não encontrado
 						</p>
 						<Link href="/gym/students">
-							<Button className="mt-4">Voltar para Alunos</Button>
+							<DuoButton className="mt-4">Voltar para Alunos</DuoButton>
 						</Link>
 					</DuoCard>
 				</FadeIn>
@@ -87,10 +87,10 @@ export default function StudentDetailPage({
 		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
 			<FadeIn>
 				<Link href="/gym/students">
-					<Button variant="ghost" className="mb-4 gap-2 font-bold">
+					<DuoButton variant="ghost" className="mb-4 gap-2 font-bold">
 						<ArrowLeft className="h-4 w-4" />
 						Voltar para Alunos
-					</Button>
+					</DuoButton>
 				</Link>
 			</FadeIn>
 
@@ -141,18 +141,18 @@ export default function StudentDetailPage({
 								</div>
 							</div>
 							<div className="flex flex-wrap gap-2">
-								<Button className="gap-2">
+								<DuoButton className="gap-2">
 									<Edit className="h-4 w-4" />
 									Editar Perfil
-								</Button>
-								<Button variant="outline" className="gap-2">
+								</DuoButton>
+								<DuoButton variant="outline" className="gap-2">
 									<Dumbbell className="h-4 w-4" />
 									Atribuir Treino
-								</Button>
-								<Button variant="outline" className="gap-2">
+								</DuoButton>
+								<DuoButton variant="outline" className="gap-2">
 									<Apple className="h-4 w-4" />
 									Atribuir Dieta
-								</Button>
+								</DuoButton>
 							</div>
 						</div>
 					</div>
@@ -543,10 +543,10 @@ export default function StudentDetailPage({
 												<p className="text-2xl font-bold text-duo-blue">
 													R$ {payment.amount.toFixed(2)}
 												</p>
-												<Button
+												<DuoButton
 													size="sm"
 													variant={
-														payment.status === "paid" ? "secondary" : "default"
+														payment.status === "paid" ? "outline" : "primary"
 													}
 													onClick={() => togglePaymentStatus(payment.id)}
 												>
@@ -561,7 +561,7 @@ export default function StudentDetailPage({
 															Marcar como Pago
 														</>
 													)}
-												</Button>
+												</DuoButton>
 											</div>
 										</div>
 									</DuoCard>

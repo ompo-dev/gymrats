@@ -3,7 +3,7 @@
 import { Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import type { EquipmentItem } from "@/lib/equipment-database";
 import { equipmentDatabase } from "@/lib/equipment-database";
@@ -258,11 +258,11 @@ export function EquipmentSearch({
 										</AnimatePresence>
 									</div>
 								</motion.div>
-								<Button onClick={handleAddEquipment} className="w-full">
+								<DuoButton onClick={handleAddEquipment} variant="primary" className="w-full">
 									<Plus className="h-5 w-5" />
 									ADICIONAR {selectedEquipmentIds.length} EQUIPAMENTO
 									{selectedEquipmentIds.length !== 1 ? "S" : ""}
-								</Button>
+								</DuoButton>
 							</motion.div>
 						)}
 					</AnimatePresence>

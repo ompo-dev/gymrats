@@ -2,7 +2,7 @@
 
 import { Check, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { DuoSelect } from "@/components/duo";
@@ -153,10 +153,10 @@ export function MembershipPlansPage({
 			<div className="flex items-center justify-between">
 				<h2 className="text-xl font-bold text-duo-text">Planos de Matrícula</h2>
 				{!isCreating && (
-					<Button onClick={() => setIsCreating(true)} className="flex gap-2">
+					<DuoButton onClick={() => setIsCreating(true)} className="flex gap-2">
 						<Plus className="h-4 w-4" />
 						Novo Plano
-					</Button>
+					</DuoButton>
 				)}
 			</div>
 
@@ -206,22 +206,22 @@ export function MembershipPlansPage({
 								</ul>
 							)}
 							<div className="mt-auto flex gap-2 pt-2">
-								<Button
+								<DuoButton
 									size="sm"
 									variant="outline"
 									className="flex-1"
 									onClick={() => startEditing(plan)}
 								>
 									Editar
-								</Button>
-								<Button
+								</DuoButton>
+								<DuoButton
 									size="sm"
 									variant="outline"
 									className="border-duo-red text-duo-red hover:bg-duo-red/10"
 									onClick={() => handleDelete(plan.id)}
 								>
 									<Trash2 className="h-4 w-4" />
-								</Button>
+								</DuoButton>
 							</div>
 						</DuoCard>
 					))}
@@ -300,16 +300,16 @@ export function MembershipPlansPage({
 						</div>
 					</div>
 					<div className="mt-6 flex gap-2">
-						<Button variant="outline" className="flex-1" onClick={resetForm}>
+						<DuoButton variant="outline" className="flex-1" onClick={resetForm}>
 							Cancelar
-						</Button>
-						<Button
+						</DuoButton>
+						<DuoButton
 							className="flex-1"
 							onClick={handleCreate}
 							disabled={saving || !form.name || !form.price}
 						>
 							{saving ? "Salvando..." : "Salvar"}
-						</Button>
+						</DuoButton>
 					</div>
 				</DuoCard>
 			)}

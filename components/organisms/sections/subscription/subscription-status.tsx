@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown, Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
@@ -222,23 +222,24 @@ export function SubscriptionStatus({
 
 						<div className="pt-3 border-t-2 border-duo-border">
 							{isCanceled ? (
-								<Button
+								<DuoButton
 									onClick={onStartTrial}
 									disabled={isLoading}
 									className="w-full"
 									size="sm"
+									variant="primary"
 								>
 									{isLoading ? "Reativando..." : "Reativar Trial"}
-								</Button>
+								</DuoButton>
 							) : (
-								<Button
+								<DuoButton
 									onClick={onCancel}
 									variant="outline"
 									className="w-full"
 									size="sm"
 								>
 									{texts.cancelTrialButton}
-								</Button>
+								</DuoButton>
 							)}
 						</div>
 					</>
@@ -280,23 +281,24 @@ export function SubscriptionStatus({
 						</div>
 						<div className="mt-3">
 							{isCanceled ? (
-								<Button
+								<DuoButton
 									onClick={onStartTrial}
 									disabled={isLoading}
 									className="w-full"
 									size="sm"
+									variant="primary"
 								>
 									{isLoading ? "Reativando..." : "Reativar Assinatura"}
-								</Button>
+								</DuoButton>
 							) : (
-								<Button
+								<DuoButton
 									onClick={onCancel}
 									variant="outline"
 									className="w-full"
 									size="sm"
 								>
 									{texts.cancelSubscriptionButton}
-								</Button>
+								</DuoButton>
 							)}
 						</div>
 					</div>

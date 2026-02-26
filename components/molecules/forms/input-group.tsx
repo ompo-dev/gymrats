@@ -1,7 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -101,10 +101,10 @@ function InputGroupButton({
 	variant = "ghost",
 	size = "xs",
 	...props
-}: Omit<React.ComponentProps<typeof Button>, "size"> &
+}: Omit<React.ComponentProps<typeof DuoButton>, "size"> &
 	VariantProps<typeof inputGroupButtonVariants>) {
 	return (
-		<Button
+		<DuoButton
 			type={type}
 			data-size={size}
 			variant={variant}

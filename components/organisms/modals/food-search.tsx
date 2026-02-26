@@ -3,7 +3,7 @@
 import { Loader2, Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoInput } from "@/components/duo/molecules/duo-input";
 import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
@@ -638,7 +638,7 @@ export function FoodSearch({
 										</AnimatePresence>
 									</div>
 								</motion.div>
-								<Button onClick={handleAddFoods} className="w-full">
+								<DuoButton onClick={handleAddFoods} variant="primary" className="w-full">
 									<Plus className="h-5 w-5" />
 									{isSpecificMeal
 										? `ADICIONAR ${selectedFoodIds.length} ALIMENTO${
@@ -649,7 +649,7 @@ export function FoodSearch({
 											} EM ${selectedMealIds.size} REFEIÇÃO${
 												selectedMealIds.size > 1 ? "ÕES" : ""
 											}`}
-								</Button>
+								</DuoButton>
 							</motion.div>
 						)}
 					</AnimatePresence>

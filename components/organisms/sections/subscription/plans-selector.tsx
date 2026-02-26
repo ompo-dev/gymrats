@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
@@ -209,9 +209,10 @@ export function PlansSelector({
 						<PlanFeatures features={selectedPlanData.features} />
 
 						{/* Subscribe Button */}
-						<Button
+						<DuoButton
 							onClick={onSubscribe}
 							disabled={isLoading}
+							variant="primary"
 							className="w-full mt-4"
 							size="lg"
 						>
@@ -220,7 +221,7 @@ export function PlansSelector({
 								: userType === "student" && isPremiumActive
 									? "Mudar para Plano Anual"
 									: texts.subscribeButton}
-						</Button>
+						</DuoButton>
 					</>
 				)}
 			</div>
