@@ -1,7 +1,10 @@
 "use client";
 
+import { Dumbbell } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { DuoButton } from "@/components/duo";
 import { useWorkoutExecution } from "@/hooks/use-workout-execution";
+import { useModalState } from "@/hooks/use-modal-state";
 import { useWorkoutStore } from "@/stores";
 import { ExerciseAlternativeSelector } from "../modals/exercise-alternative-selector";
 import { CardioConfigModal } from "./workout/cardio-config-modal";
@@ -37,6 +40,7 @@ export function WorkoutModal() {
 
   const { isRunning, elapsedTime, calories, heartRate, setIsRunning } = cardioState;
   const { workoutModal, weightTrackerModal, alternativeSelectorModal, cardioConfigModal } = modals;
+  const editPlanModal = useModalState("edit-plan");
 
   // View logic for Completion screen
   if (showCompletion && workout) {
@@ -68,6 +72,48 @@ export function WorkoutModal() {
           actions.setCompletedWorkoutData(null);
         }}
       />
+    );
+  }
+
+  // Estado vazio: workout existe mas não tem exercícios
+  if (workout && totalExercises === 0 && workoutModal.isOpen) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="rounded-2xl bg-duo-bg-card p-8 max-w-md mx-4 shadow-xl border border-duo-border">
+          <div className="flex flex-col items-center gap-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-duo-green/10 flex items-center justify-center">
+              <Dumbbell className="h-8 w-8 text-duo-green" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-duo-text mb-1">
+                Este dia ainda não tem exercícios
+              </h3>
+              <p className="text-sm text-duo-fg-muted">
+                Adicione exercícios para começar a treinar. Você pode editar o plano e adicionar os exercícios aqui.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <DuoButton
+                className="flex-1 bg-duo-green hover:bg-duo-green-dark text-white font-bold"
+                onClick={() => {
+                  handlers.handleClose();
+                  editPlanModal.open();
+                }}
+              >
+                <Dumbbell className="h-4 w-4 mr-2" />
+                Adicionar exercícios
+              </DuoButton>
+              <DuoButton
+                variant="outline"
+                className="flex-1"
+                onClick={handlers.handleClose}
+              >
+                Fechar
+              </DuoButton>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 

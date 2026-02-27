@@ -911,6 +911,18 @@ export function EditUnitModal({
                                   <DuoButton
                                     variant="ghost"
                                     size="icon"
+                                    className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setChatSlotId(slot.id);
+                                    }}
+                                    title="Chat IA - Editar este dia"
+                                  >
+                                    <Sparkles className="h-4 w-4" />
+                                  </DuoButton>
+                                  <DuoButton
+                                    variant="ghost"
+                                    size="icon"
                                     className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10"
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1109,21 +1121,50 @@ export function EditUnitModal({
 
               <div className="flex items-center justify-between px-1 mb-4">
                 <h3 className="text-lg font-bold text-duo-text">Exercícios</h3>
-                <DuoButton
-                  size="sm"
-                  onClick={handleAddExercise}
-                  className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 z-10 relative"
-                  style={{
-                    opacity: 1,
-                    visibility: "visible",
-                    display: "flex",
-                    pointerEvents: "auto",
-                    zIndex: 10,
-                  }}
-                >
-                  <Plus className="h-4 w-4" />
-                  Adicionar Exercício
-                </DuoButton>
+                <div className="flex items-center gap-2">
+                  {isWeeklyPlanMode && activeWorkout && weeklyPlan && (
+                    <DuoButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const slot = weeklyPlan.slots.find(
+                          (s: PlanSlotData) => s.workout?.id === activeWorkout.id
+                        );
+                        if (slot) setChatSlotId(slot.id);
+                      }}
+                      className="gap-1.5 z-10 relative"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Chat IA
+                    </DuoButton>
+                  )}
+                  {!isWeeklyPlanMode && (
+                    <DuoButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowWorkoutChat(true)}
+                      className="gap-1.5 z-10 relative"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Chat IA
+                    </DuoButton>
+                  )}
+                  <DuoButton
+                    size="sm"
+                    onClick={handleAddExercise}
+                    className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 z-10 relative"
+                    style={{
+                      opacity: 1,
+                      visibility: "visible",
+                      display: "flex",
+                      pointerEvents: "auto",
+                      zIndex: 10,
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar Exercício
+                  </DuoButton>
+                </div>
               </div>
 
               {exerciseItems.length > 0 ? (

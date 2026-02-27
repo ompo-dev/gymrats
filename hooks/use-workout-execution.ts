@@ -31,6 +31,7 @@ export function useWorkoutExecution() {
   
   // Use stable selectors for student hooks to avoid unnecessary re-renders
   const units = useStudent("units");
+  const weeklyPlan = useStudent("weeklyPlan");
   const studentActions = useStudent("actions");
   const completeStudentWorkout = studentActions?.completeWorkout;
   
@@ -86,22 +87,33 @@ export function useWorkoutExecution() {
   const cardioConfigInitialized = useRef(false);
   const lastInitializedKey = useRef<string | null>(null);
 
-  // Helper to find workout in units - memoized
-  const findWorkoutInUnits = useCallback(
+  // Helper to find workout em units OU weeklyPlan - memoized
+  const findWorkout = useCallback(
     (workoutId: string | null): WorkoutSession | null => {
-      if (!workoutId || !units || !Array.isArray(units) || units.length === 0) return null;
-      for (const unit of units) {
-        const workout = unit.workouts.find((w: WorkoutSession) => w.id === workoutId);
-        if (workout) return workout;
+      if (!workoutId) return null;
+      // 1. Buscar em units
+      if (units && Array.isArray(units) && units.length > 0) {
+        for (const unit of units) {
+          const workout = unit.workouts.find((w: WorkoutSession) => w.id === workoutId);
+          if (workout) return workout;
+        }
+      }
+      // 2. Buscar em weeklyPlan.slots
+      if (weeklyPlan?.slots && Array.isArray(weeklyPlan.slots)) {
+        for (const slot of weeklyPlan.slots) {
+          if (slot.type === "workout" && slot.workout?.id === workoutId) {
+            return slot.workout;
+          }
+        }
       }
       return null;
     },
-    [units],
+    [units, weeklyPlan],
   );
 
-  const workoutBase = useMemo(() => 
-    openWorkoutId ? findWorkoutInUnits(openWorkoutId) : null,
-  [openWorkoutId, findWorkoutInUnits]);
+  const workoutBase = useMemo(() =>
+    openWorkoutId ? findWorkout(openWorkoutId) : null,
+  [openWorkoutId, findWorkout]);
 
   // Workout derivation (Cardio injection) - MUST be memoized to avoid infinite loops
   const workout = useMemo(() => {

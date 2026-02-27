@@ -2675,7 +2675,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				// 2. Optimistic update PRIMEIRO - atualiza UI instantaneamente (não espera API!)
 				const _currentState = get();
-				let unitFound = false;
+				let found = false;
 
 				const newExercise: WorkoutExercise = {
 					id: command.id, // Usar command ID como ID temporário
@@ -2702,51 +2702,71 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				// IMPORTANTE: Este set() é executado ANTES de qualquer await!
 				// O Zustand atualiza o store instantaneamente e componentes re-renderizam IMEDIATAMENTE
 				set((state) => {
-					// IMPORTANTE: Criar NOVOS objetos para unit, workout e exercises
-					// Isso garante que o Zustand detecte mudanças profundas via shallow equality
-					// Quando state.data.units recebe um NOVO array, o Zustand detecta a mudança
-					// e todos os seletores que dependem de state.data.units são executados novamente
+					// 1. Tentar em units
 					const updatedUnits = state.data.units.map((unit) => {
-						// Procurar workout pelo ID original (pode ser temporário)
 						const workout = unit.workouts.find((w) => w.id === workoutId);
 						if (workout) {
-							unitFound = true;
+							found = true;
 							const lastExercise =
 								workout.exercises[workout.exercises.length - 1];
 							const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
 
-							// Criar NOVO objeto unit com NOVO objeto workout com NOVO array exercises
-							// Isso garante que o Zustand detecte a mudança profunda e re-renderize componentes
 							return {
-								...unit, // Copiar unit existente (cria nova referência)
+								...unit,
 								workouts: unit.workouts.map((w) =>
 									w.id === workoutId
 										? {
-												...w, // Copiar workout existente (cria nova referência)
+												...w,
 												exercises: [
-													...w.exercises, // Copiar array existente (cria novo array)
-													{ ...newExercise, order: newOrder }, // Adicionar novo exercício
+													...w.exercises,
+													{ ...newExercise, order: newOrder },
 												],
 											}
 										: w,
 								),
 							};
 						}
-						return unit; // Retornar unit inalterado (mesma referência - Zustand não detecta mudança)
+						return unit;
 					});
 
-					// IMPORTANTE: Retornar NOVO objeto data com NOVO array units
-					// Quando state.data.units muda (nova referência), o Zustand detecta via shallow equality
-					// e todos os componentes que usam seletores dependentes de state.data.units re-renderizam
+					// 2. Se não encontrou em units, tentar em weeklyPlan.slots
+					let updatedWeeklyPlan = state.data.weeklyPlan;
+					if (!found && state.data.weeklyPlan?.slots) {
+						updatedWeeklyPlan = {
+							...state.data.weeklyPlan,
+							slots: state.data.weeklyPlan.slots.map((slot) => {
+								if (slot.type !== "workout" || !slot.workout || slot.workout.id !== workoutId) {
+									return slot;
+								}
+								found = true;
+								const workout = slot.workout;
+								const lastExercise = workout.exercises[workout.exercises.length - 1];
+								const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
+
+								return {
+									...slot,
+									workout: {
+										...workout,
+										exercises: [
+											...(workout.exercises || []),
+											{ ...newExercise, order: newOrder },
+										],
+									},
+								};
+							}),
+						};
+					}
+
 					return {
 						data: {
 							...state.data,
-							units: updatedUnits, // NOVO array - Zustand detecta mudança instantaneamente
+							units: updatedUnits,
+							weeklyPlan: updatedWeeklyPlan ?? state.data.weeklyPlan,
 						},
 					};
 				});
 
-				if (!unitFound) {
+				if (!found) {
 					throw new Error("Workout não encontrado");
 				}
 
