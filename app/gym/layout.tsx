@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LoadingScreen } from "@/components/organisms/loading-screen";
+import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { getGymProfile } from "./actions";
 import { GymLayoutContent } from "./layout-content";
 
@@ -24,7 +24,7 @@ async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 export default function GymLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<Suspense fallback={<LoadingScreen.Simple variant="gym" />}>
+		<Suspense fallback={<LoadingScreenFallback variant="gym" />}>
 			<GymLayoutWrapper>{children}</GymLayoutWrapper>
 		</Suspense>
 	);

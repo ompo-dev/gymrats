@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { LoadingScreen } from "@/components/organisms/loading-screen";
+import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { getStudentProfile, getStudentProgress } from "./actions";
 import { StudentLayoutContent } from "./layout-content";
 
@@ -34,7 +34,7 @@ export default function StudentLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<Suspense fallback={<LoadingScreen.Simple variant="student" />}>
+		<Suspense fallback={<LoadingScreenFallback variant="student" />}>
 			<StudentLayoutWrapper>{children}</StudentLayoutWrapper>
 		</Suspense>
 	);
