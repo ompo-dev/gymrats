@@ -152,7 +152,7 @@ export default function GymOnboardingPage() {
 					router.push("/gym?tab=dashboard");
 				}, 1500);
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error
 					? error.message

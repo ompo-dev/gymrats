@@ -11,37 +11,45 @@ import {
 
 type AuthStrategy = "gym" | "student" | "none";
 
-interface HandlerOptions<TBody = any, TQuery = any> {
+interface HandlerOptions<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>> {
   auth?: AuthStrategy;
   schema?: {
-    body?: ZodType<TBody, any, any>;
-    query?: ZodType<TQuery, any, any>;
-    params?: ZodType<any, any, any>;
+    body?: ZodType<TBody, object, object>;
+    query?: ZodType<TQuery, object, object>;
+    params?: ZodType<Record<string, string>, object, object>;
   };
 }
 
-type SafeHandlerContext<TBody = any, TQuery = any> = {
+interface AuthUser {
+  id: string;
+  studentId?: string;
+  student?: Record<string, string | number | boolean | object | null>;
+  activeGymId?: string;
+  [key: string]: string | number | boolean | object | null | undefined;
+}
+
+type SafeHandlerContext<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>> = {
   req: NextRequest;
   body: TBody;
   query: TQuery;
   gymContext?: {
     gymId: string;
-    session: any;
-    user: any;
+    session: Record<string, string | number | boolean | object | null>;
+    user: AuthUser;
   };
   studentContext?: {
     studentId: string;
-    session: any;
-    user: any;
-    student: any;
+    session: Record<string, string | number | boolean | object | null>;
+    user: AuthUser;
+    student: Record<string, string | number | boolean | object | null>;
   };
-  params?: any;
+  params?: Record<string, string>;
 };
 
 /**
  * Creates a safe API handler with built-in auth, validation, and error handling
  */
-export function createSafeHandler<TBody = any, TQuery = any>(
+export function createSafeHandler<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>>(
   handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<NextResponse>,
   options: HandlerOptions<TBody, TQuery> = {}
 ) {
@@ -62,10 +70,12 @@ export function createSafeHandler<TBody = any, TQuery = any>(
       if (options.auth === "gym") {
         const result = await requireGym(req);
         if ("response" in result) return result.response;
+        const sessionUser = result.session as { user?: AuthUser } | undefined;
+        const resultWithGymId = result as { gymId?: string };
         gymContext = {
-          gymId: (result.session as any).user?.activeGymId || (result as any).gymId || "", // requireGym doesn't explicitly return gymId in the same way, need to check user
+          gymId: sessionUser?.user?.activeGymId || resultWithGymId.gymId || "",
           session: result.session,
-          user: result.user
+          user: result.user,
         };
         // Ensure gymId is set (middleware should have it or user should have activeGymId)
         if (!gymContext.gymId) {
@@ -85,20 +95,20 @@ export function createSafeHandler<TBody = any, TQuery = any>(
       }
 
       // 2. Validation
-      let body: any = {};
+      let body: TBody = {} as TBody;
       if (options.schema?.body) {
         const rawBody = await req.json();
         body = options.schema.body.parse(rawBody);
       }
 
-      let query: any = {};
+      let query: TQuery = {} as TQuery;
       if (options.schema?.query) {
         const { searchParams } = new URL(req.url);
         const queryObject = Object.fromEntries(searchParams.entries());
         query = options.schema.query.parse(queryObject);
       }
 
-      let params: any = {};
+      let params: Record<string, string> = {};
       if (options.schema?.params) {
         const rawParams = routeContext?.params
           ? await Promise.resolve(routeContext.params)
@@ -202,27 +212,28 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         await failIdempotencyKey(idemKey);
         throw innerError;
       }
-    } catch (error: any) {
-      const status = error?.name === "ZodError" ? 400 : 500;
+    } catch (error) {
+      const err = error as { name?: string; message?: string; errors?: Array<{ path?: string[]; message?: string }> };
+      const status = err?.name === "ZodError" ? 400 : 500;
       const latencyMs = Date.now() - startedAt;
-      log.error("[SafeHandler] Error", { error: error?.message, ...logMetaBase });
+      log.error("[SafeHandler] Error", { error: err?.message, ...logMetaBase });
       recordApiRequest({
         method: logMetaBase.method,
         path: logMetaBase.route,
         status,
         latencyMs,
-        error: error?.message || "unknown",
+        error: err?.message || "unknown",
       });
       
-      if (error.name === "ZodError") {
+      if (err?.name === "ZodError") {
         return NextResponse.json(
-          { error: "Erro de validação", details: error.errors },
+          { error: "Erro de validação", details: err.errors },
           { status: 400 }
         );
       }
 
       return NextResponse.json(
-        { error: error.message || "Erro interno do servidor" },
+        { error: err?.message || "Erro interno do servidor" },
         { status: 500 }
       );
     }

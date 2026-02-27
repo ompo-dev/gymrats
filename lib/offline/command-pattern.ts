@@ -76,7 +76,7 @@ export type CommandType =
 export interface Command {
 	id: string;
 	type: CommandType;
-	payload: any;
+	payload: Record<string, string | number | boolean | object | null>;
 	meta: {
 		optimistic: boolean;
 		idempotencyKey: string;
@@ -88,7 +88,7 @@ export interface Command {
 	status: "pending" | "syncing" | "synced" | "failed";
 	retries: number;
 	error?: string;
-	errorDetails?: any; // Detalhes serializados do erro para debug
+	errorDetails?: Record<string, string | number | boolean | object | null>; // Detalhes serializados do erro para debug
 }
 
 // ============================================
@@ -139,7 +139,7 @@ const COMMAND_VERSIONS: Record<CommandType, number> = {
  */
 export function createCommand(
 	type: CommandType,
-	payload: any,
+	payload: Record<string, string | number | boolean | object | null>,
 	options?: {
 		idempotencyKey?: string;
 		optimistic?: boolean;

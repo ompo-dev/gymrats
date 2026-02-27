@@ -25,7 +25,7 @@ const MAX_HISTORY = 4; // Últimas 4 mensagens para reduzir tokens
 function sendSSE(
   controller: ReadableStreamDefaultController,
   event: string,
-  data: unknown,
+  data: Record<string, string | number | boolean | object | null>,
 ) {
   controller.enqueue(
     new TextEncoder().encode(
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
         });
 
         controller.close();
-      } catch (error: unknown) {
+      } catch (error) {
         console.error("[nutrition/chat-stream] Erro:", error);
         const err = error instanceof Error ? error : new Error(String(error));
         sendSSE(controller, "error", {

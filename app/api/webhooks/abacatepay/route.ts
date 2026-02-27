@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		return successResponse({ received: true });
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[Webhook] Erro ao processar webhook:", error);
 		return internalErrorResponse("Error processing webhook", error);
 	}

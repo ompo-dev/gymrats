@@ -195,15 +195,15 @@ export function GymSettingsPage({
       if (data.profile) setProfile(data.profile);
       setSaveError("");
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: unknown } } }).response
+          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
               ?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: unknown }).details
+          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0
@@ -232,15 +232,15 @@ export function GymSettingsPage({
       if (data.profile) setProfile(data.profile);
       setSaveError("");
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: unknown } } }).response
+          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
               ?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: unknown }).details
+          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0

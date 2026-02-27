@@ -155,7 +155,7 @@ export function FinancialSubscriptionTab({
 					description: "Seu trial de 14 dias foi iniciado com sucesso!",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao iniciar trial";
 			toast({
@@ -196,7 +196,7 @@ export function FinancialSubscriptionTab({
 				setPendingPix(pixData);
 				savePendingPixToStorage(pixData);
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao criar cobrança";
 			toast({
@@ -223,7 +223,7 @@ export function FinancialSubscriptionTab({
 					description: "Sua assinatura foi cancelada com sucesso.",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao cancelar assinatura";
 			toast({

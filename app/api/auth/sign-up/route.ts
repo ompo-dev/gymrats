@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		return response;
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao criar conta:", error);
 		const message =
 			error instanceof Error ? error.message : "Erro ao criar conta";

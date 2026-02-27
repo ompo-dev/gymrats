@@ -14,7 +14,7 @@ import { validateBody } from "../utils/validation";
 
 type SubscriptionContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId: string;
 	userId: string;
 };

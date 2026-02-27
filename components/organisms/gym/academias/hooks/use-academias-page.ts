@@ -57,7 +57,7 @@ export function useAcademiasPage() {
 			setFormData(INITIAL_FORM);
 			await refreshGyms();
 			setShowCreateDialog(false);
-		} catch (error: unknown) {
+		} catch (error) {
 			setCreateError(
 				error instanceof Error ? error.message : "Erro ao criar academia",
 			);

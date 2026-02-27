@@ -8,8 +8,8 @@ import { log, recordApiRequest } from "@/lib/observability";
 export function logApiRequest(ctx: {
 	request: Request;
 	set?: { status?: number };
-	body?: unknown;
-	response?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
+	response?: Record<string, string | number | boolean | object | null>;
 	_requestStart?: number;
 	userId?: string;
 	studentId?: string;
@@ -35,7 +35,7 @@ export function logApiRequest(ctx: {
 
 export function logApiError(ctx: {
 	request: Request;
-	error?: unknown;
+	error?: Error | { message?: string };
 	code?: string | number;
 	_requestStart?: number;
 }) {

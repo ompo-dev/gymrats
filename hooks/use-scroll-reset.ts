@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useRef } from "react";
 
 interface UseScrollResetOptions {
-	dependencies?: unknown[];
+	dependencies?: (string | number | boolean | object | null)[];
 	behavior?: ScrollBehavior;
 	enabled?: boolean;
 }

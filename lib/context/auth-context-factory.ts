@@ -12,21 +12,21 @@ import { getSessionToken } from "@/lib/utils/get-session-token";
 import { log } from "@/lib/observability";
 
 export type AuthSession = {
-	session: any;
-	user: any;
+	session: Record<string, string | number | boolean | object | null>;
+	user: { id: string; student?: Record<string, string | number | boolean | object | null>; gyms?: { id: string }[]; role?: string; activeGymId?: string; [key: string]: string | number | boolean | object | null | undefined };
 };
 
 export type GymContext = {
 	gymId: string;
-	session: any;
-	user: any;
+	session: AuthSession["session"];
+	user: AuthSession["user"];
 };
 
 export type StudentContext = {
 	studentId: string;
-	session: any;
-	user: any;
-	student: any;
+	session: AuthSession["session"];
+	user: AuthSession["user"];
+	student: Record<string, string | number | boolean | object | null>;
 };
 
 export type GymContextResult =

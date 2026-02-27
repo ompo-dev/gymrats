@@ -15,7 +15,7 @@ interface PixPaymentModalProps {
 	brCodeBase64: string;
 	amount: number; // centavos
 	onPaymentConfirmed?: () => void;
-	refetchSubscription: () => Promise<unknown>;
+	refetchSubscription: () => Promise<Record<string, string | number | boolean | object | null> | void>;
 	subscriptionStatus?: string;
 	/** Status ao abrir - só fecha quando pending -> active (evita fechar com assinatura já ativa) */
 	initialStatus?: string;
@@ -57,7 +57,7 @@ export function PixPaymentModal({
 				description: "Aguardando confirmação...",
 			});
 			await refetchSubscription();
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg = err && typeof err === "object" && "response" in err
 				? (err as { response?: { data?: { error?: string } } }).response?.data?.error
 				: err instanceof Error ? err.message : "Erro ao simular";

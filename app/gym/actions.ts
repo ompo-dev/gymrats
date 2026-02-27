@@ -91,7 +91,7 @@ export async function getGymStudents(): Promise<StudentData[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getStudents(ctx.gymId) as any;
+		return GymMemberService.getStudents(ctx.gymId);
 	} catch (error) {
 		console.error("[getGymStudents] Erro:", error);
 		return [];
@@ -102,7 +102,7 @@ export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getRecentCheckIns(ctx.gymId) as any;
+		return GymMemberService.getRecentCheckIns(ctx.gymId);
 	} catch (error) {
 		console.error("[getGymRecentCheckIns] Erro:", error);
 		return [];
@@ -113,7 +113,7 @@ export async function getGymStudentById(studentId: string): Promise<StudentData 
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return null;
-		return GymMemberService.getStudentById(ctx.gymId, studentId) as any;
+		return GymMemberService.getStudentById(ctx.gymId, studentId);
 	} catch (error) {
 		console.error("[getGymStudentById] Erro:", error);
 		return null;

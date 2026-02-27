@@ -63,16 +63,10 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	// Helper para atualizar ambos os stores
 	const syncStores = (sub: SubscriptionData | null) => {
 		if (userType === "student") {
-			setSubscription(sub as any);
-			if (sub) {
-				studentUnifiedStore.updateSubscription(sub as any);
-			} else {
-				// Se for null, o updateSubscription do unified store pode não aceitar null diretamente
-				// dependendo da tipagem, mas o store costuma ter assinatura como opcional ou nula
-				studentUnifiedStore.updateSubscription(null as any);
-			}
+			setSubscription(sub);
+			studentUnifiedStore.updateSubscription(sub);
 		} else {
-			setGymSubscription(sub as any);
+			setGymSubscription(sub);
 		}
 	};
 
@@ -110,7 +104,8 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					}
 
 					// Extrair billingPeriod antes de criar baseData
-					const billingPeriodFromAPI = (sub as any)?.billingPeriod || "monthly";
+					const billingPeriodFromAPI =
+						("billingPeriod" in sub && sub.billingPeriod) || "monthly";
 
 					// Converter strings de data para Date objects
 					const baseData = {
@@ -189,10 +184,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					error?: string;
 				}>(startTrialEndpoint);
 				return response.data;
-			} catch (error: any) {
+			} catch (error: unknown) {
+				const err = error as { response?: { data?: { error?: string } }; message?: string };
 				const errorMessage =
-					error.response?.data?.error ||
-					error.message ||
+					err?.response?.data?.error ||
+					(err instanceof Error ? err.message : undefined) ||
 					"Erro ao iniciar trial";
 				return { error: errorMessage };
 			}
@@ -249,9 +245,12 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 
 			return { previousSubscription };
 		},
-		onError: async (err: any, _variables, context) => {
+		onError: async (err: unknown, _variables, context) => {
+			const e = err as { response?: { data?: { error?: string } }; message?: string };
 			const errorMessage =
-				err.response?.data?.error || err.message || "Erro ao iniciar trial";
+				e?.response?.data?.error ||
+				(e instanceof Error ? e.message : undefined) ||
+				"Erro ao iniciar trial";
 
 			if (context?.previousSubscription !== undefined) {
 				syncStores(context.previousSubscription);

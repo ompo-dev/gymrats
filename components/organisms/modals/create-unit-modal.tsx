@@ -48,7 +48,7 @@ export function CreateUnitModal({
 			// Optimistic update já aconteceu - store já tem o unit
 			// Buscar unit criado pelo título (tem ID temporário do command)
 			const units = useStudentUnifiedStore.getState().data.units;
-			const createdUnit = units.find((u: any) => u.title === title.trim());
+			const createdUnit = units.find((u: { title?: string }) => u.title === title.trim());
 
 			toast.success("Plano de treino criado com sucesso!");
 
@@ -67,11 +67,12 @@ export function CreateUnitModal({
 
 			// A requisição ao backend acontece em paralelo via syncManager
 			// Não precisa aguardar - optimistic update já fez a UI atualizar
-		} catch (error: any) {
+		} catch (error) {
 			console.error("Erro ao criar plano de treino:", error);
+			const err = error as { response?: { data?: { message?: string } }; message?: string };
 			const errorMessage =
-				error.response?.data?.message ||
-				error.message ||
+				err?.response?.data?.message ||
+				(err instanceof Error ? err.message : undefined) ||
 				"Erro ao criar plano de treino. Tente novamente.";
 			toast.error(errorMessage);
 		} finally {

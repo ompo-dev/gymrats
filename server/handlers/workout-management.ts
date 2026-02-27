@@ -26,7 +26,7 @@ import {
 
 type WorkoutMgmtContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId: string;
 	params?: Record<string, string>;
 };

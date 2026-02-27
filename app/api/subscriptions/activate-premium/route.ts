@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 			subscription,
 			message: "Premium ativado com sucesso",
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[activatePremiumHandler] Erro:", error);
 		return internalErrorResponse("Erro ao ativar premium", error);
 	}

@@ -12,7 +12,7 @@ import { validateBody } from "../utils/validation";
 
 type GymSubscriptionContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	userId: string;
 };
 

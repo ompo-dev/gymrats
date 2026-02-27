@@ -18,7 +18,7 @@ type UseSubscriptionReturn = {
 	subscription: StudentSubscriptionData | null;
 	isLoading: boolean;
 	error: Error | null;
-	refetch: () => Promise<unknown>;
+	refetch: () => Promise<Record<string, string | number | boolean | object | null> | void>;
 	startTrial: () => Promise<{ success?: boolean; error?: string }>;
 	isStartingTrial: boolean;
 	createSubscription: (

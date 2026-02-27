@@ -253,7 +253,7 @@ export function useWorkoutExecution() {
     return logs
       .filter((log) => log?.exerciseId && log.exerciseName)
       .map((log) => {
-        let difficulty: any = null;
+        let difficulty: string | null = null;
         if (log.difficulty) {
           const normalized = log.difficulty.replace(/-/g, "_");
           difficulty = normalized === "ideal" ? "medio" : normalized;
@@ -487,7 +487,7 @@ export function useWorkoutExecution() {
 }
 
 function createCardioExercises(duration: number, type?: string): WorkoutExercise[] {
-    const cardioTypes: any = {
+    const cardioTypes: Record<string, { name: string; icon: string; alternatives: { id: string; name: string; reason: string }[] }> = {
         corrida: { name: "Corrida na Esteira", icon: "🏃", alternatives: [
             { id: "alt-corrida-rua", name: "Corrida ao Ar Livre", reason: "Sem esteira disponível" },
             { id: "alt-corrida-bike", name: "Bicicleta", reason: "Menor impacto nas articulações" }

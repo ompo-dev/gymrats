@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from "react";
 
-export function useScrollToTop(deps: unknown[]) {
+export function useScrollToTop(deps: (string | number | boolean | object | null)[]) {
 	useLayoutEffect(() => {
 		window.scrollTo(0, 0);
 		document.documentElement.scrollTop = 0;

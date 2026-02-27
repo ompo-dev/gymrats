@@ -192,7 +192,7 @@ export default function StudentOnboardingPage() {
       // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
       // Não usar setTimeout - redirecionar imediatamente
       window.location.href = "/student";
-    } catch (error: unknown) {
+    } catch (error) {
       const msg =
         error instanceof Error
           ? error.message

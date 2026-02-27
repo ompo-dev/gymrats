@@ -33,7 +33,7 @@ import {
 export interface SyncManagerOptions {
 	url: string;
 	method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-	body?: any;
+	body?: Record<string, string | number | boolean | object | null>;
 	headers?: Record<string, string>;
 	priority?: "high" | "normal" | "low";
 	/**
@@ -53,7 +53,7 @@ export interface SyncManagerResult {
 	success: boolean;
 	queued: boolean;
 	queueId?: string;
-	data?: any;
+	data?: Record<string, string | number | boolean | object | null>;
 	error?: Error;
 }
 
@@ -110,7 +110,7 @@ async function registerBackgroundSync(): Promise<void> {
 
 		// Tenta registrar Background Sync
 		if ("sync" in registration && registration.sync) {
-			await (registration.sync as any).register("sync-queue");
+			await (registration.sync as { register: (tag: string) => Promise<void> }).register("sync-queue");
 			log.info("[syncManager] Background Sync registrado");
 		} else {
 			// Fallback: agenda sincronização manual quando online
@@ -215,11 +215,12 @@ export async function syncManager(
 				queued: false,
 				data: response.data,
 			};
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const err = error as { code?: string; message?: string };
 			// Se erro e for erro de rede, salva na fila
 			if (
-				error.code === "ECONNABORTED" ||
-				error.message?.includes("Network Error") ||
+				err?.code === "ECONNABORTED" ||
+				err?.message?.includes("Network Error") ||
 				!isOnline()
 			) {
 				// Agora está offline, salva na fila

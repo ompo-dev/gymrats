@@ -20,7 +20,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 
 type StudentContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	query?: Record<string, unknown>;
 	studentId: string;
 	userId: string;

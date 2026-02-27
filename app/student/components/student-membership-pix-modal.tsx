@@ -72,7 +72,7 @@ export function StudentMembershipPixModal({
 					description: "Aguardando confirmação...",
 				});
 			}
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response

@@ -5,20 +5,28 @@ export const maxDuration = 60; // 60 segundos (máximo para Vercel Pro)
 export const runtime = "nodejs"; // Garantir runtime Node.js para operações assíncronas
 
 import { chatCompletion } from "@/lib/ai/client";
-import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
+import {
+	type ParsedWorkoutResponse,
+	parseWorkoutResponse,
+} from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 import { z } from "zod";
 
+const conversationMessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string(),
+});
+
 const workoutChatSchema = z.object({
   message: z.string().min(1, "Mensagem é obrigatória"),
-  conversationHistory: z.array(z.any()).optional(),
+  conversationHistory: z.array(conversationMessageSchema).optional(),
   unitId: z.string().optional(),
   planSlotId: z.string().optional(),
-  existingWorkouts: z.array(z.any()).optional(),
-  profile: z.any().optional(),
+  existingWorkouts: z.array(z.unknown()).optional(),
+  profile: z.unknown().optional(),
 }).refine((data) => data.unitId || data.planSlotId, {
   message: "unitId ou planSlotId é obrigatório",
   path: ["unitId"],
@@ -178,7 +186,7 @@ export const POST = createSafeHandler(
     }
 
     // 9. Processamento
-    let parsed: any = null;
+    let parsed: ParsedWorkoutResponse | null = null;
     
     // Suporte a importação simplificada (estilizado conforme original)
     if (message.trim().startsWith("{") || message.trim().startsWith("[")) {

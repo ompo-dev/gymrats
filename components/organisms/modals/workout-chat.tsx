@@ -314,7 +314,7 @@ export function WorkoutChat({
               console.log(
                 `[handleApprove] ✅ Workout criado: ${preview.title}`,
               );
-            } catch (error: unknown) {
+            } catch (error) {
               console.error(
                 `[handleApprove] ❌ Erro ao criar workout ${preview.title}:`,
                 error,
@@ -450,7 +450,7 @@ export function WorkoutChat({
 
       // Fechar chat após aprovação
       onClose();
-    } catch (processError: unknown) {
+    } catch (processError) {
       console.error("[WorkoutChat] ❌ Erro ao processar treino:", processError);
       const apiMessage = (
         processError as { response?: { data?: { message?: string } } }
@@ -574,7 +574,7 @@ export function WorkoutChat({
           timestamp: new Date(),
         },
       ]);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Erro ao copiar JSON:", error);
       toast({
         title: "Erro ao copiar",
@@ -1128,7 +1128,7 @@ export function WorkoutChat({
         // parsedData.workouts já foi atualizado acima com todos os previews preservados
         setPendingWorkoutData(parsedData);
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("[WorkoutChat] Erro:", error);
 
       // Tratar erros específicos

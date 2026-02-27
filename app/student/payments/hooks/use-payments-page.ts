@@ -215,7 +215,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			toast({ title: "Plano cancelado", description: "Sua matrícula foi cancelada." });
 			setExpandedMembershipId(null);
 			await loadMemberships();
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -239,7 +239,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			}
 			setChangePlanPlans(otherPlans);
 			setChangePlanMembershipId(membership.id);
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -266,7 +266,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			setChangePlanPlans([]);
 			setChangePlanMembershipId(null);
 			await Promise.all([loadMemberships(), loadPayments()]);
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -293,7 +293,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				brCodeBase64: res.data.brCodeBase64,
 				amount: res.data.amount,
 			});
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -333,7 +333,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					description: "Seu trial de 14 dias foi iniciado com sucesso!",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error
 					? error.message
@@ -358,7 +358,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			} else {
 				throw new Error("URL de checkout não recebida do servidor.");
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			console.error("[handleUpgrade] Erro:", error);
 			const err = error as {
 				response?: { data?: { message?: string } };
@@ -391,7 +391,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					description: "Sua assinatura foi cancelada com sucesso.",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao cancelar assinatura";
 			toast({

@@ -11,7 +11,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 type PaymentsContext = {
 	set: Context["set"];
 	query?: Record<string, unknown>;
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId?: string;
 	userId?: string;
 };

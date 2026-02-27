@@ -39,6 +39,8 @@ const SECTION_ROUTES: Record<GymDataSection, string> = {
 
 const loadingSections = new Set<GymDataSection>();
 const loadingPromises = new Map<GymDataSection, Promise<Partial<GymUnifiedData>>>();
+
+type SetStateFn = (fn: (s: { data: GymUnifiedData }) => { data: GymUnifiedData }) => void;
 const GYM_COMMANDS: Record<string, CommandType> = {
 	GYM_EXPENSE_CREATE: "GYM_EXPENSE_CREATE",
 	GYM_PAYMENT_CREATE: "GYM_PAYMENT_CREATE",
@@ -72,8 +74,16 @@ function addPendingAction(
 }
 
 /** Converte membros da API (formato Prisma) para StudentData flat esperado pela UI */
-function transformMembersToStudents(members: any[]): any[] {
-	return members.map((m: any) => {
+interface MemberWithStudent {
+	student: { id: string; user?: { name?: string }; avatar?: string };
+	studentName?: string;
+	status: string;
+	createdAt: Date;
+	plan?: { name?: string };
+}
+
+function transformMembersToStudents(members: MemberWithStudent[]): Array<Partial<import("@/lib/types").StudentData> & { id: string; name: string; email: string }> {
+	return members.map((m) => {
 		const student = m.student ?? m;
 		const user = student.user ?? {};
 		const profile = student.profile ?? {};
@@ -132,7 +142,7 @@ function transformMembersToStudents(members: any[]): any[] {
 
 function transformSectionResponse(
 	section: GymDataSection,
-	data: any,
+	data: Record<string, unknown>,
 ): Partial<GymUnifiedData> {
 	let result: Partial<GymUnifiedData>;
 	switch (section) {
@@ -161,7 +171,7 @@ function transformSectionResponse(
 			break;
 		case "payments":
 			result = {
-				payments: (data.payments || []).map((p: any) => ({
+				payments: ((data.payments as Array<Record<string, unknown>>) || []).map((p) => ({
 					id: p.id,
 					studentId: p.studentId,
 					studentName: p.studentName,
@@ -170,7 +180,7 @@ function transformSectionResponse(
 					amount: p.amount,
 					date: p.date,
 					dueDate: p.dueDate,
-					status: (p.withdrawnAt ? "withdrawn" : p.status) as any,
+					status: (p.withdrawnAt ? "withdrawn" : (p.status as string)) as "paid" | "pending" | "overdue" | "canceled" | "withdrawn",
 					paymentMethod: p.paymentMethod || "pix",
 					reference: p.reference ?? undefined,
 					abacatePayBillingId: p.abacatePayBillingId ?? undefined,
@@ -202,9 +212,10 @@ async function loadSection(section: GymDataSection): Promise<Partial<GymUnifiedD
 		try {
 			const response = await apiClient.get(route, { timeout: 30000 });
 			return transformSectionResponse(section, response.data);
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as { response?: { status?: number } };
 			const isExpectedHttp =
-				error?.response?.status === 404 || error?.response?.status >= 500;
+				err?.response?.status === 404 || (err?.response?.status ?? 0) >= 500;
 			if (!isExpectedHttp) {
 				console.error(`[gym-unified] erro ao carregar ${section}:`, error);
 			}
@@ -220,7 +231,7 @@ async function loadSection(section: GymDataSection): Promise<Partial<GymUnifiedD
 }
 
 function updateStoreWithSection(
-	set: any,
+	set: SetStateFn,
 	sectionData: Partial<GymUnifiedData>,
 	elapsedMs?: number,
 	sectionName?: GymDataSection,
@@ -243,7 +254,7 @@ function updateStoreWithSection(
 	}));
 }
 
-async function loadSectionsIncremental(set: any, sections: GymDataSection[]) {
+async function loadSectionsIncremental(set: SetStateFn, sections: GymDataSection[]) {
 	await Promise.all(
 		sections.map(async (section) => {
 			const start = Date.now();
@@ -808,8 +819,8 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 		}),
 		{
 			name: "gym-unified-storage",
-			storage: createIndexedDBStorage() as any,
-			partialize: (state) => ({ data: state.data }) as any,
+			storage: createIndexedDBStorage(),
+			partialize: (state) => ({ data: state.data }),
 			onRehydrateStorage: () => {
 				return async (state) => {
 					if (typeof window !== "undefined" && state) {

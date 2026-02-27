@@ -9,14 +9,14 @@ import type {
 type OkResult<T> = { ok: true; data: T };
 type ErrorResult = {
 	ok: false;
-	error: { message: string; status: number; details?: unknown };
+	error: { message: string; status: number; details?: Record<string, string | number | boolean | object | null> };
 };
 
 const ok = <T>(data: T): OkResult<T> => ({ ok: true, data });
 const fail = (
 	message: string,
 	status: number,
-	details?: unknown,
+	details?: Record<string, string | number | boolean | object | null>,
 ): ErrorResult => ({
 	ok: false,
 	error: { message, status, details },

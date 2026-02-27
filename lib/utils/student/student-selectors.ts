@@ -204,18 +204,18 @@ export const selectorMap: Record<string, (data: StudentData) => unknown> = {
 	role: selectRole,
 };
 
-export function selectFromData(data: StudentData, selector: string): unknown {
+export function selectFromData(data: StudentData, selector: string): string | number | boolean | object | null | undefined {
 	const selectFn = selectorMap[selector];
 	if (selectFn) return selectFn(data);
-	if (selector in data) return (data as Record<string, unknown>)[selector];
+	if (selector in data) return (data as Record<string, string | number | boolean | object | null | undefined>)[selector];
 	return undefined;
 }
 
 export function selectMultiple(
 	data: StudentData,
 	selectors: string[],
-): Record<string, unknown> {
-	const result: Record<string, unknown> = {};
+): Record<string, string | number | boolean | object | null | undefined> {
+	const result: Record<string, string | number | boolean | object | null | undefined> = {};
 	for (const selector of selectors) {
 		result[selector] = selectFromData(data, selector);
 	}

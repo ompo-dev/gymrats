@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 /**
  * Service to centralize gym domain operations and stat updates
@@ -166,7 +167,7 @@ export class GymDomainService {
     limit?: number;
   }) {
     const { startDate, endDate, type, limit } = filters;
-    const whereClause: any = { gymId };
+    const whereClause: Prisma.ExpenseWhereInput = { gymId };
 
     if (type && type !== "all") {
       whereClause.type = type;
@@ -174,8 +175,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) whereClause.date.gte = new Date(startDate);
-      if (endDate) whereClause.date.lte = new Date(endDate);
+      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
     return db.expense.findMany({
@@ -189,7 +190,7 @@ export class GymDomainService {
    * Creates a new expense for the gym
    */
   static async createExpense(gymId: string, data: {
-    type: any;
+    type: string;
     description?: string | null;
     amount: number;
     date?: string | null;
@@ -218,7 +219,7 @@ export class GymDomainService {
     limit?: number;
   }) {
     const { status, studentId, startDate, endDate, limit } = filters;
-    const whereClause: any = { gymId };
+    const whereClause: Prisma.PaymentWhereInput = { gymId };
 
     if (status && status !== "all") {
       whereClause.status = status;
@@ -230,8 +231,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) whereClause.date.gte = new Date(startDate);
-      if (endDate) whereClause.date.lte = new Date(endDate);
+      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
     return db.payment.findMany({

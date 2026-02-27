@@ -27,7 +27,7 @@ async function ensureTable() {
 	tableReady = true;
 }
 
-function stringifySafe(value: unknown) {
+function stringifySafe(value: string | number | boolean | null | object) {
 	try {
 		return JSON.stringify(value ?? null);
 	} catch {
@@ -49,7 +49,7 @@ export async function reserveIdempotencyKey(input: {
 	key: string;
 	route: string;
 	method: string;
-	body: unknown;
+	body: Record<string, string | number | boolean | object | null>;
 }) {
 	await ensureTable();
 	const requestFingerprint = stringifySafe({

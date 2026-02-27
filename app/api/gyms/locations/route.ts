@@ -105,7 +105,7 @@ export const GET = createSafeHandler(
 				openNow: true,
 				openingHours: openingHours || undefined,
 				photos: photos.length > 0 ? photos : undefined,
-				isPartner: (gym as any).isPartner || false,
+				isPartner: gym.isPartner ?? false,
 			};
 		});
 

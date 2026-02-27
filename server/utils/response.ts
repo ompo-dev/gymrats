@@ -22,10 +22,10 @@ export function errorResponse(
 	set: Context["set"],
 	message: string,
 	status = 500,
-	details?: unknown,
+	details?: Record<string, string | number | boolean | object | null>,
 ) {
 	set.status = status;
-	const response: Record<string, unknown> = { error: message };
+	const response: Record<string, string | number | boolean | object | null> = { error: message };
 
 	if (details && process.env.NODE_ENV === "development") {
 		response.details = details;
@@ -37,7 +37,7 @@ export function errorResponse(
 export function badRequestResponse(
 	set: Context["set"],
 	message = "Dados inválidos",
-	details?: unknown,
+	details?: Record<string, string | number | boolean | object | null>,
 ) {
 	return errorResponse(set, message, 400, details);
 }
@@ -66,7 +66,7 @@ export function notFoundResponse(
 export function internalErrorResponse(
 	set: Context["set"],
 	message = "Erro interno do servidor",
-	error?: unknown,
+	error?: Error | { message?: string },
 ) {
 	console.error("[API Error]:", error);
 	return errorResponse(

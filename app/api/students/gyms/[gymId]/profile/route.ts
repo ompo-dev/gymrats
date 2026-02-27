@@ -42,7 +42,7 @@ export const GET = createSafeHandler(
     let openingHours: { open?: string; close?: string; days?: string[] } | undefined;
     if (gym.openingHours) {
       try {
-        openingHours = JSON.parse(gym.openingHours) as any;
+        openingHours = JSON.parse(gym.openingHours) as { open?: string; close?: string; days?: string[] };
       } catch {}
     }
 

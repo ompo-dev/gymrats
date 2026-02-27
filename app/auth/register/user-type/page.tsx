@@ -149,7 +149,7 @@ export default function UserTypePage() {
 					router.push("/gym");
 				}
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			console.error("Erro ao selecionar tipo:", error);
 			const msg =
 				error instanceof Error

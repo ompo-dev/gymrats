@@ -27,7 +27,7 @@ interface UseOfflineActionOptions {
 	method: HttpMethod;
 	url: string;
 	priority?: "high" | "normal" | "low";
-	onSuccess?: (data: any) => void;
+	onSuccess?: (data: Record<string, string | number | boolean | object | null>) => void;
 	onError?: (error: Error) => void;
 	onQueued?: (queueId: string) => void;
 }
@@ -42,7 +42,7 @@ interface UseOfflineActionOptions {
  * @param options - Configuração da ação
  * @returns Função para executar a ação
  */
-export function useOfflineAction<T = any>(options: UseOfflineActionOptions) {
+export function useOfflineAction<T = Record<string, string | number | boolean | object | null>>(options: UseOfflineActionOptions) {
 	const { method, url, priority, onSuccess, onError, onQueued } = options;
 
 	const action = useCallback(

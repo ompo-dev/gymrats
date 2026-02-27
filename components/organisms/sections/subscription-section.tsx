@@ -350,12 +350,13 @@ function SubscriptionSectionSimple({
 			} else {
 				throw new Error("URL de checkout não recebida do servidor.");
 			}
-		} catch (error: any) {
+		} catch (error) {
 			console.error("[Subscription] Erro no checkout:", error);
+			const message = error instanceof Error ? error.message : "Erro ao processar checkout.";
 			toast({
 				variant: "destructive",
 				title: "Erro ao iniciar checkout",
-				description: error.message || "Erro ao processar checkout.",
+				description: message,
 			});
 		} finally {
 			setIsProcessingPayment(false);

@@ -90,7 +90,7 @@ function AuthCallbackPageContent() {
 				}
 
 				processSuccess(sessionResponse);
-			} catch (err: unknown) {
+			} catch (err) {
 				console.error("Erro ao processar callback:", err);
 				const msg =
 					err instanceof Error ? err.message : "Erro ao processar login";

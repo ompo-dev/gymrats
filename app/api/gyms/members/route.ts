@@ -23,10 +23,11 @@ export const POST = createSafeHandler(
     try {
       const membership = await GymDomainService.enrollStudent(gymId, body);
       return NextResponse.json({ success: true, membership }, { status: 201 });
-    } catch (error: any) {
-      const status = error.message === "Aluno não encontrado" ? 404 : 
-                     error.message === "Aluno já está matriculado" ? 409 : 500;
-      return NextResponse.json({ error: error.message }, { status });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Erro ao matricular aluno";
+      const status = message === "Aluno não encontrado" ? 404 :
+                    message === "Aluno já está matriculado" ? 409 : 500;
+      return NextResponse.json({ error: message }, { status });
     }
   },
   {

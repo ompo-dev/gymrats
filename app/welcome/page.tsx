@@ -92,7 +92,7 @@ function WelcomePageContent() {
 					}
 
 					setIsLoading(false);
-				} catch (err: unknown) {
+				} catch (err) {
 					console.error("Erro ao processar OAuth success:", err);
 					setError(
 						err instanceof Error ? err.message : "Erro ao processar login",
@@ -208,7 +208,7 @@ function WelcomePageContent() {
 							}
 						}
 					}
-				} catch (err: unknown) {
+				} catch (err) {
 					console.error("Erro ao verificar callback:", err);
 					setError(
 						err instanceof Error
@@ -318,7 +318,7 @@ function WelcomePageContent() {
 						}
 						throw new Error(errorMessage);
 					}
-				} catch (fetchError: unknown) {
+				} catch (fetchError) {
 					console.error("Erro ao fazer requisição OAuth:", fetchError);
 					popup.close();
 					throw new Error(
@@ -359,7 +359,7 @@ function WelcomePageContent() {
 				});
 				// O redirecionamento para Google será automático
 			}
-		} catch (err: unknown) {
+		} catch (err) {
 			console.error("Erro ao iniciar login com Google:", err);
 			setError(
 				err instanceof Error ? err.message : "Erro ao iniciar login com Google",

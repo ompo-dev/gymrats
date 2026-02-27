@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 		response.cookies.delete("auth_token");
 		response.cookies.delete("better-auth.session_token");
 		return response;
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao fazer logout:", error);
 		const message =
 			error instanceof Error ? error.message : "Erro ao fazer logout";

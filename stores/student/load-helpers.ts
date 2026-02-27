@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from "@/lib/api/client";
+import type { Meal } from "@/lib/types";
 import type {
 	StudentData,
 	StudentDataSection,
@@ -55,7 +56,7 @@ const loadingPromises = new Map<
 
 function transformSectionResponse(
 	section: StudentDataSection,
-	data: unknown,
+	data: Record<string, string | number | boolean | object | null>,
 ): Partial<StudentData> {
 	const d = data as Record<string, unknown>;
 	switch (section) {
@@ -107,7 +108,7 @@ function transformSectionResponse(
 			};
 		case "subscription":
 			if (d && typeof d === "object" && "success" in d)
-				return { subscription: (d as { subscription: unknown }).subscription as StudentData["subscription"] };
+				return { subscription: (d as { subscription: StudentData["subscription"] }).subscription as StudentData["subscription"] };
 			return { subscription: (d as StudentData["subscription"]) || null };
 		case "memberships":
 			return {
@@ -148,11 +149,11 @@ export function calculateWeightGain(
 	return weightOneMonthAgo ? currentWeight - weightOneMonthAgo.weight : null;
 }
 
-export function deduplicateMeals(meals: unknown[]): unknown[] {
+export function deduplicateMeals(meals: Meal[]): Meal[] {
 	if (!meals?.length) return [];
 	const seen = new Set<string>();
-	const unique: unknown[] = [];
-	for (const meal of meals as Record<string, unknown>[]) {
+	const unique: Meal[] = [];
+	for (const meal of meals) {
 		const key = meal.id ? `id:${meal.id}` : `${meal.name || ""}:${meal.type || ""}:${(meal.time as string) || ""}`;
 		if (!seen.has(key)) {
 			seen.add(key);
@@ -233,7 +234,7 @@ export async function loadSection(
 		try {
 			if (!route) return {};
 			const response = await apiClient
-				.get<unknown>(route, { timeout: 30000 })
+				.get<Record<string, string | number | boolean | object | null>>(route, { timeout: 30000 })
 				.catch((err: { _isHandled?: boolean; _isSilent?: boolean; code?: string; message?: string; response?: { status?: number } }) => {
 					if (err._isHandled || err._isSilent) return null;
 					if (err.code === "ECONNABORTED" || err.message?.includes("timeout"))
@@ -273,7 +274,7 @@ export async function loadSectionsIncremental(
 		try {
 			const res = await apiClient.get<{
 				date: string;
-				meals: unknown[];
+				meals: Meal[];
 				totalCalories?: number;
 				totalProtein?: number;
 				totalCarbs?: number;
@@ -292,7 +293,7 @@ export async function loadSectionsIncremental(
 			} catch {
 				normalizedDate = getBrazilNutritionDateKey();
 			}
-			const uniqueMeals = deduplicateMeals(d.meals || []) as StudentData["dailyNutrition"]["meals"];
+			const uniqueMeals = deduplicateMeals(d.meals || []);
 			updateStoreWithSection(set, {
 				dailyNutrition: {
 					date: normalizedDate,

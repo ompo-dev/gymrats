@@ -33,9 +33,10 @@ export async function submitNewGym(formData: GymOnboardingData) {
 		await initializeGymTrial(newGym.id);
 
 		return { success: true, gymId: newGym.id };
-	} catch (error: any) {
+	} catch (error) {
 		console.error("Erro ao criar nova academia:", error);
-		return { success: false, error: error.message || "Erro ao criar nova academia" };
+		const message = error instanceof Error ? error.message : "Erro ao criar nova academia";
+		return { success: false, error: message };
 	}
 }
 
@@ -66,8 +67,9 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
 		}
 
 		return { success: true };
-	} catch (error: any) {
+	} catch (error) {
 		console.error("Erro ao salvar perfil da academia:", error);
-		return { success: false, error: error.message || "Erro ao salvar perfil da academia" };
+		const message = error instanceof Error ? error.message : "Erro ao salvar perfil da academia";
+		return { success: false, error: message };
 	}
 }

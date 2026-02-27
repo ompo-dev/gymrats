@@ -2,12 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 
+interface SwaggerUIConfig {
+	url: string;
+	dom_id: string;
+	presets: Array<Record<string, string | number | boolean | object | null>>;
+	layout: string;
+	deepLinking?: boolean;
+	displayRequestDuration?: boolean;
+	filter?: boolean;
+	tryItOutEnabled?: boolean;
+	persistAuthorization?: boolean;
+	supportedSubmitMethods?: string[];
+	requestInterceptor?: (req: { headers?: Record<string, string>; credentials?: string }) => Promise<{ headers?: Record<string, string>; credentials?: string }>;
+	responseInterceptor?: (res: Record<string, string | number | boolean | object | null>) => Record<string, string | number | boolean | object | null>;
+}
+
 declare global {
 	interface Window {
-		// biome-ignore lint/suspicious/noExplicitAny: Swagger UI carregado via script externo
-		SwaggerUIBundle?: any;
-		// biome-ignore lint/suspicious/noExplicitAny: Swagger UI carregado via script externo
-		SwaggerUIStandalonePreset?: any;
+		SwaggerUIBundle?: ((config: SwaggerUIConfig) => void) & { presets?: { apis: Record<string, string | number | boolean | object | null> } };
+		SwaggerUIStandalonePreset?: Record<string, string | number | boolean | object | null>;
 	}
 }
 
@@ -66,7 +79,7 @@ export default function ApiDocsPage() {
 
 						return req;
 					},
-					responseInterceptor: (res: unknown) => {
+					responseInterceptor: (res: Record<string, string | number | boolean | object | null>) => {
 						// Log de respostas para debug
 						console.log("[Swagger] Response:", res);
 						return res;

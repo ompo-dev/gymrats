@@ -213,7 +213,7 @@ function StudentHomeContent() {
 				brCodeBase64: res.data.brCodeBase64,
 				amount: res.data.amount,
 			});
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data
@@ -245,7 +245,7 @@ function StudentHomeContent() {
 				brCodeBase64: res.data.brCodeBase64,
 				amount: res.data.amount,
 			});
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data

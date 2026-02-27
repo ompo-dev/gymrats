@@ -133,8 +133,9 @@ export async function submitOnboarding(formData: OnboardingData) {
     sendWelcomeEmail({ to: ctx.user.email, name: ctx.user.name }).catch(console.error);
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro no onboarding:", error);
-    return { success: false, error: error.message || "Erro ao salvar perfil" };
+    const message = error instanceof Error ? error.message : "Erro ao salvar perfil";
+    return { success: false, error: message };
   }
 }

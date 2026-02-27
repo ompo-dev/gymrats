@@ -29,6 +29,7 @@ import {
 import type {
 	DailyNutrition,
 	DifficultyLevel,
+	Meal,
 	MuscleGroup,
 	PersonalRecord,
 	Unit,
@@ -100,7 +101,7 @@ export interface StudentUnifiedState {
 	addPersonalRecord: (record: PersonalRecord) => void;
 	updateNutrition: (nutrition: Partial<DailyNutrition>) => Promise<void>;
 	updateSubscription: (
-		subscription: Partial<StudentData["subscription"]>,
+		subscription: Partial<StudentData["subscription"]> | null,
 	) => Promise<void>;
 	addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
 
@@ -120,10 +121,10 @@ export interface StudentUnifiedState {
 		estimatedTime?: number;
 		type?: string;
 	}) => Promise<string>; // Retorna o ID do workout criado (temporário ou real)
-	updateWorkout: (workoutId: string, data: Partial<any>) => Promise<void>;
+	updateWorkout: (workoutId: string, data: Partial<{ title?: string; description?: string; muscleGroup?: string; difficulty?: string; [key: string]: string | number | boolean | object | null }>) => Promise<void>;
 	deleteWorkout: (workoutId: string) => Promise<void>;
-	addWorkoutExercise: (workoutId: string, data: any) => Promise<void>;
-	updateWorkoutExercise: (exerciseId: string, data: any) => Promise<void>;
+	addWorkoutExercise: (workoutId: string, data: { educationalId?: string; name?: string; [key: string]: string | number | boolean | object | null }) => Promise<void>;
+	updateWorkoutExercise: (exerciseId: string, data: Partial<import("@/lib/types").WorkoutExercise>) => Promise<void>;
 	deleteWorkoutExercise: (exerciseId: string) => Promise<void>;
 
 	// === ACTIONS - WORKOUT PROGRESS ===
@@ -188,13 +189,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						},
 					}));
-				} catch (error: any) {
+				} catch (error) {
 					console.error("[loadAll] Erro ao carregar dados:", error);
-
+					const err = error as { code?: string; message?: string };
 					// Se for timeout, tentar carregamento incremental como fallback
 					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("timeout")
 					) {
 						console.warn(
 							"[loadAll] Timeout detectado, tentando carregamento incremental...",
@@ -250,7 +251,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 								...state.data.metadata,
 								isLoading: false,
 								errors: {
-									loadAll: error.message || "Erro ao carregar dados",
+									loadAll: (error instanceof Error ? error.message : "Erro ao carregar dados"),
 								},
 							},
 						},
@@ -332,7 +333,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							);
 						});
 					}
-				} catch (error: any) {
+				} catch (error) {
 					console.error(
 						"[loadAllPrioritized] Erro ao carregar prioridades:",
 						error,
@@ -624,8 +625,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			loadGymLocationsWithPosition: async (lat: number, lng: number) => {
 				try {
 					const response = await apiClient.get<{
-						gyms?: any[];
-						gymLocations?: any[];
+						gyms?: import("@/lib/types").GymLocation[];
+						gymLocations?: import("@/lib/types").GymLocation[];
 					}>("/api/gyms/locations", {
 						params: { lat: String(lat), lng: String(lng) },
 						timeout: 30000,
@@ -647,7 +648,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			loadFoodDatabase: async () => {
 				try {
 					// Buscar todos os alimentos da API (sem query para pegar todos)
-					const response = await apiClient.get<{ foods: any[] }>(
+					const response = await apiClient.get<{ foods: import("@/lib/types").FoodItem[] }>(
 						"/api/foods/search?limit=1000",
 						{
 							timeout: 30000, // 30 segundos
@@ -663,11 +664,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							foodDatabase: foods,
 						},
 					}));
-				} catch (error: any) {
+				} catch (error) {
 					// Tratamento específico para timeout
+					const err = error as { code?: string; message?: string; response?: { status?: number } };
 					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("timeout")
 					) {
 						console.warn(
 							"⚠️ Timeout ao carregar alimentos. Continuando com dados existentes.",
@@ -677,8 +679,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 					// Se a tabela não existir, não mostrar erro
 					if (
-						error.response?.status === 500 ||
-						error.message?.includes("does not exist")
+						err?.response?.status === 500 ||
+						err?.message?.includes("does not exist")
 					) {
 						console.log(
 							"⚠️ Tabela de alimentos não existe. Execute: node scripts/apply-nutrition-migration.js",
@@ -778,11 +780,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -817,7 +820,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 									errors: {
 										...state.data.metadata.errors,
 										updateProgress:
-											error.message || "Erro ao atualizar progresso",
+											(error instanceof Error ? error.message : "Erro ao atualizar progresso"),
 									},
 								},
 							},
@@ -863,10 +866,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						console.log("✅ Perfil salvo offline. Sincronizará quando online.");
 						return;
 					}
-				} catch (error: any) {
+				} catch (error) {
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (!isNetworkError) {
@@ -945,10 +949,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Se online e sucesso, atualizar weightHistory localmente (já foi feito optimistic update)
 					// Não precisa recarregar do servidor, o optimistic update já está correto
 					// await get().loadWeightHistory(); // Removido para evitar requisições desnecessárias
-				} catch (error: any) {
+				} catch (error) {
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (!isNetworkError) {
@@ -1025,7 +1030,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			updateNutrition: async (updates) => {
 				// Optimistic update - atualiza UI imediatamente
 				const previousNutrition = get().data.dailyNutrition;
-				let updatedNutrition: any;
+				let updatedNutrition: DailyNutrition | undefined;
 				set((state) => {
 					const currentNutrition = state.data.dailyNutrition;
 					const updatedMeals =
@@ -1038,22 +1043,22 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					let calculatedTotals = {};
 					if (updates.meals !== undefined) {
 						const completedMeals = updatedMeals.filter(
-							(meal: any) => meal.completed === true,
+							(meal: Meal) => meal.completed === true,
 						);
 						const totalCalories = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.calories || 0),
+							(sum: number, meal: Meal) => sum + (meal.calories || 0),
 							0,
 						);
 						const totalProtein = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.protein || 0),
+							(sum: number, meal: Meal) => sum + (meal.protein || 0),
 							0,
 						);
 						const totalCarbs = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.carbs || 0),
+							(sum: number, meal: Meal) => sum + (meal.carbs || 0),
 							0,
 						);
 						const totalFats = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.fats || 0),
+							(sum: number, meal: Meal) => sum + (meal.fats || 0),
 							0,
 						);
 
@@ -1102,7 +1107,20 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					const hasWaterIntakeUpdate = updates.waterIntake !== undefined;
 
 					// Construir payload apenas com o que foi atualizado
-					const apiPayload: any = {
+					const apiPayload: {
+						date: string;
+						meals?: Array<{
+							id?: string;
+							name: string;
+							calories: number;
+							protein: number;
+							carbs: number;
+							fats: number;
+							completed?: boolean;
+							type: string;
+							foods: Array<{ foodId: string; foodName: string; servings: number; calories: number; protein: number; carbs: number; fats: number; servingSize: string }>;
+						}>;
+					} = {
 						date: normalizedDate,
 					};
 
@@ -1110,7 +1128,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Isso evita deletar todas as refeições quando apenas waterIntake é atualizado
 					if (hasMealsUpdate) {
 						apiPayload.meals = (updatedNutrition.meals || []).map(
-							(meal: any, index: number) => ({
+							(meal: Meal, index: number) => ({
 								name: meal.name || "Refeição",
 								type: meal.type || "snack",
 								calories: meal.calories || 0,
@@ -1120,7 +1138,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 								time: meal.time || null,
 								completed: meal.completed || false,
 								order: index,
-								foods: (meal.foods || []).map((food: any) => ({
+								foods: (meal.foods || []).map((food: import("@/lib/types").MealFoodItem) => ({
 									foodId: food.foodId || null,
 									foodName: food.foodName || "Alimento",
 									servings: food.servings || 1,
@@ -1185,9 +1203,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							// Não falhar a operação se o reload falhar - optimistic update já foi aplicado
 						}
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// Se a migration não foi aplicada, não mostrar erro
-					if (error.response?.data?.code === "MIGRATION_REQUIRED") {
+					const err = error as {
+						response?: { data?: { code?: string } };
+						code?: string;
+						message?: string;
+					};
+					if (err?.response?.data?.code === "MIGRATION_REQUIRED") {
 						console.log(
 							"⚠️ Tabela de nutrição não existe. Execute: node scripts/apply-nutrition-migration.js",
 						);
@@ -1195,8 +1218,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					}
 
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (!isNetworkError) {
@@ -1216,8 +1239,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				set((state) => ({
 					data: {
 						...state.data,
-						subscription: updates 
-							? { ...(state.data.subscription || {}), ...updates } as any
+						subscription: updates
+							? { ...(state.data.subscription || {}), ...updates } as StudentData["subscription"]
 							: null,
 					},
 				}));
@@ -1324,11 +1347,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1452,11 +1476,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1573,11 +1598,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1763,11 +1789,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					}
 
 					return command.id; // Retornar ID temporário por padrão
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1897,11 +1924,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2033,11 +2061,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2273,7 +2302,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 													exercise.id === command.id
 														? (() => {
 																// Função helper para parsear JSON com segurança
-																const safeParse = (value: any) => {
+																const safeParse = (value: string | number | boolean | object | null) => {
 																	if (!value) return null;
 																	if (Array.isArray(value)) return value;
 																	if (typeof value === "string") {
@@ -2348,11 +2377,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2493,11 +2523,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2671,11 +2702,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2885,11 +2917,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 		}),
 		{
 			name: "student-unified-storage",
-			storage: createIndexedDBStorage() as any, // Usa IndexedDB ao invés de localStorage (suporta dados grandes)
+			storage: createIndexedDBStorage(),
 			partialize: (state) =>
 				({
 					data: state.data, // Persistir apenas os dados, não as actions
-				}) as any,
+				}),
 			// Migra dados do localStorage para IndexedDB na primeira vez
 			onRehydrateStorage: () => {
 				return async (state) => {

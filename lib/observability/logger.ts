@@ -9,10 +9,12 @@ const isDev = typeof process !== "undefined" && process.env?.NODE_ENV !== "produ
 
 const SENSITIVE_KEYS = ["password", "token", "secret", "authorization", "cookie"];
 
-function sanitize(obj: unknown): unknown {
+type LoggableValue = string | number | boolean | null | LoggableValue[] | Record<string, LoggableValue>;
+
+function sanitize(obj: LoggableValue): LoggableValue {
 	if (obj == null || typeof obj !== "object") return obj;
 	if (Array.isArray(obj)) return obj.map(sanitize);
-	const out: Record<string, unknown> = {};
+	const out: Record<string, LoggableValue> = {};
 	for (const [k, v] of Object.entries(obj)) {
 		const keyLower = k.toLowerCase();
 		if (SENSITIVE_KEYS.some((s) => keyLower.includes(s))) {
@@ -24,7 +26,7 @@ function sanitize(obj: unknown): unknown {
 	return out;
 }
 
-function formatMessage(level: string, message: string, ctx?: Record<string, unknown>) {
+function formatMessage(level: string, message: string, ctx?: Record<string, LoggableValue>) {
 	const sanitized = ctx != null ? sanitize(ctx) : undefined;
 	if (isDev) {
 		const parts = [`[${level}]`, message];
@@ -36,7 +38,7 @@ function formatMessage(level: string, message: string, ctx?: Record<string, unkn
 	return [{ level, message, ...(sanitized as object) }];
 }
 
-function write(level: "info" | "warn" | "error", fn: (...args: unknown[]) => void, message: string, ctx?: Record<string, unknown>) {
+function write(level: "info" | "warn" | "error", fn: (...args: (string | object)[]) => void, message: string, ctx?: Record<string, LoggableValue>) {
 	const parts = formatMessage(level.toUpperCase(), message, ctx);
 	try {
 		if (isDev) {
@@ -51,16 +53,16 @@ function write(level: "info" | "warn" | "error", fn: (...args: unknown[]) => voi
 }
 
 export const log = {
-	info(message: string, ctx?: Record<string, unknown>) {
+	info(message: string, ctx?: Record<string, LoggableValue>) {
 		write("info", console.info.bind(console), message, ctx);
 	},
-	warn(message: string, ctx?: Record<string, unknown>) {
+	warn(message: string, ctx?: Record<string, LoggableValue>) {
 		write("warn", console.warn.bind(console), message, ctx);
 	},
-	error(message: string, ctx?: Record<string, unknown>) {
+	error(message: string, ctx?: Record<string, LoggableValue>) {
 		write("error", console.error.bind(console), message, ctx);
 	},
-	debug(message: string, ctx?: Record<string, unknown>) {
+	debug(message: string, ctx?: Record<string, LoggableValue>) {
 		if (isDev) {
 			write("info", console.debug.bind(console), message, ctx);
 		}

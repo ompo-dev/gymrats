@@ -230,7 +230,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 						cardioDuration: progressToSave.cardioDuration,
 						selectedCardioType: progressToSave.selectedCardioType,
 					});
-				} catch (error: unknown) {
+				} catch (error) {
 					const err = error as {
 						response?: {
 							status?: number;
@@ -301,7 +301,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 					.delete(`/api/workouts/${workoutId}/progress`, {
 						timeout: 5000, // Timeout menor para operação de limpeza
 					})
-					.catch((error: unknown) => {
+					.catch((error: Error) => {
 						const err = error as {
 							response?: { status?: number; data?: { code?: string } };
 							code?: string;
@@ -449,8 +449,8 @@ export const useWorkoutStore = create<WorkoutState>()(
 				...state,
 				completedWorkouts: Array.from(state.completedWorkouts),
 			}),
-			merge: (persistedState: unknown, currentState) => {
-				const persisted = persistedState as Record<string, unknown> & {
+			merge: (persistedState: Record<string, string | number | boolean | object | null>, currentState) => {
+				const persisted = persistedState as Record<string, string | number | boolean | object | null> & {
 					completedWorkouts?: string[];
 				};
 				return {

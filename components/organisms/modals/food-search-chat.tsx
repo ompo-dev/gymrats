@@ -354,7 +354,7 @@ export function FoodSearchChat({
         }
         return prev;
       });
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("[FoodSearchChat] Erro:", error);
 
       const err = error instanceof Error ? error : new Error(String(error));

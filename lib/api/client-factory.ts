@@ -137,7 +137,7 @@ async function requestViaSyncManager<T>(
 			status: 202,
 			statusText: "Accepted",
 			headers: {},
-			config: config as any,
+			config: config as Record<string, string | number | boolean | object | null>,
 		} as AxiosResponse<T>;
 	}
 
@@ -146,7 +146,7 @@ async function requestViaSyncManager<T>(
 		status: 200,
 		statusText: "OK",
 		headers: {},
-		config: config as any,
+		config: config as Record<string, string | number | boolean | object | null>,
 	} as AxiosResponse<T>;
 }
 
@@ -154,17 +154,17 @@ export type ApiClient = {
 	get<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
 	post<T>(
 		url: string,
-		data?: unknown,
+		data?: Record<string, string | number | boolean | object | null>,
 		config?: AxiosRequestConfig,
 	): Promise<AxiosResponse<T>>;
 	put<T>(
 		url: string,
-		data?: unknown,
+		data?: Record<string, string | number | boolean | object | null>,
 		config?: AxiosRequestConfig,
 	): Promise<AxiosResponse<T>>;
 	patch<T>(
 		url: string,
-		data?: unknown,
+		data?: Record<string, string | number | boolean | object | null>,
 		config?: AxiosRequestConfig,
 	): Promise<AxiosResponse<T>>;
 	delete<T>(url: string, config?: AxiosRequestConfig): Promise<AxiosResponse<T>>;
@@ -195,7 +195,7 @@ export function createApiClient(options?: { offline?: boolean }): ApiClient {
 		},
 		async post<T>(
 			url: string,
-			data?: unknown,
+			data?: Record<string, string | number | boolean | object | null>,
 			config?: AxiosRequestConfig,
 		) {
 			return client.post<T>(url, data, {
@@ -208,7 +208,7 @@ export function createApiClient(options?: { offline?: boolean }): ApiClient {
 		},
 		async patch<T>(
 			url: string,
-			data?: unknown,
+			data?: Record<string, string | number | boolean | object | null>,
 			config?: AxiosRequestConfig,
 		) {
 			return client.patch<T>(url, data, config);

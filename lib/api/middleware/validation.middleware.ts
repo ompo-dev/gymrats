@@ -21,14 +21,14 @@ export interface ValidationOptions {
  * @param options - Opções de validação (body, query, params)
  * @returns Objeto com dados validados ou resposta de erro
  */
-export async function validateRequest<T = any>(
+export async function validateRequest<T = Record<string, string | number | boolean | object>>(
 	request: NextRequest,
 	options: ValidationOptions,
 ): Promise<
 	{ success: true; data: T } | { success: false; response: NextResponse }
 > {
 	const errors: string[] = [];
-	const validatedData: any = {};
+	const validatedData: Record<string, string | number | boolean | object> = {};
 
 	// Validar body se fornecido
 	if (options.body) {

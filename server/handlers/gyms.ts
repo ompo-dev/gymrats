@@ -16,7 +16,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 
 type GymContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	query?: Record<string, unknown>;
 	userId: string;
 };

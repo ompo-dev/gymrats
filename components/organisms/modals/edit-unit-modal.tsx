@@ -465,8 +465,8 @@ export function EditUnitModal({
       toast.success("Dia de treino removido!");
     } catch (error) {
       console.error(error);
-      const message =
-        (error as any)?.response?.data?.message || "Falha ao remover treino";
+      const err = error as { response?: { data?: { message?: string } } };
+      const message = err?.response?.data?.message || "Falha ao remover treino";
       toast.error(message);
     }
   };
@@ -596,11 +596,11 @@ export function EditUnitModal({
       await actions.deleteWorkoutExercise(exerciseIdToDelete);
       // Toast apenas para feedback - UI já atualizou via optimistic update
       toast.success("Exercício removido!");
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      // Tratamento de erro 500 genérico para mensagem amigável
+      const err = error as { response?: { data?: { message?: string } } };
       const errorMessage =
-        error.response?.data?.message ||
+        err?.response?.data?.message ||
         "Erro ao remover exercício. Tente novamente.";
       toast.error(errorMessage);
     }

@@ -10,7 +10,7 @@ import { errorResponse, internalErrorResponse } from "./response.utils";
  * Trata erros da API de forma padronizada
  */
 export function handleApiError(
-	error: any,
+	error: Error & { code?: string; name?: string; errors?: Array<{ path?: string[]; message?: string }> },
 	context: string,
 	defaultMessage: string = "Erro ao processar requisição",
 ): Response {
@@ -45,14 +45,14 @@ export function handleApiError(
  * Wrapper para handlers que trata erros automaticamente
  */
 export function withErrorHandling(
-	handler: (request: any, context?: any) => Promise<Response>,
-	_context: string,
+	handler: (request: Request, context?: string) => Promise<Response>,
+	context: string,
 ) {
-	return async (request: any, context?: any): Promise<Response> => {
+	return async (request: Request, ctx?: string): Promise<Response> => {
 		try {
-			return await handler(request, context);
-		} catch (error: any) {
-			return handleApiError(error, context);
+			return await handler(request, ctx ?? context);
+		} catch (error) {
+			return handleApiError(error as Error & { code?: string; name?: string; errors?: Array<{ path?: string[]; message?: string }> }, context);
 		}
 	};
 }

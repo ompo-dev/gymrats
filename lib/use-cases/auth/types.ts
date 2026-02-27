@@ -26,7 +26,7 @@ export interface BetterAuthSession {
 export type UseCaseError = {
 	message: string;
 	status: number;
-	details?: unknown;
+	details?: Record<string, string | number | boolean | object | null>;
 };
 
 export type UseCaseResult<T> =

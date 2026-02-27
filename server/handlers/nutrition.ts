@@ -16,7 +16,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 type NutritionContext = {
 	set: Context["set"];
 	query?: Record<string, unknown>;
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId: string;
 };
 

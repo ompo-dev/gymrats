@@ -6,6 +6,7 @@
  * Suporta dados maiores que 5MB
  */
 
+import type { JsonValue } from "@/lib/types";
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
 
 // ============================================
@@ -17,7 +18,7 @@ interface ZustandStorageDB extends DBSchema {
 		key: string;
 		value: {
 			key: string;
-			value: any;
+			value: JsonValue;
 			updatedAt: number;
 		};
 		indexes: { "by-updated": number };
@@ -113,7 +114,7 @@ export function createIndexedDBStorage() {
 				const store = db.transaction("store", "readwrite").objectStore("store");
 
 				// Parse value apenas se for string, caso contrário usa diretamente
-				let parsedValue: any;
+				let parsedValue: JsonValue;
 				try {
 					// Tenta fazer parse se for string
 					if (typeof value === "string") {

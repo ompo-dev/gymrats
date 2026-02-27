@@ -61,7 +61,7 @@ export function useGym<T extends GymSelector>(
 	);
 
 	if (selectors.length === 0) {
-		return data as any;
+		return data as GymUnifiedState["data"];
 	}
 
 	if (selectors.length === 1) {
@@ -84,19 +84,19 @@ export function useGym<T extends GymSelector>(
 				createGymSubscription,
 				cancelGymSubscription,
 				hydrateInitial,
-			} as any;
+			} as GymSelectorReturnMap["actions"];
 		}
 		if (selector === "loaders") {
 			return {
 				loadAll,
 				loadAllPrioritized,
 				loadSection,
-			} as any;
+			} as GymSelectorReturnMap["loaders"];
 		}
-		return dataSelector(selector, data) as any;
+		return dataSelector(selector, data) as GymSelectorReturnMap[typeof selector];
 	}
 
-	const result: Record<string, any> = {};
+	const result: Record<string, unknown> = {};
 	selectors.forEach((selector) => {
 		if (selector === "actions") {
 			result.actions = {
@@ -128,5 +128,5 @@ export function useGym<T extends GymSelector>(
 		}
 	});
 
-	return result as any;
+	return result as Pick<GymSelectorReturnMap, T[number]>;
 }

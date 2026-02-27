@@ -9,6 +9,7 @@
  * - Evidência científica
  */
 
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
 import { log } from "@/lib/observability";
@@ -33,7 +34,7 @@ export async function populateWorkoutExercisesWithEducationalData(
 		});
 
 		// Construir where clause baseado em studentId
-		const whereClause: any = {
+		const whereClause: Prisma.WorkoutExerciseWhereInput = {
 			OR: [
 				{ primaryMuscles: null },
 				{ secondaryMuscles: null },
