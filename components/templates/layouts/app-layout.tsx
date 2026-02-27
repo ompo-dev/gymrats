@@ -33,7 +33,7 @@ interface AppLayoutProps {
 	className?: string;
 }
 
-export function AppLayout({
+function AppLayoutSimple({
 	children,
 	userType,
 	tabs,
@@ -80,7 +80,7 @@ export function AppLayout({
 		<div
 			className={`h-screen flex flex-col overflow-hidden ${className}`}
 		>
-			<AppHeader userType={userType} stats={stats} showLogo={showLogo} />
+			<AppHeader.Simple userType={userType} stats={stats} showLogo={showLogo} />
 
 			<main
 				ref={mainRef}
@@ -89,7 +89,7 @@ export function AppLayout({
 				{children}
 			</main>
 
-			<AppBottomNav
+			<AppBottomNav.Simple
 				userType={userType}
 				activeTab={activeTab}
 				tabs={tabs}
@@ -100,3 +100,7 @@ export function AppLayout({
 		</div>
 	);
 }
+
+export const AppLayout = {
+	Simple: AppLayoutSimple,
+};

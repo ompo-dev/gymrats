@@ -24,7 +24,7 @@ async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
 
 export default function GymLayout({ children }: { children: React.ReactNode }) {
 	return (
-		<Suspense fallback={<LoadingScreen variant="gym" />}>
+		<Suspense fallback={<LoadingScreen.Simple variant="gym" />}>
 			<GymLayoutWrapper>{children}</GymLayoutWrapper>
 		</Suspense>
 	);

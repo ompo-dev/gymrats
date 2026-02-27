@@ -18,7 +18,7 @@ interface AppBottomNavProps {
 	onTabChange: (tab: string) => void;
 }
 
-export function AppBottomNav({
+function AppBottomNavSimple({
 	userType,
 	activeTab,
 	tabs,
@@ -77,3 +77,7 @@ export function AppBottomNav({
 		</motion.nav>
 	);
 }
+
+export const AppBottomNav = {
+	Simple: AppBottomNavSimple,
+};

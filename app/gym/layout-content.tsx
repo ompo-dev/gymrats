@@ -83,7 +83,7 @@ export function GymLayoutContent({
 	}
 
 	return (
-		<AppLayout
+		<AppLayout.Simple
 			userType="gym"
 			tabs={gymTabs}
 			defaultTab="dashboard"
@@ -93,6 +93,6 @@ export function GymLayoutContent({
 			className="bg-duo-bg"
 		>
 			{children}
-		</AppLayout>
+		</AppLayout.Simple>
 	);
 }

@@ -88,7 +88,7 @@ export function StudentLayoutContent({
 
 	// Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
 	if (!isMounted) {
-		return <LoadingScreen variant="student" />;
+		return <LoadingScreen.Simple variant="student" />;
 	}
 
 	if (isOnboarding) {
@@ -97,7 +97,7 @@ export function StudentLayoutContent({
 
 	// Mostrar loading enquanto redireciona para onboarding
 	if (!hasProfile && !isOnboarding) {
-		return <LoadingScreen variant="student" message="Redirecionando..." />;
+		return <LoadingScreen.Simple variant="student" message="Redirecionando..." />;
 	}
 
 	// Handler para mudança de tabs
@@ -111,7 +111,7 @@ export function StudentLayoutContent({
 	};
 
 	return (
-		<AppLayout
+		<AppLayout.Simple
 			userType="student"
 			tabs={studentTabs}
 			defaultTab="home"
@@ -140,6 +140,6 @@ export function StudentLayoutContent({
 			className="bg-duo-bg"
 		>
 			{children}
-		</AppLayout>
+		</AppLayout.Simple>
 	);
 }

@@ -20,7 +20,7 @@ interface AppHeaderProps {
   showLogo?: boolean;
 }
 
-export function AppHeader({
+function AppHeaderSimple({
   userType,
   stats,
   showLogo = true,
@@ -118,3 +118,7 @@ export function AppHeader({
     </>
   );
 }
+
+export const AppHeader = {
+  Simple: AppHeaderSimple,
+};

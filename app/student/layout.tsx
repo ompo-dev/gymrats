@@ -34,7 +34,7 @@ export default function StudentLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<Suspense fallback={<LoadingScreen variant="student" />}>
+		<Suspense fallback={<LoadingScreen.Simple variant="student" />}>
 			<StudentLayoutWrapper>{children}</StudentLayoutWrapper>
 		</Suspense>
 	);
