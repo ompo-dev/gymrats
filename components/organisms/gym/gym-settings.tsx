@@ -46,13 +46,13 @@ type DaySchedule = { open: string; close: string; enabled: boolean };
 
 interface GymSettingsPageProps {
   profile: GymProfile;
-  plans: MembershipPlan[];
+  plans?: MembershipPlan[];
   userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 export function GymSettingsPage({
   profile: initialProfile,
-  plans,
+  plans = [],
   userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
   const router = useRouter();

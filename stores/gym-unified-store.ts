@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, type PersistStorage } from "zustand/middleware";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
 import {
@@ -600,8 +600,8 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 		}),
 		{
 			name: "gym-unified-storage",
-			storage: createIndexedDBStorage(),
-			partialize: (state) => ({ data: state.data }),
+			storage: createIndexedDBStorage() as PersistStorage<{ data: GymUnifiedData }>,
+			partialize: (state): { data: GymUnifiedData } => ({ data: state.data }),
 			onRehydrateStorage: () => {
 				return async (state) => {
 					if (typeof window !== "undefined" && state) {
@@ -609,6 +609,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 					}
 				};
 			},
-		},
+		} as import("zustand/middleware").PersistOptions<GymUnifiedState, { data: GymUnifiedData }>,
 	),
 );

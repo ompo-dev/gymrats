@@ -5,7 +5,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 
-interface LessonFiltersProps {
+export interface LessonFiltersProps {
 	searchQuery: string;
 	selectedCategory: string;
 	categoryOptions: { value: string; label: string; emoji: string }[];

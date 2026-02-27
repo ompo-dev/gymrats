@@ -7,5 +7,13 @@ export default async function SettingsPage() {
 
 	if (!profile) return null;
 
-	return <GymSettingsPage profile={profile} userInfo={userInfo} />;
+	return (
+		<GymSettingsPage
+			profile={profile}
+			userInfo={{
+				isAdmin: userInfo.isAdmin,
+				role: userInfo.role ?? null,
+			}}
+		/>
+	);
 }

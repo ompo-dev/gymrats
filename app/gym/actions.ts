@@ -27,7 +27,7 @@ export async function getCurrentUserInfo() {
 
 		return {
 			isAdmin: ctx.user.role === "ADMIN",
-			role: ctx.user.role,
+			role: ctx.user.role ?? null,
 		};
 	} catch (error) {
 		console.error("[getCurrentUserInfo] Erro:", error);
@@ -91,7 +91,7 @@ export async function getGymStudents(): Promise<StudentData[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getStudents(ctx.gymId);
+		return (await GymMemberService.getStudents(ctx.gymId)) as StudentData[];
 	} catch (error) {
 		console.error("[getGymStudents] Erro:", error);
 		return [];
@@ -102,7 +102,8 @@ export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getRecentCheckIns(ctx.gymId);
+		const checkIns = await GymMemberService.getRecentCheckIns(ctx.gymId);
+		return checkIns.map((c) => ({ ...c, checkOut: c.checkOut ?? undefined })) as CheckIn[];
 	} catch (error) {
 		console.error("[getGymRecentCheckIns] Erro:", error);
 		return [];
@@ -113,7 +114,7 @@ export async function getGymStudentById(studentId: string): Promise<StudentData 
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return null;
-		return GymMemberService.getStudentById(ctx.gymId, studentId);
+		return (await GymMemberService.getStudentById(ctx.gymId, studentId)) as StudentData | null;
 	} catch (error) {
 		console.error("[getGymStudentById] Erro:", error);
 		return null;

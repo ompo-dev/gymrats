@@ -130,7 +130,7 @@ export function createProfileSlice(
 					body: {
 						weight,
 						date: date.toISOString(),
-						notes,
+						notes: notes ?? null,
 					},
 					headers: token ? { Authorization: `Bearer ${token}` } : {},
 					priority: "high",

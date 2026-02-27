@@ -3,11 +3,11 @@
 import { Check, X } from "lucide-react";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
-import type { Exercise } from "@/lib/types";
+import type { QuizExercise } from "./multiple-choice";
 import { cn } from "@/lib/utils";
 
 interface TrueFalseProps {
-	exercise: Exercise;
+	exercise: QuizExercise;
 	onAnswer: (isCorrect: boolean, selectedAnswer: string) => void;
 }
 

@@ -7,7 +7,7 @@ import { DuoCard } from "@/components/duo";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-interface LessonListProps {
+export interface LessonListProps {
 	lessons: EducationalLesson[];
 	lessonsByCategory: Record<string, EducationalLesson[]> | null;
 	categoryColors: Record<string, { bg: string; text: string; border: string }>;

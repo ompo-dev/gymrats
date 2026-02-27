@@ -49,7 +49,7 @@ function normalizeExistingLog(
 	}
 }
 
-interface WeightTrackerProps {
+export interface WeightTrackerProps {
 	exerciseName: string;
 	exerciseId: string;
 	defaultSets: number;

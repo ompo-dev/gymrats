@@ -129,9 +129,7 @@ function AuthCallbackPageContent() {
 			};
 			session?: { token?: string };
 		}) => {
-			const userRole =
-				(sessionResponse.user as { role: "STUDENT" | "GYM" | "ADMIN" }).role ||
-				sessionResponse.user.role;
+			const userRole = (sessionResponse.user as { role?: string }).role;
 
 			// Se está em popup (PWA), comunicar com janela pai
 			if (isInPopup && window.opener) {

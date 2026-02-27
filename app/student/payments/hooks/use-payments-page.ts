@@ -12,10 +12,7 @@ import {
 } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
-import type {
-	StudentGymMembership,
-	StudentPayment,
-} from "@/lib/types";
+import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 
 export type PaymentsTab = "memberships" | "payments" | "subscription";
 
@@ -96,13 +93,14 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	}, [subTab]);
 
 	// Ao abrir a aba Assinatura, garantir que subscription tem source/enterpriseGymName (refetch)
+	const subFromStore = storeSubscription as SubscriptionData | null | undefined;
 
-	const hasOptimisticUpdate = storeSubscription?.id === "temp-trial-id";
+	const hasOptimisticUpdate = subFromStore?.id === "temp-trial-id";
 
 	const subscription: SubscriptionData | null = hasOptimisticUpdate
-		? storeSubscription
-		: storeSubscription !== null && storeSubscription !== undefined
-			? storeSubscription
+		? (subFromStore as SubscriptionData)
+		: subFromStore !== null && subFromStore !== undefined
+			? (subFromStore as SubscriptionData)
 			: subscriptionData !== undefined && subscriptionData !== null
 				? subscriptionData
 				: subscriptionData === null && initialSubscription
@@ -159,9 +157,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 		}
 	}, [activeTab, loadSubscription]);
 
+	const membershipsArray = Array.isArray(storeMemberships) ? storeMemberships : [];
 	const membershipsData = useMemo(() => {
-		if (!storeMemberships || storeMemberships.length === 0) return [];
-		return storeMemberships.map((m: StudentGymMembership) => ({
+		if (membershipsArray.length === 0) return [];
+		return (membershipsArray as StudentGymMembership[]).map((m: StudentGymMembership) => ({
 			...m,
 			startDate: m.startDate
 				? m.startDate instanceof Date
@@ -174,11 +173,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					: new Date(m.nextBillingDate)
 				: undefined,
 		}));
-	}, [storeMemberships]);
+	}, [membershipsArray]);
 
+	const paymentsArray = Array.isArray(storePayments) ? storePayments : [];
 	const paymentsData = useMemo(() => {
-		if (!storePayments || storePayments.length === 0) return [];
-		return storePayments.map((p: StudentPayment) => ({
+		if (paymentsArray.length === 0) return [];
+		return (paymentsArray as StudentPayment[]).map((p: StudentPayment) => ({
 			...p,
 			date: p.date
 				? p.date instanceof Date ? p.date : new Date(p.date)
@@ -187,7 +187,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				? p.dueDate instanceof Date ? p.dueDate : new Date(p.dueDate)
 				: new Date(),
 		}));
-	}, [storePayments]);
+	}, [paymentsArray]);
 
 	const memberships = membershipsData;
 	const payments = paymentsData;

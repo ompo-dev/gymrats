@@ -12,7 +12,7 @@ import { DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
-import type { StudentData } from "@/lib/types";
+import type { Payment, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { getGymStudentById, getGymStudentPayments } from "@/app/gym/actions";
 import { AddStudentModal } from "./add-student-modal";
@@ -30,7 +30,7 @@ function StudentDetailLoader({
 	onBack,
 }: StudentDetailLoaderProps) {
 	const [student, setStudent] = useState<StudentData | null>(fallbackStudent);
-	const [payments, setPayments] = useState<Array<Record<string, string | number | boolean | object | null>>>([]);
+	const [payments, setPayments] = useState<Payment[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {

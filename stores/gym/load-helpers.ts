@@ -30,10 +30,24 @@ const loadingPromises = new Map<
 >();
 
 interface MemberWithStudent {
-	student: { id: string; user?: { name?: string }; avatar?: string };
+	student: {
+		id: string;
+		user?: { name?: string; email?: string; image?: string };
+		avatar?: string;
+		name?: string;
+		email?: string;
+		age?: number;
+		gender?: string;
+		phone?: string;
+		profile?: Record<string, unknown>;
+		progress?: Record<string, unknown>;
+	};
+	studentId?: string;
 	studentName?: string;
-	status: string;
+	status?: string;
+	membershipStatus?: string;
 	createdAt: Date;
+	joinDate?: Date;
 	plan?: { name?: string };
 }
 
@@ -59,7 +73,7 @@ function transformMembersToStudents(
 					? "suspended"
 					: "inactive";
 		return {
-			id: student.id ?? (m as { studentId?: string }).studentId ?? (m as { id: string }).id,
+			id: student.id ?? (m as unknown as { studentId?: string }).studentId ?? (m as unknown as { id?: string }).id ?? "",
 			name: (user.name as string) ?? (student.name as string) ?? "",
 			email: (user.email as string) ?? (student.email as string) ?? "",
 			avatar: (student.avatar ?? user.image) as string | undefined,
@@ -105,7 +119,13 @@ function transformMembersToStudents(
 			weightHistory: [],
 			favoriteEquipment: [],
 		};
-	});
+	}) as unknown as Array<
+		Partial<import("@/lib/types").StudentData> & {
+			id: string;
+			name: string;
+			email: string;
+		}
+	>;
 }
 
 export function transformSectionResponse(
@@ -123,12 +143,12 @@ export function transformSectionResponse(
 		case "students":
 			result = {
 				students: transformMembersToStudents(
-					(data.members as MemberWithStudent[]) || [],
-				),
+					(data.members as unknown as MemberWithStudent[]) || [],
+				) as import("@/lib/types").StudentData[],
 			};
 			break;
 		case "equipment":
-			result = { equipment: (data.equipment as GymUnifiedData["equipment"]) || [] };
+			result = { equipment: ((data.equipment as unknown as GymUnifiedData["equipment"]) || []) as GymUnifiedData["equipment"] };
 			break;
 		case "financialSummary":
 			result = {
@@ -139,13 +159,13 @@ export function transformSectionResponse(
 		case "recentCheckIns":
 			result = {
 				recentCheckIns:
-					(data.checkIns as GymUnifiedData["recentCheckIns"]) || [],
+					(data.checkIns as unknown as GymUnifiedData["recentCheckIns"]) || [],
 			};
 			break;
 		case "membershipPlans":
 			result = {
 				membershipPlans:
-					(data.plans as GymUnifiedData["membershipPlans"]) || [],
+					(data.plans as unknown as GymUnifiedData["membershipPlans"]) || [],
 			};
 			break;
 		case "payments":
@@ -155,14 +175,14 @@ export function transformSectionResponse(
 						Record<string, import("@/lib/types/api-error").JsonValue>
 					>) || []
 				).map((p) => ({
-					id: p.id,
-					studentId: p.studentId,
-					studentName: p.studentName,
+					id: String(p.id ?? ""),
+					studentId: String(p.studentId ?? ""),
+					studentName: String(p.studentName ?? ""),
 					planId: (p.planId as string) || "",
 					planName: (p.plan as { name?: string })?.name ?? (p.planName as string) ?? "",
-					amount: p.amount,
-					date: p.date,
-					dueDate: p.dueDate,
+					amount: Number(p.amount ?? 0),
+					date: p.date as string | Date,
+					dueDate: p.dueDate as string | Date | undefined,
 					status: (p.withdrawnAt
 						? "withdrawn"
 						: (p.status as string)) as
@@ -174,13 +194,13 @@ export function transformSectionResponse(
 					paymentMethod: (p.paymentMethod as string) || "pix",
 					reference: (p.reference as string) ?? undefined,
 					abacatePayBillingId: (p.abacatePayBillingId as string) ?? undefined,
-					withdrawnAt: (p.withdrawnAt as Date) ?? undefined,
+					withdrawnAt: (p.withdrawnAt as unknown as Date) ?? undefined,
 					withdrawId: (p.withdrawId as string) ?? undefined,
-				})),
+				})) as import("@/lib/types").Payment[],
 			};
 			break;
 		case "expenses":
-			result = { expenses: (data.expenses as GymUnifiedData["expenses"]) || [] };
+			result = { expenses: (data.expenses as unknown as GymUnifiedData["expenses"]) || [] };
 			break;
 		case "subscription":
 			result = {

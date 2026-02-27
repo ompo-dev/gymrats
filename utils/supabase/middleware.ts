@@ -15,16 +15,18 @@ export const createClient = (request: NextRequest) => {
 			getAll() {
 				return request.cookies.getAll();
 			},
-			setAll(cookiesToSet) {
-				cookiesToSet.forEach(({ name, value }) => {
+			setAll(cookiesToSet: Array<{ name: string; value: string; options?: object }>) {
+				cookiesToSet.forEach(({ name, value }: { name: string; value: string }) => {
 					request.cookies.set(name, value);
 				});
 				supabaseResponse = NextResponse.next({
 					request,
 				});
-				cookiesToSet.forEach(({ name, value, options }) => {
-					supabaseResponse.cookies.set(name, value, options);
-				});
+				cookiesToSet.forEach(
+					({ name, value, options }: { name: string; value: string; options?: object }) => {
+						supabaseResponse.cookies.set(name, value, options);
+					},
+				);
 			},
 		},
 	});

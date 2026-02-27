@@ -11,7 +11,12 @@ interface ShopCardProps {
 
 export function ShopCard({ totalXP }: ShopCardProps) {
 	const { totalXP: storeXP } = useStudent("totalXP");
-	const currentXP = totalXP ?? storeXP ?? 0;
+	const currentXP =
+		typeof totalXP === "number"
+			? totalXP
+			: typeof storeXP === "number"
+				? storeXP
+				: 0;
 	return (
 		<DuoCard.Root variant="default" padding="md">
 			<DuoCard.Header>

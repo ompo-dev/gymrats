@@ -220,7 +220,7 @@ export class StudentDomainService {
    */
   static async updateFullProfile(
     studentId: string,
-    data: Record<string, string | number | boolean | string[] | null | undefined>,
+    data: Record<string, string | number | boolean | string[] | Record<string, string | string[]> | null | undefined>,
   ) {
     // 1. Update basic student information
     await db.student.update({

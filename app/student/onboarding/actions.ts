@@ -124,7 +124,10 @@ export async function submitOnboarding(formData: OnboardingData) {
     });
 
     // Salvar perfil via serviço
-    await StudentProfileService.saveOnboardingData(student.id, normalizedData);
+    await StudentProfileService.saveOnboardingData(
+      student.id,
+      normalizedData as Parameters<typeof StudentProfileService.saveOnboardingData>[1],
+    );
 
     // Se houver peso, registrar no histórico (lógica do serviço poderia ser usada aqui também)
     if (normalizedData.weight) {
@@ -148,7 +151,10 @@ export async function submitOnboarding(formData: OnboardingData) {
     });
 
     // Enviar email em background
-    sendWelcomeEmail({ to: ctx.user.email, name: ctx.user.name }).catch(console.error);
+    sendWelcomeEmail({
+      to: typeof ctx.user.email === "string" ? ctx.user.email : "",
+      name: typeof ctx.user.name === "string" ? ctx.user.name : "",
+    }).catch(console.error);
 
     return { success: true };
   } catch (error) {

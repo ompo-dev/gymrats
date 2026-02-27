@@ -71,7 +71,7 @@ export class StudentProfileService {
    */
   static async saveOnboardingData(
     studentId: string,
-    data: Record<string, string | number | boolean | string[] | null | undefined>,
+    data: Record<string, string | number | boolean | string[] | Record<string, string | string[]> | null | undefined>,
   ) {
     const profileData = {
       studentId,

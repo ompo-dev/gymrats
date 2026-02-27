@@ -14,7 +14,7 @@ export interface TabConfig {
 	label: string;
 }
 
-interface AppLayoutProps {
+export interface AppLayoutProps {
 	children: ReactNode;
 	userType: "student" | "gym";
 	tabs: TabConfig[];

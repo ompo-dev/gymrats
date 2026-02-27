@@ -57,7 +57,7 @@ export const GET = createSafeHandler(
 export const POST = createSafeHandler(
   async ({ body, studentContext }) => {
     const { studentId } = studentContext!;
-    await StudentDomainService.updateFullProfile(studentId, body);
+    await StudentDomainService.updateFullProfile(studentId, body as Parameters<typeof StudentDomainService.updateFullProfile>[1]);
     return NextResponse.json({ message: "Perfil salvo com sucesso" });
   },
   {

@@ -78,5 +78,6 @@ export function useUserSession() {
 			| "GYM"
 			| "ADMIN"
 			| null,
+		hasGym: userSession?.hasGym ?? false,
 	};
 }

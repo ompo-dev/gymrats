@@ -3,11 +3,17 @@
 import Image from "next/image";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
-import type { Exercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+export interface QuizExercise {
+	question: string;
+	correctAnswer: string;
+	options?: string[];
+	imageUrl?: string;
+}
+
 interface MultipleChoiceProps {
-	exercise: Exercise;
+	exercise: QuizExercise;
 	onAnswer: (isCorrect: boolean, selectedAnswer: string) => void;
 }
 
@@ -43,7 +49,7 @@ export function MultipleChoice({ exercise, onAnswer }: MultipleChoiceProps) {
 			</div>
 
 			<div className="space-y-3">
-				{exercise.options?.map((option) => {
+				{exercise.options?.map((option: string) => {
 					const isSelected = selectedOption === option;
 					const showResult = submitted && isSelected;
 

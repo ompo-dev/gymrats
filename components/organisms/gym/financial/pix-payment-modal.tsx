@@ -15,7 +15,7 @@ interface PixPaymentModalProps {
 	brCodeBase64: string;
 	amount: number; // centavos
 	onPaymentConfirmed?: () => void;
-	refetchSubscription: () => Promise<Record<string, string | number | boolean | object | null> | void>;
+	refetchSubscription: () => Promise<unknown>;
 	subscriptionStatus?: string;
 	/** Status ao abrir - só fecha quando pending -> active (evita fechar com assinatura já ativa) */
 	initialStatus?: string;

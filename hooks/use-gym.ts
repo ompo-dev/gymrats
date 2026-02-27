@@ -84,19 +84,19 @@ export function useGym<T extends GymSelector>(
 				createGymSubscription,
 				cancelGymSubscription,
 				hydrateInitial,
-			} as GymSelectorReturnMap["actions"];
+			} as unknown as GymSelectorReturnMap["actions"];
 		}
 		if (selector === "loaders") {
 			return {
 				loadAll,
 				loadAllPrioritized,
 				loadSection,
-			} as GymSelectorReturnMap["loaders"];
+			} as unknown as GymSelectorReturnMap["loaders"];
 		}
 		return dataSelector(selector, data) as GymSelectorReturnMap[typeof selector];
 	}
 
-	const result: Record<string, import("@/lib/types/api-error").JsonValue> = {};
+	const result: Record<string, unknown> = {};
 	selectors.forEach((selector) => {
 		if (selector === "actions") {
 			result.actions = {
@@ -128,5 +128,5 @@ export function useGym<T extends GymSelector>(
 		}
 	});
 
-	return result as Pick<GymSelectorReturnMap, T[number]>;
+	return result as unknown as Pick<GymSelectorReturnMap, T[number] & keyof GymSelectorReturnMap>;
 }

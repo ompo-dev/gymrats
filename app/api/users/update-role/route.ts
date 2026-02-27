@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 				await initializeStudentTrial(student.id);
 			}
 		} else if (role === "GYM") {
-			const existingGym = await db.gym.findUnique({
+			const existingGym = await db.gym.findFirst({
 				where: { userId },
 			});
 

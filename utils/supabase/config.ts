@@ -14,6 +14,6 @@ if (!supabaseUrl || !supabaseKey) {
 	);
 }
 
-export function getSupabaseConfig() {
-	return { url: supabaseUrl, key: supabaseKey };
+export function getSupabaseConfig(): { url: string; key: string } {
+	return { url: supabaseUrl!, key: supabaseKey! };
 }
