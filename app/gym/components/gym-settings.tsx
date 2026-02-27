@@ -392,7 +392,7 @@ export function GymSettingsPage({
                 color: "duo-yellow",
                 content: (
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                    <DuoSelect
+                    <DuoSelect.Simple
                       options={[
                         { value: "CPF", label: "CPF" },
                         { value: "CNPJ", label: "CNPJ" },

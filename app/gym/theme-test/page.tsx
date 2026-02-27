@@ -41,7 +41,7 @@ export default function GymThemeTestPage() {
 			{/* Tabs */}
 			<section>
 				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">Tabs</h2>
-				<DuoTabs
+				<DuoTabs.Simple
 					tabs={[
 						{
 							id: "pill",
@@ -160,7 +160,7 @@ export default function GymThemeTestPage() {
 					Achievement Cards
 				</h2>
 				<div className="space-y-3">
-					<DuoAchievementCard
+					<DuoAchievementCard.Simple
 						icon={Dumbbell}
 						title="Primeiro Treino"
 						description="Complete seu primeiro treino"
@@ -168,7 +168,7 @@ export default function GymThemeTestPage() {
 						total={1}
 						level={1}
 					/>
-					<DuoAchievementCard
+					<DuoAchievementCard.Simple
 						icon={Target}
 						title="Meta Semanal"
 						description="Complete 5 treinos esta semana"
@@ -176,7 +176,7 @@ export default function GymThemeTestPage() {
 						total={5}
 						level={2}
 					/>
-					<DuoAchievementCard
+					<DuoAchievementCard.Simple
 						icon={Flame}
 						title="Streak de 7 dias"
 						description="Treine 7 dias seguidos"

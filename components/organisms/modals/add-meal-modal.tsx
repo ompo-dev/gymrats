@@ -145,7 +145,7 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 							transition={{ delay: 0.15, duration: 0.3 }}
 							className="mb-4"
 						>
-							<DuoSelect
+							<DuoSelect.Simple
 								options={options}
 								value={selectedTypes}
 								onChange={handleTypeChange}

@@ -78,7 +78,7 @@ export function NutritionTracker({
   return (
     <div className="space-y-6">
       <DuoStatsGrid.Root columns={2} className="gap-3">
-        <DuoAchievementCard
+        <DuoAchievementCard.Simple
           icon={Flame}
           iconColor="var(--duo-accent)"
           title="Calorias"
@@ -86,7 +86,7 @@ export function NutritionTracker({
           current={nutrition.totalCalories}
           total={nutrition.targetCalories}
         />
-        <DuoAchievementCard
+        <DuoAchievementCard.Simple
           icon={Beef}
           iconColor="var(--duo-danger)"
           title="Proteínas"
@@ -94,7 +94,7 @@ export function NutritionTracker({
           current={nutrition.totalProtein}
           total={nutrition.targetProtein}
         />
-        <DuoAchievementCard
+        <DuoAchievementCard.Simple
           icon={Wheat}
           iconColor="var(--duo-secondary)"
           title="Carboidratos"
@@ -102,7 +102,7 @@ export function NutritionTracker({
           current={nutrition.totalCarbs}
           total={nutrition.targetCarbs}
         />
-        <DuoAchievementCard
+        <DuoAchievementCard.Simple
           icon={Droplets}
           iconColor="var(--duo-warning)"
           title="Gorduras"

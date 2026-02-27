@@ -312,7 +312,7 @@ export function ConsolidatedStep1({
                 />
                 {formData.usesHormones && (
                   <>
-                    <DuoSelect
+                    <DuoSelect.Simple
                       options={[
                         { value: "testosterone", label: "Testosterona" },
                         { value: "estrogen", label: "Estrogênio" },
@@ -360,7 +360,7 @@ export function ConsolidatedStep1({
             )}
           </div>
 
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "iniciante", label: "Iniciante" },
               { value: "intermediario", label: "Intermediário" },
@@ -388,7 +388,7 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Objetivo Principal
           </h3>
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
               { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
@@ -417,7 +417,7 @@ export function ConsolidatedStep1({
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <DuoSelect
+            <DuoSelect.Simple
               options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
                 value: String(num),
                 label: String(num),
@@ -468,7 +468,7 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Equipamentos
           </h3>
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
               { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },

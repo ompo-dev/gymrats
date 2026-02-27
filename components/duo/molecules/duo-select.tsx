@@ -39,7 +39,7 @@ export interface DuoSelectProps
 	multiple?: boolean;
 }
 
-export function DuoSelect({
+function DuoSelectSimple({
 	label,
 	options,
 	value,
@@ -301,3 +301,7 @@ export function DuoSelect({
 		</div>
 	);
 }
+
+export const DuoSelect = {
+	Simple: DuoSelectSimple,
+};

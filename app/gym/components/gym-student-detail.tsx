@@ -360,7 +360,7 @@ export function GymStudentDetail({
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={tabOptions}
 						value={activeTab}
 						onChange={(value) => setActiveTab(value)}

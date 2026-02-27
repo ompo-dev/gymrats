@@ -60,7 +60,7 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
     <StepCard title="Objetivos" description="O que você quer alcançar?">
       <div className="space-y-6">
         <div>
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
               { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
@@ -105,7 +105,7 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
           )}
         </div>
 
-        <DuoSelect
+        <DuoSelect.Simple
           options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
             value: String(num),
             label: String(num),

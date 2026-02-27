@@ -111,7 +111,7 @@ export function ConsolidatedStep3({
           <p className="text-sm text-gray-600">
             Como você gosta de treinar? (valores padrão já selecionados)
           </p>
-          <DuoSelect
+          <DuoSelect.Simple
             options={[2, 3, 4, 5].map((num) => ({
               value: String(num),
               label: `${num}x`,
@@ -127,7 +127,7 @@ export function ConsolidatedStep3({
             placeholder="Selecione"
           />
 
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "forca", label: "Força (1-5 reps)", description: "Peso muito alto" },
               { value: "hipertrofia", label: "Hipertrofia (8-12 reps)", description: "Crescimento muscular" },
@@ -144,7 +144,7 @@ export function ConsolidatedStep3({
             placeholder="Selecione"
           />
 
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "curto", label: "Curto", description: "30-45s" },
               { value: "medio", label: "Médio", description: "60-90s" },

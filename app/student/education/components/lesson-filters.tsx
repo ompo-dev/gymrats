@@ -50,7 +50,7 @@ export function LessonFilters({
 						)}
 					</div>
 
-					<DuoSelect
+					<DuoSelect.Simple
 						options={categoryOptions}
 						value={selectedCategory}
 						onChange={onCategoryChange}

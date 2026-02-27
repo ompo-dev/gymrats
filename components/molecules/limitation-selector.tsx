@@ -185,7 +185,7 @@ export function LimitationSelector({
 										{detail.label || `Detalhes sobre ${limitationKey}`}
 									</p>
 									{detail.type === "selector" && detail.options && (
-										<DuoSelect
+										<DuoSelect.Simple
 											options={detail.options}
 											value={
 												Array.isArray(limitationDetails[limitationKey])

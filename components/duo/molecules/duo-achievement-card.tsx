@@ -15,7 +15,7 @@ interface DuoAchievementCardProps extends HTMLAttributes<HTMLDivElement> {
   level?: number;
 }
 
-export function DuoAchievementCard({
+function DuoAchievementCardSimple({
   icon: Icon,
   iconColor,
   title,
@@ -74,3 +74,7 @@ export function DuoAchievementCard({
     </div>
   );
 }
+
+export const DuoAchievementCard = {
+  Simple: DuoAchievementCardSimple,
+};

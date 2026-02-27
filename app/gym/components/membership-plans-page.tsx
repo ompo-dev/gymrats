@@ -264,7 +264,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Tipo (duração definida automaticamente)
 							</label>
-							<DuoSelect
+							<DuoSelect.Simple
 								options={PLAN_TYPES}
 								value={form.type}
 								onChange={updateFormType}

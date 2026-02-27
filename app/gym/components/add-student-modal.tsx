@@ -243,7 +243,7 @@ export function AddStudentModal({
 											<p className="mb-2 text-sm font-semibold text-duo-text">
 												Plano de Matrícula
 											</p>
-											<DuoSelect
+											<DuoSelect.Simple
 												options={[
 													{ value: "", label: "Sem plano (valor manual)" },
 													...planOptions,

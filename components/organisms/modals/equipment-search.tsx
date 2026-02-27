@@ -169,7 +169,7 @@ export function EquipmentSearch({
 								Nenhum equipamento encontrado
 							</motion.div>
 						) : (
-							<DuoSelect
+							<DuoSelect.Simple
 								options={equipmentOptions}
 								value={selectedEquipmentIds}
 								onChange={handleEquipmentSelection}

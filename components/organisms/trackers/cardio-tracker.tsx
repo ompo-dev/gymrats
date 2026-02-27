@@ -163,7 +163,7 @@ export function CardioTracker() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Modalidade</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={cardioOptions}
 						value={selectedType}
 						onChange={(value) => setSelectedType(value as CardioType)}
@@ -260,7 +260,7 @@ export function CardioTracker() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={intensityOptions}
 						value={intensity}
 						onChange={(value) =>

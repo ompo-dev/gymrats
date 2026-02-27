@@ -97,7 +97,7 @@ export function MaintenanceModal({
 				<div className="space-y-3">
 					<div>
 						<p className="mb-1 text-sm font-bold text-duo-text">Tipo</p>
-						<DuoSelect
+						<DuoSelect.Simple
 							options={MAINTENANCE_TYPES}
 							value={form.type}
 							onChange={(v) => setForm((f) => ({ ...f, type: v }))}

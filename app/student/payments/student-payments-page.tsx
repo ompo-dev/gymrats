@@ -511,7 +511,7 @@ export function StudentPaymentsPage({
 						<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 					</div>
 				</DuoCard.Header>
-				<DuoSelect
+				<DuoSelect.Simple
 					options={TAB_OPTIONS}
 					value={activeTab}
 					onChange={(value) => {

@@ -110,7 +110,7 @@ export function GymMap({
 							<h2 className="font-bold text-[var(--duo-fg)]">Filtros</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={filterOptions}
 						value={filter}
 						onChange={(value) => setFilter(value as "all" | "open" | "near")}

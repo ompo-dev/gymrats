@@ -53,7 +53,7 @@ export function LessonFilters({
 						<div className="mb-2 text-xs font-bold text-duo-gray-dark">
 							CATEGORIA
 						</div>
-						<DuoSelect
+						<DuoSelect.Simple
 							options={categoryOptions}
 							value={selectedCategory}
 							onChange={onCategoryChange}

@@ -52,7 +52,7 @@ function SelectInner<T = string>({
 		value !== undefined && value !== null ? String(value) : undefined;
 
 	return (
-		<DuoSelect
+		<DuoSelect.Simple
 			options={duoOptions}
 			value={stringValue}
 			onChange={(v) => onChange?.(v as T)}

@@ -226,7 +226,7 @@ export function MuscleExplorer({
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={viewOptions}
 						value={view}
 						onChange={(value) => setView(value as "muscles" | "exercises")}

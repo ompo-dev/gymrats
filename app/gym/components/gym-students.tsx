@@ -181,7 +181,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							leftIcon={<Search className="h-5 w-5" />}
 							className="h-12"
 						/>
-						<DuoSelect
+						<DuoSelect.Simple
 							options={statusOptions}
 							value={statusFilter || "all"}
 							onChange={(value) =>

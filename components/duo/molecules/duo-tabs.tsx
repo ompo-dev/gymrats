@@ -16,7 +16,7 @@ interface DuoTabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> 
 	variant?: "underline" | "pill" | "button";
 }
 
-export function DuoTabs({
+function DuoTabsSimple({
 	tabs,
 	defaultTab,
 	variant = "pill",
@@ -83,3 +83,7 @@ export function DuoTabs({
 		</div>
 	);
 }
+
+export const DuoTabs = {
+	Simple: DuoTabsSimple,
+};

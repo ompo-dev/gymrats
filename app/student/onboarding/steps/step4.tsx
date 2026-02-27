@@ -51,7 +51,7 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
     >
       <div className="space-y-6">
         <div>
-          <DuoSelect
+          <DuoSelect.Simple
             options={[
               { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
               { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },

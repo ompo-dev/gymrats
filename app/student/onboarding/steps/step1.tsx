@@ -213,7 +213,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
                 delay={0.1}
               />
               {formData.usesHormones && (
-                <DuoSelect
+                <DuoSelect.Simple
                   options={[
                     { value: "testosterone", label: "Testosterona" },
                     { value: "estrogen", label: "Estrogênio" },
@@ -233,7 +233,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           )}
         </div>
 
-        <DuoSelect
+        <DuoSelect.Simple
           options={[
             { value: "iniciante", label: "Iniciante" },
             { value: "intermediario", label: "Intermediário" },

@@ -74,7 +74,7 @@ export function FunctionalWorkout() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Para quem?</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={audienceOptions}
 						value={selectedAudience}
 						onChange={(value) =>
@@ -95,7 +95,7 @@ export function FunctionalWorkout() {
 							<h2 className="font-bold text-[var(--duo-fg)]">Categoria</h2>
 						</div>
 					</DuoCard.Header>
-					<DuoSelect
+					<DuoSelect.Simple
 						options={categoryOptions}
 						value={selectedCategory}
 						onChange={(value) =>

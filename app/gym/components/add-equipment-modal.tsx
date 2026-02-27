@@ -154,7 +154,7 @@ export function AddEquipmentModal({
 					
 					<div className="grid gap-2">
 						<Label>Tipo *</Label>
-						<DuoSelect
+						<DuoSelect.Simple
 							options={EQUIPMENT_TYPES.map((t) => ({ value: t, label: t }))}
 							value={form.type}
 							onChange={(v) => setForm((f) => ({ ...f, type: v }))}
@@ -198,7 +198,7 @@ export function AddEquipmentModal({
 
 					<div className="grid gap-2">
 						<Label>Status</Label>
-						<DuoSelect
+						<DuoSelect.Simple
 							options={[
 								{ value: "available", label: "Disponível" },
 								{ value: "in-use", label: "Em Uso (Manual)" },

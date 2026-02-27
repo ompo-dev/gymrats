@@ -58,7 +58,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
   return (
     <StepCard title="Preferências" description="Como você gosta de treinar?">
       <div className="space-y-6">
-        <DuoSelect
+        <DuoSelect.Simple
           options={[2, 3, 4, 5].map((num) => ({
             value: String(num),
             label: `${num}x`,
@@ -75,7 +75,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
 
-        <DuoSelect
+        <DuoSelect.Simple
           options={[
             {
               value: "forca",
@@ -105,7 +105,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
 
-        <DuoSelect
+        <DuoSelect.Simple
           options={[
             { value: "curto", label: "Curto", description: "30-45s" },
             { value: "medio", label: "Médio", description: "60-90s" },
