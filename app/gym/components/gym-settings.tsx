@@ -20,9 +20,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { DuoCardHeader } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { Label } from "@/components/ui/label";
@@ -314,8 +312,8 @@ export function GymSettingsPage({
       </FadeIn>
 
       <SlideIn delay={0.1}>
-        <DuoCard variant="orange" padding="md">
-          <DuoCardHeader>
+        <DuoCard.Root variant="orange" padding="md">
+          <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Building2
                 className="h-5 w-5 shrink-0"
@@ -324,7 +322,7 @@ export function GymSettingsPage({
               />
               <h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
             </div>
-          </DuoCardHeader>
+          </DuoCard.Header>
           <p className="mb-4 text-sm font-medium text-duo-text">
             Plano {profile.plan}
           </p>
@@ -435,7 +433,7 @@ export function GymSettingsPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
-                <DuoCard variant="default" size="default">
+                <DuoCard.Root variant="default" size="default">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <div
@@ -475,7 +473,7 @@ export function GymSettingsPage({
                     </div>
                     <div>{field.content}</div>
                   </div>
-                </DuoCard>
+                </DuoCard.Root>
               </motion.div>
             ))}
             {hasInfoChanges && (
@@ -501,12 +499,12 @@ export function GymSettingsPage({
               <p className="text-sm font-medium text-red-600">{saveError}</p>
             )}
           </div>
-        </DuoCard>
+        </DuoCard.Root>
       </SlideIn>
 
       <SlideIn delay={0.2}>
-        <DuoCard variant="blue" padding="md">
-          <DuoCardHeader>
+        <DuoCard.Root variant="blue" padding="md">
+          <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Clock
                 className="h-5 w-5 shrink-0"
@@ -517,7 +515,7 @@ export function GymSettingsPage({
                 Horários e Dias de Funcionamento
               </h2>
             </div>
-          </DuoCardHeader>
+          </DuoCard.Header>
           <p className="mb-4 text-sm text-[var(--duo-fg-muted)]">
             Marque os dias em que a academia abre e defina o horário de cada um
           </p>
@@ -637,7 +635,7 @@ export function GymSettingsPage({
           {saveError && (
             <p className="mt-3 text-sm font-medium text-red-600">{saveError}</p>
           )}
-        </DuoCard>
+        </DuoCard.Root>
       </SlideIn>
 
       <SlideIn delay={0.3}>
@@ -645,8 +643,8 @@ export function GymSettingsPage({
       </SlideIn>
 
       <SlideIn delay={0.4}>
-        <DuoCard variant="default" padding="md">
-          <DuoCardHeader>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Shield
                 className="h-5 w-5 shrink-0"
@@ -657,7 +655,7 @@ export function GymSettingsPage({
                 Outras Configurações
               </h2>
             </div>
-          </DuoCardHeader>
+          </DuoCard.Header>
           <div className="space-y-3">
             {[
               {
@@ -685,7 +683,7 @@ export function GymSettingsPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
-                <DuoCard
+                <DuoCard.Root
                   variant="default"
                   size="default"
                   className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
@@ -718,16 +716,16 @@ export function GymSettingsPage({
                       </div>
                     </div>
                   </div>
-                </DuoCard>
+                </DuoCard.Root>
               </motion.div>
             ))}
           </div>
-        </DuoCard>
+        </DuoCard.Root>
       </SlideIn>
 
       <SlideIn delay={0.5}>
-        <DuoCard variant="default" padding="md">
-          <DuoCardHeader>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Shield
                 className="h-5 w-5 shrink-0"
@@ -736,10 +734,10 @@ export function GymSettingsPage({
               />
               <h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
             </div>
-          </DuoCardHeader>
+          </DuoCard.Header>
           <div className="space-y-3">
             {(isAdmin || userInfo?.role === "ADMIN") && (
-              <DuoCard
+              <DuoCard.Root
                 variant="default"
                 size="default"
                 className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
@@ -758,9 +756,9 @@ export function GymSettingsPage({
                     </div>
                   </div>
                 </div>
-              </DuoCard>
+              </DuoCard.Root>
             )}
-            <DuoCard
+            <DuoCard.Root
               variant="default"
               size="default"
               className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
@@ -777,9 +775,9 @@ export function GymSettingsPage({
                   </div>
                 </div>
               </div>
-            </DuoCard>
+            </DuoCard.Root>
           </div>
-        </DuoCard>
+        </DuoCard.Root>
       </SlideIn>
     </div>
   );

@@ -23,11 +23,7 @@ import { DuoCard } from "@/components/duo";
 import { HistoryCard } from "@/components/ui/history-card";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import { RecordCard } from "@/components/ui/record-card";
-import {
-	DuoCardHeader,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
@@ -493,8 +489,8 @@ export function ProfilePageContent() {
 				/>
 			</DuoStatsGrid>
 
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<TrendingUp className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
@@ -532,7 +528,7 @@ export function ProfilePageContent() {
 							</div>
 						</div>
 					) : null}
-				</DuoCardHeader>
+				</DuoCard.Header>
 				{weightHistoryLocal.length > 0 ? (
 					<div className="space-y-3">
 						{weightHistoryLocal.map((record: WeightHistoryItem) => (
@@ -584,16 +580,16 @@ export function ProfilePageContent() {
 						</DuoButton>
 					</motion.div>
 				)}
-			</DuoCard>
+			</DuoCard.Root>
 
 			<div className="grid gap-6 lg:grid-cols-2">
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Histórico Recente</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					{recentWorkoutHistory.length > 0 ? (
 						<div className="space-y-3">
 							{recentWorkoutHistory.map((workout: WorkoutHistory) => (
@@ -668,15 +664,15 @@ export function ProfilePageContent() {
 							</DuoButton>
 						</motion.div>
 					)}
-				</DuoCard>
+				</DuoCard.Root>
 
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Award className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Recordes Pessoais</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					{personalRecords.length > 0 ? (
 						<div className="space-y-3">
 							{personalRecords.map((record: PersonalRecord) => (
@@ -714,21 +710,21 @@ export function ProfilePageContent() {
 							</DuoButton>
 						</motion.div>
 					)}
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
 
-			<DuoCard variant="blue" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="blue" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<Shield className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="space-y-3">
 					{/* Mostrar botão de trocar apenas se for admin */}
 					{/* Verificar todas as fontes possíveis para garantir que funcione */}
 					{isAdmin && (
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
@@ -747,9 +743,9 @@ export function ProfilePageContent() {
 									</div>
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					)}
-					<DuoCard
+					<DuoCard.Root
 						variant="default"
 						size="default"
 						className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
@@ -766,9 +762,9 @@ export function ProfilePageContent() {
 								</div>
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 
 			{/* Modal para editar peso */}
 			<AnimatePresence>

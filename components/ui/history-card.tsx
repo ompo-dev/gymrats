@@ -66,7 +66,7 @@ export function HistoryCard({
 	const formattedDate = formatDate(date);
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant="default"
 			size="md"
 			className={cn("bg-gray-50", className)}
@@ -89,6 +89,6 @@ export function HistoryCard({
 					))}
 				</div>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

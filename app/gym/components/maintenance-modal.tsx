@@ -84,7 +84,7 @@ export function MaintenanceModal({
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-			<DuoCard variant="default" size="default" className="w-full max-w-md">
+			<DuoCard.Root variant="default" size="default" className="w-full max-w-md">
 				<div className="mb-4 flex items-center justify-between">
 					<h2 className="text-xl font-bold text-duo-text">
 						Registrar Manutenção
@@ -161,7 +161,7 @@ export function MaintenanceModal({
 						{saving ? "Salvar" : "Registrar"}
 					</DuoButton>
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

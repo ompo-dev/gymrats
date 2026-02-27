@@ -84,7 +84,7 @@ export function MealCard({
 
 	return (
 		<div className={cn("space-y-2", className)} {...props}>
-			<DuoCard
+			<DuoCard.Root
 				variant={meal.completed ? "highlighted" : "default"}
 				size="md"
 				className={cn(
@@ -260,7 +260,7 @@ export function MealCard({
 						</motion.div>
 					)}
 				</AnimatePresence>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

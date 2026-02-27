@@ -12,9 +12,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { DuoCardHeader } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -130,13 +128,13 @@ export function GymProfileView({
 			</DuoButton>
 
 			<FadeIn>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
 						{(profile.logo || profile.photos?.[0]) && (
 							<div className="flex shrink-0 gap-2">
@@ -195,11 +193,11 @@ export function GymProfileView({
 							)}
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</FadeIn>
 
 			<div className="grid gap-4 sm:grid-cols-2">
-				<DuoCard variant="default" size="sm">
+				<DuoCard.Root variant="default" size="sm">
 					<div className="flex items-center gap-3">
 						<Users className="h-6 w-6 text-duo-blue" />
 						<div>
@@ -207,8 +205,8 @@ export function GymProfileView({
 							<p className="text-lg font-bold">{profile.activeStudents}</p>
 						</div>
 					</div>
-				</DuoCard>
-				<DuoCard variant="default" size="sm">
+				</DuoCard.Root>
+				<DuoCard.Root variant="default" size="sm">
 					<div className="flex items-center gap-3">
 						<Dumbbell className="h-6 w-6 text-duo-orange" />
 						<div>
@@ -216,17 +214,17 @@ export function GymProfileView({
 							<p className="text-lg font-bold">{profile.equipmentCount}</p>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
 
 			{profile.amenities && profile.amenities.length > 0 && (
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Check className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Comodidades</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
 						{profile.amenities.map((a) => (
 							<span
@@ -237,17 +235,17 @@ export function GymProfileView({
 							</span>
 						))}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
 			{profile.equipment && profile.equipment.length > 0 && (
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
 						{profile.equipment.slice(0, 12).map((e) => (
 							<span
@@ -268,16 +266,16 @@ export function GymProfileView({
 							</span>
 						)}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Planos disponíveis</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="space-y-3">
 					{profile.plans.length === 0 ? (
 						<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -298,7 +296,7 @@ export function GymProfileView({
 								!!onChangePlan;
 
 							return (
-								<DuoCard
+								<DuoCard.Root
 									key={plan.id}
 									variant="default"
 									size="default"
@@ -345,12 +343,12 @@ export function GymProfileView({
 											)}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							);
 						})
 					)}
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

@@ -367,11 +367,11 @@ export function SubscriptionSection({
 		<div className="space-y-4">
 			{/* Loading State */}
 			{(isLoading || isStartingTrial) && !subscription && (
-				<DuoCard variant="default" size="default" className="text-center">
+				<DuoCard.Root variant="default" size="default" className="text-center">
 					<p className="text-sm text-duo-gray-dark">
 						{isStartingTrial ? "Iniciando trial..." : "Carregando..."}
 					</p>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
 			{/* Trial Offer - Mostrar apenas se não há subscription */}

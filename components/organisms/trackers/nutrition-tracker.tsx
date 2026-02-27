@@ -14,7 +14,6 @@ import { DuoButton } from "@/components/duo";
 import {
   DuoAchievementCard,
   DuoCard,
-  DuoCardHeader,
   DuoStatsGrid,
 } from "@/components/duo";
 import { MealCard } from "@/components/molecules/cards/meal-card";
@@ -114,8 +113,8 @@ export function NutritionTracker({
       </DuoStatsGrid>
 
       {nutrition.waterIntake === 0 ? (
-        <DuoCard variant="default" padding="md">
-          <DuoCardHeader>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Droplets className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
               <h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
@@ -123,7 +122,7 @@ export function NutritionTracker({
             <span className="text-sm font-bold text-[var(--duo-fg-muted)]">
               {nutrition.waterIntake}ml / {nutrition.targetWater}ml
             </span>
-          </DuoCardHeader>
+          </DuoCard.Header>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -147,7 +146,7 @@ export function NutritionTracker({
               </DuoButton>
             )}
           </motion.div>
-        </DuoCard>
+        </DuoCard.Root>
       ) : (
         <WaterIntakeCard
           current={nutrition.waterIntake}
@@ -158,8 +157,8 @@ export function NutritionTracker({
         />
       )}
 
-      <DuoCard variant="default" padding="md">
-        <DuoCardHeader>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
           <div className="flex items-center gap-2">
             <UtensilsCrossed className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]" />
             <h2 className="font-bold text-[var(--duo-fg)]">
@@ -172,7 +171,7 @@ export function NutritionTracker({
               Adicionar
             </DuoButton>
           )}
-        </DuoCardHeader>
+        </DuoCard.Header>
         {nutrition.meals.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -248,7 +247,7 @@ export function NutritionTracker({
             </div>
           </AnimatePresence>
         )}
-      </DuoCard>
+      </DuoCard.Root>
     </div>
   );
 }

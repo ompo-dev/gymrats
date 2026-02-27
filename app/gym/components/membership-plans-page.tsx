@@ -185,7 +185,7 @@ export function MembershipPlansPage({
 						</div>
 					)}
 					{plans.map((plan) => (
-						<DuoCard key={plan.id} variant="default" size="default">
+						<DuoCard.Root key={plan.id} variant="default" size="default">
 							<div className="mb-2 flex items-start justify-between">
 								<div>
 									<p className="font-bold text-[var(--duo-fg)]">{plan.name}</p>
@@ -236,14 +236,14 @@ export function MembershipPlansPage({
 									<Trash2 className="h-4 w-4" />
 								</DuoButton>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					))}
 				</div>
 			)}
 
 			{/* Form de criação / edição */}
 			{isCreating && (
-				<DuoCard variant="default" size="default" className="w-full max-w-md">
+				<DuoCard.Root variant="default" size="default" className="w-full max-w-md">
 					<h3 className="mb-4 text-lg font-bold text-[var(--duo-fg)]">
 						{editingId ? "Editar Plano" : "Novo Plano"}
 					</h3>
@@ -312,7 +312,7 @@ export function MembershipPlansPage({
 							{saving ? "Salvando..." : "Salvar"}
 						</DuoButton>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
 

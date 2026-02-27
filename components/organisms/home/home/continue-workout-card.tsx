@@ -4,7 +4,7 @@ import { ArrowRight, Dumbbell, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { Unit } from "@/lib/types";
 
 interface ContinueWorkoutCardProps {
@@ -50,8 +50,8 @@ export function ContinueWorkoutCard({
   // Se não houver próximo workout e não houver histórico, mostrar empty state
   if (!nextWorkout && !lastCompleted) {
     return (
-      <DuoCard variant="default" padding="md">
-        <DuoCardHeader>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
           <div className="flex items-center gap-2">
             <Dumbbell
               className="h-5 w-5 shrink-0"
@@ -62,7 +62,7 @@ export function ContinueWorkoutCard({
               Continue seu Treino
             </h2>
           </div>
-        </DuoCardHeader>
+        </DuoCard.Header>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,7 +86,7 @@ export function ContinueWorkoutCard({
             <ArrowRight className="h-4 w-4 ml-2" />
           </DuoButton>
         </motion.div>
-      </DuoCard>
+      </DuoCard.Root>
     );
   }
 
@@ -95,8 +95,8 @@ export function ContinueWorkoutCard({
     const workoutUrl = `/student?tab=learn&modal=workout&workoutId=${nextWorkout.workout.id}`;
 
     return (
-      <DuoCard variant="default" padding="md">
-        <DuoCardHeader>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
           <div className="flex items-center gap-2">
             <Dumbbell
               className="h-5 w-5 shrink-0"
@@ -107,7 +107,7 @@ export function ContinueWorkoutCard({
               Continue seu Treino
             </h2>
           </div>
-        </DuoCardHeader>
+        </DuoCard.Header>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -136,15 +136,15 @@ export function ContinueWorkoutCard({
             Continuar Treino
           </DuoButton>
         </motion.div>
-      </DuoCard>
+      </DuoCard.Root>
     );
   }
 
   // Se não houver próximo workout mas houver histórico, mostrar último completado
   if (lastCompleted) {
     return (
-      <DuoCard variant="default" padding="md">
-        <DuoCardHeader>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
           <div className="flex items-center gap-2">
             <Dumbbell
               className="h-5 w-5 shrink-0"
@@ -155,7 +155,7 @@ export function ContinueWorkoutCard({
               Continue seu Treino
             </h2>
           </div>
-        </DuoCardHeader>
+        </DuoCard.Header>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,7 +188,7 @@ export function ContinueWorkoutCard({
             <ArrowRight className="h-4 w-4 ml-2" />
           </DuoButton>
         </motion.div>
-      </DuoCard>
+      </DuoCard.Root>
     );
   }
 

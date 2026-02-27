@@ -12,9 +12,6 @@ import Link from "next/link";
 import {
 	DuoAchievementCard,
 	DuoCard,
-	DuoCardContent,
-	DuoCardFooter,
-	DuoCardHeader,
 	DuoColorPicker,
 	DuoStatCard,
 	DuoStatsGrid,
@@ -37,9 +34,9 @@ export default function StudentThemeTestPage() {
 			</div>
 
 			{/* Color Picker Full */}
-			<DuoCard variant="elevated" padding="lg">
+			<DuoCard.Root variant="elevated" padding="lg">
 				<DuoColorPicker />
-			</DuoCard>
+			</DuoCard.Root>
 
 			{/* Tabs */}
 			<section>
@@ -82,46 +79,46 @@ export default function StudentThemeTestPage() {
 			<section>
 				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">Cards</h2>
 				<div className="grid gap-4 sm:grid-cols-2">
-					<DuoCard variant="default">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default">
+						<DuoCard.Header>
 							<span className="font-bold">Card Default</span>
-						</DuoCardHeader>
-						<DuoCardContent>
+						</DuoCard.Header>
+						<DuoCard.Content>
 							<p className="text-sm text-[var(--duo-fg-muted)]">
 								Card com borda e fundo padrão.
 							</p>
-						</DuoCardContent>
-					</DuoCard>
-					<DuoCard variant="elevated">
-						<DuoCardHeader>
+						</DuoCard.Content>
+					</DuoCard.Root>
+					<DuoCard.Root variant="elevated">
+						<DuoCard.Header>
 							<span className="font-bold">Card Elevated</span>
-						</DuoCardHeader>
-						<DuoCardContent>
+						</DuoCard.Header>
+						<DuoCard.Content>
 							<p className="text-sm text-[var(--duo-fg-muted)]">
 								Card com sombra elevada.
 							</p>
-						</DuoCardContent>
-					</DuoCard>
-					<DuoCard variant="outlined">
-						<DuoCardHeader>
+						</DuoCard.Content>
+					</DuoCard.Root>
+					<DuoCard.Root variant="outlined">
+						<DuoCard.Header>
 							<span className="font-bold">Card Outlined</span>
-						</DuoCardHeader>
-						<DuoCardContent>
+						</DuoCard.Header>
+						<DuoCard.Content>
 							<p className="text-sm text-[var(--duo-fg-muted)]">
 								Card apenas com borda.
 							</p>
-						</DuoCardContent>
-					</DuoCard>
-					<DuoCard variant="interactive">
-						<DuoCardHeader>
+						</DuoCard.Content>
+					</DuoCard.Root>
+					<DuoCard.Root variant="interactive">
+						<DuoCard.Header>
 							<span className="font-bold">Card Interactive</span>
-						</DuoCardHeader>
-						<DuoCardContent>
+						</DuoCard.Header>
+						<DuoCard.Content>
 							<p className="text-sm text-[var(--duo-fg-muted)]">
 								Card clicável com hover.
 							</p>
-						</DuoCardContent>
-					</DuoCard>
+						</DuoCard.Content>
+					</DuoCard.Root>
 				</div>
 			</section>
 

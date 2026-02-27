@@ -20,7 +20,7 @@ export function TrialOffer({
 	onStartTrial,
 }: TrialOfferProps) {
 	return (
-		<DuoCard variant="blue" size="default" className="text-center">
+		<DuoCard.Root variant="blue" size="default" className="text-center">
 			<Gift className="mx-auto mb-4 h-16 w-16 text-duo-blue" />
 			<h2 className="mb-2 text-2xl font-bold text-duo-text">{title}</h2>
 			<p className="mb-6 text-sm text-duo-gray-dark">{description}</p>
@@ -38,6 +38,6 @@ export function TrialOffer({
 					Aguarde, estamos configurando seu trial...
 				</p>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

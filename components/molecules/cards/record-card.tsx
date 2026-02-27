@@ -30,7 +30,7 @@ export function RecordCard({
 		previousBest && typeof value === "number" ? value - previousBest : null;
 
 	return (
-		<DuoCard variant="yellow" size="md" className={cn(className)} {...props}>
+		<DuoCard.Root variant="yellow" size="md" className={cn(className)} {...props}>
 			<div className="mb-2 flex items-start justify-between">
 				<div>
 					<div className="font-bold text-duo-text">{exerciseName}</div>
@@ -49,6 +49,6 @@ export function RecordCard({
 					</div>
 				)}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

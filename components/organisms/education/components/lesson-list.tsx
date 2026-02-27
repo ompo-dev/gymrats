@@ -27,12 +27,12 @@ export function LessonList({
 	if (lessons.length === 0) {
 		return (
 			<SlideIn delay={0.15}>
-				<DuoCard variant="default" size="default">
+				<DuoCard.Root variant="default" size="default">
 					<div className="py-8 text-center text-duo-gray-dark">
 						<p className="font-bold">Nenhuma lição encontrada</p>
 						<p className="mt-1 text-sm">Tente ajustar os filtros ou busca</p>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		);
 	}
@@ -149,7 +149,7 @@ function LessonCard({
 	getCategoryLabel: (category: string) => string;
 }) {
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant="default"
 			size="default"
 			onClick={onClick}
@@ -208,6 +208,6 @@ function LessonCard({
 					</span>
 				)}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

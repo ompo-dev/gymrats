@@ -13,7 +13,6 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -72,25 +71,25 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Check-ins por Dia</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<p className="mb-4 text-sm font-medium text-duo-text">
 						Últimos 7 dias • Total: {stats.week.totalCheckins} check-ins
 					</p>
 					<div className="space-y-3">
 						{(stats.week.checkinsByDay ?? []).length === 0 ? (
-							<DuoCard variant="default" size="default" className="p-8 text-center">
+							<DuoCard.Root variant="default" size="default" className="p-8 text-center">
 								<Calendar className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
 								<p className="font-bold text-duo-gray-dark">Nenhum check-in na última semana</p>
 								<p className="mt-1 text-sm text-duo-gray-dark">
 									Os dados aparecerão aqui conforme os alunos fizerem check-in.
 								</p>
-							</DuoCard>
+							</DuoCard.Root>
 						) : (
 							(stats.week.checkinsByDay ?? []).map((day, index) => {
 								const maxCheckins = Math.max(
@@ -105,7 +104,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: index * 0.05, duration: 0.4 }}
 									>
-										<DuoCard variant="default" size="default">
+										<DuoCard.Root variant="default" size="default">
 											<div className="flex items-center gap-3">
 												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-green/10">
 													<Calendar className="h-5 w-5 text-duo-green" />
@@ -127,35 +126,35 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 													</div>
 												</div>
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									</motion.div>
 								);
 							})
 						)}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Horários Populares</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<p className="mb-4 text-sm font-medium text-duo-text">
 						Distribuição por hora (6h–22h) • Pico: {stats.today.peakHour}
 					</p>
 					<div className="grid gap-3 sm:grid-cols-2">
 						{(stats.week.checkinsByHour ?? []).length === 0 ? (
-							<DuoCard variant="default" size="default" className="col-span-full p-8 text-center">
+							<DuoCard.Root variant="default" size="default" className="col-span-full p-8 text-center">
 								<Clock className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
 								<p className="font-bold text-duo-gray-dark">Nenhum dado de horário ainda</p>
 								<p className="mt-1 text-sm text-duo-gray-dark">
 									Os horários mais movimentados aparecerão conforme os check-ins.
 								</p>
-							</DuoCard>
+							</DuoCard.Root>
 						) : (
 							(stats.week.checkinsByHour ?? []).map((item, index) => {
 								const maxCheckins = Math.max(
@@ -170,7 +169,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: index * 0.03, duration: 0.4 }}
 									>
-										<DuoCard variant="default" size="default">
+										<DuoCard.Root variant="default" size="default">
 											<div className="flex items-center gap-3">
 												<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-orange/10">
 													<Clock className="h-5 w-5 text-duo-orange" />
@@ -192,23 +191,23 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 													</div>
 												</div>
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									</motion.div>
 								);
 							})
 						)}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<DuoCard variant="blue" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="blue" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos Mais Usados</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="space-y-3">
 						{equipment.slice(0, 5).map((eq: Equipment, index: number) => (
 							<motion.div
@@ -217,7 +216,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: index * 0.05, duration: 0.4 }}
 							>
-								<DuoCard variant="default" size="sm">
+								<DuoCard.Root variant="default" size="sm">
 									<div className="flex items-center gap-3">
 										<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-duo-blue text-sm font-bold text-white">
 											{index + 1}
@@ -237,11 +236,11 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 											<div className="text-xs text-duo-gray-dark">média</div>
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</motion.div>
 						))}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		</div>
 	);

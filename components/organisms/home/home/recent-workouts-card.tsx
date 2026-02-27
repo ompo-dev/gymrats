@@ -2,7 +2,6 @@
 
 import { Calendar, Clock, Trophy } from "lucide-react";
 import { DuoCard } from "@/components/duo";
-import { DuoCardHeader } from "@/components/duo";
 import type { WorkoutHistory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -17,17 +16,17 @@ export function RecentWorkoutsCard({
 
 	if (recentWorkouts.length === 0) {
 		return (
-			<DuoCard variant="default" padding="md" className="space-y-4">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md" className="space-y-4">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Treinos Recentes</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="py-4 text-center text-sm text-duo-gray-dark">
 					Nenhum treino registrado ainda
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		);
 	}
 
@@ -65,16 +64,16 @@ export function RecentWorkoutsCard({
 	};
 
 	return (
-		<DuoCard variant="default" padding="md" className="space-y-3">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md" className="space-y-3">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Treinos Recentes</h2>
 				</div>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="space-y-2">
 				{recentWorkouts.map((workout, index) => (
-					<DuoCard key={index} variant="default" size="sm" className="p-3">
+					<DuoCard.Root key={index} variant="default" size="sm" className="p-3">
 						<div className="flex items-center justify-between">
 							<div className="flex-1">
 								<div className="mb-1 font-bold text-duo-text">
@@ -110,9 +109,9 @@ export function RecentWorkoutsCard({
 								)}
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				))}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

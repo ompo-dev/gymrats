@@ -30,11 +30,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
-import {
-	DuoCardHeader,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useGym } from "@/hooks/use-gym";
@@ -150,14 +146,14 @@ export function GymStudentDetail({
 	if (!student) {
 		return (
 			<div className="mx-auto max-w-4xl space-y-6  ">
-				<DuoCard variant="default" size="default" className="p-12 text-center">
+				<DuoCard.Root variant="default" size="default" className="p-12 text-center">
 					<p className="text-xl font-bold text-duo-gray-dark">
 						Aluno não encontrado
 					</p>
 					<DuoButton onClick={onBack} className="mt-4">
 						Voltar para Alunos
 					</DuoButton>
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
 		);
 	}
@@ -207,13 +203,13 @@ export function GymStudentDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">{student.name}</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
 						<div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-full sm:mx-0 sm:h-32 sm:w-32">
 							<Image
@@ -324,7 +320,7 @@ export function GymStudentDetail({
 							</div>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -357,51 +353,51 @@ export function GymStudentDetail({
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<DuoSelect
 						options={tabOptions}
 						value={activeTab}
 						onChange={(value) => setActiveTab(value)}
 						placeholder="Selecione a categoria"
 					/>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			{activeTab === "overview" && (
 				<SlideIn delay={0.4}>
 					<div className="grid gap-6 lg:grid-cols-2">
 						{student.gymMembership && (
-							<DuoCard variant="default" padding="md">
-								<DuoCardHeader>
+							<DuoCard.Root variant="default" padding="md">
+								<DuoCard.Header>
 									<div className="flex items-center gap-2">
 										<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 										<h2 className="font-bold text-[var(--duo-fg)]">Plano e Matrícula</h2>
 									</div>
-								</DuoCardHeader>
+								</DuoCard.Header>
 								<div className="space-y-3">
-									<DuoCard variant="default" size="sm">
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex justify-between items-center">
 											<span className="font-bold text-duo-gray-dark">Plano</span>
 											<span className="text-duo-text font-bold">
 												{student.gymMembership.planName}
 											</span>
 										</div>
-									</DuoCard>
-									<DuoCard variant="default" size="sm">
+									</DuoCard.Root>
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex justify-between items-center">
 											<span className="font-bold text-duo-gray-dark">Valor</span>
 											<span className="text-duo-green font-bold">
 												R$ {student.gymMembership.amount?.toFixed(2) ?? "0,00"}/mês
 											</span>
 										</div>
-									</DuoCard>
-									<DuoCard variant="default" size="sm">
+									</DuoCard.Root>
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex justify-between items-center">
 											<span className="font-bold text-duo-gray-dark">Próxima cobrança</span>
 											<span className="text-duo-text font-bold">
@@ -410,8 +406,8 @@ export function GymStudentDetail({
 													: "N/A"}
 											</span>
 										</div>
-									</DuoCard>
-									<DuoCard variant="default" size="sm">
+									</DuoCard.Root>
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex justify-between items-center">
 											<span className="font-bold text-duo-gray-dark">Status</span>
 											<span
@@ -428,17 +424,17 @@ export function GymStudentDetail({
 												{student.gymMembership.status === "pending" && "Pendente"}
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						)}
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="default" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Informações do Perfil</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 								{[
 									{ label: "Idade", value: `${student.age ?? 0} anos` },
@@ -460,7 +456,7 @@ export function GymStudentDetail({
 										value: `${student.profile?.weeklyWorkoutFrequency ?? 0}x semana`,
 									},
 								].map((info) => (
-									<DuoCard key={info.label} variant="default" size="sm">
+									<DuoCard.Root key={info.label} variant="default" size="sm">
 										<div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-0">
 											<span className="font-bold text-duo-gray-dark text-sm sm:text-base">
 												{info.label}
@@ -469,18 +465,18 @@ export function GymStudentDetail({
 												{info.value}
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								))}
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="default" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Objetivos</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							<div className="flex flex-wrap gap-2">
 								{(student.profile?.goals ?? []).map((goal) => (
 									<span
@@ -512,7 +508,7 @@ export function GymStudentDetail({
 									<span className="text-sm text-duo-gray-dark">Nenhum equipamento preferido</span>
 								)}
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 
 						<div className="lg:col-span-2">
 							<WeightProgressCard
@@ -530,13 +526,13 @@ export function GymStudentDetail({
 				<SlideIn delay={0.4}>
 					<div className="space-y-6">
 						{/* Plano Semanal */}
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="default" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Plano Semanal do Aluno</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							{isLoadingWeeklyPlan ? (
 								<div className="flex items-center justify-center py-12">
 									<Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
@@ -568,7 +564,7 @@ export function GymStudentDetail({
 													<span className="w-16 shrink-0 pt-1 text-sm font-bold text-duo-gray-dark">
 														{DAY_NAMES[slot.dayOfWeek] ?? "—"}
 													</span>
-													<DuoCard variant="default" size="sm" className="flex-1 p-3">
+													<DuoCard.Root variant="default" size="sm" className="flex-1 p-3">
 														<div className="font-bold text-duo-text">{w.title}</div>
 														<div className="mt-1 text-xs text-duo-gray-dark">
 															{w.estimatedTime} min • {w.muscleGroup}
@@ -587,7 +583,7 @@ export function GymStudentDetail({
 																)}
 															</div>
 														)}
-													</DuoCard>
+													</DuoCard.Root>
 												</div>
 											);
 										})}
@@ -602,30 +598,30 @@ export function GymStudentDetail({
 									</p>
 								</div>
 							)}
-						</DuoCard>
+						</DuoCard.Root>
 
 						{/* Histórico de Treinos */}
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="default" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Treinos</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							{(student.workoutHistory ?? []).length === 0 ? (
-								<DuoCard variant="default" size="default" className="p-8 text-center">
+								<DuoCard.Root variant="default" size="default" className="p-8 text-center">
 									<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
 									<p className="font-bold text-duo-gray-dark">Nenhum treino registrado ainda</p>
 									<p className="mt-1 text-sm text-duo-gray-dark">
 										Os treinos do aluno aparecerão aqui assim que forem completados.
 									</p>
-								</DuoCard>
+								</DuoCard.Root>
 							) : (
 								<div className="space-y-3">
 									{(student.workoutHistory ?? []).map((wh, idx) => {
 										const exercises = wh.exercises ?? [];
 										return (
-											<DuoCard
+											<DuoCard.Root
 												key={`wh-${idx}-${wh.date?.toISOString?.() ?? idx}`}
 												variant="default"
 												size="default"
@@ -669,20 +665,20 @@ export function GymStudentDetail({
 														)}
 													</div>
 												)}
-											</DuoCard>
+											</DuoCard.Root>
 										);
 									})}
 								</div>
 							)}
-						</DuoCard>
+						</DuoCard.Root>
 					</div>
 				</SlideIn>
 			)}
 
 			{activeTab === "diet" && (
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-2">
 									<Apple className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
@@ -700,7 +696,7 @@ export function GymStudentDetail({
 									/>
 								</div>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						{isLoadingNutrition ? (
 							<div className="flex items-center justify-center py-12">
 								<Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
@@ -726,19 +722,19 @@ export function GymStudentDetail({
 								</p>
 							</div>
 						)}
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 
 			{activeTab === "progress" && (
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<Activity className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Progresso e XP</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<div className="mb-6">
 							<div className="mb-2 flex items-center justify-between">
 								<span className="font-bold text-duo-text">
@@ -775,31 +771,31 @@ export function GymStudentDetail({
 										<p className="mb-1 sm:mb-2 text-xs font-bold text-duo-gray-dark">
 											{day}
 										</p>
-										<DuoCard variant="default" size="sm" className="p-2 sm:p-3">
+										<DuoCard.Root variant="default" size="sm" className="p-2 sm:p-3">
 											<p className="text-sm sm:text-lg font-bold text-duo-green">
 												{student.progress?.weeklyXP?.[index] ?? 0}
 											</p>
-										</DuoCard>
+										</DuoCard.Root>
 									</div>
 								),
 							)}
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 
 			{activeTab === "records" && (
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Recordes Pessoais</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<div className="space-y-3">
 							{(student.personalRecords ?? []).map((record, idx) => (
-								<DuoCard
+								<DuoCard.Root
 									key={`${record.exerciseName ?? "ex"}-${record.date?.toISOString?.() ?? idx}-${record.value}`}
 									variant="orange"
 									size="default"
@@ -822,24 +818,24 @@ export function GymStudentDetail({
 											</p>
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							))}
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 
 			{activeTab === "payments" && (
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Pagamentos</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-							<DuoCard variant="highlighted" size="sm">
+							<DuoCard.Root variant="highlighted" size="sm">
 								<div className="flex items-center gap-3">
 									<CheckCircle className="h-6 w-6 text-duo-green" />
 									<div>
@@ -854,9 +850,9 @@ export function GymStudentDetail({
 										</p>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 
-							<DuoCard variant="orange" size="sm">
+							<DuoCard.Root variant="orange" size="sm">
 								<div className="flex items-center gap-3">
 									<AlertCircle className="h-6 w-6 text-duo-orange" />
 									<div>
@@ -872,9 +868,9 @@ export function GymStudentDetail({
 										</p>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 
-							<DuoCard variant="blue" size="sm">
+							<DuoCard.Root variant="blue" size="sm">
 								<div className="flex items-center gap-3">
 									<DollarSign className="h-6 w-6 text-duo-blue" />
 									<div>
@@ -890,9 +886,9 @@ export function GymStudentDetail({
 										</p>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 
-							<DuoCard variant="default" size="sm">
+							<DuoCard.Root variant="default" size="sm">
 								<div className="flex items-center gap-3">
 									<AlertCircle className="h-6 w-6 text-duo-orange" />
 									<div>
@@ -910,7 +906,7 @@ export function GymStudentDetail({
 										</p>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						</div>
 
 						<div className="space-y-3">
@@ -921,7 +917,7 @@ export function GymStudentDetail({
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05, duration: 0.4 }}
 								>
-									<DuoCard variant="default" size="default">
+									<DuoCard.Root variant="default" size="default">
 										<div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
 											<div className="flex-1 min-w-0">
 												<h3 className="font-bold text-duo-text text-sm sm:text-base wrap-break-words">
@@ -971,11 +967,11 @@ export function GymStudentDetail({
 												</DuoButton>
 											</div>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								</motion.div>
 							))}
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 		</div>

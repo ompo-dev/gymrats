@@ -31,7 +31,7 @@ export function EducationPage({ onSelectView }: EducationPageProps) {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.2, duration: 0.4 }}
 					>
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							onClick={() => onSelectView("muscles")}
@@ -52,7 +52,7 @@ export function EducationPage({ onSelectView }: EducationPageProps) {
 									</p>
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					<motion.div
@@ -60,7 +60,7 @@ export function EducationPage({ onSelectView }: EducationPageProps) {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.3, duration: 0.4 }}
 					>
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							onClick={() => onSelectView("lessons")}
@@ -82,7 +82,7 @@ export function EducationPage({ onSelectView }: EducationPageProps) {
 									</p>
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 				</div>
 			</SlideIn>

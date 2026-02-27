@@ -24,7 +24,7 @@ export function BillingPeriodSelector({
 }: BillingPeriodSelectorProps) {
 	return (
 		<div className="grid grid-cols-2 gap-3">
-			<DuoCard
+			<DuoCard.Root
 				variant={selectedPeriod === "monthly" ? "highlighted" : "default"}
 				size="md"
 				className={cn(
@@ -39,9 +39,9 @@ export function BillingPeriodSelector({
 					{monthlyLabel}
 				</div>
 				<div className="text-xs text-duo-gray-dark">{perMonth}</div>
-			</DuoCard>
+			</DuoCard.Root>
 
-			<DuoCard
+			<DuoCard.Root
 				variant={selectedPeriod === "annual" ? "highlighted" : "default"}
 				size="md"
 				className={cn(
@@ -59,7 +59,7 @@ export function BillingPeriodSelector({
 					{annualLabel}
 				</div>
 				<div className="text-xs text-duo-gray-dark">{perYear}</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

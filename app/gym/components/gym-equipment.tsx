@@ -21,7 +21,6 @@ import { DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import {
-	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -209,13 +208,13 @@ export function GymEquipmentPage({
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Search className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="space-y-4">
 						<DuoInput
 							placeholder="Buscar por nome ou tipo..."
@@ -240,7 +239,7 @@ export function GymEquipmentPage({
 							placeholder="Status"
 						/>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
@@ -252,7 +251,7 @@ export function GymEquipmentPage({
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: index * 0.05, duration: 0.4 }}
 						>
-							<DuoCard
+							<DuoCard.Root
 								variant="default"
 								size="default"
 								onClick={() => setEquipmentId(equipment.id)}
@@ -282,7 +281,7 @@ export function GymEquipmentPage({
 								</div>
 
 								{equipment.status === "in-use" && equipment.currentUser && (
-									<DuoCard
+									<DuoCard.Root
 										variant="blue"
 										size="sm"
 										className="mb-4 border-duo-blue bg-duo-blue/10"
@@ -309,11 +308,11 @@ export function GymEquipmentPage({
 												</p>
 											</div>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								)}
 
 								<div className="space-y-3">
-									<DuoCard variant="default" size="sm">
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
 												<BarChart3 className="h-5 w-5 text-duo-purple" />
@@ -325,9 +324,9 @@ export function GymEquipmentPage({
 												{equipment.usageStats.totalUses}
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 
-									<DuoCard variant="default" size="sm">
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
 												<Clock className="h-5 w-5 text-duo-blue" />
@@ -339,11 +338,11 @@ export function GymEquipmentPage({
 												{equipment.usageStats.avgUsageTime}min
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								</div>
 
 								{equipment.nextMaintenance && (
-									<DuoCard
+									<DuoCard.Root
 										variant="default"
 										size="sm"
 										className="mt-4 bg-gray-100 p-3"
@@ -354,9 +353,9 @@ export function GymEquipmentPage({
 										<p className="font-bold text-duo-text">
 											{formatDatePtBr(equipment.nextMaintenance) || "N/A"}
 										</p>
-									</DuoCard>
+									</DuoCard.Root>
 								)}
-							</DuoCard>
+							</DuoCard.Root>
 						</motion.div>
 					))}
 				</div>
@@ -364,7 +363,7 @@ export function GymEquipmentPage({
 
 			{filteredEquipment.length === 0 && (
 				<SlideIn delay={0.4}>
-					<DuoCard
+					<DuoCard.Root
 						variant="default"
 						size="default"
 						className="p-12 text-center"
@@ -375,7 +374,7 @@ export function GymEquipmentPage({
 						<p className="text-duo-gray-dark">
 							Tente ajustar os filtros de busca
 						</p>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 		</div>

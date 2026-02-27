@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
@@ -103,24 +103,24 @@ export function GymMap({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Filtros</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<DuoSelect
 						options={filterOptions}
 						value={filter}
 						onChange={(value) => setFilter(value as "all" | "open" | "near")}
 						placeholder="Filtro"
 					/>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="default" size="default" className="relative h-48">
+				<DuoCard.Root variant="default" size="default" className="relative h-48">
 					<div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-blue-100 to-green-100 rounded-2xl">
 						<MapPin className="h-16 w-16 text-duo-blue" />
 					</div>
@@ -128,17 +128,17 @@ export function GymMap({
 						<Navigation className="h-3 w-3" />
 						{sortedGyms.length} academias próximas
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Academias Cadastradas</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="space-y-3">
 						{sortedGyms.map((gym, index) => {
 							const hasActivePass = dayPasses.some(
@@ -152,7 +152,7 @@ export function GymMap({
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05, duration: 0.4 }}
 								>
-									<DuoCard
+									<DuoCard.Root
 										variant="default"
 										size="default"
 										onClick={() =>
@@ -265,7 +265,7 @@ export function GymMap({
 																	!!onChangePlan;
 
 																return (
-																	<DuoCard
+																	<DuoCard.Root
 																		key={plan.id}
 																		variant="default"
 																		size="sm"
@@ -319,14 +319,14 @@ export function GymMap({
 																				R$ {plan.price.toFixed(2)}
 																			</p>
 																		</div>
-																	</DuoCard>
+																	</DuoCard.Root>
 																);
 															})}
 														</div>
 													) : (
 														<div className="grid grid-cols-3 gap-2">
 															{gym.plans?.daily != null && gym.plans.daily > 0 && (
-																<DuoCard
+																<DuoCard.Root
 																	variant="yellow"
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
@@ -337,10 +337,10 @@ export function GymMap({
 																	<p className="text-sm font-bold text-[var(--duo-warning)]">
 																		R$ {gym.plans.daily}
 																	</p>
-																</DuoCard>
+																</DuoCard.Root>
 															)}
 															{gym.plans?.weekly != null && gym.plans.weekly > 0 && (
-																<DuoCard
+																<DuoCard.Root
 																	variant="orange"
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
@@ -351,10 +351,10 @@ export function GymMap({
 																	<p className="text-sm font-bold text-[var(--duo-accent)]">
 																		R$ {gym.plans.weekly}
 																	</p>
-																</DuoCard>
+																</DuoCard.Root>
 															)}
 															{gym.plans?.monthly != null && gym.plans.monthly > 0 && (
-																<DuoCard
+																<DuoCard.Root
 																	variant="highlighted"
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
@@ -365,7 +365,7 @@ export function GymMap({
 																	<p className="text-sm font-bold text-[var(--duo-primary)]">
 																		R$ {gym.plans.monthly}
 																	</p>
-																</DuoCard>
+																</DuoCard.Root>
 															)}
 														</div>
 													)}
@@ -441,12 +441,12 @@ export function GymMap({
 												</div>
 											</div>
 										)}
-									</DuoCard>
+									</DuoCard.Root>
 								</motion.div>
 							);
 						})}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		</div>
 	);

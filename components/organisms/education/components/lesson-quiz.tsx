@@ -5,7 +5,7 @@ import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -80,7 +80,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 
 						return (
 							<div key={qIndex}>
-								<DuoCard
+								<DuoCard.Root
 									variant="default"
 									padding="md"
 									className={cn(
@@ -92,12 +92,12 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 													: ""),
 									)}
 								>
-									<DuoCardHeader>
+									<DuoCard.Header>
 										<div className="flex items-center gap-2">
 											<BookOpen className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 											<h2 className="font-bold text-[var(--duo-fg)]">{`${qIndex + 1}. ${question.question}`}</h2>
 										</div>
-									</DuoCardHeader>
+									</DuoCard.Header>
 									<div className="space-y-3">
 										{options.map((opt, optIndex) => {
 											const isSelected = userAnswer === optIndex;
@@ -152,11 +152,11 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 											);
 										})}
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 
 								{hasError && (
 									<SlideIn delay={0.05}>
-										<DuoCard
+										<DuoCard.Root
 											variant="default"
 											size="default"
 											className="mt-3 border-duo-red bg-duo-red/10"
@@ -202,13 +202,13 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 													</div>
 												)}
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									</SlideIn>
 								)}
 
 								{showResults && isCorrect === true && (
 									<SlideIn delay={0.05}>
-										<DuoCard
+										<DuoCard.Root
 											variant="default"
 											size="default"
 											className="mt-3 border-duo-green bg-duo-green/10"
@@ -219,7 +219,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 													Resposta Correta!
 												</div>
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									</SlideIn>
 								)}
 							</div>
@@ -241,7 +241,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 				</SlideIn>
 			) : (
 				<SlideIn delay={0.2}>
-					<DuoCard
+					<DuoCard.Root
 						variant={quizScore >= 70 ? "highlighted" : "default"}
 						size="default"
 						className={cn(
@@ -273,7 +273,7 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 						>
 							{quizScore >= 70 ? "CONTINUAR" : "TENTAR NOVAMENTE"}
 						</DuoButton>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 		</div>

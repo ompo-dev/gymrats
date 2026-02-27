@@ -20,7 +20,6 @@ import { RelativeTime } from "@/components/molecules/relative-time";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -39,20 +38,20 @@ export default function EquipmentDetailPage({
 		return (
 			<div className="flex flex-1 items-center justify-center p-8">
 				<FadeIn>
-					<DuoCard variant="default" padding="md" className="text-center">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md" className="text-center">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<AlertTriangle className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Equipamento não encontrado</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<p className="mb-4 text-xl font-bold text-duo-gray-dark">
 							Equipamento não encontrado
 						</p>
 						<Link href="/gym/equipment">
 							<DuoButton className="mt-4">Voltar para Equipamentos</DuoButton>
 						</Link>
-					</DuoCard>
+					</DuoCard.Root>
 				</FadeIn>
 			</div>
 		);
@@ -116,13 +115,13 @@ export default function EquipmentDetailPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="highlighted" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="highlighted" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">{equipment.name}</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
 						<div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl bg-duo-green sm:h-32 sm:w-32">
 							<Dumbbell className="h-12 w-12 text-white sm:h-16 sm:w-16" />
@@ -174,12 +173,12 @@ export default function EquipmentDetailPage({
 							</div>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			{equipment.status === "in-use" && equipment.currentUser && (
 				<SlideIn delay={0.15}>
-					<DuoCard variant="blue" size="default">
+					<DuoCard.Root variant="blue" size="default">
 						<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 							<div className="min-w-0 flex-1">
 								<p className="text-xs font-bold text-duo-gray-dark sm:text-sm">
@@ -198,7 +197,7 @@ export default function EquipmentDetailPage({
 								</p>
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 
@@ -252,16 +251,16 @@ export default function EquipmentDetailPage({
 
 					<TabsContent value="usage">
 						<div className="grid gap-6 lg:grid-cols-2">
-							<DuoCard variant="highlighted" padding="md">
-								<DuoCardHeader>
+							<DuoCard.Root variant="highlighted" padding="md">
+								<DuoCard.Header>
 									<div className="flex items-center gap-2">
 										<Clock className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 										<h2 className="font-bold text-[var(--duo-fg)]">Horários Mais Populares</h2>
 									</div>
-								</DuoCardHeader>
+								</DuoCard.Header>
 								<div className="space-y-3">
 									{equipment.usageStats.popularTimes.map((time) => (
-										<DuoCard key={time} variant="highlighted" size="sm">
+										<DuoCard.Root key={time} variant="highlighted" size="sm">
 											<div className="flex items-center justify-between">
 												<div className="flex items-center gap-2">
 													<Clock className="h-5 w-5 text-duo-green" />
@@ -271,20 +270,20 @@ export default function EquipmentDetailPage({
 													Alta demanda
 												</span>
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									))}
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 
-							<DuoCard variant="blue" padding="md">
-								<DuoCardHeader>
+							<DuoCard.Root variant="blue" padding="md">
+								<DuoCard.Header>
 									<div className="flex items-center gap-2">
 										<BarChart3 className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 										<h2 className="font-bold text-[var(--duo-fg)]">Métricas de Performance</h2>
 									</div>
-								</DuoCardHeader>
+								</DuoCard.Header>
 								<div className="space-y-4">
-									<DuoCard variant="default" size="default">
+									<DuoCard.Root variant="default" size="default">
 										<p className="text-sm font-bold text-duo-gray-dark">
 											Taxa de Utilização
 										</p>
@@ -301,8 +300,8 @@ export default function EquipmentDetailPage({
 												}}
 											/>
 										</div>
-									</DuoCard>
-									<DuoCard variant="blue" size="default">
+									</DuoCard.Root>
+									<DuoCard.Root variant="blue" size="default">
 										<p className="text-sm font-bold text-duo-gray-dark">
 											Eficiência de Uso
 										</p>
@@ -310,24 +309,24 @@ export default function EquipmentDetailPage({
 										<p className="text-xs text-duo-gray-dark">
 											Baseado em tempo médio vs recomendado
 										</p>
-									</DuoCard>
+									</DuoCard.Root>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						</div>
 					</TabsContent>
 
 					<TabsContent value="maintenance">
-						<DuoCard variant="orange" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="orange" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Wrench className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Manutenção</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							{equipment.maintenanceHistory.length > 0 ? (
 								<div className="space-y-3">
 									{equipment.maintenanceHistory.map((record) => (
-										<DuoCard key={record.id} variant="default" size="default">
+										<DuoCard.Root key={record.id} variant="default" size="default">
 											<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 												<div className="min-w-0 flex-1">
 													<p className="text-sm font-bold capitalize text-duo-text sm:text-base">
@@ -351,11 +350,11 @@ export default function EquipmentDetailPage({
 													)}
 												</div>
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									))}
 								</div>
 							) : (
-								<DuoCard variant="default" size="default">
+								<DuoCard.Root variant="default" size="default">
 									<div className="py-8 text-center">
 										<Wrench className="mx-auto mb-3 h-12 w-12 text-duo-gray-dark" />
 										<p className="font-bold text-duo-gray-dark">
@@ -366,19 +365,19 @@ export default function EquipmentDetailPage({
 										</p>
 										<DuoButton className="mt-4">Registrar Manutenção</DuoButton>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							)}
-						</DuoCard>
+						</DuoCard.Root>
 					</TabsContent>
 
 					<TabsContent value="info">
-						<DuoCard variant="default" padding="md">
-							<DuoCardHeader>
+						<DuoCard.Root variant="default" padding="md">
+							<DuoCard.Header>
 								<div className="flex items-center gap-2">
 									<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 									<h2 className="font-bold text-[var(--duo-fg)]">Informações do Equipamento</h2>
 								</div>
-							</DuoCardHeader>
+							</DuoCard.Header>
 							<div className="space-y-3">
 								{[
 									{
@@ -399,7 +398,7 @@ export default function EquipmentDetailPage({
 										capitalize: true,
 									},
 								].map((item) => (
-									<DuoCard key={item.label} variant="default" size="sm">
+									<DuoCard.Root key={item.label} variant="default" size="sm">
 										<div className="flex flex-col justify-between gap-2 sm:flex-row">
 											<span className="text-sm font-bold text-duo-gray-dark sm:text-base">
 												{item.label}
@@ -413,10 +412,10 @@ export default function EquipmentDetailPage({
 												{item.value}
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								))}
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</TabsContent>
 				</Tabs>
 			</SlideIn>

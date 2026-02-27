@@ -4,7 +4,7 @@ import { Book } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { ExerciseDetail } from "@/components/organisms/education/components/muscle/exercise-detail";
 import { ExerciseList } from "@/components/organisms/education/components/muscle/exercise-list";
@@ -219,20 +219,20 @@ export function MuscleExplorer({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Book className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<DuoSelect
 						options={viewOptions}
 						value={view}
 						onChange={(value) => setView(value as "muscles" | "exercises")}
 						placeholder="Selecione a categoria"
 					/>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SearchBar

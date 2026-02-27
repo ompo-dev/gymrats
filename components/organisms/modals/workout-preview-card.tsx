@@ -216,7 +216,7 @@ export function WorkoutPreviewCard({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: index * 0.1 }}
       >
-        <DuoCard
+        <DuoCard.Root
           variant="default"
           className="group border-duo-border bg-duo-bg-elevated/50 cursor-default"
         >
@@ -236,7 +236,7 @@ export function WorkoutPreviewCard({
               </div>
             </div>
           </div>
-        </DuoCard>
+        </DuoCard.Root>
       </motion.div>
     );
   }
@@ -247,7 +247,7 @@ export function WorkoutPreviewCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
     >
-      <DuoCard
+      <DuoCard.Root
         variant="default"
         className={cn(
           "group transition-colors",
@@ -374,7 +374,7 @@ export function WorkoutPreviewCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </DuoCard>
+      </DuoCard.Root>
     </motion.div>
   );
 }

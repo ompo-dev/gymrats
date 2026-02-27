@@ -97,7 +97,7 @@ export function ExerciseAlternativeSelector({
 								animate={{ opacity: 1, x: 0 }}
 								transition={{ delay: index * 0.05, duration: 0.3 }}
 							>
-								<DuoCard
+								<DuoCard.Root
 									variant={
 										isSelected
 											? option.isMain
@@ -171,7 +171,7 @@ export function ExerciseAlternativeSelector({
 											)}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</motion.div>
 						);
 					})}
@@ -179,7 +179,7 @@ export function ExerciseAlternativeSelector({
 
 				{/* Info Box */}
 				<div className="mx-4 sm:mx-6 mb-4">
-					<DuoCard variant="yellow" size="sm">
+					<DuoCard.Root variant="yellow" size="sm">
 						<div className="flex items-start gap-2">
 							<Info className="h-5 w-5 shrink-0 text-duo-yellow" />
 							<div className="text-xs sm:text-sm text-duo-text">
@@ -188,7 +188,7 @@ export function ExerciseAlternativeSelector({
 								equipamento disponível!
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</div>
 
 				{/* Action Buttons */}

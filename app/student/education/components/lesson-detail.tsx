@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -49,13 +49,13 @@ export function LessonDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="blue" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="blue" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<BookOpen className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">{lesson.title}</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="mb-4 text-4xl">
 						{getCategoryIcon(lesson.category)}
 					</div>
@@ -79,11 +79,11 @@ export function LessonDetail({
 						</span>
 					</div>
 					<MarkdownRenderer content={lesson.content} />
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="highlighted" size="default">
+				<DuoCard.Root variant="highlighted" size="default">
 					<h3 className="mb-3 text-lg font-bold text-duo-text">Pontos-Chave</h3>
 					<ul className="space-y-2">
 						{lesson.keyPoints.map((point) => (
@@ -93,7 +93,7 @@ export function LessonDetail({
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

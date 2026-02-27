@@ -3,7 +3,7 @@
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoSelect } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 
 interface LessonFiltersProps {
 	searchQuery: string;
@@ -22,13 +22,13 @@ export function LessonFilters({
 }: LessonFiltersProps) {
 	return (
 		<SlideIn delay={0.1}>
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<Filter className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="space-y-4">
 					<div className="relative">
 						<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -58,7 +58,7 @@ export function LessonFilters({
 						placeholder="Selecione a categoria"
 					/>
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</SlideIn>
 	);
 }

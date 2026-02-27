@@ -7,12 +7,7 @@ export { DuoText } from "./atoms/duo-text";
 
 // Molecules
 export { DuoAchievementCard } from "./molecules/duo-achievement-card";
-export {
-	DuoCard,
-	DuoCardContent,
-	DuoCardFooter,
-	DuoCardHeader,
-} from "./molecules/duo-card";
+export { DuoCard } from "./molecules/duo-card";
 export { DuoModal } from "./molecules/duo-modal";
 export { DuoStatCard } from "./molecules/duo-stat-card";
 export { DuoTabs } from "./molecules/duo-tabs";

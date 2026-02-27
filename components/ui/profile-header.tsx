@@ -33,7 +33,7 @@ export function ProfileHeader({
 	...props
 }: ProfileHeaderProps) {
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant="default"
 			size="default"
 			className={cn(className)}
@@ -75,6 +75,6 @@ export function ProfileHeader({
 				))}
 				{quickStatsButtons}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

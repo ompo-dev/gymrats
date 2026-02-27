@@ -3,7 +3,6 @@
 import { Dumbbell, Flame, ShoppingBag, Zap } from "lucide-react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import { DuoCardHeader } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 
 interface ShopCardProps {
@@ -14,16 +13,16 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 	const { totalXP: storeXP } = useStudent("totalXP");
 	const currentXP = totalXP ?? storeXP ?? 0;
 	return (
-		<DuoCard variant="default" padding="md">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<ShoppingBag className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Loja de Recursos</h2>
 				</div>
 				<p className="text-xs text-duo-gray-dark">Troque XP por benefícios</p>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="space-y-3">
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="sm"
 					className="flex items-center justify-between p-3"
@@ -48,9 +47,9 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 						<Zap className="h-3 w-3" />
 						200
 					</DuoButton>
-				</DuoCard>
+				</DuoCard.Root>
 
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="sm"
 					className="flex items-center justify-between p-3"
@@ -75,8 +74,8 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 						<Zap className="h-3 w-3" />
 						500
 					</DuoButton>
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

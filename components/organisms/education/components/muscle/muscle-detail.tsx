@@ -3,7 +3,7 @@
 import { ArrowLeft, Book, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { MuscleInfo } from "@/lib/types";
 
 interface MuscleDetailProps {
@@ -25,28 +25,28 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="blue" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="blue" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Book className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">{muscle.name}</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="mb-4 text-sm font-bold italic text-duo-gray-dark">
 						{muscle.scientificName}
 					</div>
 					<p className="leading-relaxed text-duo-text">{muscle.description}</p>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Book className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Funções</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<ul className="space-y-3">
 						{muscle.functions.map((func, i) => (
 							<li key={i} className="flex items-start gap-3">
@@ -57,17 +57,17 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Exercícios Comuns</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
 						{muscle.commonExercises.map((exercise, i) => (
 							<span
@@ -78,11 +78,11 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 							</span>
 						))}
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<DuoCard variant="yellow" size="default">
+				<DuoCard.Root variant="yellow" size="default">
 					<div className="mb-3 flex items-center gap-2">
 						<span className="text-2xl">💡</span>
 						<h3 className="text-lg font-bold text-duo-text">
@@ -97,7 +97,7 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		</div>
 	);

@@ -141,7 +141,7 @@ export function EditWeeklyPlanModal({
 			<ModalContent>
 				<div className="space-y-4">
 				{weeklyPlan.slots.map((slot: PlanSlotData) => (
-					<DuoCard key={slot.id} variant="default" padding="md">
+					<DuoCard.Root key={slot.id} variant="default" padding="md">
 						<div className="flex items-center justify-between gap-4">
 							<div className="flex items-center gap-3">
 								<span className="text-sm font-medium text-duo-gray-dark">
@@ -200,7 +200,7 @@ export function EditWeeklyPlanModal({
 								)}
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				))}
 				<p className="text-center text-sm text-duo-gray">
 					Clique em &quot;Treino&quot; para adicionar um dia vazio ou &quot;Chat IA&quot; para criar com exercícios.

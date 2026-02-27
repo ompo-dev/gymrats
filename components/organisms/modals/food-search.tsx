@@ -533,7 +533,7 @@ export function FoodSearch({
 												animate={{ opacity: 1, y: 0 }}
 												transition={{ delay: idx * 0.03, duration: 0.2 }}
 											>
-												<DuoCard
+												<DuoCard.Root
 													variant={isSelected ? "highlighted" : "interactive"}
 													padding="md"
 													className="cursor-pointer"
@@ -573,7 +573,7 @@ export function FoodSearch({
 															</motion.div>
 														)}
 													</div>
-												</DuoCard>
+												</DuoCard.Root>
 											</motion.div>
 										);
 									})}
@@ -641,7 +641,7 @@ export function FoodSearch({
 														exit={{ opacity: 0, scale: 0.9, height: 0 }}
 														transition={{ delay: index * 0.05, duration: 0.2 }}
 													>
-														<DuoCard
+														<DuoCard.Root
 															variant="outlined"
 															padding="sm"
 															className="flex items-center justify-between gap-3"
@@ -684,7 +684,7 @@ export function FoodSearch({
 																	<Plus className="h-4 w-4" />
 																</DuoButton>
 															</div>
-														</DuoCard>
+														</DuoCard.Root>
 													</motion.div>
 												);
 											})}

@@ -120,7 +120,7 @@ export function AddStudentModal({
 			onClick={(e) => e.target === e.currentTarget && handleClose()}
 			onKeyDown={(e) => e.key === "Escape" && handleClose()}
 		>
-			<DuoCard
+			<DuoCard.Root
 				variant="default"
 				size="default"
 				className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
@@ -175,24 +175,24 @@ export function AddStudentModal({
 					<div className="space-y-4">
 						{/* Não encontrado */}
 						{!searchResult.found && (
-							<DuoCard variant="orange" size="sm">
+							<DuoCard.Root variant="orange" size="sm">
 								<p className="text-sm text-duo-text">
 									Nenhum aluno encontrado com este e-mail. Verifique se o
 									usuário está cadastrado com a role <strong>STUDENT</strong>.
 								</p>
-							</DuoCard>
+							</DuoCard.Root>
 						)}
 
 						{/* Já é membro */}
 						{searchResult.found && searchResult.isAlreadyMember && (
-							<DuoCard variant="orange" size="sm">
+							<DuoCard.Root variant="orange" size="sm">
 								<p className="text-sm text-duo-text">
 									Este aluno já é membro desta academia.{" "}
 									<span className="font-semibold">
 										Status atual: {searchResult.existingStatus}
 									</span>
 								</p>
-							</DuoCard>
+							</DuoCard.Root>
 						)}
 
 						{/* Aluno encontrado e disponível para matrícula */}
@@ -201,7 +201,7 @@ export function AddStudentModal({
 							searchResult.student && (
 								<>
 									{/* Card do aluno */}
-									<DuoCard variant="highlighted" size="sm">
+									<DuoCard.Root variant="highlighted" size="sm">
 										<div className="flex items-center gap-3">
 											{searchResult.student.avatar ? (
 												<div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
@@ -235,7 +235,7 @@ export function AddStudentModal({
 											</div>
 											<CheckCircle className="ml-auto h-5 w-5 shrink-0 text-duo-green" />
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 
 									{/* Seleção de plano */}
 									{planOptions.length > 0 && (
@@ -310,7 +310,7 @@ export function AddStudentModal({
 						{error}
 					</p>
 				)}
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

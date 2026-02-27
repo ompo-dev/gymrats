@@ -1,7 +1,7 @@
 import { Droplets } from "lucide-react";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 
 export interface WaterIntakeCardProps
 	extends React.HTMLAttributes<HTMLDivElement> {
@@ -28,8 +28,8 @@ export function WaterIntakeCard({
 	const totalGlasses = 12;
 
 	return (
-		<DuoCard variant="default" padding="md" className={className} {...props}>
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md" className={className} {...props}>
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<Droplets className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
@@ -37,7 +37,7 @@ export function WaterIntakeCard({
 				<span className="text-sm font-bold text-duo-gray-dark">
 					{current}ml / {target}ml
 				</span>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="mb-3 h-2 overflow-hidden rounded-full bg-duo-bg-elevated">
 				<div
 					className="h-full rounded-full bg-duo-blue transition-all duration-300"
@@ -73,6 +73,6 @@ export function WaterIntakeCard({
 					);
 				})}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

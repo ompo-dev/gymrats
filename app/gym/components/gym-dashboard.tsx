@@ -11,7 +11,7 @@ import { RelativeTime } from "@/components/molecules/relative-time";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { CheckInModal } from "./checkin-modal";
-import { DuoCardHeader, DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import type {
   CheckIn,
   Equipment,
@@ -99,8 +99,8 @@ export function GymDashboardPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SlideIn delay={0.2}>
-          <DuoCard variant="default" padding="md">
-            <DuoCardHeader>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
               <div className="flex items-center gap-2">
                 <Users
                   className="h-5 w-5 shrink-0"
@@ -111,7 +111,7 @@ export function GymDashboardPage({
                   Check-ins Recentes
                 </h2>
               </div>
-            </DuoCardHeader>
+            </DuoCard.Header>
             <div className="space-y-3">
               {recentCheckIns.length === 0 && (
                 <p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -129,7 +129,7 @@ export function GymDashboardPage({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.4 }}
                   >
-                    <DuoCard variant="default" size="sm">
+                    <DuoCard.Root variant="default" size="sm">
                       <div className="flex items-center gap-3">
                         {student?.avatar && (
                           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
@@ -150,17 +150,17 @@ export function GymDashboardPage({
                           </p>
                         </div>
                       </div>
-                    </DuoCard>
+                    </DuoCard.Root>
                   </motion.div>
                 );
               })}
             </div>
-          </DuoCard>
+          </DuoCard.Root>
         </SlideIn>
 
         <SlideIn delay={0.3}>
-          <DuoCard variant="default" padding="md">
-            <DuoCardHeader>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
               <div className="flex items-center gap-2">
                 <Dumbbell
                   className="h-5 w-5 shrink-0"
@@ -171,7 +171,7 @@ export function GymDashboardPage({
                   Equipamentos em Tempo Real
                 </h2>
               </div>
-            </DuoCardHeader>
+            </DuoCard.Header>
             <div className="space-y-3">
               {equipmentInUse.length === 0 &&
                 equipmentMaintenance.length === 0 && (
@@ -186,7 +186,7 @@ export function GymDashboardPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.4 }}
                 >
-                  <DuoCard variant="blue" size="sm">
+                  <DuoCard.Root variant="blue" size="sm">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <p className="text-sm font-bold text-duo-text">
@@ -204,7 +204,7 @@ export function GymDashboardPage({
                         </p>
                       </div>
                     </div>
-                  </DuoCard>
+                  </DuoCard.Root>
                 </motion.div>
               ))}
 
@@ -221,25 +221,25 @@ export function GymDashboardPage({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05, duration: 0.4 }}
                     >
-                      <DuoCard variant="orange" size="sm">
+                      <DuoCard.Root variant="orange" size="sm">
                         <p className="text-sm font-bold text-duo-text">
                           {eq.name}
                         </p>
                         <p className="text-xs text-duo-gray-dark">
                           Aguardando manutenção
                         </p>
-                      </DuoCard>
+                      </DuoCard.Root>
                     </motion.div>
                   ))}
                 </>
               )}
             </div>
-          </DuoCard>
+          </DuoCard.Root>
         </SlideIn>
 
         <SlideIn delay={0.4}>
-          <DuoCard variant="default" padding="md">
-            <DuoCardHeader>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
               <div className="flex items-center gap-2">
                 <Users
                   className="h-5 w-5 shrink-0"
@@ -250,7 +250,7 @@ export function GymDashboardPage({
                   Top Alunos do Mês
                 </h2>
               </div>
-            </DuoCardHeader>
+            </DuoCard.Header>
             <div className="space-y-3">
               {month.topStudents.length === 0 && (
                 <p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -273,7 +273,7 @@ export function GymDashboardPage({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05, duration: 0.4 }}
                   >
-                    <DuoCard variant={variant} size="sm">
+                    <DuoCard.Root variant={variant} size="sm">
                       <div className="flex items-center gap-3">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-duo-purple text-sm font-bold text-white">
                           {index + 1}
@@ -305,17 +305,17 @@ export function GymDashboardPage({
                           </p>
                         </div>
                       </div>
-                    </DuoCard>
+                    </DuoCard.Root>
                   </motion.div>
                 );
               })}
             </div>
-          </DuoCard>
+          </DuoCard.Root>
         </SlideIn>
 
         <SlideIn delay={0.5}>
-          <DuoCard variant="default" padding="md">
-            <DuoCardHeader>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
               <div className="flex items-center gap-2">
                 <Users
                   className="h-5 w-5 shrink-0"
@@ -326,9 +326,9 @@ export function GymDashboardPage({
                   Estatísticas da Semana
                 </h2>
               </div>
-            </DuoCardHeader>
+            </DuoCard.Header>
             <div className="space-y-4">
-              <DuoCard variant="highlighted" size="sm">
+              <DuoCard.Root variant="highlighted" size="sm">
                 <p className="text-xs font-bold text-duo-gray-dark">
                   Total de Check-ins
                 </p>
@@ -341,9 +341,9 @@ export function GymDashboardPage({
                     style={{ width: "85%" }}
                   />
                 </div>
-              </DuoCard>
+              </DuoCard.Root>
 
-              <DuoCard variant="blue" size="sm">
+              <DuoCard.Root variant="blue" size="sm">
                 <p className="text-xs font-bold text-duo-gray-dark">
                   Média Diária
                 </p>
@@ -351,9 +351,9 @@ export function GymDashboardPage({
                   {week.avgDailyCheckins}
                 </p>
                 <p className="text-xs text-duo-gray-dark">alunos por dia</p>
-              </DuoCard>
+              </DuoCard.Root>
 
-              <DuoCard
+              <DuoCard.Root
                 variant="default"
                 size="sm"
                 className="border-duo-purple bg-duo-purple/10"
@@ -365,9 +365,9 @@ export function GymDashboardPage({
                   {month.retentionRate}%
                 </p>
                 <p className="text-xs text-duo-gray-dark">últimos 30 dias</p>
-              </DuoCard>
+              </DuoCard.Root>
             </div>
-          </DuoCard>
+          </DuoCard.Root>
         </SlideIn>
       </div>
       <CheckInModal

@@ -14,7 +14,6 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -56,13 +55,13 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="orange" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="orange" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Nível e Progresso</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="mb-6 flex items-center justify-between">
 						<div className="flex items-center gap-4">
 							<div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-duo-orange">
@@ -109,7 +108,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 						</span>{" "}
 						para o próximo nível
 					</p>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -146,22 +145,22 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 
 			<div className="grid gap-6 lg:grid-cols-2">
 				<SlideIn delay={0.3}>
-					<DuoCard variant="orange" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="orange" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<Award className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Conquistas</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<div className="space-y-3">
 							{achievements.length === 0 ? (
-								<DuoCard variant="default" size="default" className="p-8 text-center">
+								<DuoCard.Root variant="default" size="default" className="p-8 text-center">
 									<Award className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
 									<p className="font-bold text-duo-gray-dark">Nenhuma conquista ainda</p>
 									<p className="mt-1 text-sm text-duo-gray-dark">
 										As conquistas aparecerão conforme você atingir metas da academia.
 									</p>
-								</DuoCard>
+								</DuoCard.Root>
 							) : (
 								achievements.map((achievement, index) => {
 									const unlocked = !!achievement.unlockedAt;
@@ -174,7 +173,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 											animate={{ opacity: 1, y: 0 }}
 											transition={{ delay: index * 0.05, duration: 0.4 }}
 										>
-											<DuoCard
+											<DuoCard.Root
 												variant={unlocked ? "highlighted" : "default"}
 												size="default"
 												className={cn(
@@ -220,23 +219,23 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 														</div>
 													</div>
 												)}
-											</DuoCard>
+											</DuoCard.Root>
 										</motion.div>
 									);
 								})
 							)}
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
+					<DuoCard.Root variant="default" padding="md">
+						<DuoCard.Header>
 							<div className="flex items-center gap-2">
 								<Star className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 								<h2 className="font-bold text-[var(--duo-fg)]">Ranking Regional</h2>
 							</div>
-						</DuoCardHeader>
+						</DuoCard.Header>
 						<p className="mb-4 text-sm font-medium text-duo-text">
 							Sua academia • Posição {(gamification.ranking ?? 0) > 0 ? `#${gamification.ranking}` : "—"}
 						</p>
@@ -248,7 +247,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: index * 0.05, duration: 0.4 }}
 								>
-									<DuoCard
+									<DuoCard.Root
 										variant="default"
 										size="default"
 										className={cn(
@@ -293,11 +292,11 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 												<p className="text-xs text-duo-gray-dark">XP</p>
 											</div>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 								</motion.div>
 							))}
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			</div>
 		</div>

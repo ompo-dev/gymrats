@@ -14,7 +14,7 @@ type DuoCardVariant =
   | "orange"
   | "yellow";
 
-interface DuoCardProps extends HTMLAttributes<HTMLDivElement> {
+interface DuoCardRootProps extends HTMLAttributes<HTMLDivElement> {
   variant?: DuoCardVariant;
   padding?: "none" | "sm" | "md" | "lg";
   /** @deprecated Use padding instead. Mapped: sm->sm, md->md, default->md, lg->lg */
@@ -43,14 +43,14 @@ const variantStyles: Record<
     "rounded-xl border-2 border-[var(--duo-warning)] bg-[var(--duo-warning)]/10 shadow-[0_2px_0_#E0B000]",
 };
 
-export function DuoCard({
+function DuoCardRoot({
   variant = "default",
   padding,
   size,
   className,
   children,
   ...props
-}: DuoCardProps) {
+}: DuoCardRootProps) {
   const effectivePadding =
     padding ??
     (size === "sm" ? "sm" : size === "lg" ? "lg" : size === "md" ? "md" : "md");
@@ -72,7 +72,6 @@ export function DuoCard({
           "hover:scale-[1.02] hover:border-[var(--duo-primary)] hover:shadow-lg hover:shadow-[var(--duo-primary)]/5",
           "active:scale-[0.98]",
         ],
-        //"border border-[var(--duo-border)] shadow-[0_4px_0_#D1D5DB]",
         variant === "elevated" &&
           "bg-[var(--duo-bg-elevated)] shadow-lg shadow-black/10",
         variant === "outlined" &&
@@ -92,7 +91,7 @@ export function DuoCard({
   );
 }
 
-export function DuoCardHeader({
+function DuoCardHeader({
   className,
   children,
   ...props
@@ -107,7 +106,7 @@ export function DuoCardHeader({
   );
 }
 
-export function DuoCardContent({
+function DuoCardContent({
   className,
   children,
   ...props
@@ -119,7 +118,7 @@ export function DuoCardContent({
   );
 }
 
-export function DuoCardFooter({
+function DuoCardFooter({
   className,
   children,
   ...props
@@ -136,3 +135,10 @@ export function DuoCardFooter({
     </div>
   );
 }
+
+export const DuoCard = {
+  Root: DuoCardRoot,
+  Header: DuoCardHeader,
+  Content: DuoCardContent,
+  Footer: DuoCardFooter,
+};

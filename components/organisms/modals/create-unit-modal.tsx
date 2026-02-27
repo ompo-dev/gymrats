@@ -162,7 +162,7 @@ export function CreateUnitModal({
 								/>
 							</div>
 
-							<DuoCard
+							<DuoCard.Root
 								variant="default"
 								className="bg-duo-green/5 border-2 border-duo-green/20 p-4"
 							>
@@ -182,7 +182,7 @@ export function CreateUnitModal({
 										</ul>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						</motion.div>
 					</motion.div>
 

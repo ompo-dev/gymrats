@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
@@ -166,13 +166,13 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoCard variant="default" padding="md">
-					<DuoCardHeader>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<Search className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 							<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
 						</div>
-					</DuoCardHeader>
+					</DuoCard.Header>
 					<div className="space-y-4">
 						<DuoInput
 							placeholder="Buscar por nome ou email..."
@@ -190,7 +190,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							placeholder="Status"
 						/>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -202,7 +202,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: index * 0.05, duration: 0.4 }}
 						>
-							<DuoCard
+							<DuoCard.Root
 								variant="default"
 								size="default"
 								onClick={() => setStudentId(student.id)}
@@ -242,7 +242,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 								</div>
 
 								<div className="space-y-3">
-									<DuoCard variant="default" size="sm">
+									<DuoCard.Root variant="default" size="sm">
 										<div className="flex items-center justify-between">
 											<div className="flex items-center gap-2">
 												<Flame
@@ -264,9 +264,9 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 												{student.currentStreak ?? 0} dias
 											</span>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 
-									<DuoCard variant="default" size="sm">
+									<DuoCard.Root variant="default" size="sm">
 										<div className="mb-2 flex items-center justify-between">
 											<span className="font-bold text-duo-text">
 												Frequência
@@ -284,10 +284,10 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 												style={{ width: `${student.attendanceRate ?? 0}%` }}
 											/>
 										</div>
-									</DuoCard>
+									</DuoCard.Root>
 
 									<div className="grid grid-cols-2 gap-2">
-										<DuoCard
+										<DuoCard.Root
 											variant="blue"
 											size="sm"
 											className="p-3 text-center"
@@ -298,8 +298,8 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 											<p className="text-xs font-bold text-duo-gray-dark">
 												Treinos
 											</p>
-										</DuoCard>
-										<DuoCard
+										</DuoCard.Root>
+										<DuoCard.Root
 											variant="default"
 											size="sm"
 											className="border-duo-purple bg-duo-purple/10 p-3 text-center"
@@ -310,12 +310,12 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 											<p className="text-xs font-bold text-duo-gray-dark">
 												Peso
 											</p>
-										</DuoCard>
+										</DuoCard.Root>
 									</div>
 								</div>
 
 								{student.assignedTrainer && (
-									<DuoCard
+									<DuoCard.Root
 										variant="default"
 										size="sm"
 										className="mt-4 bg-gray-100 p-2 text-center"
@@ -326,9 +326,9 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 												{student.assignedTrainer}
 											</span>
 										</p>
-									</DuoCard>
+									</DuoCard.Root>
 								)}
-							</DuoCard>
+							</DuoCard.Root>
 						</motion.div>
 					))}
 				</div>
@@ -336,7 +336,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 
 			{filteredStudents.length === 0 && (
 				<SlideIn delay={0.3}>
-					<DuoCard
+					<DuoCard.Root
 						variant="default"
 						size="default"
 						className="p-12 text-center"
@@ -347,7 +347,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 						<p className="text-duo-gray-dark">
 							Tente ajustar os filtros de busca
 						</p>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 

@@ -33,7 +33,7 @@ export function PlanCard({
 	const shouldSpanFullWidth = isEnterprise && plansCount === 3;
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant={isSelected ? "highlighted" : "default"}
 			size="md"
 			className={cn(
@@ -120,6 +120,6 @@ export function PlanCard({
 						)}
 				</>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

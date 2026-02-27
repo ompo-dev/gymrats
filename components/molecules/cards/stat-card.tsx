@@ -20,7 +20,7 @@ export function StatCard({
 	const isHighlighted = variant === "highlighted";
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant={variant === "default" ? "small" : variant}
 			size={size}
 			className={cn("text-center", className)}
@@ -43,6 +43,6 @@ export function StatCard({
 			>
 				{label}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

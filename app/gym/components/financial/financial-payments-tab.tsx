@@ -2,7 +2,7 @@
 
 import { CreditCard, Plus } from "lucide-react";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { Payment } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
@@ -47,8 +47,8 @@ const getStatusLabel = (status: string) => {
 
 export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 	return (
-		<DuoCard variant="default" padding="md">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Pagamentos Recentes</h2>
@@ -56,7 +56,7 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 				<DuoButton size="sm">
 					<Plus className="h-4 w-4" />
 				</DuoButton>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="space-y-3">
 				{payments.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -64,7 +64,7 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 					</p>
 				)}
 				{payments.map((payment) => (
-					<DuoCard key={payment.id} variant="default" size="default">
+					<DuoCard.Root key={payment.id} variant="default" size="default">
 						<div className="mb-3 flex items-start justify-between">
 							<div>
 								<div className="text-sm font-bold text-duo-text">
@@ -98,9 +98,9 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 								</div>
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				))}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

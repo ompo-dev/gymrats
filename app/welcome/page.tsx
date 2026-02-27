@@ -406,7 +406,7 @@ function WelcomePageContent() {
 						transition={{ duration: 0.6 }}
 						className="mb-8 flex justify-center"
 					>
-						<DuoCard variant="default" size="lg" className="p-2">
+						<DuoCard.Root variant="default" size="lg" className="p-2">
 							<motion.div
 								initial={{ scale: 0.8, opacity: 0 }}
 								animate={{ scale: 1, opacity: 1 }}
@@ -422,7 +422,7 @@ function WelcomePageContent() {
 									priority
 								/>
 							</motion.div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					{/* App Name */}
@@ -444,7 +444,7 @@ function WelcomePageContent() {
 						transition={{ delay: 0.4, duration: 0.6 }}
 						className="mb-8"
 					>
-						<DuoCard variant="default" size="lg">
+						<DuoCard.Root variant="default" size="lg">
 							<div className="space-y-6">
 								{/* Features Grid */}
 								<div className="grid grid-cols-2 gap-4">
@@ -472,7 +472,7 @@ function WelcomePageContent() {
 									})}
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					{/* Error Message */}

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { DuoCard } from "@/components/duo";
 import {
-	DuoCardHeader,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -62,7 +61,7 @@ export function FinancialOverviewTab({
 			</DuoStatsGrid>
 
 			{(financialSummary.overduePayments ?? 0) > 0 && (
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="default"
 					className="border-duo-red bg-duo-red/10"
@@ -79,34 +78,34 @@ export function FinancialOverviewTab({
 							</div>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Métricas do Mês</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="space-y-3">
-					<DuoCard variant="default" size="sm">
+					<DuoCard.Root variant="default" size="sm">
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-duo-gray-dark">Ticket Médio</span>
 							<span className="text-sm font-bold text-duo-text">
 								{formatCurrency(financialSummary.averageTicket)}
 							</span>
 						</div>
-					</DuoCard>
-					<DuoCard variant="default" size="sm">
+					</DuoCard.Root>
+					<DuoCard.Root variant="default" size="sm">
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-duo-gray-dark">Taxa de Churn</span>
 							<span className="text-sm font-bold text-duo-red">
 								{(financialSummary.churnRate ?? 0)}%
 							</span>
 						</div>
-					</DuoCard>
-					<DuoCard variant="default" size="sm">
+					</DuoCard.Root>
+					<DuoCard.Root variant="default" size="sm">
 						<div className="flex items-center justify-between">
 							<span className="text-sm text-duo-gray-dark">
 								Pagamentos Pendentes
@@ -115,9 +114,9 @@ export function FinancialOverviewTab({
 								{formatCurrency(financialSummary.pendingPayments)}
 							</span>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

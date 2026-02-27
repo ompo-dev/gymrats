@@ -16,12 +16,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { createAbacateBilling } from "@/lib/actions/abacate-pay";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import {
-	DuoCardHeader,
-	DuoSelect,
-	DuoStatCard,
-	DuoStatsGrid,
-} from "@/components/duo";
+import { DuoSelect, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 // Removido useQuery - agora usando store unificado via useStudent() com axios
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { StudentMembershipPixModal } from "@/app/student/components/student-membership-pix-modal";
@@ -509,13 +504,13 @@ export function StudentPaymentsPage({
 				/>
 			</DuoStatsGrid>
 
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<Wallet className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
 					</div>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<DuoSelect
 					options={TAB_OPTIONS}
 					value={activeTab}
@@ -529,7 +524,7 @@ export function StudentPaymentsPage({
 					}}
 					placeholder="Selecione a categoria"
 				/>
-			</DuoCard>
+			</DuoCard.Root>
 
 			{activeTab === "memberships" && (
 				<div className="space-y-3">
@@ -541,7 +536,7 @@ export function StudentPaymentsPage({
 
 						return (
 							<div key={membership.id}>
-								<DuoCard
+								<DuoCard.Root
 									variant="default"
 									size="default"
 									className={cn(
@@ -621,7 +616,7 @@ export function StudentPaymentsPage({
 																Selecione o novo plano:
 															</p>
 															{changePlanPlans.map((plan) => (
-																<DuoCard
+																<DuoCard.Root
 																	key={plan.id}
 																	variant="default"
 																	size="sm"
@@ -638,7 +633,7 @@ export function StudentPaymentsPage({
 																			R$ {plan.price.toFixed(2)}
 																		</span>
 																	</div>
-																</DuoCard>
+																</DuoCard.Root>
 															))}
 															<DuoButton
 																variant="ghost"
@@ -693,12 +688,12 @@ export function StudentPaymentsPage({
 											</div>
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</div>
 						);
 					})}
 
-					<DuoCard
+					<DuoCard.Root
 						variant="default"
 						size="default"
 						className="border-dashed cursor-pointer hover:border-duo-blue transition-colors"
@@ -710,7 +705,7 @@ export function StudentPaymentsPage({
 								Adicionar nova academia
 							</span>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</div>
 			)}
 
@@ -727,7 +722,7 @@ export function StudentPaymentsPage({
 					) : (
 						payments.map((payment: StudentPayment) => (
 							<div key={payment.id}>
-								<DuoCard variant="default" size="default">
+								<DuoCard.Root variant="default" size="default">
 									<div className="flex items-start justify-between">
 										<div className="flex-1">
 											<h3 className="font-bold text-duo-text">
@@ -814,7 +809,7 @@ export function StudentPaymentsPage({
 											)}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</div>
 						))
 					)}

@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
@@ -184,8 +184,8 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
         </p>
       </div>
 
-      <DuoCard variant="default" padding="md">
-        <DuoCardHeader>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
           <div className="flex items-center gap-2">
             <Dumbbell
               className="h-5 w-5 shrink-0"
@@ -196,7 +196,7 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
               Meu Plano Semanal
             </h2>
           </div>
-        </DuoCardHeader>
+        </DuoCard.Header>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -216,7 +216,7 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
             Criar Plano Semanal
           </DuoButton>
         </motion.div>
-      </DuoCard>
+      </DuoCard.Root>
     </div>
   );
 }

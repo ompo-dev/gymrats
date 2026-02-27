@@ -99,7 +99,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 			onClick={(e) => e.target === e.currentTarget && handleClose()}
 			onKeyDown={(e) => e.key === "Escape" && handleClose()}
 		>
-			<DuoCard
+			<DuoCard.Root
 				variant="default"
 				size="default"
 				className="w-full max-w-md"
@@ -125,21 +125,21 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 
 				{/* Feedback de sucesso */}
 				{success && (
-					<DuoCard variant="highlighted" size="sm" className="mb-4">
+					<DuoCard.Root variant="highlighted" size="sm" className="mb-4">
 						<div className="flex items-center gap-2">
 							<CheckCircle className="h-5 w-5 shrink-0 text-duo-green" />
 							<p className="font-bold text-duo-green">
 								Check-in registrado para {success}!
 							</p>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				)}
 
 				{/* Feedback de erro */}
 				{error && (
-					<DuoCard variant="orange" size="sm" className="mb-4">
+					<DuoCard.Root variant="orange" size="sm" className="mb-4">
 						<p className="text-sm text-duo-text">{error}</p>
-					</DuoCard>
+					</DuoCard.Root>
 				)}
 
 				{/* Campo de busca */}
@@ -171,7 +171,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 						</p>
 					)}
 					{members.map((member) => (
-						<DuoCard key={member.id} variant="default" size="sm">
+						<DuoCard.Root key={member.id} variant="default" size="sm">
 							<div className="flex items-center justify-between gap-3">
 								<div className="flex min-w-0 items-center gap-2">
 									{member.avatar ? (
@@ -208,10 +208,10 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 									)}
 								</DuoButton>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					))}
 				</div>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

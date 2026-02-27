@@ -2,7 +2,7 @@
 
 import { AlertCircle, Crown, Gift } from "lucide-react";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
@@ -35,13 +35,13 @@ export function SubscriptionStatusCard({
 		!subscription.isTrial;
 
 	return (
-		<DuoCard variant="default" padding="md">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<Crown className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Status da Assinatura</h2>
 				</div>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-3">
@@ -98,7 +98,7 @@ export function SubscriptionStatusCard({
 				</div>
 
 				{isTrialActive && subscription.daysRemaining !== null && (
-					<DuoCard variant="blue" size="default">
+					<DuoCard.Root variant="blue" size="default">
 						<div className="flex items-center gap-3">
 							<Gift className="h-8 w-8 text-duo-blue" />
 							<div className="flex-1">
@@ -111,7 +111,7 @@ export function SubscriptionStatusCard({
 								</p>
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				)}
 
 				{subscription.status === "active" && (
@@ -156,6 +156,6 @@ export function SubscriptionStatusCard({
 					</div>
 				)}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

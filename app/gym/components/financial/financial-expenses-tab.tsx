@@ -3,7 +3,7 @@
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -18,8 +18,8 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 
 	return (
 		<>
-			<DuoCard variant="default" padding="md">
-				<DuoCardHeader>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
 					<div className="flex items-center gap-2">
 						<Receipt className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Despesas do Mês</h2>
@@ -31,7 +31,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					>
 						<Plus className="h-4 w-4" />
 					</DuoButton>
-				</DuoCardHeader>
+				</DuoCard.Header>
 				<div className="space-y-3">
 				{expenses.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -39,7 +39,7 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					</p>
 				)}
 				{expenses.map((expense) => (
-					<DuoCard key={expense.id} variant="default" size="default">
+					<DuoCard.Root key={expense.id} variant="default" size="default">
 						<div className="mb-3 flex items-start justify-between">
 							<div>
 								<div className="mb-1 text-xs font-bold uppercase text-duo-gray-dark">
@@ -61,11 +61,11 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 								</div>
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				))}
 			</div>
 
-			<DuoCard
+			<DuoCard.Root
 				variant="default"
 				size="default"
 				className="mt-4 border-duo-red bg-duo-red/10"
@@ -78,8 +78,8 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 						R$ {(totalExpenses ?? 0).toLocaleString("pt-BR")}
 					</span>
 				</div>
-			</DuoCard>
-		</DuoCard>
+			</DuoCard.Root>
+		</DuoCard.Root>
 
 			<AddExpenseModal
 				isOpen={isAddModalOpen}

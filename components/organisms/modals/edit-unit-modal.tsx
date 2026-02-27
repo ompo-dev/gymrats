@@ -819,7 +819,7 @@ export function EditUnitModal({
                             <div className="h-px flex-1 bg-duo-border" />
                           </div>
                           {slot.type === "rest" ? (
-                            <DuoCard
+                            <DuoCard.Root
                               variant="default"
                               padding="md"
                               className="bg-duo-gray/5 border-dashed"
@@ -861,9 +861,9 @@ export function EditUnitModal({
                                   </DuoButton>
                                 </div>
                               </div>
-                            </DuoCard>
+                            </DuoCard.Root>
                           ) : slot.workout ? (
-                            <DuoCard
+                            <DuoCard.Root
                               variant="highlighted"
                               className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
                             >
@@ -925,7 +925,7 @@ export function EditUnitModal({
                                   </DuoButton>
                                 </div>
                               </div>
-                            </DuoCard>
+                            </DuoCard.Root>
                           ) : null}
                         </div>
                       ))}
@@ -944,7 +944,7 @@ export function EditUnitModal({
                           value={workout}
                           className="cursor-grab active:cursor-grabbing"
                         >
-                          <DuoCard
+                          <DuoCard.Root
                             variant="highlighted"
                             className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
                           >
@@ -1016,7 +1016,7 @@ export function EditUnitModal({
                                 </DuoButton>
                               </div>
                             </div>
-                          </DuoCard>
+                          </DuoCard.Root>
                         </Reorder.Item>
                       ),
                     )}
@@ -1175,7 +1175,7 @@ export function EditUnitModal({
                         value={exercise}
                         className="cursor-grab active:cursor-grabbing"
                       >
-                        <DuoCard
+                        <DuoCard.Root
                           variant="highlighted"
                           size="md"
                           className="group hover:border-duo-green/50 transition-all bg-duo-bg-card"
@@ -1293,7 +1293,7 @@ export function EditUnitModal({
                               </div>
                             </div>
                           </div>
-                        </DuoCard>
+                        </DuoCard.Root>
                       </Reorder.Item>
                     ),
                   )}

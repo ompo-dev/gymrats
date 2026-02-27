@@ -57,7 +57,7 @@ export function NavigationButtonCard({
 	const variant = variantMap[color];
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant={variant}
 			size="md"
 			onClick={onClick}
@@ -86,6 +86,6 @@ export function NavigationButtonCard({
 					<p className="text-xs text-duo-gray-dark">{description}</p>
 				</div>
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

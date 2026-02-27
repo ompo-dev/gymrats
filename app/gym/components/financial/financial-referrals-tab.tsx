@@ -1,7 +1,7 @@
 "use client";
 
 import { UsersIcon } from "lucide-react";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { Referral } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +13,13 @@ export function FinancialReferralsTab({
 	referrals,
 }: FinancialReferralsTabProps) {
 	return (
-		<DuoCard variant="default" padding="md">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<UsersIcon className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Programa de Indicações</h2>
 				</div>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="space-y-3">
 				{referrals.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
@@ -27,7 +27,7 @@ export function FinancialReferralsTab({
 					</p>
 				)}
 				{referrals.map((referral) => (
-					<DuoCard
+					<DuoCard.Root
 						key={referral.id}
 						variant="default"
 						size="default"
@@ -57,17 +57,17 @@ export function FinancialReferralsTab({
 							</div>
 						</div>
 
-						<DuoCard variant="default" size="sm" className="bg-white">
+						<DuoCard.Root variant="default" size="sm" className="bg-white">
 							<div className="flex items-center justify-between">
 								<div className="text-xs text-duo-gray-dark">Recompensa</div>
 								<div className="text-lg font-bold text-duo-purple">
 									R$ {referral.reward}
 								</div>
 							</div>
-						</DuoCard>
-					</DuoCard>
+						</DuoCard.Root>
+					</DuoCard.Root>
 				))}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

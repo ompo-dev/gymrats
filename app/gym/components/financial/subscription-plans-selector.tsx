@@ -3,7 +3,7 @@
 import { CheckCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoCardHeader } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionPlansSelectorProps {
@@ -36,15 +36,15 @@ export function SubscriptionPlansSelector({
 	};
 
 	return (
-		<DuoCard variant="default" padding="md">
-			<DuoCardHeader>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<Sparkles className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 					<h2 className="font-bold text-[var(--duo-fg)]">Escolha seu Plano</h2>
 				</div>
-			</DuoCardHeader>
+			</DuoCard.Header>
 			<div className="mb-4 grid grid-cols-2 gap-3">
-				<DuoCard
+				<DuoCard.Root
 					variant={
 						selectedBillingPeriod === "monthly" ? "highlighted" : "default"
 					}
@@ -59,9 +59,9 @@ export function SubscriptionPlansSelector({
 				>
 					<div className="mb-2 text-lg font-bold text-duo-text">Mensal</div>
 					<div className="text-xs text-duo-gray-dark">por mês</div>
-				</DuoCard>
+				</DuoCard.Root>
 
-				<DuoCard
+				<DuoCard.Root
 					variant={
 						selectedBillingPeriod === "annual" ? "highlighted" : "default"
 					}
@@ -79,7 +79,7 @@ export function SubscriptionPlansSelector({
 					</span>
 					<div className="mb-2 text-lg font-bold text-duo-text">Anual</div>
 					<div className="text-xs text-duo-gray-dark">por ano</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
 
 			<div className="mb-4 grid grid-cols-3 gap-3">
@@ -109,7 +109,7 @@ export function SubscriptionPlansSelector({
 
 					const isSelected = selectedPlanType === plan;
 					return (
-						<DuoCard
+						<DuoCard.Root
 							key={plan}
 							variant={isSelected ? "highlighted" : "default"}
 							size="md"
@@ -146,7 +146,7 @@ export function SubscriptionPlansSelector({
 									Sem cobrança por aluno
 								</div>
 							)}
-						</DuoCard>
+						</DuoCard.Root>
 					);
 				})}
 			</div>
@@ -182,6 +182,6 @@ export function SubscriptionPlansSelector({
 			>
 				{isLoading ? "Processando..." : "Assinar Agora"}
 			</DuoButton>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }
