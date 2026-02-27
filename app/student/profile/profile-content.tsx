@@ -594,7 +594,7 @@ export function ProfilePageContent() {
 						<div className="space-y-3">
 							{recentWorkoutHistory.map((workout: WorkoutHistory) => (
 								<div key={`${workout.workoutId}-${String(workout.date)}`}>
-									<HistoryCard
+									<HistoryCard.Simple
 										title={workout.workoutName}
 										date={workout.date}
 										status={
@@ -676,7 +676,7 @@ export function ProfilePageContent() {
 					{personalRecords.length > 0 ? (
 						<div className="space-y-3">
 							{personalRecords.map((record: PersonalRecord) => (
-								<RecordCard
+								<RecordCard.Simple
 									key={`${record.exerciseId}-${String(record.date)}`}
 									exerciseName={record.exerciseName}
 									date={record.date}

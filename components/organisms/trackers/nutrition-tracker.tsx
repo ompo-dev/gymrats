@@ -148,7 +148,7 @@ function NutritionTrackerSimple({
           </motion.div>
         </DuoCard.Root>
       ) : (
-        <WaterIntakeCard
+        <WaterIntakeCard.Simple
           current={nutrition.waterIntake}
           target={nutrition.targetWater}
           glasses={waterGlasses}
@@ -217,7 +217,7 @@ function NutritionTrackerSimple({
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <MealCard
+                    <MealCard.Simple
                       meal={meal}
                       onComplete={() => onMealComplete(meal.id)}
                       onAddFood={

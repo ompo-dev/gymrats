@@ -45,7 +45,7 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
   }, [formData.gymType, touched.gymType]);
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Equipamentos"
       description="Selecione o que você tem acesso"
     >
@@ -76,6 +76,6 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
           )}
         </div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

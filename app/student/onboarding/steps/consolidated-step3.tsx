@@ -94,7 +94,7 @@ export function ConsolidatedStep3({
   };
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Algo mais?"
       description="Você pode completar depois em Configurações"
     >
@@ -310,6 +310,6 @@ export function ConsolidatedStep3({
           )}
         </motion.div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

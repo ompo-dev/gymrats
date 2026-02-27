@@ -184,7 +184,7 @@ export function ConsolidatedStep1({
     activityLevelDescriptions[4];
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Quem é você"
       description="Vamos conhecer você para personalizar sua experiência"
     >
@@ -547,6 +547,6 @@ export function ConsolidatedStep1({
           )}
         </motion.div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

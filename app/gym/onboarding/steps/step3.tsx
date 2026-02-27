@@ -7,7 +7,7 @@ import type { StepProps } from "./types";
 
 export function Step3({ formData, setFormData }: StepProps) {
 	return (
-		<StepCard
+		<StepCard.Simple
 			title="CNPJ"
 			description="Informe o CNPJ da sua academia (opcional)"
 		>
@@ -36,6 +36,6 @@ export function Step3({ formData, setFormData }: StepProps) {
 					</p>
 				</motion.div>
 			</div>
-		</StepCard>
+		</StepCard.Simple>
 	);
 }

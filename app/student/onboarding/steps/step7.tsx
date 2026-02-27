@@ -112,7 +112,7 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
   };
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Limitações e Considerações"
       description="Nos ajude a criar um treino seguro e adequado para você"
     >
@@ -261,6 +261,6 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
           </motion.div>
         )}
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

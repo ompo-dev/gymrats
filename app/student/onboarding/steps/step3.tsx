@@ -56,7 +56,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
   ]);
 
   return (
-    <StepCard title="Preferências" description="Como você gosta de treinar?">
+    <StepCard.Simple title="Preferências" description="Como você gosta de treinar?">
       <div className="space-y-6">
         <DuoSelect.Simple
           options={[2, 3, 4, 5].map((num) => ({
@@ -123,6 +123,6 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

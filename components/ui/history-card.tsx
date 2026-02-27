@@ -13,7 +13,7 @@ export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	}>;
 }
 
-export function HistoryCard({
+function HistoryCardSimple({
 	title,
 	date,
 	status,
@@ -92,3 +92,5 @@ export function HistoryCard({
 		</DuoCard.Root>
 	);
 }
+
+export const HistoryCard = { Simple: HistoryCardSimple };

@@ -57,7 +57,7 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
   ]);
 
   return (
-    <StepCard title="Objetivos" description="O que você quer alcançar?">
+    <StepCard.Simple title="Objetivos" description="O que você quer alcançar?">
       <div className="space-y-6">
         <div>
           <DuoSelect.Simple
@@ -142,6 +142,6 @@ export function Step2({ formData, setFormData, forceValidation }: StepProps) {
           />
         </div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

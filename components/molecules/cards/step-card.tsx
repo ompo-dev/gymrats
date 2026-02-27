@@ -11,7 +11,7 @@ interface StepCardProps {
 	className?: string;
 }
 
-export function StepCard({
+function StepCardSimple({
 	title,
 	description,
 	children,
@@ -43,3 +43,5 @@ export function StepCard({
 		</motion.div>
 	);
 }
+
+export const StepCard = { Simple: StepCardSimple };

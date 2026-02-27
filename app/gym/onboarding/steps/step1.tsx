@@ -6,7 +6,7 @@ import type { StepProps } from "./types";
 
 export function Step1({ formData, setFormData }: StepProps) {
 	return (
-		<StepCard
+		<StepCard.Simple
 			title="Informações da Academia"
 			description="Vamos começar com os dados básicos"
 		>
@@ -45,6 +45,6 @@ export function Step1({ formData, setFormData }: StepProps) {
 					delay={0.5}
 				/>
 			</div>
-		</StepCard>
+		</StepCard.Simple>
 	);
 }

@@ -1,7 +1,7 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 import { DuoCard } from "@/components/duo";
-import { StatusBadge } from "./status-badge";
+import { StatusBadge } from "../badges/status-badge";
 
 export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	title: string;
@@ -13,7 +13,7 @@ export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	}>;
 }
 
-export function HistoryCard({
+function HistoryCardSimple({
 	title,
 	date,
 	status,
@@ -53,3 +53,5 @@ export function HistoryCard({
 		</DuoCard.Root>
 	);
 }
+
+export const HistoryCard = { Simple: HistoryCardSimple };

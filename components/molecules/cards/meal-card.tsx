@@ -41,7 +41,7 @@ const mealTimes: Record<string, string> = {
 	"post-workout": "Pós Treino",
 };
 
-export function MealCard({
+function MealCardSimple({
 	meal,
 	onComplete,
 	onAddFood,
@@ -264,3 +264,5 @@ export function MealCard({
 		</div>
 	);
 }
+
+export const MealCard = { Simple: MealCardSimple };

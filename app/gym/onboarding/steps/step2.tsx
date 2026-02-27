@@ -79,7 +79,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 	};
 
 	return (
-		<StepCard
+		<StepCard.Simple
 			title="Localização"
 			description="Onde sua academia está localizada?"
 		>
@@ -159,6 +159,6 @@ export function Step2({ formData, setFormData }: StepProps) {
 					/>
 				</div>
 			</div>
-		</StepCard>
+		</StepCard.Simple>
 	);
 }

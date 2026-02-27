@@ -114,7 +114,7 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
     activityLevelDescriptions[4];
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Nível de Atividade e Disponibilidade"
       description="Ajuste fino para cálculos mais precisos"
     >
@@ -241,6 +241,6 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
           </motion.div>
         )}
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

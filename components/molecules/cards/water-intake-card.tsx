@@ -13,7 +13,7 @@ export interface WaterIntakeCardProps
 	readOnly?: boolean;
 }
 
-export function WaterIntakeCard({
+function WaterIntakeCardSimple({
 	current,
 	target,
 	glasses,
@@ -76,3 +76,5 @@ export function WaterIntakeCard({
 		</DuoCard.Root>
 	);
 }
+
+export const WaterIntakeCard = { Simple: WaterIntakeCardSimple };

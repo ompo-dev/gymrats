@@ -86,7 +86,7 @@ export function Step4({ formData, setFormData }: StepProps) {
 
 	return (
 		<>
-			<StepCard
+			<StepCard.Simple
 				title="Equipamentos"
 				description="Quais equipamentos sua academia possui?"
 			>
@@ -190,7 +190,7 @@ export function Step4({ formData, setFormData }: StepProps) {
 						</motion.div>
 					)}
 				</div>
-			</StepCard>
+			</StepCard.Simple>
 
 			{showEquipmentSearch && (
 				<EquipmentSearch

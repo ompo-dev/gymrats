@@ -98,7 +98,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
   }, [formData, touched]);
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Informações Pessoais"
       description="Vamos conhecer você melhor"
     >
@@ -250,6 +250,6 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

@@ -11,7 +11,7 @@ export interface RecordCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	icon?: string | React.ReactNode;
 }
 
-export function RecordCard({
+function RecordCardSimple({
 	exerciseName,
 	date,
 	value,
@@ -52,3 +52,5 @@ export function RecordCard({
 		</DuoCard.Root>
 	);
 }
+
+export const RecordCard = { Simple: RecordCardSimple };
