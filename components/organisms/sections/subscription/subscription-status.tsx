@@ -162,20 +162,20 @@ function SubscriptionStatusSimple({
 					</span>
 				</div>
 
-				{/* Enterprise Benefit Info */}
+				{/* Enterprise Benefit Info — Premium gratuito via academia Enterprise */}
 				{subscription.source === "GYM_ENTERPRISE" && (
 					<DuoCard.Root variant="default" className="border-duo-purple/30 bg-duo-purple/5">
 						<div className="flex items-center gap-3">
 							<Gift className="h-8 w-8 text-duo-purple" />
 							<div className="flex-1">
 								<h3 className="font-bold text-duo-text">
-									Plano Básico Gratuito
+									Plano Premium Gratuito
 								</h3>
 								<p className="text-xs text-duo-purple font-bold">
 									Benefício concedido por {subscription.enterpriseGymName || "sua academia"}.
 								</p>
 								<p className="text-xs text-duo-gray-dark mt-2">
-									Você tem acesso gratuito às funcionalidades básicas enquanto for aluno de uma empresa parceira.
+									Você tem acesso Premium completo (treinos com IA, dietas, relatórios) enquanto for aluno de uma academia Enterprise.
 								</p>
 							</div>
 						</div>

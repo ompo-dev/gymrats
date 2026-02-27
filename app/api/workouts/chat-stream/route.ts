@@ -17,7 +17,7 @@ import {
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
-import { hasActivePremiumStatus } from "@/lib/utils/subscription";
+import { hasPremiumAccess } from "@/lib/utils/subscription";
 
 /**
  * Enviar evento SSE
@@ -55,26 +55,12 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // 2. Verificar Premium/Trial
-        const subscription = await db.subscription.findUnique({
-          where: { studentId },
-        });
-
-        if (!subscription) {
+        // 2. Verificar Premium (não chamar IA se não for premium — retorna imediatamente)
+        const isPremium = await hasPremiumAccess(studentId);
+        if (!isPremium) {
           sendSSE(controller, "error", {
-            error: "Recurso premium",
-            message:
-              "Esta funcionalidade requer assinatura premium ou trial ativo",
-          });
-          controller.close();
-          return;
-        }
-
-        if (!hasActivePremiumStatus(subscription)) {
-          sendSSE(controller, "error", {
-            error: "Recurso premium",
-            message:
-              "Esta funcionalidade requer assinatura premium ou trial ativo",
+            error: "Recurso Premium",
+            message: "Esta funcionalidade requer assinatura Premium ou benefício da sua academia.",
           });
           controller.close();
           return;

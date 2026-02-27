@@ -32,16 +32,19 @@ export async function hasPremiumAccess(studentId: string): Promise<boolean> {
 		where: { studentId },
 	});
 
-	// Verificar se tem premium ativo via assinatura própria
+	// Premium ativo via assinatura própria
 	if (subscription && isPremiumPlan(subscription.plan)) {
 		if (hasActivePremiumStatus(subscription)) {
 			return true;
 		}
 	}
 
-	// Alunos não ganham Premium via academia, apenas Basic.
-	// Se futuramente houver Premium Enterprise, adicionar lógica aqui.
-	
+	// Premium gratuito via academia Enterprise (source GYM_ENTERPRISE + plan premium)
+	const subWithSource = subscription as typeof subscription & { source?: string };
+	if (subscription && subWithSource.source === "GYM_ENTERPRISE" && isPremiumPlan(subscription.plan) && subscription.status === "active") {
+		return true;
+	}
+
 	return false;
 }
 
@@ -64,10 +67,10 @@ export async function hasBasicAccess(studentId: string): Promise<boolean> {
 		}
 	}
 
-	// 2. Verificar se tem assinatura basic via gym enterprise (source persistence)
+	// 2. Verificar se tem assinatura via gym enterprise (Basic ou Premium gratuito)
 	const subWithSource = subscription as typeof subscription & { source?: string; enterpriseGymId?: string | null };
-	if (subscription && subWithSource.source === "GYM_ENTERPRISE" && subscription.plan === "basic") {
-		if (subscription.status === "active") {
+	if (subscription && subWithSource.source === "GYM_ENTERPRISE" && subscription.status === "active") {
+		if (subscription.plan === "basic" || isBasicPlan(subscription.plan) || isPremiumPlan(subscription.plan)) {
 			return true;
 		}
 	}

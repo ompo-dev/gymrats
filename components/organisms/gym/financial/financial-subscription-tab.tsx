@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
+import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixPaymentModal } from "./pix-payment-modal";
 
@@ -281,7 +282,11 @@ export function FinancialSubscriptionTab({
 						}
 					: null
 			}
-			onPaymentSuccess={async () => { await refetchSubscription(); }}
+			onPaymentSuccess={async () => {
+				await refetchSubscription();
+				// Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
+				useGymsDataStore.getState().loadAllGyms();
+			}}
 			isLoading={isLoadingSubscription}
 			isStartingTrial={isStartingTrial}
 			isCreatingSubscription={isCreatingSubscription}

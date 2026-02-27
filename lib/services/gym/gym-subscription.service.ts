@@ -97,11 +97,10 @@ export class GymSubscriptionService {
   }
 
   /**
-   * Sincroniza o benefício de plano Basic para um aluno específico.
-   * Chamado quando o aluno entra em uma academia ou quando o status de uma academia muda.
+   * Sincroniza o benefício de plano Premium (gratuito) para alunos de academia Enterprise.
+   * Quando a academia tem plano Enterprise ativo, todos os alunos recebem Premium de aluno gratuitamente.
    */
   static async syncStudentEnterpriseBenefit(studentId: string) {
-    // 1. Encontrar todas as academias Enterprise ativas que o aluno frequenta
     const enterpriseMemberships = await db.gymMembership.findMany({
       where: {
         studentId,
@@ -121,29 +120,29 @@ export class GymSubscriptionService {
       where: { studentId }
     });
 
-    // Regra: Plano Próprio PREMIUM sempre tem prioridade
+    // Plano próprio Premium (OWN) tem prioridade
     if (currentSub?.source === "OWN" && currentSub.plan.toLowerCase().includes("premium") && currentSub.status === "active") {
       return;
     }
 
     if (hasEnterpriseBenefit) {
       const mainGymId = enterpriseMemberships[0].gymId;
-      
-      // Se não tem assinatura ou se a atual é free/basic, garantir que seja Basic via Enterprise
-      if (!currentSub || currentSub.plan === "free" || currentSub.source === "GYM_ENTERPRISE") {
+
+      // Garantir Premium gratuito via Enterprise (substitui free/basic ou já existente GYM_ENTERPRISE)
+      if (!currentSub || currentSub.plan === "free" || currentSub.plan === "basic" || currentSub.source === "GYM_ENTERPRISE") {
         await db.subscription.upsert({
           where: { studentId },
           create: {
             studentId,
-            plan: "basic",
+            plan: "premium",
             status: "active",
             source: "GYM_ENTERPRISE",
             enterpriseGymId: mainGymId,
             currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
           },
           update: {
-            plan: "basic",
+            plan: "premium",
             status: "active",
             source: "GYM_ENTERPRISE",
             enterpriseGymId: mainGymId
@@ -151,7 +150,6 @@ export class GymSubscriptionService {
         });
       }
     } else {
-      // Se tinha benefício enterprise e não tem mais nenhuma academia enterprise ativa
       if (currentSub?.source === "GYM_ENTERPRISE") {
         await db.subscription.update({
           where: { id: currentSub.id },
