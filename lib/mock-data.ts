@@ -1077,7 +1077,7 @@ export const placementQuestions: PlacementQuestion[] = [
 ];
 
 export function calculatePlacementResult(
-	responses: Record<string, any>,
+	responses: Record<string, string | number | boolean>,
 ): PlacementTestResult {
 	let level: DifficultyLevel = "iniciante";
 

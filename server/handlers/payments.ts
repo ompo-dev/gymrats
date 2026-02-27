@@ -10,7 +10,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 
 type PaymentsContext = {
 	set: Context["set"];
-	query?: Record<string, unknown>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 	body?: Record<string, string | number | boolean | object | null>;
 	studentId?: string;
 	userId?: string;
@@ -27,7 +27,7 @@ export async function getPaymentsHandler({
 		}
 
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			paymentsQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -150,7 +150,7 @@ export async function addPaymentMethodHandler({
 			holderName,
 			pixKey,
 			pixKeyType,
-		} = validation.data as any;
+		} = validation.data as { paymentId: string; status: string };
 
 		if (isDefault) {
 			await db.paymentMethod.updateMany({

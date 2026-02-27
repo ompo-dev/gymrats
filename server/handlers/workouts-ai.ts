@@ -1,5 +1,7 @@
 import type { Context } from "elysia";
 import { chatCompletion } from "@/lib/ai/client";
+import type { JsonValue } from "@/lib/types/api-error";
+import type { CreateExercisesProfile, WorkoutsAiProfile } from "../types/workouts-ai";
 import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { db } from "@/lib/db";
@@ -23,7 +25,7 @@ import {
 
 type WorkoutsAiContext = {
 	set: Context["set"];
-	body?: any;
+	body?: Record<string, JsonValue>;
 	studentId: string;
 	user?: { role?: string };
 	request: Request;
@@ -53,7 +55,7 @@ export async function generateWorkoutsHandler({
 			await db.unit.deleteMany({ where: { studentId } });
 		}
 
-		const profile: any = {
+		const profile: WorkoutsAiProfile = {
 			age: student.age,
 			gender: student.gender,
 			fitnessLevel: student.profile.fitnessLevel as
@@ -209,7 +211,7 @@ export async function processWorkoutsCommandHandler({
 					try {
 						const lastOrder =
 							unit.workouts.length > 0
-								? Math.max(...unit.workouts.map((w: any) => w.order || 0)) +
+								? Math.max(...unit.workouts.map((w: { order?: number }) => w.order || 0)) +
 									i +
 									1
 								: i;
@@ -239,9 +241,10 @@ export async function processWorkoutsCommandHandler({
 						results.created.push(
 							`${exercises.length} exercícios em ${workoutPlan.title}`,
 						);
-					} catch (error: any) {
+					} catch (error) {
+						const err = error as Error;
 						results.errors.push(
-							`Erro ao criar workout ${workoutPlan.title}: ${error.message}`,
+							`Erro ao criar workout ${workoutPlan.title}: ${err.message}`,
 						);
 					}
 				}
@@ -250,7 +253,7 @@ export async function processWorkoutsCommandHandler({
 			case "delete_workout": {
 				if (parsedPlan.targetWorkoutId) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 					if (workout) {
 						await db.workout.delete({
@@ -265,7 +268,7 @@ export async function processWorkoutsCommandHandler({
 				if (parsedPlan.targetWorkoutId && parsedPlan.workouts.length > 0) {
 					const workoutPlan = parsedPlan.workouts[0];
 					const targetWorkout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 
 					if (targetWorkout) {
@@ -287,11 +290,11 @@ export async function processWorkoutsCommandHandler({
 			case "remove_exercise": {
 				if (parsedPlan.targetWorkoutId && parsedPlan.exerciseToRemove) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 					if (workout) {
 						const exercise = workout.exercises.find(
-							(e: any) =>
+							(e: { name: string }) =>
 								e.name
 									.toLowerCase()
 									.includes(parsedPlan.exerciseToRemove?.toLowerCase()) ||
@@ -352,11 +355,11 @@ export async function processWorkoutsCommandHandler({
 					parsedPlan.workouts.length > 0
 				) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 					if (workout) {
 						const oldExercise = workout.exercises.find(
-							(e: any) =>
+							(e: { name: string }) =>
 								e.name
 									.toLowerCase()
 									.includes(parsedPlan.exerciseToReplace?.old.toLowerCase()) ||
@@ -431,11 +434,11 @@ export async function processWorkoutsCommandHandler({
 				) {
 					const workoutPlan = parsedPlan.workouts[0];
 					let targetWorkout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 
 					if (!targetWorkout) {
-						targetWorkout = unit.workouts.find((w: any) => {
+						targetWorkout = unit.workouts.find((w: { id: string }) => {
 							const targetTitle = parsedPlan.targetWorkoutId
 								.toLowerCase()
 								.trim();
@@ -478,7 +481,7 @@ export async function processWorkoutsCommandHandler({
 					} else {
 						const lastOrder =
 							unit.workouts.length > 0
-								? Math.max(...unit.workouts.map((w: any) => w.order || 0)) + 1
+								? Math.max(...unit.workouts.map((w: { order?: number }) => w.order || 0)) + 1
 								: 0;
 
 						const newWorkout = await db.workout.create({
@@ -613,12 +616,12 @@ export async function chatWorkoutsHandler({
 			return { error: "Você não tem permissão para editar esta unit" };
 		}
 
-		const workoutsInfo = unit.workouts.map((w: any) => ({
+		const workoutsInfo = unit.workouts.map((w: { id: string; title: string; type: string; muscleGroup: string; exercises: Array<{ id: string; name: string; sets: number; reps: string }> }) => ({
 			id: w.id,
 			title: w.title,
 			type: w.type,
 			muscleGroup: w.muscleGroup,
-			exercises: w.exercises.map((e: any) => ({
+			exercises: w.exercises.map((e) => ({
 				id: e.id,
 				name: e.name,
 				sets: e.sets,
@@ -635,7 +638,7 @@ export async function chatWorkoutsHandler({
 		if (workoutsInfo.length > 0) {
 			const workoutsInfoText = workoutsInfo
 				.map(
-					(w: any) =>
+					(w: { id: string }) =>
 						`- ${w.title} (${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
 				)
 				.join("\n");
@@ -695,10 +698,10 @@ export async function chatWorkoutsHandler({
 			}
 		}
 
-		let parsed: any = null;
-		const tryParseImportedWorkout = (raw: any) => {
-			const normalizeExercises = (exercises: any[]): any[] =>
-				(exercises || []).map((ex: any) => ({
+		let parsed: { intent?: string; action?: string; workouts?: Array<{ title?: string; exercises?: Array<Record<string, JsonValue>> }>; message?: string } | null = null;
+		const tryParseImportedWorkout = (raw: Record<string, JsonValue> | JsonValue[]) => {
+			const normalizeExercises = (exercises: Array<Record<string, JsonValue>>): Array<Record<string, JsonValue>> =>
+				(exercises || []).map((ex: Record<string, JsonValue>) => ({
 					name: ex.name,
 					sets: ex.sets ?? 3,
 					reps: ex.reps ?? "8-12",
@@ -711,7 +714,7 @@ export async function chatWorkoutsHandler({
 							: [],
 				}));
 
-			const normalizeWorkout = (w: any) => ({
+			const normalizeWorkout = (w: Record<string, JsonValue>) => ({
 				title: w.title || w.name || "Treino",
 				description: w.description || "",
 				type: w.type || "strength",
@@ -720,7 +723,7 @@ export async function chatWorkoutsHandler({
 				exercises: normalizeExercises(w.exercises || []),
 			});
 
-			let workoutsArr: any[] = [];
+			let workoutsArr: Array<Record<string, JsonValue>> = [];
 			if (raw?.workouts && Array.isArray(raw.workouts)) {
 				workoutsArr = raw.workouts;
 			} else if (Array.isArray(raw)) {
@@ -785,7 +788,7 @@ export async function chatStreamWorkoutsHandler({
 }: WorkoutsAiContext) {
 	const stream = new ReadableStream({
 		async start(controller) {
-			const sendSSE = (event: string, data: any) => {
+			const sendSSE = (event: string, data: JsonValue) => {
 				const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 				controller.enqueue(new TextEncoder().encode(message));
 			};
@@ -892,12 +895,12 @@ export async function chatStreamWorkoutsHandler({
 					return;
 				}
 
-				const workoutsInfo = unit.workouts.map((w: any) => ({
+				const workoutsInfo = unit.workouts.map((w: { id: string; title: string; type: string; muscleGroup: string; exercises: Array<{ id: string; name: string; sets: number; reps: string }> }) => ({
 					id: w.id,
 					title: w.title,
 					type: w.type,
 					muscleGroup: w.muscleGroup,
-					exercises: w.exercises.map((e: any) => ({
+					exercises: w.exercises.map((e) => ({
 						id: e.id,
 						name: e.name,
 						sets: e.sets,
@@ -914,7 +917,7 @@ export async function chatStreamWorkoutsHandler({
 				if (workoutsInfo.length > 0) {
 					const workoutsInfoText = workoutsInfo
 						.map(
-							(w: any) =>
+							(w: { id: string }) =>
 								`- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
 						)
 						.join("\n");
@@ -925,7 +928,7 @@ export async function chatStreamWorkoutsHandler({
 							reference.workoutId || reference.workoutTitle;
 						const previewsText = previewWorkouts
 							.map(
-								(w: any, idx: number) =>
+								(w: Record<string, JsonValue>, idx: number) =>
 									`${idx + 1}. ${w.title} (${w.type}, ${w.muscleGroup}): ${
 										w.exercises?.length || 0
 									} exercícios`,
@@ -936,7 +939,7 @@ export async function chatStreamWorkoutsHandler({
 
 						if (reference.type === "workout") {
 							const previewsStructure = previewWorkouts
-								.map((w: any, idx: number) => {
+								.map((w: Record<string, JsonValue>, idx: number) => {
 									if (idx === reference.workoutIndex) {
 										return `  {
     "title": "[MODIFICAR conforme pedido - se pedir mudança de foco, altere o título também]",
@@ -1068,10 +1071,10 @@ ${previewsStructure}
 					message: "Gerando treino...",
 				});
 
-				let parsed: any = null;
-				const tryParseImportedWorkout = (raw: any) => {
-					const normalizeExercises = (exercises: any[]): any[] =>
-						(exercises || []).map((ex: any) => ({
+				let parsed: { intent?: string; action?: string; workouts?: Array<{ title?: string; exercises?: Array<Record<string, JsonValue>> }>; message?: string } | null = null;
+				const tryParseImportedWorkout = (raw: Record<string, JsonValue> | JsonValue[]) => {
+					const normalizeExercises = (exercises: Array<Record<string, JsonValue>>): Array<Record<string, JsonValue>> =>
+						(exercises || []).map((ex: Record<string, JsonValue>) => ({
 							name: ex.name,
 							sets: ex.sets ?? 3,
 							reps: ex.reps ?? "8-12",
@@ -1084,7 +1087,7 @@ ${previewsStructure}
 									: [],
 						}));
 
-					const normalizeWorkout = (w: any) => ({
+					const normalizeWorkout = (w: Record<string, JsonValue>) => ({
 						title: w.title || w.name || "Treino",
 						description: w.description || "",
 						type: w.type || "strength",
@@ -1093,7 +1096,7 @@ ${previewsStructure}
 						exercises: normalizeExercises(w.exercises || []),
 					});
 
-					let workoutsArr: any[] = [];
+					let workoutsArr: Array<Record<string, JsonValue>> = [];
 					if (raw?.workouts && Array.isArray(raw.workouts)) {
 						workoutsArr = raw.workouts;
 					} else if (Array.isArray(raw)) {
@@ -1150,9 +1153,10 @@ ${previewsStructure}
 							message: "Processando resposta...",
 						});
 						parsed = parseWorkoutResponse(response);
-					} catch (error: any) {
+					} catch (error) {
+						const err = error as Error;
 						sendSSE("error", {
-							error: error.message || "Erro ao processar mensagem",
+							error: err.message || "Erro ao processar mensagem",
 						});
 						controller.close();
 						return;
@@ -1177,7 +1181,7 @@ ${previewsStructure}
 						mergedWorkouts[modifiedIndex] = parsed.workouts[0];
 					} else {
 						const byTitle = parsed.workouts.find(
-							(w: any) =>
+							(w: { id: string }) =>
 								w.title?.toLowerCase().trim() ===
 								reference.workoutTitle?.toLowerCase().trim(),
 						);
@@ -1221,10 +1225,11 @@ ${previewsStructure}
 				});
 
 				controller.close();
-			} catch (error: any) {
-				console.error("[workouts/chat-stream] Erro:", error);
+			} catch (error) {
+				const err = error as Error;
+				console.error("[workouts/chat-stream] Erro:", err);
 				sendSSE("error", {
-					error: error.message || "Erro ao processar mensagem",
+					error: err.message || "Erro ao processar mensagem",
 				});
 				controller.close();
 			}
@@ -1250,11 +1255,11 @@ async function createExercisesInBatch(
 		notes?: string;
 		alternatives?: string[];
 	}>,
-	profile: any,
+	profile: CreateExercisesProfile | null,
 	defaultDifficulty: string,
 	startOrder = 0,
 	prismaClient: typeof db = db,
-): Promise<any[]> {
+): Promise<Array<{ id: string; name: string }>> {
 	const createdExercises = [];
 
 	for (let i = 0; i < exercises.length; i++) {
@@ -1511,8 +1516,8 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
 		exerciseInfo = {
 			id: generatedId,
 			name: exerciseName,
-			primaryMuscles: inferMuscleGroup(exerciseName) as any,
-			secondaryMuscles: [] as any[],
+			primaryMuscles: inferMuscleGroup(exerciseName),
+			secondaryMuscles: [],
 			difficulty: "intermediario",
 			equipment: inferEquipment(exerciseName),
 			instructions: [

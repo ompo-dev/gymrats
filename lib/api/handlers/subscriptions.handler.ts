@@ -34,7 +34,7 @@ export async function getCurrentSubscriptionHandler(
 
 		const subscription = await getStudentSubscription();
 		return successResponse({ subscription });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getCurrentSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar assinatura", error);
 	}
@@ -86,7 +86,7 @@ export async function createSubscriptionHandler(
 			return validation.response;
 		}
 
-		const { plan } = validation.data as any;
+		const { plan } = validation.data as { plan: string };
 
 		// Verificar se existe subscription
 		const existingSubscription = await db.subscription.findUnique({
@@ -140,7 +140,7 @@ export async function createSubscriptionHandler(
 			billingUrl: String(billing.url || ""),
 			billingId: String(billing.id || ""),
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[createSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao criar assinatura", error);
 	}
@@ -172,7 +172,7 @@ export async function startTrialHandler(
 		await initializeStudentTrial(studentId!);
 
 		return successResponse({ message: "Trial iniciado com sucesso" });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[startTrialHandler] Erro:", error);
 		return internalErrorResponse("Erro ao iniciar trial", error);
 	}
@@ -225,7 +225,7 @@ export async function cancelSubscriptionHandler(
 			subscription: canceled,
 			message: "Assinatura cancelada com sucesso"
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[cancelSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao cancelar assinatura", error);
 	}

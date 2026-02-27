@@ -120,7 +120,7 @@ export function useStudent<T extends StudentSelector>(
 				? First extends StudentSelector
 					? ReturnType<typeof selectFromData>
 					: never
-				: Record<string, unknown> {
+				: Record<string, import("@/lib/types/api-error").JsonValue> {
 	// Usar seletores do Zustand para reatividade correta
 	const data = useStudentUnifiedStore((state) => state.data);
 	// Seletor específico para dailyNutrition para garantir reatividade
@@ -318,7 +318,7 @@ export function useStudent<T extends StudentSelector>(
 	}
 
 	// Múltiplos seletores
-	const result: Record<string, unknown> = {};
+	const result: Record<string, import("@/lib/types/api-error").JsonValue> = {};
 
 	selectors.forEach((selector) => {
 		if (selector === "actions") {

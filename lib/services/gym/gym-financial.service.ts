@@ -109,7 +109,7 @@ export class GymFinancialService {
       status: (payment.withdrawnAt
         ? "withdrawn"
         : payment.status) as "paid" | "pending" | "overdue" | "canceled" | "withdrawn",
-      paymentMethod: (payment.paymentMethod as any) || "pix",
+      paymentMethod: (payment.paymentMethod as string) || "pix",
       reference: payment.reference ?? undefined,
       abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
       withdrawnAt: payment.withdrawnAt ?? undefined,

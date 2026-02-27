@@ -49,7 +49,7 @@ export async function createSubscriptionHandler({
 			);
 		}
 
-		const data = validation.data as any;
+		const data = validation.data as { plan: string };
 		const now = new Date();
 		const periodEnd = new Date(now);
 		if (data.billingPeriod === "annual") {
@@ -182,7 +182,7 @@ export async function activatePremiumHandler({
 	studentId,
 }: SubscriptionContext) {
 	try {
-		const billingPeriod = (body as any)?.billingPeriod || "monthly";
+		const billingPeriod = (body as { billingPeriod?: string })?.billingPeriod || "monthly";
 		const now = new Date();
 		const periodEnd = new Date(now);
 		if (billingPeriod === "annual") {

@@ -529,10 +529,10 @@ function selectExercisesForMuscleGroup(
 	// Priorizar exercícios onde o grupo muscular é PRIMÁRIO, não secundário
 	let availableExercises = exerciseDatabase.filter((ex) => {
 		// O grupo muscular deve estar nos músculos primários (prioridade)
-		const isPrimary = ex.primaryMuscles.includes(muscleGroup as any);
+		const isPrimary = ex.primaryMuscles.includes(muscleGroup);
 		// Ou pelo menos nos secundários se não houver primários
 		const isSecondary =
-			!isPrimary && ex.secondaryMuscles.includes(muscleGroup as any);
+			!isPrimary && ex.secondaryMuscles.includes(muscleGroup);
 
 		// Não pode ter grupos musculares proibidos nos primários
 		const hasForbiddenPrimary = ex.primaryMuscles.some((m) =>

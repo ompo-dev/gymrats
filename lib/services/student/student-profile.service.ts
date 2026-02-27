@@ -69,7 +69,10 @@ export class StudentProfileService {
   /**
    * Salva dados de onboarding do aluno
    */
-  static async saveOnboardingData(studentId: string, data: any) {
+  static async saveOnboardingData(
+    studentId: string,
+    data: Record<string, string | number | boolean | string[] | null | undefined>,
+  ) {
     const profileData = {
       studentId,
       height: data.height || null,

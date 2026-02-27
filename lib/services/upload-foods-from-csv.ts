@@ -189,7 +189,7 @@ export async function uploadFoodsFromCSV(
 					});
 					created++;
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				log.error("[uploadFoodsFromCSV] Erro ao processar alimento", {
 					foodName: food.name,
 					error,
@@ -280,7 +280,7 @@ export async function uploadFoodsFromCSVContent(
 					});
 					created++;
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				log.error("[uploadFoodsFromCSVContent] Erro ao processar alimento", {
 					foodName: food.name,
 					error,

@@ -151,7 +151,7 @@ export function selectRole(d: StudentData) {
 	return d.user.role;
 }
 
-export const selectorMap: Record<string, (data: StudentData) => unknown> = {
+export const selectorMap: Record<string, (data: StudentData) => import("@/lib/types/api-error").JsonValue> = {
 	user: selectUser,
 	student: selectStudent,
 	progress: selectProgress,

@@ -1,3 +1,5 @@
+import type { ApiError } from "@/lib/types";
+import type { JsonValue } from "@/lib/types/api-error";
 import axios, { type AxiosInstance } from "axios";
 
 const ABACATEPAY_API_URL = "https://api.abacatepay.com/v1";
@@ -42,7 +44,7 @@ interface CreateBillingRequest {
 	customer?: CreateCustomerRequest;
 	couponCode?: string;
 	allowCoupons?: boolean;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 }
 
 interface Billing {
@@ -60,7 +62,7 @@ interface Billing {
 	frequency: "ONE_TIME" | "MULTIPLE_PAYMENTS";
 	nextBilling: string | null;
 	customer: Customer;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 	externalId?: string;
 	createdAt: string;
 	updatedAt: string;
@@ -71,7 +73,7 @@ interface CreatePixQrCodeRequest {
 	expiresIn?: number; // segundos
 	description?: string;
 	customer?: CreateCustomerRequest;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 }
 
 interface PixQrCode {
@@ -85,7 +87,7 @@ interface PixQrCode {
 	createdAt: string;
 	updatedAt: string;
 	expiresAt: string;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 }
 
 interface CreateWithdrawRequest {
@@ -114,7 +116,7 @@ interface CreateCouponRequest {
 	maxRedeems: number; // -1 para ilimitado
 	discountKind: "PERCENTAGE" | "FIXED";
 	discount: number;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 }
 
 interface Coupon {
@@ -128,7 +130,7 @@ interface Coupon {
 	status: "ACTIVE" | "INACTIVE";
 	createdAt: string;
 	updatedAt: string;
-	metadata?: Record<string, any>;
+	metadata?: Record<string, JsonValue>;
 }
 
 class AbacatePayClient {
@@ -200,10 +202,11 @@ class AbacatePayClient {
 				data,
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -213,10 +216,11 @@ class AbacatePayClient {
 			const response =
 				await this.client.get<AbacatePayResponse<Customer[]>>("/customer/list");
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -255,19 +259,20 @@ class AbacatePayClient {
 			});
 
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError & { stack?: string };
 			console.error("[AbacatePay] Erro ao criar billing:", {
-				message: error.message,
-				response: error.response?.data,
-				status: error.response?.status,
-				stack: error.stack,
+				message: err.message,
+				response: err.response?.data,
+				status: err.response?.status,
+				stack: err.stack,
 			});
 
 			return {
 				data: null,
 				error:
-					error.response?.data?.error ||
-					error.message ||
+					err.response?.data?.error ||
+					err.message ||
 					"Internal Server Error",
 			};
 		}
@@ -279,10 +284,11 @@ class AbacatePayClient {
 				`/billing/get?id=${id}`,
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -292,10 +298,11 @@ class AbacatePayClient {
 			const response =
 				await this.client.get<AbacatePayResponse<Billing[]>>("/billing/list");
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -313,10 +320,11 @@ class AbacatePayClient {
 				data,
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -329,17 +337,18 @@ class AbacatePayClient {
 				AbacatePayResponse<{ status: string; expiresAt: string }>
 			>(`/pixQrCode/check?id=${id}`);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
 
 	async simulatePixPayment(
 		id: string,
-		metadata?: Record<string, any>,
+		metadata?: Record<string, JsonValue>,
 	): Promise<AbacatePayResponse<PixQrCode>> {
 		try {
 			const response = await this.client.post<AbacatePayResponse<PixQrCode>>(
@@ -347,10 +356,11 @@ class AbacatePayClient {
 				{ metadata: metadata || {} },
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -377,10 +387,11 @@ class AbacatePayClient {
 				description: data.description,
 			});
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -398,10 +409,11 @@ class AbacatePayClient {
 				{ data },
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}
@@ -411,10 +423,11 @@ class AbacatePayClient {
 			const response =
 				await this.client.get<AbacatePayResponse<Coupon[]>>("/coupon/list");
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			return {
 				data: null,
-				error: error.response?.data?.error || error.message,
+				error: err.response?.data?.error || err.message || null,
 			};
 		}
 	}

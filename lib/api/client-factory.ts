@@ -203,7 +203,7 @@ export function createApiClient(options?: { offline?: boolean }): ApiClient {
 				...config,
 			});
 		},
-		async put<T>(url: string, data?: unknown, config?: AxiosRequestConfig) {
+		async put<T>(url: string, data?: Record<string, string | number | boolean | object | null>, config?: AxiosRequestConfig) {
 			return client.put<T>(url, data, config);
 		},
 		async patch<T>(

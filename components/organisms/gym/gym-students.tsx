@@ -30,7 +30,7 @@ function StudentDetailLoader({
 	onBack,
 }: StudentDetailLoaderProps) {
 	const [student, setStudent] = useState<StudentData | null>(fallbackStudent);
-	const [payments, setPayments] = useState<any[]>([]);
+	const [payments, setPayments] = useState<Array<Record<string, string | number | boolean | object | null>>>([]);
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {

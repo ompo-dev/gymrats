@@ -22,7 +22,7 @@ export class StudentWorkoutService {
           try {
             const sets = JSON.parse(el.sets);
             if (Array.isArray(sets)) {
-              return acc + sets.reduce((setAcc: number, set: any) => {
+              return acc + sets.reduce((setAcc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
                 if (set.weight && set.reps && set.completed) {
                   return setAcc + (set.weight * set.reps);
                 }

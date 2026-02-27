@@ -3,6 +3,8 @@
  * Extraído de lib/types.ts para organização modular.
  */
 
+import type { JsonValue } from "./api-error";
+
 export type WorkoutType = "strength" | "cardio" | "flexibility" | "rest";
 export type DietType =
 	| "breakfast"
@@ -202,7 +204,7 @@ export interface PlacementTestResult {
 	strengthAreas: MuscleGroup[];
 	weeklyGoal: number;
 	dietCalories: number;
-	userResponses: Record<string, unknown>;
+	userResponses: Record<string, JsonValue>;
 }
 
 export interface OnboardingData {

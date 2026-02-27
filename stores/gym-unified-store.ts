@@ -142,7 +142,7 @@ function transformMembersToStudents(members: MemberWithStudent[]): Array<Partial
 
 function transformSectionResponse(
 	section: GymDataSection,
-	data: Record<string, unknown>,
+	data: Record<string, import("@/lib/types/api-error").JsonValue>,
 ): Partial<GymUnifiedData> {
 	let result: Partial<GymUnifiedData>;
 	switch (section) {
@@ -171,7 +171,7 @@ function transformSectionResponse(
 			break;
 		case "payments":
 			result = {
-				payments: ((data.payments as Array<Record<string, unknown>>) || []).map((p) => ({
+				payments: ((data.payments as Array<Record<string, import("@/lib/types/api-error").JsonValue>>) || []).map((p) => ({
 					id: p.id,
 					studentId: p.studentId,
 					studentName: p.studentName,

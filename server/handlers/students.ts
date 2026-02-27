@@ -21,7 +21,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 type StudentContext = {
 	set: Context["set"];
 	body?: Record<string, string | number | boolean | object | null>;
-	query?: Record<string, unknown>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 	studentId: string;
 	userId: string;
 };
@@ -94,7 +94,7 @@ export async function getAllStudentDataHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			studentSectionsQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -368,7 +368,7 @@ export async function getWeightHistoryHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			weightHistoryQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -464,7 +464,7 @@ export async function getWeightHistoryFilteredHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			weightHistoryQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -864,7 +864,7 @@ async function getAllStudentDataForUser({
 		const result: {
 			weightHistory?: Array<{ date: Date; weight: number; notes?: string }>;
 			weightGain?: number;
-			[key: string]: unknown;
+			[key: string]: import("@/lib/types/api-error").JsonValue;
 		} = {};
 
 		if (!requestedSections || requestedSections.includes("user")) {
@@ -1045,7 +1045,7 @@ async function getAllStudentDataForUser({
 						result.weightGain = currentWeight - weightOneMonthAgo.weight;
 					}
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				const err = error as { code?: string; message?: string };
 				if (err.code === "P2021" || err.message?.includes("does not exist")) {
 					console.warn("Tabela weight_history não existe:", err.message);
@@ -1422,7 +1422,7 @@ async function getAllStudentDataForUser({
 						targetWater: 2000,
 					};
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				const err = error as { code?: string; message?: string };
 				if (err.code === "P2021" || err.message?.includes("does not exist")) {
 					result.dailyNutrition = {

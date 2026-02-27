@@ -111,7 +111,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, age: undefined as unknown as number });
+              setFormData({ ...formData, age: "" });
               return;
             }
             const n = parseFloat(v);
@@ -136,7 +136,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, height: undefined as unknown as number });
+              setFormData({ ...formData, height: "" });
               return;
             }
             const n = parseFloat(v);
@@ -161,7 +161,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, weight: undefined as unknown as number });
+              setFormData({ ...formData, weight: "" });
               return;
             }
             const n = parseFloat(v);

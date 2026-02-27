@@ -98,11 +98,11 @@ export function FinancialSubscriptionTab({
 
 	const subscription: SubscriptionType =
 		hasOptimisticUpdate && storeSubscription
-			? (storeSubscription as unknown as SubscriptionType)
+			? (storeSubscription as SubscriptionType)
 			: subscriptionData !== undefined && subscriptionData !== null
-				? (subscriptionData as unknown as SubscriptionType)
+				? (subscriptionData as SubscriptionType)
 				: storeSubscription !== null
-					? (storeSubscription as unknown as SubscriptionType)
+					? (storeSubscription as SubscriptionType)
 					: subscriptionData === null && initialSubscription
 						? initialSubscription
 						: subscriptionData === null

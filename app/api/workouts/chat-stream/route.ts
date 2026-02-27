@@ -25,7 +25,7 @@ import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 function sendSSE(
   controller: ReadableStreamDefaultController,
   event: string,
-  data: unknown,
+  data: object,
 ) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   controller.enqueue(new TextEncoder().encode(message));
@@ -265,7 +265,7 @@ export async function POST(request: NextRequest) {
                     title?: string;
                     type?: string;
                     muscleGroup?: string;
-                    exercises?: unknown[];
+                    exercises?: Array<{ name?: string; sets?: number; reps?: string }>;
                   },
                   idx: number,
                 ) =>
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
                 type?: string;
                 muscleGroup?: string;
                 difficulty?: string;
-                exercises?: unknown[];
+                exercises?: Array<{ name?: string; sets?: number; reps?: string }>;
               };
               const previewsStructure = (previewWorkouts as PreviewW[])
                 .map((w, idx: number) => {
@@ -437,7 +437,7 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
           rest?: number;
           notes?: string;
           focus?: string | null;
-          alternatives?: unknown[];
+          alternatives?: Array<{ name?: string; reason?: string }>;
         };
         type ImportedW = {
           title?: string;
@@ -451,7 +451,7 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         type ParsedRes = {
           intent?: string;
           action?: string;
-          workouts?: unknown[];
+          workouts?: Array<{ title?: string; exercises?: Array<{ name?: string; alternatives?: string[] | Array<{ name?: string; reason?: string }> }> }>;
           message?: string;
           targetWorkoutId?: string;
         } | null;
@@ -459,8 +459,8 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         let parsed: ParsedRes = null;
         let lastEmittedWorkoutCount = 0;
         let lastEmittedPartialExerciseCount = -1;
-        const tryParseImportedWorkout = (raw: unknown): ParsedRes => {
-          const rawObj = raw as { workouts?: unknown[]; exercises?: unknown };
+        const tryParseImportedWorkout = (raw: import("@/lib/types/api-error").JsonValue): ParsedRes => {
+          const rawObj = raw as { workouts?: ImportedW[]; exercises?: ImportedEx[] };
           const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
             (exercises || []).map((ex: ImportedEx) => ({
               name: ex.name,
@@ -603,7 +603,7 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
               message: "Processando resposta...",
             });
             parsed = parseWorkoutResponse(response);
-          } catch (error: unknown) {
+          } catch (error) {
             const err =
               error instanceof Error ? error : new Error(String(error));
             sendSSE(controller, "error", {
@@ -662,17 +662,17 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         ) {
           const restDaysSet = new Set(
             parsedWithRest.restDays.filter(
-              (d: unknown) => typeof d === "number" && d >= 0 && d <= 6,
+              (d: import("@/lib/types/api-error").JsonValue) => typeof d === "number" && d >= 0 && d <= 6,
             ),
           );
-          const trainingWorkouts = (parsed.workouts as Array<Record<string, unknown>>).filter(
+          const trainingWorkouts = (parsed.workouts as Array<Record<string, import("@/lib/types/api-error").JsonValue>>).filter(
             (w) =>
               !w.title?.toString().toLowerCase().includes("descanso") &&
               Array.isArray(w.exercises) &&
-              (w.exercises as unknown[]).length > 0,
+              (w.exercises as ImportedEx[]).length > 0,
           );
           let trainingIndex = 0;
-          const expanded: Array<Record<string, unknown>> = [];
+          const expanded: Array<Record<string, import("@/lib/types/api-error").JsonValue>> = [];
           for (let day = 0; day < 7; day++) {
             if (restDaysSet.has(day)) {
               expanded.push({
@@ -745,7 +745,7 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         });
 
         controller.close();
-      } catch (error: unknown) {
+      } catch (error) {
         console.error("[workouts/chat-stream] Erro:", error);
         const err = error instanceof Error ? error : new Error(String(error));
         sendSSE(controller, "error", {

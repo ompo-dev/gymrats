@@ -21,7 +21,7 @@ import type { StudentData } from "@/lib/types/student-unified";
 /**
  * Transforma dados da API para formato do store
  */
-export function transformStudentData(apiData: any): Partial<StudentData> {
+export function transformStudentData(apiData: Record<string, string | number | boolean | object | null>): Partial<StudentData> {
 	const transformed: Partial<StudentData> = {};
 
 	// Transformar user
@@ -66,7 +66,7 @@ export function transformStudentData(apiData: any): Partial<StudentData> {
 
 	// Transformar weightHistory
 	if (apiData.weightHistory) {
-		transformed.weightHistory = apiData.weightHistory.map((wh: any) => ({
+		transformed.weightHistory = (apiData.weightHistory as Array<{ date?: string | Date; weight?: number; notes?: string }>).map((wh) => ({
 			date: wh.date ? new Date(wh.date) : new Date(),
 			weight: wh.weight,
 			notes: wh.notes,
@@ -75,19 +75,19 @@ export function transformStudentData(apiData: any): Partial<StudentData> {
 
 	// Transformar units
 	if (apiData.units) {
-		transformed.units = apiData.units.map((unit: any) => transformUnit(unit));
+		transformed.units = (apiData.units as Array<Record<string, string | number | boolean | object | null>>).map((unit) => transformUnit(unit));
 	}
 
 	// Transformar workoutHistory
 	if (apiData.workoutHistory) {
-		transformed.workoutHistory = apiData.workoutHistory.map((wh: any) =>
+		transformed.workoutHistory = (apiData.workoutHistory as Array<Record<string, string | number | boolean | object | null>>).map((wh) =>
 			transformWorkoutHistory(wh),
 		);
 	}
 
 	// Transformar personalRecords
 	if (apiData.personalRecords) {
-		transformed.personalRecords = apiData.personalRecords.map((pr: any) =>
+		transformed.personalRecords = (apiData.personalRecords as Array<Record<string, string | number | boolean | object | null>>).map((pr) =>
 			transformPersonalRecord(pr),
 		);
 	}
@@ -141,7 +141,7 @@ export function transformStudentData(apiData: any): Partial<StudentData> {
 // TRANSFORMADORES ESPECÍFICOS
 // ============================================
 
-function transformProgress(progress: any): UserProgress {
+function transformProgress(progress: Record<string, string | number | boolean | object | null>): UserProgress {
 	return {
 		currentStreak: progress.currentStreak || 0,
 		longestStreak: progress.longestStreak || 0,
@@ -157,7 +157,7 @@ function transformProgress(progress: any): UserProgress {
 	};
 }
 
-function transformProfile(profile: any): StudentData["profile"] {
+function transformProfile(profile: Record<string, string | number | boolean | object | null>): StudentData["profile"] {
 	return {
 		height: profile.height,
 		weight: profile.weight,
@@ -235,14 +235,14 @@ function transformProfile(profile: any): StudentData["profile"] {
 	};
 }
 
-function transformUnit(unit: any): Unit {
+function transformUnit(unit: Record<string, string | number | boolean | object | null>): Unit {
 	return {
 		id: unit.id,
 		title: unit.title,
 		description: unit.description || "",
-		workouts: (unit.workouts || []).map((workout: any) => ({
+		workouts: ((unit.workouts || []) as Array<Record<string, string | number | boolean | object | null>>).map((workout) => ({
 			...workout,
-			exercises: (workout.exercises || []).map((exercise: any) => ({
+			exercises: ((workout.exercises || []) as Array<Record<string, string | number | boolean | object | null>>).map((exercise) => ({
 				...exercise,
 				// Parse campos JSON do educational database
 				primaryMuscles: exercise.primaryMuscles
@@ -294,7 +294,7 @@ function transformUnit(unit: any): Unit {
 	};
 }
 
-function transformWorkoutHistory(wh: any): WorkoutHistory {
+function transformWorkoutHistory(wh: Record<string, string | number | boolean | object | null>): WorkoutHistory {
 	return {
 		date: wh.date ? new Date(wh.date) : new Date(),
 		workoutId: wh.workoutId,
@@ -307,7 +307,7 @@ function transformWorkoutHistory(wh: any): WorkoutHistory {
 	};
 }
 
-function transformPersonalRecord(pr: any): PersonalRecord {
+function transformPersonalRecord(pr: Record<string, string | number | boolean | object | null>): PersonalRecord {
 	return {
 		exerciseId: pr.exerciseId,
 		exerciseName: pr.exerciseName,
@@ -318,7 +318,7 @@ function transformPersonalRecord(pr: any): PersonalRecord {
 	};
 }
 
-function transformDailyNutrition(nutrition: any): DailyNutrition {
+function transformDailyNutrition(nutrition: Record<string, string | number | boolean | object | null>): DailyNutrition {
 	return {
 		date: nutrition.date || new Date().toISOString().split("T")[0],
 		meals: nutrition.meals || [],
@@ -335,7 +335,7 @@ function transformDailyNutrition(nutrition: any): DailyNutrition {
 	};
 }
 
-function transformSubscription(subscription: any): StudentData["subscription"] {
+function transformSubscription(subscription: Record<string, string | number | boolean | object | null>): StudentData["subscription"] {
 	return {
 		id: subscription.id,
 		plan: subscription.plan || "free",
@@ -360,7 +360,7 @@ function transformSubscription(subscription: any): StudentData["subscription"] {
 	};
 }
 
-function transformActiveWorkout(workout: any): StudentData["activeWorkout"] {
+function transformActiveWorkout(workout: Record<string, string | number | boolean | object | null>): StudentData["activeWorkout"] {
 	return {
 		workoutId: workout.workoutId,
 		currentExerciseIndex: workout.currentExerciseIndex || 0,
@@ -423,7 +423,7 @@ function formatMemberSince(date: Date | string | null | undefined): string {
 /**
  * Transforma dados do store para formato da API (quando necessário)
  */
-export function transformToAPI(data: Partial<StudentData>): any {
+export function transformToAPI(data: Partial<StudentData>): Record<string, string | number | boolean | object | null> {
 	// Por enquanto, retorna como está
 	// Pode ser expandido se necessário transformar antes de enviar
 	return data;

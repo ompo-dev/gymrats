@@ -59,7 +59,7 @@ function applyResponseHeaders(
 		headers[key] = value;
 	});
 
-	const getSetCookie = (response.headers as any).getSetCookie;
+	const getSetCookie = (response.headers as { getSetCookie?: () => string[] }).getSetCookie;
 	if (typeof getSetCookie === "function") {
 		const cookies = getSetCookie.call(response.headers);
 		if (Array.isArray(cookies) && cookies.length > 0) {

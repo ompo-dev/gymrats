@@ -17,7 +17,7 @@ import { validateBody, validateQuery } from "../utils/validation";
 type GymContext = {
 	set: Context["set"];
 	body?: Record<string, string | number | boolean | object | null>;
-	query?: Record<string, unknown>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 	userId: string;
 };
 
@@ -78,7 +78,7 @@ export async function createGymHandler({ set, body, userId }: GymContext) {
 			);
 		}
 
-		const { name, address, phone, email, cnpj } = validation.data as any;
+		const { name, address, phone, email, cnpj } = validation.data as { name: string; address?: string; phone?: string; email?: string; cnpj?: string };
 		const existingGyms = await db.gym.findMany({
 			where: { userId },
 			include: { subscription: true },
@@ -220,7 +220,7 @@ export async function setActiveGymHandler({ set, body, userId }: GymContext) {
 			);
 		}
 
-		const { gymId } = validation.data as any;
+		const { gymId } = validation.data as { gymId: string };
 		const gym = await db.gym.findFirst({
 			where: {
 				id: gymId,
@@ -261,11 +261,11 @@ export async function getGymLocationsHandler({
 	query,
 }: {
 	set: GymContext["set"];
-	query?: Record<string, unknown>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 }) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			gymLocationsQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -391,7 +391,7 @@ export async function getGymLocationsHandler({
 				openNow,
 				openingHours: openingHours || undefined,
 				photos: photos.length > 0 ? photos : undefined,
-				isPartner: (gym as any).isPartner || false,
+				isPartner: (gym as { isPartner?: boolean }).isPartner || false,
 			};
 		});
 

@@ -96,7 +96,7 @@ export function useGym<T extends GymSelector>(
 		return dataSelector(selector, data) as GymSelectorReturnMap[typeof selector];
 	}
 
-	const result: Record<string, unknown> = {};
+	const result: Record<string, import("@/lib/types/api-error").JsonValue> = {};
 	selectors.forEach((selector) => {
 		if (selector === "actions") {
 			result.actions = {

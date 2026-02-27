@@ -13,7 +13,7 @@ export function isStandaloneMode(): boolean {
 
 	// iOS Safari
 	if (
-		(window.navigator as any).standalone === true ||
+		(window.navigator as { standalone?: boolean }).standalone === true ||
 		window.matchMedia("(display-mode: standalone)").matches ||
 		window.matchMedia("(display-mode: fullscreen)").matches ||
 		window.matchMedia("(display-mode: minimal-ui)").matches
@@ -30,7 +30,7 @@ export function isStandaloneMode(): boolean {
 	// Alguns navegadores não suportam matchMedia, então usar heurística
 	const isStandalone =
 		window.matchMedia("(display-mode: standalone)").matches ||
-		(window.navigator as any).standalone === true ||
+		(window.navigator as { standalone?: boolean }).standalone === true ||
 		document.referrer.includes("android-app://");
 
 	return isStandalone;

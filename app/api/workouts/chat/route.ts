@@ -20,13 +20,24 @@ const conversationMessageSchema = z.object({
   content: z.string(),
 });
 
+const jsonValueSchema: z.ZodType<import("@/lib/types/api-error").JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ]),
+);
+
 const workoutChatSchema = z.object({
   message: z.string().min(1, "Mensagem é obrigatória"),
   conversationHistory: z.array(conversationMessageSchema).optional(),
   unitId: z.string().optional(),
   planSlotId: z.string().optional(),
-  existingWorkouts: z.array(z.unknown()).optional(),
-  profile: z.unknown().optional(),
+  existingWorkouts: z.array(z.record(jsonValueSchema)).optional(),
+  profile: z.record(jsonValueSchema).optional(),
 }).refine((data) => data.unitId || data.planSlotId, {
   message: "unitId ou planSlotId é obrigatório",
   path: ["unitId"],

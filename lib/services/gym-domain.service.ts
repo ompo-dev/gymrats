@@ -57,7 +57,7 @@ export class GymDomainService {
       } | null;
     },
   ) {
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, string | number | boolean | null> = {};
     if (data.address !== undefined) updateData.address = data.address;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;

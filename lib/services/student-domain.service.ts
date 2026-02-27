@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { JsonValue } from "@/lib/types/api-error";
 import type { MuscleGroup } from "@/lib/types";
 
 /**
@@ -182,7 +183,10 @@ export class StudentDomainService {
   /**
    * Updates student progress data
    */
-  static async updateProgress(studentId: string, data: any) {
+  static async updateProgress(
+    studentId: string,
+    data: Record<string, string | number | boolean | Date | null | undefined>,
+  ) {
     return db.studentProgress.upsert({
       where: { studentId },
       create: { 
@@ -200,7 +204,10 @@ export class StudentDomainService {
   /**
    * Upserts student profile data
    */
-  static async upsertProfile(studentId: string, data: any) {
+  static async upsertProfile(
+    studentId: string,
+    data: Record<string, string | number | boolean | null | undefined>,
+  ) {
     return db.studentProfile.upsert({
       where: { studentId },
       create: { studentId, ...data },
@@ -211,7 +218,10 @@ export class StudentDomainService {
   /**
    * Updates full student profile including core student data and profile details
    */
-  static async updateFullProfile(studentId: string, data: any) {
+  static async updateFullProfile(
+    studentId: string,
+    data: Record<string, string | number | boolean | string[] | null | undefined>,
+  ) {
     // 1. Update basic student information
     await db.student.update({
       where: { id: studentId },
@@ -277,7 +287,7 @@ export class StudentDomainService {
       ? sections.filter((s) => s !== "actions" && s !== "loaders")
       : null;
 
-    const result: Record<string, any> = {};
+    const result: Record<string, JsonValue> = {};
 
     // 1. User Info
     if (!requestedSections || requestedSections.includes("user")) {
@@ -557,7 +567,7 @@ export class StudentDomainService {
                 try {
                     const sets = JSON.parse(el.sets);
                     if (Array.isArray(sets)) {
-                        return acc + sets.reduce((setAcc: number, set: any) => {
+                        return acc + sets.reduce((setAcc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
                             if (set.weight && set.reps && set.completed) {
                                 return setAcc + (set.weight * set.reps);
                             }
@@ -721,10 +731,10 @@ export class StudentDomainService {
             let amenities: string[] = [];
             try { amenities = gym.amenities ? JSON.parse(gym.amenities) : []; } catch (_e) {}
             
-            let openingHours: any = null;
+            let openingHours: { open?: string; close?: string; days?: string[] } | null = null;
             try { openingHours = gym.openingHours ? JSON.parse(gym.openingHours) : null; } catch (_e) {}
 
-            const plansByType: any = {};
+            const plansByType: Record<string, number> = {};
             gym.plans.forEach(p => { plansByType[p.type] = p.price; });
 
             // Basic openNow logic
@@ -746,7 +756,7 @@ export class StudentDomainService {
                 amenities,
                 openNow,
                 openingHours: openingHours ? { open: openingHours.open, close: openingHours.close } : { open: "06:00", close: "22:00" },
-                isPartner: (gym as any).isPartner || false,
+                isPartner: "isPartner" in gym && gym.isPartner === true,
             };
         });
     } catch (_e) { return []; }

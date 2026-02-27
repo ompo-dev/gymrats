@@ -184,7 +184,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					error?: string;
 				}>(startTrialEndpoint);
 				return response.data;
-			} catch (error: unknown) {
+			} catch (error) {
 				const err = error as { response?: { data?: { error?: string } }; message?: string };
 				const errorMessage =
 					err?.response?.data?.error ||
@@ -245,7 +245,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 
 			return { previousSubscription };
 		},
-		onError: async (err: unknown, _variables, context) => {
+		onError: async (err, _variables, context) => {
 			const e = err as { response?: { data?: { error?: string } }; message?: string };
 			const errorMessage =
 				e?.response?.data?.error ||

@@ -138,7 +138,7 @@ export async function createGymSubscriptionHandler({
 			);
 		}
 
-		const { plan, billingPeriod = "monthly" } = validation.data as any;
+		const { plan, billingPeriod = "monthly" } = validation.data as { plan: string; billingPeriod?: string };
 		const activeStudents = await db.gymMembership.count({
 			where: { gymId, status: "active" },
 		});

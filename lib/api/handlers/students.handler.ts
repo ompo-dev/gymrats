@@ -52,7 +52,7 @@ export async function getAllStudentDataHandler(
 		const sectionsParam = queryValidation.data.sections;
 		let sections: string[] | undefined;
 		if (sectionsParam) {
-			sections = sectionsParam.split(",").map((s) => s.trim());
+			sections = sectionsParam.split(",").map((s: string) => s.trim());
 		}
 
 		// Buscar dados
@@ -65,7 +65,7 @@ export async function getAllStudentDataHandler(
 				"Content-Type": "application/json",
 			},
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getAllStudentDataHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar dados do student", error);
 	}
@@ -171,7 +171,7 @@ export async function getStudentProfileHandler(
 					}
 				: null,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getStudentProfileHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar perfil", error);
 	}
@@ -374,7 +374,7 @@ export async function updateStudentProfileHandler(
 		return successResponse({
 			message: "Perfil salvo com sucesso",
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[updateStudentProfileHandler] Erro:", error);
 		return internalErrorResponse("Erro ao salvar perfil", error);
 	}
@@ -393,7 +393,7 @@ export async function getWeightHistoryHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		// Validar query params com Zod
 		const queryValidation = await validateQuery(
@@ -439,7 +439,7 @@ export async function getWeightHistoryHandler(
 			limit: limit,
 			offset: offset,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getWeightHistoryHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar histórico", error);
 	}
@@ -458,7 +458,7 @@ export async function addWeightHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		// Validar body com Zod
 		const validation = await validateBody(request, addWeightSchema);
@@ -492,7 +492,7 @@ export async function addWeightHandler(
 				notes: weightEntry.notes,
 			},
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[addWeightHandler] Erro:", error);
 		return internalErrorResponse("Erro ao salvar peso", error);
 	}
@@ -511,7 +511,7 @@ export async function getWeightHistoryFilteredHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		// Validar query params com Zod
 		const queryValidation = await validateQuery(
@@ -528,7 +528,10 @@ export async function getWeightHistoryFilteredHandler(
 		const endDate = queryValidation.data.endDate;
 
 		// Construir filtros
-		const where: any = {
+		const where: {
+			studentId: string;
+			date?: { gte?: Date; lte?: Date };
+		} = {
 			studentId: studentId,
 		};
 
@@ -544,7 +547,7 @@ export async function getWeightHistoryFilteredHandler(
 
 		// Buscar histórico de peso
 		const weightHistory = await db.weightHistory.findMany({
-			where: where,
+			where,
 			orderBy: {
 				date: "desc",
 			},
@@ -570,7 +573,7 @@ export async function getWeightHistoryFilteredHandler(
 			limit: limit,
 			offset: offset,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getWeightHistoryFilteredHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar histórico", error);
 	}
@@ -589,7 +592,7 @@ export async function getStudentProgressHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		const progress = await db.studentProgress.findUnique({
 			where: { studentId },
@@ -653,7 +656,7 @@ export async function getStudentProgressHandler(
 		const weeklyXP = [0, 0, 0, 0, 0, 0, 0];
 		workoutHistoryForXP.forEach((wh) => {
 			const dayOfWeek = wh.date.getDay();
-			weeklyXP[dayOfWeek] += wh.workout.xpReward;
+			weeklyXP[dayOfWeek] += wh.workout?.xpReward ?? 0;
 		});
 
 		// Recalcular streak baseado em dias consecutivos
@@ -719,7 +722,7 @@ export async function getStudentProgressHandler(
 			dailyGoalXP: progress.dailyGoalXP || 50,
 			weeklyXP,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getStudentProgressHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar progresso", error);
 	}
@@ -738,7 +741,7 @@ export async function updateStudentProgressHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		// Validar body com Zod
 		const validation = await validateBody(request, updateStudentProgressSchema);
@@ -778,7 +781,7 @@ export async function updateStudentProgressHandler(
 		return successResponse({
 			message: "Progresso atualizado com sucesso",
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[updateStudentProgressHandler] Erro:", error);
 		return internalErrorResponse("Erro ao atualizar progresso", error);
 	}
@@ -797,7 +800,7 @@ export async function getStudentInfoHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		const student = await db.student.findUnique({
 			where: { id: studentId },
@@ -834,7 +837,7 @@ export async function getStudentInfoHandler(
 			usesHormones: student.usesHormones ?? false,
 			hormoneType: student.hormoneType || null,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getStudentInfoHandler] Erro:", error);
 		return internalErrorResponse(
 			"Erro ao buscar informações do student",
@@ -856,7 +859,7 @@ export async function getPersonalRecordsHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		const personalRecords = await db.personalRecord.findMany({
 			where: { studentId },
@@ -877,7 +880,7 @@ export async function getPersonalRecordsHandler(
 			records: formattedRecords,
 			total: formattedRecords.length,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getPersonalRecordsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar personal records", error);
 	}
@@ -896,7 +899,7 @@ export async function getDayPassesHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		const dayPasses = await db.dayPass.findMany({
 			where: { studentId },
@@ -919,7 +922,7 @@ export async function getDayPassesHandler(
 			dayPasses: formattedDayPasses,
 			total: formattedDayPasses.length,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getDayPassesHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar day passes", error);
 	}
@@ -938,7 +941,7 @@ export async function getFriendsHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 
 		const friendships = await db.friendship.findMany({
 			where: {
@@ -971,7 +974,7 @@ export async function getFriendsHandler(
 		};
 
 		return successResponse(friends);
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getFriendsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar amigos", error);
 	}
@@ -990,7 +993,7 @@ export async function weekResetHandler(
 			return auth.response;
 		}
 
-		const studentId = auth.user.student.id;
+		const studentId = auth.user.student!.id;
 		const nextMonday = getNextMonday();
 
 		await db.student.update({
@@ -1002,7 +1005,7 @@ export async function weekResetHandler(
 			message: "Semana resetada. Nodes reabilitados!",
 			weekStart: nextMonday.toISOString(),
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[weekResetHandler] Erro:", error);
 		return internalErrorResponse("Erro ao resetar semana");
 	}

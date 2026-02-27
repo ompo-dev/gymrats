@@ -13,7 +13,7 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 		}
 
 		const { student, user } = contextResult.ctx;
-		const studentId = student.id;
+		const studentId = String(student.id);
 
 		// Preços em centavos
 		const prices: Record<string, Record<string, number>> = {
@@ -57,14 +57,14 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 			completionUrl: `${appUrl}/student?tab=payments&subTab=subscription&success=true`,
 			customerId: customerId || undefined,
 			customer: !customerId ? {
-				name: user.name || "",
-				email: user.email || "",
-				cellphone: student.phone || "",
+				name: String(user.name ?? ""),
+				email: String(user.email ?? ""),
+				cellphone: String(student.phone ?? ""),
 				taxId: "",
 			} : undefined,
 			allowCoupons: true,
 			metadata: {
-				studentId,
+				studentId: String(studentId),
 				planId,
 				billingPeriod,
 			},
@@ -116,7 +116,7 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 		});
 
 		return { url: abacatePayData.url };
-	} catch (error: unknown) {
+	} catch (error) {
 		log.error("[Action] Erro inesperado", { error });
 		throw error instanceof Error ? error : new Error("Erro inesperado ao criar checkout.");
 	}
@@ -142,9 +142,10 @@ export async function confirmAbacatePayment(): Promise<{
 		}
 
 		const { student } = contextResult.ctx;
+		const studentId = String(student.id);
 
 		const subscription = await db.subscription.findUnique({
-			where: { studentId: student.id },
+			where: { studentId },
 		});
 
 		if (!subscription) {
@@ -235,7 +236,7 @@ export async function confirmAbacatePayment(): Promise<{
 
 			// Ativar a assinatura
 			const updated = await db.subscription.update({
-				where: { studentId: student.id },
+				where: { studentId },
 				data: {
 					status: "active",
 					currentPeriodStart: periodStart,
@@ -269,7 +270,7 @@ export async function confirmAbacatePayment(): Promise<{
 			success: false,
 			error: `Pagamento ainda não confirmado. Status: ${billingStatus}`,
 		};
-	} catch (error: unknown) {
+	} catch (error) {
 		log.error("[confirmAbacatePayment] Erro inesperado", { error });
 		return {
 			success: false,

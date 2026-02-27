@@ -215,7 +215,7 @@ export async function syncManager(
 				queued: false,
 				data: response.data,
 			};
-		} catch (error: unknown) {
+		} catch (error) {
 			const err = error as { code?: string; message?: string };
 			// Se erro e for erro de rede, salva na fila
 			if (
@@ -347,7 +347,7 @@ export async function syncQueue(): Promise<{
 			synced++;
 
 			log.info("[syncManager] Sincronizado", { url: item.url });
-		} catch (error: unknown) {
+		} catch (error) {
 			// Erro: incrementa retries
 			const newRetries = await incrementRetries(item.id);
 

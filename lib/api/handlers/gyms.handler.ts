@@ -97,7 +97,7 @@ export async function listGymsHandler(
 			canCreateMultipleGyms,
 			totalGyms: gyms.length,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[listGymsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao listar academias", error);
 	}
@@ -223,7 +223,7 @@ export async function createGymHandler(
 				plan: newGym.plan,
 			},
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[createGymHandler] Erro:", error);
 		return internalErrorResponse("Erro ao criar academia", error);
 	}
@@ -284,7 +284,7 @@ export async function getGymProfileHandler(
 					}
 				: null,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getGymProfileHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar perfil", error);
 	}
@@ -345,7 +345,7 @@ export async function setActiveGymHandler(
 		});
 
 		return successResponse({ activeGymId: gymId });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[setActiveGymHandler] Erro:", error);
 		return internalErrorResponse("Erro ao alterar academia ativa", error);
 	}
@@ -374,7 +374,7 @@ export async function getGymLocationsHandler(
 		const _isPartner = queryValidation.data.isPartner;
 
 		// Construir filtros
-		const where: any = {
+		const where: Record<string, string | number | boolean | object | null> = {
 			isActive: true,
 		};
 
@@ -541,7 +541,7 @@ export async function getGymLocationsHandler(
 				openNow: openNow,
 				openingHours: openingHours || undefined,
 				photos: photos.length > 0 ? photos : undefined,
-				isPartner: (gym as any).isPartner || false,
+				isPartner: (gym as { isPartner?: boolean }).isPartner || false,
 			};
 		});
 
@@ -555,7 +555,7 @@ export async function getGymLocationsHandler(
 		}
 
 		return successResponse({ gyms: formattedGyms });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getGymLocationsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar academias", error);
 	}

@@ -143,7 +143,7 @@ export async function populateWorkoutExercisesWithEducationalData(
 				if (updated % 10 === 0) {
 					log.info("Progresso atualização exercícios", { updated });
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				log.error("Erro ao atualizar exercício", {
 					name: workoutExercise.name,
 					id: workoutExercise.id,
@@ -160,7 +160,7 @@ export async function populateWorkoutExercisesWithEducationalData(
 		});
 
 		return { updated, notFound, errors };
-	} catch (error: unknown) {
+	} catch (error) {
 		log.error("Erro ao popular WorkoutExercises", { error });
 		throw error;
 	}
@@ -235,7 +235,7 @@ export async function populateSingleWorkoutExercise(
 		});
 
 		return true;
-	} catch (error: unknown) {
+	} catch (error) {
 		log.error("Erro ao popular WorkoutExercise", {
 			workoutExerciseId,
 			error,

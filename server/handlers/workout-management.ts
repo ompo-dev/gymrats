@@ -488,7 +488,7 @@ function getExerciseInfo(name: string, educationalId?: string | null) {
 export async function createExerciseAlternatives(
 	workoutExerciseId: string,
 	exerciseName: string,
-	profile: any,
+	profile: Record<string, string | number | boolean | object | null>,
 ) {
 	if (!exerciseName || !profile) return;
 
@@ -531,7 +531,7 @@ export async function createExerciseAlternatives(
 
 export function inferExerciseFromProfile(
 	exerciseName: string,
-	profile: any,
+	profile: Record<string, string | number | boolean | object | null>,
 	defaultDifficulty: string,
 ) {
 	const exerciseInfo = exerciseDatabase.find((ex) => ex.name === exerciseName);

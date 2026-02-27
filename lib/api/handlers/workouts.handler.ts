@@ -80,7 +80,7 @@ export async function getUnitsHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     // Buscar units personalizadas do aluno primeiro, se não houver, buscar treinos globais
     let units = await db.unit.findMany({
@@ -275,7 +275,7 @@ export async function getUnitsHandler(
     }));
 
     return successResponse({ units: formattedUnits });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[getUnitsHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar treinos", error);
   }
@@ -294,7 +294,7 @@ export async function getWeeklyPlanHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     const student = await db.student.findUnique({
       where: { id: studentId },
@@ -484,7 +484,7 @@ export async function getWeeklyPlanHandler(
       200,
       { "Cache-Control": "no-store, no-cache, must-revalidate" },
     );
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("[getWeeklyPlanHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar plano semanal");
   }
@@ -504,7 +504,7 @@ export async function completeWorkoutHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!workoutId) {
       return badRequestResponse("ID do workout não fornecido");
@@ -619,9 +619,10 @@ export async function completeWorkoutHandler(
           },
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       // Ignorar erro se progresso não existir (P2025 = Record not found)
-      if (error.code !== "P2025") {
+      const err = error as { code?: string };
+      if (err.code !== "P2025") {
         console.error(
           "[completeWorkoutHandler] Erro ao limpar progresso:",
           error,
@@ -634,7 +635,7 @@ export async function completeWorkoutHandler(
       workoutHistoryId: workoutHistory.id,
       xpEarned: workout.xpReward || 0,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[completeWorkoutHandler] Erro:", error);
     return internalErrorResponse("Erro ao completar workout", error);
   }
@@ -654,7 +655,7 @@ export async function saveWorkoutProgressHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!workoutId) {
       return badRequestResponse("ID do workout não fornecido");
@@ -737,14 +738,15 @@ export async function saveWorkoutProgressHandler(
     });
 
     return successResponse({ message: "Progresso salvo com sucesso" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[saveWorkoutProgressHandler] Erro:", error);
+    const err = error as { message?: string; code?: string };
 
     // Verificar se a tabela não existe
     if (
-      error.message?.includes("does not exist") ||
-      error.message?.includes("Unknown table") ||
-      error.code === "P2021"
+      err.message?.includes("does not exist") ||
+      err.message?.includes("Unknown table") ||
+      err.code === "P2021"
     ) {
       return NextResponse.json(
         {
@@ -758,7 +760,7 @@ export async function saveWorkoutProgressHandler(
     }
 
     // Verificar se é erro de Prisma (tabela não encontrada)
-    if (error.code === "P2021" || error.code === "P1001") {
+    if (err.code === "P2021" || err.code === "P1001") {
       return NextResponse.json(
         {
           error: "Erro de conexão com banco de dados",
@@ -786,7 +788,7 @@ export async function getWorkoutProgressHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!workoutId) {
       return badRequestResponse("ID do workout não fornecido");
@@ -835,12 +837,13 @@ export async function getWorkoutProgressHandler(
         lastUpdated: progress.updatedAt,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[getWorkoutProgressHandler] Erro:", error);
+    const err = error as { message?: string };
     // Se a tabela não existir, retornar null sem erro
     if (
-      error.message?.includes("does not exist") ||
-      error.message?.includes("workout_progress")
+      err.message?.includes("does not exist") ||
+      err.message?.includes("workout_progress")
     ) {
       return successResponse({
         progress: null,
@@ -867,7 +870,7 @@ export async function deleteWorkoutProgressHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!workoutId) {
       return badRequestResponse("ID do workout não fornecido");
@@ -900,10 +903,11 @@ export async function deleteWorkoutProgressHandler(
     });
 
     return successResponse({ message: "Progresso deletado com sucesso" });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[deleteWorkoutProgressHandler] Erro:", error);
+    const err = error as { code?: string };
     // Se o erro for P2025 (record not found), tratar como sucesso (idempotência)
-    if (error.code === "P2025") {
+    if (err.code === "P2025") {
       return successResponse({
         message: "Progresso não encontrado (já estava deletado)",
       });
@@ -925,7 +929,7 @@ export async function getWorkoutHistoryHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     // Validar query params com Zod
     const queryValidation = await validateQuery<
@@ -976,8 +980,8 @@ export async function getWorkoutHistoryHandler(
             if (Array.isArray(sets)) {
               return (
                 acc +
-                sets.reduce((setAcc: number, set: any) => {
-                  if (set.weight && set.reps && set.completed) {
+                sets.reduce((setAcc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
+                  if (set.weight && set.reps && (set.completed ?? true)) {
                     return setAcc + set.weight * set.reps;
                   }
                   return setAcc;
@@ -1008,7 +1012,7 @@ export async function getWorkoutHistoryHandler(
         duration: wh.duration,
         totalVolume: wh.totalVolume || calculatedVolume,
         exercises: wh.exercises.map((el) => {
-          let sets: any[] = [];
+          let sets: Array<{ weight?: number; reps?: number; completed?: boolean }> = [];
           try {
             sets = JSON.parse(el.sets);
           } catch (_e) {
@@ -1047,7 +1051,7 @@ export async function getWorkoutHistoryHandler(
       limit: limit,
       offset: offset,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[getWorkoutHistoryHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar histórico", error);
   }
@@ -1068,7 +1072,7 @@ export async function updateExerciseLogHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!historyId || !exerciseId) {
       return badRequestResponse("historyId e exerciseId são obrigatórios");
@@ -1155,8 +1159,8 @@ export async function updateExerciseLogHandler(
         const exerciseSets = JSON.parse(ex.sets);
         if (Array.isArray(exerciseSets)) {
           const exerciseVolume = exerciseSets.reduce(
-            (acc: number, set: any) => {
-              if (set.weight && set.reps && set.completed) {
+            (acc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
+              if (set.weight && set.reps && (set.completed ?? true)) {
                 return acc + set.weight * set.reps;
               }
               return acc;
@@ -1177,7 +1181,7 @@ export async function updateExerciseLogHandler(
     });
 
     // Parsear sets para retornar
-    let parsedSets: any[] = [];
+    let parsedSets: Array<{ weight?: number; reps?: number; completed?: boolean }> = [];
     try {
       parsedSets = JSON.parse(updatedExerciseLog.sets);
     } catch (_e) {
@@ -1196,9 +1200,10 @@ export async function updateExerciseLogHandler(
       },
       totalVolume: newTotalVolume,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[updateExerciseLogHandler] Erro:", error);
-    if (error.code === "P2025") {
+    const err = error as { code?: string };
+    if (err.code === "P2025") {
       return notFoundResponse("Exercício não encontrado");
     }
     return internalErrorResponse("Erro ao atualizar exercício", error);
@@ -1220,7 +1225,7 @@ export async function updateWorkoutProgressExerciseHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student.id;
+    const studentId = auth.user.student!.id;
 
     if (!workoutId || !exerciseId) {
       return badRequestResponse("workoutId e exerciseId são obrigatórios");
@@ -1251,7 +1256,15 @@ export async function updateWorkoutProgressExerciseHandler(
     const { sets, notes, formCheckScore, difficulty } = validation.data;
 
     // Parsear exerciseLogs atual
-    let exerciseLogs: any[] = [];
+    type ExerciseLogItem = {
+      id?: string;
+      exerciseId: string;
+      sets: Array<{ weight?: number; reps?: number; completed?: boolean }>;
+      notes?: string | null;
+      formCheckScore?: number | null;
+      difficulty?: string | null;
+    };
+    let exerciseLogs: ExerciseLogItem[] = [];
     try {
       exerciseLogs = JSON.parse(progress.exerciseLogs || "[]");
     } catch (_e) {
@@ -1267,9 +1280,13 @@ export async function updateWorkoutProgressExerciseHandler(
       return notFoundResponse("Exercício não encontrado no progresso");
     }
 
-    // Atualizar dados do exercício
+    // Atualizar dados do exercício (normalizar null para undefined)
     if (sets !== undefined) {
-      exerciseLogs[exerciseIndex].sets = sets;
+      exerciseLogs[exerciseIndex].sets = sets.map((s) => ({
+        weight: s.weight ?? undefined,
+        reps: s.reps ?? undefined,
+        completed: s.completed,
+      }));
     }
 
     if (notes !== undefined) {
@@ -1291,8 +1308,8 @@ export async function updateWorkoutProgressExerciseHandler(
     let newTotalVolume = 0;
     for (const log of exerciseLogs) {
       if (log.sets && Array.isArray(log.sets)) {
-        const exerciseVolume = log.sets.reduce((acc: number, set: any) => {
-          if (set.weight && set.reps && set.completed) {
+        const exerciseVolume = log.sets.reduce((acc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
+          if (set.weight && set.reps && (set.completed ?? true)) {
             return acc + set.weight * set.reps;
           }
           return acc;
@@ -1319,9 +1336,9 @@ export async function updateWorkoutProgressExerciseHandler(
       exerciseLog: exerciseLogs[exerciseIndex],
       totalVolume: newTotalVolume,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[updateWorkoutProgressExerciseHandler] Erro:", error);
-    if (error.code === "P2025") {
+    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
       return notFoundResponse("Progresso não encontrado");
     }
     return internalErrorResponse("Erro ao atualizar exercício", error);

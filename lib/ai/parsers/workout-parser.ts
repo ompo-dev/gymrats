@@ -530,14 +530,14 @@ function tryRepairTruncatedJson(str: string): string {
 /**
  * Extrai e parseia JSON da resposta, com fallback de repair para truncamento
  */
-function extractAndParseJson(response: string): unknown {
+function extractAndParseJson(response: string): import("@/lib/types/api-error").JsonValue {
   const jsonMatch = response.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error("JSON não encontrado na resposta");
   }
 
   const jsonStr = jsonMatch[0];
-  let parsed: unknown;
+  let parsed: import("@/lib/types/api-error").JsonValue;
 
   try {
     parsed = JSON.parse(jsonStr);
@@ -693,7 +693,7 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
     const restDays =
       Array.isArray(parsed.restDays) && parsed.restDays.length > 0
         ? parsed.restDays
-            .filter((d: unknown) => typeof d === "number" && d >= 0 && d <= 6)
+            .filter((d: import("@/lib/types/api-error").JsonValue) => typeof d === "number" && d >= 0 && d <= 6)
             .slice(0, 7)
         : undefined;
 

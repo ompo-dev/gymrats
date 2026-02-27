@@ -87,8 +87,18 @@ export function notFoundResponse(
  */
 export function internalErrorResponse(
 	message: string = "Erro interno do servidor",
-	error?: Error | { message?: string },
+	error?: unknown,
 ): NextResponse {
+	const errorMsg =
+		error instanceof Error
+			? error.message
+			: error && typeof error === "object" && "message" in error
+				? (error as { message?: string }).message
+				: undefined;
 	console.error("[API Error]:", error);
-	return errorResponse(message, 500, error?.message ?? undefined);
+	return errorResponse(
+		message,
+		500,
+		errorMsg ? { message: errorMsg } : undefined,
+	);
 }

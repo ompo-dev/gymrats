@@ -1,5 +1,23 @@
 import { db } from "@/lib/db";
-import { Equipment, GymProfile, GymStats } from "@/lib/types";
+import type { Equipment, GymProfile, GymStats } from "@/lib/types";
+
+interface CreateGymInput {
+	name: string;
+	address?: string;
+	phone?: string;
+	email?: string;
+	cnpj?: string;
+	equipment?: Array<{ name: string; type: string }>;
+}
+
+interface UpdateOnboardingInput {
+	name: string;
+	address?: string;
+	phone?: string;
+	email?: string;
+	cnpj?: string;
+	equipment?: Array<{ name: string; type: string }>;
+}
 
 export class GymInventoryService {
   /**
@@ -39,7 +57,7 @@ export class GymInventoryService {
       pixKey: gym.pixKey || undefined,
       pixKeyType: gym.pixKeyType || undefined,
       openingHours,
-      plan: gym.plan as any,
+      plan: (gym.plan ?? "basic") as GymProfile["plan"],
       equipmentCount: gym.profile.equipmentCount,
       totalStudents: gym.profile.totalStudents,
       activeStudents: gym.profile.activeStudents,
@@ -73,7 +91,7 @@ export class GymInventoryService {
       id: eq.id,
       name: eq.name,
       type: eq.type,
-      status: eq.status as any,
+      status: eq.status as Equipment["status"],
       lastMaintenance: eq.lastMaintenance || undefined,
       brand: eq.brand || undefined,
       model: eq.model || undefined,
@@ -86,7 +104,7 @@ export class GymInventoryService {
         : undefined,
       usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
       maintenanceHistory: [],
-    } as any));
+    } as Equipment));
   }
 
   /**
@@ -103,7 +121,7 @@ export class GymInventoryService {
       id: equipment.id,
       name: equipment.name,
       type: equipment.type,
-      status: equipment.status as any,
+      status: equipment.status as Equipment["status"],
       lastMaintenance: equipment.lastMaintenance || undefined,
       brand: equipment.brand || undefined,
       model: equipment.model || undefined,
@@ -116,7 +134,7 @@ export class GymInventoryService {
         : undefined,
       usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
       maintenanceHistory: [],
-    } as any;
+    } as Equipment;
   }
 
   /**
@@ -271,7 +289,7 @@ export class GymInventoryService {
   /**
    * Cria uma nova academia e inicializa profile/stats
    */
-  static async createGym(userId: string, data: any) {
+  static async createGym(userId: string, data: CreateGymInput) {
     const gym = await db.gym.create({
       data: {
         userId,
@@ -293,7 +311,7 @@ export class GymInventoryService {
 
     if (data.equipment?.length > 0) {
       await db.equipment.createMany({
-        data: data.equipment.map((eq: any) => ({
+        data: data.equipment.map((eq) => ({
           gymId: gym.id,
           name: eq.name,
           type: eq.type,
@@ -309,7 +327,7 @@ export class GymInventoryService {
   /**
    * Atualiza dados de onboarding de uma academia existente
    */
-  static async updateOnboarding(gymId: string, data: any) {
+  static async updateOnboarding(gymId: string, data: UpdateOnboardingInput) {
     await db.gym.update({
       where: { id: gymId },
       data: {
@@ -329,7 +347,7 @@ export class GymInventoryService {
 
     if (data.equipment?.length > 0) {
       await db.equipment.createMany({
-        data: data.equipment.map((eq: any) => ({
+        data: data.equipment.map((eq) => ({
           gymId,
           name: eq.name,
           type: eq.type,

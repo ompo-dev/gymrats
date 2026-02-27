@@ -1,5 +1,5 @@
 import type { NextRequest, NextResponse } from "next/server";
-import { ZodError, type ZodSchema } from "zod";
+import { ZodError, type ZodSchema, type ZodType } from "zod";
 import { badRequestResponse } from "../utils/response.utils";
 
 /**
@@ -104,10 +104,11 @@ export async function validateRequest<T = Record<string, string | number | boole
 /**
  * Helper para validar apenas o body
  * IMPORTANTE: Esta função lê o body, então não pode ser chamada duas vezes na mesma requisição
+ * Usa ZodType<T, ZodTypeDef, unknown> para aceitar schemas com transform (input diferente do output)
  */
 export async function validateBody<T>(
 	request: NextRequest,
-	schema: ZodSchema,
+	schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
 ): Promise<
 	{ success: true; data: T } | { success: false; response: NextResponse }
 > {
@@ -120,10 +121,11 @@ export async function validateBody<T>(
 
 /**
  * Helper para validar apenas query params
+ * Usa ZodType<T, ZodTypeDef, unknown> para aceitar schemas com transform (query vem como string)
  */
 export async function validateQuery<T>(
 	request: NextRequest,
-	schema: ZodSchema,
+	schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
 ): Promise<
 	{ success: true; data: T } | { success: false; response: NextResponse }
 > {

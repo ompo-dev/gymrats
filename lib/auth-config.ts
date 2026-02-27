@@ -61,7 +61,7 @@ export const auth = betterAuth({
 			create: {
 				before: async (session, _ctx) => {
 					// Mapear token -> sessionToken (legacy) e expiresAt -> expires (legacy)
-					const updatedData: any = { ...session };
+					const updatedData: Record<string, string | number | boolean | object | null> = { ...session };
 
 					if (session.token && !session.sessionToken) {
 						updatedData.sessionToken = session.token;
@@ -74,7 +74,7 @@ export const auth = betterAuth({
 				},
 				after: async (session, _ctx) => {
 					// Garantir que campos legacy sejam populados
-					const updateData: any = {};
+					const updateData: Record<string, string | number | boolean | object | null> = {};
 
 					if (session.token && !session.sessionToken) {
 						updateData.sessionToken = session.token;
@@ -96,7 +96,7 @@ export const auth = betterAuth({
 			create: {
 				before: async (account, _ctx) => {
 					// Usar type assertion para acessar campos legacy que existem no banco mas não no tipo
-					const accountWithLegacy = account as any;
+					const accountWithLegacy = account as typeof account & { provider?: string; providerAccountId?: string; access_token?: string; refresh_token?: string; id_token?: string; expires_at?: number };
 
 					console.log("[Account Hook Before] Dados recebidos:", {
 						accountId: account.accountId,
@@ -106,7 +106,7 @@ export const auth = betterAuth({
 					});
 
 					// Se Better Auth está criando com campos novos, popular campos legacy
-					const updatedData: any = { ...account };
+					const updatedData: Record<string, string | number | boolean | object | null> = { ...account };
 
 					// Mapear accountId -> providerAccountId
 					if (account.accountId && !accountWithLegacy.providerAccountId) {
@@ -149,7 +149,7 @@ export const auth = betterAuth({
 				},
 				after: async (account, _ctx) => {
 					// Usar type assertion para acessar campos legacy que existem no banco mas não no tipo
-					const accountWithLegacy = account as any;
+					const accountWithLegacy = account as typeof account & { provider?: string; providerAccountId?: string; access_token?: string; refresh_token?: string; id_token?: string; expires_at?: number };
 
 					console.log("[Account Hook After] Conta criada:", {
 						id: account.id,
@@ -160,7 +160,7 @@ export const auth = betterAuth({
 					});
 
 					// Garantir que campos legacy sejam populados se não foram no before
-					const updateData: any = {};
+					const updateData: Record<string, string | number | boolean | object | null> = {};
 
 					if (account.accountId && !accountWithLegacy.providerAccountId) {
 						updateData.providerAccountId = account.accountId;
@@ -292,7 +292,7 @@ export const auth = betterAuth({
 
 			if (isOAuthCallback || isSocialSignIn) {
 				// newSession tem estrutura { session: { token: string }, user: {...} }
-				const sessionToken = (ctx.context.newSession as any)?.session?.token;
+				const sessionToken = (ctx.context.newSession as { session?: { token?: string } })?.session?.token;
 
 				if (sessionToken) {
 					// Definir cookie auth_token para compatibilidade

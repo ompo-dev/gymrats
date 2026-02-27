@@ -4,11 +4,11 @@ import { Calendar, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { HistoryCard } from "@/components/molecules/cards/history-card";
-import type { WorkoutHistory } from "@/lib/types";
+import type { ExerciseLog, WorkoutHistory } from "@/lib/types";
 
 export interface RecentHistoryCardProps {
 	workouts: WorkoutHistory[];
-	lastInProgressWorkout: { workout: { id: string }; progress: { exerciseLogs?: unknown[] } } | null;
+	lastInProgressWorkout: { workout: { id: string }; progress: { exerciseLogs?: ExerciseLog[] } } | null;
 	onWorkoutClick: () => void;
 }
 

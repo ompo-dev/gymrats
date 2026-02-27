@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 			message: "Exercícios populados com dados educacionais",
 			...result,
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[populateEducationalData] Erro:", error);
 		return internalErrorResponse(
 			"Erro ao popular exercícios com dados educacionais",

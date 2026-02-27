@@ -116,7 +116,7 @@ export async function getPaymentsHandler(
 			limit: limit,
 			offset: offset,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getPaymentsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar pagamentos", error);
 	}
@@ -159,7 +159,7 @@ export async function getPaymentMethodsHandler(
 		}));
 
 		return successResponse({ paymentMethods: formattedMethods });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getPaymentMethodsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar métodos de pagamento", error);
 	}
@@ -243,7 +243,7 @@ export async function addPaymentMethodHandler(
 				pixKey: paymentMethod.pixKey || undefined,
 			},
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[addPaymentMethodHandler] Erro:", error);
 		return internalErrorResponse("Erro ao criar método de pagamento", error);
 	}
@@ -320,7 +320,7 @@ export async function getMembershipsHandler(
 		}));
 
 		return successResponse({ memberships: formattedMemberships });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getMembershipsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar memberships", error);
 	}

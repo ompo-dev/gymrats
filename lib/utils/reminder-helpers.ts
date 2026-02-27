@@ -1,5 +1,5 @@
 // Função para buscar dados do app e enviar para SW
-export async function syncAppDataToServiceWorker(appData: any) {
+export async function syncAppDataToServiceWorker(appData: Record<string, string | number | boolean | object | null>) {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		return;
 	}

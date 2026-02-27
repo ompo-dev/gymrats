@@ -4,6 +4,7 @@
  */
 
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import type { JsonValue } from "@/lib/types/api-error";
 import { createApiClient } from "./client-factory";
 
 const apiClientOfflineInstance = createApiClient({ offline: true });
@@ -11,7 +12,7 @@ const apiClientOfflineInstance = createApiClient({ offline: true });
 /**
  * Wrapper para compatibilidade com chamadas que usam config único (AxiosRequestConfig).
  */
-export async function apiClientOffline<T = unknown>(
+export async function apiClientOffline<T = JsonValue>(
 	config: AxiosRequestConfig,
 ): Promise<AxiosResponse<T>> {
 	const { url, method = "GET", data, headers } = config;

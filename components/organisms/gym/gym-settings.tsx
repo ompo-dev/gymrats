@@ -128,8 +128,8 @@ export function GymSettingsPage({
 
   const buildPayload = (
     section: "info" | "schedules",
-  ): Record<string, unknown> => {
-    const payload: Record<string, unknown> = {};
+  ): Record<string, import("@/lib/types/api-error").JsonValue> => {
+    const payload: Record<string, import("@/lib/types/api-error").JsonValue> = {};
     if (section === "info") {
       if (address !== (profile.address ?? "")) {
         payload.address = address.trim() || undefined;

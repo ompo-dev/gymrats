@@ -58,10 +58,10 @@ function transformSectionResponse(
 	section: StudentDataSection,
 	data: Record<string, string | number | boolean | object | null>,
 ): Partial<StudentData> {
-	const d = data as Record<string, unknown>;
+	const d = data as Record<string, import("@/lib/types/api-error").JsonValue>;
 	switch (section) {
 		case "user": {
-			const userData = (d.user || d) as Record<string, unknown>;
+			const userData = (d.user || d) as Record<string, import("@/lib/types/api-error").JsonValue>;
 			const username =
 				(userData.username as string) ||
 				(userData.email
