@@ -121,11 +121,6 @@ export function StudentLayoutContent({
 				streak: currentStreak,
 				xp: currentXP,
 			}}
-			shouldDisableSwipe={(path) =>
-				path.includes("/workout") ||
-				path.includes("/lesson") ||
-				path.includes("/onboarding")
-			}
 			onTabChange={handleTabChange}
 			additionalContent={
 				<>

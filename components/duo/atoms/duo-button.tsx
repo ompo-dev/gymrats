@@ -85,7 +85,7 @@ export const DuoButton = forwardRef<HTMLButtonElement, DuoButtonProps>(
 			variant === "destructive" ? "danger" : variant;
 
 		const buttonClassName = cn(
-			"inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold uppercase tracking-wider transition-all duration-150 ease-out select-none",
+			"inline-flex items-center justify-center gap-2 whitespace-nowrap font-bold uppercase tracking-wider transition-all duration-150 ease-out select-none touch-manipulation",
 			"focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--duo-primary)]",
 			variantStyles[resolvedVariant],
 			sizeStyles[size],
