@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
+import { StudentProfileService } from "@/lib/services/student/student-profile.service";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
 import { getUserContext } from "@/lib/context/auth-context-factory";

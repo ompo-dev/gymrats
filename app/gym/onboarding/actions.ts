@@ -2,21 +2,17 @@
 
 import type { Gym, GymProfile, GymStats } from "@prisma/client";
 import { db } from "@/lib/db";
+import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { initializeGymTrial } from "@/lib/utils/auto-trial";
-import { ensureGymRole } from "@/lib/utils/ensure-user-role";
 import { getUserContext } from "@/lib/context/auth-context-factory";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import { ensureGymRole } from "@/lib/utils/ensure-user-role";
 import type { GymOnboardingData } from "./steps/types";
 
 type GymWithProfileAndStats = Gym & {
 	profile?: GymProfile | null;
 	stats?: GymStats | null;
 };
-
-/**
- * Cria uma NOVA academia (adicional) para um usuário gym que já tem academias
- */
-import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 
 export async function submitNewGym(formData: GymOnboardingData) {
 	try {

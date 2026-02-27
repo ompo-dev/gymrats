@@ -8,6 +8,7 @@ import {
 	Loader2,
 	Sparkles,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,8 +16,16 @@ import { DuoButton } from "@/components/duo";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
-import { Step4 } from "./steps/step4";
 import type { GymOnboardingData } from "./steps/types";
+
+const Step4 = dynamic(() => import("./steps/step4").then((m) => ({ default: m.Step4 })), {
+	ssr: false,
+	loading: () => (
+		<div className="flex min-h-[200px] items-center justify-center">
+			<div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-orange border-t-transparent" />
+		</div>
+	),
+});
 
 function Confetti() {
 	if (typeof window === "undefined") return null;

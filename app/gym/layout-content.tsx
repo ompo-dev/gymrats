@@ -31,6 +31,8 @@ export function GymLayoutContent({
 }: GymLayoutContentProps) {
 	const pathname = usePathname();
 	const router = useRouter();
+	const isOnboarding =
+		typeof pathname === "string" && pathname.includes("/onboarding");
 
 	// ✅ SEGURO: Verificar role no servidor
 	// ⚠️ IMPORTANTE: Esta validação no cliente é apenas para UX
@@ -50,9 +52,6 @@ export function GymLayoutContent({
 			router.push("/student");
 		}
 	}, [canAccessGym, role, sessionLoading, router, isOnboarding]);
-
-	const isOnboarding =
-		typeof pathname === "string" && pathname.includes("/onboarding");
 
 	// Não renderizar nada se não pode acessar
 	if (!sessionLoading && !canAccessGym && role && role !== "PENDING") {
