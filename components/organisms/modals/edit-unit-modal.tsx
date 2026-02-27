@@ -627,21 +627,19 @@ export function EditUnitModal({
 										placeholder="Ex: Treino de Hipertrofia"
 									/>
 								</div>
-								{!isWeeklyPlanMode && (
-									<div>
-										<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-											Descrição
-										</label>
-										<textarea
-											value={description || ""}
-											onChange={(e) => setDescription(e.target.value)}
-											onFocus={() => setIsEditingUnitInputs(true)}
-											onBlur={() => setIsEditingUnitInputs(false)}
-											className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
-											placeholder="Descreva o objetivo deste plano..."
-										/>
-									</div>
-								)}
+								<div>
+									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+										Descrição
+									</label>
+									<textarea
+										value={description || ""}
+										onChange={(e) => setDescription(e.target.value)}
+										onFocus={() => setIsEditingUnitInputs(true)}
+										onBlur={() => setIsEditingUnitInputs(false)}
+										className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
+										placeholder="Descreva o objetivo deste plano..."
+									/>
+								</div>
 								<div className="flex justify-end gap-2 pt-2">
 									{isWeeklyPlanMode && (
 										<DuoButton
@@ -684,107 +682,116 @@ export function EditUnitModal({
 									<h3 className="text-lg font-bold text-duo-text">
 										{isWeeklyPlanMode ? "Dias da Semana" : "Dias de Treino"}
 									</h3>
-									{!isWeeklyPlanMode && (
-										<div className="flex items-center gap-2">
-											<DuoButton
-												size="sm"
-												variant="outline"
-												onClick={() => setShowWorkoutChat(true)}
-												className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
-												style={{
-													opacity: 1,
-													visibility: "visible",
-													display: "flex",
-													pointerEvents: "auto",
-													zIndex: 10,
-												}}
-											>
-												<Sparkles className="h-4 w-4" />
-												Chat IA
-											</DuoButton>
-											<DuoButton
-												size="sm"
-												variant="outline"
-												onClick={handleCreateWorkout}
-												className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
-												style={{
-													opacity: 1,
-													visibility: "visible",
-													display: "flex",
-													pointerEvents: "auto",
-													zIndex: 10,
-												}}
-											>
-												<Plus className="h-4 w-4" />
-												Adicionar Dia
-											</DuoButton>
-										</div>
-									)}
+									<div className="flex items-center gap-2">
+										{isWeeklyPlanMode ? (
+											<>
+												<DuoButton
+													size="sm"
+													variant="outline"
+													onClick={() => {
+														const firstRest = weeklyPlan?.slots.find((s: PlanSlotData) => s.type === "rest");
+														if (firstRest) setChatSlotId(firstRest.id);
+													}}
+													className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
+													style={{
+														opacity: 1,
+														visibility: "visible",
+														display: "flex",
+														pointerEvents: "auto",
+														zIndex: 10,
+													}}
+												>
+													<Sparkles className="h-4 w-4" />
+													Chat IA
+												</DuoButton>
+												<DuoButton
+													size="sm"
+													variant="outline"
+													onClick={() => {
+														const firstRest = weeklyPlan?.slots.find((s: PlanSlotData) => s.type === "rest");
+														if (firstRest) handleAddWorkoutToSlot(firstRest.id, DAY_NAMES[firstRest.dayOfWeek]);
+														else toast.info("Todos os dias já têm treino.");
+													}}
+													className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
+													style={{
+														opacity: 1,
+														visibility: "visible",
+														display: "flex",
+														pointerEvents: "auto",
+														zIndex: 10,
+													}}
+												>
+													<Plus className="h-4 w-4" />
+													Adicionar Dia
+												</DuoButton>
+											</>
+										) : (
+											<>
+												<DuoButton
+													size="sm"
+													variant="outline"
+													onClick={() => setShowWorkoutChat(true)}
+													className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
+													style={{
+														opacity: 1,
+														visibility: "visible",
+														display: "flex",
+														pointerEvents: "auto",
+														zIndex: 10,
+													}}
+												>
+													<Sparkles className="h-4 w-4" />
+													Chat IA
+												</DuoButton>
+												<DuoButton
+													size="sm"
+													variant="outline"
+													onClick={handleCreateWorkout}
+													className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
+													style={{
+														opacity: 1,
+														visibility: "visible",
+														display: "flex",
+														pointerEvents: "auto",
+														zIndex: 10,
+													}}
+												>
+													<Plus className="h-4 w-4" />
+													Adicionar Dia
+												</DuoButton>
+											</>
+										)}
+									</div>
 								</div>
 
 								{isWeeklyPlanMode && weeklyPlan ? (
-									<div className="space-y-3">
+									<div className="space-y-4">
 										{weeklyPlan.slots
 											.slice()
 											.sort((a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek)
 											.map((slot: PlanSlotData) => (
-												<DuoCard key={slot.id} variant="default" padding="md">
-													<div className="flex items-center justify-between gap-4">
-														<div className="flex items-center gap-3">
-															<span className="text-sm font-medium text-duo-gray-dark w-20">
-																{DAY_NAMES[slot.dayOfWeek]}
-															</span>
-															{slot.type === "rest" ? (
-																<span className="flex items-center gap-1 text-duo-gray">
-																	<Moon className="h-4 w-4" />
-																	Descanso
-																</span>
-															) : (
-																<span
-																	className="font-medium text-duo-text cursor-pointer hover:text-duo-green"
-																	onClick={() =>
-																		slot.workout && setEditingWorkoutId(slot.workout.id)
-																	}
-																>
-																	{slot.workout?.title}
-																</span>
-															)}
-														</div>
-														<div className="flex items-center gap-2">
-															{slot.type === "workout" && slot.workout && (
-																<>
-																	<DuoButton
-																		variant="ghost"
-																		size="icon"
-																		className="text-duo-fg-muted hover:text-duo-green"
-																		onClick={() =>
-																			setEditingWorkoutId(slot.workout!.id)
-																		}
-																		title="Editar treino"
-																	>
-																		<Edit2 className="h-4 w-4" />
-																	</DuoButton>
-																	<DuoButton
-																		variant="ghost"
-																		size="sm"
-																		onClick={() => handleRemoveWorkoutFromSlot(slot.id)}
-																		disabled={loadingSlotId === slot.id}
-																		className="text-red-600 hover:text-red-700"
-																	>
-																		<Trash2 className="h-4 w-4" />
-																	</DuoButton>
-																</>
-															)}
-															{slot.type === "rest" && (
-																<>
+												<div key={slot.id} className="space-y-2">
+													{/* Divider com nome do dia */}
+													<div className="flex items-center gap-2">
+														<div className="h-px flex-1 bg-duo-border" />
+														<span className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider px-2">
+															{DAY_NAMES[slot.dayOfWeek]}
+														</span>
+														<div className="h-px flex-1 bg-duo-border" />
+													</div>
+													{slot.type === "rest" ? (
+														<DuoCard variant="default" padding="md" className="bg-duo-gray/5 border-dashed">
+															<div className="flex items-center justify-between gap-4">
+																<div className="flex items-center gap-2 text-duo-fg-muted">
+																	<Moon className="h-5 w-5" />
+																	<span className="text-sm font-medium">Dia de descanso</span>
+																</div>
+																<div className="flex items-center gap-2">
 																	<DuoButton
 																		variant="secondary"
 																		size="sm"
 																		onClick={() =>
-																			handleAddWorkoutToSlot(
-																				slot.id,
-																				DAY_NAMES[slot.dayOfWeek],
-																			)
+																			handleAddWorkoutToSlot(slot.id, DAY_NAMES[slot.dayOfWeek])
 																		}
 																		disabled={loadingSlotId === slot.id}
 																	>
@@ -804,11 +811,72 @@ export function EditUnitModal({
 																		<Sparkles className="h-4 w-4" />
 																		Chat IA
 																	</DuoButton>
-																</>
-															)}
-														</div>
-													</div>
-												</DuoCard>
+																</div>
+															</div>
+														</DuoCard>
+													) : slot.workout ? (
+														<DuoCard
+															variant="highlighted"
+															className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
+														>
+															<div className="flex items-center gap-4">
+																<div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
+																	<GripVertical className="h-5 w-5" />
+																</div>
+																<div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
+																	{slot.dayOfWeek + 1}
+																</div>
+																<div
+																	className="flex-1 min-w-0 cursor-pointer"
+																	onClick={() => setEditingWorkoutId(slot.workout!.id)}
+																>
+																	<h4 className="font-bold text-duo-text truncate text-lg">
+																		{slot.workout.title}
+																	</h4>
+																	<p className="text-sm text-duo-fg-muted truncate">
+																		{slot.workout.exercises?.length ?? 0} exercícios •{" "}
+																		{slot.workout.muscleGroup || "-"}
+																	</p>
+																</div>
+																<div
+																	className="flex items-center gap-2 z-10 relative"
+																	style={{
+																		opacity: 1,
+																		visibility: "visible",
+																		display: "flex",
+																		pointerEvents: "auto",
+																		zIndex: 10,
+																	}}
+																>
+																	<DuoButton
+																		variant="ghost"
+																		size="icon"
+																		className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			setEditingWorkoutId(slot.workout!.id);
+																		}}
+																		title="Editar dia de treino"
+																	>
+																		<Edit2 className="h-5 w-5" />
+																	</DuoButton>
+																	<DuoButton
+																		variant="ghost"
+																		size="icon"
+																		className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10"
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			handleRemoveWorkoutFromSlot(slot.id);
+																		}}
+																		title="Remover dia de treino"
+																	>
+																		<Trash2 className="h-5 w-5" />
+																	</DuoButton>
+																</div>
+															</div>
+														</DuoCard>
+													) : null}
+												</div>
 											))}
 									</div>
 								) : workoutItems.length > 0 ? (
