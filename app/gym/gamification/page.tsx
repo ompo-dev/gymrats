@@ -1,5 +1,5 @@
 import { getGymProfile } from "../actions";
-import { GymGamificationPage } from "../components/gym-gamification";
+import { GymGamificationPage } from "@/components/organisms/gym/gym-gamification";
 
 export default async function GamificationPage() {
 	const profile = await getGymProfile();

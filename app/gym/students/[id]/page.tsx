@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Payment, StudentData } from "@/lib/types";
 import { getGymStudentById, getGymStudentPayments } from "../../actions";
-import { GymStudentDetail } from "../../components/gym-student-detail";
+import { GymStudentDetail } from "@/components/organisms/gym/gym-student-detail";
 
 export default function StudentDetailPage({
 	params,

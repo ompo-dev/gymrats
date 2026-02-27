@@ -1,5 +1,5 @@
 import { getGymEquipment, getGymStats } from "../actions";
-import { GymStatsPage } from "../components/gym-stats";
+import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 
 export default async function StatsPageWrapper() {
 	const [stats, equipment] = await Promise.all([

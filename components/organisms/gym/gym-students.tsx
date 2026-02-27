@@ -14,7 +14,7 @@ import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { getGymStudentById, getGymStudentPayments } from "../actions";
+import { getGymStudentById, getGymStudentPayments } from "@/app/gym/actions";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
 

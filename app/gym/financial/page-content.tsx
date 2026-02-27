@@ -11,13 +11,13 @@ import type {
 	Payment,
 	Referral,
 } from "@/lib/types";
-import { FinancialCouponsTab } from "../components/financial/financial-coupons-tab";
-import { FinancialExpensesTab } from "../components/financial/financial-expenses-tab";
-import { FinancialOverviewTab } from "../components/financial/financial-overview-tab";
-import { FinancialPaymentsTab } from "../components/financial/financial-payments-tab";
-import { FinancialReferralsTab } from "../components/financial/financial-referrals-tab";
-import { FinancialSubscriptionTab } from "../components/financial/financial-subscription-tab";
-import { FinancialTabsNavigation } from "../components/financial/financial-tabs-navigation";
+import { FinancialCouponsTab } from "@/components/organisms/gym/financial/financial-coupons-tab";
+import { FinancialExpensesTab } from "@/components/organisms/gym/financial/financial-expenses-tab";
+import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
+import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
+import { FinancialReferralsTab } from "@/components/organisms/gym/financial/financial-referrals-tab";
+import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
+import { FinancialTabsNavigation } from "@/components/organisms/gym/financial/financial-tabs-navigation";
 
 interface FinancialPageProps {
 	financialSummary: FinancialSummary;

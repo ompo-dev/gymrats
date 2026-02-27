@@ -1,5 +1,5 @@
 import { getCurrentUserInfo, getGymProfile } from "../actions";
-import { GymSettingsPage } from "../components/gym-settings";
+import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
 
 export default async function SettingsPage() {
 	const profile = await getGymProfile();

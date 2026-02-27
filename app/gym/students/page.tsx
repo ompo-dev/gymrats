@@ -1,5 +1,5 @@
 import { getGymStudents } from "../actions";
-import { GymStudentsPage } from "../components/gym-students";
+import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 
 export default async function StudentsPage() {
 	const students = await getGymStudents();
