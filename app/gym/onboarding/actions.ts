@@ -42,13 +42,14 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
 	try {
 		let ctx = (await getGymContext()).ctx;
 
-		// Se PENDING, cadastra agora (apenas ao concluir onboarding)
+		// Se sem contexto (PENDING ou GYM sem gym criada), cadastra agora
 		if (!ctx) {
 			const { ctx: userCtx, error: userError } = await getUserContext();
 			if (userError || !userCtx) {
 				return { success: false, error: "Não autenticado" };
 			}
-			if (userCtx.user.role !== "PENDING") {
+			const role = userCtx.user.role;
+			if (role !== "PENDING" && role !== "GYM") {
 				return { success: false, error: "Fluxo inválido" };
 			}
 			const ensure = await ensureGymRole(

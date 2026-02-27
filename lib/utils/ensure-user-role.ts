@@ -55,7 +55,7 @@ export async function ensureGymRole(
 			data: { role: "GYM" },
 		});
 
-		let gym = await db.gym.findUnique({
+		let gym = await db.gym.findFirst({
 			where: { userId },
 		});
 

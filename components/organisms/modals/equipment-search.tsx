@@ -112,7 +112,7 @@ function EquipmentSearchSimple({
 						stiffness: 300,
 						duration: 0.3,
 					}}
-					className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl sm:scale-100"
+					className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl sm:scale-100"
 					onClick={(e) => e.stopPropagation()}
 					style={{
 						maxHeight: "90vh",
@@ -124,10 +124,10 @@ function EquipmentSearchSimple({
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.1, duration: 0.3 }}
-						className="border-b-2 border-gray-300 p-6"
+						className="border-b-2 border-duo-border p-6"
 					>
 						<div className="mb-4 flex items-center justify-between">
-							<h2 className="text-2xl font-bold text-gray-900">
+							<h2 className="text-2xl font-bold text-duo-fg">
 								Adicionar Equipamentos
 							</h2>
 							<DuoButton
@@ -142,13 +142,13 @@ function EquipmentSearchSimple({
 						</div>
 
 						<div className="relative">
-							<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-600" />
+							<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-fg-muted" />
 							<input
 								type="text"
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Buscar equipamentos..."
-								className="w-full rounded-xl border-2 border-gray-300 py-3 pl-12 pr-4 font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-orange focus:outline-none"
+								className="w-full rounded-xl border-2 border-duo-border bg-duo-bg-card py-3 pl-12 pr-4 font-bold text-duo-fg placeholder:text-duo-fg-muted focus:border-duo-orange focus:outline-none"
 							/>
 						</div>
 					</motion.div>
@@ -164,7 +164,7 @@ function EquipmentSearchSimple({
 							<motion.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
-								className="py-8 text-center text-gray-600"
+								className="py-8 text-center text-duo-fg-muted"
 							>
 								Nenhum equipamento encontrado
 							</motion.div>
@@ -186,14 +186,14 @@ function EquipmentSearchSimple({
 								animate={{ opacity: 1, y: 0 }}
 								exit={{ opacity: 0, y: 20 }}
 								transition={{ duration: 0.3 }}
-								className="border-t-2 border-gray-300 p-6 space-y-4"
+								className="border-t-2 border-duo-border p-6 space-y-4"
 							>
 								<motion.div
 									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
 									transition={{ delay: 0.1 }}
 								>
-									<label className="mb-3 block text-sm font-bold text-gray-600">
+									<label className="mb-3 block text-sm font-bold text-duo-fg-muted">
 										Ajustar Quantidade ({selectedEquipmentIds.length}{" "}
 										equipamento
 										{selectedEquipmentIds.length !== 1 ? "s" : ""} selecionado
@@ -217,13 +217,13 @@ function EquipmentSearchSimple({
 														animate={{ opacity: 1, y: 0 }}
 														exit={{ opacity: 0, scale: 0.9, height: 0 }}
 														transition={{ delay: index * 0.05, duration: 0.2 }}
-														className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
+														className="flex items-center justify-between rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-3"
 													>
 														<div className="flex-1">
-															<div className="text-sm font-bold text-gray-900">
+															<div className="text-sm font-bold text-duo-fg">
 																{equipment.name}
 															</div>
-															<div className="text-xs text-gray-600">
+															<div className="text-xs text-duo-fg-muted">
 																{equipment.category} • {equipment.type}
 															</div>
 														</div>
@@ -232,15 +232,15 @@ function EquipmentSearchSimple({
 																onClick={() =>
 																	handleQuantityChange(equipmentId, -1)
 																}
-																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 active:scale-90"
+																className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-border bg-duo-bg-card text-duo-fg transition-all hover:bg-duo-bg-elevated active:scale-90"
 															>
 																<Minus className="h-4 w-4" />
 															</button>
 															<div className="w-16 text-center">
-																<div className="text-sm font-bold text-gray-900">
+																<div className="text-sm font-bold text-duo-fg">
 																	{quantity}
 																</div>
-																<div className="text-xs text-gray-600">
+																<div className="text-xs text-duo-fg-muted">
 																	{quantity === 1 ? "unidade" : "unidades"}
 																</div>
 															</div>
