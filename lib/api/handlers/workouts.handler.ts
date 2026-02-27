@@ -471,15 +471,19 @@ export async function getWeeklyPlanHandler(
       };
     });
 
-    return successResponse({
-      weeklyPlan: {
-        id: weeklyPlan.id,
-        title: weeklyPlan.title,
-        description: weeklyPlan.description ?? null,
-        slots: formattedSlots,
+    return successResponse(
+      {
+        weeklyPlan: {
+          id: weeklyPlan.id,
+          title: weeklyPlan.title,
+          description: weeklyPlan.description ?? null,
+          slots: formattedSlots,
+        },
+        weekStart: weekStart.toISOString(),
       },
-      weekStart: weekStart.toISOString(),
-    });
+      200,
+      { "Cache-Control": "no-store, no-cache, must-revalidate" },
+    );
   } catch (error: unknown) {
     console.error("[getWeeklyPlanHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar plano semanal");

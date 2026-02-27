@@ -86,6 +86,7 @@ export function useWorkoutExecution() {
   const cardioConfigModal = useSubModalState("cardio-config");
   const cardioConfigInitialized = useRef(false);
   const lastInitializedKey = useRef<string | null>(null);
+  const lastOpenWorkoutIdRef = useRef<string | null>(null);
 
   // Helper to find workout em units OU weeklyPlan - memoized
   const findWorkout = useCallback(
@@ -158,6 +159,7 @@ export function useWorkoutExecution() {
       if (!openWorkoutId) {
         if (lastInitializedKey.current !== null) {
           lastInitializedKey.current = null;
+          lastOpenWorkoutIdRef.current = null;
           setActiveWorkout(null);
           setShowCompletion(false);
         }
@@ -167,7 +169,15 @@ export function useWorkoutExecution() {
       // 2. Wait for workout data to be available
       if (!workout) return;
 
-      // 3. Prevent redundant re-initialization
+      // 3. Ao abrir um NOVO workout, limpar exerciseIndexParam da URL (vem de workout anterior)
+      // Garante que sempre abra no primeiro exercício ao clicar em outro node
+      const isNewWorkout = lastOpenWorkoutIdRef.current !== openWorkoutId;
+      if (isNewWorkout) {
+        lastOpenWorkoutIdRef.current = openWorkoutId;
+        setExerciseIndexParam(null);
+      }
+
+      // 4. Prevent redundant re-initialization
       const initKey = `${openWorkoutId}:${exerciseIndexParam ?? ""}`;
       if (lastInitializedKey.current === initKey) return;
       lastInitializedKey.current = initKey;
@@ -178,8 +188,11 @@ export function useWorkoutExecution() {
       const savedProgress = loadWorkoutProgress(workout.id);
       const isCompleted = isWorkoutCompleted(workout.id);
 
+      // 5. initialIndex: para workout NOVO usar 0 ou savedProgress; nunca exerciseIndexParam (pode ser de outro workout)
       let initialIndex = 0;
-      if (exerciseIndexParam !== null) {
+      if (isNewWorkout) {
+        initialIndex = savedProgress ? savedProgress.currentExerciseIndex : 0;
+      } else if (exerciseIndexParam !== null) {
         initialIndex = Math.max(0, Math.min(exerciseIndexParam, workout.exercises.length - 1));
       } else if (savedProgress) {
         initialIndex = savedProgress.currentExerciseIndex;
@@ -216,7 +229,7 @@ export function useWorkoutExecution() {
     };
     
     init();
-  }, [openWorkoutId, workout, exerciseIndexParam, setActiveWorkout, loadWorkoutProgress, isWorkoutCompleted, setCurrentExerciseIndex, cardioConfigModal]);
+  }, [openWorkoutId, workout, exerciseIndexParam, setActiveWorkout, setExerciseIndexParam, loadWorkoutProgress, isWorkoutCompleted, setCurrentExerciseIndex, cardioConfigModal]);
 
   // Cardio timer
   useEffect(() => {
@@ -310,14 +323,19 @@ export function useWorkoutExecution() {
         ? Math.round((Date.now() - new Date(finalActiveWorkout.startTime).getTime()) / 60000)
         : workout.estimatedTime;
 
-      apiClient.post(`/api/workouts/${workout.id}/complete`, {
-        exerciseLogs: convertExerciseLogsForAPI(finalLogs),
-        duration: workoutDuration,
-        totalVolume: finalActiveWorkout.totalVolume || 0,
-        overallFeedback: "bom",
-        xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
-        startTime: new Date(finalActiveWorkout.startTime || Date.now()).toISOString(),
-      }).catch(console.error);
+      try {
+        await apiClient.post(`/api/workouts/${workout.id}/complete`, {
+          exerciseLogs: convertExerciseLogsForAPI(finalLogs),
+          duration: workoutDuration,
+          totalVolume: finalActiveWorkout.totalVolume || 0,
+          overallFeedback: "bom",
+          xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
+          startTime: new Date(finalActiveWorkout.startTime || Date.now()).toISOString(),
+        });
+      } catch (err) {
+        console.error("[useWorkoutExecution] Erro ao salvar conclusão no servidor:", err);
+        // Continua para atualizar UI local; loadWeeklyPlan trará estado real do backend
+      }
 
       if (completeStudentWorkout) {
           await completeStudentWorkout({

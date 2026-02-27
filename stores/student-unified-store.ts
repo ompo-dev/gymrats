@@ -1581,12 +1581,21 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 
 				// Recarregar progresso do backend para garantir sincronização
-				// Isso atualiza workoutsCompleted, streak, etc com os valores corretos do backend
-				// O backend já atualizou o progresso quando o workout foi completado
 				await get().loadProgress();
 
-				// Recarregar workouts para atualizar status de locked/completed
+				// Recarregar plano semanal para atualizar status completed/locked nos slots
+				// (loadWorkouts carrega units/legado; weekly plan é o que o LearningPath usa)
+				await get().loadWeeklyPlan(true);
+
+				// Recarregar workouts (units) para compatibilidade
 				await get().loadWorkouts();
+
+				// Disparar evento para WorkoutNode e LearningPath reagirem imediatamente
+				if (typeof window !== "undefined" && data.workoutId) {
+					window.dispatchEvent(
+						new CustomEvent("workoutCompleted", { detail: { workoutId: data.workoutId } }),
+					);
+				}
 			},
 
 			addPersonalRecord: (record) => {
