@@ -8,7 +8,7 @@ interface AppUpdatingScreenProps {
 	isVisible: boolean;
 }
 
-export function AppUpdatingScreen({ isVisible }: AppUpdatingScreenProps) {
+function AppUpdatingScreenSimple({ isVisible }: AppUpdatingScreenProps) {
 	if (!isVisible) return null;
 
 	return (
@@ -76,3 +76,5 @@ export function AppUpdatingScreen({ isVisible }: AppUpdatingScreenProps) {
 		</motion.div>
 	);
 }
+
+export const AppUpdatingScreen = { Simple: AppUpdatingScreenSimple };

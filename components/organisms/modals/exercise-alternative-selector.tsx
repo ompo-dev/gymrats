@@ -3,8 +3,8 @@
 import { AlertCircle, BookOpen, CheckCircle2, Info, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { WorkoutExercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -57,10 +57,10 @@ export function ExerciseAlternativeSelector({
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.9, y: 20 }}
 				onClick={(e) => e.stopPropagation()}
-				className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
+				className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-duo-bg-card shadow-2xl"
 			>
 				{/* Header */}
-				<div className="sticky top-0 z-10 border-b-2 border-duo-border bg-white p-4 sm:p-6">
+				<div className="sticky top-0 z-10 border-b-2 border-duo-border bg-duo-bg-card p-4 sm:p-6">
 					<div className="mb-3 flex items-start justify-between">
 						<div className="flex-1">
 							<div className="mb-1 flex items-center gap-2">
@@ -75,7 +75,7 @@ export function ExerciseAlternativeSelector({
 						</div>
 						<button
 							onClick={onCancel}
-							className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+							className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
 						>
 							<X className="h-6 w-6 text-duo-gray-dark" />
 						</button>
@@ -97,7 +97,7 @@ export function ExerciseAlternativeSelector({
 								animate={{ opacity: 1, x: 0 }}
 								transition={{ delay: index * 0.05, duration: 0.3 }}
 							>
-								<DuoCard
+								<DuoCard.Root
 									variant={
 										isSelected
 											? option.isMain
@@ -171,7 +171,7 @@ export function ExerciseAlternativeSelector({
 											)}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</motion.div>
 						);
 					})}
@@ -179,7 +179,7 @@ export function ExerciseAlternativeSelector({
 
 				{/* Info Box */}
 				<div className="mx-4 sm:mx-6 mb-4">
-					<DuoCard variant="yellow" size="sm">
+					<DuoCard.Root variant="yellow" size="sm">
 						<div className="flex items-start gap-2">
 							<Info className="h-5 w-5 shrink-0 text-duo-yellow" />
 							<div className="text-xs sm:text-sm text-duo-text">
@@ -188,18 +188,18 @@ export function ExerciseAlternativeSelector({
 								equipamento disponível!
 							</div>
 						</div>
-					</DuoCard>
+					</DuoCard.Root>
 				</div>
 
 				{/* Action Buttons */}
-				<div className="sticky bottom-0 border-t-2 border-duo-border bg-white p-4 sm:p-6 shadow-lg">
+				<div className="sticky bottom-0 border-t-2 border-duo-border bg-duo-bg-card p-4 sm:p-6 shadow-lg">
 					<div className="flex gap-3">
-						<Button variant="white" onClick={onCancel} className="flex-1">
+						<DuoButton variant="white" onClick={onCancel} className="flex-1">
 							CANCELAR
-						</Button>
-						<Button variant="default" onClick={handleSelect} className="flex-1">
+						</DuoButton>
+						<DuoButton variant="primary" onClick={handleSelect} className="flex-1">
 							CONFIRMAR
-						</Button>
+						</DuoButton>
 					</div>
 				</div>
 			</motion.div>

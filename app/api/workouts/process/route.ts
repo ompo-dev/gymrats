@@ -17,6 +17,7 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
 import {
@@ -42,37 +43,67 @@ export async function POST(request: NextRequest) {
 
     // 2. Processar request
     const body = await request.json();
-    const { parsedPlan, unitId } = body;
+    const { parsedPlan, unitId, planSlotId } = body;
 
     if (!parsedPlan) {
       return badRequestResponse("Comando inválido");
     }
 
-    if (!unitId || typeof unitId !== "string") {
-      return badRequestResponse("Unit ID é obrigatório");
+    if (!unitId && !planSlotId) {
+      return badRequestResponse("unitId ou planSlotId é obrigatório");
     }
 
-    // 3. Verificar se unit existe e pertence ao student
-    const unit = await db.unit.findUnique({
-      where: { id: unitId },
+    // 3. Resolver contexto: unit ou planSlot (weeklyPlan)
+    type UnitWithWorkouts = Prisma.UnitGetPayload<{
+      include: { workouts: { include: { exercises: true } } };
+    }>;
+    type PlanSlotWithRelations = Prisma.PlanSlotGetPayload<{
       include: {
-        workouts: {
-          orderBy: { order: "asc" },
-          include: {
-            exercises: {
-              orderBy: { order: "asc" },
+        weeklyPlan: true;
+        workout: { include: { exercises: true } };
+      };
+    }>;
+    let unit: UnitWithWorkouts | null = null;
+    let planSlot: PlanSlotWithRelations | null = null;
+
+    if (planSlotId) {
+      planSlot = await db.planSlot.findUnique({
+        where: { id: planSlotId },
+        include: {
+          weeklyPlan: true,
+          workout: {
+            include: {
+              exercises: { orderBy: { order: "asc" } },
             },
           },
         },
-      },
-    });
+      });
 
-    if (!unit) {
-      return badRequestResponse("Unit não encontrada");
-    }
+      if (!planSlot || planSlot.weeklyPlan.studentId !== studentId) {
+        return badRequestResponse("Slot não encontrado ou sem permissão");
+      }
+    } else if (unitId) {
+      unit = await db.unit.findUnique({
+        where: { id: unitId },
+        include: {
+          workouts: {
+            orderBy: { order: "asc" },
+            include: {
+              exercises: {
+                orderBy: { order: "asc" },
+              },
+            },
+          },
+        },
+      });
 
-    if (unit.studentId !== studentId) {
-      return badRequestResponse("Você não tem permissão para editar esta unit");
+      if (!unit) {
+        return badRequestResponse("Unit não encontrada");
+      }
+
+      if (unit.studentId !== studentId) {
+        return badRequestResponse("Você não tem permissão para editar esta unit");
+      }
     }
 
     // 4. Buscar perfil do aluno
@@ -96,35 +127,99 @@ export async function POST(request: NextRequest) {
     switch (parsedPlan.action) {
       case "create_workouts": {
         // Criar workouts e exercícios em batch
-        for (let i = 0; i < parsedPlan.workouts.length; i++) {
-          const workoutPlan = parsedPlan.workouts[i];
-          try {
-            // Buscar último order
-            const lastOrder =
-              unit.workouts.length > 0
-                ? Math.max(...unit.workouts.map((w) => w.order ?? 0)) + i + 1
-                : i; // manter exatamente a ordem recebida
+        const workoutsToCreate = parsedPlan.workouts || [];
 
-            // Criar workout
+        // Plano semanal com múltiplos workouts: buscar todos os slots para distribuir
+        let weeklyPlanSlots: { id: string; dayOfWeek: number; workoutId: string | null }[] = [];
+        if (planSlotId && planSlot && workoutsToCreate.length > 1) {
+          weeklyPlanSlots = await db.planSlot.findMany({
+            where: { weeklyPlanId: planSlot.weeklyPlanId },
+            orderBy: { dayOfWeek: "asc" },
+            select: { id: true, dayOfWeek: true, workoutId: true },
+          });
+        }
+
+        for (let i = 0; i < workoutsToCreate.length; i++) {
+          const workoutPlan = workoutsToCreate[i];
+          try {
+            let order = i;
+            let unitIdForCreate: string | null = null;
+            let planSlotIdForCreate: string | null = null;
+
+            if (planSlotId && planSlot) {
+              // Plano semanal: distribuir workouts nos slots (1 por dia)
+              if (workoutsToCreate.length > 1 && weeklyPlanSlots.length > 0) {
+                const targetSlot = weeklyPlanSlots[i];
+                if (!targetSlot) {
+                  results.errors.push(
+                    `Slot para dia ${i} não encontrado. Ignorando ${workoutPlan.title}.`,
+                  );
+                  continue;
+                }
+                planSlotIdForCreate = targetSlot.id;
+                order = targetSlot.dayOfWeek;
+              } else {
+                // Apenas 1 workout: usar o slot referenciado
+                planSlotIdForCreate = planSlotId;
+                order = planSlot.dayOfWeek;
+              }
+            } else if (unit) {
+              // Contexto: unit legado
+              unitIdForCreate = unit.id;
+              order =
+                unit.workouts.length > 0
+                  ? Math.max(...unit.workouts.map((w) => w.order ?? 0)) + i + 1
+                  : i;
+            }
+
+            const isRestDay =
+              workoutPlan.title?.toLowerCase().includes("descanso") ||
+              !workoutPlan.exercises?.length;
+
+            if (isRestDay && planSlotIdForCreate) {
+              const oldWorkoutId =
+                weeklyPlanSlots[i]?.workoutId ?? planSlot?.workoutId ?? null;
+              if (oldWorkoutId) {
+                await db.workout.delete({ where: { id: oldWorkoutId } });
+              }
+              await db.planSlot.update({
+                where: { id: planSlotIdForCreate },
+                data: { type: "rest", workoutId: null },
+              });
+              results.created.push(`Workout: ${workoutPlan.title} (descanso)`);
+              continue;
+            }
+
             const workout = await db.workout.create({
               data: {
-                unitId,
+                unitId: unitIdForCreate,
                 title: workoutPlan.title,
                 description: workoutPlan.description || "",
                 type: workoutPlan.type,
                 muscleGroup: workoutPlan.muscleGroup,
                 difficulty: workoutPlan.difficulty,
                 estimatedTime: 0,
-                order: lastOrder,
+                order,
               },
             });
 
+            if (planSlotIdForCreate) {
+              const oldWorkoutId =
+                weeklyPlanSlots[i]?.workoutId ?? planSlot?.workoutId ?? null;
+              if (oldWorkoutId) {
+                await db.workout.delete({ where: { id: oldWorkoutId } });
+              }
+              await db.planSlot.update({
+                where: { id: planSlotIdForCreate },
+                data: { type: "workout", workoutId: workout.id },
+              });
+            }
+
             results.created.push(`Workout: ${workoutPlan.title}`);
 
-            // Criar exercícios em batch para este workout
             const exercises = await createExercisesInBatch(
               workout.id,
-              workoutPlan.exercises,
+              workoutPlan.exercises || [],
               student.profile,
               workoutPlan.difficulty,
             );
@@ -145,13 +240,22 @@ export async function POST(request: NextRequest) {
 
       case "delete_workout": {
         if (parsedPlan.targetWorkoutId) {
-          const workout = unit.workouts.find(
+          const workouts = planSlot?.workout
+            ? [planSlot.workout]
+            : unit?.workouts ?? [];
+          const workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
           if (workout) {
             await db.workout.delete({
               where: { id: parsedPlan.targetWorkoutId },
             });
+            if (planSlot) {
+              await db.planSlot.update({
+                where: { id: planSlotId },
+                data: { type: "rest", workoutId: null },
+              });
+            }
             results.deleted.push(`Workout: ${workout.title}`);
           }
         }
@@ -161,16 +265,20 @@ export async function POST(request: NextRequest) {
       case "add_exercise": {
         if (parsedPlan.targetWorkoutId && parsedPlan.workouts.length > 0) {
           const workoutPlan = parsedPlan.workouts[0];
-          const targetWorkout = unit.workouts.find(
+          const exercisesToAdd = workoutPlan.exercises || [];
+          const workouts = planSlot?.workout
+            ? [planSlot.workout]
+            : unit?.workouts ?? [];
+          const targetWorkout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
 
-          if (targetWorkout) {
+          if (targetWorkout && exercisesToAdd.length > 0) {
             const currentExerciseCount = targetWorkout.exercises.length;
 
             const exercises = await createExercisesInBatch(
               parsedPlan.targetWorkoutId,
-              workoutPlan.exercises,
+              exercisesToAdd,
               student.profile,
               workoutPlan.difficulty,
               currentExerciseCount,
@@ -184,7 +292,10 @@ export async function POST(request: NextRequest) {
 
       case "remove_exercise": {
         if (parsedPlan.targetWorkoutId && parsedPlan.exerciseToRemove) {
-          const workout = unit.workouts.find(
+          const workouts = planSlot?.workout
+            ? [planSlot.workout]
+            : unit?.workouts ?? [];
+          const workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
           if (workout) {
@@ -210,18 +321,18 @@ export async function POST(request: NextRequest) {
       }
 
       case "replace_exercise": {
-        // Se veio a lista completa de workouts, refaça toda a grade (mesma lógica de update_workout completo)
-        if (parsedPlan.workouts.length > 1) {
+        // Se veio a lista completa de workouts, refaça toda a grade (apenas para unit)
+        if (parsedPlan.workouts.length > 1 && unit) {
           await db.workoutExercise.deleteMany({
-            where: { workout: { unitId } },
+            where: { workout: { unitId: unit.id } },
           });
-          await db.workout.deleteMany({ where: { unitId } });
+          await db.workout.deleteMany({ where: { unitId: unit.id } });
 
           for (let i = 0; i < parsedPlan.workouts.length; i++) {
             const workoutPlan = parsedPlan.workouts[i];
             const newWorkout = await db.workout.create({
               data: {
-                unitId,
+                unitId: unit.id,
                 title: workoutPlan.title,
                 description: workoutPlan.description || "",
                 type: workoutPlan.type,
@@ -251,9 +362,19 @@ export async function POST(request: NextRequest) {
           parsedPlan.exerciseToReplace &&
           parsedPlan.workouts.length > 0
         ) {
-          const workout = unit.workouts.find(
+          const workouts = planSlot?.workout
+            ? [planSlot.workout]
+            : unit?.workouts ?? [];
+          let workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
+          if (!workout) {
+            workout = workouts.find(
+              (w) =>
+                w.title.toLowerCase() ===
+                String(parsedPlan.targetWorkoutId).toLowerCase(),
+            );
+          }
           if (workout) {
             const oldExercise = workout.exercises.find(
               (e) =>
@@ -274,9 +395,9 @@ export async function POST(request: NextRequest) {
                 where: { id: oldExercise.id },
               });
 
-              // Criar novo exercício
+              // Criar novo exercício (usar workout.id - workout pode ter sido encontrado por título)
               const _exercises = await createExercisesInBatch(
-                parsedPlan.targetWorkoutId,
+                workout.id,
                 [newExercisePlan],
                 student.profile,
                 "intermediario",
@@ -293,21 +414,20 @@ export async function POST(request: NextRequest) {
       }
 
       case "update_workout": {
-        if (parsedPlan.workouts.length > 1) {
-          // Novo comportamento: JSON completo. Para evitar timeout/erro de transação,
-          // fazemos em série fora de transaction.
+        if (parsedPlan.workouts.length > 1 && unit) {
+          // Novo comportamento: JSON completo (apenas para unit).
           await db.workoutExercise.deleteMany({
-            where: { workout: { unitId } },
+            where: { workout: { unitId: unit.id } },
           });
           await db.workout.deleteMany({
-            where: { unitId },
+            where: { unitId: unit.id },
           });
 
           for (let i = 0; i < parsedPlan.workouts.length; i++) {
             const workoutPlan = parsedPlan.workouts[i];
             const newWorkout = await db.workout.create({
               data: {
-                unitId,
+                unitId: unit.id,
                 title: workoutPlan.title,
                 description: workoutPlan.description || "",
                 type: workoutPlan.type,
@@ -336,17 +456,18 @@ export async function POST(request: NextRequest) {
           parsedPlan.targetWorkoutId &&
           parsedPlan.workouts.length > 0
         ) {
-          // Atualizar apenas o workout referenciado (modo antigo)
+          // Atualizar apenas o workout referenciado
           const workoutPlan = parsedPlan.workouts[0];
+          const workouts = planSlot?.workout
+            ? [planSlot.workout]
+            : unit?.workouts ?? [];
 
-          // Buscar workout pelo ID primeiro
-          let targetWorkout = unit.workouts.find(
+          let targetWorkout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
 
-          // Se não encontrou pelo ID, tentar pelo título (para workouts ainda não salvos nos previews)
           if (!targetWorkout) {
-            targetWorkout = unit.workouts.find((w) => {
+            targetWorkout = workouts.find((w) => {
               const targetTitle = parsedPlan.targetWorkoutId
                 .toLowerCase()
                 .trim();
@@ -389,29 +510,46 @@ export async function POST(request: NextRequest) {
             results.created.push(
               `${exercises.length} exercícios em ${workoutPlan.title}`,
             );
-          } else {
+          } else if (unit || planSlot) {
             // Se não encontrou, pode ser um workout novo nos previews - criar novo
             console.log(
               `[update_workout] Workout não encontrado pelo ID/título "${parsedPlan.targetWorkoutId}", criando novo...`,
             );
 
-            const lastOrder =
-              unit.workouts.length > 0
-                ? Math.max(...unit.workouts.map((w) => w.order ?? 0)) + 1
-                : 0;
+            let order = 0;
+            let unitIdForCreate: string | null = null;
+            let planSlotIdForCreate: string | null = null;
+
+            if (planSlot) {
+              planSlotIdForCreate = planSlotId!;
+              order = planSlot.dayOfWeek;
+            } else if (unit) {
+              unitIdForCreate = unit.id;
+              order =
+                unit.workouts.length > 0
+                  ? Math.max(...unit.workouts.map((w) => w.order ?? 0)) + 1
+                  : 0;
+            }
 
             const newWorkout = await db.workout.create({
               data: {
-                unitId,
+                unitId: unitIdForCreate,
                 title: workoutPlan.title,
                 description: workoutPlan.description || "",
                 type: workoutPlan.type,
                 muscleGroup: workoutPlan.muscleGroup,
                 difficulty: workoutPlan.difficulty,
                 estimatedTime: 0,
-                order: lastOrder,
+                order,
               },
             });
+
+            if (planSlotIdForCreate) {
+              await db.planSlot.update({
+                where: { id: planSlotIdForCreate },
+                data: { type: "workout", workoutId: newWorkout.id },
+              });
+            }
 
             const exercises = await createExercisesInBatch(
               newWorkout.id,

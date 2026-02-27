@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { mockGymProfile, mockGymStats } from "@/lib/gym-mock-data";
 import type {
 	CheckIn,
 	Coupon,
@@ -46,8 +45,12 @@ interface GymState {
 export const useGymStore = create<GymState>()(
 	persist(
 		(set) => ({
-			profile: mockGymProfile,
-			stats: mockGymStats,
+			profile: null,
+			stats: {
+				today: { checkins: 0, activeStudents: 0, equipmentInUse: 0, peakHour: "—" },
+				week: { totalCheckins: 0, avgDailyCheckins: 0, newMembers: 0, canceledMembers: 0 },
+				month: { totalCheckins: 0, retentionRate: 0, growthRate: 0, topStudents: [], mostUsedEquipment: [] },
+			},
 			students: [],
 			equipment: [],
 			checkIns: [],

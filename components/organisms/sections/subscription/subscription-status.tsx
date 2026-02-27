@@ -1,9 +1,8 @@
 "use client";
 
 import { Crown, Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusProps {
@@ -43,7 +42,7 @@ interface SubscriptionStatusProps {
 	onCancel: () => Promise<void>;
 }
 
-export function SubscriptionStatus({
+function SubscriptionStatusSimple({
 	subscription,
 	userType,
 	texts,
@@ -58,7 +57,13 @@ export function SubscriptionStatus({
 	onCancel,
 }: SubscriptionStatusProps) {
 	return (
-		<SectionCard title={texts.subscriptionStatusTitle} icon={Crown}>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<Crown className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">{texts.subscriptionStatusTitle}</h2>
+				</div>
+			</DuoCard.Header>
 			<div className="space-y-4">
 				{/* Header com status */}
 				<div className="flex items-center justify-between">
@@ -152,7 +157,7 @@ export function SubscriptionStatus({
 				{/* Trial Info */}
 				{hasTrial && (
 					<>
-						<DuoCard variant={isCanceled ? "default" : "blue"} size="default">
+						<DuoCard.Root variant={isCanceled ? "default" : "blue"} size="default">
 							<div className="flex items-center gap-3">
 								<Gift
 									className={cn(
@@ -213,27 +218,28 @@ export function SubscriptionStatus({
 									)}
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 
 						<div className="pt-3 border-t-2 border-duo-border">
 							{isCanceled ? (
-								<Button
+								<DuoButton
 									onClick={onStartTrial}
 									disabled={isLoading}
 									className="w-full"
 									size="sm"
+									variant="primary"
 								>
 									{isLoading ? "Reativando..." : "Reativar Trial"}
-								</Button>
+								</DuoButton>
 							) : (
-								<Button
+								<DuoButton
 									onClick={onCancel}
 									variant="outline"
 									className="w-full"
 									size="sm"
 								>
 									{texts.cancelTrialButton}
-								</Button>
+								</DuoButton>
 							)}
 						</div>
 					</>
@@ -275,28 +281,31 @@ export function SubscriptionStatus({
 						</div>
 						<div className="mt-3">
 							{isCanceled ? (
-								<Button
+								<DuoButton
 									onClick={onStartTrial}
 									disabled={isLoading}
 									className="w-full"
 									size="sm"
+									variant="primary"
 								>
 									{isLoading ? "Reativando..." : "Reativar Assinatura"}
-								</Button>
+								</DuoButton>
 							) : (
-								<Button
+								<DuoButton
 									onClick={onCancel}
 									variant="outline"
 									className="w-full"
 									size="sm"
 								>
 									{texts.cancelSubscriptionButton}
-								</Button>
+								</DuoButton>
 							)}
 						</div>
 					</div>
 				)}
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }
+
+export const SubscriptionStatus = { Simple: SubscriptionStatusSimple };

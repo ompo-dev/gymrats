@@ -2,6 +2,8 @@
 
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
 import type {
 	Coupon,
 	Expense,
@@ -9,13 +11,13 @@ import type {
 	Payment,
 	Referral,
 } from "@/lib/types";
-import { FinancialCouponsTab } from "../components/financial/financial-coupons-tab";
-import { FinancialExpensesTab } from "../components/financial/financial-expenses-tab";
-import { FinancialOverviewTab } from "../components/financial/financial-overview-tab";
-import { FinancialPaymentsTab } from "../components/financial/financial-payments-tab";
-import { FinancialReferralsTab } from "../components/financial/financial-referrals-tab";
-import { FinancialSubscriptionTab } from "../components/financial/financial-subscription-tab";
-import { FinancialTabsNavigation } from "../components/financial/financial-tabs-navigation";
+import { FinancialCouponsTab } from "@/components/organisms/gym/financial/financial-coupons-tab";
+import { FinancialExpensesTab } from "@/components/organisms/gym/financial/financial-expenses-tab";
+import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
+import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
+import { FinancialReferralsTab } from "@/components/organisms/gym/financial/financial-referrals-tab";
+import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
+import { FinancialTabsNavigation } from "@/components/organisms/gym/financial/financial-tabs-navigation";
 
 interface FinancialPageProps {
 	financialSummary: FinancialSummary;
@@ -108,20 +110,24 @@ export default function FinancialPage({
 	};
 
 	return (
-		<div className="container px-4 py-6">
-			<div className="mb-6">
-				<h1 className="mb-2 text-2xl font-black text-duo-gray-darkest">
-					Gestão Financeira
-				</h1>
-				<p className="text-sm text-duo-gray-dark">
-					Controle completo de receitas e despesas
-				</p>
-			</div>
+		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+			<FadeIn>
+				<div className="text-center">
+					<h1 className="mb-2 text-3xl font-bold text-duo-text">
+						Gestão Financeira
+					</h1>
+					<p className="text-sm text-duo-gray-dark">
+						Controle completo de receitas e despesas
+					</p>
+				</div>
+			</FadeIn>
 
-			<FinancialTabsNavigation
-				activeTab={viewMode}
-				onTabChange={handleTabChange}
-			/>
+			<SlideIn delay={0.1}>
+				<FinancialTabsNavigation
+					activeTab={viewMode}
+					onTabChange={handleTabChange}
+				/>
+			</SlideIn>
 
 			{viewMode === "overview" && (
 				<FinancialOverviewTab

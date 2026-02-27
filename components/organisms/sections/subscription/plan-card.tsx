@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown } from "lucide-react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
 
@@ -17,7 +17,7 @@ interface PlanCardProps {
 	};
 }
 
-export function PlanCard({
+function PlanCardSimple({
 	plan,
 	isSelected,
 	onSelect,
@@ -33,7 +33,7 @@ export function PlanCard({
 	const shouldSpanFullWidth = isEnterprise && plansCount === 3;
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant={isSelected ? "highlighted" : "default"}
 			size="md"
 			className={cn(
@@ -120,6 +120,8 @@ export function PlanCard({
 						)}
 				</>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }
+
+export const PlanCard = { Simple: PlanCardSimple };

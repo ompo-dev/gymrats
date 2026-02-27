@@ -16,7 +16,7 @@ interface ExerciseCardViewProps {
 	completedSetsCount?: number; // Número de séries completadas
 }
 
-export function ExerciseCardView({
+function ExerciseCardViewSimple({
 	exercise,
 	exerciseName,
 	hasAlternative,
@@ -41,7 +41,7 @@ export function ExerciseCardView({
 			animate={{ opacity: 1, y: 0, scale: 1 }}
 			exit={{ opacity: 0, y: -20, scale: 0.95 }}
 			transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-			className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-white to-gray-50 p-4 sm:p-6 lg:p-8 shadow-lg"
+			className="mb-4 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-duo-border bg-linear-to-br from-duo-bg-card to-duo-bg-elevated p-4 sm:p-6 lg:p-8 shadow-lg"
 		>
 			<div className="mb-4 sm:mb-6">
 				<div className="flex items-center justify-center gap-2">
@@ -87,17 +87,17 @@ export function ExerciseCardView({
 				) : (
 					<>
 						{/* Séries e Repetições - FORÇA */}
-						<div className="rounded-xl sm:rounded-2xl border-2 border-[#58CC02] bg-linear-to-br from-[#58CC02]/10 to-[#47A302]/10 p-4 sm:p-6 text-center">
+						<div className="rounded-xl sm:rounded-2xl border-2 border-duo-green bg-linear-to-br from-duo-green/10 to-duo-green-dark/10 p-4 sm:p-6 text-center">
 							<div className="mb-2 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 								Séries e Repetições
 							</div>
-							<div className="text-3xl sm:text-4xl font-black text-[#58CC02]">
+							<div className="text-3xl sm:text-4xl font-black text-duo-green">
 								{exercise.sets} x {exercise.reps}
 							</div>
 						</div>
 
 						<div className="grid grid-cols-2 gap-3 sm:gap-4">
-							<div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4 text-center">
+							<div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-duo-bg-card p-3 sm:p-4 text-center">
 								<div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 									Descanso
 								</div>
@@ -105,7 +105,7 @@ export function ExerciseCardView({
 									{exercise.rest}s
 								</div>
 							</div>
-							<div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-white p-3 sm:p-4 text-center">
+							<div className="rounded-xl border-2 border-duo-orange bg-linear-to-br from-duo-orange/10 to-duo-bg-card p-3 sm:p-4 text-center">
 								<div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 									XP
 								</div>
@@ -118,7 +118,7 @@ export function ExerciseCardView({
 				)}
 
 				{exercise.notes && (
-					<div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-white p-3 sm:p-4">
+					<div className="rounded-xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/10 to-duo-bg-card p-3 sm:p-4">
 						<div className="mb-1 flex items-center gap-2 text-xs sm:text-sm font-bold text-duo-blue">
 							<span>💡</span>
 							<span>Dica</span>
@@ -156,3 +156,5 @@ export function ExerciseCardView({
 		</motion.div>
 	);
 }
+
+export const ExerciseCardView = { Simple: ExerciseCardViewSimple };

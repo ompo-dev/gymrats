@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { usePWAUpdate } from "@/lib/hooks/use-pwa-update";
 import { cn } from "@/lib/utils";
 
-export function PWAUpdateBanner() {
+function PWAUpdateBannerSimple() {
 	const { updateAvailable, isUpdating, applyUpdate } = usePWAUpdate();
 	const [dismissed, setDismissed] = useState(false);
 
@@ -89,3 +89,7 @@ export function PWAUpdateBanner() {
 		</AnimatePresence>
 	);
 }
+
+export const PWAUpdateBanner = { Simple: PWAUpdateBannerSimple };
+// Compatibilidade: permite <PWAUpdateBanner /> como componente
+export default PWAUpdateBannerSimple;

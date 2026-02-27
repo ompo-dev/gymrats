@@ -32,6 +32,7 @@ type StudentSelector =
 	| "weightHistory"
 	| "weightGain"
 	| "units"
+	| "weeklyPlan"
 	| "workoutHistory"
 	| "personalRecords"
 	| "dailyNutrition"
@@ -128,6 +129,10 @@ export function useStudent<T extends StudentSelector>(
 	);
 	// Seletor específico para units para garantir reatividade imediata
 	const unitsData = useStudentUnifiedStore((state) => state.data.units);
+	// Seletor específico para weeklyPlan para garantir reatividade após loadWeeklyPlan
+	const weeklyPlanData = useStudentUnifiedStore(
+		(state) => state.data.weeklyPlan,
+	);
 	const loadAll = useStudentUnifiedStore((state) => state.loadAll);
 	const loadAllPrioritized = useStudentUnifiedStore(
 		(state) => state.loadAllPrioritized,
@@ -195,6 +200,7 @@ export function useStudent<T extends StudentSelector>(
 		(state) => state.loadWeightHistory,
 	);
 	const loadWorkouts = useStudentUnifiedStore((state) => state.loadWorkouts);
+	const loadWeeklyPlan = useStudentUnifiedStore((state) => state.loadWeeklyPlan);
 	const loadWorkoutHistory = useStudentUnifiedStore(
 		(state) => state.loadWorkoutHistory,
 	);
@@ -279,6 +285,7 @@ export function useStudent<T extends StudentSelector>(
 				loadProfile,
 				loadWeightHistory,
 				loadWorkouts,
+				loadWeeklyPlan,
 				loadWorkoutHistory,
 				loadPersonalRecords,
 				loadNutrition,
@@ -302,6 +309,10 @@ export function useStudent<T extends StudentSelector>(
 		// Para units, usar valor já selecionado para garantir reatividade imediata
 		if (selector === "units") {
 			return unitsData as any;
+		}
+		// Para weeklyPlan, usar valor já selecionado para garantir reatividade após loadWeeklyPlan
+		if (selector === "weeklyPlan") {
+			return weeklyPlanData as any;
 		}
 		return selectFromData(data, selector) as any;
 	}
@@ -348,6 +359,7 @@ export function useStudent<T extends StudentSelector>(
 				loadProfile,
 				loadWeightHistory,
 				loadWorkouts,
+				loadWeeklyPlan,
 				loadWorkoutHistory,
 				loadPersonalRecords,
 				loadNutrition,
@@ -367,6 +379,9 @@ export function useStudent<T extends StudentSelector>(
 		} else if (selector === "units") {
 			// Usar valor já selecionado para garantir reatividade imediata
 			result[selector] = unitsData;
+		} else if (selector === "weeklyPlan") {
+			// Usar valor já selecionado para garantir reatividade após loadWeeklyPlan
+			result[selector] = weeklyPlanData;
 		} else {
 			result[selector] = selectFromData(data, selector);
 		}
@@ -451,6 +466,7 @@ function getLoaders(actions: {
 	loadProfile: StudentUnifiedState["loadProfile"];
 	loadWeightHistory: StudentUnifiedState["loadWeightHistory"];
 	loadWorkouts: StudentUnifiedState["loadWorkouts"];
+	loadWeeklyPlan: StudentUnifiedState["loadWeeklyPlan"];
 	loadWorkoutHistory: StudentUnifiedState["loadWorkoutHistory"];
 	loadPersonalRecords: StudentUnifiedState["loadPersonalRecords"];
 	loadNutrition: StudentUnifiedState["loadNutrition"];
@@ -472,6 +488,7 @@ function getLoaders(actions: {
 		loadProfile: actions.loadProfile,
 		loadWeightHistory: actions.loadWeightHistory,
 		loadWorkouts: actions.loadWorkouts,
+		loadWeeklyPlan: actions.loadWeeklyPlan,
 		loadWorkoutHistory: actions.loadWorkoutHistory,
 		loadPersonalRecords: actions.loadPersonalRecords,
 		loadNutrition: actions.loadNutrition,

@@ -9,7 +9,7 @@ interface StreakModalProps {
 	currentStreak: number;
 }
 
-export function StreakModal({
+function StreakModalSimple({
 	open,
 	onClose,
 	currentStreak,
@@ -19,7 +19,7 @@ export function StreakModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onClose}>
-			<DialogContent className="max-w-md border-2 border-duo-border bg-white p-0">
+			<DialogContent className="max-w-md border-2 border-duo-border bg-duo-bg-card p-0">
 				<div className="p-6 text-center">
 					<div className="mb-4 flex justify-center">
 						<div className="relative">
@@ -40,7 +40,7 @@ export function StreakModal({
 					</p>
 
 					{/* Calendar grid */}
-					<div className="mb-6 rounded-2xl border-2 border-duo-border bg-gray-50 p-4">
+					<div className="mb-6 rounded-2xl border-2 border-duo-border bg-duo-bg-elevated p-4">
 						<div className="mb-3 flex items-center justify-between">
 							<span className="text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 								Julho 2025
@@ -58,7 +58,7 @@ export function StreakModal({
 											"mx-auto h-10 w-10 rounded-xl border-2 flex items-center justify-center transition-all",
 											index <= today
 												? "border-duo-orange bg-duo-orange/20 text-duo-orange font-bold"
-												: "border-duo-gray bg-white text-duo-gray-dark",
+												: "border-duo-gray bg-duo-bg-card text-duo-gray-dark",
 										)}
 									>
 										{index === today && (
@@ -80,6 +80,8 @@ export function StreakModal({
 		</Dialog>
 	);
 }
+
+export const StreakModal = { Simple: StreakModalSimple };
 
 function cn(...classes: (string | boolean | undefined)[]) {
 	return classes.filter(Boolean).join(" ");

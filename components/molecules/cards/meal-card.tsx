@@ -1,11 +1,11 @@
 import { Check, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { FoodItemCard } from "@/components/ui/food-item-card";
 import type { Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
+import { DuoCard } from "@/components/duo";
 
 export interface MealCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	meal: Meal;
@@ -17,6 +17,8 @@ export interface MealCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	onToggleExpand?: () => void;
 	expandedFoodId?: string | null;
 	onToggleFoodExpand?: (foodId: string) => void;
+	/** Modo somente leitura: oculta botões de marcar completa e adicionar alimento */
+	readOnly?: boolean;
 }
 
 const mealIcons: Record<string, string> = {
@@ -39,7 +41,7 @@ const mealTimes: Record<string, string> = {
 	"post-workout": "Pós Treino",
 };
 
-export function MealCard({
+function MealCardSimple({
 	meal,
 	onComplete,
 	onAddFood,
@@ -49,6 +51,7 @@ export function MealCard({
 	onToggleExpand,
 	expandedFoodId,
 	onToggleFoodExpand,
+	readOnly = false,
 	className,
 	...props
 }: MealCardProps) {
@@ -81,7 +84,7 @@ export function MealCard({
 
 	return (
 		<div className={cn("space-y-2", className)} {...props}>
-			<DuoCard
+			<DuoCard.Root
 				variant={meal.completed ? "highlighted" : "default"}
 				size="md"
 				className={cn(
@@ -93,7 +96,7 @@ export function MealCard({
 			>
 				<div className="mb-3 flex items-start justify-between">
 					<div className="flex gap-3 flex-1">
-						<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-2xl">
+						<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-bg-elevated text-2xl">
 							{getMealIcon(meal.type, meal.name)}
 						</div>
 						<div className="flex-1">
@@ -103,44 +106,46 @@ export function MealCard({
 							</div>
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
-						{onAddFood && (
-							<Button
-								variant="white"
-								size="icon-sm"
-								onClick={(e) => {
-									e.stopPropagation();
-									onAddFood();
-								}}
-								title="Adicionar alimento"
-							>
-								<Plus className="h-4 w-4" />
-							</Button>
-						)}
-						{!meal.completed ? (
-							<button
-								onClick={(e) => {
-									e.stopPropagation();
-									onComplete();
-								}}
-								className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green text-duo-green transition-all hover:bg-duo-green hover:text-white active:scale-90"
-								title="Marcar como completa"
-							>
-								<Check className="h-5 w-5" />
-							</button>
-						) : (
-							<button
-								onClick={(e) => {
-									e.stopPropagation();
-									onComplete();
-								}}
-								className="flex h-8 w-8 items-center justify-center rounded-full bg-duo-green transition-all hover:bg-duo-green/90 active:scale-90"
-								title="Desmarcar"
-							>
-								<Check className="h-5 w-5 text-white" />
-							</button>
-						)}
-					</div>
+					{!readOnly && (
+						<div className="flex items-center gap-2">
+							{onAddFood && (
+								<DuoButton
+									variant="white"
+									size="icon-sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										onAddFood();
+									}}
+									title="Adicionar alimento"
+								>
+									<Plus className="h-4 w-4" />
+								</DuoButton>
+							)}
+							{!meal.completed ? (
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										onComplete();
+									}}
+									className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green text-duo-green transition-all hover:bg-duo-green hover:text-white active:scale-90"
+									title="Marcar como completa"
+								>
+									<Check className="h-5 w-5" />
+								</button>
+							) : (
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										onComplete();
+									}}
+									className="flex h-8 w-8 items-center justify-center rounded-full bg-duo-green transition-all hover:bg-duo-green/90 active:scale-90"
+									title="Desmarcar"
+								>
+									<Check className="h-5 w-5 text-white" />
+								</button>
+							)}
+						</div>
+					)}
 				</div>
 
 				<div className="grid grid-cols-4 gap-2 text-center">
@@ -177,7 +182,7 @@ export function MealCard({
 							className="overflow-hidden"
 						>
 							<div
-								className="mt-3 space-y-2 border-t border-gray-300 pt-3"
+								className="mt-3 space-y-2 border-t border-duo-border pt-3"
 								onClick={(e) => e.stopPropagation()}
 							>
 								<AnimatePresence mode="popLayout">
@@ -222,7 +227,7 @@ export function MealCard({
 
 				{/* Botão de excluir refeição quando expandido */}
 				<AnimatePresence>
-					{isExpanded && onDelete && (
+					{isExpanded && !readOnly && onDelete && (
 						<motion.div
 							initial={{ opacity: 0, height: 0 }}
 							animate={{ opacity: 1, height: "auto" }}
@@ -231,7 +236,7 @@ export function MealCard({
 							className="overflow-hidden"
 						>
 							<div
-								className="mt-3 border-t border-gray-300 pt-3"
+								className="mt-3 border-t border-duo-border pt-3"
 								onClick={(e) => e.stopPropagation()}
 							>
 								<motion.div
@@ -239,8 +244,8 @@ export function MealCard({
 									animate={{ opacity: 1, y: 0 }}
 									transition={{ delay: 0.1, duration: 0.2 }}
 								>
-									<Button
-										variant="destructive"
+									<DuoButton
+										variant="danger"
 										className="w-full"
 										onClick={(e) => {
 											e.stopPropagation();
@@ -249,13 +254,15 @@ export function MealCard({
 									>
 										<Trash2 className="h-4 w-4" />
 										Excluir Refeição
-									</Button>
+									</DuoButton>
 								</motion.div>
 							</div>
 						</motion.div>
 					)}
 				</AnimatePresence>
-			</DuoCard>
+			</DuoCard.Root>
 		</div>
 	);
 }
+
+export const MealCard = { Simple: MealCardSimple };

@@ -10,7 +10,7 @@ interface LoadingScreenProps {
 	className?: string;
 }
 
-export function LoadingScreen({
+function LoadingScreenSimple({
 	variant = "student",
 	message = "Carregando...",
 	className,
@@ -120,3 +120,7 @@ export function LoadingScreen({
 		</div>
 	);
 }
+
+export const LoadingScreen = {
+	Simple: LoadingScreenSimple,
+};

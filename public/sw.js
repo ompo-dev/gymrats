@@ -1,7 +1,7 @@
 // Service Worker para PWA - GymRats
 // IMPORTANTE: Esta versão é atualizada automaticamente pelo script sync-version.js
 // Para alterar, edite apenas o package.json e execute: npm run version:sync
-const CACHE_VERSION = "v26.0.0";
+const CACHE_VERSION = "33.0.0";
 const CACHE_NAME = `gymrats-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `gymrats-runtime-${CACHE_VERSION}`;
 const OFFLINE_QUEUE_DB = "offline-queue";
@@ -27,7 +27,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
-    })
+    }),
   );
   // Força ativação imediata do novo service worker
   self.skipWaiting();
@@ -58,7 +58,7 @@ self.addEventListener("activate", (event) => {
             .map((name) => {
               console.log("[SW] Removendo cache antigo:", name);
               return caches.delete(name);
-            })
+            }),
         );
       }),
       // Assume controle imediato
@@ -79,7 +79,7 @@ self.addEventListener("activate", (event) => {
         // Iniciar verificação de lembretes
         checkReminders();
         reminderCheckInterval = setInterval(checkReminders, 60 * 60 * 1000); // 1 hora
-      })
+      }),
   );
 });
 
@@ -128,7 +128,7 @@ self.addEventListener("fetch", (event) => {
   } else if (
     // Assets estáticos: apenas para arquivos com extensões conhecidas da pasta /public
     url.pathname.match(
-      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json)$/i
+      /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|json)$/i,
     ) &&
     !url.pathname.startsWith("/_next/")
   ) {
@@ -243,7 +243,7 @@ async function syncOfflineQueue() {
 
         if (delay > 0) {
           console.log(
-            `[SW] Aguardando ${delay}ms antes de tentar item ${item.id} (retry ${item.retries})`
+            `[SW] Aguardando ${delay}ms antes de tentar item ${item.id} (retry ${item.retries})`,
           );
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
@@ -289,12 +289,12 @@ async function syncOfflineQueue() {
 
           failed++;
           console.error(
-            `[SW] ❌ Falhou após 5 tentativas: ${item.url} (ID: ${item.id})`
+            `[SW] ❌ Falhou após 5 tentativas: ${item.url} (ID: ${item.id})`,
           );
         } else {
           console.warn(
             `[SW] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url} (ID: ${item.id})`,
-            error
+            error,
           );
 
           // Reagenda sync se ainda houver tentativas
@@ -310,7 +310,7 @@ async function syncOfflineQueue() {
     }
 
     console.log(
-      `[SW] Sincronização concluída: ${synced} sincronizados, ${failed} falhados`
+      `[SW] Sincronização concluída: ${synced} sincronizados, ${failed} falhados`,
     );
 
     // Notifica clientes sobre o resultado
@@ -670,7 +670,7 @@ async function checkReminderRules(prefs, appData) {
           (m) =>
             m &&
             (m.type === "breakfast" || m.type === "café da manhã") &&
-            m.completed === true
+            m.completed === true,
         );
         if (!breakfast) {
           const tag = `meal-breakfast-${today}`;
@@ -694,7 +694,7 @@ async function checkReminderRules(prefs, appData) {
           (m) =>
             m &&
             (m.type === "lunch" || m.type === "almoço") &&
-            m.completed === true
+            m.completed === true,
         );
         if (!lunch) {
           const tag = `meal-lunch-${today}`;
@@ -718,7 +718,7 @@ async function checkReminderRules(prefs, appData) {
           (m) =>
             m &&
             (m.type === "dinner" || m.type === "jantar") &&
-            m.completed === true
+            m.completed === true,
         );
         if (!dinner) {
           const tag = `meal-dinner-${today}`;
@@ -778,7 +778,7 @@ self.addEventListener("notificationclick", (event) => {
         if (clients.openWindow) {
           return clients.openWindow(url);
         }
-      })
+      }),
   );
 });
 

@@ -63,7 +63,8 @@ export interface StudentUnifiedState {
 	// Carregamento incremental (melhor performance)
 	loadEssential: () => Promise<void>; // User + Progress básico
 	loadStudentCore: () => Promise<void>; // Profile + Weight
-	loadWorkouts: (force?: boolean) => Promise<void>; // Workouts + History
+	loadWorkouts: (force?: boolean) => Promise<void>; // Units (legado)
+	loadWeeklyPlan: (force?: boolean) => Promise<void>; // Plano semanal 7 slots
 	loadNutrition: () => Promise<void>; // Nutrition
 	loadFinancial: () => Promise<void>; // Subscription + Payments
 	// Métodos individuais (mantidos para compatibilidade)
@@ -183,6 +184,7 @@ const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
 	profile: "/api/students/profile",
 	weightHistory: "/api/students/weight",
 	units: "/api/workouts/units",
+	weeklyPlan: "/api/workouts/weekly-plan",
 	workoutHistory: "/api/workouts/history",
 	personalRecords: "/api/students/personal-records",
 	subscription: "/api/subscriptions/current",
@@ -214,10 +216,19 @@ const loadingPromises = new Map<
  *
  * IMPORTANTE: Evita carregamentos duplicados - se a seção já está sendo carregada,
  * retorna a promise existente em vez de fazer nova requisição
+ *
+ * @param forceRefresh - Se true, ignora deduplicação e força nova requisição (ex: após week-reset)
  */
 async function loadSection(
 	section: StudentDataSection,
+	forceRefresh = false,
 ): Promise<Partial<StudentData>> {
+	// Se forceRefresh, limpar cache da seção para garantir dados frescos (ex: após week-reset)
+	if (forceRefresh) {
+		loadingSections.delete(section);
+		loadingPromises.delete(section);
+	}
+
 	// Se já está sendo carregada, retornar a promise existente
 	if (loadingSections.has(section) && loadingPromises.has(section)) {
 		const existingPromise = loadingPromises.get(section);
@@ -386,6 +397,12 @@ function transformSectionResponse(
 			// Units vem como array
 			return { units: Array.isArray(data) ? data : data.units || [] };
 
+		case "weeklyPlan":
+			// Weekly plan vem como { weeklyPlan: { id, title, slots }, weekStart }
+			return {
+				weeklyPlan: data?.weeklyPlan ?? null,
+			};
+
 		case "workoutHistory":
 			// Workout history vem de /api/workouts/history como { history: [...], total: number }
 			// ou pode vir como array direto
@@ -553,6 +570,9 @@ function updateStoreWithSection(
 		if (sectionData.units !== undefined) {
 			newState.units = sectionData.units;
 		}
+		if (sectionData.weeklyPlan !== undefined) {
+			newState.weeklyPlan = sectionData.weeklyPlan;
+		}
 		if (sectionData.workoutHistory !== undefined) {
 			newState.workoutHistory = sectionData.workoutHistory;
 		}
@@ -698,7 +718,8 @@ async function loadAllDataIncremental(
 		"user",
 		"student",
 		"progress", // Importante para tela de learn
-		"units", // MAIS IMPORTANTE para tela de learn - prioridade alta
+		"units", // Legado - mantido para compatibilidade
+		"weeklyPlan", // Plano semanal 7 slots - usado em learn e ContinueWorkoutCard
 		"profile",
 		"weightHistory",
 		"workoutHistory",
@@ -1055,8 +1076,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			loadWorkouts: async (force = false) => {
 				const currentState = get();
 
-				// Evitar múltiplas chamadas simultâneas
-				// Mas permitir forçar o carregamento quando necessário (ex: após completar workout)
 				if (!force && currentState.data.metadata.isLoading) {
 					return;
 				}
@@ -1066,6 +1085,23 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					data: {
 						...state.data,
 						units: section.units || state.data.units,
+					},
+				}));
+			},
+
+			loadWeeklyPlan: async (force = false) => {
+				const currentState = get();
+
+				if (!force && currentState.data.metadata.isLoading) {
+					return;
+				}
+
+				// force=true: bypassa deduplicação para garantir dados frescos (ex: após week-reset)
+				const section = await loadSection("weeklyPlan", force);
+				set((state) => ({
+					data: {
+						...state.data,
+						weeklyPlan: section.weeklyPlan ?? state.data.weeklyPlan,
 					},
 				}));
 			},
@@ -1545,12 +1581,21 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 
 				// Recarregar progresso do backend para garantir sincronização
-				// Isso atualiza workoutsCompleted, streak, etc com os valores corretos do backend
-				// O backend já atualizou o progresso quando o workout foi completado
 				await get().loadProgress();
 
-				// Recarregar workouts para atualizar status de locked/completed
+				// Recarregar plano semanal para atualizar status completed/locked nos slots
+				// (loadWorkouts carrega units/legado; weekly plan é o que o LearningPath usa)
+				await get().loadWeeklyPlan(true);
+
+				// Recarregar workouts (units) para compatibilidade
 				await get().loadWorkouts();
+
+				// Disparar evento para WorkoutNode e LearningPath reagirem imediatamente
+				if (typeof window !== "undefined" && data.workoutId) {
+					window.dispatchEvent(
+						new CustomEvent("workoutCompleted", { detail: { workoutId: data.workoutId } }),
+					);
+				}
 			},
 
 			addPersonalRecord: (record) => {
@@ -2639,7 +2684,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				// 2. Optimistic update PRIMEIRO - atualiza UI instantaneamente (não espera API!)
 				const _currentState = get();
-				let unitFound = false;
+				let found = false;
 
 				const newExercise: WorkoutExercise = {
 					id: command.id, // Usar command ID como ID temporário
@@ -2666,51 +2711,71 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				// IMPORTANTE: Este set() é executado ANTES de qualquer await!
 				// O Zustand atualiza o store instantaneamente e componentes re-renderizam IMEDIATAMENTE
 				set((state) => {
-					// IMPORTANTE: Criar NOVOS objetos para unit, workout e exercises
-					// Isso garante que o Zustand detecte mudanças profundas via shallow equality
-					// Quando state.data.units recebe um NOVO array, o Zustand detecta a mudança
-					// e todos os seletores que dependem de state.data.units são executados novamente
+					// 1. Tentar em units
 					const updatedUnits = state.data.units.map((unit) => {
-						// Procurar workout pelo ID original (pode ser temporário)
 						const workout = unit.workouts.find((w) => w.id === workoutId);
 						if (workout) {
-							unitFound = true;
+							found = true;
 							const lastExercise =
 								workout.exercises[workout.exercises.length - 1];
 							const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
 
-							// Criar NOVO objeto unit com NOVO objeto workout com NOVO array exercises
-							// Isso garante que o Zustand detecte a mudança profunda e re-renderize componentes
 							return {
-								...unit, // Copiar unit existente (cria nova referência)
+								...unit,
 								workouts: unit.workouts.map((w) =>
 									w.id === workoutId
 										? {
-												...w, // Copiar workout existente (cria nova referência)
+												...w,
 												exercises: [
-													...w.exercises, // Copiar array existente (cria novo array)
-													{ ...newExercise, order: newOrder }, // Adicionar novo exercício
+													...w.exercises,
+													{ ...newExercise, order: newOrder },
 												],
 											}
 										: w,
 								),
 							};
 						}
-						return unit; // Retornar unit inalterado (mesma referência - Zustand não detecta mudança)
+						return unit;
 					});
 
-					// IMPORTANTE: Retornar NOVO objeto data com NOVO array units
-					// Quando state.data.units muda (nova referência), o Zustand detecta via shallow equality
-					// e todos os componentes que usam seletores dependentes de state.data.units re-renderizam
+					// 2. Se não encontrou em units, tentar em weeklyPlan.slots
+					let updatedWeeklyPlan = state.data.weeklyPlan;
+					if (!found && state.data.weeklyPlan?.slots) {
+						updatedWeeklyPlan = {
+							...state.data.weeklyPlan,
+							slots: state.data.weeklyPlan.slots.map((slot) => {
+								if (slot.type !== "workout" || !slot.workout || slot.workout.id !== workoutId) {
+									return slot;
+								}
+								found = true;
+								const workout = slot.workout;
+								const lastExercise = workout.exercises[workout.exercises.length - 1];
+								const newOrder = lastExercise ? (lastExercise.order || 0) + 1 : 0;
+
+								return {
+									...slot,
+									workout: {
+										...workout,
+										exercises: [
+											...(workout.exercises || []),
+											{ ...newExercise, order: newOrder },
+										],
+									},
+								};
+							}),
+						};
+					}
+
 					return {
 						data: {
 							...state.data,
-							units: updatedUnits, // NOVO array - Zustand detecta mudança instantaneamente
+							units: updatedUnits,
+							weeklyPlan: updatedWeeklyPlan ?? state.data.weeklyPlan,
 						},
 					};
 				});
 
-				if (!unitFound) {
+				if (!found) {
 					throw new Error("Workout não encontrado");
 				}
 
@@ -3062,36 +3127,70 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			},
 
 			deleteWorkoutExercise: async (exerciseId) => {
-				// 1. Optimistic update - remove da UI imediatamente
-				const previousUnits = get().data.units;
+				// Guardar exercício para possível revert em caso de erro
 				let exerciseToDelete: WorkoutExercise | null = null;
 				let workoutId: string | undefined;
-
-				// Encontrar exercício antes de remover
-				for (const unit of previousUnits) {
+				for (const unit of get().data.units) {
 					for (const workout of unit.workouts) {
-						const exercise = workout.exercises.find((e) => e.id === exerciseId);
-						if (exercise) {
-							exerciseToDelete = exercise;
+						const ex = workout.exercises.find((e) => e.id === exerciseId);
+						if (ex) {
+							exerciseToDelete = ex;
 							workoutId = workout.id;
 							break;
 						}
 					}
 					if (exerciseToDelete) break;
 				}
+				// Também verificar weeklyPlan
+				const wp = get().data.weeklyPlan;
+				if (!exerciseToDelete && wp?.slots) {
+					for (const slot of wp.slots) {
+						if (slot.type === "workout" && slot.workout) {
+							const ex = slot.workout.exercises.find((e) => e.id === exerciseId);
+							if (ex) {
+								exerciseToDelete = ex;
+								workoutId = slot.workout.id;
+								break;
+							}
+						}
+					}
+				}
 
-				set((state) => ({
-					data: {
-						...state.data,
-						units: state.data.units.map((unit) => ({
-							...unit,
-							workouts: unit.workouts.map((workout) => ({
-								...workout,
-								exercises: workout.exercises.filter((e) => e.id !== exerciseId),
-							})),
+				// 1. Optimistic update - remove da UI imediatamente (units + weeklyPlan)
+				set((state) => {
+					const updatedUnits = state.data.units.map((unit) => ({
+						...unit,
+						workouts: unit.workouts.map((workout) => ({
+							...workout,
+							exercises: workout.exercises.filter((e) => e.id !== exerciseId),
 						})),
-					},
-				}));
+					}));
+
+					let updatedWeeklyPlan = state.data.weeklyPlan;
+					if (state.data.weeklyPlan?.slots) {
+						updatedWeeklyPlan = {
+							...state.data.weeklyPlan,
+							slots: state.data.weeklyPlan.slots.map((slot) => {
+								if (slot.type !== "workout" || !slot.workout) return slot;
+								return {
+									...slot,
+									workout: {
+										...slot.workout,
+										exercises: slot.workout.exercises.filter((e) => e.id !== exerciseId),
+									},
+								};
+							}),
+						};
+					}
+
+					return {
+						data: {
+							...state.data,
+							units: updatedUnits,
+							weeklyPlan: updatedWeeklyPlan ?? state.data.weeklyPlan,
+						},
+					};
+				});
 
 				// 2. Criar command explícito
 				const command = createCommand("DELETE_WORKOUT_EXERCISE", {
@@ -3196,25 +3295,62 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						// Erro não é de rede - reverter optimistic update
 						console.error("Erro ao deletar exercício:", error);
 						if (exerciseToDelete && workoutId) {
-							set((state) => ({
-								data: {
-									...state.data,
-									units: state.data.units.map((unit) => ({
-										...unit,
-										workouts: unit.workouts.map((workout) =>
-											workout.id === workoutId
-												? {
-														...workout,
-														exercises: [
-															...workout.exercises,
-															exerciseToDelete!,
-														].sort((a, b) => (a.order || 0) - (b.order || 0)),
-													}
-												: workout,
-										),
-									})),
-								},
-							}));
+							set((state) => {
+								const inUnit = state.data.units.some((u) =>
+									u.workouts.some((w) => w.id === workoutId),
+								);
+								if (inUnit) {
+									return {
+										data: {
+											...state.data,
+											units: state.data.units.map((unit) => ({
+												...unit,
+												workouts: unit.workouts.map((workout) =>
+													workout.id === workoutId
+														? {
+																...workout,
+																exercises: [
+																	...workout.exercises,
+																	exerciseToDelete!,
+																].sort((a, b) => (a.order || 0) - (b.order || 0)),
+															}
+														: workout,
+												),
+											})),
+										},
+									};
+								}
+								// Reverter em weeklyPlan
+								if (state.data.weeklyPlan?.slots) {
+									return {
+										data: {
+											...state.data,
+											weeklyPlan: {
+												...state.data.weeklyPlan,
+												slots: state.data.weeklyPlan.slots.map((slot) => {
+													if (
+														slot.type !== "workout" ||
+														!slot.workout ||
+														slot.workout.id !== workoutId
+													)
+														return slot;
+													return {
+														...slot,
+														workout: {
+															...slot.workout,
+															exercises: [
+																...slot.workout.exercises,
+																exerciseToDelete,
+															].sort((a, b) => (a.order || 0) - (b.order || 0)),
+														},
+													};
+												}),
+											},
+										},
+									};
+								}
+								return {};
+							});
 						}
 					}
 				}

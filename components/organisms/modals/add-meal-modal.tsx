@@ -3,8 +3,8 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoButton } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
 import type { DietType } from "@/lib/types";
 
 interface AddMealModalProps {
@@ -32,7 +32,7 @@ const mealTypes = [
 	{ id: "post-workout", label: "Pós Treino", icon: "🏋️", defaultTime: "18:30" },
 ] as const;
 
-export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
+function AddMealModalSimple({ onClose, onAddMeal }: AddMealModalProps) {
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 	const [times, setTimes] = useState<Record<string, string>>({});
 
@@ -115,27 +115,28 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 						stiffness: 300,
 						duration: 0.3,
 					}}
-					className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl"
+					className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
 					onClick={(e) => e.stopPropagation()}
 				>
 					<motion.div
 						initial={{ opacity: 0, y: -10 }}
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.1, duration: 0.3 }}
-						className="border-b-2 border-gray-300 p-6"
+						className="border-b-2 border-duo-border p-6"
 					>
 						<div className="mb-4 flex items-center justify-between">
-							<h2 className="text-2xl font-bold text-gray-900">
+							<h2 className="text-2xl font-bold text-duo-text">
 								Adicionar Refeição
 							</h2>
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
+							<DuoButton
+								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClose}
-								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+								className="h-10 w-10 rounded-full"
 							>
 								<X className="h-5 w-5" />
-							</motion.button>
+							</DuoButton>
 						</div>
 
 						<motion.div
@@ -144,17 +145,12 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 							transition={{ delay: 0.15, duration: 0.3 }}
 							className="mb-4"
 						>
-							<OptionSelector
+							<DuoSelect.Simple
 								options={options}
 								value={selectedTypes}
 								onChange={handleTypeChange}
-								multiple={true}
-								layout="grid"
-								columns={2}
-								size="md"
-								textAlign="left"
-								animate={true}
-								delay={0.2}
+								multiple
+								placeholder="Selecione as refeições"
 							/>
 						</motion.div>
 
@@ -167,7 +163,7 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 									transition={{ duration: 0.3 }}
 									className="mt-4 space-y-3"
 								>
-									<label className="block text-sm font-bold text-gray-600">
+									<label className="block text-sm font-bold text-duo-fg-muted">
 										Horários das Refeições Selecionadas
 									</label>
 									<div className="space-y-2">
@@ -180,11 +176,11 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 													initial={{ opacity: 0, y: -10 }}
 													animate={{ opacity: 1, y: 0 }}
 													transition={{ delay: index * 0.05 }}
-													className="flex items-center gap-3 rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
+													className="flex items-center gap-3 rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-3"
 												>
 													<span className="text-xl">{mealType.icon}</span>
 													<div className="flex-1">
-														<div className="text-xs font-bold text-gray-900">
+														<div className="text-xs font-bold text-duo-text">
 															{mealType.label}
 														</div>
 													</div>
@@ -194,7 +190,7 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 														onChange={(e) =>
 															handleTimeChange(typeId, e.target.value)
 														}
-														className="rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-bold text-gray-900 focus:border-duo-green focus:outline-none"
+														className="rounded-lg border-2 border-duo-border px-3 py-1.5 text-sm font-bold text-duo-text focus:border-duo-green focus:outline-none bg-duo-bg-card"
 													/>
 												</motion.div>
 											);
@@ -212,12 +208,12 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 								animate={{ opacity: 1, y: 0 }}
 								exit={{ opacity: 0, y: 20 }}
 								transition={{ duration: 0.3 }}
-								className="border-t-2 border-gray-300 p-6"
+								className="border-t-2 border-duo-border p-6"
 							>
-								<Button onClick={handleAddMeals} className="w-full">
+								<DuoButton onClick={handleAddMeals} variant="primary" className="w-full">
 									ADICIONAR {selectedCount} REFEIÇÃO
 									{selectedCount > 1 ? "ÕES" : ""}
-								</Button>
+								</DuoButton>
 							</motion.div>
 						)}
 					</AnimatePresence>
@@ -226,3 +222,5 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 		</AnimatePresence>
 	);
 }
+
+export const AddMealModal = { Simple: AddMealModalSimple };

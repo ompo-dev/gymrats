@@ -4,8 +4,8 @@ import { Activity, Thermometer } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
+import { DuoInput } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { FormInput } from "@/components/ui/form-input";
 import { RangeSlider } from "@/components/ui/range-slider";
 import { type step5Schema_Activity, validateStep5 } from "../schemas";
 import type { StepProps } from "./types";
@@ -114,7 +114,7 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
     activityLevelDescriptions[4];
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Nível de Atividade e Disponibilidade"
       description="Ajuste fino para cálculos mais precisos"
     >
@@ -207,17 +207,29 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
                 : "estrogênio"}
               ?
             </p>
-            <FormInput
+            <DuoInput.Simple
               label="Meses de tratamento"
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="0"
-              value={formData.hormoneTreatmentDuration || ""}
-              onChange={(value) => {
-                setFormData({
-                  ...formData,
-                  hormoneTreatmentDuration:
-                    typeof value === "number" ? value : undefined,
-                });
+              value={formData.hormoneTreatmentDuration ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({
+                    ...formData,
+                    hormoneTreatmentDuration: undefined,
+                  });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  const clamped = Math.min(120, Math.max(0, n));
+                  setFormData({
+                    ...formData,
+                    hormoneTreatmentDuration: clamped,
+                  });
+                }
                 setTouched((prev) => ({
                   ...prev,
                   hormoneTreatmentDuration: true,
@@ -234,13 +246,10 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
                   ? errors.hormoneTreatmentDuration
                   : undefined
               }
-              min={0}
-              max={120}
-              delay={0}
             />
           </motion.div>
         )}
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

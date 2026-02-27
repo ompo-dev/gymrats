@@ -1,9 +1,8 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { DuoButton } from "@/components/duo";
+import { Textarea } from "@/components/atoms/inputs/textarea";
 import { cn } from "@/lib/utils";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
@@ -101,10 +100,10 @@ function InputGroupButton({
 	variant = "ghost",
 	size = "xs",
 	...props
-}: Omit<React.ComponentProps<typeof Button>, "size"> &
+}: Omit<React.ComponentProps<typeof DuoButton>, "size"> &
 	VariantProps<typeof inputGroupButtonVariants>) {
 	return (
-		<Button
+		<DuoButton
 			type={type}
 			data-size={size}
 			variant={variant}
@@ -131,10 +130,10 @@ function InputGroupInput({
 	...props
 }: React.ComponentProps<"input">) {
 	return (
-		<Input
+		<input
 			data-slot="input-group-control"
 			className={cn(
-				"flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
+				"flex-1 rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent min-w-0",
 				className,
 			)}
 			{...props}

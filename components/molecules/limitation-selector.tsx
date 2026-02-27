@@ -3,8 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { FormInput } from "@/components/ui/form-input";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
 
 interface LimitationOption {
 	value: string;
@@ -38,7 +37,7 @@ interface LimitationSelectorProps {
 	error?: string;
 }
 
-export function LimitationSelector({
+function LimitationSelectorSimple({
 	title,
 	icon: Icon,
 	iconColor,
@@ -119,26 +118,20 @@ export function LimitationSelector({
 						{ value: "sim", label: "Sim", emoji: "✅" },
 						{ value: "nao", label: "Não", emoji: "❌" },
 					].map((option, index) => (
-						<motion.button
+						<DuoButton
 							key={option.value}
-							initial={{ opacity: 0, scale: 0.8 }}
-							animate={{ opacity: 1, scale: 1 }}
-							transition={{
-								delay: delay + 0.1 + index * 0.1,
-								type: "spring",
-							}}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.99 }}
+							type="button"
+							variant={hasLimitations === (option.value === "sim") ? "primary" : "outline"}
 							onClick={() => handleHasLimitationsChange(option.value)}
-							className={`rounded-2xl border-2 py-3 font-bold uppercase tracking-wider transition-all active:shadow-none active:translate-y-[4px] ${
-								hasLimitations === (option.value === "sim")
-									? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-									: "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]"
+							className={`rounded-2xl py-3 ${
+								hasLimitations !== (option.value === "sim")
+									? "border-gray-300 bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+									: ""
 							}`}
 						>
 							<span className="mr-2">{option.emoji}</span>
 							{option.label}
-						</motion.button>
+						</DuoButton>
 					))}
 				</div>
 
@@ -158,25 +151,19 @@ export function LimitationSelector({
 						{/* Botões de seleção como no Step 1 */}
 						<div className="grid grid-cols-2 gap-3">
 							{options.map((option, index) => (
-								<motion.button
+								<DuoButton
 									key={option.value}
-									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
-									transition={{
-										delay: delay + 0.2 + index * 0.05,
-										type: "spring",
-									}}
-									whileHover={{ scale: 1.02 }}
-									whileTap={{ scale: 0.99 }}
+									type="button"
+									variant={isLimitationSelected(option.value) ? "primary" : "outline"}
 									onClick={() => handleOptionClick(option.value)}
-									className={`rounded-2xl border-2 py-3 font-bold uppercase tracking-wider transition-all active:shadow-none active:translate-y-[4px] ${
-										isLimitationSelected(option.value)
-											? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-											: "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50 hover:shadow-[0_4px_0_#9CA3AF]"
+									className={`rounded-2xl py-3 ${
+										!isLimitationSelected(option.value)
+											? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+											: ""
 									}`}
 								>
 									{option.label}
-								</motion.button>
+								</DuoButton>
 							))}
 						</div>
 
@@ -197,7 +184,7 @@ export function LimitationSelector({
 										{detail.label || `Detalhes sobre ${limitationKey}`}
 									</p>
 									{detail.type === "selector" && detail.options && (
-										<OptionSelector
+										<DuoSelect.Simple
 											options={detail.options}
 											value={
 												Array.isArray(limitationDetails[limitationKey])
@@ -206,29 +193,13 @@ export function LimitationSelector({
 													: (limitationDetails[limitationKey] as string) || ""
 											}
 											onChange={(value) => {
-												const detailValue = Array.isArray(value)
-													? value[0]
-													: value;
-												onDetailChange?.(limitationKey, detailValue);
+												onDetailChange?.(limitationKey, value);
 											}}
-											multiple={false}
-											layout="grid"
-											columns={
-												Math.min(Math.max(1, detail.options.length), 7) as
-													| 1
-													| 2
-													| 3
-													| 4
-													| 5
-													| 6
-													| 7
-											}
-											size="sm"
-											delay={0}
+											placeholder="Selecione"
 										/>
 									)}
 									{detail.type === "text" && (
-										<FormInput
+										<DuoInput.Simple
 											label="Descrição"
 											type="text"
 											placeholder={detail.placeholder}
@@ -237,10 +208,9 @@ export function LimitationSelector({
 													? limitationDetails[limitationKey]
 													: ""
 											}
-											onChange={(value) =>
-												onDetailChange?.(limitationKey, value as string)
+											onChange={(e) =>
+												onDetailChange?.(limitationKey, e.target.value)
 											}
-											delay={0}
 										/>
 									)}
 								</motion.div>
@@ -254,3 +224,5 @@ export function LimitationSelector({
 		</motion.div>
 	);
 }
+
+export const LimitationSelector = { Simple: LimitationSelectorSimple };

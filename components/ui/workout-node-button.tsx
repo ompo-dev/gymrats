@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { motion } from "motion/react";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface WorkoutNodeButtonProps {
@@ -34,21 +34,19 @@ export function WorkoutNodeButton({
 	};
 
 	return (
-		<motion.button
+		<DuoButton
+			type="button"
 			onClick={handleClick}
 			disabled={isLocked}
-			whileHover={!isLocked && !isCompleted ? { scale: 1.05, y: -5 } : {}}
-			whileTap={!isLocked && !isCompleted ? { scale: 0.95, y: -3 } : {}}
-			animate={!isLocked && !isCompleted ? { y: -5 } : { y: 0 }}
-			transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+			variant={isLocked ? "locked" : "primary"}
 			className={cn(
-				"relative w-[70px] h-[65px] flex items-center justify-center z-10",
+				"relative w-[70px] h-[65px] flex items-center justify-center z-10 min-w-[70px] min-h-[65px] p-0 border-0",
 				// Quando bloqueado: tons de cinza
-				isLocked && "cursor-not-allowed bg-[#E5E5E5]",
+				isLocked && "cursor-not-allowed bg-duo-bg-elevated",
 				// Quando desbloqueado e completo: dourado
 				!isLocked &&
 					isCompleted &&
-					"bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00]",
+					"bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FF8C00] border-0",
 				// Quando não completo: cor baseada no tipo (cardio=vermelho, strength=verde)
 				!isLocked && !isCompleted && "transition-colors duration-200",
 			)}
@@ -69,13 +67,11 @@ export function WorkoutNodeButton({
 				className={cn(
 					"fill-current",
 					isLocked
-						? "text-[#AFAFAF]"
-						: isCompleted
-							? "text-white"
-							: "text-white",
+						? "text-duo-fg-muted"
+						: "text-white",
 				)}
 				style={{ width: "42px", height: "34px" }}
 			/>
-		</motion.button>
+		</DuoButton>
 	);
 }

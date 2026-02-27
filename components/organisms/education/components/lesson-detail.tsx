@@ -3,9 +3,8 @@
 import { ArrowLeft, BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,7 +23,7 @@ interface LessonDetailProps {
 	};
 }
 
-export function LessonDetail({
+function LessonDetailSimple({
 	lesson,
 	onBack,
 	onComplete,
@@ -49,7 +48,13 @@ export function LessonDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title={lesson.title} icon={BookOpen} variant="blue">
+				<DuoCard.Root variant="blue" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<BookOpen className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{lesson.title}</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="mb-4 text-4xl">
 						{getCategoryIcon(lesson.category)}
 					</div>
@@ -73,11 +78,11 @@ export function LessonDetail({
 						</span>
 					</div>
 					<MarkdownRenderer content={lesson.content} />
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoCard variant="highlighted" size="default">
+				<DuoCard.Root variant="highlighted" size="default">
 					<h3 className="mb-3 text-lg font-bold text-duo-text">Pontos-Chave</h3>
 					<ul className="space-y-2">
 						{lesson.keyPoints.map((point, i) => (
@@ -87,14 +92,16 @@ export function LessonDetail({
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<Button onClick={onComplete} className="w-full">
+				<DuoButton onClick={onComplete} variant="primary" className="w-full">
 					{lesson.quiz ? "FAZER QUIZ" : "CONCLUIR LIÇÃO"}
-				</Button>
+				</DuoButton>
 			</SlideIn>
 		</div>
 	);
 }
+
+export const LessonDetail = { Simple: LessonDetailSimple };

@@ -1,6 +1,5 @@
 import { Suspense } from "react";
-import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { SwipeDirectionProvider } from "@/contexts/swipe-direction";
+import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { getStudentProfile, getStudentProgress } from "./actions";
 import { StudentLayoutContent } from "./layout-content";
 
@@ -35,10 +34,8 @@ export default function StudentLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<SwipeDirectionProvider>
-			<Suspense fallback={<LoadingScreen variant="student" />}>
-				<StudentLayoutWrapper>{children}</StudentLayoutWrapper>
-			</Suspense>
-		</SwipeDirectionProvider>
+		<Suspense fallback={<LoadingScreenFallback variant="student" />}>
+			<StudentLayoutWrapper>{children}</StudentLayoutWrapper>
+		</Suspense>
 	);
 }

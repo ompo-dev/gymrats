@@ -5,9 +5,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { BackButton } from "@/components/organisms/navigation/back-button";
 import { CardioTracker } from "@/components/organisms/trackers/cardio-tracker";
 import { FunctionalWorkout } from "@/components/organisms/workout/functional-workout";
@@ -22,7 +20,7 @@ export function CardioFunctionalPage() {
 				<FadeIn>
 					<BackButton onClick={() => setView("menu")} color="duo-red" />
 				</FadeIn>
-				<CardioTracker />
+				<CardioTracker.Simple />
 			</div>
 		);
 	}
@@ -33,7 +31,7 @@ export function CardioFunctionalPage() {
 				<FadeIn>
 					<BackButton onClick={() => setView("menu")} color="duo-blue" />
 				</FadeIn>
-				<FunctionalWorkout />
+				<FunctionalWorkout.Simple />
 			</div>
 		);
 	}
@@ -51,17 +49,17 @@ export function CardioFunctionalPage() {
 				</div>
 			</FadeIn>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-2">
+			<DuoStatsGrid.Root columns={2} className="gap-4">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.1, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={Heart}
 						value="3x"
 						label="cardio esta semana"
-						iconColor="duo-red"
+						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
 
@@ -70,14 +68,14 @@ export function CardioFunctionalPage() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.15, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value="850"
 						label="kcal queimadas"
-						iconColor="duo-blue"
+						iconColor="var(--duo-secondary)"
 					/>
 				</motion.div>
-			</div>
+			</DuoStatsGrid.Root>
 
 			<SlideIn delay={0.2}>
 				<div className="grid gap-4">
@@ -86,7 +84,7 @@ export function CardioFunctionalPage() {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.2, duration: 0.4 }}
 					>
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							onClick={() => setView("cardio")}
@@ -119,7 +117,7 @@ export function CardioFunctionalPage() {
 									</div>
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					<motion.div
@@ -127,7 +125,7 @@ export function CardioFunctionalPage() {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.3, duration: 0.4 }}
 					>
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							onClick={() => setView("functional")}
@@ -160,7 +158,7 @@ export function CardioFunctionalPage() {
 									</div>
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					<motion.div
@@ -168,16 +166,18 @@ export function CardioFunctionalPage() {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ delay: 0.4, duration: 0.4 }}
 					>
-						<SectionCard
-							icon={Target}
-							title="Cálculo Personalizado"
-							variant="yellow"
-						>
+						<DuoCard.Root variant="yellow" padding="md">
+							<DuoCard.Header>
+								<div className="flex items-center gap-2">
+									<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Cálculo Personalizado</h2>
+								</div>
+							</DuoCard.Header>
 							<p className="text-sm text-duo-gray-dark">
 								As calorias são calculadas baseadas no seu peso, idade, gênero e
 								perfil hormonal para máxima precisão
 							</p>
-						</SectionCard>
+						</DuoCard.Root>
 					</motion.div>
 				</div>
 			</SlideIn>

@@ -1,7 +1,7 @@
 import { Loader2, type LucideIcon, Pencil } from "lucide-react";
 import Link from "next/link";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 export interface UnitSectionCardProps
@@ -11,6 +11,7 @@ export interface UnitSectionCardProps
 	icon?: LucideIcon;
 	buttonHref?: string;
 	onButtonClick?: () => void;
+	additionalAction?: React.ReactNode;
 	isLoading?: boolean;
 	className?: string;
 }
@@ -21,6 +22,7 @@ export function UnitSectionCard({
 	icon: Icon,
 	buttonHref,
 	onButtonClick,
+	additionalAction,
 	isLoading,
 	className,
 	...props
@@ -55,15 +57,22 @@ export function UnitSectionCard({
 
 			{/* Seção do ícone */}
 			{Icon && !buttonHref && !onButtonClick && (
-				<div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
+				<div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-[var(--duo-primary)] flex-none self-stretch border-l-2 border-[var(--duo-primary-dark)]">
 					<Icon className="h-[22px] w-[22px] text-white" />
+				</div>
+			)}
+
+			{/* Ação adicional (ex: botão resetar) */}
+			{additionalAction && (
+				<div className="flex items-center px-3 border-l-2 border-[var(--duo-primary-dark)]">
+					{additionalAction}
 				</div>
 			)}
 
 			{/* Seção do botão */}
 			{(buttonHref || onButtonClick) && (
-				<div className="flex flex-row items-center justify-center px-4 py-4 bg-duo-green flex-none self-stretch border-l-2 border-[#43A601]">
-					<Button
+				<div className="flex flex-row items-center justify-center px-4 py-4 bg-[var(--duo-primary)] flex-none self-stretch border-l-2 border-[var(--duo-primary-dark)]">
+					<DuoButton
 						asChild={!!buttonHref}
 						variant="white"
 						size="icon-lg"
@@ -80,7 +89,7 @@ export function UnitSectionCard({
 						) : (
 							<Pencil className="h-6 w-6" />
 						)}
-					</Button>
+					</DuoButton>
 				</div>
 			)}
 		</div>

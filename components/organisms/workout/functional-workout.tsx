@@ -5,13 +5,12 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoCard } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
 import { functionalExercises } from "@/lib/functional-exercises-data";
 import type { FunctionalCategory } from "@/lib/types";
 
-export function FunctionalWorkout() {
+function FunctionalWorkoutSimple() {
 	const [selectedCategory, setSelectedCategory] = useState<
 		FunctionalCategory | "all"
 	>("all");
@@ -68,8 +67,14 @@ export function FunctionalWorkout() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Para quem?" icon={Users}>
-					<OptionSelector
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Users className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Para quem?</h2>
+						</div>
+					</DuoCard.Header>
+					<DuoSelect.Simple
 						options={audienceOptions}
 						value={selectedAudience}
 						onChange={(value) =>
@@ -77,36 +82,34 @@ export function FunctionalWorkout() {
 								value as "criancas" | "adultos" | "idosos" | "all",
 							)
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Público"
 					/>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Categoria" icon={Target}>
-					<OptionSelector
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Target className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Categoria</h2>
+						</div>
+					</DuoCard.Header>
+					<DuoSelect.Simple
 						options={categoryOptions}
 						value={selectedCategory}
 						onChange={(value) =>
 							setSelectedCategory(value as FunctionalCategory | "all")
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Categoria"
 					/>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
 				<div className="space-y-4">
 					{filteredExercises.length === 0 ? (
-						<DuoCard
+						<DuoCard.Root
 							variant="default"
 							size="default"
 							className="p-8 text-center"
@@ -115,7 +118,7 @@ export function FunctionalWorkout() {
 							<div className="text-sm font-bold text-duo-gray-dark">
 								Nenhum exercício encontrado para esses filtros
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					) : (
 						filteredExercises.map((exercise, index) => (
 							<motion.div
@@ -124,7 +127,7 @@ export function FunctionalWorkout() {
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: index * 0.05, duration: 0.4 }}
 							>
-								<DuoCard
+								<DuoCard.Root
 									variant="default"
 									size="default"
 									className="hover:border-duo-blue/50 transition-colors"
@@ -195,7 +198,7 @@ export function FunctionalWorkout() {
 											))}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							</motion.div>
 						))
 					)}
@@ -204,3 +207,7 @@ export function FunctionalWorkout() {
 		</div>
 	);
 }
+
+export const FunctionalWorkout = {
+	Simple: FunctionalWorkoutSimple,
+};

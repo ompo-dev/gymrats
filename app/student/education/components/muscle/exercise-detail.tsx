@@ -3,8 +3,8 @@
 import { ArrowLeft, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/ui/duo-card";
-import { SectionCard } from "@/components/ui/section-card";
+import { DuoCard } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import type { ExerciseInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -35,11 +35,13 @@ export function ExerciseDetail({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard
-					title={exercise.name}
-					icon={Dumbbell}
-					variant="highlighted"
-				>
+				<DuoCard.Root variant="highlighted" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{exercise.name}</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="mb-4 flex flex-wrap gap-2">
 						<span
 							className={cn(
@@ -92,11 +94,17 @@ export function ExerciseDetail({
 							</div>
 						)}
 					</div>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<SectionCard title="Como Executar" icon={Dumbbell}>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Como Executar</h2>
+						</div>
+					</DuoCard.Header>
 					<ol className="space-y-3">
 						{exercise.instructions.map((instruction) => (
 							<li key={instruction} className="flex gap-3">
@@ -107,11 +115,11 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ol>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>
-				<DuoCard variant="highlighted" size="default">
+				<DuoCard.Root variant="highlighted" size="default">
 					<div className="mb-3 flex items-center gap-2">
 						<span className="text-xl">✓</span>
 						<h3 className="text-lg font-bold text-duo-text">
@@ -126,11 +134,11 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.4}>
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="default"
 					className="border-duo-red bg-duo-red/10"
@@ -147,11 +155,11 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<DuoCard variant="yellow" size="default">
+				<DuoCard.Root variant="yellow" size="default">
 					<h3 className="mb-3 text-lg font-bold text-duo-text">Benefícios</h3>
 					<ul className="space-y-2">
 						{exercise.benefits.map((benefit) => (
@@ -161,12 +169,12 @@ export function ExerciseDetail({
 							</li>
 						))}
 					</ul>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			{exercise.scientificEvidence && (
 				<SlideIn delay={0.6}>
-					<DuoCard variant="blue" size="default">
+					<DuoCard.Root variant="blue" size="default">
 						<div className="mb-3 flex items-center gap-2">
 							<span className="text-xl">🔬</span>
 							<h3 className="text-lg font-bold text-duo-text">
@@ -176,7 +184,7 @@ export function ExerciseDetail({
 						<p className="leading-relaxed text-duo-text">
 							{exercise.scientificEvidence}
 						</p>
-					</DuoCard>
+					</DuoCard.Root>
 				</SlideIn>
 			)}
 		</div>

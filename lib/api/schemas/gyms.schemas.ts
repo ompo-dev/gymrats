@@ -41,7 +41,6 @@ export const updateGymProfileSchema = z.object({
 			open: z.string().optional(),
 			close: z.string().optional(),
 			days: z.array(z.string()).optional(),
-			// Horários por dia: { monday: { open, close }, ... }
 			byDay: z
 				.record(
 					z.string(),
@@ -54,7 +53,18 @@ export const updateGymProfileSchema = z.object({
 		})
 		.optional()
 		.nullable(),
-});
+})
+.refine(
+	(data) => {
+		const hasPixKey = data.pixKey != null && data.pixKey.trim() !== "";
+		const hasPixKeyType = data.pixKeyType != null && data.pixKeyType !== "";
+		return (hasPixKey && hasPixKeyType) || (!hasPixKey && !hasPixKeyType);
+	},
+	{
+		message: "Chave PIX e tipo devem ser informados juntos ou ambos vazios",
+		path: ["pixKey"],
+	},
+);
 
 export const gymLocationsQuerySchema = z.object({
 	lat: z

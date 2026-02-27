@@ -112,13 +112,13 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
   };
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Limitações e Considerações"
       description="Nos ajude a criar um treino seguro e adequado para você"
     >
       <div className="space-y-6">
         {/* Limitações Físicas */}
-        <LimitationSelector
+        <LimitationSelector.Simple
           title="Você possui limitações físicas?"
           icon={Heart}
           iconColor="text-red-500"
@@ -165,7 +165,7 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
         />
 
         {/* Limitações Motoras */}
-        <LimitationSelector
+        <LimitationSelector.Simple
           title="Você possui limitações motoras?"
           icon={Activity}
           iconColor="text-blue-500"
@@ -190,7 +190,7 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
         />
 
         {/* Condições Médicas */}
-        <LimitationSelector
+        <LimitationSelector.Simple
           title="Você possui condições médicas?"
           icon={Stethoscope}
           iconColor="text-orange-500"
@@ -261,6 +261,6 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
           </motion.div>
         )}
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

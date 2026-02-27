@@ -42,6 +42,7 @@ export const GET = createSafeHandler(
 			gyms: gymsData,
 			canCreateMultipleGyms: hasPaidSubscription,
 			totalGyms: gyms.length,
+			activeGymId: gymContext!.user.activeGymId ?? null,
 		});
 	},
 	{ auth: "gym" },

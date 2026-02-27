@@ -1,6 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
+import { DuoCard } from "@/components/duo";
 
 export interface RecordCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	exerciseName: string;
@@ -11,7 +11,7 @@ export interface RecordCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	icon?: string | React.ReactNode;
 }
 
-export function RecordCard({
+function RecordCardSimple({
 	exerciseName,
 	date,
 	value,
@@ -30,7 +30,7 @@ export function RecordCard({
 		previousBest && typeof value === "number" ? value - previousBest : null;
 
 	return (
-		<DuoCard variant="yellow" size="md" className={cn(className)} {...props}>
+		<DuoCard.Root variant="yellow" size="md" className={cn(className)} {...props}>
 			<div className="mb-2 flex items-start justify-between">
 				<div>
 					<div className="font-bold text-duo-text">{exerciseName}</div>
@@ -49,6 +49,8 @@ export function RecordCard({
 					</div>
 				)}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }
+
+export const RecordCard = { Simple: RecordCardSimple };

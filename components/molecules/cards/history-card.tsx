@@ -1,7 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "./duo-card";
-import { StatusBadge } from "./status-badge";
+import { DuoBadge, DuoCard } from "@/components/duo";
 
 export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	title: string;
@@ -13,7 +12,7 @@ export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	}>;
 }
 
-export function HistoryCard({
+function HistoryCardSimple({
 	title,
 	date,
 	status,
@@ -21,13 +20,49 @@ export function HistoryCard({
 	className,
 	...props
 }: HistoryCardProps) {
-	const formattedDate =
-		typeof date === "string"
-			? date
-			: new Date(date).toLocaleDateString("pt-BR");
+	// Formatar data de forma amigável: "Hoje", "Ontem" ou data formatada
+	const formatDate = (dateValue: string | Date): string => {
+		const d = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+
+		if (Number.isNaN(d.getTime())) {
+			return "Data inválida";
+		}
+
+		const today = new Date();
+		const yesterday = new Date(today);
+		yesterday.setDate(yesterday.getDate() - 1);
+
+		const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		const todayOnly = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate(),
+		);
+		const yesterdayOnly = new Date(
+			yesterday.getFullYear(),
+			yesterday.getMonth(),
+			yesterday.getDate(),
+		);
+
+		if (dateOnly.getTime() === todayOnly.getTime()) {
+			return "Hoje";
+		}
+		if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+			return "Ontem";
+		}
+
+		const day = d.getDate();
+		const month = d.toLocaleDateString("pt-BR", { month: "short" });
+		const year =
+			d.getFullYear() !== today.getFullYear() ? ` de ${d.getFullYear()}` : "";
+
+		return `${day} de ${month}${year}`;
+	};
+
+	const formattedDate = formatDate(date);
 
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant="default"
 			size="md"
 			className={cn("bg-gray-50", className)}
@@ -38,7 +73,22 @@ export function HistoryCard({
 					<div className="font-bold text-duo-text">{title}</div>
 					<div className="text-xs text-duo-gray-dark">{formattedDate}</div>
 				</div>
-				{status && <StatusBadge status={status} label={status} />}
+				{status && (
+					<DuoBadge
+						variant={
+							status === "excelente"
+								? "success"
+								: status === "bom"
+									? "secondary"
+									: status === "regular"
+										? "warning"
+										: "danger"
+						}
+						size="sm"
+					>
+						{status}
+					</DuoBadge>
+				)}
 			</div>
 			{metadata.length > 0 && (
 				<div className="flex gap-4 text-sm text-duo-gray-dark">
@@ -50,6 +100,8 @@ export function HistoryCard({
 					))}
 				</div>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }
+
+export const HistoryCard = { Simple: HistoryCardSimple };

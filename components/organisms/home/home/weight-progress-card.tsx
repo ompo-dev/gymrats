@@ -1,7 +1,7 @@
 "use client";
 
 import { Minus, TrendingDown, TrendingUp } from "lucide-react";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface WeightProgressCardProps {
@@ -11,7 +11,7 @@ interface WeightProgressCardProps {
 	weightHistory: Array<{ date: Date | string; weight: number }>;
 }
 
-export function WeightProgressCard({
+function WeightProgressCardSimple({
 	currentWeight,
 	weightGain,
 	hasWeightLossGoal = false,
@@ -46,11 +46,13 @@ export function WeightProgressCard({
 	const range = maxWeight - minWeight || 1;
 
 	return (
-		<SectionCard
-			icon={TrendingUp}
-			title="Evolução de Peso"
-			className="space-y-4"
-		>
+		<DuoCard.Root variant="default" padding="md" className="space-y-4">
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<TrendingUp className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
+				</div>
+			</DuoCard.Header>
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
 					<div>
@@ -91,6 +93,10 @@ export function WeightProgressCard({
 					</div>
 				)}
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }
+
+export const WeightProgressCard = {
+	Simple: WeightProgressCardSimple,
+};

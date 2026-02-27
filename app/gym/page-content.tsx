@@ -18,13 +18,13 @@ import type {
 	Payment, // Added
 	StudentData,
 } from "@/lib/types";
-import { GymDashboardPage } from "./components/gym-dashboard";
-import { GymEquipmentPage } from "./components/gym-equipment";
-import { GymFinancialPage } from "./components/gym-financial";
-import { GymGamificationPage } from "./components/gym-gamification";
-import { GymSettingsPage } from "./components/gym-settings";
-import { GymStatsPage } from "./components/gym-stats";
-import { GymStudentsPage } from "./components/gym-students";
+import { GymDashboardPage } from "@/components/organisms/gym/gym-dashboard";
+import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
+import { GymFinancialPage } from "@/components/organisms/gym/gym-financial";
+import { GymGamificationPage } from "@/components/organisms/gym/gym-gamification";
+import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
+import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
+import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 
 interface GymHomeContentProps {
 	initialProfile: GymProfile | null;
@@ -140,7 +140,7 @@ function GymHomeContent({
 			{tab === "gamification" && profile && (
 				<GymGamificationPage profile={profile} />
 			)}
-			{tab === "more" && <GymMoreMenu />}
+			{tab === "more" && <GymMoreMenu.Simple />}
 		</div>
 	);
 }

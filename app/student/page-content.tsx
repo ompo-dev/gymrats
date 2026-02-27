@@ -13,7 +13,7 @@ import { StudentPaymentsPage } from "@/app/student/payments/student-payments-pag
 import { ProfilePage } from "@/app/student/profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { EducationPage } from "@/components/organisms/education/education-page";
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
@@ -29,7 +29,7 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
-import type { GymLocation } from "@/lib/types";
+import type { GymLocation, PlanSlotData } from "@/lib/types";
 
 /**
  * Componente de Conteúdo da Home do Student
@@ -119,6 +119,7 @@ function StudentHomeContent() {
 		subscription: storeSubscription,
 		personalRecords: storePersonalRecords,
 		units: storeUnits,
+		weeklyPlan: storeWeeklyPlan,
 		dailyNutrition: storeDailyNutrition,
 		isAdmin: storeIsAdmin,
 		role: storeRole,
@@ -135,6 +136,7 @@ function StudentHomeContent() {
 		"subscription",
 		"personalRecords",
 		"units",
+		"weeklyPlan",
 		"dailyNutrition",
 		"isAdmin",
 		"role",
@@ -192,6 +194,7 @@ function StudentHomeContent() {
 		brCodeBase64: string;
 		amount: number;
 	} | null>(null);
+	const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
 	const handleJoinGym = async (gymId: string, planId: string) => {
 		try {
@@ -264,6 +267,7 @@ function StudentHomeContent() {
 
 	const handlePixConfirmed = async () => {
 		await Promise.all([loadMemberships(), loadPayments()]);
+		setProfileRefreshKey((k) => k + 1);
 	};
 
 	const handlePurchaseDayPass = (gymId: string) => {
@@ -316,7 +320,7 @@ function StudentHomeContent() {
 					{/* Card de Progresso de Nível */}
 					{storeProgress && (
 						<WhileInView delay={0.4}>
-							<LevelProgressCard
+							<LevelProgressCard.Simple
 								currentLevel={storeProgress.currentLevel}
 								totalXP={storeProgress.totalXP}
 								xpToNextLevel={storeProgress.xpToNextLevel}
@@ -325,18 +329,18 @@ function StudentHomeContent() {
 					)}
 
 					{/* Cards de Estatísticas Principais */}
-					<div className="grid grid-cols-2 gap-4">
+					<DuoStatsGrid.Root columns={2} className="gap-4">
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.1, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard.Simple
 								icon={Flame}
 								value={displayProgress.currentStreak}
 								label="dias de sequência"
-								subtitle={`Recorde: ${displayProgress.longestStreak || 0}`}
-								iconColor="duo-orange"
+								badge={`Recorde: ${displayProgress.longestStreak || 0}`}
+								iconColor="var(--duo-accent)"
 							/>
 						</motion.div>
 
@@ -345,12 +349,12 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.15, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard.Simple
 								icon={Zap}
 								value={`${displayProgress.todayXP} XP`}
 								label="ganho hoje"
-								subtitle={`Total: ${displayProgress.totalXP || 0} XP`}
-								iconColor="duo-yellow"
+								badge={`Total: ${displayProgress.totalXP || 0} XP`}
+								iconColor="var(--duo-warning)"
 							/>
 						</motion.div>
 
@@ -359,12 +363,12 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.2, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard.Simple
 								icon={Trophy}
 								value={`#${displayProgress.currentLevel}`}
 								label="nível atual"
-								subtitle="Continue treinando"
-								iconColor="duo-blue"
+								badge="Continue treinando"
+								iconColor="var(--duo-secondary)"
 							/>
 						</motion.div>
 
@@ -373,24 +377,24 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.25, duration: 0.4 }}
 						>
-							<StatCardLarge
+							<DuoStatCard.Simple
 								icon={Dumbbell}
 								value={displayProgress.workoutsCompleted}
 								label="treinos completos"
-								subtitle={
+								badge={
 									currentWorkoutHistory.length > 0
 										? `${currentWorkoutHistory.length} treinos registrados`
 										: "Nenhum treino ainda"
 								}
-								iconColor="duo-green"
+								iconColor="var(--duo-primary)"
 							/>
 						</motion.div>
-					</div>
+					</DuoStatsGrid.Root>
 
 					{/* Card de Evolução de Peso */}
 					{currentWeight && (
 						<WhileInView delay={0.45}>
-							<WeightProgressCard
+							<WeightProgressCard.Simple
 								currentWeight={currentWeight}
 								weightGain={currentWeightGain}
 								hasWeightLossGoal={storeProfile?.hasWeightLossGoal || false}
@@ -401,21 +405,40 @@ function StudentHomeContent() {
 
 					{/* Card: Continue seu Treino */}
 					<WhileInView delay={0.3}>
-						<ContinueWorkoutCard
-							units={storeUnits || []}
+						<ContinueWorkoutCard.Simple
+							units={
+								storeWeeklyPlan?.slots
+									? [
+											{
+												id: storeWeeklyPlan.id,
+												title: storeWeeklyPlan.title,
+												description: "",
+												workouts: storeWeeklyPlan.slots
+													.filter(
+														(s: PlanSlotData) =>
+															s.type === "workout" &&
+															s.workout,
+													)
+													.map((s: PlanSlotData) => s.workout!),
+												color: "#58CC02",
+												icon: "💪",
+											},
+										]
+									: storeUnits || []
+							}
 							workoutHistory={currentWorkoutHistory}
 						/>
 					</WhileInView>
 
 					{/* Card: Status de Nutrição */}
 					<WhileInView delay={0.35}>
-						<NutritionStatusCard dailyNutrition={storeDailyNutrition} />
+						<NutritionStatusCard.Simple dailyNutrition={storeDailyNutrition} />
 					</WhileInView>
 
 					{/* Card de Treinos Recentes */}
 					{currentWorkoutHistory.length > 0 && (
 						<WhileInView delay={0.5}>
-							<RecentWorkoutsCard workoutHistory={currentWorkoutHistory} />
+							<RecentWorkoutsCard.Simple workoutHistory={currentWorkoutHistory} />
 						</WhileInView>
 					)}
 				</div>
@@ -462,9 +485,10 @@ function StudentHomeContent() {
 							onBack={() => setGymId(null)}
 							onJoinPlan={handleJoinGym}
 							onChangePlan={handleChangePlan}
+							profileRefreshKey={profileRefreshKey}
 						/>
 					) : (
-						<GymMap
+						<GymMap.Simple
 							gyms={currentGymLocations}
 							dayPasses={currentDayPasses}
 							memberships={currentMemberships}
@@ -495,7 +519,7 @@ function StudentHomeContent() {
 						!exerciseId &&
 						!muscleId &&
 						!lessonId && (
-							<EducationPage
+							<EducationPage.Simple
 								onSelectView={(view) => {
 									setEducationView(view);
 								}}
@@ -503,7 +527,7 @@ function StudentHomeContent() {
 						)}
 
 					{(educationView === "muscles" || exerciseId || muscleId) && (
-						<MuscleExplorer
+						<MuscleExplorer.Simple
 							muscleId={muscleId || null}
 							exerciseId={exerciseId || null}
 							onMuscleSelect={(id) => setMuscleId(id)}
@@ -517,7 +541,7 @@ function StudentHomeContent() {
 					)}
 
 					{educationView === "lessons" && !exerciseId && !muscleId && (
-						<EducationalLessons
+						<EducationalLessons.Simple
 							lessonId={lessonId || null}
 							onLessonSelect={(id) => setLessonId(id)}
 							onBack={() => {

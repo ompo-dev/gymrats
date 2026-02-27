@@ -10,7 +10,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { validateConsolidatedStep1 } from "./schemas";
 import { ConsolidatedStep1 } from "./steps/consolidated-step1";
 import { ConsolidatedStep2 } from "./steps/consolidated-step2";
@@ -315,28 +315,28 @@ export default function StudentOnboardingPage() {
           >
             {step > 1 && (
               <div className="flex-1">
-                <Button onClick={handleBack} variant="white" className="w-full">
+                <DuoButton onClick={handleBack} variant="white" className="w-full">
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   VOLTAR
-                </Button>
+                </DuoButton>
               </div>
             )}
             {step < TOTAL_STEPS ? (
               <div className="flex-1">
-                <Button
+                <DuoButton
                   onClick={handleNext}
                   disabled={!canProceed()}
-                  variant={canProceed() ? "default" : "disabled"}
+                  variant={canProceed() ? "primary" : "locked"}
                   className="w-full"
                 >
                   CONTINUAR
                   <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
+                </DuoButton>
               </div>
             ) : (
               <>
                 <div className="flex-1">
-                  <Button
+                  <DuoButton
                     onClick={handleSubmit}
                     disabled={isLoading}
                     variant="white"
@@ -350,13 +350,13 @@ export default function StudentOnboardingPage() {
                     ) : (
                       "PULAR POR AGORA"
                     )}
-                  </Button>
+                  </DuoButton>
                 </div>
                 <div className="flex-1">
-                  <Button
+                  <DuoButton
                     onClick={handleSubmit}
                     disabled={isLoading}
-                    variant={!isLoading ? "default" : "disabled"}
+                    variant={!isLoading ? "primary" : "locked"}
                     className="w-full"
                   >
                     {isLoading ? (
@@ -371,7 +371,7 @@ export default function StudentOnboardingPage() {
                         <Check className="ml-2 h-4 w-4" />
                       </>
                     )}
-                  </Button>
+                  </DuoButton>
                 </div>
               </>
             )}

@@ -1,27 +1,25 @@
 "use client";
 
 import { motion } from "motion/react";
+import { DuoInput } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { FormInput } from "@/components/molecules/forms/form-input";
 import type { StepProps } from "./types";
 
 export function Step3({ formData, setFormData }: StepProps) {
 	return (
-		<StepCard
+		<StepCard.Simple
 			title="CNPJ"
 			description="Informe o CNPJ da sua academia (opcional)"
 		>
 			<div className="space-y-5">
-				<FormInput
+				<DuoInput.Simple
 					label="CNPJ"
 					type="text"
 					placeholder="00.000.000/0000-00"
 					value={formData.cnpj}
-					onChange={(value) =>
-						setFormData({ ...formData, cnpj: value as string })
+					onChange={(e) =>
+						setFormData({ ...formData, cnpj: e.target.value })
 					}
-					required={false}
-					delay={0.3}
 				/>
 				<motion.div
 					initial={{ opacity: 0, y: 10 }}
@@ -36,6 +34,6 @@ export function Step3({ formData, setFormData }: StepProps) {
 					</p>
 				</motion.div>
 			</div>
-		</StepCard>
+		</StepCard.Simple>
 	);
 }

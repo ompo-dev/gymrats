@@ -11,18 +11,20 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
 import { apiClient } from "@/lib/api/client";
-import type { Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
+import type { PlanSlotData, Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
 interface WorkoutChatProps {
   onClose: () => void;
-  unitId: string;
+  unitId?: string;
+  planSlotId?: string;
+  slotContext?: string; // Ex: "Segunda" - para contexto no prompt
   workouts?: WorkoutSession[];
 }
 
@@ -89,13 +91,26 @@ type ParsedWorkoutPlanWithMeta = ParsedWorkoutPlan & {
 export function WorkoutChat({
   onClose,
   unitId,
+  planSlotId,
+  slotContext,
   workouts: initialWorkouts = [],
 }: WorkoutChatProps) {
-  // Buscar workouts atualizados do store para ter dados sempre atualizados
   const storeUnits = useStudent("units");
-  const unit = storeUnits.find((u: Unit) => u.id === unitId);
+  const storeWeeklyPlan = useStudent("weeklyPlan");
+
+  const unit = unitId ? storeUnits.find((u: Unit) => u.id === unitId) : null;
+  const planSlot = planSlotId
+    ? storeWeeklyPlan?.slots.find((s: PlanSlotData) => s.id === planSlotId)
+    : null;
+
   const storeWorkouts = unit?.workouts || [];
-  const workouts = storeWorkouts.length > 0 ? storeWorkouts : initialWorkouts;
+  const slotWorkout = planSlot?.type === "workout" && planSlot?.workout ? [planSlot.workout] : [];
+  const workouts =
+    storeWorkouts.length > 0
+      ? storeWorkouts
+      : slotWorkout.length > 0
+        ? slotWorkout
+        : initialWorkouts;
 
   // Actions e loaders do store
   const _actions = useStudent("actions");
@@ -140,7 +155,7 @@ export function WorkoutChat({
     useState<ParsedWorkoutPlanWithMeta | null>(null);
 
   const handleApprove = async () => {
-    if (!pendingWorkoutData || !unitId) {
+    if (!pendingWorkoutData || (!unitId && !planSlotId)) {
       toast({
         title: "Erro",
         description: "Dados do treino não encontrados.",
@@ -153,6 +168,31 @@ export function WorkoutChat({
     try {
       // Se há referência e a ação é update_workout ou replace_exercise, garantir que o targetWorkoutId está correto
       let targetWorkoutId = pendingWorkoutData.targetWorkoutId;
+
+      // Fallback targetWorkoutId quando IA não retorna - necessário para add_exercise, remove_exercise, replace_exercise, update_workout, delete_workout
+      if (!targetWorkoutId && workouts.length > 0) {
+        const needsTarget =
+          pendingWorkoutData.action === "add_exercise" ||
+          pendingWorkoutData.action === "remove_exercise" ||
+          pendingWorkoutData.action === "replace_exercise" ||
+          pendingWorkoutData.action === "update_workout" ||
+          pendingWorkoutData.action === "delete_workout";
+
+        if (needsTarget) {
+          if (planSlotId && workouts.length === 1) {
+            targetWorkoutId = workouts[0].id;
+          } else if (
+            pendingWorkoutData.workouts?.length > 0 &&
+            pendingWorkoutData.workouts[0].title
+          ) {
+            const workoutTitle = pendingWorkoutData.workouts[0].title;
+            const match = workouts.find(
+              (w: WorkoutSession) => w.title === workoutTitle,
+            );
+            if (match) targetWorkoutId = match.id;
+          }
+        }
+      }
 
       // Se targetWorkoutId é um título (não é um ID válido), buscar o workout correto
       if (
@@ -282,12 +322,25 @@ export function WorkoutChat({
             }
           }
 
-          // Recarregar workouts após criar
-          await loaders.loadWorkouts(true);
+          // Recarregar dados após criar
+          if (planSlotId) {
+            await loaders.loadWeeklyPlan?.(true);
+          } else {
+            await loaders.loadWorkouts(true);
+          }
           const updatedUnits =
             useStudentUnifiedStore.getState().data.units ?? [];
-          const updatedUnit = updatedUnits.find((u: Unit) => u.id === unitId);
-          const updatedWorkouts = updatedUnit?.workouts || [];
+          const updatedWeeklyPlan =
+            useStudentUnifiedStore.getState().data.weeklyPlan;
+          const updatedUnit = unitId
+            ? updatedUnits.find((u: Unit) => u.id === unitId)
+            : null;
+          const updatedSlot = planSlotId
+            ? updatedWeeklyPlan?.slots.find((s) => s.id === planSlotId)
+            : null;
+          const updatedWorkouts = updatedUnit?.workouts ?? updatedSlot?.workout
+            ? [updatedSlot!.workout!]
+            : [];
 
           // Atualizar targetWorkoutId se necessário após criar os novos
           if (
@@ -360,12 +413,18 @@ export function WorkoutChat({
         unitId,
       );
 
+      const processPayload: { parsedPlan: typeof parsedPlan; unitId?: string; planSlotId?: string } = {
+        parsedPlan,
+      };
+      if (planSlotId) {
+        processPayload.planSlotId = planSlotId;
+      } else if (unitId) {
+        processPayload.unitId = unitId;
+      }
+
       const processResponse = await apiClient.post(
         "/api/workouts/process",
-        {
-          parsedPlan,
-          unitId,
-        },
+        processPayload,
         {
           timeout: 120000,
         },
@@ -377,7 +436,11 @@ export function WorkoutChat({
       );
 
       // Recarregar dados do store após processamento
-      await loaders.loadWorkouts(true);
+      if (planSlotId) {
+        await loaders.loadWeeklyPlan?.(true);
+      } else {
+        await loaders.loadWorkouts(true);
+      }
 
       toast({
         title: "Treino adicionado!",
@@ -440,21 +503,46 @@ export function WorkoutChat({
   };
 
   const handleExportWorkouts = async () => {
+    // No contexto de plano semanal: usar weeklyPlan completo (inclui dias de descanso)
+    // Caso contrário: previewWorkouts ou workouts
+    let sourceWorkouts: Array<PreviewWorkout | WorkoutSession> = [];
+
+    if (planSlotId && storeWeeklyPlan?.slots?.length >= 7) {
+      // Plano semanal: exportar todos os 7 dias (workout + descanso) em ordem
+      sourceWorkouts = storeWeeklyPlan.slots
+        .slice()
+        .sort((a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek)
+        .map((s: PlanSlotData) => {
+          if (s.type === "workout" && s.workout) {
+            return s.workout as WorkoutSession;
+          }
+          return {
+            title: "Descanso",
+            description: "",
+            type: "strength" as const,
+            muscleGroup: "full-body",
+            difficulty: "intermediario" as const,
+            exercises: [] as Array<{ name: string; sets: number; reps: string; rest: number; notes?: string; alternatives?: string[] }>,
+          } as PreviewWorkout;
+        });
+    }
+
+    if (sourceWorkouts.length === 0) {
+      sourceWorkouts =
+        previewWorkouts.length > 0 ? previewWorkouts : workouts;
+    }
+
     const payload = {
-      workouts: workouts.map((w: WorkoutSession) => ({
-        title: w.title,
-        description: w.description || "",
-        type: w.type,
-        muscleGroup: w.muscleGroup,
-        difficulty:
-          (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
-        exercises: w.exercises.map(
-          (
-            e: WorkoutExercise & {
-              rest?: number;
-              alternatives?: (string | { name?: string })[];
-            },
-          ) => ({
+      workouts: sourceWorkouts.map((w: PreviewWorkout | WorkoutSession) => {
+        const exercises = "exercises" in w ? w.exercises : [];
+        return {
+          title: w.title,
+          description: w.description || "",
+          type: w.type,
+          muscleGroup: w.muscleGroup,
+          difficulty:
+            (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
+          exercises: exercises.map((e: { name: string; sets: number; reps: string; rest?: number; notes?: string; alternatives?: (string | { name?: string })[] }) => ({
             name: e.name,
             sets: e.sets,
             reps: e.reps,
@@ -464,9 +552,9 @@ export function WorkoutChat({
               e.alternatives?.map((alt) =>
                 typeof alt === "string" ? alt : (alt?.name ?? ""),
               ) || [],
-          }),
-        ),
-      })),
+          })),
+        };
+      }),
     };
 
     const json = JSON.stringify(payload, null, 2);
@@ -494,6 +582,52 @@ export function WorkoutChat({
       });
     }
   };
+
+  const hasInitializedSlotPreview = useRef(false);
+  // Inicializar previewWorkouts quando planSlotId e temos workout - para exibir card ao abrir
+  useEffect(() => {
+    if (
+      planSlotId &&
+      workouts.length === 1 &&
+      !hasInitializedSlotPreview.current
+    ) {
+      hasInitializedSlotPreview.current = true;
+      const w = workouts[0] as WorkoutSession;
+      const preview: PreviewWorkout = {
+        title: w.title,
+        description: w.description ?? "",
+        type: (w.type as PreviewWorkout["type"]) || "strength",
+        muscleGroup: w.muscleGroup || "full-body",
+        difficulty: (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
+        exercises: (w.exercises || []).map((e) => ({
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          rest: e.rest ?? 60,
+          notes: e.notes ?? undefined,
+          alternatives: e.alternatives?.map((a) =>
+            typeof a === "string" ? a : a.name ?? "",
+          ),
+        })),
+      };
+      setPreviewWorkouts([preview]);
+      setMessages((prev) => {
+        if (prev.length === 1 && prev[0].role === "assistant" && !prev[0].workoutPreview) {
+          return [
+            ...prev,
+            {
+              role: "assistant" as const,
+              content: "",
+              timestamp: new Date(),
+              workoutPreview: preview,
+              workoutPreviewIndex: 0,
+            },
+          ];
+        }
+        return prev;
+      });
+    }
+  }, [planSlotId, workouts]);
 
   // Scroll para última mensagem
   // biome-ignore lint/correctness/useExhaustiveDependencies: precisamos reagir à mudança de mensagens
@@ -582,14 +716,16 @@ export function WorkoutChat({
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          message: messageForAI, // Usar mensagem com referência para IA
+          message: messageForAI,
           conversationHistory,
-          unitId,
+          unitId: unitId ?? undefined,
+          planSlotId: planSlotId ?? undefined,
+          slotContext: slotContext ?? undefined,
           existingWorkouts,
           profile,
-          reference: currentReference || undefined, // Enviar referência separadamente
+          reference: currentReference || undefined,
           previewWorkouts:
-            previewWorkouts.length > 0 ? previewWorkouts : undefined, // Enviar previews quando houver referência
+            previewWorkouts.length > 0 ? previewWorkouts : undefined,
         }),
       });
 
@@ -748,11 +884,145 @@ export function WorkoutChat({
 
       // Se recebeu dados completos, atualizar estado
       if (parsedData) {
-        // Se há referência e a ação é update_workout ou replace_exercise
-        if (
+        // add_exercise: mesclar novos exercícios no workout existente (não substituir)
+        // O workout_progress pode ter substituído o preview com só os novos - usar workouts do store como base
+        if (parsedData.action === "add_exercise" && parsedData.workouts.length > 0) {
+          const newExercises = parsedData.workouts[0].exercises || [];
+          const targetId = parsedData.targetWorkoutId;
+          const mergedPreviews = previewWorkouts.map((w, idx) => {
+            // Base: workouts do store (original) ou preview atual (workout_progress pode ter sobrescrito)
+            let existingExercises = w.exercises || [];
+            if (workouts.length > 0) {
+              const storeWorkout =
+                previewWorkouts.length === 1
+                  ? workouts[0]
+                  : workouts.find(
+                      (sw: WorkoutSession) =>
+                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                    );
+              if (storeWorkout?.exercises?.length) {
+                existingExercises = storeWorkout.exercises.map(
+                  (e: WorkoutExercise) => ({
+                    name: e.name,
+                    sets: e.sets,
+                    reps: e.reps,
+                    rest: e.rest ?? 60,
+                    notes: e.notes,
+                    alternatives: e.alternatives?.map(
+                      (a: { name?: string } | string) =>
+                        typeof a === "object" && a?.name ? a.name : String(a),
+                    ),
+                  }),
+                );
+              }
+            }
+            if (previewWorkouts.length === 1) {
+              return {
+                ...w,
+                exercises: [...existingExercises, ...newExercises],
+              };
+            }
+            const matches =
+              targetId &&
+              (w.title === targetId || (w as { id?: string }).id === targetId);
+            if (matches) {
+              return {
+                ...w,
+                exercises: [...existingExercises, ...newExercises],
+              };
+            }
+            return w;
+          });
+          setPreviewWorkouts(mergedPreviews);
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (!msg.workoutPreview) return msg;
+              const idx =
+                typeof msg.workoutPreviewIndex === "number"
+                  ? msg.workoutPreviewIndex
+                  : 0;
+              const merged = mergedPreviews[idx];
+              if (merged) {
+                return { ...msg, workoutPreview: merged };
+              }
+              return msg;
+            }),
+          );
+        } else if (
+          parsedData.action === "replace_exercise" &&
+          parsedData.workouts.length > 0 &&
+          parsedData.exerciseToReplace
+        ) {
+          // replace_exercise: mesclar como add_exercise - manter existentes, substituir apenas o indicado
+          const newExercise = parsedData.workouts[0].exercises?.[0];
+          const targetId = parsedData.targetWorkoutId;
+          const oldName = parsedData.exerciseToReplace.old?.toLowerCase();
+
+          const mergedPreviews = previewWorkouts.map((w) => {
+            let existingExercises = w.exercises || [];
+            if (workouts.length > 0) {
+              const storeWorkout =
+                previewWorkouts.length === 1
+                  ? workouts[0]
+                  : workouts.find(
+                      (sw: WorkoutSession) =>
+                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                    );
+              if (storeWorkout?.exercises?.length) {
+                existingExercises = storeWorkout.exercises.map(
+                  (e: WorkoutExercise) => ({
+                    name: e.name,
+                    sets: e.sets,
+                    reps: e.reps,
+                    rest: e.rest ?? 60,
+                    notes: e.notes,
+                    alternatives: e.alternatives?.map(
+                      (a: { name?: string } | string) =>
+                        typeof a === "object" && a?.name ? a.name : String(a),
+                    ),
+                  }),
+                );
+              }
+            }
+
+            const isTarget =
+              !targetId ||
+              previewWorkouts.length === 1 ||
+              w.title === targetId ||
+              (w as { id?: string }).id === targetId;
+
+            if (!isTarget || !newExercise) return w;
+
+            const filtered = existingExercises.filter((e) => {
+              const en = e.name.toLowerCase();
+              const old = oldName ?? "";
+              return !en.includes(old) && !old.includes(en);
+            });
+            const replaced = [...filtered, newExercise];
+
+            return { ...w, exercises: replaced };
+          });
+          setPreviewWorkouts(mergedPreviews);
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (!msg.workoutPreview) return msg;
+              const idx =
+                typeof msg.workoutPreviewIndex === "number"
+                  ? msg.workoutPreviewIndex
+                  : 0;
+              const merged = mergedPreviews[idx];
+              if (merged) {
+                return { ...msg, workoutPreview: merged };
+              }
+              return msg;
+            }),
+          );
+          // parsedData.workouts mantém o original da IA (apenas novo exercício) para o approve/process
+        } else if (
           reference &&
-          (parsedData.action === "update_workout" ||
-            parsedData.action === "replace_exercise")
+          parsedData.action === "update_workout"
         ) {
           // A IA DEVE retornar TODOS os workouts atualizados
           if (parsedData.workouts.length === previewWorkouts.length) {
@@ -902,7 +1172,7 @@ export function WorkoutChat({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
+          className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 dark:bg-black/70 sm:items-center"
         onClick={onClose}
       >
         <motion.div
@@ -915,7 +1185,7 @@ export function WorkoutChat({
             stiffness: 300,
             duration: 0.3,
           }}
-          className="w-full max-w-2xl rounded-t-3xl bg-white sm:rounded-3xl"
+          className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
           onClick={(e) => e.stopPropagation()}
           style={{
             maxHeight: "90vh",
@@ -924,31 +1194,31 @@ export function WorkoutChat({
           }}
         >
           {/* Header */}
-          <div className="border-b-2 border-gray-300 p-6">
+          <div className="border-b-2 border-duo-border p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-duo-green" />
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-duo-text">
                   Chat IA - Treinos
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
               >
                 ✕
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button
+              <DuoButton
                 size="sm"
                 variant="secondary"
                 onClick={handleExportWorkouts}
               >
                 Exportar treino
-              </Button>
-              <span className="text-xs text-gray-600">
+              </DuoButton>
+              <span className="text-xs text-duo-fg-muted">
                 Cole o JSON aqui para importar; o chat aplica automaticamente.
               </span>
             </div>
@@ -961,7 +1231,7 @@ export function WorkoutChat({
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
+                  <span className="text-duo-danger font-bold">
                     Limite diário atingido. Tente novamente amanhã.
                   </span>
                 )}
@@ -993,6 +1263,21 @@ export function WorkoutChat({
                       <WorkoutPreviewCard
                         workout={msg.workoutPreview}
                         index={workoutIndex}
+                        displayNumber={
+                          previewWorkouts.length > 1
+                            ? workoutIndex + 1
+                            : planSlot && planSlot.type === "workout"
+                              ? planSlot.dayOfWeek + 1
+                              : workoutIndex + 1
+                        }
+                        variant={
+                          msg.workoutPreview.title
+                            ?.toLowerCase()
+                            .includes("descanso") ||
+                          !msg.workoutPreview.exercises?.length
+                            ? "rest"
+                            : "default"
+                        }
                         defaultExpanded={
                           !allWorkoutsComplete &&
                           workoutIndex === previewWorkouts.length - 1
@@ -1062,8 +1347,8 @@ export function WorkoutChat({
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       msg.role === "user"
-                        ? "bg-duo-green text-white"
-                        : "bg-gray-100 text-gray-900"
+                        ? "bg-duo-primary text-white"
+                        : "bg-duo-bg-elevated text-duo-fg"
                     }`}
                   >
                     {/* Mostrar referência visual se houver */}
@@ -1072,14 +1357,14 @@ export function WorkoutChat({
                         className={`mb-2 pb-2 border-b ${
                           msg.role === "user"
                             ? "border-white/30"
-                            : "border-gray-300"
+                            : "border-duo-border"
                         }`}
                       >
                         <div
                           className={`text-xs font-bold ${
                             msg.role === "user"
-                              ? "text-white/80"
-                              : "text-gray-500"
+                              ? "text-white/90"
+                              : "text-duo-fg-muted"
                           } uppercase mb-1`}
                         >
                           {msg.reference.type === "workout"
@@ -1089,8 +1374,8 @@ export function WorkoutChat({
                         <div
                           className={`text-xs ${
                             msg.role === "user"
-                              ? "text-white/90"
-                              : "text-gray-700"
+                              ? "text-white"
+                              : "text-duo-fg"
                           }`}
                         >
                           {msg.reference.type === "workout"
@@ -1099,7 +1384,7 @@ export function WorkoutChat({
                         </div>
                       </div>
                     )}
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm text-inherit">{msg.content}</p>
                   </div>
                 </motion.div>
               );
@@ -1112,10 +1397,11 @@ export function WorkoutChat({
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-3 justify-center mt-4"
               >
-                <Button
+                <DuoButton
                   onClick={handleApprove}
                   disabled={isApproving}
-                  className="flex items-center gap-2 bg-duo-green hover:bg-duo-green/90 text-white font-bold px-6 py-3 rounded-xl shadow-[0_4px_0_#58A700]"
+                  variant="primary"
+                  className="flex items-center gap-2 px-6 py-3"
                 >
                   {isApproving ? (
                     <>
@@ -1128,22 +1414,22 @@ export function WorkoutChat({
                       Aprovar
                     </>
                   )}
-                </Button>
-                <Button
+                </DuoButton>
+                <DuoButton
                   onClick={handleRefazer}
                   disabled={isApproving || isProcessing}
                   variant="outline"
-                  className="flex items-center gap-2 border-2 border-gray-300 hover:bg-gray-50 font-bold px-6 py-3 rounded-xl"
+                  className="flex items-center gap-2 border-2 border-duo-border hover:bg-duo-bg-elevated font-bold px-6 py-3 rounded-xl"
                 >
                   <RotateCcw className="h-4 w-4" />
                   Refazer
-                </Button>
+                </DuoButton>
               </motion.div>
             )}
 
             {isProcessing && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                <div className="bg-duo-bg-elevated rounded-2xl px-4 py-3">
                   <Loader2 className="h-4 w-4 animate-spin text-duo-green" />
                 </div>
               </div>
@@ -1153,9 +1439,9 @@ export function WorkoutChat({
           </div>
 
           {/* Input */}
-          <div className="border-t-2 border-gray-300 p-4">
+          <div className="border-t-2 border-duo-border p-4">
             {remainingMessages !== null && remainingMessages >= 0 && (
-              <div className="mb-2 text-xs text-gray-600 text-center">
+              <div className="mb-2 text-xs text-duo-fg-muted text-center">
                 {remainingMessages > 0 ? (
                   <span className="text-duo-green font-bold">
                     {remainingMessages} mensagem
@@ -1163,7 +1449,7 @@ export function WorkoutChat({
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
+                  <span className="text-duo-danger font-bold">
                     Limite diário atingido. Tente novamente amanhã.
                   </span>
                 )}
@@ -1187,7 +1473,7 @@ export function WorkoutChat({
                           ? "Referenciando treino"
                           : "Referenciando exercício"}
                       </div>
-                      <div className="text-sm font-bold text-gray-900 truncate">
+                      <div className="text-sm font-bold text-duo-text truncate">
                         {reference.type === "workout"
                           ? reference.workoutTitle
                           : `${reference.exerciseName} (${reference.workoutTitle})`}
@@ -1197,7 +1483,7 @@ export function WorkoutChat({
                   <button
                     type="button"
                     onClick={() => setReference(null)}
-                    className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="shrink-0 text-duo-fg-muted hover:text-duo-text transition-colors"
                     title="Remover referência"
                   >
                     <X className="h-4 w-4" />
@@ -1219,7 +1505,7 @@ export function WorkoutChat({
                   }
                 }}
                 placeholder="Descreva o que você quer fazer no treino..."
-                className="flex-1 rounded-xl border-2 border-gray-300 px-4 py-3 text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:border-duo-green focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 rounded-xl border-2 border-duo-border px-4 py-3 text-sm font-bold text-duo-text placeholder:text-duo-fg-muted focus:border-duo-green focus:outline-none disabled:bg-duo-bg-elevated disabled:cursor-not-allowed"
                 disabled={
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
@@ -1233,7 +1519,7 @@ export function WorkoutChat({
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
                 }
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green text-white disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-primary text-white disabled:bg-duo-border disabled:cursor-not-allowed transition-colors"
               >
                 {isProcessing ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

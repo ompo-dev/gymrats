@@ -39,6 +39,10 @@ export function selectUnits(data: StudentData) {
 	return data.units;
 }
 
+export function selectWeeklyPlan(data: StudentData) {
+	return data.weeklyPlan;
+}
+
 export function selectWorkoutHistory(data: StudentData) {
 	return data.workoutHistory;
 }
@@ -212,6 +216,7 @@ export const selectorMap: Record<string, (data: StudentData) => any> = {
 	weightHistory: selectWeightHistory,
 	weightGain: selectWeightGain,
 	units: selectUnits,
+	weeklyPlan: selectWeeklyPlan,
 	workoutHistory: selectWorkoutHistory,
 	personalRecords: selectPersonalRecords,
 	dailyNutrition: selectDailyNutrition,

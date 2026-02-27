@@ -110,7 +110,7 @@ export function Step5({ formData, setFormData }: StepProps) {
 
   if (!calculation) {
     return (
-      <StepCard
+      <StepCard.Simple
         title="Calculando seus valores..."
         description="Aguarde enquanto calculamos seus valores metabólicos"
       >
@@ -121,7 +121,7 @@ export function Step5({ formData, setFormData }: StepProps) {
             className="h-12 w-12 rounded-full border-4 border-duo-green border-t-transparent"
           />
         </div>
-      </StepCard>
+      </StepCard.Simple>
     );
   }
 
@@ -140,7 +140,7 @@ export function Step5({ formData, setFormData }: StepProps) {
         : "Manutenção";
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Seu Plano Personalizado"
       description="Valores calculados especialmente para você"
     >
@@ -332,6 +332,6 @@ export function Step5({ formData, setFormData }: StepProps) {
           </div>
         </motion.div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

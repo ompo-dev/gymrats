@@ -8,6 +8,7 @@
 
 ## Arquivos
 - `apply-alternative-exercises-migration.js`: Arquivo da camada local.
+- `apply-weekly-plan-migration.js`: Migra Units → WeeklyPlan (7 slots Seg-Dom). Cria WeeklyPlan + PlanSlot para cada student. Distribui workouts nos slots por ordem. Students sem units recebem 7 slots rest.
 - `apply-google-auth-migration.js`: Arquivo da camada local.
 - `apply-gym-locations-payment-migration.js`: Arquivo da camada local.
 - `apply-metabolic-limitations-migration.js`: Arquivo da camada local.

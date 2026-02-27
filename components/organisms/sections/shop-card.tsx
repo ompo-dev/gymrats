@@ -1,9 +1,8 @@
 "use client";
 
 import { Dumbbell, Flame, ShoppingBag, Zap } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 
 interface ShopCardProps {
@@ -14,15 +13,16 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 	const { totalXP: storeXP } = useStudent("totalXP");
 	const currentXP = totalXP ?? storeXP ?? 0;
 	return (
-		<SectionCard
-			icon={ShoppingBag}
-			title="Loja de Recursos"
-			headerAction={
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<ShoppingBag className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Loja de Recursos</h2>
+				</div>
 				<p className="text-xs text-duo-gray-dark">Troque XP por benefícios</p>
-			}
-		>
+			</DuoCard.Header>
 			<div className="space-y-3">
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="sm"
 					className="flex items-center justify-between p-3"
@@ -38,18 +38,18 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 							<p className="text-xs text-duo-gray-dark">1 dia de proteção</p>
 						</div>
 					</div>
-					<Button
-						variant="light-blue"
+					<DuoButton
+						variant="secondary"
 						size="sm"
 						className="h-auto gap-1.5 px-3 py-1.5 text-xs"
 						disabled={currentXP < 200}
 					>
 						<Zap className="h-3 w-3" />
 						200
-					</Button>
-				</DuoCard>
+					</DuoButton>
+				</DuoCard.Root>
 
-				<DuoCard
+				<DuoCard.Root
 					variant="default"
 					size="sm"
 					className="flex items-center justify-between p-3"
@@ -65,17 +65,17 @@ export function ShopCard({ totalXP }: ShopCardProps) {
 							<p className="text-xs text-duo-gray-dark">Gerado por IA</p>
 						</div>
 					</div>
-					<Button
-						variant="light-blue"
+					<DuoButton
+						variant="secondary"
 						size="sm"
 						className="h-auto gap-1.5 px-3 py-1.5 text-xs"
 						disabled={currentXP < 500}
 					>
 						<Zap className="h-3 w-3" />
 						500
-					</Button>
-				</DuoCard>
+					</DuoButton>
+				</DuoCard.Root>
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }

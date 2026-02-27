@@ -3,7 +3,7 @@
 import { BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ interface LessonListProps {
 	getCategoryLabel: (category: string) => string;
 }
 
-export function LessonList({
+function LessonListSimple({
 	lessons,
 	lessonsByCategory,
 	categoryColors,
@@ -27,12 +27,12 @@ export function LessonList({
 	if (lessons.length === 0) {
 		return (
 			<SlideIn delay={0.15}>
-				<DuoCard variant="default" size="default">
+				<DuoCard.Root variant="default" size="default">
 					<div className="py-8 text-center text-duo-gray-dark">
 						<p className="font-bold">Nenhuma lição encontrada</p>
 						<p className="mt-1 text-sm">Tente ajustar os filtros ou busca</p>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		);
 	}
@@ -135,6 +135,8 @@ export function LessonList({
 	);
 }
 
+export const LessonList = { Simple: LessonListSimple };
+
 function LessonCard({
 	lesson,
 	colors,
@@ -149,7 +151,7 @@ function LessonCard({
 	getCategoryLabel: (category: string) => string;
 }) {
 	return (
-		<DuoCard
+		<DuoCard.Root
 			variant="default"
 			size="default"
 			onClick={onClick}
@@ -208,6 +210,6 @@ function LessonCard({
 					</span>
 				)}
 			</div>
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }

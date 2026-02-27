@@ -3,7 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/ui/duo-card";
+import { DuoCard } from "@/components/duo";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -30,12 +30,12 @@ export function ExerciseList({
 	if (exercises.length === 0) {
 		return (
 			<SlideIn delay={0.2}>
-				<DuoCard variant="default" size="default">
+				<DuoCard.Root variant="default" size="default">
 					<div className="py-8 text-center text-duo-gray-dark">
 						<p className="font-bold">Nenhum exercício encontrado</p>
 						<p className="mt-1 text-sm">Tente buscar por outro termo</p>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		);
 	}
@@ -51,7 +51,7 @@ export function ExerciseList({
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: index * 0.05, duration: 0.4 }}
 						>
-							<DuoCard
+							<DuoCard.Root
 								variant="default"
 								size="md"
 								onClick={() => onExerciseSelect(exercise)}
@@ -85,7 +85,7 @@ export function ExerciseList({
 									</div>
 									<ChevronRight className="h-6 w-6 shrink-0 text-duo-gray-dark" />
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						</motion.div>
 					))}
 				</div>
@@ -120,7 +120,7 @@ export function ExerciseList({
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: index * 0.05, duration: 0.4 }}
 									>
-										<DuoCard
+										<DuoCard.Root
 											variant="default"
 											size="md"
 											onClick={() => onExerciseSelect(exercise)}
@@ -165,7 +165,7 @@ export function ExerciseList({
 												</div>
 												<ChevronRight className="h-6 w-6 shrink-0 text-duo-gray-dark" />
 											</div>
-										</DuoCard>
+										</DuoCard.Root>
 									</motion.div>
 								))}
 							</div>

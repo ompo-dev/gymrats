@@ -2,7 +2,7 @@
 
 import { Check, X } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import type { Exercise } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -87,14 +87,14 @@ export function TrueFalse({ exercise, onAnswer }: TrueFalseProps) {
 			</div>
 
 			{!submitted && (
-				<Button
+				<DuoButton
 					onClick={handleSubmit}
 					disabled={!selectedOption}
 					size="lg"
 					className="w-full"
 				>
 					Verificar
-				</Button>
+				</DuoButton>
 			)}
 
 			{submitted && (

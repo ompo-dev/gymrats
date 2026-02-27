@@ -1,8 +1,8 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 import type { SubscriptionPlan } from "../subscription-section";
 import { BillingPeriodSelector } from "./billing-period-selector";
@@ -34,7 +34,7 @@ interface PlansSelectorProps {
 	onSubscribe: () => void;
 }
 
-export function PlansSelector({
+function PlansSelectorSimple({
 	userType,
 	plans,
 	selectedPlan,
@@ -82,16 +82,19 @@ export function PlansSelector({
 		: annualDiscount;
 
 	return (
-		<SectionCard
-			title={
-				userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
-					? "Mudar para Plano Anual"
-					: isTrialActive
-						? texts.upgradeTitle
-						: texts.choosePlanTitle
-			}
-			icon={Sparkles}
-		>
+		<DuoCard.Root variant="default" padding="md">
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<Sparkles className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">
+						{userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly"
+							? "Mudar para Plano Anual"
+							: isTrialActive
+								? texts.upgradeTitle
+								: texts.choosePlanTitle}
+					</h2>
+				</div>
+			</DuoCard.Header>
 			<div className="space-y-4">
 				{/* Para student com subscription ativa mensal: mostrar apenas opção anual */}
 				{userType === "student" && isPremiumActive && (
@@ -104,7 +107,7 @@ export function PlansSelector({
 
 				{/* Billing Period Selector - Ocultar para student com subscription ativa mensal */}
 				{!(userType === "student" && isPremiumActive) && (
-					<BillingPeriodSelector
+					<BillingPeriodSelector.Simple
 						selectedPeriod={selectedBillingPeriod}
 						onSelect={onSelectBillingPeriod}
 						monthlyLabel={texts.monthlyLabel}
@@ -186,7 +189,7 @@ export function PlansSelector({
 							return true;
 						})
 							.map((plan) => (
-								<PlanCard
+								<PlanCard.Simple
 									key={plan.id}
 									plan={plan}
 									isSelected={selectedPlan === plan.id}
@@ -206,9 +209,10 @@ export function PlansSelector({
 						<PlanFeatures features={selectedPlanData.features} />
 
 						{/* Subscribe Button */}
-						<Button
+						<DuoButton
 							onClick={onSubscribe}
 							disabled={isLoading}
+							variant="primary"
 							className="w-full mt-4"
 							size="lg"
 						>
@@ -217,10 +221,12 @@ export function PlansSelector({
 								: userType === "student" && isPremiumActive
 									? "Mudar para Plano Anual"
 									: texts.subscribeButton}
-						</Button>
+						</DuoButton>
 					</>
 				)}
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }
+
+export const PlansSelector = { Simple: PlansSelectorSimple };

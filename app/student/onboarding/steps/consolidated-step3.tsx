@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { LimitationSelector } from "@/components/molecules/limitation-selector";
-import { OptionSelector } from "@/components/ui/option-selector";
+import { DuoSelect } from "@/components/duo";
 import type { step3Schema, step7Schema } from "../schemas";
 import type { OnboardingData, StepProps } from "./types";
 
@@ -94,7 +94,7 @@ export function ConsolidatedStep3({
   };
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Algo mais?"
       description="Você pode completar depois em Configurações"
     >
@@ -111,7 +111,7 @@ export function ConsolidatedStep3({
           <p className="text-sm text-gray-600">
             Como você gosta de treinar? (valores padrão já selecionados)
           </p>
-          <OptionSelector
+          <DuoSelect.Simple
             options={[2, 3, 4, 5].map((num) => ({
               value: String(num),
               label: `${num}x`,
@@ -123,31 +123,15 @@ export function ConsolidatedStep3({
                 preferredSets: parseInt(value, 10),
               });
             }}
-            layout="grid"
-            columns={4}
-            size="md"
-            showCheck={false}
-            delay={0}
             label="Número de séries por exercício"
+            placeholder="Selecione"
           />
 
-          <OptionSelector
+          <DuoSelect.Simple
             options={[
-              {
-                value: "forca",
-                label: "Força (1-5 reps)",
-                description: "Peso muito alto",
-              },
-              {
-                value: "hipertrofia",
-                label: "Hipertrofia (8-12 reps)",
-                description: "Crescimento muscular",
-              },
-              {
-                value: "resistencia",
-                label: "Resistência (15+ reps)",
-                description: "Definição e tônus",
-              },
+              { value: "forca", label: "Força (1-5 reps)", description: "Peso muito alto" },
+              { value: "hipertrofia", label: "Hipertrofia (8-12 reps)", description: "Crescimento muscular" },
+              { value: "resistencia", label: "Resistência (15+ reps)", description: "Definição e tônus" },
             ]}
             value={formData.preferredRepRange}
             onChange={(value) => {
@@ -156,14 +140,11 @@ export function ConsolidatedStep3({
                 preferredRepRange: value as OnboardingData["preferredRepRange"],
               });
             }}
-            layout="list"
-            size="md"
-            textAlign="left"
-            delay={0}
             label="Faixa de repetições"
+            placeholder="Selecione"
           />
 
-          <OptionSelector
+          <DuoSelect.Simple
             options={[
               { value: "curto", label: "Curto", description: "30-45s" },
               { value: "medio", label: "Médio", description: "60-90s" },
@@ -176,13 +157,8 @@ export function ConsolidatedStep3({
                 restTime: value as OnboardingData["restTime"],
               });
             }}
-            layout="grid"
-            columns={3}
-            size="sm"
-            textAlign="center"
-            showCheck={false}
-            delay={0}
             label="Tempo de descanso entre séries"
+            placeholder="Selecione"
           />
         </motion.div>
 
@@ -200,7 +176,7 @@ export function ConsolidatedStep3({
             Nos ajude a criar um treino seguro e adequado para você
           </p>
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui limitações físicas?"
             icon={Heart}
             iconColor="text-red-500"
@@ -243,7 +219,7 @@ export function ConsolidatedStep3({
             delay={0}
           />
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui limitações motoras?"
             icon={Activity}
             iconColor="text-blue-500"
@@ -266,7 +242,7 @@ export function ConsolidatedStep3({
             delay={0}
           />
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui condições médicas?"
             icon={Stethoscope}
             iconColor="text-orange-500"
@@ -334,6 +310,6 @@ export function ConsolidatedStep3({
           )}
         </motion.div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

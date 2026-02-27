@@ -70,13 +70,13 @@ type ContextType =
 // ============================================
 
 const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
-	learn: ["units", "progress", "workoutHistory"],
+	learn: ["weeklyPlan", "progress", "workoutHistory"],
 	diet: ["dailyNutrition", "progress"],
 	profile: ["profile", "weightHistory", "progress", "personalRecords"],
 	payments: ["subscription", "payments", "paymentMethods", "memberships"],
 	gyms: ["gymLocations"],
-	home: ["progress", "workoutHistory", "profile", "units", "dailyNutrition"],
-	default: ["progress", "units", "profile"],
+	home: ["progress", "workoutHistory", "profile", "weeklyPlan", "units", "dailyNutrition"],
+	default: ["progress", "weeklyPlan", "units", "profile"],
 };
 
 // ============================================
@@ -131,6 +131,8 @@ function hasSectionData(section: StudentDataSection, storeData: any): boolean {
 			return !!(storeData.weightHistory && storeData.weightHistory.length > 0);
 		case "units":
 			return !!(storeData.units && storeData.units.length > 0);
+		case "weeklyPlan":
+			return !!storeData.weeklyPlan;
 		case "workoutHistory":
 			return !!(
 				storeData.workoutHistory && storeData.workoutHistory.length >= 0
@@ -217,6 +219,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
 		(state) => state.data.weightHistory,
 	);
 	const getUnits = useStudentUnifiedStore((state) => state.data.units);
+	const getWeeklyPlan = useStudentUnifiedStore((state) => state.data.weeklyPlan);
 	const getWorkoutHistory = useStudentUnifiedStore(
 		(state) => state.data.workoutHistory,
 	);
@@ -250,6 +253,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
 		profile: getProfile,
 		weightHistory: getWeightHistory,
 		units: getUnits,
+		weeklyPlan: getWeeklyPlan,
 		workoutHistory: getWorkoutHistory,
 		personalRecords: getPersonalRecords,
 		dailyNutrition: getDailyNutrition,
@@ -270,6 +274,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
 		profile: getProfile,
 		weightHistory: getWeightHistory,
 		units: getUnits,
+		weeklyPlan: getWeeklyPlan,
 		workoutHistory: getWorkoutHistory,
 		personalRecords: getPersonalRecords,
 		dailyNutrition: getDailyNutrition,

@@ -7,6 +7,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getAllStudentData } from "@/app/student/actions-unified";
 import { db } from "@/lib/db";
+import { getNextMonday } from "@/lib/utils/week";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
@@ -973,5 +974,36 @@ export async function getFriendsHandler(
 	} catch (error: any) {
 		console.error("[getFriendsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar amigos", error);
+	}
+}
+
+/**
+ * PATCH /api/students/week-reset
+ * Reset manual da semana - avança weekOverride para próxima segunda
+ */
+export async function weekResetHandler(
+	request: NextRequest,
+): Promise<NextResponse> {
+	try {
+		const auth = await requireStudent(request);
+		if ("error" in auth) {
+			return auth.response;
+		}
+
+		const studentId = auth.user.student.id;
+		const nextMonday = getNextMonday();
+
+		await db.student.update({
+			where: { id: studentId },
+			data: { weekOverride: nextMonday },
+		});
+
+		return successResponse({
+			message: "Semana resetada. Nodes reabilitados!",
+			weekStart: nextMonday.toISOString(),
+		});
+	} catch (error: unknown) {
+		console.error("[weekResetHandler] Erro:", error);
+		return internalErrorResponse("Erro ao resetar semana");
 	}
 }

@@ -2,8 +2,8 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoCard } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
 
 interface LessonFiltersProps {
 	searchQuery: string;
@@ -13,7 +13,7 @@ interface LessonFiltersProps {
 	onCategoryChange: (category: string) => void;
 }
 
-export function LessonFilters({
+function LessonFiltersSimple({
 	searchQuery,
 	selectedCategory,
 	categoryOptions,
@@ -22,7 +22,13 @@ export function LessonFilters({
 }: LessonFiltersProps) {
 	return (
 		<SlideIn delay={0.1}>
-			<SectionCard title="Buscar e Filtrar" icon={Filter}>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
+					<div className="flex items-center gap-2">
+						<Filter className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
+					</div>
+				</DuoCard.Header>
 				<div className="space-y-4">
 					<div className="relative">
 						<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
@@ -47,19 +53,18 @@ export function LessonFilters({
 						<div className="mb-2 text-xs font-bold text-duo-gray-dark">
 							CATEGORIA
 						</div>
-						<OptionSelector
+						<DuoSelect.Simple
 							options={categoryOptions}
 							value={selectedCategory}
 							onChange={onCategoryChange}
-							layout="grid"
-							columns={3}
-							size="sm"
-							textAlign="center"
-							animate={true}
+							label="Categoria"
+							placeholder="Selecione a categoria"
 						/>
 					</div>
 				</div>
-			</SectionCard>
+			</DuoCard.Root>
 		</SlideIn>
 	);
 }
+
+export const LessonFilters = { Simple: LessonFiltersSimple };

@@ -4,8 +4,8 @@ import axios from "axios";
 import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { DuoInput } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { FormInput } from "@/components/molecules/forms/form-input";
 import type { StepProps } from "./types";
 
 interface ViaCepResponse {
@@ -66,7 +66,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 		}
 	};
 
-	const handleCepChange = (value: string | number) => {
+	const handleCepChange = (value: string) => {
 		const stringValue = String(value);
 		const formatted = formatCep(stringValue);
 		setFormData({ ...formData, zipCode: formatted });
@@ -79,21 +79,21 @@ export function Step2({ formData, setFormData }: StepProps) {
 	};
 
 	return (
-		<StepCard
+		<StepCard.Simple
 			title="Localização"
 			description="Onde sua academia está localizada?"
 		>
 			<div className="space-y-5">
 				<div className="relative">
-					<FormInput
-						label="CEP"
+					<DuoInput.Simple
+						label="CEP *"
 						type="text"
 						placeholder="00000-000"
 						value={formData.zipCode}
-						onChange={handleCepChange}
+						onChange={(e) => handleCepChange(e.target.value)}
 						required
-						delay={0.3}
 						maxLength={9}
+						error={cepError || undefined}
 					/>
 					{isLoadingCep && (
 						<div className="absolute right-4 top-[42px]">
@@ -105,60 +105,56 @@ export function Step2({ formData, setFormData }: StepProps) {
 							initial={{ opacity: 0, y: -10 }}
 							animate={{ opacity: 1, y: 0 }}
 							className="mt-1 text-sm text-red-600"
+							role="alert"
 						>
 							{cepError}
 						</motion.p>
 					)}
 				</div>
 
-				<FormInput
-					label="Endereço"
+				<DuoInput.Simple
+					label="Endereço *"
 					type="text"
 					placeholder="Rua, avenida, logradouro"
 					value={formData.address}
-					onChange={(value) =>
-						setFormData({ ...formData, address: value as string })
+					onChange={(e) =>
+						setFormData({ ...formData, address: e.target.value })
 					}
 					required
-					delay={0.4}
 				/>
-				<FormInput
+				<DuoInput.Simple
 					label="Número / Complemento"
 					type="text"
 					placeholder="Ex: 123, Sala 45, Bloco A"
 					value={formData.addressNumber}
-					onChange={(value) =>
-						setFormData({ ...formData, addressNumber: value as string })
+					onChange={(e) =>
+						setFormData({ ...formData, addressNumber: e.target.value })
 					}
-					required={false}
-					delay={0.45}
 				/>
 				<div className="grid grid-cols-2 gap-4">
-					<FormInput
-						label="Cidade"
+					<DuoInput.Simple
+						label="Cidade *"
 						type="text"
 						placeholder="São Paulo"
 						value={formData.city}
-						onChange={(value) =>
-							setFormData({ ...formData, city: value as string })
+						onChange={(e) =>
+							setFormData({ ...formData, city: e.target.value })
 						}
 						required
-						delay={0.5}
 					/>
-					<FormInput
-						label="Estado"
+					<DuoInput.Simple
+						label="Estado *"
 						type="text"
 						placeholder="SP"
 						value={formData.state}
-						onChange={(value) =>
-							setFormData({ ...formData, state: value as string })
+						onChange={(e) =>
+							setFormData({ ...formData, state: e.target.value })
 						}
 						required
-						delay={0.6}
 						maxLength={2}
 					/>
 				</div>
 			</div>
-		</StepCard>
+		</StepCard.Simple>
 	);
 }

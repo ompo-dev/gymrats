@@ -4,10 +4,9 @@ import { Thermometer } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
+import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
-import { FormInput } from "@/components/ui/form-input";
-import { OptionSelector } from "@/components/ui/option-selector";
 import { RangeSlider } from "@/components/ui/range-slider";
 import {
   type consolidatedStep1Schema,
@@ -184,7 +183,7 @@ export function ConsolidatedStep1({
     activityLevelDescriptions[4];
 
   return (
-    <StepCard
+    <StepCard.Simple
       title="Quem é você"
       description="Vamos conhecer você para personalizar sua experiência"
     >
@@ -199,13 +198,22 @@ export function ConsolidatedStep1({
             Informações Pessoais
           </h3>
           <div className="grid gap-4 sm:grid-cols-3">
-            <FormInput
-              label="Idade"
-              type="number"
+            <DuoInput.Simple
+              label="Idade *"
+              type="text"
+              inputMode="numeric"
               placeholder="25"
-              value={formData.age}
-              onChange={(value) => {
-                setFormData({ ...formData, age: value as number | "" });
+              value={formData.age === "" ? "" : formData.age}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, age: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, age: Math.min(120, Math.max(13, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, age: true }));
@@ -213,17 +221,23 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.age ? errors.age : undefined}
-              delay={0}
-              min={13}
-              max={120}
             />
-            <FormInput
-              label="Altura (cm)"
-              type="number"
+            <DuoInput.Simple
+              label="Altura (cm) *"
+              type="text"
+              inputMode="numeric"
               placeholder="170"
-              value={formData.height}
-              onChange={(value) => {
-                setFormData({ ...formData, height: value as number | "" });
+              value={formData.height === "" ? "" : formData.height}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, height: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, height: Math.min(250, Math.max(100, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, height: true }));
@@ -231,17 +245,23 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.height ? errors.height : undefined}
-              delay={0}
-              min={100}
-              max={250}
             />
-            <FormInput
-              label="Peso (kg)"
-              type="number"
+            <DuoInput.Simple
+              label="Peso (kg) *"
+              type="text"
+              inputMode="numeric"
               placeholder="70"
-              value={formData.weight}
-              onChange={(value) => {
-                setFormData({ ...formData, weight: value as number | "" });
+              value={formData.weight === "" ? "" : formData.weight}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, weight: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, weight: Math.min(300, Math.max(30, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, weight: true }));
@@ -249,9 +269,6 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.weight ? errors.weight : undefined}
-              delay={0}
-              min={30}
-              max={300}
             />
           </div>
 
@@ -266,10 +283,10 @@ export function ConsolidatedStep1({
                 { value: "female", label: "Feminino" },
                 { value: "trans-female", label: "Trans Feminino" },
               ].map((option) => (
-                <motion.button
+                <DuoButton
                   key={option.value}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.99 }}
+                  type="button"
+                  variant={formData.gender === option.value ? "primary" : "outline"}
                   onClick={() => {
                     const isTrans = option.value.includes("trans");
                     setFormData({
@@ -281,14 +298,14 @@ export function ConsolidatedStep1({
                     });
                     setTouched((prev) => ({ ...prev, gender: true }));
                   }}
-                  className={`rounded-2xl border-2 py-3 font-bold uppercase tracking-wider transition-all ${
-                    formData.gender === option.value
-                      ? "border-duo-green bg-duo-green text-white shadow-[0_4px_0_#58A700]"
-                      : "border-gray-300 bg-white text-gray-900 shadow-[0_4px_0_#D1D5DB] hover:border-duo-green/50"
+                  className={`rounded-2xl py-3 ${
+                    formData.gender !== option.value
+                      ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+                      : ""
                   }`}
                 >
                   {option.label}
-                </motion.button>
+                </DuoButton>
               ))}
             </div>
             {(formData.gender === "trans-male" ||
@@ -312,7 +329,7 @@ export function ConsolidatedStep1({
                 />
                 {formData.usesHormones && (
                   <>
-                    <OptionSelector
+                    <DuoSelect.Simple
                       options={[
                         { value: "testosterone", label: "Testosterona" },
                         { value: "estrogen", label: "Estrogênio" },
@@ -324,24 +341,31 @@ export function ConsolidatedStep1({
                           hormoneType: value as OnboardingData["hormoneType"],
                         })
                       }
-                      layout="grid"
-                      columns={2}
-                      size="sm"
-                      showCheck={false}
-                      delay={0}
                       label="Tipo de hormônio"
+                      placeholder="Selecione"
                     />
-                    <FormInput
+                    <DuoInput.Simple
                       label="Meses de tratamento"
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="0"
                       value={formData.hormoneTreatmentDuration ?? ""}
-                      onChange={(value) => {
-                        setFormData({
-                          ...formData,
-                          hormoneTreatmentDuration:
-                            typeof value === "number" ? value : undefined,
-                        });
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || v === "-") {
+                          setFormData({
+                            ...formData,
+                            hormoneTreatmentDuration: undefined,
+                          });
+                          return;
+                        }
+                        const n = parseFloat(v);
+                        if (!Number.isNaN(n)) {
+                          setFormData({
+                            ...formData,
+                            hormoneTreatmentDuration: Math.min(120, Math.max(0, n)),
+                          });
+                        }
                       }}
                       onBlur={() =>
                         setTouched((prev) => ({
@@ -354,9 +378,6 @@ export function ConsolidatedStep1({
                           ? errors.hormoneTreatmentDuration
                           : undefined
                       }
-                      min={0}
-                      max={120}
-                      delay={0}
                     />
                   </>
                 )}
@@ -364,7 +385,7 @@ export function ConsolidatedStep1({
             )}
           </div>
 
-          <OptionSelector
+          <DuoSelect.Simple
             options={[
               { value: "iniciante", label: "Iniciante" },
               { value: "intermediario", label: "Intermediário" },
@@ -377,11 +398,8 @@ export function ConsolidatedStep1({
                 fitnessLevel: value as DifficultyLevel,
               })
             }
-            layout="list"
-            size="md"
-            showCheck={false}
-            delay={0}
             label="Nível de Experiência"
+            placeholder="Selecione"
           />
         </motion.div>
 
@@ -395,7 +413,7 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Objetivo Principal
           </h3>
-          <OptionSelector
+          <DuoSelect.Simple
             options={[
               { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
               { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
@@ -416,19 +434,15 @@ export function ConsolidatedStep1({
               });
               setTouched((prev) => ({ ...prev, goals: true }));
             }}
-            layout="grid"
-            columns={3}
-            size="md"
-            showCheck={false}
-            delay={0}
             label="O que você quer alcançar?"
+            placeholder="Selecione"
           />
           {touched.goals && errors.goals && (
             <p className="text-sm font-bold text-red-500">{errors.goals}</p>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <OptionSelector
+            <DuoSelect.Simple
               options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
                 value: String(num),
                 label: String(num),
@@ -444,12 +458,8 @@ export function ConsolidatedStep1({
                   weeklyWorkoutFrequency: true,
                 }));
               }}
-              layout="grid"
-              columns={7}
-              size="sm"
-              showCheck={false}
-              delay={0}
               label="Treinos por semana"
+              placeholder="Selecione"
             />
             <div>
               <RangeSlider
@@ -483,24 +493,12 @@ export function ConsolidatedStep1({
           <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
             Equipamentos
           </h3>
-          <OptionSelector
+          <DuoSelect.Simple
             options={[
-              {
-                value: "academia-completa",
-                label: "Academia Completa",
-                emoji: "🏢",
-              },
-              {
-                value: "academia-basica",
-                label: "Academia Básica",
-                emoji: "🏠",
-              },
+              { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
+              { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },
               { value: "home-gym", label: "Home Gym", emoji: "🏡" },
-              {
-                value: "peso-corporal",
-                label: "Só Peso Corporal",
-                emoji: "🤸",
-              },
+              { value: "peso-corporal", label: "Só Peso Corporal", emoji: "🤸" },
             ]}
             value={formData.gymType || ""}
             onChange={(value) => {
@@ -510,12 +508,8 @@ export function ConsolidatedStep1({
               });
               setTouched((prev) => ({ ...prev, gymType: true }));
             }}
-            layout="list"
-            size="md"
-            textAlign="center"
-            showCheck={false}
-            delay={0}
             label="O que você tem acesso?"
+            placeholder="Selecione"
           />
           {touched.gymType && errors.gymType && (
             <p className="text-sm font-bold text-red-500">{errors.gymType}</p>
@@ -578,6 +572,6 @@ export function ConsolidatedStep1({
           )}
         </motion.div>
       </div>
-    </StepCard>
+    </StepCard.Simple>
   );
 }

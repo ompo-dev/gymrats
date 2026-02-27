@@ -1,7 +1,7 @@
 import { ChevronDown, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type * as React from "react";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import type { MealFoodItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function FoodItemCard({
 					"w-full rounded-xl border-2 p-3 text-left transition-all active:scale-[0.98] cursor-pointer",
 					isExpanded
 						? "border-duo-blue bg-duo-blue/5 shadow-sm"
-						: "border-gray-300 bg-white hover:border-duo-blue hover:shadow-sm",
+						: "border-duo-border bg-duo-bg-card hover:border-duo-blue hover:shadow-sm",
 				)}
 				role="button"
 				tabIndex={0}
@@ -50,8 +50,8 @@ export function FoodItemCard({
 			>
 				<div className="flex items-center justify-between">
 					<div className="flex-1">
-						<div className="font-bold text-gray-900">{food.foodName}</div>
-						<div className="text-xs text-gray-600">
+						<div className="font-bold text-duo-text">{food.foodName}</div>
+						<div className="text-xs text-duo-fg-muted">
 							{food.servings} {food.servings === 1 ? "porção" : "porções"} •{" "}
 							{food.servingSize}
 						</div>
@@ -73,7 +73,7 @@ export function FoodItemCard({
 							transition={{ duration: 0.25, ease: "easeInOut" }}
 							className="overflow-hidden"
 						>
-							<div className="mt-3 border-t border-gray-300 pt-3 space-y-3">
+							<div className="mt-3 border-t border-duo-border pt-3 space-y-3">
 								<motion.div
 									initial={{ y: -10, opacity: 0 }}
 									animate={{ y: 0, opacity: 1 }}
@@ -81,28 +81,28 @@ export function FoodItemCard({
 									className="grid grid-cols-4 gap-2 text-center"
 								>
 									<div>
-										<div className="text-sm font-bold text-gray-900">
+										<div className="text-sm font-bold text-duo-text">
 											{food.calories}
 										</div>
-										<div className="text-xs text-gray-600">cal</div>
+										<div className="text-xs text-duo-fg-muted">cal</div>
 									</div>
 									<div>
-										<div className="text-sm font-bold text-gray-900">
+										<div className="text-sm font-bold text-duo-text">
 											{food.protein}g
 										</div>
-										<div className="text-xs text-gray-600">prot</div>
+										<div className="text-xs text-duo-fg-muted">prot</div>
 									</div>
 									<div>
-										<div className="text-sm font-bold text-gray-900">
+										<div className="text-sm font-bold text-duo-text">
 											{food.carbs}g
 										</div>
-										<div className="text-xs text-gray-600">carb</div>
+										<div className="text-xs text-duo-fg-muted">carb</div>
 									</div>
 									<div>
-										<div className="text-sm font-bold text-gray-900">
+										<div className="text-sm font-bold text-duo-text">
 											{food.fats}g
 										</div>
-										<div className="text-xs text-gray-600">gord</div>
+										<div className="text-xs text-duo-fg-muted">gord</div>
 									</div>
 								</motion.div>
 
@@ -112,8 +112,8 @@ export function FoodItemCard({
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ delay: 0.15, duration: 0.2 }}
 									>
-										<Button
-											variant="destructive"
+										<DuoButton
+											variant="danger"
 											size="sm"
 											className="w-full"
 											onClick={(e) => {
@@ -123,7 +123,7 @@ export function FoodItemCard({
 										>
 											<Trash2 className="h-3.5 w-3.5" />
 											Excluir Alimento
-										</Button>
+										</DuoButton>
 									</motion.div>
 								)}
 							</div>

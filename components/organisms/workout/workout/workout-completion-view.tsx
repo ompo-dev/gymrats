@@ -3,7 +3,7 @@
 import { ArrowRight, CheckCircle2, Timer, Weight, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
-import { Button } from "@/components/atoms/buttons/button";
+import { DuoButton } from "@/components/duo";
 import type { ExerciseLog, WorkoutSession } from "@/lib/types";
 
 interface WorkoutCompletionViewProps {
@@ -19,7 +19,7 @@ interface WorkoutCompletionViewProps {
 	onRepeat: () => void;
 }
 
-export function WorkoutCompletionView({
+function WorkoutCompletionViewSimple({
 	workout,
 	workoutData,
 	totalVolume,
@@ -65,7 +65,7 @@ export function WorkoutCompletionView({
 					exit={{ opacity: 0, scale: 0.9 }}
 					transition={{ duration: 0.3 }}
 					onClick={(e) => e.stopPropagation()}
-					className="flex h-screen w-full max-h-screen flex-col items-center overflow-y-auto bg-linear-to-b from-white to-gray-50 p-4 sm:p-6"
+					className="flex h-screen w-full max-h-screen flex-col items-center overflow-y-auto bg-linear-to-b from-duo-bg-card to-duo-bg-elevated p-4 sm:p-6"
 				>
 					<FadeIn delay={0.1}>
 						<div className="mb-4 sm:mb-8 text-center">
@@ -82,7 +82,7 @@ export function WorkoutCompletionView({
 							>
 								🎉
 							</motion.div>
-							<h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-black text-[#58CC02]">
+							<h1 className="mb-2 text-2xl sm:text-3xl lg:text-4xl font-black text-duo-green">
 								Treino Completo!
 							</h1>
 							<p className="text-sm sm:text-base lg:text-lg text-duo-gray-dark">
@@ -116,13 +116,13 @@ export function WorkoutCompletionView({
 									animate={{ opacity: 1, scale: 1, x: 0 }}
 									transition={{ delay: 0.35, duration: 0.4 }}
 									whileHover={{ scale: 1.05 }}
-									className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-4 sm:p-6 text-center shadow-lg"
+									className="rounded-2xl border-2 border-duo-yellow bg-linear-to-br from-duo-yellow/20 to-duo-orange/20 p-4 sm:p-6 text-center shadow-lg"
 								>
-									<Zap className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-[#FFC800]" />
+									<Zap className="mx-auto mb-2 h-5 w-5 sm:h-6 sm:w-6 text-duo-yellow" />
 									<div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 										XP Ganho
 									</div>
-									<div className="text-2xl sm:text-3xl font-black text-[#FFC800]">
+									<div className="text-2xl sm:text-3xl font-black text-duo-yellow">
 										{workout.xpReward}
 									</div>
 								</motion.div>
@@ -134,15 +134,15 @@ export function WorkoutCompletionView({
 									animate={{ opacity: 1, scale: 1, x: 0 }}
 									transition={{ delay: 0.3, duration: 0.4 }}
 									whileHover={{ scale: 1.05 }}
-									className="rounded-2xl border-2 border-[#FFC800] bg-linear-to-br from-[#FFC800]/20 to-[#FF9600]/20 p-4 sm:p-6 text-center shadow-lg"
+									className="rounded-2xl border-2 border-duo-yellow bg-linear-to-br from-duo-yellow/20 to-duo-orange/20 p-4 sm:p-6 text-center shadow-lg"
 								>
 									<div className="mb-2 flex items-center justify-center gap-2">
-										<Zap className="h-5 w-5 sm:h-6 sm:w-6 text-[#FFC800]" />
+										<Zap className="h-5 w-5 sm:h-6 sm:w-6 text-duo-yellow" />
 									</div>
 									<div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 										XP Ganho
 									</div>
-									<div className="text-2xl sm:text-3xl font-black text-[#FFC800]">
+									<div className="text-2xl sm:text-3xl font-black text-duo-yellow">
 										{workout.xpReward}
 									</div>
 								</motion.div>
@@ -152,15 +152,15 @@ export function WorkoutCompletionView({
 									animate={{ opacity: 1, scale: 1, x: 0 }}
 									transition={{ delay: 0.35, duration: 0.4 }}
 									whileHover={{ scale: 1.05 }}
-									className="rounded-2xl border-2 border-[#1CB0F6] bg-linear-to-br from-[#1CB0F6]/20 to-[#58CC02]/20 p-4 sm:p-6 text-center shadow-lg"
+									className="rounded-2xl border-2 border-duo-blue bg-linear-to-br from-duo-blue/20 to-duo-green/20 p-4 sm:p-6 text-center shadow-lg"
 								>
 									<div className="mb-2 flex items-center justify-center gap-2">
-										<Weight className="h-5 w-5 sm:h-6 sm:w-6 text-[#1CB0F6]" />
+										<Weight className="h-5 w-5 sm:h-6 sm:w-6 text-duo-blue" />
 									</div>
 									<div className="mb-1 text-xs font-bold uppercase tracking-wider text-duo-gray-dark">
 										Volume Total
 									</div>
-									<div className="text-2xl sm:text-3xl font-black text-[#1CB0F6]">
+									<div className="text-2xl sm:text-3xl font-black text-duo-blue">
 										{totalVolume.toFixed(0)}kg
 									</div>
 								</motion.div>
@@ -188,13 +188,13 @@ export function WorkoutCompletionView({
 									animate={{ opacity: 1, x: 0 }}
 									transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
 									whileHover={{ scale: 1.02, x: 5 }}
-									className="rounded-xl border-2 border-duo-green bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
+									className="rounded-xl border-2 border-duo-green bg-duo-bg-card p-3 sm:p-4 shadow-sm transition-all hover:shadow-md"
 								>
 									<div className="mb-2 flex items-center justify-between gap-2">
 										<div className="font-bold text-duo-text text-sm sm:text-base wrap-break-words flex-1">
 											{exercise.name}
 										</div>
-										<CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-[#58CC02] text-white shrink-0" />
+										<CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 fill-duo-green text-white shrink-0" />
 									</div>
 									{log && (
 										<div className="text-xs sm:text-sm text-duo-gray-dark">
@@ -221,25 +221,27 @@ export function WorkoutCompletionView({
 						transition={{ delay: 0.6, duration: 0.4 }}
 						className="flex w-full max-w-md gap-2 sm:gap-3 mb-4 sm:mb-0"
 					>
-						<Button
+						<DuoButton
 							variant="white"
 							className="flex-1 text-sm sm:text-base"
 							onClick={onRepeat}
 						>
 							<span className="hidden sm:inline">FAZER NOVAMENTE</span>
 							<span className="sm:hidden">REFAZER</span>
-						</Button>
-						<Button
-							variant="default"
+						</DuoButton>
+						<DuoButton
+							variant="primary"
 							className="flex-1 text-sm sm:text-base"
 							onClick={onClose}
 						>
 							CONTINUAR
 							<ArrowRight className="h-4 w-4 sm:h-5 sm:w-5" />
-						</Button>
+						</DuoButton>
 					</motion.div>
 				</motion.div>
 			</motion.div>
 		</AnimatePresence>
 	);
 }
+
+export const WorkoutCompletionView = { Simple: WorkoutCompletionViewSimple };

@@ -1,7 +1,7 @@
 import { Droplets } from "lucide-react";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { SectionCard } from "./section-card";
+import { DuoCard } from "@/components/duo";
 
 export interface WaterIntakeCardProps
 	extends React.HTMLAttributes<HTMLDivElement> {
@@ -9,13 +9,16 @@ export interface WaterIntakeCardProps
 	target: number;
 	glasses: number;
 	onToggleGlass: (index: number) => void;
+	/** Modo somente leitura: copos não são clicáveis */
+	readOnly?: boolean;
 }
 
-export function WaterIntakeCard({
+function WaterIntakeCardSimple({
 	current,
 	target,
 	glasses,
 	onToggleGlass,
+	readOnly = false,
 	className,
 	...props
 }: WaterIntakeCardProps) {
@@ -25,18 +28,17 @@ export function WaterIntakeCard({
 	const totalGlasses = 12;
 
 	return (
-		<SectionCard
-			icon={Droplets}
-			title="Hidratação"
-			headerAction={
+		<DuoCard.Root variant="default" padding="md" className={className} {...props}>
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<Droplets className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Hidratação</h2>
+				</div>
 				<span className="text-sm font-bold text-duo-gray-dark">
 					{current}ml / {target}ml
 				</span>
-			}
-			className={className}
-			{...props}
-		>
-			<div className="mb-3 h-2 overflow-hidden rounded-full bg-gray-200">
+			</DuoCard.Header>
+			<div className="mb-3 h-2 overflow-hidden rounded-full bg-duo-bg-elevated">
 				<div
 					className="h-full rounded-full bg-duo-blue transition-all duration-300"
 					style={{ width: `${Math.min(progress, 100)}%` }}
@@ -44,26 +46,35 @@ export function WaterIntakeCard({
 			</div>
 
 			<div className="grid grid-cols-6 gap-2">
-				{Array.from({ length: totalGlasses }).map((_, i) => (
-					<button
-						key={i}
-						onClick={() => onToggleGlass(i)}
-						className={cn(
-							"aspect-square rounded-lg border-2 transition-all active:scale-95",
-							i < glasses
-								? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
-								: "border-gray-300 bg-white hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
-						)}
-					>
-						<Droplets
+				{Array.from({ length: totalGlasses }).map((_, i) => {
+					const Wrapper = readOnly ? "div" : "button";
+					return (
+						<Wrapper
+							key={i}
+							{...(readOnly
+								? {}
+								: { onClick: () => onToggleGlass(i) })}
 							className={cn(
-								"mx-auto h-4 w-4",
-								i < glasses ? "text-duo-blue" : "text-gray-300",
+								"aspect-square rounded-lg border-2 transition-all",
+								!readOnly && "active:scale-95",
+								i < glasses
+									? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
+									: "border-duo-border bg-duo-bg-card",
+								!readOnly && "hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
 							)}
-						/>
-					</button>
-				))}
+						>
+							<Droplets
+								className={cn(
+									"mx-auto h-4 w-4",
+									i < glasses ? "text-duo-blue" : "text-duo-border",
+								)}
+							/>
+						</Wrapper>
+					);
+				})}
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }
+
+export const WaterIntakeCard = { Simple: WaterIntakeCardSimple };

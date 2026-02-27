@@ -3,8 +3,8 @@
 import { Check, Plus, TrendingUp, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoButton } from "@/components/duo";
+import { DuoStatCard } from "@/components/duo";
 import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -67,7 +67,7 @@ const DEFAULT_SET: SetLog = {
 	completed: false,
 };
 
-export function WeightTracker({
+function WeightTrackerSimple({
 	exerciseName,
 	exerciseId,
 	defaultSets,
@@ -347,7 +347,7 @@ export function WeightTracker({
 										? "border-duo-green bg-duo-green/10"
 										: isValid
 											? "border-duo-blue bg-duo-blue/10"
-											: "border-duo-border bg-white",
+											: "border-duo-border bg-duo-bg-card",
 								)}
 							>
 								<div className="mb-3 flex items-center justify-between">
@@ -358,16 +358,16 @@ export function WeightTracker({
 									</div>
 									<div className="flex items-center gap-2">
 										{sets.length > 1 && (
-											<Button
+											<DuoButton
 												type="button"
-												variant="destructive"
+												variant="danger"
 												size="icon-sm"
 												onClick={() => handleRemoveSet(index)}
 												title="Remover série"
 												className="p-0"
 											>
 												<X className="h-4 w-4" />
-											</Button>
+											</DuoButton>
 										)}
 									</div>
 								</div>
@@ -422,14 +422,15 @@ export function WeightTracker({
 												animate={{ opacity: 1, scale: 1 }}
 												className="col-span-2"
 											>
-												<Button
+												<DuoButton
 													type="button"
 													onClick={() => handleSetComplete(index)}
+													variant="primary"
 													className="flex w-full items-center justify-center gap-2 text-[13px]"
 												>
 													<Check className="h-5 w-5" />
 													COMPLETAR SÉRIE
-												</Button>
+												</DuoButton>
 											</motion.div>
 										)}
 										{isEmpty && (
@@ -455,15 +456,15 @@ export function WeightTracker({
 
 				{/* Botão para adicionar nova série */}
 				<motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-					<Button
+					<DuoButton
 						type="button"
 						variant="outline"
-						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-white py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
+						className="flex w-full items-center justify-center gap-2 rounded-2xl border-dashed bg-duo-bg-card py-4 font-bold text-duo-gray-dark hover:bg-duo-blue/5"
 						onClick={handleAddSet}
 					>
 						<Plus className="h-5 w-5" />
 						ADICIONAR SÉRIE
-					</Button>
+					</DuoButton>
 				</motion.div>
 			</div>
 
@@ -473,12 +474,12 @@ export function WeightTracker({
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={TrendingUp}
-						iconColor="duo-yellow"
+						iconColor="var(--duo-warning)"
 						value={`${totalVolume.toFixed(0)} kg`}
 						label="Volume total do exercício"
-						subtitle="Soma de todas as séries válidas"
+						badge="Soma de todas as séries válidas"
 						className="w-full"
 					/>
 				</motion.div>
@@ -510,15 +511,20 @@ export function WeightTracker({
 					whileHover={{ scale: 1.02 }}
 					whileTap={{ scale: 0.98 }}
 				>
-					<Button
+					<DuoButton
 						type="button"
 						onClick={handleFinish}
+						variant="primary"
 						className="w-full text-lg"
 					>
 						FINALIZAR EXERCÍCIO
-					</Button>
+					</DuoButton>
 				</motion.div>
 			)}
 		</div>
 	);
 }
+
+export const WeightTracker = {
+	Simple: WeightTrackerSimple,
+};

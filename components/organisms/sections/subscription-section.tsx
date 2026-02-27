@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
@@ -93,7 +93,7 @@ export interface SubscriptionSectionProps {
 	trialEndingDays?: number;
 }
 
-export function SubscriptionSection({
+function SubscriptionSectionSimple({
 	userType,
 	subscription,
 	isLoading = false,
@@ -367,16 +367,16 @@ export function SubscriptionSection({
 		<div className="space-y-4">
 			{/* Loading State */}
 			{(isLoading || isStartingTrial) && !subscription && (
-				<DuoCard variant="default" size="default" className="text-center">
+				<DuoCard.Root variant="default" size="default" className="text-center">
 					<p className="text-sm text-duo-gray-dark">
 						{isStartingTrial ? "Iniciando trial..." : "Carregando..."}
 					</p>
-				</DuoCard>
+				</DuoCard.Root>
 			)}
 
 			{/* Trial Offer - Mostrar apenas se não há subscription */}
 			{!isLoading && !isStartingTrial && hasNoSubscription && (
-				<TrialOffer
+				<TrialOffer.Simple
 					title={finalTexts.trialTitle}
 					description={finalTexts.trialDescription}
 					buttonText={finalTexts.trialButton}
@@ -387,7 +387,7 @@ export function SubscriptionSection({
 
 			{/* Subscription Status */}
 			{subscription && (
-				<SubscriptionStatus
+				<SubscriptionStatus.Simple
 					subscription={subscription}
 					userType={userType}
 					texts={{
@@ -412,7 +412,7 @@ export function SubscriptionSection({
 
 			{/* Plans Selector */}
 			{shouldShowPlans && (
-				<PlansSelector
+				<PlansSelector.Simple
 					userType={userType}
 					plans={plans}
 					selectedPlan={selectedPlan}
@@ -451,3 +451,7 @@ export function SubscriptionSection({
 		</div>
 	);
 }
+
+export const SubscriptionSection = {
+	Simple: SubscriptionSectionSimple,
+};

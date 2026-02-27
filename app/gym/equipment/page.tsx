@@ -1,5 +1,5 @@
 import { getGymEquipment } from "../actions";
-import GymEquipmentPage from "./page-content";
+import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 
 export default async function EquipmentPage() {
 	const equipment = await getGymEquipment();

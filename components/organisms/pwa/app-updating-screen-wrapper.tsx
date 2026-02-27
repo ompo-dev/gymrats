@@ -3,7 +3,13 @@
 import { usePWAUpdate } from "@/lib/hooks/use-pwa-update";
 import { AppUpdatingScreen } from "./app-updating-screen";
 
-export function AppUpdatingScreenWrapper() {
+function AppUpdatingScreenWrapperSimple() {
 	const { isUpdating } = usePWAUpdate();
-	return <AppUpdatingScreen isVisible={isUpdating} />;
+	return <AppUpdatingScreen.Simple isVisible={isUpdating} />;
 }
+
+export const AppUpdatingScreenWrapper = {
+	Simple: AppUpdatingScreenWrapperSimple,
+};
+// Compatibilidade: permite <AppUpdatingScreenWrapper /> como componente
+export default AppUpdatingScreenWrapperSimple;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Trophy } from "lucide-react";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoCard } from "@/components/duo";
 
 interface LevelProgressCardProps {
 	currentLevel: number;
@@ -10,7 +10,7 @@ interface LevelProgressCardProps {
 	ranking?: number | null;
 }
 
-export function LevelProgressCard({
+function LevelProgressCardSimple({
 	currentLevel,
 	totalXP,
 	xpToNextLevel,
@@ -31,7 +31,13 @@ export function LevelProgressCard({
 			: 0;
 
 	return (
-		<SectionCard icon={Trophy} title="Seu Nível" className="space-y-4">
+		<DuoCard.Root variant="default" padding="md" className="space-y-4">
+			<DuoCard.Header>
+				<div className="flex items-center gap-2">
+					<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+					<h2 className="font-bold text-[var(--duo-fg)]">Seu Nível</h2>
+				</div>
+			</DuoCard.Header>
 			<div className="space-y-3">
 				<div className="flex items-center justify-between">
 					<div>
@@ -69,6 +75,10 @@ export function LevelProgressCard({
 					</div>
 				</div>
 			</div>
-		</SectionCard>
+		</DuoCard.Root>
 	);
 }
+
+export const LevelProgressCard = {
+	Simple: LevelProgressCardSimple,
+};

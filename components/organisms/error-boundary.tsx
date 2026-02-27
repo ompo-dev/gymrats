@@ -36,6 +36,8 @@ export class ErrorBoundary extends Component<
 	ErrorBoundaryProps,
 	ErrorBoundaryState
 > {
+	static Root: typeof ErrorBoundary;
+
 	constructor(props: ErrorBoundaryProps) {
 		super(props);
 		this.state = {
@@ -226,7 +228,7 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
 				this.state;
 
 			return (
-				<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background p-4">
+				<div className="fixed inset-0 z-9999 flex items-center justify-center bg-background p-4">
 					<motion.div
 						initial={{ opacity: 0, scale: 0.9 }}
 						animate={{ opacity: 1, scale: 1 }}
@@ -414,3 +416,5 @@ Versão do Next.js: ${process.env.NEXT_PUBLIC_NEXTJS_VERSION || "N/A"}
 		return this.props.children;
 	}
 }
+
+ErrorBoundary.Root = ErrorBoundary;

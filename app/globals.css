@@ -4,19 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --duo-green: #58cc02;
-  --duo-green-dark: #46a302;
-  --duo-blue: #1cb0f6;
-  --duo-orange: #ff9600;
-  --duo-red: #ff4b4b;
-  --duo-yellow: #ffc800;
+  /* Duolingo Design System - variáveis dinâmicas (fallback light até DuoThemeProvider carregar) */
+  --duo-primary: #58CC02;
+  --duo-primary-dark: #46A302;
+  --duo-primary-light: #89E219;
+  --duo-secondary: #1CB0F6;
+  --duo-secondary-dark: #1899D6;
+  --duo-accent: #FF9600;
+  --duo-accent-dark: #E08600;
+  --duo-success: #58CC02;
+  --duo-success-dark: #46A302;
+  --duo-warning: #FFC800;
+  --duo-warning-dark: #E0B000;
+  --duo-danger: #FF4B4B;
+  --duo-danger-dark: #E04040;
+  /* Padrão light: fundo claro, texto escuro */
+  --duo-bg: #F5F7F6;
+  --duo-bg-card: #FFFFFF;
+  --duo-bg-elevated: #E8ECEA;
+  --duo-fg: #131F24;
+  --duo-fg-muted: #5A6B63;
+  --duo-border: #D1D9D6;
+
+  /* Aliases legados (compatibilidade com duo-button-green, duo-node, etc.) */
+  --duo-green: var(--duo-primary);
+  --duo-green-dark: var(--duo-primary-dark);
+  --duo-blue: var(--duo-secondary);
+  --duo-orange: var(--duo-accent);
+  --duo-red: var(--duo-danger);
+  --duo-yellow: var(--duo-warning);
   --duo-purple: #ce82ff;
   --duo-gray: #e5e5e5;
   --duo-gray-dark: #afafaf;
-  --duo-bg: #ffffff;
-  --duo-border: #e5e5e5;
-  --duo-text: #3c3c3c;
-  --duo-text-light: #777777;
+  --duo-text: var(--duo-fg);
+  --duo-text-light: var(--duo-fg-muted);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -89,7 +110,32 @@
 }
 
 @theme inline {
-  --font-mono: ui-monospace, monospace;
+  /* Duolingo typography - Nunito como fonte principal */
+  --font-sans: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-display: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  /* Duo tokens dinâmicos */
+  --color-duo-primary: var(--duo-primary);
+  --color-duo-primary-dark: var(--duo-primary-dark);
+  --color-duo-primary-light: var(--duo-primary-light);
+  --color-duo-secondary: var(--duo-secondary);
+  --color-duo-secondary-dark: var(--duo-secondary-dark);
+  --color-duo-accent: var(--duo-accent);
+  --color-duo-accent-dark: var(--duo-accent-dark);
+  --color-duo-success: var(--duo-success);
+  --color-duo-success-dark: var(--duo-success-dark);
+  --color-duo-warning: var(--duo-warning);
+  --color-duo-warning-dark: var(--duo-warning-dark);
+  --color-duo-danger: var(--duo-danger);
+  --color-duo-danger-dark: var(--duo-danger-dark);
+  --color-duo-bg: var(--duo-bg);
+  --color-duo-bg-card: var(--duo-bg-card);
+  --color-duo-bg-elevated: var(--duo-bg-elevated);
+  --color-duo-fg: var(--duo-fg);
+  --color-duo-fg-muted: var(--duo-fg-muted);
+  --color-duo-text: var(--duo-text);
+  --color-duo-border: var(--duo-border);
+  /* Aliases legados */
   --color-duo-green: var(--duo-green);
   --color-duo-green-dark: var(--duo-green-dark);
   --color-duo-blue: var(--duo-blue);

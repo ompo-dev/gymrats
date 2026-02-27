@@ -3,8 +3,8 @@
 import { Minus, Plus, Search } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoButton } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
 import type { EquipmentItem } from "@/lib/equipment-database";
 import { equipmentDatabase } from "@/lib/equipment-database";
 
@@ -16,7 +16,7 @@ interface EquipmentSearchProps {
 	selectedEquipment?: EquipmentItem[];
 }
 
-export function EquipmentSearch({
+function EquipmentSearchSimple({
 	onAddEquipment,
 	onClose,
 	selectedEquipment = [],
@@ -130,14 +130,15 @@ export function EquipmentSearch({
 							<h2 className="text-2xl font-bold text-gray-900">
 								Adicionar Equipamentos
 							</h2>
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
+							<DuoButton
+								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClose}
-								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+								className="h-10 w-10 rounded-full"
 							>
 								✕
-							</motion.button>
+							</DuoButton>
 						</div>
 
 						<div className="relative">
@@ -168,16 +169,12 @@ export function EquipmentSearch({
 								Nenhum equipamento encontrado
 							</motion.div>
 						) : (
-							<OptionSelector
+							<DuoSelect.Simple
 								options={equipmentOptions}
 								value={selectedEquipmentIds}
 								onChange={handleEquipmentSelection}
-								multiple={true}
-								layout="list"
-								size="md"
-								textAlign="left"
-								animate={true}
-								delay={0.3}
+								multiple
+								placeholder="Selecione os equipamentos"
 							/>
 						)}
 					</motion.div>
@@ -262,11 +259,11 @@ export function EquipmentSearch({
 										</AnimatePresence>
 									</div>
 								</motion.div>
-								<Button onClick={handleAddEquipment} className="w-full">
+								<DuoButton onClick={handleAddEquipment} variant="primary" className="w-full">
 									<Plus className="h-5 w-5" />
 									ADICIONAR {selectedEquipmentIds.length} EQUIPAMENTO
 									{selectedEquipmentIds.length !== 1 ? "S" : ""}
-								</Button>
+								</DuoButton>
 							</motion.div>
 						)}
 					</AnimatePresence>
@@ -275,3 +272,5 @@ export function EquipmentSearch({
 		</AnimatePresence>
 	);
 }
+
+export const EquipmentSearch = { Simple: EquipmentSearchSimple };

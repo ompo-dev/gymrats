@@ -4,10 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Select, type SelectOption } from "@/components/atoms/inputs/select";
+import { DuoSelect, type DuoSelectOption } from "@/components/duo";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
-export function GymSelector() {
+function GymSelectorSimple() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const {
@@ -43,8 +43,8 @@ export function GymSelector() {
 		router.refresh();
 	};
 
-	// Preparar opções para o Select
-	const selectOptions: SelectOption[] = [
+	// Preparar opções para o DuoSelect
+	const selectOptions: DuoSelectOption[] = [
 		...gyms.map((gym) => ({
 			value: gym.id,
 			label: gym.name,
@@ -55,9 +55,17 @@ export function GymSelector() {
 						? "Premium"
 						: "Empresarial"
 			}${!gym.hasActiveSubscription ? " • Trial" : ""}`,
-			icon: <Building2 className="w-5 h-5 text-gray-600" />,
+			icon: gym.logo ? (
+				<img
+					src={gym.logo}
+					alt=""
+					className="h-8 w-8 shrink-0 rounded-full object-cover"
+				/>
+			) : (
+				<Building2 className="h-5 w-5 shrink-0 text-duo-fg" />
+			),
 			badge: !gym.hasActiveSubscription ? (
-				<span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
+				<span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 font-medium">
 					Trial
 				</span>
 			) : undefined,
@@ -78,20 +86,21 @@ export function GymSelector() {
 	if (!mounted || isLoading || gyms.length === 0) {
 		return (
 			<div
-				className="min-w-[280px] h-[50px] rounded-2xl bg-gray-50 border-2 border-gray-200"
+				className="h-[50px] w-fit min-w-[180px] rounded-2xl bg-gray-50 border-2 border-gray-200 dark:bg-duo-bg-elevated dark:border-duo-border"
 				suppressHydrationWarning
 			/>
 		);
 	}
 
 	return (
-		<Select
+		<DuoSelect.Simple
 			options={selectOptions}
 			value={activeGymId || undefined}
 			onChange={handleSelectGym}
-			variant="default"
-			size="default"
 			placeholder="Selecione uma academia"
+			className="w-fit min-w-[180px]"
 		/>
 	);
 }
+
+export const GymSelector = { Simple: GymSelectorSimple };

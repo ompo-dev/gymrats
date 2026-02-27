@@ -53,7 +53,7 @@ interface WeightTrackerOverlayProps {
 	isUnilateral?: boolean; // Se o exercício é unilateral
 }
 
-export function WeightTrackerOverlay({
+function WeightTrackerOverlaySimple({
 	isOpen,
 	onClose,
 	exerciseName,
@@ -80,14 +80,14 @@ export function WeightTrackerOverlay({
 				animate={{ opacity: 1 }}
 				exit={{ opacity: 0 }}
 				transition={{ duration: 0.3 }}
-				className="absolute inset-0 z-60 flex h-screen flex-col bg-white overflow-hidden"
+				className="absolute inset-0 z-60 flex h-screen flex-col bg-duo-bg overflow-hidden"
 			>
-				<div className="border-b-2 border-duo-border bg-white p-4 shadow-sm shrink-0">
+				<div className="border-b-2 border-duo-border bg-duo-bg-card p-4 shadow-sm shrink-0">
 					<div className="mb-3 flex items-center justify-between">
 						<button
 							type="button"
 							onClick={onClose}
-							className="rounded-xl p-2 transition-colors hover:bg-gray-100"
+							className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
 						>
 							<X className="h-6 w-6 text-duo-gray-dark" />
 						</button>
@@ -108,7 +108,7 @@ export function WeightTrackerOverlay({
 				</div>
 
 				<div className="flex-1 overflow-y-auto scrollbar-hide p-6">
-					<WeightTracker
+					<WeightTracker.Simple
 						exerciseName={exerciseName}
 						exerciseId={exercise.id}
 						defaultSets={exercise.sets}
@@ -123,3 +123,5 @@ export function WeightTrackerOverlay({
 		</AnimatePresence>
 	);
 }
+
+export const WeightTrackerOverlay = { Simple: WeightTrackerOverlaySimple };

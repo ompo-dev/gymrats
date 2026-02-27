@@ -11,8 +11,8 @@ import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
 import { authClient } from "@/lib/auth-client";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
@@ -406,7 +406,7 @@ function WelcomePageContent() {
 						transition={{ duration: 0.6 }}
 						className="mb-8 flex justify-center"
 					>
-						<DuoCard variant="default" size="lg" className="p-2">
+						<DuoCard.Root variant="default" size="lg" className="p-2">
 							<motion.div
 								initial={{ scale: 0.8, opacity: 0 }}
 								animate={{ scale: 1, opacity: 1 }}
@@ -422,7 +422,7 @@ function WelcomePageContent() {
 									priority
 								/>
 							</motion.div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					{/* App Name */}
@@ -444,7 +444,7 @@ function WelcomePageContent() {
 						transition={{ delay: 0.4, duration: 0.6 }}
 						className="mb-8"
 					>
-						<DuoCard variant="default" size="lg">
+						<DuoCard.Root variant="default" size="lg">
 							<div className="space-y-6">
 								{/* Features Grid */}
 								<div className="grid grid-cols-2 gap-4">
@@ -472,7 +472,7 @@ function WelcomePageContent() {
 									})}
 								</div>
 							</div>
-						</DuoCard>
+						</DuoCard.Root>
 					</motion.div>
 
 					{/* Error Message */}
@@ -493,10 +493,10 @@ function WelcomePageContent() {
 						transition={{ delay: 0.6, duration: 0.6 }}
 						className="mb-6"
 					>
-						<Button
+						<DuoButton
 							onClick={handleGoogleLogin}
 							disabled={isLoading}
-							variant="default"
+							variant="primary"
 							size="lg"
 							className="w-full flex items-center justify-center gap-3"
 						>
@@ -511,7 +511,7 @@ function WelcomePageContent() {
 									<span>Entrar com Google</span>
 								</>
 							)}
-						</Button>
+						</DuoButton>
 					</motion.div>
 
 					{/* Footer */}

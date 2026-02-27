@@ -13,10 +13,11 @@
 
 import { Calendar, TrendingUp } from "lucide-react";
 import { useEffect } from "react";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
+import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
+import type { FoodItem } from "@/lib/types";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
@@ -105,22 +106,22 @@ export function DietPage() {
 				</p>
 			</div>
 
-			<div className="grid grid-cols-2 gap-4">
-				<StatCardLarge
+			<DuoStatsGrid.Root columns={2} className="gap-4">
+				<DuoStatCard.Simple
 					icon={Calendar}
 					value={`${completedMeals}/${totalMeals}`}
 					label="refeições hoje"
-					iconColor="duo-blue"
+					iconColor="var(--duo-secondary)"
 				/>
-				<StatCardLarge
+				<DuoStatCard.Simple
 					icon={TrendingUp}
 					value={`${caloriesPercentage}%`}
 					label="meta calórica"
-					iconColor="duo-green"
+					iconColor="var(--duo-primary)"
 				/>
-			</div>
+			</DuoStatsGrid.Root>
 
-			<NutritionTracker
+			<NutritionTracker.Simple
 				nutrition={dailyNutrition}
 				onMealComplete={handleMealComplete}
 				onAddMeal={addMealModal.open}
@@ -131,7 +132,7 @@ export function DietPage() {
 			/>
 
 			{addMealModal.isOpen && (
-				<AddMealModal
+				<AddMealModal.Simple
 					onClose={addMealModal.close}
 					onAddMeal={(mealsData) => {
 						handleAddMealSubmit(mealsData);
@@ -141,13 +142,13 @@ export function DietPage() {
 			)}
 
 			{foodSearchModal.isOpen && (
-				<FoodSearch
+				<FoodSearch.Simple
 					onAddFood={handleAddFood}
 					onAddMeal={handleAddMealSubmit}
 					onClose={handleCloseFoodSearch}
 					selectedMealId={foodSearchModal.paramValue || selectedMealId}
 					meals={dailyNutrition.meals}
-					foodDatabase={foodDatabase || []}
+					foodDatabase={(Array.isArray(foodDatabase) ? foodDatabase : []) as FoodItem[]}
 					onSelectMeal={(mealId) => {
 						setSelectedMealId(mealId);
 						foodSearchModal.setParamValue(mealId);

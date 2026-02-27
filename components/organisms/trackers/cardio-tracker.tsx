@@ -13,11 +13,9 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
-import { StatCardLarge } from "@/components/molecules/cards/stat-card-large";
-import { OptionSelector } from "@/components/molecules/selectors/option-selector";
+import { DuoButton } from "@/components/duo";
+import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { DuoSelect } from "@/components/duo";
 import {
 	calculateCardioCalories,
 	calculateTargetHeartRateZone,
@@ -86,7 +84,7 @@ const intensityOptions = [
 	{ value: "muito-alta", label: "Muito Alta", emoji: "💥" },
 ];
 
-export function CardioTracker() {
+function CardioTrackerSimple() {
 	const [selectedType, setSelectedType] = useState<CardioType>("corrida");
 	const [isRunning, setIsRunning] = useState(false);
 	const [duration, setDuration] = useState(0);
@@ -158,31 +156,33 @@ export function CardioTracker() {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<SectionCard title="Selecione a Modalidade" icon={Heart}>
-					<OptionSelector
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Modalidade</h2>
+						</div>
+					</DuoCard.Header>
+					<DuoSelect.Simple
 						options={cardioOptions}
 						value={selectedType}
 						onChange={(value) => setSelectedType(value as CardioType)}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Modalidade"
 					/>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
-			<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+			<DuoStatsGrid.Root columns={4} className="gap-4">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={Timer}
 						value={formatTime(duration)}
 						label="Duração"
-						iconColor="duo-orange"
+						iconColor="var(--duo-accent)"
 					/>
 				</motion.div>
 
@@ -191,11 +191,11 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.25, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={Flame}
 						value={estimatedCalories}
 						label="Calorias"
-						iconColor="duo-red"
+						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
 
@@ -204,11 +204,11 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.3, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value={distance.toFixed(2)}
 						label="Distância (km)"
-						iconColor="duo-green"
+						iconColor="var(--duo-primary)"
 					/>
 				</motion.div>
 
@@ -217,17 +217,23 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.35, duration: 0.4 }}
 				>
-					<StatCardLarge
+					<DuoStatCard.Simple
 						icon={Heart}
 						value={heartRate}
 						label="FC (bpm)"
-						iconColor="duo-red"
+						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
-			</div>
+			</DuoStatsGrid.Root>
 
 			<SlideIn delay={0.4}>
-				<SectionCard title="Zona de FC Alvo (Cardio)" icon={Heart}>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Zona de FC Alvo (Cardio)</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
 						<span>{targetHRZone.min} bpm</span>
 						<span>{targetHRZone.max} bpm</span>
@@ -240,15 +246,21 @@ export function CardioTracker() {
 									heartRate > 0
 										? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%`
 										: "0%",
-							}}
-						/>
+						}}
+					/>
 					</div>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.5}>
-				<SectionCard title="Intensidade" icon={Flame}>
-					<OptionSelector
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Flame className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
+						</div>
+					</DuoCard.Header>
+					<DuoSelect.Simple
 						options={intensityOptions}
 						value={intensity}
 						onChange={(value) =>
@@ -256,21 +268,17 @@ export function CardioTracker() {
 								value as "baixa" | "moderada" | "alta" | "muito-alta",
 							)
 						}
-						layout="grid"
-						columns={2}
-						size="md"
-						textAlign="center"
-						animate={true}
+						placeholder="Intensidade"
 					/>
-				</SectionCard>
+				</DuoCard.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.6}>
 				<div className="flex gap-3">
-					<Button
+					<DuoButton
 						onClick={() => setIsRunning(!isRunning)}
 						className="flex-1"
-						variant="default"
+						variant="primary"
 					>
 						{isRunning ? (
 							<>
@@ -283,8 +291,8 @@ export function CardioTracker() {
 								INICIAR
 							</>
 						)}
-					</Button>
-					<Button
+					</DuoButton>
+					<DuoButton
 						onClick={() => {
 							setIsRunning(false);
 							setDuration(0);
@@ -295,12 +303,12 @@ export function CardioTracker() {
 						size="icon-lg"
 					>
 						<Square className="h-5 w-5" />
-					</Button>
+					</DuoButton>
 				</div>
 			</SlideIn>
 
 			<SlideIn delay={0.7}>
-				<DuoCard variant="blue" size="md">
+				<DuoCard.Root variant="blue" size="md">
 					<div className="flex items-start gap-3">
 						<div className="text-2xl">💡</div>
 						<div>
@@ -311,8 +319,12 @@ export function CardioTracker() {
 							</p>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</SlideIn>
 		</div>
 	);
 }
+
+export const CardioTracker = {
+	Simple: CardioTrackerSimple,
+};

@@ -4,8 +4,8 @@ import { Dumbbell, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
@@ -114,14 +114,15 @@ export function CreateUnitModal({
 							<h2 className="text-2xl font-bold text-gray-900">
 								Criar Primeiro Treino
 							</h2>
-							<motion.button
-								whileHover={{ scale: 1.1 }}
-								whileTap={{ scale: 0.9 }}
+							<DuoButton
+								type="button"
+								variant="ghost"
+								size="icon"
 								onClick={onClose}
-								className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-gray-100"
+								className="h-10 w-10 rounded-full"
 							>
 								<X className="h-5 w-5" />
-							</motion.button>
+							</DuoButton>
 						</div>
 
 						<motion.div
@@ -161,7 +162,7 @@ export function CreateUnitModal({
 								/>
 							</div>
 
-							<DuoCard
+							<DuoCard.Root
 								variant="default"
 								className="bg-duo-green/5 border-2 border-duo-green/20 p-4"
 							>
@@ -181,7 +182,7 @@ export function CreateUnitModal({
 										</ul>
 									</div>
 								</div>
-							</DuoCard>
+							</DuoCard.Root>
 						</motion.div>
 					</motion.div>
 
@@ -193,17 +194,18 @@ export function CreateUnitModal({
 						className="border-t-2 border-gray-300 p-6 shrink-0"
 					>
 						<div className="flex gap-3">
-							<Button
+							<DuoButton
 								onClick={onClose}
 								variant="outline"
 								className="flex-1"
 								disabled={isCreating}
 							>
 								Cancelar
-							</Button>
-							<Button
+							</DuoButton>
+							<DuoButton
 								onClick={handleCreateUnit}
-								className="flex-1 bg-duo-green hover:bg-duo-green-dark"
+								variant="primary"
+								className="flex-1"
 								disabled={!canCreate}
 							>
 								{isCreating ? (
@@ -214,7 +216,7 @@ export function CreateUnitModal({
 								) : (
 									"CRIAR PLANO"
 								)}
-							</Button>
+							</DuoButton>
 						</div>
 					</motion.div>
 				</motion.div>

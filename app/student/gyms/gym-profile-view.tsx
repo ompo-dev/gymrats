@@ -12,9 +12,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
-import { SectionCard } from "@/components/molecules/cards/section-card";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { FadeIn } from "@/components/animations/fade-in";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
@@ -55,6 +53,8 @@ interface GymProfileViewProps {
 	onBack: () => void;
 	onJoinPlan: (gymId: string, planId: string) => void;
 	onChangePlan?: (membershipId: string, planId: string) => void;
+	/** Quando mudar, refaz o fetch do perfil (ex: após PIX confirmado) */
+	profileRefreshKey?: number;
 }
 
 export function GymProfileView({
@@ -62,6 +62,7 @@ export function GymProfileView({
 	onBack,
 	onJoinPlan,
 	onChangePlan,
+	profileRefreshKey,
 }: GymProfileViewProps) {
 	const [profile, setProfile] = useState<GymProfileData | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -69,6 +70,7 @@ export function GymProfileView({
 
 	useEffect(() => {
 		let cancelled = false;
+		setLoading(true);
 		apiClient
 			.get<GymProfileData>(`/api/students/gyms/${gymId}/profile`)
 			.then((res) => {
@@ -88,15 +90,15 @@ export function GymProfileView({
 		return () => {
 			cancelled = true;
 		};
-	}, [gymId]);
+	}, [gymId, profileRefreshKey]);
 
 	if (loading) {
 		return (
 			<div className="mx-auto max-w-4xl space-y-6">
-				<Button variant="ghost" onClick={onBack} className="gap-2">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2">
 					<ArrowLeft className="h-4 w-4" />
 					Voltar
-				</Button>
+				</DuoButton>
 				<div className="py-12 text-center text-duo-gray-dark">
 					Carregando perfil da academia...
 				</div>
@@ -107,10 +109,10 @@ export function GymProfileView({
 	if (error || !profile) {
 		return (
 			<div className="mx-auto max-w-4xl space-y-6">
-				<Button variant="ghost" onClick={onBack} className="gap-2">
+				<DuoButton variant="ghost" onClick={onBack} className="gap-2">
 					<ArrowLeft className="h-4 w-4" />
 					Voltar
-				</Button>
+				</DuoButton>
 				<div className="py-12 text-center text-duo-red">
 					{error || "Academia não encontrada"}
 				</div>
@@ -120,13 +122,19 @@ export function GymProfileView({
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
-			<Button variant="ghost" onClick={onBack} className="gap-2 font-bold">
+			<DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
 				<ArrowLeft className="h-4 w-4" />
 				Voltar
-			</Button>
+			</DuoButton>
 
 			<FadeIn>
-				<SectionCard title={profile.name} icon={Dumbbell}>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
 						{(profile.logo || profile.photos?.[0]) && (
 							<div className="flex shrink-0 gap-2">
@@ -185,11 +193,11 @@ export function GymProfileView({
 							)}
 						</div>
 					</div>
-				</SectionCard>
+				</DuoCard.Root>
 			</FadeIn>
 
 			<div className="grid gap-4 sm:grid-cols-2">
-				<DuoCard variant="default" size="sm">
+				<DuoCard.Root variant="default" size="sm">
 					<div className="flex items-center gap-3">
 						<Users className="h-6 w-6 text-duo-blue" />
 						<div>
@@ -197,8 +205,8 @@ export function GymProfileView({
 							<p className="text-lg font-bold">{profile.activeStudents}</p>
 						</div>
 					</div>
-				</DuoCard>
-				<DuoCard variant="default" size="sm">
+				</DuoCard.Root>
+				<DuoCard.Root variant="default" size="sm">
 					<div className="flex items-center gap-3">
 						<Dumbbell className="h-6 w-6 text-duo-orange" />
 						<div>
@@ -206,11 +214,17 @@ export function GymProfileView({
 							<p className="text-lg font-bold">{profile.equipmentCount}</p>
 						</div>
 					</div>
-				</DuoCard>
+				</DuoCard.Root>
 			</div>
 
 			{profile.amenities && profile.amenities.length > 0 && (
-				<SectionCard title="Comodidades" icon={Check}>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Check className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Comodidades</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
 						{profile.amenities.map((a) => (
 							<span
@@ -221,11 +235,17 @@ export function GymProfileView({
 							</span>
 						))}
 					</div>
-				</SectionCard>
+				</DuoCard.Root>
 			)}
 
 			{profile.equipment && profile.equipment.length > 0 && (
-				<SectionCard title="Equipamentos" icon={Dumbbell}>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<div className="flex items-center gap-2">
+							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos</h2>
+						</div>
+					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
 						{profile.equipment.slice(0, 12).map((e) => (
 							<span
@@ -234,7 +254,7 @@ export function GymProfileView({
 									"rounded-lg border-2 px-2 py-1 text-xs font-bold",
 									e.status === "available"
 										? "border-duo-green bg-duo-green/10 text-duo-green"
-										: "border-duo-border bg-gray-50 text-duo-gray-dark",
+										: "border-duo-border bg-[var(--duo-bg-elevated)] text-duo-gray-dark",
 								)}
 							>
 								{e.name}
@@ -246,10 +266,16 @@ export function GymProfileView({
 							</span>
 						)}
 					</div>
-				</SectionCard>
+				</DuoCard.Root>
 			)}
 
-			<SectionCard title="Planos disponíveis" icon={CreditCard}>
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
+					<div className="flex items-center gap-2">
+						<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Planos disponíveis</h2>
+					</div>
+				</DuoCard.Header>
 				<div className="space-y-3">
 					{profile.plans.length === 0 ? (
 						<p className="py-4 text-center text-sm text-duo-gray-dark">
@@ -270,7 +296,7 @@ export function GymProfileView({
 								!!onChangePlan;
 
 							return (
-								<DuoCard
+								<DuoCard.Root
 									key={plan.id}
 									variant="default"
 									size="default"
@@ -306,23 +332,23 @@ export function GymProfileView({
 												</span>
 											)}
 											{canContract && (
-												<Button size="sm" variant="default" className="mt-2">
+												<DuoButton size="sm" variant="primary" className="mt-2">
 													Contratar
-												</Button>
+												</DuoButton>
 											)}
 											{canChangePlan && (
-												<Button size="sm" variant="outline" className="mt-2">
+												<DuoButton size="sm" variant="outline" className="mt-2">
 													Trocar de plano
-												</Button>
+												</DuoButton>
 											)}
 										</div>
 									</div>
-								</DuoCard>
+								</DuoCard.Root>
 							);
 						})
 					)}
 				</div>
-			</SectionCard>
+			</DuoCard.Root>
 		</div>
 	);
 }

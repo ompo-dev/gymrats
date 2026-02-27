@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
-import { Card } from "@/components/ui/card"; // Card base do shadcn/ui - manter em ui/
+import { DuoCard } from "@/components/duo";
 
 interface StepCardProps {
 	title: string;
@@ -11,7 +11,7 @@ interface StepCardProps {
 	className?: string;
 }
 
-export function StepCard({
+function StepCardSimple({
 	title,
 	description,
 	children,
@@ -24,8 +24,10 @@ export function StepCard({
 			exit={{ opacity: 0, x: -50, scale: 0.95 }}
 			transition={{ type: "spring", stiffness: 100, damping: 15 }}
 		>
-			<Card
-				className={`border-2 border-white/30 bg-white/95 p-6 shadow-2xl backdrop-blur-md ${className || ""}`}
+			<DuoCard.Root
+				variant="default"
+				padding="lg"
+				className={`border-2 border-white/30 bg-white/95 shadow-2xl backdrop-blur-md ${className || ""}`}
 			>
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -39,7 +41,9 @@ export function StepCard({
 					)}
 				</motion.div>
 				{children}
-			</Card>
+			</DuoCard.Root>
 		</motion.div>
 	);
 }
+
+export const StepCard = { Simple: StepCardSimple };

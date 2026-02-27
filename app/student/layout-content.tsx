@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
 import { EditUnitModal } from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
+import { useModalState } from "@/hooks/use-modal-state";
 import {
 	AppLayout,
 	type TabConfig,
@@ -52,6 +53,8 @@ export function StudentLayoutContent({
 
 	// Buscar progresso do store para atualizar header dinamicamente
 	const { progress: storeProgress } = useStudent("progress");
+	const { loadWeeklyPlan } = useStudent("loaders");
+	const editPlanModal = useModalState("edit-plan");
 	const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
 	const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
 
@@ -85,7 +88,7 @@ export function StudentLayoutContent({
 
 	// Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
 	if (!isMounted) {
-		return <LoadingScreen variant="student" />;
+		return <LoadingScreen.Simple variant="student" />;
 	}
 
 	if (isOnboarding) {
@@ -94,7 +97,7 @@ export function StudentLayoutContent({
 
 	// Mostrar loading enquanto redireciona para onboarding
 	if (!hasProfile && !isOnboarding) {
-		return <LoadingScreen variant="student" message="Redirecionando..." />;
+		return <LoadingScreen.Simple variant="student" message="Redirecionando..." />;
 	}
 
 	// Handler para mudança de tabs
@@ -108,7 +111,7 @@ export function StudentLayoutContent({
 	};
 
 	return (
-		<AppLayout
+		<AppLayout.Simple
 			userType="student"
 			tabs={studentTabs}
 			defaultTab="home"
@@ -118,23 +121,25 @@ export function StudentLayoutContent({
 				streak: currentStreak,
 				xp: currentXP,
 			}}
-			shouldDisableSwipe={(path) =>
-				path.includes("/workout") ||
-				path.includes("/lesson") ||
-				path.includes("/onboarding")
-			}
 			onTabChange={handleTabChange}
 			additionalContent={
 				<>
-					<WorkoutModal />
+					<WorkoutModal.Simple />
 					<EditUnitModal />
-					{/* CreateUnitModal será renderizado dentro do LearningPath quando necessário */}
+					{editPlanModal.isOpen && (
+						<EditUnitModal
+							isWeeklyPlanMode
+							isOpen={editPlanModal.isOpen}
+							onClose={editPlanModal.close}
+							onPlanUpdated={() => loadWeeklyPlan(true)}
+						/>
+					)}
 				</>
 			}
 			scrollResetEnabled={!isOnboarding}
-			className="bg-white"
+			className="bg-duo-bg"
 		>
 			{children}
-		</AppLayout>
+		</AppLayout.Simple>
 	);
 }

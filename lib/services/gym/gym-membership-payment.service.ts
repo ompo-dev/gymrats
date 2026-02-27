@@ -192,3 +192,87 @@ export async function createChangePlanPaymentPix(
 		paymentId: payment.id,
 	};
 }
+
+/**
+ * Gera novo PIX para um pagamento pendente existente (PIX anterior pode ter expirado).
+ */
+export async function createPixForPendingPayment(
+	paymentId: string,
+	studentId: string,
+): Promise<MembershipPaymentPixResult> {
+	const [payment, student] = await Promise.all([
+		db.payment.findFirst({
+			where: { id: paymentId, studentId },
+			include: {
+				gym: true,
+				plan: true,
+			},
+		}),
+		db.student.findUnique({
+			where: { id: studentId },
+			include: { user: true },
+		}),
+	]);
+
+	if (!payment) throw new Error("Pagamento não encontrado");
+	if (payment.status !== "pending" && payment.status !== "overdue") {
+		throw new Error("Apenas pagamentos pendentes ou atrasados podem gerar novo PIX");
+	}
+	if (!payment.plan) throw new Error("Plano não encontrado");
+
+	const membershipId = payment.reference?.startsWith("membership:")
+		? payment.reference.slice("membership:".length)
+		: undefined;
+	let kind: "membership-payment" | "membership-change-plan" = "membership-payment";
+	if (membershipId) {
+		const membership = await db.gymMembership.findFirst({
+			where: { id: membershipId },
+			select: { status: true },
+		});
+		if (membership?.status === "active") kind = "membership-change-plan";
+	}
+
+	const amountCentavos = Math.round(payment.amount * 100);
+	const description = `${payment.plan.name} - ${payment.gym.name}`.slice(0, 37);
+
+	const pixResponse = await abacatePay.createPixQrCode({
+		amount: amountCentavos,
+		expiresIn: 3600,
+		description,
+		metadata: {
+			gymId: payment.gymId,
+			studentId: payment.studentId,
+			planId: payment.planId!,
+			membershipId,
+			kind,
+		},
+		customer: student?.user?.email
+			? {
+					name: student.user.name ?? "Aluno",
+					email: student.user.email,
+					cellphone: student.phone ?? "",
+					taxId: "",
+				}
+			: undefined,
+	});
+
+	if (pixResponse.error || !pixResponse.data) {
+		throw new Error(
+			pixResponse.error || "Erro ao criar PIX na AbacatePay",
+		);
+	}
+
+	const pix = pixResponse.data;
+
+	await db.payment.update({
+		where: { id: paymentId },
+		data: { abacatePayBillingId: pix.id },
+	});
+
+	return {
+		brCode: pix.brCode,
+		brCodeBase64: pix.brCodeBase64,
+		amount: pix.amount,
+		paymentId: payment.id,
+	};
+}

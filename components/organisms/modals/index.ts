@@ -1,6 +1,8 @@
+export { Modal } from "./modal";
 export type { AddMealModalProps } from "./add-meal-modal";
 export { AddMealModal } from "./add-meal-modal";
 export { EditUnitModal } from "./edit-unit-modal";
+export { EditWeeklyPlanModal } from "./edit-weekly-plan-modal";
 export type { EquipmentSearchProps } from "./equipment-search";
 export { EquipmentSearch } from "./equipment-search";
 export type { ExerciseAlternativeSelectorProps } from "./exercise-alternative-selector";

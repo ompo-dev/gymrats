@@ -17,6 +17,7 @@ import type {
 	StudentPayment,
 	Unit,
 	UserProgress,
+	WeeklyPlanData,
 	WorkoutHistory,
 } from "@/lib/types";
 
@@ -198,7 +199,8 @@ export interface StudentData {
 	weightGain?: number | null; // Ganho/perda no último mês
 
 	// === WORKOUTS ===
-	units: Unit[]; // Units com workouts
+	units: Unit[]; // Units (legado)
+	weeklyPlan: WeeklyPlanData | null; // Plano semanal 7 slots
 	workoutHistory: WorkoutHistory[]; // Histórico de workouts completados
 	personalRecords: PersonalRecord[]; // Recordes pessoais
 
@@ -262,6 +264,7 @@ export const initialStudentData: StudentData = {
 	weightHistory: [],
 	weightGain: null,
 	units: [],
+	weeklyPlan: null,
 	workoutHistory: [],
 	personalRecords: [],
 	dailyNutrition: {
@@ -310,6 +313,7 @@ export type StudentDataSection =
 	| "profile"
 	| "weightHistory"
 	| "units"
+	| "weeklyPlan"
 	| "workoutHistory"
 	| "personalRecords"
 	| "dailyNutrition"

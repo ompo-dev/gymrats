@@ -119,6 +119,8 @@ export async function POST(request: NextRequest) {
           message,
           conversationHistory = [],
           unitId,
+          planSlotId,
+          slotContext,
           existingWorkouts: _existingWorkouts = [],
           profile: _profile,
           reference,
@@ -131,50 +133,94 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        if (!unitId || typeof unitId !== "string") {
-          sendSSE(controller, "error", { error: "Unit ID é obrigatório" });
-          controller.close();
-          return;
-        }
-
-        // 5. Verificar unit
-        const unit = await db.unit.findUnique({
-          where: { id: unitId },
-          include: {
-            workouts: {
-              orderBy: { order: "asc" },
-              include: { exercises: { orderBy: { order: "asc" } } },
-            },
-          },
-        });
-
-        if (!unit) {
-          sendSSE(controller, "error", { error: "Unit não encontrada" });
-          controller.close();
-          return;
-        }
-
-        if (unit.studentId !== studentId) {
+        if (!unitId && !planSlotId) {
           sendSSE(controller, "error", {
-            error: "Você não tem permissão para editar esta unit",
+            error: "unitId ou planSlotId é obrigatório",
           });
           controller.close();
           return;
         }
 
-        // 6. Preparar contexto
-        const workoutsInfo = unit.workouts.map((w) => ({
-          id: w.id,
-          title: w.title,
-          type: w.type,
-          muscleGroup: w.muscleGroup,
-          exercises: w.exercises.map((e) => ({
-            id: e.id,
-            name: e.name,
-            sets: e.sets,
-            reps: e.reps,
-          })),
-        }));
+        // 5. Resolver contexto: unit ou planSlot
+        let workoutsInfo: Array<{
+          id: string;
+          title: string;
+          type: string;
+          muscleGroup: string;
+          exercises: Array<{ id: string; name: string; sets: number; reps: string }>;
+        }> = [];
+
+        if (planSlotId) {
+          const planSlot = await db.planSlot.findUnique({
+            where: { id: planSlotId },
+            include: {
+              weeklyPlan: true,
+              workout: {
+                include: { exercises: { orderBy: { order: "asc" } } },
+              },
+            },
+          });
+
+          if (!planSlot || planSlot.weeklyPlan.studentId !== studentId) {
+            sendSSE(controller, "error", {
+              error: "Slot não encontrado ou acesso negado",
+            });
+            controller.close();
+            return;
+          }
+
+          if (planSlot.workout) {
+            workoutsInfo = [{
+              id: planSlot.workout.id,
+              title: planSlot.workout.title,
+              type: planSlot.workout.type,
+              muscleGroup: planSlot.workout.muscleGroup,
+              exercises: planSlot.workout.exercises.map((e) => ({
+                id: e.id,
+                name: e.name,
+                sets: e.sets,
+                reps: e.reps,
+              })),
+            }];
+          }
+        } else if (unitId) {
+          const unit = await db.unit.findUnique({
+            where: { id: unitId },
+            include: {
+              workouts: {
+                orderBy: { order: "asc" },
+                include: { exercises: { orderBy: { order: "asc" } } },
+              },
+            },
+          });
+
+          if (!unit) {
+            sendSSE(controller, "error", { error: "Unit não encontrada" });
+            controller.close();
+            return;
+          }
+
+          if (unit.studentId !== studentId) {
+            sendSSE(controller, "error", {
+              error: "Você não tem permissão para editar esta unit",
+            });
+            controller.close();
+            return;
+          }
+
+          workoutsInfo = unit.workouts.map((w) => ({
+            id: w.id,
+            title: w.title,
+            type: w.type,
+            muscleGroup: w.muscleGroup,
+            exercises: w.exercises.map((e) => ({
+              id: e.id,
+              name: e.name,
+              sets: e.sets,
+              reps: e.reps,
+            })),
+          }));
+        }
 
         const student = await db.student.findUnique({
           where: { id: studentId },
@@ -191,7 +237,20 @@ export async function POST(request: NextRequest) {
                 `- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
             )
             .join("\n");
-          enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
+          const contextLabel = planSlotId
+            ? (slotContext
+                ? `O usuário está editando APENAS o dia de ${slotContext}. `
+                : "O usuário está editando um dia específico do plano semanal. ") +
+              "Todas as modificações devem ser aplicadas a ESTE treino.\n\n"
+            : "";
+          enhancedSystemPrompt += `\n\n${contextLabel}WORKOUTS JÁ EXISTENTES${planSlotId ? " (DIA ATUAL)" : " NA UNIT"}:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
+
+          // Quando planSlotId: instruções para ADICIONAR exercício sem remover existentes
+          if (planSlotId && workoutsInfo.length === 1) {
+            const w = workoutsInfo[0];
+            enhancedSystemPrompt += `\n\n⚠️ CONTEXTO DIA ESPECÍFICO: O usuário está editando APENAS este treino. NÃO peça clarificação sobre "qual treino" - é ESTE.
+⚠️ ADICIONAR EXERCÍCIO: Quando pedir para ADICIONAR (ex: "adicione leg press", "coloque supino"), use action="add_exercise", targetWorkoutId="${w.id}", e workouts: [{ "title": "${w.title}", "type": "${w.type}", "muscleGroup": "${w.muscleGroup}", "difficulty": "intermediario", "exercises": [/* APENAS o(s) novo(s) exercício(s) */] }]. Os existentes serão preservados. NUNCA use update_workout substituindo todos.`;
+          }
 
           // Se houver referência, adicionar instruções específicas
           if (reference && previewWorkouts.length > 0) {
@@ -311,6 +370,13 @@ ${previewsStructure}
 - Retorne APENAS o workout modificado no array workouts`;
             }
           }
+        }
+
+        // Instruções para plano semanal completo (7 dias) quando planSlotId
+        if (planSlotId) {
+          enhancedSystemPrompt += `\n\n📅 PLANO SEMANAL (7 dias Seg-Dom): Se o usuário pedir CRIAR um plano completo (ex: "5 dias de treino com descanso na quarta", "plano PPL 6 dias"), retorne SEMPRE 7 itens no array "workouts" - um por dia.
+Para dias de descanso use: { "title": "Descanso", "type": "strength", "muscleGroup": "full-body", "difficulty": "intermediario", "exercises": [] }.
+O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + descanso quarta = Seg(treino), Ter(treino), Qua(Descanso), Qui(treino), Sex(treino), Sab(treino), Dom(Descanso). Domingo também é descanso quando há 5 treinos.`;
         }
 
         if (student?.profile) {
@@ -584,6 +650,54 @@ ${previewsStructure}
           parsed.targetWorkoutId = reference.workoutTitle;
         }
 
+        // 11b. Expandir restDays em workouts para plano semanal (7 dias)
+        const parsedWithRest = parsed as { restDays?: number[] };
+        if (
+          planSlotId &&
+          parsed?.action === "create_workouts" &&
+          Array.isArray(parsedWithRest.restDays) &&
+          parsedWithRest.restDays.length > 0 &&
+          parsed.workouts &&
+          parsed.workouts.length < 7
+        ) {
+          const restDaysSet = new Set(
+            parsedWithRest.restDays.filter(
+              (d: unknown) => typeof d === "number" && d >= 0 && d <= 6,
+            ),
+          );
+          const trainingWorkouts = (parsed.workouts as Array<Record<string, unknown>>).filter(
+            (w) =>
+              !w.title?.toString().toLowerCase().includes("descanso") &&
+              Array.isArray(w.exercises) &&
+              (w.exercises as unknown[]).length > 0,
+          );
+          let trainingIndex = 0;
+          const expanded: Array<Record<string, unknown>> = [];
+          for (let day = 0; day < 7; day++) {
+            if (restDaysSet.has(day)) {
+              expanded.push({
+                title: "Descanso",
+                type: "strength",
+                muscleGroup: "full-body",
+                difficulty: "intermediario",
+                exercises: [],
+              });
+            } else if (trainingIndex < trainingWorkouts.length) {
+              expanded.push(trainingWorkouts[trainingIndex]);
+              trainingIndex++;
+            } else {
+              expanded.push({
+                title: "Descanso",
+                type: "strength",
+                muscleGroup: "full-body",
+                difficulty: "intermediario",
+                exercises: [],
+              });
+            }
+          }
+          parsed.workouts = expanded;
+        }
+
         // 12. Incrementar contador (apenas para não-admins)
         if (!isAdmin && chatUsage) {
           await db.nutritionChatUsage.update({
@@ -625,6 +739,8 @@ ${previewsStructure}
 
         sendSSE(controller, "complete", {
           ...parsed,
+          unitId: unitId ?? undefined,
+          planSlotId: planSlotId ?? undefined,
           remainingMessages,
         });
 

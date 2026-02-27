@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface Tab {
@@ -17,7 +18,7 @@ interface AppBottomNavProps {
 	onTabChange: (tab: string) => void;
 }
 
-export function AppBottomNav({
+function AppBottomNavSimple({
 	userType,
 	activeTab,
 	tabs,
@@ -33,7 +34,7 @@ export function AppBottomNav({
 			initial={{ y: 100 }}
 			animate={{ y: 0 }}
 			transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-			className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-duo-border bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] pointer-events-auto"
+			className="fixed bottom-0 left-0 right-0 z-50 border-t-2 border-duo-border bg-duo-bg-card shadow-[0_-2px_10px_rgba(0,0,0,0.1)] pointer-events-auto"
 		>
 			<div className="flex items-center justify-around px-0.5 py-1">
 				{tabs.map((tab, index) => {
@@ -41,20 +42,17 @@ export function AppBottomNav({
 					const isActive = activeTab === tab.id;
 
 					return (
-						<motion.button
+						<DuoButton
 							key={tab.id}
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: index * 0.05, duration: 0.3 }}
-							whileHover={{ scale: 1.1 }}
-							whileTap={{ scale: 0.95 }}
+							type="button"
+							variant="ghost"
 							onClick={(e) => {
 								e.preventDefault();
 								e.stopPropagation();
 								onTabChange(tab.id);
 							}}
 							className={cn(
-								"flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 transition-all hover:bg-gray-50 pointer-events-auto",
+								"flex flex-col items-center gap-0.5 rounded-xl px-4 py-2 pointer-events-auto min-h-0 border-0",
 								isActive && activeBgClass,
 							)}
 						>
@@ -66,19 +64,20 @@ export function AppBottomNav({
 								strokeWidth={isActive ? 2.5 : 2}
 							/>
 							{isActive && (
-								<motion.span
-									initial={{ opacity: 0, y: -5 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ duration: 0.2 }}
+								<span
 									className={cn("text-[9px] font-bold", activeTextClass)}
 								>
 									{tab.label}
-								</motion.span>
+								</span>
 							)}
-						</motion.button>
+						</DuoButton>
 					);
 				})}
 			</div>
 		</motion.nav>
 	);
 }
+
+export const AppBottomNav = {
+	Simple: AppBottomNavSimple,
+};

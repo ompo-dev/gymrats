@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronDown, Dumbbell, MessageSquare } from "lucide-react";
+import { ChevronDown, Dumbbell, MessageSquare, Moon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface Exercise {
@@ -25,6 +25,10 @@ interface WorkoutPreviewCardProps {
     exercises: Array<Exercise>;
   };
   index: number;
+  /** Número exibido no badge (ex: 4 para Quarta). Se não informado, usa index + 1 */
+  displayNumber?: number;
+  /** Variante rest: dia de descanso (ícone lua, sem exercícios) */
+  variant?: "default" | "rest";
   /** Último workout e ainda em streaming: mantém expandido para ver exercícios em tempo real */
   defaultExpanded?: boolean;
   /** Em streaming com 0 exercícios: mostra área de exercícios com placeholder */
@@ -76,8 +80,8 @@ function ExerciseItemCard({
           "w-full rounded-xl border-2 p-3 text-left transition-all active:scale-[0.98]",
           hasDetails && "cursor-pointer",
           isExpanded
-            ? "border-duo-green bg-duo-green/5 shadow-sm"
-            : "border-gray-300 bg-white hover:border-duo-green hover:shadow-sm",
+            ? "border-duo-green bg-duo-green/10 shadow-sm"
+            : "border-duo-border bg-duo-bg-card hover:border-duo-green hover:shadow-sm",
         )}
         role={hasDetails ? "button" : undefined}
         tabIndex={hasDetails ? 0 : undefined}
@@ -94,7 +98,7 @@ function ExerciseItemCard({
             <Dumbbell className="h-4 w-4 text-duo-green shrink-0" />
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <div className="font-bold text-gray-900">{exercise.name}</div>
+                <div className="font-bold text-duo-fg">{exercise.name}</div>
                 {onReference && (
                   <button
                     type="button"
@@ -106,7 +110,7 @@ function ExerciseItemCard({
                   </button>
                 )}
               </div>
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-duo-fg-muted">
                 {exercise.sets} séries × {exercise.reps} reps
                 {exercise.rest && ` • ${exercise.rest}s descanso`}
               </div>
@@ -115,7 +119,7 @@ function ExerciseItemCard({
           {hasDetails && (
             <ChevronDown
               className={cn(
-                "h-4 w-4 text-gray-400 transition-transform duration-300 shrink-0",
+                "h-4 w-4 text-duo-fg-muted transition-transform duration-300 shrink-0",
                 isExpanded && "rotate-180",
               )}
             />
@@ -131,17 +135,17 @@ function ExerciseItemCard({
               transition={{ duration: 0.25, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div className="mt-3 border-t border-gray-300 pt-3 space-y-3">
+              <div className="mt-3 border-t border-duo-border pt-3 space-y-3">
                 {exercise.notes && (
                   <motion.div
                     initial={{ y: -10, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.1, duration: 0.2 }}
                   >
-                    <div className="text-xs font-bold text-gray-500 uppercase mb-1">
+                    <div className="text-xs font-bold text-duo-fg-muted uppercase mb-1">
                       Notas
                     </div>
-                    <div className="text-sm text-gray-700">
+                    <div className="text-sm text-duo-text">
                       {exercise.notes}
                     </div>
                   </motion.div>
@@ -153,14 +157,14 @@ function ExerciseItemCard({
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.15, duration: 0.2 }}
                   >
-                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">
+                    <div className="text-xs font-bold text-duo-fg-muted uppercase mb-2">
                       Alternativas ({exercise.alternatives.length})
                     </div>
                     <div className="space-y-1.5">
                       {exercise.alternatives.map((alt, altIdx) => (
                         <div
                           key={alt}
-                          className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200"
+                          className="text-sm text-duo-text bg-duo-bg-elevated rounded-lg px-3 py-2 border border-duo-border"
                         >
                           {altIdx + 1}. {alt}
                         </div>
@@ -180,6 +184,8 @@ function ExerciseItemCard({
 export function WorkoutPreviewCard({
   workout,
   index,
+  displayNumber,
+  variant = "default",
   defaultExpanded = false,
   isStreaming = false,
   onReference,
@@ -190,8 +196,10 @@ export function WorkoutPreviewCard({
   const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<
     number | null
   >(null);
+  const isRest = variant === "rest";
   const hasExercises = workout.exercises.length > 0;
-  const showExercisesArea = hasExercises || (isStreaming && defaultExpanded);
+  const showExercisesArea =
+    !isRest && (hasExercises || (isStreaming && defaultExpanded));
 
   const handleWorkoutReference = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -200,16 +208,49 @@ export function WorkoutPreviewCard({
     }
   };
 
+  // Variante REST: dia de descanso
+  if (isRest) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: index * 0.1 }}
+      >
+        <DuoCard.Root
+          variant="default"
+          className="group border-duo-border bg-duo-bg-elevated/50 cursor-default"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-gray/20 text-duo-fg-muted">
+              {displayNumber ?? index + 1}
+            </div>
+            <div className="flex-1 flex items-center gap-3">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-duo-gray/20">
+                <Moon className="h-6 w-6 text-duo-fg-muted" aria-hidden />
+              </div>
+              <div>
+                <h4 className="font-bold text-duo-fg-muted text-lg">
+                  {workout.title}
+                </h4>
+                <p className="text-sm text-duo-fg-muted">Dia de descanso</p>
+              </div>
+            </div>
+          </div>
+        </DuoCard.Root>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: index * 0.1 }}
     >
-      <DuoCard
+      <DuoCard.Root
         variant="default"
         className={cn(
-          "group transition-colors bg-white",
+          "group transition-colors",
           (hasExercises || showExercisesArea) &&
             "cursor-pointer hover:border-duo-green/50 active:scale-[0.98]",
         )}
@@ -224,9 +265,9 @@ export function WorkoutPreviewCard({
       >
         {/* Número do workout e conteúdo na mesma div */}
         <div className="flex items-start gap-4">
-          {/* Número do workout */}
+          {/* Número do workout (dia da semana quando planSlot, senão index+1) */}
           <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
-            {index + 1}
+            {displayNumber ?? index + 1}
           </div>
 
           {/* Conteúdo */}
@@ -234,7 +275,7 @@ export function WorkoutPreviewCard({
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-bold text-gray-900 text-lg">
+                  <h4 className="font-bold text-duo-fg text-lg">
                     {workout.title}
                   </h4>
                   {onReference && (
@@ -248,7 +289,7 @@ export function WorkoutPreviewCard({
                     </button>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-duo-fg-muted">
                   {workout.exercises.length} exercícios • {workout.muscleGroup}
                 </p>
               </div>
@@ -256,7 +297,7 @@ export function WorkoutPreviewCard({
                 <motion.div
                   animate={{ rotate: isExpanded ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
-                  className="shrink-0 text-gray-400"
+                  className="shrink-0 text-duo-fg-muted"
                 >
                   <ChevronDown className="h-5 w-5" />
                 </motion.div>
@@ -278,13 +319,12 @@ export function WorkoutPreviewCard({
               {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation apenas */}
               {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation não requer teclado */}
               <div
-                className="mt-4 space-y-2 border-t border-gray-300 pt-4"
+                className="mt-4 space-y-2 border-t border-duo-border pt-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {!hasExercises && isStreaming ? (
-                  <div className="flex items-center gap-2 py-4 text-sm text-gray-500">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-duo-green border-t-transparent" />
-                    Adicionando exercícios...
+                {!hasExercises ? (
+                  <div className="py-4 text-center text-sm text-duo-fg-muted">
+                    Nenhum exercício. Peça à IA para adicionar alguns!
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
@@ -334,7 +374,7 @@ export function WorkoutPreviewCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </DuoCard>
+      </DuoCard.Root>
     </motion.div>
   );
 }

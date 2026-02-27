@@ -15,7 +15,7 @@
 - O que faz: implementa a página de entrada da rota `app/gym/students/[id]/page.tsx`.
 - Como: compõe componentes e hooks para executar o fluxo principal da tela; operações detectadas: `StudentDetailPage`, `use`, `find`, `useState`, `filter`.
 - Por que: mantém o entrypoint de navegação explícito e alinhado ao filesystem routing.
-- Importa principalmente: `lucide-react`, `next/image`, `next/link`, `react`, `@/components/ui/button`, `@/components/ui/card`, `@/components/ui/tabs`, `@/lib/gym-mock-data`, `@/lib/utils`
+- Importa principalmente: `react`, `next/navigation`, `@/lib/types`, `../../actions`, `../../components/gym-student-detail`
 - Expõe: sem exports nomeados (ou apenas default).
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).

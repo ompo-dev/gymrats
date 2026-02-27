@@ -338,8 +338,7 @@ gymrats/
 │   │   ├── command-pattern.ts    # Command pattern
 │   │   ├── indexeddb-storage.ts  # Storage IndexedDB
 │   │   └── ...
-│   ├── mock-data.ts              # Dados mockados
-│   ├── gym-mock-data.ts          # Dados mockados de academias
+│   ├── mock-data.ts              # Dados mockados (aluno, workout, dieta)
 │   ├── educational-data.ts       # Dados educacionais
 │   ├── functional-exercises-data.ts
 │   ├── calorie-calculator.ts

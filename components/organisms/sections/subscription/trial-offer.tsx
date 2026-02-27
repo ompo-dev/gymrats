@@ -1,8 +1,8 @@
 "use client";
 
 import { Gift } from "lucide-react";
-import { Button } from "@/components/atoms/buttons/button";
-import { DuoCard } from "@/components/molecules/cards/duo-card";
+import { DuoButton } from "@/components/duo";
+import { DuoCard } from "@/components/duo";
 
 interface TrialOfferProps {
 	title: string;
@@ -12,7 +12,7 @@ interface TrialOfferProps {
 	onStartTrial: () => Promise<void>;
 }
 
-export function TrialOffer({
+function TrialOfferSimple({
 	title,
 	description,
 	buttonText,
@@ -20,23 +20,26 @@ export function TrialOffer({
 	onStartTrial,
 }: TrialOfferProps) {
 	return (
-		<DuoCard variant="blue" size="default" className="text-center">
+		<DuoCard.Root variant="blue" size="default" className="text-center">
 			<Gift className="mx-auto mb-4 h-16 w-16 text-duo-blue" />
 			<h2 className="mb-2 text-2xl font-bold text-duo-text">{title}</h2>
 			<p className="mb-6 text-sm text-duo-gray-dark">{description}</p>
-			<Button
+			<DuoButton
 				onClick={onStartTrial}
 				disabled={isLoading}
+				variant="primary"
 				className="w-full"
 				size="lg"
 			>
 				{isLoading ? "Iniciando..." : buttonText}
-			</Button>
+			</DuoButton>
 			{isLoading && (
 				<p className="mt-2 text-xs text-duo-gray-dark">
 					Aguarde, estamos configurando seu trial...
 				</p>
 			)}
-		</DuoCard>
+		</DuoCard.Root>
 	);
 }
+
+export const TrialOffer = { Simple: TrialOfferSimple };

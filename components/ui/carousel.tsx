@@ -5,7 +5,7 @@ import useEmblaCarousel, {
 } from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import * as React from "react";
-import { Button } from "@/components/ui/button";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 type CarouselApi = UseEmblaCarouselType[1];
@@ -175,11 +175,11 @@ function CarouselPrevious({
 	variant = "outline",
 	size = "icon",
 	...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof DuoButton>) {
 	const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
 	return (
-		<Button
+		<DuoButton
 			data-slot="carousel-previous"
 			variant={variant}
 			size={size}
@@ -196,7 +196,7 @@ function CarouselPrevious({
 		>
 			<ArrowLeft />
 			<span className="sr-only">Previous slide</span>
-		</Button>
+		</DuoButton>
 	);
 }
 
@@ -205,11 +205,11 @@ function CarouselNext({
 	variant = "outline",
 	size = "icon",
 	...props
-}: React.ComponentProps<typeof Button>) {
+}: React.ComponentProps<typeof DuoButton>) {
 	const { orientation, scrollNext, canScrollNext } = useCarousel();
 
 	return (
-		<Button
+		<DuoButton
 			data-slot="carousel-next"
 			variant={variant}
 			size={size}
@@ -226,7 +226,7 @@ function CarouselNext({
 		>
 			<ArrowRight />
 			<span className="sr-only">Next slide</span>
-		</Button>
+		</DuoButton>
 	);
 }
 

@@ -6,8 +6,10 @@ import {
 	Heart,
 	type LucideIcon,
 	MapPin,
+	Palette,
 	Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -60,6 +62,13 @@ const moreMenuItems: MoreMenuItem[] = [
 		description: "Gerencie sua assinatura",
 		color: "duo-yellow",
 	},
+	{
+		id: "theme-test",
+		icon: Palette,
+		label: "Teste de Tema",
+		description: "Tabs, cards, stats e color picker",
+		color: "duo-yellow",
+	},
 ];
 
 export function StudentMoreMenu() {
@@ -84,6 +93,7 @@ export function StudentMoreMenu() {
 		: moreMenuItems.filter((item) => !blockedItems.includes(item.id));
 
 	const handleItemClick = async (itemId: string) => {
+		if (itemId === "theme-test") return; // Link externo
 		// Bloquear acesso se não for admin e item estiver bloqueado
 		if (!userIsAdmin && blockedItems.includes(itemId)) {
 			toast({
@@ -123,13 +133,24 @@ export function StudentMoreMenu() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: index * 0.1, duration: 0.4 }}
 						>
-							<NavigationButtonCard
-								icon={item.icon}
-								title={item.label}
-								description={item.description}
-								color={item.color}
-								onClick={() => handleItemClick(item.id)}
-							/>
+							{item.id === "theme-test" ? (
+								<Link href="/student/theme-test">
+									<NavigationButtonCard
+										icon={item.icon}
+										title={item.label}
+										description={item.description}
+										color={item.color}
+									/>
+								</Link>
+							) : (
+								<NavigationButtonCard
+									icon={item.icon}
+									title={item.label}
+									description={item.description}
+									color={item.color}
+									onClick={() => handleItemClick(item.id)}
+								/>
+							)}
 						</motion.div>
 					))}
 				</div>

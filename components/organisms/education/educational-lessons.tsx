@@ -53,7 +53,7 @@ const categoryColors: Record<
 	},
 };
 
-export function EducationalLessons({
+function EducationalLessonsSimple({
 	lessonId,
 	onLessonSelect,
 	onBack,
@@ -110,7 +110,7 @@ export function EducationalLessons({
 
 	if (showQuiz && selectedLesson?.quiz) {
 		return (
-			<LessonQuiz
+			<LessonQuiz.Simple
 				lesson={selectedLesson}
 				onComplete={handleQuizComplete}
 				onRetry={() => setShowQuiz(false)}
@@ -120,7 +120,7 @@ export function EducationalLessons({
 
 	if (selectedLesson) {
 		return (
-			<LessonDetail
+			<LessonDetail.Simple
 				lesson={selectedLesson}
 				onBack={handleBack}
 				onComplete={handleCompleteLesson}
@@ -159,7 +159,7 @@ export function EducationalLessons({
 				</div>
 			</FadeIn>
 
-			<LessonFilters
+			<LessonFilters.Simple
 				searchQuery={searchQuery}
 				selectedCategory={selectedCategory}
 				categoryOptions={categoryOptions}
@@ -167,7 +167,7 @@ export function EducationalLessons({
 				onCategoryChange={setSelectedCategory}
 			/>
 
-			<LessonList
+			<LessonList.Simple
 				lessons={filteredLessons}
 				lessonsByCategory={lessonsByCategory}
 				categoryColors={categoryColors}
@@ -178,3 +178,7 @@ export function EducationalLessons({
 		</div>
 	);
 }
+
+export const EducationalLessons = {
+	Simple: EducationalLessonsSimple,
+};
