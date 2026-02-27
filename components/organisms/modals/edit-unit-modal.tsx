@@ -1307,7 +1307,7 @@ export function EditUnitModal({
       </Modal.Root>
 
       {showExerciseSearch && editingWorkoutId && isOpen && (
-        <ExerciseSearch
+        <ExerciseSearch.Simple
           workoutId={editingWorkoutId}
           onClose={() => setShowExerciseSearch(false)}
         />

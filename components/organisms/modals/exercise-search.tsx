@@ -80,7 +80,7 @@ const getDifficultyClasses = (difficulty?: string) => {
 	return `${colors.bg} ${colors.text}`;
 };
 
-export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
+function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
 	const profile = useStudent("profile");
 	const [query, setQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -683,3 +683,5 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 		</Modal.Root>
 	);
 }
+
+export const ExerciseSearch = { Simple: ExerciseSearchSimple };
