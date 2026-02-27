@@ -38,7 +38,7 @@ function HistoryCardSimple({
 					<div className="font-bold text-duo-text">{title}</div>
 					<div className="text-xs text-duo-gray-dark">{formattedDate}</div>
 				</div>
-				{status && <StatusBadge status={status} label={status} />}
+				{status && <StatusBadge.Simple status={status} label={status} />}
 			</div>
 			{metadata.length > 0 && (
 				<div className="flex gap-4 text-sm text-duo-gray-dark">

@@ -61,7 +61,7 @@ const moreMenuItems: MoreMenuItem[] = [
 	},
 ];
 
-export function GymMoreMenu() {
+function GymMoreMenuSimple() {
 	const [, setTab] = useQueryState("tab", parseAsString);
 	const [, setView] = useQueryState(
 		"view",
@@ -125,3 +125,5 @@ export function GymMoreMenu() {
 		</div>
 	);
 }
+
+export const GymMoreMenu = { Simple: GymMoreMenuSimple };

@@ -140,7 +140,7 @@ function GymHomeContent({
 			{tab === "gamification" && profile && (
 				<GymGamificationPage profile={profile} />
 			)}
-			{tab === "more" && <GymMoreMenu />}
+			{tab === "more" && <GymMoreMenu.Simple />}
 		</div>
 	);
 }

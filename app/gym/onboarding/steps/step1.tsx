@@ -11,7 +11,7 @@ export function Step1({ formData, setFormData }: StepProps) {
 			description="Vamos começar com os dados básicos"
 		>
 			<div className="space-y-5">
-				<FormInput
+				<FormInput.Simple
 					label="Nome da Academia"
 					type="text"
 					placeholder="Ex: Academia Fitness Center"
@@ -22,7 +22,7 @@ export function Step1({ formData, setFormData }: StepProps) {
 					required
 					delay={0.3}
 				/>
-				<FormInput
+				<FormInput.Simple
 					label="Telefone"
 					type="tel"
 					placeholder="(11) 99999-9999"
@@ -33,7 +33,7 @@ export function Step1({ formData, setFormData }: StepProps) {
 					required
 					delay={0.4}
 				/>
-				<FormInput
+				<FormInput.Simple
 					label="E-mail"
 					type="email"
 					placeholder="contato@academia.com"

@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Select, type SelectOption } from "@/components/atoms/inputs/select";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
-export function GymSelector() {
+function GymSelectorSimple() {
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const {
@@ -104,3 +104,5 @@ export function GymSelector() {
 		/>
 	);
 }
+
+export const GymSelector = { Simple: GymSelectorSimple };

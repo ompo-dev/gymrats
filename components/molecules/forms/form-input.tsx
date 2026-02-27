@@ -21,7 +21,7 @@ interface FormInputProps {
 	maxLength?: number;
 }
 
-export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
+const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
 	(
 		{
 			label,
@@ -81,4 +81,6 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 	},
 );
 
-FormInput.displayName = "FormInput";
+FormInputSimple.displayName = "FormInput";
+
+export const FormInput = { Simple: FormInputSimple };

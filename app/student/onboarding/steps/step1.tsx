@@ -103,7 +103,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
       description="Vamos conhecer você melhor"
     >
       <div className="space-y-5">
-        <FormInput
+        <FormInput.Simple
           label="Idade"
           type="number"
           placeholder="25"
@@ -121,7 +121,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           min={13}
           max={120}
         />
-        <FormInput
+        <FormInput.Simple
           label="Altura (cm)"
           type="number"
           placeholder="170"
@@ -139,7 +139,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           min={100}
           max={250}
         />
-        <FormInput
+        <FormInput.Simple
           label="Peso (kg)"
           type="number"
           placeholder="70"

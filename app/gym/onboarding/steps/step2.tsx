@@ -85,7 +85,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 		>
 			<div className="space-y-5">
 				<div className="relative">
-					<FormInput
+					<FormInput.Simple
 						label="CEP"
 						type="text"
 						placeholder="00000-000"
@@ -111,7 +111,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 					)}
 				</div>
 
-				<FormInput
+				<FormInput.Simple
 					label="Endereço"
 					type="text"
 					placeholder="Rua, avenida, logradouro"
@@ -122,7 +122,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 					required
 					delay={0.4}
 				/>
-				<FormInput
+				<FormInput.Simple
 					label="Número / Complemento"
 					type="text"
 					placeholder="Ex: 123, Sala 45, Bloco A"
@@ -134,7 +134,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 					delay={0.45}
 				/>
 				<div className="grid grid-cols-2 gap-4">
-					<FormInput
+					<FormInput.Simple
 						label="Cidade"
 						type="text"
 						placeholder="São Paulo"
@@ -145,7 +145,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 						required
 						delay={0.5}
 					/>
-					<FormInput
+					<FormInput.Simple
 						label="Estado"
 						type="text"
 						placeholder="SP"

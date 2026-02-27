@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { FormInput } from "@/components/ui/form-input";
+import { FormInput } from "@/components/molecules/forms/form-input";
 import { DuoButton, DuoSelect } from "@/components/duo";
 
 interface LimitationOption {
@@ -38,7 +38,7 @@ interface LimitationSelectorProps {
 	error?: string;
 }
 
-export function LimitationSelector({
+function LimitationSelectorSimple({
 	title,
 	icon: Icon,
 	iconColor,
@@ -200,7 +200,7 @@ export function LimitationSelector({
 										/>
 									)}
 									{detail.type === "text" && (
-										<FormInput
+										<FormInput.Simple
 											label="Descrição"
 											type="text"
 											placeholder={detail.placeholder}
@@ -226,3 +226,5 @@ export function LimitationSelector({
 		</motion.div>
 	);
 }
+
+export const LimitationSelector = { Simple: LimitationSelectorSimple };

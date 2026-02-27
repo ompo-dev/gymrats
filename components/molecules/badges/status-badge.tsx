@@ -22,15 +22,17 @@ export interface StatusBadgeProps
 	label: string;
 }
 
-export function StatusBadge({
+function StatusBadgeSimple({
 	status,
 	label,
 	className,
 	...props
 }: StatusBadgeProps) {
 	return (
-		<div className={cn(statusBadgeVariants({ status, className }))} {...props}>
+		<div className={cn(statusBadgeVariants({ status }), className)} {...props}>
 			{label}
 		</div>
 	);
 }
+
+export const StatusBadge = { Simple: StatusBadgeSimple };

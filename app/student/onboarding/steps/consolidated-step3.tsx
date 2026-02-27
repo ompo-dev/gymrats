@@ -176,7 +176,7 @@ export function ConsolidatedStep3({
             Nos ajude a criar um treino seguro e adequado para você
           </p>
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui limitações físicas?"
             icon={Heart}
             iconColor="text-red-500"
@@ -219,7 +219,7 @@ export function ConsolidatedStep3({
             delay={0}
           />
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui limitações motoras?"
             icon={Activity}
             iconColor="text-blue-500"
@@ -242,7 +242,7 @@ export function ConsolidatedStep3({
             delay={0}
           />
 
-          <LimitationSelector
+          <LimitationSelector.Simple
             title="Você possui condições médicas?"
             icon={Stethoscope}
             iconColor="text-orange-500"

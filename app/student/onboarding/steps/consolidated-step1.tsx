@@ -199,7 +199,7 @@ export function ConsolidatedStep1({
             Informações Pessoais
           </h3>
           <div className="grid gap-4 sm:grid-cols-3">
-            <FormInput
+            <FormInput.Simple
               label="Idade"
               type="number"
               placeholder="25"
@@ -217,7 +217,7 @@ export function ConsolidatedStep1({
               min={13}
               max={120}
             />
-            <FormInput
+            <FormInput.Simple
               label="Altura (cm)"
               type="number"
               placeholder="170"
@@ -235,7 +235,7 @@ export function ConsolidatedStep1({
               min={100}
               max={250}
             />
-            <FormInput
+            <FormInput.Simple
               label="Peso (kg)"
               type="number"
               placeholder="70"
@@ -327,7 +327,7 @@ export function ConsolidatedStep1({
                       label="Tipo de hormônio"
                       placeholder="Selecione"
                     />
-                    <FormInput
+                    <FormInput.Simple
                       label="Meses de tratamento"
                       type="number"
                       placeholder="0"

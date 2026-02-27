@@ -12,7 +12,7 @@ export function Step3({ formData, setFormData }: StepProps) {
 			description="Informe o CNPJ da sua academia (opcional)"
 		>
 			<div className="space-y-5">
-				<FormInput
+				<FormInput.Simple
 					label="CNPJ"
 					type="text"
 					placeholder="00.000.000/0000-00"

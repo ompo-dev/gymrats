@@ -47,7 +47,7 @@ function AppHeaderSimple({
           <div className="flex items-center gap-3 w-full">
             {/* Logo apenas para students, Seletor para gyms */}
             {isGym ? (
-              <GymSelector />
+              <GymSelector.Simple />
             ) : (
               showLogo && (
                 <Link href="/student" className="flex items-center gap-2">

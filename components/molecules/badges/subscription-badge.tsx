@@ -9,7 +9,7 @@ interface SubscriptionBadgeProps {
 	className?: string;
 }
 
-export function SubscriptionBadge({
+function SubscriptionBadgeSimple({
 	status,
 	daysRemaining,
 	className,
@@ -46,3 +46,5 @@ export function SubscriptionBadge({
 
 	return null;
 }
+
+export const SubscriptionBadge = { Simple: SubscriptionBadgeSimple };

@@ -207,7 +207,7 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
                 : "estrogênio"}
               ?
             </p>
-            <FormInput
+            <FormInput.Simple
               label="Meses de tratamento"
               type="number"
               placeholder="0"
