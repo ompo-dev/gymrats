@@ -84,6 +84,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
 			const response = await apiClient.get<{
 				gyms: GymData[];
 				canCreateMultipleGyms?: boolean;
+				activeGymId?: string | null;
 			}>("/api/gyms/list", {
 				headers: {
 					"Cache-Control": "no-store",
@@ -98,22 +99,25 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
 					gymsMap[gym.id] = gym;
 				});
 
+				// Prioridade: API activeGymId > store atual > primeira academia
+				const apiActiveId = data.activeGymId ?? null;
+				const currentState = get();
+				let resolvedActiveId = apiActiveId ?? currentState.activeGymId;
+
+				// Se o ID resolvido não existe mais nas academias, usar a primeira
+				if (resolvedActiveId && !gymsMap[resolvedActiveId]) {
+					resolvedActiveId = data.gyms[0]?.id ?? null;
+				}
+				// Se ainda não tem, usar a primeira
+				if (!resolvedActiveId && data.gyms.length > 0) {
+					resolvedActiveId = data.gyms[0].id;
+				}
+
 				set({
 					gymsData: gymsMap,
 					canCreateMultipleGyms: data.canCreateMultipleGyms || false,
+					activeGymId: resolvedActiveId,
 				});
-
-				const currentState = get();
-
-				// Se não tem activeGymId, usar a primeira
-				if (!currentState.activeGymId && data.gyms.length > 0) {
-					set({ activeGymId: data.gyms[0].id });
-				}
-
-				// Se o activeGymId não existe mais, usar a primeira
-				if (currentState.activeGymId && !gymsMap[currentState.activeGymId]) {
-					set({ activeGymId: data.gyms[0]?.id || null });
-				}
 			}
 		} catch (error) {
 			console.error("Erro ao carregar academias:", error);

@@ -128,11 +128,33 @@ export function GymSettingsPage({
     }));
   };
 
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    setSaveError("");
-    try {
-      const { apiClient } = await import("@/lib/api/client");
+  const buildPayload = (
+    section: "info" | "schedules",
+  ): Record<string, unknown> => {
+    const payload: Record<string, unknown> = {};
+    if (section === "info") {
+      if (address !== (profile.address ?? "")) {
+        payload.address = address.trim() || undefined;
+      }
+      if (phone !== (profile.phone ?? "")) {
+        payload.phone = phone.trim() || undefined;
+      }
+      if (cnpj !== (profile.cnpj ?? "")) {
+        payload.cnpj = cnpj.trim() || null;
+      }
+      const VALID_PIX_TYPES = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
+      const hasValidPixType = VALID_PIX_TYPES.includes(pixKeyType);
+      const pixKeyTrimmed = pixKey.trim();
+      const prevPix = profile.pixKey ?? "";
+      const prevPixType = profile.pixKeyType ?? "";
+      if (pixKeyTrimmed !== prevPix || pixKeyType !== prevPixType) {
+        payload.pixKey =
+          hasValidPixType && pixKeyTrimmed ? pixKeyTrimmed : null;
+        payload.pixKeyType =
+          hasValidPixType && pixKeyTrimmed ? pixKeyType : null;
+      }
+    }
+    if (section === "schedules") {
       const openDays = Object.entries(daySchedules)
         .filter(([, s]) => s.enabled)
         .map(([id]) => id);
@@ -140,23 +162,77 @@ export function GymSettingsPage({
       for (const [id, s] of Object.entries(daySchedules)) {
         if (s.enabled) byDay[id] = { open: s.open, close: s.close };
       }
+      payload.openingHours = {
+        days: openDays,
+        byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
+        open: DEFAULT_OPEN,
+        close: DEFAULT_CLOSE,
+      };
+    }
+    return payload;
+  };
+
+  const handleSaveInfo = async () => {
+    setSaveError("");
+    const VALID_PIX_TYPES = ["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"];
+    const hasValidPixType = VALID_PIX_TYPES.includes(pixKeyType);
+    const pixKeyTrimmed = pixKey.trim();
+    if (pixKeyTrimmed && !hasValidPixType) {
+      setSaveError("Selecione um tipo de chave PIX válido (CPF, CNPJ, etc.)");
+      return;
+    }
+    if (hasValidPixType && !pixKeyTrimmed) {
+      setSaveError("Informe o valor da chave PIX");
+      return;
+    }
+    const payload = buildPayload("info");
+    if (Object.keys(payload).length === 0) return;
+    setSaving(true);
+    try {
+      const { apiClient } = await import("@/lib/api/client");
       const { data } = await apiClient.patch<{ profile: GymProfile }>(
         "/api/gyms/profile",
-        {
-          address: address.trim() || undefined,
-          phone: phone.trim() || undefined,
-          cnpj: cnpj.trim() || null,
-          pixKey: pixKey.trim() || null,
-          pixKeyType: pixKeyType || null,
-          openingHours: {
-            days: openDays,
-            byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
-            open: DEFAULT_OPEN,
-            close: DEFAULT_CLOSE,
-          },
-        },
+        payload,
       );
       if (data.profile) setProfile(data.profile);
+      setSaveError("");
+      router.refresh();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { details?: unknown } } }).response
+              ?.data
+          : null;
+      const details =
+        msg && typeof msg === "object" && "details" in msg
+          ? (msg as { details?: unknown }).details
+          : null;
+      const errMsg =
+        Array.isArray(details) && details.length > 0
+          ? ((details[0] as { message?: string }).message ??
+            "Erro de validação")
+          : err instanceof Error
+            ? err.message
+            : "Erro ao salvar. Tente novamente.";
+      setSaveError(errMsg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveSchedules = async () => {
+    setSaveError("");
+    const payload = buildPayload("schedules");
+    if (Object.keys(payload).length === 0) return;
+    setSaving(true);
+    try {
+      const { apiClient } = await import("@/lib/api/client");
+      const { data } = await apiClient.patch<{ profile: GymProfile }>(
+        "/api/gyms/profile",
+        payload,
+      );
+      if (data.profile) setProfile(data.profile);
+      setSaveError("");
       router.refresh();
     } catch (err: unknown) {
       const msg =
@@ -207,8 +283,6 @@ export function GymSettingsPage({
     }
     return false;
   })();
-
-  const hasChanges = hasInfoChanges || hasScheduleChanges;
 
   const handleLogout = async () => {
     try {
@@ -322,14 +396,13 @@ export function GymSettingsPage({
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <DuoSelect
                       options={[
-                        { value: "", label: "Tipo de chave" },
                         { value: "CPF", label: "CPF" },
                         { value: "CNPJ", label: "CNPJ" },
                         { value: "PHONE", label: "Telefone" },
                         { value: "EMAIL", label: "E-mail" },
                         { value: "RANDOM", label: "Chave aleatória" },
                       ]}
-                      value={pixKeyType}
+                      value={pixKeyType || undefined}
                       onChange={setPixKeyType}
                       placeholder="Tipo de chave"
                       className="min-w-[180px] sm:min-w-0 sm:flex-1"
@@ -405,14 +478,14 @@ export function GymSettingsPage({
                 </DuoCard>
               </motion.div>
             ))}
-            {hasChanges && (
+            {hasInfoChanges && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25, duration: 0.4 }}
               >
                 <DuoButton
-                  onClick={handleSaveProfile}
+                  onClick={handleSaveInfo}
                   disabled={saving}
                   className="w-full"
                 >
@@ -459,65 +532,89 @@ export function GymSettingsPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.3 }}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl border-2 p-3 transition-all",
+                    "rounded-xl border-2 p-3 transition-all",
                     s.enabled
-                      ? "border-[var(--duo-secondary)]/40 bg-[var(--duo-secondary)]/5"
-                      : "border-[var(--duo-border)] bg-[var(--duo-bg-elevated)]/50",
+                      ? "flex flex-col gap-3 border-[var(--duo-secondary)]/40 bg-[var(--duo-secondary)]/5"
+                      : "flex items-center gap-3 border-[var(--duo-border)] bg-[var(--duo-bg-elevated)]/50",
                   )}
                 >
-                  <label className="flex min-w-[100px] cursor-pointer items-center gap-2">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={s.enabled}
-                        onChange={(e) =>
-                          updateDaySchedule(day.id, "enabled", e.target.checked)
-                        }
-                        className="peer sr-only"
-                      />
-                      <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
-                      <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
-                    </div>
-                    <span className="text-sm font-bold text-[var(--duo-fg)]">
-                      {day.label}
-                    </span>
-                  </label>
-                  {s.enabled && (
-                    <div className="flex flex-1 items-center gap-2 sm:gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <Label className="text-[10px] font-medium text-[var(--duo-fg-muted)]">
-                          Abre
-                        </Label>
-                        <DuoInput
-                          type="time"
-                          value={s.open}
-                          onChange={(e) =>
-                            updateDaySchedule(day.id, "open", e.target.value)
-                          }
-                          className="h-8 w-24 min-w-0 text-sm"
-                        />
+                  {s.enabled ? (
+                    <>
+                      <span className="text-sm font-bold text-[var(--duo-fg)]">
+                        {day.label}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label className="flex cursor-pointer items-center">
+                          <div className="relative">
+                            <input
+                              type="checkbox"
+                              checked={s.enabled}
+                              onChange={(e) =>
+                                updateDaySchedule(
+                                  day.id,
+                                  "enabled",
+                                  e.target.checked,
+                                )
+                              }
+                              className="peer sr-only"
+                            />
+                            <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
+                            <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
+                          </div>
+                        </label>
+                      <div className="flex flex-1 items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-1.5">
+                          <DuoInput
+                            type="time"
+                            value={s.open}
+                            onChange={(e) =>
+                              updateDaySchedule(day.id, "open", e.target.value)
+                            }
+                            className="h-8 w-24 min-w-0 text-sm"
+                          />
+                        </div>
+                        <span className="text-[var(--duo-fg-muted)]">–</span>
+                        <div className="flex items-center gap-1.5">
+                          <DuoInput
+                            type="time"
+                            value={s.close}
+                            onChange={(e) =>
+                              updateDaySchedule(day.id, "close", e.target.value)
+                            }
+                            className="h-8 w-24 min-w-0 text-sm"
+                          />
+                        </div>
                       </div>
-                      <span className="text-[var(--duo-fg-muted)]">–</span>
-                      <div className="flex items-center gap-1.5">
-                        <Label className="text-[10px] font-medium text-[var(--duo-fg-muted)]">
-                          Fecha
-                        </Label>
-                        <DuoInput
-                          type="time"
-                          value={s.close}
-                          onChange={(e) =>
-                            updateDaySchedule(day.id, "close", e.target.value)
-                          }
-                          className="h-8 w-24 min-w-0 text-sm"
-                        />
                       </div>
-                    </div>
+                    </>
+                  ) : (
+                    <label className="flex cursor-pointer items-center gap-2">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={s.enabled}
+                          onChange={(e) =>
+                            updateDaySchedule(
+                              day.id,
+                              "enabled",
+                              e.target.checked,
+                            )
+                          }
+                          className="peer sr-only"
+                        />
+                        <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
+                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
+                      </div>
+                      <span className="text-sm font-bold text-[var(--duo-fg)]">
+                        {day.label}
+                      </span>
+                    </label>
                   )}
                 </motion.div>
               );
             })}
           </div>
-          {hasChanges && (
+          {hasScheduleChanges && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -525,7 +622,7 @@ export function GymSettingsPage({
               className="mt-4"
             >
               <DuoButton
-                onClick={handleSaveProfile}
+                onClick={handleSaveSchedules}
                 disabled={saving}
                 className="w-full"
               >
@@ -536,6 +633,9 @@ export function GymSettingsPage({
                 )}
               </DuoButton>
             </motion.div>
+          )}
+          {saveError && (
+            <p className="mt-3 text-sm font-medium text-red-600">{saveError}</p>
           )}
         </DuoCard>
       </SlideIn>
