@@ -21,6 +21,8 @@ interface SubscriptionStatusProps {
 		activeStudents?: number;
 		totalAmount?: number;
 		billingPeriod?: "monthly" | "annual";
+		source?: "OWN" | "GYM_ENTERPRISE";
+		enterpriseGymName?: string;
 	};
 	userType: "student" | "gym";
 	texts: {
@@ -122,37 +124,63 @@ function SubscriptionStatusSimple({
 												? "Processando..."
 												: isCanceled
 													? "Cancelada"
-													: "Sem assinatura"}
+													: subscription.source === "GYM_ENTERPRISE"
+														? "Cortesias"
+														: "Sem assinatura"}
 							</p>
 						</div>
 					</div>
 					<span
 						className={cn(
 							"px-3 py-1 rounded-lg text-xs font-bold",
-							isCanceled && hasTrial
-								? "bg-duo-orange/20 text-duo-orange"
-								: isTrialActive
-									? "bg-duo-blue/20 text-duo-blue"
-									: isPremiumActive
-										? "bg-duo-green/20 text-duo-green"
-										: isCanceled
-											? "bg-gray-200 text-gray-600"
-											: "bg-gray-200 text-gray-600",
+							subscription.source === "GYM_ENTERPRISE"
+								? "bg-duo-purple/20 text-duo-purple"
+								: isCanceled && hasTrial
+									? "bg-duo-orange/20 text-duo-orange"
+									: isTrialActive
+										? "bg-duo-blue/20 text-duo-blue"
+										: isPremiumActive
+											? "bg-duo-green/20 text-duo-green"
+											: isCanceled
+												? "bg-gray-200 text-gray-600"
+												: "bg-gray-200 text-gray-600",
 						)}
 					>
-						{isCanceled && hasTrial
-							? "Cancelada"
-							: isTrialActive
-								? "Trial Ativo"
-								: isPremiumActive
-									? "Ativo"
-									: isPendingPayment
-										? "Aguardando"
-										: isCanceled
-											? "Cancelada"
-											: "Free"}
+						{subscription.source === "GYM_ENTERPRISE"
+							? "Enterprise"
+							: isCanceled && hasTrial
+								? "Cancelada"
+								: isTrialActive
+									? "Trial Ativo"
+									: isPremiumActive
+										? "Ativo"
+										: isPendingPayment
+											? "Aguardando"
+											: isCanceled
+												? "Cancelada"
+												: "Free"}
 					</span>
 				</div>
+
+				{/* Enterprise Benefit Info */}
+				{subscription.source === "GYM_ENTERPRISE" && (
+					<DuoCard.Root variant="default" className="border-duo-purple/30 bg-duo-purple/5">
+						<div className="flex items-center gap-3">
+							<Gift className="h-8 w-8 text-duo-purple" />
+							<div className="flex-1">
+								<h3 className="font-bold text-duo-text">
+									Plano Básico Gratuito
+								</h3>
+								<p className="text-xs text-duo-purple font-bold">
+									Benefício concedido por {subscription.enterpriseGymName || "sua academia"}.
+								</p>
+								<p className="text-xs text-duo-gray-dark mt-2">
+									Você tem acesso gratuito às funcionalidades básicas enquanto for aluno de uma empresa parceira.
+								</p>
+							</div>
+						</div>
+					</DuoCard.Root>
+				)}
 
 				{/* Trial Info */}
 				{hasTrial && (
@@ -272,15 +300,21 @@ function SubscriptionStatusSimple({
 								</div>
 							)}
 						<div className="flex items-center justify-between text-sm">
-							<span className="text-duo-gray-dark">{texts.nextRenewal}</span>
+							<span className="text-duo-gray-dark">
+								{subscription.source === "GYM_ENTERPRISE" ? "Status do benefício" : texts.nextRenewal}
+							</span>
 							<span className="font-bold text-duo-text">
-								{new Date(subscription.currentPeriodEnd).toLocaleDateString(
-									"pt-BR",
-								)}
+								{subscription.source === "GYM_ENTERPRISE" 
+									? "Vitalício via academia" 
+									: new Date(subscription.currentPeriodEnd).toLocaleDateString("pt-BR")}
 							</span>
 						</div>
 						<div className="mt-3">
-							{isCanceled ? (
+							{subscription.source === "GYM_ENTERPRISE" ? (
+								<p className="text-xs text-center text-duo-gray-dark italic">
+									Assinatura gerenciada pela academia parceira.
+								</p>
+							) : isCanceled ? (
 								<DuoButton
 									onClick={onStartTrial}
 									disabled={isLoading}

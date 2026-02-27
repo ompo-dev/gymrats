@@ -9,15 +9,18 @@
  */
 
 /**
+ * Verifica se o nome do plano corresponde a um plano basic ou superior.
+ */
+export function isBasicPlan(plan: string): boolean {
+	const p = plan.toLowerCase();
+	return p.includes("basic") || p.includes("premium") || p.includes("enterprise");
+}
+
+/**
  * Verifica se o nome do plano corresponde a um plano premium.
- * Aceita qualquer variação: "premium", "Premium Mensal", "Premium Anual", etc.
  */
 export function isPremiumPlan(plan: string): boolean {
-	return (
-		plan.toLowerCase().includes("premium") ||
-		plan.toLowerCase().includes("basic") ||
-		plan.toLowerCase().includes("enterprise")
-	);
+	return plan.toLowerCase().includes("premium") || plan.toLowerCase().includes("enterprise");
 }
 
 /**

@@ -42,6 +42,8 @@ export interface SubscriptionSectionProps {
 		activeStudents?: number;
 		totalAmount?: number;
 		billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
+		source?: "OWN" | "GYM_ENTERPRISE";
+		enterpriseGymName?: string;
 	} | null;
 
 	// Estados de loading
@@ -279,6 +281,11 @@ function SubscriptionSectionSimple({
 			}
 			// Para gym: sempre mostrar todos os planos (para permitir upgrade/downgrade)
 			return true;
+		}
+
+		// Se tem benefício enterprise, não mostrar planos
+		if (subscription?.source === "GYM_ENTERPRISE") {
+			return false;
 		}
 
 		// Se há subscription em trial ou cancelada, mostrar planos normalmente

@@ -296,6 +296,9 @@ model Gym {
   stats        GymStats?
   subscription GymSubscription?
   withdraws    GymWithdraw[]
+  
+  // Benefícios para alunos (enterprise)
+  assistedSubscriptions Subscription[] @relation("EnterpriseAssisted")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -971,13 +974,21 @@ model Friendship {
 // ASSINATURAS E MONETIZAÇÃO
 // ============================================
 
+enum SubscriptionSource {
+  OWN
+  GYM_ENTERPRISE
+}
+
 // Assinaturas de Alunos (Premium)
 model Subscription {
   id                 String    @id @default(cuid())
   studentId          String    @unique
   student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  plan               String    @default("free") // free, premium
+  plan               String    @default("free") // free, basic, premium
   status             String    @default("active") // active, canceled, expired, past_due, trialing
+  source             SubscriptionSource? @default(OWN)
+  enterpriseGymId    String?
+  enterpriseGym      Gym?      @relation("EnterpriseAssisted", fields: [enterpriseGymId], references: [id])
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)

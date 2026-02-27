@@ -8,6 +8,7 @@ export {
 export { DuoIcon } from "./atoms/duo-icon";
 export { DuoProgress } from "./atoms/duo-progress";
 export { DuoText } from "./atoms/duo-text";
+export { DuoAlert } from "./atoms/duo-alert";
 
 // Molecules
 export { DuoAchievementCard } from "./molecules/duo-achievement-card";

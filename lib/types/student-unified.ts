@@ -109,18 +109,21 @@ export interface WeightHistoryItem {
 // ============================================
 
 export interface SubscriptionData {
-	id: string;
+	id?: string;
 	plan: string;
 	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment";
-	currentPeriodStart: Date;
-	currentPeriodEnd: Date;
-	cancelAtPeriodEnd: boolean;
-	canceledAt: Date | null;
-	trialStart: Date | null;
-	trialEnd: Date | null;
-	isTrial: boolean;
-	daysRemaining: number | null;
-	billingPeriod: "monthly" | "annual";
+	currentPeriodStart?: Date | string;
+	currentPeriodEnd?: Date | string;
+	cancelAtPeriodEnd?: boolean;
+	canceledAt?: Date | string | null;
+	trialStart?: Date | string | null;
+	trialEnd?: Date | string | null;
+	isTrial?: boolean;
+	daysRemaining?: number | null;
+	billingPeriod?: "monthly" | "annual";
+	source?: "OWN" | "GYM_ENTERPRISE";
+	gymId?: string;
+	enterpriseGymName?: string;
 }
 
 // ============================================

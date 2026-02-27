@@ -8,10 +8,14 @@ import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { RelativeTime } from "@/components/molecules/relative-time";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
+import {
+	DuoAlert,
+	DuoButton,
+	DuoCard,
+	DuoStatCard,
+	DuoStatsGrid,
+} from "@/components/duo";
 import { CheckInModal } from "./checkin-modal";
-import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import type {
   CheckIn,
   Equipment,
@@ -26,6 +30,12 @@ interface GymDashboardPageProps {
   students: StudentData[];
   equipment: Equipment[];
   recentCheckIns?: CheckIn[];
+  subscription?: {
+    id: string;
+    plan: string;
+    status: string;
+    currentPeriodEnd: Date;
+  } | null;
 }
 
 export function GymDashboardPage({
@@ -34,6 +44,7 @@ export function GymDashboardPage({
   students,
   equipment,
   recentCheckIns = [],
+  subscription,
 }: GymDashboardPageProps) {
   const router = useRouter();
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
@@ -47,20 +58,29 @@ export function GymDashboardPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-          <div className="text-center sm:text-left">
-            <h1 className="mb-1 text-3xl font-bold text-duo-text">Dashboard</h1>
-            <p className="text-sm text-duo-gray-dark">
-              Visão geral da sua academia em tempo real
-            </p>
+        <div className="space-y-6">
+          {subscription?.status === "past_due" && (
+            <DuoAlert variant="danger" title="Assinatura Atrasada">
+              Sua assinatura da Nutrifit para esta unidade está atrasada.
+              Regularize para evitar a suspensão do acesso.
+            </DuoAlert>
+          )}
+
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
+            <div className="text-center sm:text-left">
+              <h1 className="mb-1 text-3xl font-bold text-duo-text">Dashboard</h1>
+              <p className="text-sm text-duo-gray-dark">
+                Visão geral da sua academia em tempo real
+              </p>
+            </div>
+            <DuoButton
+              onClick={() => setIsCheckInModalOpen(true)}
+              className="flex flex-shrink-0 items-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Registrar Check-in
+            </DuoButton>
           </div>
-          <DuoButton
-            onClick={() => setIsCheckInModalOpen(true)}
-            className="flex flex-shrink-0 items-center gap-2"
-          >
-            <LogIn className="h-4 w-4" />
-            Registrar Check-in
-          </DuoButton>
         </div>
       </FadeIn>
 

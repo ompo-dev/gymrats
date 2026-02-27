@@ -10,23 +10,26 @@ import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 export interface StudentSubscriptionData {
 	id: string;
 	plan: string;
-	status: string;
-	currentPeriodStart: Date;
-	currentPeriodEnd: Date;
-	cancelAtPeriodEnd: boolean;
-	canceledAt: Date | null;
-	trialStart: Date | null;
-	trialEnd: Date | null;
-	isTrial: boolean;
-	daysRemaining: number | null;
-	billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment";
+	currentPeriodStart?: Date;
+	currentPeriodEnd?: Date;
+	cancelAtPeriodEnd?: boolean;
+	canceledAt?: Date | null;
+	trialStart?: Date | null;
+	trialEnd?: Date | null;
+	isTrial?: boolean;
+	daysRemaining?: number | null;
+	billingPeriod?: "monthly" | "annual";
+	source?: "OWN" | "GYM_ENTERPRISE";
+	gymId?: string;
+	enterpriseGymName?: string;
 }
 
 // Tipo unificado para subscription de gym
 export interface GymSubscriptionData {
 	id: string;
 	plan: string;
-	status: string;
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 	basePrice: number;
 	pricePerStudent: number;
 	currentPeriodStart: Date;
@@ -63,10 +66,10 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	// Helper para atualizar ambos os stores
 	const syncStores = (sub: SubscriptionData | null) => {
 		if (userType === "student") {
-			setSubscription(sub);
-			studentUnifiedStore.updateSubscription(sub);
+			setSubscription(sub as any);
+			studentUnifiedStore.updateSubscription(sub as any);
 		} else {
-			setGymSubscription(sub);
+			setGymSubscription(sub as any);
 		}
 	};
 
@@ -110,16 +113,20 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					// Converter strings de data para Date objects
 					const baseData = {
 						...sub,
-						currentPeriodStart: new Date(sub.currentPeriodStart),
-						currentPeriodEnd: new Date(sub.currentPeriodEnd),
+						currentPeriodStart: sub.currentPeriodStart
+							? new Date(sub.currentPeriodStart)
+							: undefined,
+						currentPeriodEnd: sub.currentPeriodEnd
+							? new Date(sub.currentPeriodEnd)
+							: undefined,
 						trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
 						trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
 						canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
 						isTrial:
-						(sub.status === "trialing" || sub.status === "canceled") &&
-						sub.trialEnd
-							? new Date(sub.trialEnd) > new Date()
-							: false,
+							(sub.status === "trialing" || sub.status === "canceled") &&
+							sub.trialEnd
+								? new Date(sub.trialEnd) > new Date()
+								: false,
 						daysRemaining: sub.trialEnd
 							? Math.max(
 									0,
@@ -332,7 +339,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					status: "canceled",
 					canceledAt: new Date(),
 					cancelAtPeriodEnd: true,
-				};
+				} as SubscriptionData;
 
 				syncStores(canceledSubscription);
 				

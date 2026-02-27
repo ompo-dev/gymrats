@@ -137,17 +137,28 @@ export async function getStudentSubscription() {
 		const { ctx, error } = await getStudentContext();
 		if (error || !ctx) return null;
 
+		const subInfo = await getStudentSubscriptionSource(ctx.studentId);
 		const sub = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
-		if (!sub) return null;
 
 		const now = new Date();
-		const trialEnd = sub.trialEnd ? new Date(sub.trialEnd) : null;
+		const trialEnd = sub?.trialEnd ? new Date(sub.trialEnd) : null;
 		const isTrialActive = trialEnd ? trialEnd > now : false;
 
+		// Nome amigável da academia se vier via enterprise
+		let enterpriseGymName: string | undefined;
+		if (subInfo.source === "GYM_ENTERPRISE" && subInfo.gymId) {
+			const gym = await db.gym.findUnique({ where: { id: subInfo.gymId } });
+			enterpriseGymName = gym?.name;
+		}
+
 		return {
-			...sub,
+			...subInfo,
+			abacatePayBillingId: sub?.abacatePayBillingId,
+			currentPeriodEnd: sub?.currentPeriodEnd,
+			cancelAtPeriodEnd: sub?.cancelAtPeriodEnd,
 			isTrial: isTrialActive,
 			daysRemaining: trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24))) : null,
+			enterpriseGymName,
 		};
 	} catch (error) {
 		console.error("[getStudentSubscription] Erro:", error);

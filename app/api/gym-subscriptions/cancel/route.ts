@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 
 export const POST = createSafeHandler(
 	async ({ gymContext }) => {
 		const gymId = gymContext!.gymId;
+		const userId = gymContext!.userId;
 		const subscription = await db.gymSubscription.findUnique({
 			where: { gymId },
 		});
@@ -24,6 +26,9 @@ export const POST = createSafeHandler(
 				cancelAtPeriodEnd: false,
 			},
 		});
+
+		// Aplicar regras de multi-gym (downgrade/cancelamento)
+		await GymSubscriptionService.handleGymDowngrade(gymId);
 
 		return NextResponse.json({
 			message: "Assinatura cancelada com sucesso",

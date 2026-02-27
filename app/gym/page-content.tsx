@@ -34,8 +34,14 @@ interface GymHomeContentProps {
 	initialFinancialSummary: FinancialSummary | null;
 	initialRecentCheckIns?: CheckIn[];
 	initialPlans: MembershipPlan[];
-	initialPayments: Payment[]; // Added
-	initialExpenses: Expense[]; // Added
+	initialPayments: Payment[];
+	initialExpenses: Expense[];
+	initialSubscription?: {
+		id: string;
+		plan: string;
+		status: string;
+		currentPeriodEnd: Date;
+	} | null;
 }
 
 function GymHomeContent({
@@ -46,8 +52,9 @@ function GymHomeContent({
 	initialFinancialSummary,
 	initialRecentCheckIns,
 	initialPlans,
-	initialPayments, // Added
-	initialExpenses, // Added
+	initialPayments,
+	initialExpenses,
+	initialSubscription,
 }: GymHomeContentProps) {
 	const { activeGymId } = useGymsList();
 	const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
@@ -120,6 +127,7 @@ function GymHomeContent({
 					students={students}
 					equipment={equipment}
 					recentCheckIns={recentCheckIns}
+					subscription={initialSubscription}
 				/>
 			)}
 			{tab === "students" && <GymStudentsPage students={students ?? []} />}
@@ -153,8 +161,9 @@ export default function GymHome({
 	initialFinancialSummary,
 	initialRecentCheckIns,
 	initialPlans,
-	initialPayments, // Added
-	initialExpenses, // Added
+	initialPayments,
+	initialExpenses,
+	initialSubscription,
 }: GymHomeContentProps) {
 	return (
 		<Suspense
@@ -172,8 +181,9 @@ export default function GymHome({
 				initialFinancialSummary={initialFinancialSummary}
 				initialRecentCheckIns={initialRecentCheckIns}
 				initialPlans={initialPlans}
-				initialPayments={initialPayments} // Added
-				initialExpenses={initialExpenses} // Added
+				initialPayments={initialPayments}
+				initialExpenses={initialExpenses}
+				initialSubscription={initialSubscription}
 			/>
 		</Suspense>
 	);

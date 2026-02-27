@@ -62,14 +62,15 @@ export async function listGymsHandler(
 			return isActive || (isTrialing && isTrialActive);
 		});
 
-		// Verificar se tem pelo menos uma academia com plano pago (não trial)
-		const hasPaidSubscription = gyms.some((gym) => {
+		// Verificar se tem pelo menos uma academia com plano pago (Premium/Enterprise)
+		const hasQualifiedSubscription = gyms.some((gym) => {
 			if (!gym.subscription) return false;
-			return gym.subscription.status === "active";
+			const p = gym.subscription.plan.toLowerCase();
+			return gym.subscription.status === "active" && (p.includes("premium") || p.includes("enterprise"));
 		});
 
-		// Usuário só pode criar múltiplas academias se tiver pelo menos UMA com plano ativo (não trial)
-		const canCreateMultipleGyms = hasPaidSubscription;
+		// Usuário só pode criar múltiplas academias se tiver pelo menos UMA com plano Premium ou Enterprise ativo
+		const canCreateMultipleGyms = hasQualifiedSubscription;
 
 		const gymsData = gyms.map((gym) => {
 			const now = new Date();
@@ -136,14 +137,15 @@ export async function createGymHandler(
 
 		// Verificar se usuário pode criar múltiplas academias
 		if (existingGyms.length > 0) {
-			const hasPaidSubscription = existingGyms.some((gym) => {
+			const hasQualifiedSubscription = existingGyms.some((gym) => {
 				if (!gym.subscription) return false;
-				return gym.subscription.status === "active";
+				const p = gym.subscription.plan.toLowerCase();
+				return gym.subscription.status === "active" && (p.includes("premium") || p.includes("enterprise"));
 			});
 
-			if (!hasPaidSubscription) {
+			if (!hasQualifiedSubscription) {
 				return badRequestResponse(
-					"Para criar múltiplas academias, você precisa ter pelo menos uma academia com plano ativo (não trial)",
+					"Para criar múltiplas academias, você precisa ter um plano Premium ou Enterprise ativo em pelo menos uma unidade.",
 				);
 			}
 		}

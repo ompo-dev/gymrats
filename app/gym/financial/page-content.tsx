@@ -133,6 +133,7 @@ export default function FinancialPage({
 				<FinancialOverviewTab
 					financialSummary={financialSummary}
 					payments={payments}
+					subscription={initialSubscription}
 				/>
 			)}
 

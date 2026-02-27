@@ -5,8 +5,8 @@ import {
 	badRequestResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
-
 import { abacatePay } from "@/lib/api/abacatepay";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -75,6 +75,10 @@ export async function POST(request: NextRequest) {
 						console.log(
 							`[Webhook] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
 						);
+						
+						// Sincronizar benefícios enterprise para o aluno
+						await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+						
 						return successResponse({ received: true, type: "membership-payment" });
 					}
 				}
@@ -143,6 +147,9 @@ export async function POST(request: NextRequest) {
 						canceledAt: null,
 					},
 				});
+
+				// Sincronizar limites de gyms e benefícios de alunos
+				await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
 				console.log(`[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`);
 				return successResponse({ received: true, type: "gym" });

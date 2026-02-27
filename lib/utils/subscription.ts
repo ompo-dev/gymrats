@@ -13,12 +13,14 @@ export interface GymSubscriptionPixResponse {
 // Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
 // Para imports em componentes client-side, use "@/lib/utils/subscription-helpers" diretamente.
 export {
+	isBasicPlan,
 	isPremiumPlan,
 	hasActivePremiumStatus,
 	getBillingPeriodFromPlan,
 } from "./subscription-helpers";
 
 import {
+	isBasicPlan,
 	isPremiumPlan,
 	hasActivePremiumStatus,
 } from "./subscription-helpers";
@@ -30,40 +32,128 @@ export async function hasPremiumAccess(studentId: string): Promise<boolean> {
 		where: { studentId },
 	});
 
-	// Verificar se tem trial ativo ou premium ativo
+	// Verificar se tem premium ativo via assinatura própria
 	if (subscription && isPremiumPlan(subscription.plan)) {
 		if (hasActivePremiumStatus(subscription)) {
 			return true;
 		}
 	}
 
+	// Alunos não ganham Premium via academia, apenas Basic.
+	// Se futuramente houver Premium Enterprise, adicionar lógica aqui.
+	
+	return false;
+}
+
+export async function hasBasicAccess(studentId: string): Promise<boolean> {
+	const subscription = await db.subscription.findUnique({
+		where: { studentId },
+	});
+
+	// 1. Verificar se tem plano basic ou superior ativo via assinatura própria
+	if (subscription && isBasicPlan(subscription.plan)) {
+		if (subscription.status === "canceled" || subscription.status === "expired") return false;
+		const now = new Date();
+		const trialActive = subscription.trialEnd && new Date(subscription.trialEnd) > now;
+		if (
+			subscription.status === "active" ||
+			subscription.status === "trialing" ||
+			trialActive
+		) {
+			return true;
+		}
+	}
+
+	// 2. Verificar se tem assinatura basic via gym enterprise (source persistence)
+	const subWithSource = subscription as typeof subscription & { source?: string; enterpriseGymId?: string | null };
+	if (subscription && subWithSource.source === "GYM_ENTERPRISE" && subscription.plan === "basic") {
+		if (subscription.status === "active") {
+			return true;
+		}
+	}
+
+	// 3. Fallback/Virtual: Verificar se está em academia enterprise ativa
 	const membership = await db.gymMembership.findFirst({
 		where: {
 			studentId,
 			status: "active",
-		},
-		include: {
 			gym: {
-				include: {
-					subscription: true,
+				subscription: {
+					plan: "enterprise",
+					status: "active",
 				},
 			},
 		},
 	});
 
-	if (membership?.gym?.subscription) {
-		const gymSub = membership.gym.subscription;
-		const now = new Date();
-		const isTrialActive = gymSub.trialEnd && new Date(gymSub.trialEnd) > now;
-		const isActive = gymSub.status === "active";
-		const isTrialing = gymSub.status === "trialing";
-
-		if (isActive || isTrialing || isTrialActive) {
-			return true;
-		}
+	if (membership) {
+		return true;
 	}
 
 	return false;
+}
+
+export interface SubscriptionSourceInfo {
+	plan: string;
+	status: string;
+	source: "OWN" | "GYM_ENTERPRISE" | null;
+	gymId?: string;
+}
+
+export async function getStudentSubscriptionSource(studentId: string): Promise<SubscriptionSourceInfo> {
+	const subscription = await db.subscription.findUnique({
+		where: { studentId },
+	});
+
+	const subWithSource = subscription as typeof subscription & { source?: string; enterpriseGymId?: string | null };
+	if (subscription && subWithSource.source === "GYM_ENTERPRISE") {
+		return {
+			plan: subscription.plan,
+			status: subscription.status,
+			source: "GYM_ENTERPRISE",
+			gymId: subWithSource.enterpriseGymId || undefined,
+		};
+	}
+
+	if (subscription) {
+		return {
+			plan: subscription.plan,
+			status: subscription.status,
+			source: "OWN",
+		};
+	}
+
+	// Tentar encontrar via academia enterprise de forma virtual
+	const membership = await db.gymMembership.findFirst({
+		where: {
+			studentId,
+			status: "active",
+			gym: {
+				subscription: {
+					plan: "enterprise",
+					status: "active",
+				},
+			},
+		},
+		include: {
+			gym: true
+		}
+	});
+
+	if (membership) {
+		return {
+			plan: "basic",
+			status: "active",
+			source: "GYM_ENTERPRISE",
+			gymId: membership.gymId,
+		};
+	}
+
+	return {
+		plan: "free",
+		status: "inactive",
+		source: null,
+	};
 }
 
 export async function canUseFeature(

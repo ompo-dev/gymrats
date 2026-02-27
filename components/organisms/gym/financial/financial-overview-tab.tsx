@@ -7,8 +7,9 @@ import {
 	TrendingDown,
 	TrendingUp,
 } from "lucide-react";
-import { DuoCard } from "@/components/duo";
 import {
+	DuoAlert,
+	DuoCard,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
@@ -17,11 +18,18 @@ import type { FinancialSummary, Payment } from "@/lib/types";
 interface FinancialOverviewTabProps {
 	financialSummary: FinancialSummary;
 	payments: Payment[];
+	subscription?: {
+		id: string;
+		plan: string;
+		status: string;
+		currentPeriodEnd: Date;
+	} | null;
 }
 
 export function FinancialOverviewTab({
 	financialSummary,
 	payments,
+	subscription,
 }: FinancialOverviewTabProps) {
 	const formatCurrency = (value: number | undefined | null) => {
 		if (value == null || Number.isNaN(value)) return "R$ 0,00";
@@ -30,6 +38,30 @@ export function FinancialOverviewTab({
 
 	return (
 		<div className="space-y-6">
+			{/* Alertas de Assinatura da Academia */}
+			{subscription?.status === "past_due" && (
+				<DuoAlert variant="danger" title="Assinatura Atrasada">
+					A assinatura da Nutrifit para esta academia está atrasada. Regularize
+					para evitar a suspensão do acesso.
+				</DuoAlert>
+			)}
+
+			{subscription?.status === "canceled" && (
+				<DuoAlert variant="warning" title="Assinatura Cancelada">
+					A assinatura desta academia foi cancelada. O acesso está limitado ao
+					plano Free.
+				</DuoAlert>
+			)}
+
+			{/* Alertas de Pagamentos de Alunos */}
+			{(financialSummary.overduePayments ?? 0) > 0 && (
+				<DuoAlert variant="danger" title="Mensalidades Atrasadas">
+					{payments.filter((p) => p.status === "overdue").length} pagamento(s)
+					atrasado(s) de alunos, totalizando{" "}
+					{formatCurrency(financialSummary.overduePayments)}.
+				</DuoAlert>
+			)}
+
 			<DuoStatsGrid.Root columns={2} className="gap-3">
 				<DuoStatCard.Simple
 					icon={TrendingUp}
@@ -59,27 +91,6 @@ export function FinancialOverviewTab({
 					iconColor="#A560E8"
 				/>
 			</DuoStatsGrid.Root>
-
-			{(financialSummary.overduePayments ?? 0) > 0 && (
-				<DuoCard.Root
-					variant="default"
-					size="default"
-					className="border-duo-red bg-duo-red/10"
-				>
-					<div className="flex items-start gap-3">
-						<AlertCircle className="h-5 w-5 shrink-0 text-duo-red" />
-						<div className="flex-1">
-							<div className="text-sm font-bold text-duo-red">
-								Pagamentos Atrasados
-							</div>
-							<div className="text-xs text-duo-red">
-								{payments.filter((p) => p.status === "overdue").length}{" "}
-								pagamento(s) atrasado(s) - {formatCurrency(financialSummary.overduePayments)}
-							</div>
-						</div>
-					</div>
-				</DuoCard.Root>
-			)}
 
 			<DuoCard.Root variant="default" padding="md">
 				<DuoCard.Header>

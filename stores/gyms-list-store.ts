@@ -11,6 +11,7 @@ export interface GymData {
 	cnpj?: string;
 	plan: "basic" | "premium" | "enterprise";
 	hasActiveSubscription: boolean;
+	isActive: boolean;
 
 	// Profile & Stats
 	profile?: {
