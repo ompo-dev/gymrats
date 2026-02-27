@@ -11,8 +11,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { EditUnitModal } from "@/components/organisms/modals";
+import { EditWeeklyPlanModal } from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
+import { useModalState } from "@/hooks/use-modal-state";
 import {
 	AppLayout,
 	type TabConfig,
@@ -52,6 +53,8 @@ export function StudentLayoutContent({
 
 	// Buscar progresso do store para atualizar header dinamicamente
 	const { progress: storeProgress } = useStudent("progress");
+	const { loadWeeklyPlan } = useStudent("loaders");
+	const editPlanModal = useModalState("edit-plan");
 	const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
 	const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
 
@@ -127,8 +130,12 @@ export function StudentLayoutContent({
 			additionalContent={
 				<>
 					<WorkoutModal />
-					<EditUnitModal />
-					{/* CreateUnitModal será renderizado dentro do LearningPath quando necessário */}
+					{editPlanModal.isOpen && (
+						<EditWeeklyPlanModal
+							onClose={editPlanModal.close}
+							onPlanUpdated={() => loadWeeklyPlan(true)}
+						/>
+					)}
 				</>
 			}
 			scrollResetEnabled={!isOnboarding}

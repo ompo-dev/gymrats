@@ -11,6 +11,7 @@ export interface UnitSectionCardProps
 	icon?: LucideIcon;
 	buttonHref?: string;
 	onButtonClick?: () => void;
+	additionalAction?: React.ReactNode;
 	isLoading?: boolean;
 	className?: string;
 }
@@ -21,6 +22,7 @@ export function UnitSectionCard({
 	icon: Icon,
 	buttonHref,
 	onButtonClick,
+	additionalAction,
 	isLoading,
 	className,
 	...props
@@ -57,6 +59,13 @@ export function UnitSectionCard({
 			{Icon && !buttonHref && !onButtonClick && (
 				<div className="flex flex-row items-center justify-center px-[15px] py-[26px] bg-[var(--duo-primary)] flex-none self-stretch border-l-2 border-[var(--duo-primary-dark)]">
 					<Icon className="h-[22px] w-[22px] text-white" />
+				</div>
+			)}
+
+			{/* Ação adicional (ex: botão resetar) */}
+			{additionalAction && (
+				<div className="flex items-center px-3 border-l-2 border-[var(--duo-primary-dark)]">
+					{additionalAction}
 				</div>
 			)}
 

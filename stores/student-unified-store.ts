@@ -63,7 +63,8 @@ export interface StudentUnifiedState {
 	// Carregamento incremental (melhor performance)
 	loadEssential: () => Promise<void>; // User + Progress básico
 	loadStudentCore: () => Promise<void>; // Profile + Weight
-	loadWorkouts: (force?: boolean) => Promise<void>; // Workouts + History
+	loadWorkouts: (force?: boolean) => Promise<void>; // Units (legado)
+	loadWeeklyPlan: (force?: boolean) => Promise<void>; // Plano semanal 7 slots
 	loadNutrition: () => Promise<void>; // Nutrition
 	loadFinancial: () => Promise<void>; // Subscription + Payments
 	// Métodos individuais (mantidos para compatibilidade)
@@ -183,6 +184,7 @@ const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
 	profile: "/api/students/profile",
 	weightHistory: "/api/students/weight",
 	units: "/api/workouts/units",
+	weeklyPlan: "/api/workouts/weekly-plan",
 	workoutHistory: "/api/workouts/history",
 	personalRecords: "/api/students/personal-records",
 	subscription: "/api/subscriptions/current",
@@ -386,6 +388,12 @@ function transformSectionResponse(
 			// Units vem como array
 			return { units: Array.isArray(data) ? data : data.units || [] };
 
+		case "weeklyPlan":
+			// Weekly plan vem como { weeklyPlan: { id, title, slots }, weekStart }
+			return {
+				weeklyPlan: data?.weeklyPlan ?? null,
+			};
+
 		case "workoutHistory":
 			// Workout history vem de /api/workouts/history como { history: [...], total: number }
 			// ou pode vir como array direto
@@ -553,6 +561,9 @@ function updateStoreWithSection(
 		if (sectionData.units !== undefined) {
 			newState.units = sectionData.units;
 		}
+		if (sectionData.weeklyPlan !== undefined) {
+			newState.weeklyPlan = sectionData.weeklyPlan;
+		}
 		if (sectionData.workoutHistory !== undefined) {
 			newState.workoutHistory = sectionData.workoutHistory;
 		}
@@ -698,7 +709,8 @@ async function loadAllDataIncremental(
 		"user",
 		"student",
 		"progress", // Importante para tela de learn
-		"units", // MAIS IMPORTANTE para tela de learn - prioridade alta
+		"units", // Legado - mantido para compatibilidade
+		"weeklyPlan", // Plano semanal 7 slots - usado em learn e ContinueWorkoutCard
 		"profile",
 		"weightHistory",
 		"workoutHistory",
@@ -1055,8 +1067,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			loadWorkouts: async (force = false) => {
 				const currentState = get();
 
-				// Evitar múltiplas chamadas simultâneas
-				// Mas permitir forçar o carregamento quando necessário (ex: após completar workout)
 				if (!force && currentState.data.metadata.isLoading) {
 					return;
 				}
@@ -1066,6 +1076,22 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					data: {
 						...state.data,
 						units: section.units || state.data.units,
+					},
+				}));
+			},
+
+			loadWeeklyPlan: async (force = false) => {
+				const currentState = get();
+
+				if (!force && currentState.data.metadata.isLoading) {
+					return;
+				}
+
+				const section = await loadSection("weeklyPlan");
+				set((state) => ({
+					data: {
+						...state.data,
+						weeklyPlan: section.weeklyPlan ?? state.data.weeklyPlan,
 					},
 				}));
 			},

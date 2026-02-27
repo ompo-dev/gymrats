@@ -16,13 +16,15 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
 import { apiClient } from "@/lib/api/client";
-import type { Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
+import type { PlanSlotData, Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
 interface WorkoutChatProps {
   onClose: () => void;
-  unitId: string;
+  unitId?: string;
+  planSlotId?: string;
+  slotContext?: string; // Ex: "Segunda" - para contexto no prompt
   workouts?: WorkoutSession[];
 }
 
@@ -89,13 +91,26 @@ type ParsedWorkoutPlanWithMeta = ParsedWorkoutPlan & {
 export function WorkoutChat({
   onClose,
   unitId,
+  planSlotId,
+  slotContext,
   workouts: initialWorkouts = [],
 }: WorkoutChatProps) {
-  // Buscar workouts atualizados do store para ter dados sempre atualizados
   const storeUnits = useStudent("units");
-  const unit = storeUnits.find((u: Unit) => u.id === unitId);
+  const storeWeeklyPlan = useStudent("weeklyPlan");
+
+  const unit = unitId ? storeUnits.find((u: Unit) => u.id === unitId) : null;
+  const planSlot = planSlotId
+    ? storeWeeklyPlan?.slots.find((s: PlanSlotData) => s.id === planSlotId)
+    : null;
+
   const storeWorkouts = unit?.workouts || [];
-  const workouts = storeWorkouts.length > 0 ? storeWorkouts : initialWorkouts;
+  const slotWorkout = planSlot?.type === "workout" && planSlot?.workout ? [planSlot.workout] : [];
+  const workouts =
+    storeWorkouts.length > 0
+      ? storeWorkouts
+      : slotWorkout.length > 0
+        ? slotWorkout
+        : initialWorkouts;
 
   // Actions e loaders do store
   const _actions = useStudent("actions");
@@ -140,7 +155,7 @@ export function WorkoutChat({
     useState<ParsedWorkoutPlanWithMeta | null>(null);
 
   const handleApprove = async () => {
-    if (!pendingWorkoutData || !unitId) {
+    if (!pendingWorkoutData || (!unitId && !planSlotId)) {
       toast({
         title: "Erro",
         description: "Dados do treino não encontrados.",
@@ -282,12 +297,25 @@ export function WorkoutChat({
             }
           }
 
-          // Recarregar workouts após criar
-          await loaders.loadWorkouts(true);
+          // Recarregar dados após criar
+          if (planSlotId) {
+            await loaders.loadWeeklyPlan?.(true);
+          } else {
+            await loaders.loadWorkouts(true);
+          }
           const updatedUnits =
             useStudentUnifiedStore.getState().data.units ?? [];
-          const updatedUnit = updatedUnits.find((u: Unit) => u.id === unitId);
-          const updatedWorkouts = updatedUnit?.workouts || [];
+          const updatedWeeklyPlan =
+            useStudentUnifiedStore.getState().data.weeklyPlan;
+          const updatedUnit = unitId
+            ? updatedUnits.find((u: Unit) => u.id === unitId)
+            : null;
+          const updatedSlot = planSlotId
+            ? updatedWeeklyPlan?.slots.find((s) => s.id === planSlotId)
+            : null;
+          const updatedWorkouts = updatedUnit?.workouts ?? updatedSlot?.workout
+            ? [updatedSlot!.workout!]
+            : [];
 
           // Atualizar targetWorkoutId se necessário após criar os novos
           if (
@@ -360,12 +388,18 @@ export function WorkoutChat({
         unitId,
       );
 
+      const processPayload: { parsedPlan: typeof parsedPlan; unitId?: string; planSlotId?: string } = {
+        parsedPlan,
+      };
+      if (planSlotId) {
+        processPayload.planSlotId = planSlotId;
+      } else if (unitId) {
+        processPayload.unitId = unitId;
+      }
+
       const processResponse = await apiClient.post(
         "/api/workouts/process",
-        {
-          parsedPlan,
-          unitId,
-        },
+        processPayload,
         {
           timeout: 120000,
         },
@@ -377,7 +411,11 @@ export function WorkoutChat({
       );
 
       // Recarregar dados do store após processamento
-      await loaders.loadWorkouts(true);
+      if (planSlotId) {
+        await loaders.loadWeeklyPlan?.(true);
+      } else {
+        await loaders.loadWorkouts(true);
+      }
 
       toast({
         title: "Treino adicionado!",
@@ -582,14 +620,15 @@ export function WorkoutChat({
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          message: messageForAI, // Usar mensagem com referência para IA
+          message: messageForAI,
           conversationHistory,
-          unitId,
+          unitId: unitId ?? undefined,
+          planSlotId: planSlotId ?? undefined,
           existingWorkouts,
           profile,
-          reference: currentReference || undefined, // Enviar referência separadamente
+          reference: currentReference || undefined,
           previewWorkouts:
-            previewWorkouts.length > 0 ? previewWorkouts : undefined, // Enviar previews quando houver referência
+            previewWorkouts.length > 0 ? previewWorkouts : undefined,
         }),
       });
 
@@ -902,7 +941,7 @@ export function WorkoutChat({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
+          className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 dark:bg-black/70 sm:items-center"
         onClick={onClose}
       >
         <motion.div
@@ -961,7 +1000,7 @@ export function WorkoutChat({
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
+                  <span className="text-duo-danger font-bold">
                     Limite diário atingido. Tente novamente amanhã.
                   </span>
                 )}
@@ -1062,8 +1101,8 @@ export function WorkoutChat({
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                       msg.role === "user"
-                        ? "bg-duo-green text-white"
-                        : "bg-duo-bg-elevated text-duo-text"
+                        ? "bg-duo-primary text-white"
+                        : "bg-duo-bg-elevated text-duo-fg"
                     }`}
                   >
                     {/* Mostrar referência visual se houver */}
@@ -1078,7 +1117,7 @@ export function WorkoutChat({
                         <div
                           className={`text-xs font-bold ${
                             msg.role === "user"
-                              ? "text-white/80"
+                              ? "text-white/90"
                               : "text-duo-fg-muted"
                           } uppercase mb-1`}
                         >
@@ -1089,8 +1128,8 @@ export function WorkoutChat({
                         <div
                           className={`text-xs ${
                             msg.role === "user"
-                              ? "text-white/90"
-                              : "text-duo-text"
+                              ? "text-white"
+                              : "text-duo-fg"
                           }`}
                         >
                           {msg.reference.type === "workout"
@@ -1099,7 +1138,7 @@ export function WorkoutChat({
                         </div>
                       </div>
                     )}
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm text-inherit">{msg.content}</p>
                   </div>
                 </motion.div>
               );
@@ -1164,7 +1203,7 @@ export function WorkoutChat({
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
+                  <span className="text-duo-danger font-bold">
                     Limite diário atingido. Tente novamente amanhã.
                   </span>
                 )}
@@ -1234,7 +1273,7 @@ export function WorkoutChat({
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
                 }
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green text-white disabled:bg-duo-border disabled:cursor-not-allowed transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-primary text-white disabled:bg-duo-border disabled:cursor-not-allowed transition-colors"
               >
                 {isProcessing ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

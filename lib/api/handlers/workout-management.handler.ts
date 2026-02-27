@@ -11,9 +11,11 @@ import type { ExerciseInfo } from "@/lib/types";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
 	createUnitSchema,
+	createWeeklyPlanSchema,
 	createWorkoutExerciseSchema,
 	createWorkoutSchema,
 	updateUnitSchema,
+	updateWeeklyPlanSchema,
 	updateWorkoutExerciseSchema,
 	updateWorkoutSchema,
 } from "../schemas/workouts.schemas";
@@ -149,6 +151,149 @@ export async function deleteUnitHandler(
 }
 
 // ==========================================
+// WEEKLY PLAN
+// ==========================================
+
+export async function createWeeklyPlanHandler(
+	request: NextRequest,
+): Promise<NextResponse> {
+	try {
+		const auth = await requireStudent(request);
+		if ("error" in auth) return auth.response;
+
+		const body = await request.json().catch(() => ({}));
+		const validation = createWeeklyPlanSchema.safeParse(body);
+
+		if (!validation.success) {
+			return badRequestResponse("Dados inválidos", validation.error);
+		}
+
+		const studentId = auth.user.student.id;
+
+		const existing = await db.weeklyPlan.findUnique({
+			where: { studentId },
+		});
+
+		if (existing) {
+			return successResponse({
+				data: existing,
+				message: "Plano semanal já existe",
+			});
+		}
+
+		const { title } = validation.data;
+
+		const weeklyPlan = await db.weeklyPlan.create({
+			data: {
+				studentId,
+				title: title || "Meu Plano Semanal",
+				slots: {
+					create: Array.from({ length: 7 }, (_, i) => ({
+						dayOfWeek: i,
+						type: "rest",
+						order: i,
+					})),
+				},
+			},
+			include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+		});
+
+		return successResponse(
+			{ data: weeklyPlan, message: "Plano semanal criado com sucesso" },
+			201,
+		);
+	} catch (error) {
+		console.error("Error creating weekly plan:", error);
+		return internalErrorResponse("Erro ao criar plano semanal");
+	}
+}
+
+export async function updateWeeklyPlanHandler(
+	request: NextRequest,
+): Promise<NextResponse> {
+	try {
+		const auth = await requireStudent(request);
+		if ("error" in auth) return auth.response;
+
+		const body = await request.json().catch(() => ({}));
+		const validation = updateWeeklyPlanSchema.safeParse(body);
+
+		if (!validation.success) {
+			return badRequestResponse("Dados inválidos", validation.error);
+		}
+
+		const studentId = auth.user.student.id;
+
+		let weeklyPlan = await db.weeklyPlan.findUnique({
+			where: { studentId },
+			include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+		});
+
+		if (!weeklyPlan) {
+			weeklyPlan = await db.weeklyPlan.create({
+				data: {
+					studentId,
+					title: validation.data.title || "Meu Plano Semanal",
+					slots: {
+						create: Array.from({ length: 7 }, (_, i) => ({
+							dayOfWeek: i,
+							type: "rest",
+							order: i,
+						})),
+					},
+				},
+				include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+			});
+		}
+
+		if (validation.data.title) {
+			weeklyPlan = await db.weeklyPlan.update({
+				where: { id: weeklyPlan.id },
+				data: { title: validation.data.title },
+				include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+			});
+		}
+
+		if (validation.data.slots) {
+			for (const slotData of validation.data.slots) {
+				await db.planSlot.upsert({
+					where: {
+						weeklyPlanId_dayOfWeek: {
+							weeklyPlanId: weeklyPlan.id,
+							dayOfWeek: slotData.dayOfWeek,
+						},
+					},
+					create: {
+						weeklyPlanId: weeklyPlan.id,
+						dayOfWeek: slotData.dayOfWeek,
+						type: slotData.type,
+						workoutId: slotData.workoutId ?? null,
+						order: slotData.dayOfWeek,
+					},
+					update: {
+						type: slotData.type,
+						workoutId: slotData.workoutId ?? null,
+					},
+				});
+			}
+		}
+
+		const updated = await db.weeklyPlan.findUnique({
+			where: { id: weeklyPlan.id },
+			include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+		});
+
+		return successResponse({
+			data: updated,
+			message: "Plano semanal atualizado com sucesso",
+		});
+	} catch (error) {
+		console.error("Error updating weekly plan:", error);
+		return internalErrorResponse("Erro ao atualizar plano semanal");
+	}
+}
+
+// ==========================================
 // WORKOUTS
 // ==========================================
 
@@ -166,38 +311,61 @@ export async function createWorkoutHandler(
 			return badRequestResponse("Dados inválidos", validation.error);
 		}
 
-		const { unitId, ...workoutData } = validation.data;
+		const { unitId, planSlotId, ...workoutData } = validation.data;
+		const studentId = auth.user.student.id;
 
-		// Check if unit exists and belongs to student
-		const unit = await db.unit.findUnique({
-			where: { id: unitId },
-		});
+		let order = 0;
 
-		if (!unit) return notFoundResponse("Plano não encontrado");
+		if (planSlotId) {
+			const planSlot = await db.planSlot.findUnique({
+				where: { id: planSlotId },
+				include: { weeklyPlan: true },
+			});
 
-		if (unit.studentId !== auth.user.student.id) {
-			return unauthorizedResponse(
-				"Você não pode adicionar treinos a este plano",
-			);
+			if (!planSlot) return notFoundResponse("Slot não encontrado");
+			if (planSlot.weeklyPlan.studentId !== studentId) {
+				return unauthorizedResponse(
+					"Você não pode adicionar treinos a este slot",
+				);
+			}
+
+			order = planSlot.dayOfWeek;
+		} else if (unitId) {
+			const unit = await db.unit.findUnique({
+				where: { id: unitId },
+			});
+
+			if (!unit) return notFoundResponse("Plano não encontrado");
+
+			if (unit.studentId !== studentId) {
+				return unauthorizedResponse(
+					"Você não pode adicionar treinos a este plano",
+				);
+			}
+
+			const lastWorkout = await db.workout.findFirst({
+				where: { unitId },
+				orderBy: { order: "desc" },
+			});
+			order = lastWorkout ? lastWorkout.order + 1 : 0;
 		}
 
-		// Get max order in unit
-		const lastWorkout = await db.workout.findFirst({
-			where: { unitId },
-			orderBy: { order: "desc" },
-		});
-		const order = lastWorkout ? lastWorkout.order + 1 : 0;
-
-		// Garantir valores padrão se não fornecidos
 		const workout = await db.workout.create({
 			data: {
-				unitId,
+				unitId: unitId ?? null,
 				order,
 				...workoutData,
 				muscleGroup: workoutData.muscleGroup || "",
 				estimatedTime: workoutData.estimatedTime || 0,
 			},
 		});
+
+		if (planSlotId) {
+			await db.planSlot.update({
+				where: { id: planSlotId },
+				data: { type: "workout", workoutId: workout.id },
+			});
+		}
 
 		return successResponse(
 			{ data: workout, message: "Treino criado com sucesso" },
@@ -227,16 +395,17 @@ export async function updateWorkoutHandler(
 
 		const workout = await db.workout.findUnique({
 			where: { id },
-			include: { unit: true },
+			include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
 		});
 
 		if (!workout) return notFoundResponse("Treino não encontrado");
 
-		if (!workout.unit) {
-			return internalErrorResponse("Treino sem unidade vinculada");
-		}
+		const ownsWorkout =
+			(workout.unit && workout.unit.studentId === auth.user.student.id) ||
+			(workout.planSlot &&
+				workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
 
-		if (workout.unit.studentId !== auth.user.student.id) {
+		if (!ownsWorkout) {
 			return unauthorizedResponse("Você não pode editar este treino");
 		}
 
@@ -267,17 +436,25 @@ export async function deleteWorkoutHandler(
 
 		const workout = await db.workout.findUnique({
 			where: { id },
-			include: { unit: true },
+			include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
 		});
 
 		if (!workout) return notFoundResponse("Treino não encontrado");
 
-		if (!workout.unit) {
-			return internalErrorResponse("Treino sem unidade vinculada");
+		const ownsWorkout =
+			(workout.unit && workout.unit.studentId === auth.user.student.id) ||
+			(workout.planSlot &&
+				workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+
+		if (!ownsWorkout) {
+			return unauthorizedResponse("Você não pode excluir este treino");
 		}
 
-		if (workout.unit.studentId !== auth.user.student.id) {
-			return unauthorizedResponse("Você não pode excluir este treino");
+		if (workout.planSlot) {
+			await db.planSlot.update({
+				where: { id: workout.planSlot.id },
+				data: { type: "rest", workoutId: null },
+			});
 		}
 
 		await db.workout.delete({

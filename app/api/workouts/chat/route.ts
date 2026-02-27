@@ -15,9 +15,13 @@ import { z } from "zod";
 const workoutChatSchema = z.object({
   message: z.string().min(1, "Mensagem é obrigatória"),
   conversationHistory: z.array(z.any()).optional(),
-  unitId: z.string().min(1, "Unit ID é obrigatório"),
+  unitId: z.string().optional(),
+  planSlotId: z.string().optional(),
   existingWorkouts: z.array(z.any()).optional(),
   profile: z.any().optional(),
+}).refine((data) => data.unitId || data.planSlotId, {
+  message: "unitId ou planSlotId é obrigatório",
+  path: ["unitId"],
 });
 
 export const POST = createSafeHandler(
@@ -27,6 +31,7 @@ export const POST = createSafeHandler(
       message,
       conversationHistory = [],
       unitId,
+      planSlotId,
     } = body;
 
     // 2. Verificar Premium/Trial
@@ -79,39 +84,82 @@ export const POST = createSafeHandler(
       );
     }
 
-    // 5. Verificar se unit existe e pertence ao student
-    const unit = await db.unit.findUnique({
-      where: { id: unitId },
-      include: {
-        workouts: {
-          orderBy: { order: "asc" },
-          include: {
-            exercises: { orderBy: { order: "asc" } },
+    // 5. Resolver contexto: unit ou planSlot (weeklyPlan)
+    let workoutsInfo: Array<{
+      id: string;
+      title: string;
+      type: string;
+      muscleGroup: string;
+      exercises: Array<{ id: string; name: string; sets: number; reps: string }>;
+    }> = [];
+
+    if (planSlotId) {
+      const planSlot = await db.planSlot.findUnique({
+        where: { id: planSlotId },
+        include: {
+          weeklyPlan: true,
+          workout: {
+            include: {
+              exercises: { orderBy: { order: "asc" } },
+            },
           },
         },
-      },
-    });
+      });
 
-    if (!unit || unit.studentId !== studentId) {
-      return NextResponse.json(
-        { error: "Unit não encontrada ou acesso negado" },
-        { status: 404 },
-      );
+      if (!planSlot || planSlot.weeklyPlan.studentId !== studentId) {
+        return NextResponse.json(
+          { error: "Slot não encontrado ou acesso negado" },
+          { status: 404 },
+        );
+      }
+
+      if (planSlot.workout) {
+        workoutsInfo = [{
+          id: planSlot.workout.id,
+          title: planSlot.workout.title,
+          type: planSlot.workout.type,
+          muscleGroup: planSlot.workout.muscleGroup,
+          exercises: planSlot.workout.exercises.map((e) => ({
+            id: e.id,
+            name: e.name,
+            sets: e.sets,
+            reps: e.reps,
+          })),
+        }];
+      }
+    } else if (unitId) {
+      const unit = await db.unit.findUnique({
+        where: { id: unitId },
+        include: {
+          workouts: {
+            orderBy: { order: "asc" },
+            include: {
+              exercises: { orderBy: { order: "asc" } },
+            },
+          },
+        },
+      });
+
+      if (!unit || unit.studentId !== studentId) {
+        return NextResponse.json(
+          { error: "Unit não encontrada ou acesso negado" },
+          { status: 404 },
+        );
+      }
+
+      workoutsInfo = unit.workouts.map((w) => ({
+        id: w.id,
+        title: w.title,
+        type: w.type,
+        muscleGroup: w.muscleGroup,
+        exercises: w.exercises.map((e) => ({
+          id: e.id,
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+        })),
+      }));
     }
-
-    // 6. Preparar informações e contexto
-    const workoutsInfo = unit.workouts.map((w) => ({
-      id: w.id,
-      title: w.title,
-      type: w.type,
-      muscleGroup: w.muscleGroup,
-      exercises: w.exercises.map((e) => ({
-        id: e.id,
-        name: e.name,
-        sets: e.sets,
-        reps: e.reps,
-      })),
-    }));
 
     const studentData = await db.student.findUnique({
       where: { id: studentId },
@@ -121,7 +169,8 @@ export const POST = createSafeHandler(
     // 8. Construir prompt contextualizado
     let enhancedSystemPrompt = WORKOUT_SYSTEM_PROMPT;
     if (workoutsInfo.length > 0) {
-      enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${JSON.stringify(workoutsInfo)}\n\nUse essas informações para entender o contexto.`;
+      const contextLabel = planSlotId ? "NO SLOT" : "NA UNIT";
+      enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES ${contextLabel}:\n${JSON.stringify(workoutsInfo)}\n\nUse essas informações para entender o contexto.`;
     }
 
     if (studentData?.profile) {
@@ -167,6 +216,8 @@ export const POST = createSafeHandler(
 
     return NextResponse.json({
       ...parsed,
+      unitId: unitId ?? undefined,
+      planSlotId: planSlotId ?? undefined,
       remainingMessages: MAX_MESSAGES_PER_DAY - chatUsage.messageCount - 1,
     });
   },

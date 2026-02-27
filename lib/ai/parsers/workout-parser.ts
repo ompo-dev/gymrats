@@ -37,6 +37,7 @@ export interface ParsedWorkoutResponse {
   intent: WorkoutIntent;
   action: WorkoutAction;
   workouts: ParsedWorkout[];
+  restDays?: number[]; // Dias de descanso (0=Seg a 6=Dom) - para plano semanal completo
   targetWorkoutId?: string; // Para edições/deleções
   exerciseToRemove?: string; // Para remoção de exercício
   exerciseToReplace?: {
@@ -117,6 +118,7 @@ interface RawParsedWorkoutResponse {
   intent?: string;
   action?: string;
   workouts?: RawParsedWorkout[];
+  restDays?: number[];
   targetWorkoutId?: string;
   exerciseToRemove?: string;
   exerciseToReplace?: { old?: string; new?: string };
@@ -688,10 +690,18 @@ export function parseWorkoutResponse(response: string): ParsedWorkoutResponse {
       },
     );
 
+    const restDays =
+      Array.isArray(parsed.restDays) && parsed.restDays.length > 0
+        ? parsed.restDays
+            .filter((d: unknown) => typeof d === "number" && d >= 0 && d <= 6)
+            .slice(0, 7)
+        : undefined;
+
     return {
       intent: intent as WorkoutIntent,
       action: action as WorkoutAction,
       workouts: validatedWorkouts,
+      restDays,
       targetWorkoutId: parsed.targetWorkoutId
         ? String(parsed.targetWorkoutId)
         : undefined,

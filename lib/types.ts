@@ -131,6 +131,25 @@ export interface Unit {
 	studentId?: string; // ID do estudante se for personalizado, undefined se for global
 }
 
+// Slot do plano semanal (Seg-Dom)
+export interface PlanSlotData {
+	id: string;
+	dayOfWeek: number; // 0=Seg, 6=Dom
+	type: "workout" | "rest";
+	workout?: WorkoutSession;
+	locked: boolean;
+	completed: boolean;
+	stars?: number;
+	completedAt?: Date;
+}
+
+// Plano semanal (7 slots)
+export interface WeeklyPlanData {
+	id: string;
+	title: string;
+	slots: PlanSlotData[];
+}
+
 // Conquistas
 export interface Achievement {
 	id: string;

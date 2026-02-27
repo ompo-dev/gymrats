@@ -34,21 +34,31 @@ export const createUnitSchema = z.object({
 
 export const updateUnitSchema = createUnitSchema.partial();
 
-export const createWorkoutSchema = z.object({
-	unitId: z.string().min(1, "O ID da unidade é obrigatório"),
+/** Schema base para create - usado para omit antes do refine */
+const createWorkoutBaseSchema = z.object({
+	unitId: z.string().optional(),
+	planSlotId: z.string().optional(),
 	title: z.string().min(1, "O título é obrigatório"),
 	description: z.string().optional(),
-	type: z.string().default("strength"), // "strength", "cardio", etc.
-	muscleGroup: z.string(), // Pode ser vazio - será selecionado depois
+	type: z.string().default("strength"),
+	muscleGroup: z.string(),
 	difficulty: z.string().min(1, "Dificuldade é obrigatória"),
 	estimatedTime: z
 		.number()
 		.int()
-		.nonnegative("Tempo estimado não pode ser negativo"), // Pode ser 0 e será calculado depois
+		.nonnegative("Tempo estimado não pode ser negativo"),
 });
 
-export const updateWorkoutSchema = createWorkoutSchema
-	.omit({ unitId: true })
+export const createWorkoutSchema = createWorkoutBaseSchema.refine(
+	(data) => data.unitId || data.planSlotId,
+	{
+		message: "unitId ou planSlotId é obrigatório",
+		path: ["unitId"],
+	},
+);
+
+export const updateWorkoutSchema = createWorkoutBaseSchema
+	.omit({ unitId: true, planSlotId: true })
 	.partial();
 
 export const createWorkoutExerciseSchema = z.object({
@@ -102,6 +112,23 @@ export const createWorkoutExerciseSchema = z.object({
 export const updateWorkoutExerciseSchema = createWorkoutExerciseSchema
 	.omit({ workoutId: true })
 	.partial();
+
+// --- Weekly Plan Schemas ---
+
+export const planSlotSchema = z.object({
+	dayOfWeek: z.number().int().min(0).max(6),
+	type: z.enum(["workout", "rest"]),
+	workoutId: z.string().optional().nullable(),
+});
+
+export const createWeeklyPlanSchema = z.object({
+	title: z.string().optional().default("Meu Plano Semanal"),
+});
+
+export const updateWeeklyPlanSchema = z.object({
+	title: z.string().min(1).optional(),
+	slots: z.array(planSlotSchema).length(7).optional(),
+});
 
 export const completeWorkoutSchema = z.object({
 	exerciseLogs: z.array(exerciseLogSchema).optional(),

@@ -119,6 +119,7 @@ export async function POST(request: NextRequest) {
           message,
           conversationHistory = [],
           unitId,
+          planSlotId,
           existingWorkouts: _existingWorkouts = [],
           profile: _profile,
           reference,
@@ -131,50 +132,94 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        if (!unitId || typeof unitId !== "string") {
-          sendSSE(controller, "error", { error: "Unit ID é obrigatório" });
-          controller.close();
-          return;
-        }
-
-        // 5. Verificar unit
-        const unit = await db.unit.findUnique({
-          where: { id: unitId },
-          include: {
-            workouts: {
-              orderBy: { order: "asc" },
-              include: { exercises: { orderBy: { order: "asc" } } },
-            },
-          },
-        });
-
-        if (!unit) {
-          sendSSE(controller, "error", { error: "Unit não encontrada" });
-          controller.close();
-          return;
-        }
-
-        if (unit.studentId !== studentId) {
+        if (!unitId && !planSlotId) {
           sendSSE(controller, "error", {
-            error: "Você não tem permissão para editar esta unit",
+            error: "unitId ou planSlotId é obrigatório",
           });
           controller.close();
           return;
         }
 
-        // 6. Preparar contexto
-        const workoutsInfo = unit.workouts.map((w) => ({
-          id: w.id,
-          title: w.title,
-          type: w.type,
-          muscleGroup: w.muscleGroup,
-          exercises: w.exercises.map((e) => ({
-            id: e.id,
-            name: e.name,
-            sets: e.sets,
-            reps: e.reps,
-          })),
-        }));
+        // 5. Resolver contexto: unit ou planSlot
+        let workoutsInfo: Array<{
+          id: string;
+          title: string;
+          type: string;
+          muscleGroup: string;
+          exercises: Array<{ id: string; name: string; sets: number; reps: string }>;
+        }> = [];
+
+        if (planSlotId) {
+          const planSlot = await db.planSlot.findUnique({
+            where: { id: planSlotId },
+            include: {
+              weeklyPlan: true,
+              workout: {
+                include: { exercises: { orderBy: { order: "asc" } } },
+              },
+            },
+          });
+
+          if (!planSlot || planSlot.weeklyPlan.studentId !== studentId) {
+            sendSSE(controller, "error", {
+              error: "Slot não encontrado ou acesso negado",
+            });
+            controller.close();
+            return;
+          }
+
+          if (planSlot.workout) {
+            workoutsInfo = [{
+              id: planSlot.workout.id,
+              title: planSlot.workout.title,
+              type: planSlot.workout.type,
+              muscleGroup: planSlot.workout.muscleGroup,
+              exercises: planSlot.workout.exercises.map((e) => ({
+                id: e.id,
+                name: e.name,
+                sets: e.sets,
+                reps: e.reps,
+              })),
+            }];
+          }
+        } else if (unitId) {
+          const unit = await db.unit.findUnique({
+            where: { id: unitId },
+            include: {
+              workouts: {
+                orderBy: { order: "asc" },
+                include: { exercises: { orderBy: { order: "asc" } } },
+              },
+            },
+          });
+
+          if (!unit) {
+            sendSSE(controller, "error", { error: "Unit não encontrada" });
+            controller.close();
+            return;
+          }
+
+          if (unit.studentId !== studentId) {
+            sendSSE(controller, "error", {
+              error: "Você não tem permissão para editar esta unit",
+            });
+            controller.close();
+            return;
+          }
+
+          workoutsInfo = unit.workouts.map((w) => ({
+            id: w.id,
+            title: w.title,
+            type: w.type,
+            muscleGroup: w.muscleGroup,
+            exercises: w.exercises.map((e) => ({
+              id: e.id,
+              name: e.name,
+              sets: e.sets,
+              reps: e.reps,
+            })),
+          }));
+        }
 
         const student = await db.student.findUnique({
           where: { id: studentId },
@@ -625,6 +670,8 @@ ${previewsStructure}
 
         sendSSE(controller, "complete", {
           ...parsed,
+          unitId: unitId ?? undefined,
+          planSlotId: planSlotId ?? undefined,
           remainingMessages,
         });
 

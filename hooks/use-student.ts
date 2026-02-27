@@ -32,6 +32,7 @@ type StudentSelector =
 	| "weightHistory"
 	| "weightGain"
 	| "units"
+	| "weeklyPlan"
 	| "workoutHistory"
 	| "personalRecords"
 	| "dailyNutrition"
@@ -195,6 +196,7 @@ export function useStudent<T extends StudentSelector>(
 		(state) => state.loadWeightHistory,
 	);
 	const loadWorkouts = useStudentUnifiedStore((state) => state.loadWorkouts);
+	const loadWeeklyPlan = useStudentUnifiedStore((state) => state.loadWeeklyPlan);
 	const loadWorkoutHistory = useStudentUnifiedStore(
 		(state) => state.loadWorkoutHistory,
 	);
@@ -279,6 +281,7 @@ export function useStudent<T extends StudentSelector>(
 				loadProfile,
 				loadWeightHistory,
 				loadWorkouts,
+				loadWeeklyPlan,
 				loadWorkoutHistory,
 				loadPersonalRecords,
 				loadNutrition,
@@ -348,6 +351,7 @@ export function useStudent<T extends StudentSelector>(
 				loadProfile,
 				loadWeightHistory,
 				loadWorkouts,
+				loadWeeklyPlan,
 				loadWorkoutHistory,
 				loadPersonalRecords,
 				loadNutrition,
@@ -451,6 +455,7 @@ function getLoaders(actions: {
 	loadProfile: StudentUnifiedState["loadProfile"];
 	loadWeightHistory: StudentUnifiedState["loadWeightHistory"];
 	loadWorkouts: StudentUnifiedState["loadWorkouts"];
+	loadWeeklyPlan: StudentUnifiedState["loadWeeklyPlan"];
 	loadWorkoutHistory: StudentUnifiedState["loadWorkoutHistory"];
 	loadPersonalRecords: StudentUnifiedState["loadPersonalRecords"];
 	loadNutrition: StudentUnifiedState["loadNutrition"];
@@ -472,6 +477,7 @@ function getLoaders(actions: {
 		loadProfile: actions.loadProfile,
 		loadWeightHistory: actions.loadWeightHistory,
 		loadWorkouts: actions.loadWorkouts,
+		loadWeeklyPlan: actions.loadWeeklyPlan,
 		loadWorkoutHistory: actions.loadWorkoutHistory,
 		loadPersonalRecords: actions.loadPersonalRecords,
 		loadNutrition: actions.loadNutrition,

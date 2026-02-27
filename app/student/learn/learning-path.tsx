@@ -1,47 +1,44 @@
 "use client";
 
-import { Dumbbell, Lock, Plus } from "lucide-react";
+import { Dumbbell, Lock, Moon, Plus, RotateCcw } from "lucide-react";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { CreateUnitModal } from "@/components/organisms/modals/create-unit-modal";
-import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
+import { RestNode } from "@/components/organisms/workout/rest-node";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import type { Unit, WorkoutSession } from "@/lib/types";
+import { apiClient } from "@/lib/api/client";
+import type { PlanSlotData, WeeklyPlanData } from "@/lib/types";
 import { useWorkoutStore } from "@/stores/workout-store";
+import { useToast } from "@/hooks/use-toast";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
+
+const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 interface LearningPathProps {
 	onLessonSelect: (lessonId: string) => void;
 }
 
 export function LearningPath({ onLessonSelect }: LearningPathProps) {
-	const _router = useRouter();
 	const workoutModal = useModalStateWithParam("workout", "workoutId");
+	const editPlanModal = useModalState("edit-plan");
 	const [, setExerciseIndexParam] = useQueryState(
 		"exerciseIndex",
 		parseAsInteger,
 	);
+	const { toast } = useToast();
 
-	// Carregamento prioritizado: units e progress aparecem primeiro
-	// Se dados já existem no store, só carrega o que falta
 	useLoadPrioritized({ context: "learn" });
 
-	// Usar hook unificado - fonte única da verdade
-	// Dados são carregados automaticamente pelo useStudentInitializer no layout
-	const units = useStudent("units");
-	const { loadWorkouts } = useStudent("loaders");
+	const weeklyPlan = useStudent("weeklyPlan");
+	const { loadWeeklyPlan } = useStudent("loaders");
 
-	// Recarregar units quando um workout é completado (optimistic update já feito)
-	// Isso atualiza o status locked/completed dos workouts no backend
 	useEffect(() => {
 		const handleWorkoutCompleted = async (event: Event) => {
 			const customEvent = event as CustomEvent<{ workoutId?: string }>;
@@ -49,70 +46,32 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
 			if (!workoutId) return;
 
-			console.log("[DEBUG] Workout completado, recarregando units:", workoutId);
-
-			// Marcar como completo no store local imediatamente (optimistic update)
 			const store = useWorkoutStore.getState();
 			store.completeWorkout(workoutId);
 
-			// Recarregar units do store unificado para sincronizar com backend
-			// Isso atualiza o status locked/completed dos workouts
-			// Forçar carregamento mesmo se loadAll estiver em progresso
 			try {
-				await loadWorkouts(true); // force = true para garantir atualização
-				console.log("[DEBUG] Units recarregados após completar workout");
+				await loadWeeklyPlan(true);
 			} catch (error) {
-				console.error("[DEBUG] Erro ao recarregar units:", error);
+				console.error("[LearningPath] Erro ao recarregar plano:", error);
 			}
 		};
 
 		window.addEventListener("workoutCompleted", handleWorkoutCompleted);
-
 		return () => {
 			window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
 		};
-	}, [loadWorkouts]);
-
-	const createUnitModal = useModalState("create-unit");
-	const editUnitModal = useModalStateWithParam("editUnit", "unitId");
-
-	// IMPORTANTE: Com optimistic update, quando createUnit é chamado,
-	// o store atualiza instantaneamente (linha 1735-1740 do store),
-	// fazendo com que `units` seja atualizado automaticamente via useStudent("units")
-	// que está conectado ao seletor específico do store (linha 131 do use-student.ts).
-	// Isso faz o componente re-renderizar e o empty state desaparecer IMEDIATAMENTE,
-	// sem esperar resposta do servidor (200 OK).
+	}, [loadWeeklyPlan]);
 
 	const handleWorkoutClick = (
 		workoutId: string,
-		isLocked: boolean, // Recebe isLocked calculado do WorkoutNode
+		isLocked: boolean,
 		workoutType?: string,
 		exerciseIndex?: number,
 	) => {
-		// Debug: verificar se está bloqueado
-		console.log("[DEBUG] handleWorkoutClick:", {
-			workoutId,
-			isLocked,
-			workoutType,
-			exerciseIndex,
-		});
+		if (isLocked) return;
 
-		// Se está bloqueado (calculado pelo WorkoutNode), não abrir
-		if (isLocked) {
-			console.log(
-				"[DEBUG] Workout está bloqueado (calculado pelo WorkoutNode), não abrindo modal",
-			);
-			return;
-		}
-
-		console.log("[DEBUG] Abrindo workout:", workoutId);
-
-		// Para qualquer tipo de treino (cardio ou strength), abre o modal
-		// O modal correto será renderizado baseado no tipo
 		if (workoutModal.paramValue === workoutId) {
-			// Se já está aberto, fechar primeiro e depois reabrir
 			workoutModal.close();
-			// Usar setTimeout para garantir que o estado seja atualizado
 			setTimeout(() => {
 				workoutModal.open(workoutId);
 				if (exerciseIndex !== undefined) {
@@ -129,120 +88,130 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 		}
 	};
 
-	const handleEditUnit = (unit: Unit) => {
-		// Apenas abrir o modal, sem clonagem
-		editUnitModal.open(unit.id);
+	const handleResetWeek = async () => {
+		try {
+			await apiClient.patch("/api/students/week-reset");
+			await loadWeeklyPlan(true);
+			toast({
+				title: "Semana resetada",
+				description: "Os treinos estão disponíveis novamente!",
+			});
+		} catch (error) {
+			toast({
+				title: "Erro",
+				description: "Não foi possível resetar a semana.",
+				variant: "destructive",
+			});
+		}
 	};
 
-	// Empty state: quando não há units (após carregar), mostrar opção para criar primeiro treino
-	// Verificar se units é um array vazio (não undefined/null que indica carregamento)
-	const hasUnits = Array.isArray(units) && units.length > 0;
+	const hasPlan = weeklyPlan && weeklyPlan.slots?.length >= 7;
 
-	if (!hasUnits) {
+	if (!hasPlan) {
 		return (
 			<>
 				<EmptyWorkoutState
-					onCreateUnit={() => {
-						// Abrir modal de criar unit
-						createUnitModal.open();
+					onCreatePlan={async () => {
+						try {
+							await apiClient.post("/api/workouts/weekly-plan", {});
+							await loadWeeklyPlan(true);
+							editPlanModal.open();
+						} catch (error) {
+							toast({
+								title: "Erro",
+								description: "Não foi possível criar o plano.",
+								variant: "destructive",
+							});
+						}
 					}}
 				/>
-				{/* Modais para empty state */}
-				{createUnitModal.isOpen && (
-					<CreateUnitModal
-						onClose={createUnitModal.close}
-						onUnitCreated={(unitId) => {
-							// Após criar unit, abrir modal de edição para adicionar workouts
-							editUnitModal.open(unitId);
-						}}
-					/>
-				)}
-				{editUnitModal.isOpen && editUnitModal.paramValue && <EditUnitModal />}
 			</>
 		);
 	}
 
+	const positions: Array<"left" | "center" | "right"> = [
+		"center",
+		"left",
+		"right",
+		"center",
+		"left",
+		"right",
+		"center",
+	];
+
 	return (
 		<div className="relative mx-auto max-w-2xl py-8">
-			{units.map((unit: Unit, unitIndex: number) => {
-				return (
-					<motion.div
-						key={unit.id}
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ delay: unitIndex * 0.1, duration: 0.4 }}
-						className="mb-12"
-					>
-						{/* Unit Header - Estilo Duolingo */}
-						<div className="mb-8">
-							<UnitSectionCard
-								sectionLabel={unit.title}
-								title={unit.description}
-								onButtonClick={() => handleEditUnit(unit)}
+			<div className="mb-8">
+				<UnitSectionCard
+					sectionLabel={weeklyPlan!.title}
+					title="7 dias • Segunda a Domingo"
+					onButtonClick={() => editPlanModal.open()}
+					additionalAction={
+						<DuoButton
+							variant="ghost"
+							size="sm"
+							onClick={handleResetWeek}
+							className="gap-1"
+						>
+							<RotateCcw className="h-4 w-4" />
+							Resetar
+						</DuoButton>
+					}
+				/>
+			</div>
+
+			<StaggerContainer className="relative flex flex-col items-center space-y-6">
+				{weeklyPlan!.slots.map((slot: PlanSlotData, index: number) => {
+					const position = positions[index % 7];
+
+					if (slot.type === "rest") {
+						return (
+							<StaggerItem key={slot.id} className="relative w-full">
+								<RestNode dayOfWeek={slot.dayOfWeek} position={position} />
+							</StaggerItem>
+						);
+					}
+
+					if (!slot.workout) {
+						return (
+							<StaggerItem key={slot.id} className="relative w-full">
+								<RestNode dayOfWeek={slot.dayOfWeek} position={position} />
+							</StaggerItem>
+						);
+					}
+
+					const workout = slot.workout;
+					const isFirst = index === 0;
+					const previousSlots = weeklyPlan!.slots.slice(0, index);
+					const previousWorkouts = previousSlots
+						.filter((s: PlanSlotData) => s.type === "workout" && s.workout)
+						.map((s: PlanSlotData) => s.workout!);
+
+					return (
+						<StaggerItem key={slot.id} className="relative w-full">
+							<WorkoutNode
+								workout={{
+									...workout,
+									locked: slot.locked,
+									completed: slot.completed,
+								}}
+								position={position}
+								onClick={(isLocked) => {
+									handleWorkoutClick(
+										workout.id,
+										isLocked,
+										workout.type,
+									);
+								}}
+								isFirst={isFirst}
+								previousWorkouts={previousWorkouts}
+								previousUnitsWorkouts={[]}
 							/>
-						</div>
+						</StaggerItem>
+					);
+				})}
+			</StaggerContainer>
 
-						{/* Workouts Path - Sem linhas de conexão */}
-						<StaggerContainer className="relative flex flex-col items-center space-y-6">
-							{unit.workouts.map(
-								(workout: WorkoutSession, workoutIndex: number) => {
-									const isFirstInUnit = workoutIndex === 0;
-									// Pegar todos os workouts anteriores:
-									// 1. Todos os workouts de unidades anteriores
-									// 2. Workouts anteriores na mesma unidade
-									const previousUnitsWorkouts = units
-										.slice(0, unitIndex)
-										.flatMap((u: Unit) => u.workouts);
-									const previousWorkoutsInSameUnit = unit.workouts.slice(
-										0,
-										workoutIndex,
-									);
-									const _previousWorkouts = [
-										...previousUnitsWorkouts,
-										...previousWorkoutsInSameUnit,
-									];
-
-									const positions = [
-										"center",
-										"left",
-										"right",
-										"center",
-										"left",
-										"right",
-									];
-									const position = positions[workoutIndex % positions.length] as
-										| "left"
-										| "center"
-										| "right";
-
-									return (
-										<StaggerItem key={workout.id} className="relative w-full">
-											<WorkoutNode
-												workout={workout}
-												position={position}
-												onClick={(isLocked) => {
-													// WorkoutNode passa isLocked calculado (considera estado otimista)
-													// handleWorkoutClick usa esse valor para decidir se abre o modal
-													handleWorkoutClick(
-														workout.id,
-														isLocked,
-														workout.type,
-													);
-												}}
-												isFirst={isFirstInUnit}
-												previousWorkouts={previousWorkoutsInSameUnit}
-												previousUnitsWorkouts={previousUnitsWorkouts}
-											/>
-										</StaggerItem>
-									);
-								},
-							)}
-						</StaggerContainer>
-					</motion.div>
-				);
-			})}
-
-			{/* Treasure chest at the end - Duolingo style */}
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
 				animate={{ opacity: 1, y: 0 }}
@@ -262,48 +231,29 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 					</p>
 				</motion.div>
 			</motion.div>
-
-			{/* Modais */}
-			{createUnitModal.isOpen && (
-				<CreateUnitModal
-					onClose={createUnitModal.close}
-					onUnitCreated={(unitId) => {
-						// Após criar unit, abrir modal de edição para adicionar workouts
-						editUnitModal.open(unitId);
-					}}
-				/>
-			)}
-			{editUnitModal.isOpen && editUnitModal.paramValue && <EditUnitModal />}
 		</div>
 	);
 }
 
-/**
- * Empty State quando não há treinos criados
- *
- * Exatamente igual ao padrão do NutritionTracker (refeições)
- * SectionCard com ícone no header e título no header
- * Dentro: ícone grande → título → texto motivacional → botão
- *
- * IMPORTANTE: Com optimistic update, quando o usuário cria um unit,
- * o store atualiza instantaneamente e este componente re-renderiza,
- * fazendo o empty state desaparecer imediatamente sem esperar resposta do servidor.
- */
-function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
+function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
 	return (
 		<div className="space-y-6">
 			<div className="text-center">
 				<h1 className="mb-2 text-3xl font-bold text-duo-text">Treinos</h1>
 				<p className="text-sm text-duo-gray-dark">
-					Crie e acompanhe seus treinos personalizados
+					Crie seu plano semanal (7 dias)
 				</p>
 			</div>
 
 			<DuoCard variant="default" padding="md">
 				<DuoCardHeader>
 					<div className="flex items-center gap-2">
-						<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-						<h2 className="font-bold text-[var(--duo-fg)]">Meus Treinos</h2>
+						<Dumbbell
+							className="h-5 w-5 shrink-0"
+							style={{ color: "var(--duo-secondary)" }}
+							aria-hidden
+						/>
+						<h2 className="font-bold text-[var(--duo-fg)]">Meu Plano Semanal</h2>
 					</div>
 				</DuoCardHeader>
 				<motion.div
@@ -317,13 +267,12 @@ function EmptyWorkoutState({ onCreateUnit }: { onCreateUnit: () => void }) {
 						Comece a criar seus treinos!
 					</p>
 					<p className="text-sm text-gray-600">
-						Crie seu plano personalizado com units, dias de treino e exercícios.
-						Você tem controle total sobre seu treino e pode acompanhar seu
-						progresso.
+						Plano de 7 dias (Seg-Dom) com treinos e dias de descanso. Crie
+						manualmente ou use o Chat IA.
 					</p>
-					<DuoButton onClick={onCreateUnit} variant="primary" className="w-fit">
-						<Plus className="h-4 w-4 mr-2" />
-						Criar Primeiro Plano
+					<DuoButton onClick={onCreatePlan} variant="primary" className="w-fit">
+						<Plus className="mr-2 h-4 w-4" />
+						Criar Plano Semanal
 					</DuoButton>
 				</motion.div>
 			</DuoCard>

@@ -119,6 +119,7 @@ function StudentHomeContent() {
 		subscription: storeSubscription,
 		personalRecords: storePersonalRecords,
 		units: storeUnits,
+		weeklyPlan: storeWeeklyPlan,
 		dailyNutrition: storeDailyNutrition,
 		isAdmin: storeIsAdmin,
 		role: storeRole,
@@ -135,6 +136,7 @@ function StudentHomeContent() {
 		"subscription",
 		"personalRecords",
 		"units",
+		"weeklyPlan",
 		"dailyNutrition",
 		"isAdmin",
 		"role",
@@ -402,7 +404,26 @@ function StudentHomeContent() {
 					{/* Card: Continue seu Treino */}
 					<WhileInView delay={0.3}>
 						<ContinueWorkoutCard
-							units={storeUnits || []}
+							units={
+								storeWeeklyPlan?.slots
+									? [
+											{
+												id: storeWeeklyPlan.id,
+												title: storeWeeklyPlan.title,
+												description: "",
+												workouts: storeWeeklyPlan.slots
+													.filter(
+														(s) =>
+															s.type === "workout" &&
+															s.workout,
+													)
+													.map((s) => s.workout!),
+												color: "#58CC02",
+												icon: "💪",
+											},
+										]
+									: storeUnits || []
+							}
 							workoutHistory={currentWorkoutHistory}
 						/>
 					</WhileInView>

@@ -52,7 +52,7 @@ const WORKOUT_PROMPT_JSON = {
   },
 
   Objective:
-    "Criar, editar, deletar e estruturar treinos dentro de uma única Unit semanal com qualidade científica máxima.",
+    "Criar, editar, deletar e estruturar treinos em um plano semanal (7 dias Seg-Dom) com qualidade científica máxima. Cada dia pode ser treino ou descanso.",
 
   ScopeControl: {
     allowedTopics: [
@@ -77,10 +77,12 @@ const WORKOUT_PROMPT_JSON = {
   },
 
   SystemContext: {
-    Unit: "Semana completa de treino",
-    Workout: "Dia de treino",
+    Unit: "Semana completa de treino (7 dias)",
+    WeeklyPlan: "Plano semanal com 7 slots (0=Seg a 6=Dom)",
+    Workout: "Dia de treino com exercícios",
+    Rest: "Dia de descanso",
     Exercise: "Exercício individual",
-    restriction: "Sempre operar dentro de UMA Unit existente",
+    restriction: "Operar dentro do plano existente (Unit ou WeeklyPlan)",
   },
 
   AthleteIndividualization: {
@@ -192,13 +194,14 @@ const WORKOUT_PROMPT_JSON = {
   ResponseFormat: {
     type: "JSON_ONLY",
     instruction:
-      "Retorne apenas JSON válido sem texto fora do JSON. OBRIGATÓRIO: inclua sempre os campos intent, action, workouts e message.",
+      "Retorne apenas JSON válido sem texto fora do JSON. OBRIGATÓRIO: inclua sempre os campos intent, action, workouts e message. Para plano semanal com slot específico, retorne 1 workout no array.",
     schema: {
       intent: "create | edit | delete (use 'create' para criar treinos novos)",
       action:
         "create_workouts | update_workout | delete_workout | replace_exercise | remove_exercise",
       workouts:
-        "Array de treinos com title, type, muscleGroup, difficulty, exercises",
+        "Array de treinos com title, type, muscleGroup, difficulty, exercises. Para slot de descanso vazio, array vazio.",
+      restDays: "Opcional: [0-6] dias de descanso na semana",
       message: "Mensagem curta em português para o usuário",
     },
   },

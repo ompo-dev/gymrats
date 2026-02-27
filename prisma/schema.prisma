@@ -147,8 +147,12 @@ model Student {
   dailyNutrition  DailyNutrition[]
   nutritionChatUsage NutritionChatUsage[]
 
-  // Treinos personalizados
+  // Treinos personalizados (legado - migrar para weeklyPlan)
   units Unit[]
+
+  // Plano semanal (7 slots: Seg-Dom)
+  weeklyPlan   WeeklyPlan?
+  weekOverride DateTime? // Override para reset manual (início da "semana atual" do user)
 
   // Academias
   memberships GymMembership[]
@@ -349,6 +353,35 @@ model GymStats {
 // TREINOS (WORKOUTS)
 // ============================================
 
+model WeeklyPlan {
+  id        String   @id @default(cuid())
+  studentId String   @unique
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title     String   @default("Meu Plano Semanal")
+
+  slots PlanSlot[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("weekly_plans")
+}
+
+model PlanSlot {
+  id           String      @id @default(cuid())
+  weeklyPlanId String
+  weeklyPlan   WeeklyPlan  @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int // 0=Seg, 1=Ter, ..., 6=Dom
+  type         String // "workout" | "rest"
+  workoutId    String?     @unique // 1 workout = 1 slot (one-to-one)
+  workout      Workout?    @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  order        Int         @default(0)
+
+  @@unique([weeklyPlanId, dayOfWeek])
+  @@index([weeklyPlanId])
+  @@map("plan_slots")
+}
+
 model Unit {
   id          String   @id @default(cuid())
   title       String
@@ -384,6 +417,7 @@ model Workout {
   exercises   WorkoutExercise[]
   completions WorkoutHistory[]
   progress    WorkoutProgress[] // Progresso parcial de workouts
+  planSlot    PlanSlot? // Relação inversa: slot que contém este workout
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
