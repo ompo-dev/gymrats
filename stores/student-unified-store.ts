@@ -216,10 +216,19 @@ const loadingPromises = new Map<
  *
  * IMPORTANTE: Evita carregamentos duplicados - se a seção já está sendo carregada,
  * retorna a promise existente em vez de fazer nova requisição
+ *
+ * @param forceRefresh - Se true, ignora deduplicação e força nova requisição (ex: após week-reset)
  */
 async function loadSection(
 	section: StudentDataSection,
+	forceRefresh = false,
 ): Promise<Partial<StudentData>> {
+	// Se forceRefresh, limpar cache da seção para garantir dados frescos (ex: após week-reset)
+	if (forceRefresh) {
+		loadingSections.delete(section);
+		loadingPromises.delete(section);
+	}
+
 	// Se já está sendo carregada, retornar a promise existente
 	if (loadingSections.has(section) && loadingPromises.has(section)) {
 		const existingPromise = loadingPromises.get(section);
@@ -1087,7 +1096,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					return;
 				}
 
-				const section = await loadSection("weeklyPlan");
+				// force=true: bypassa deduplicação para garantir dados frescos (ex: após week-reset)
+				const section = await loadSection("weeklyPlan", force);
 				set((state) => ({
 					data: {
 						...state.data,

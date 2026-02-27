@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, Lock, Moon, Plus, RotateCcw } from "lucide-react";
+import { Dumbbell, Lock, Moon, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
@@ -88,23 +88,6 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 		}
 	};
 
-	const handleResetWeek = async () => {
-		try {
-			await apiClient.patch("/api/students/week-reset");
-			await loadWeeklyPlan(true);
-			toast({
-				title: "Semana resetada",
-				description: "Os treinos estão disponíveis novamente!",
-			});
-		} catch (error) {
-			toast({
-				title: "Erro",
-				description: "Não foi possível resetar a semana.",
-				variant: "destructive",
-			});
-		}
-	};
-
 	const hasPlan = weeklyPlan && weeklyPlan.slots?.length >= 7;
 
 	if (!hasPlan) {
@@ -146,17 +129,6 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 					sectionLabel={weeklyPlan!.title}
 					title="7 dias • Segunda a Domingo"
 					onButtonClick={() => editPlanModal.open()}
-					additionalAction={
-						<DuoButton
-							variant="ghost"
-							size="sm"
-							onClick={handleResetWeek}
-							className="gap-1"
-						>
-							<RotateCcw className="h-4 w-4" />
-							Resetar
-						</DuoButton>
-					}
 				/>
 			</div>
 

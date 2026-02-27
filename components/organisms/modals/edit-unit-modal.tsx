@@ -4,7 +4,10 @@ import {
 	Dumbbell,
 	Edit2,
 	GripVertical,
+	Loader2,
+	Moon,
 	Plus,
+	RotateCcw,
 	Save,
 	Sparkles,
 	Trash2,
@@ -17,7 +20,8 @@ import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import type { WorkoutExercise, WorkoutSession } from "@/lib/types";
+import { apiClient } from "@/lib/api/client";
+import type { PlanSlotData, WorkoutExercise, WorkoutSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -26,6 +30,180 @@ import { ModalContainer } from "./modal-container";
 import { ModalContent } from "./modal-content";
 import { ModalHeader } from "./modal-header";
 import { WorkoutChat } from "./workout-chat";
+
+const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+
+function EditUnitModalWeeklyPlanContent({
+	onClose,
+	onPlanUpdated,
+}: {
+	onClose: () => void;
+	onPlanUpdated?: () => void;
+}) {
+	const weeklyPlan = useStudent("weeklyPlan");
+	const { loadWeeklyPlan } = useStudent("loaders");
+	const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
+	const [chatSlotId, setChatSlotId] = useState<string | null>(null);
+	const [resetting, setResetting] = useState(false);
+
+	const handleResetWeek = async () => {
+		setResetting(true);
+		try {
+			await apiClient.patch("/api/students/week-reset");
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
+		} catch {
+			toast.error("Não foi possível resetar a semana.");
+		} finally {
+			setResetting(false);
+		}
+	};
+
+	const handleRemoveWorkout = async (slotId: string) => {
+		const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
+		if (!slot?.workout) return;
+		setLoadingSlotId(slotId);
+		try {
+			await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Treino removido. O dia foi marcado como descanso.");
+		} catch {
+			toast.error("Não foi possível remover o treino.");
+		} finally {
+			setLoadingSlotId(null);
+		}
+	};
+
+	const handleAddWorkout = async (slotId: string, dayName: string) => {
+		setLoadingSlotId(slotId);
+		try {
+			await apiClient.post("/api/workouts/manage", {
+				planSlotId: slotId,
+				title: `Treino ${dayName}`,
+				description: "",
+				type: "strength",
+				muscleGroup: "full-body",
+				difficulty: "iniciante",
+				estimatedTime: 0,
+			});
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Treino adicionado. Adicione exercícios ou use o Chat IA.");
+		} catch {
+			toast.error("Não foi possível adicionar o treino.");
+		} finally {
+			setLoadingSlotId(null);
+		}
+	};
+
+	if (!weeklyPlan) return null;
+
+	return (
+		<ModalContainer isOpen onClose={onClose}>
+			<ModalHeader title={weeklyPlan.title} onClose={onClose}>
+				<div className="flex flex-col gap-1">
+					<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
+					<DuoButton
+						variant="ghost"
+						size="sm"
+						onClick={handleResetWeek}
+						disabled={resetting}
+						className="mt-1 w-fit gap-1 self-start"
+					>
+						{resetting ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<RotateCcw className="h-4 w-4" />
+						)}
+						Resetar semana
+					</DuoButton>
+				</div>
+			</ModalHeader>
+			<ModalContent>
+				<div className="space-y-4">
+					{weeklyPlan.slots.map((slot: PlanSlotData) => (
+						<DuoCard key={slot.id} variant="default" padding="md">
+							<div className="flex items-center justify-between gap-4">
+								<div className="flex items-center gap-3">
+									<span className="text-sm font-medium text-duo-gray-dark">
+										{DAY_NAMES[slot.dayOfWeek]}
+									</span>
+									{slot.type === "rest" ? (
+										<span className="flex items-center gap-1 text-duo-gray">
+											<Moon className="h-4 w-4" />
+											Descanso
+										</span>
+									) : (
+										<span className="font-medium text-duo-text">
+											{slot.workout?.title}
+										</span>
+									)}
+								</div>
+								<div className="flex items-center gap-2">
+									{slot.type === "workout" && slot.workout && (
+										<DuoButton
+											variant="ghost"
+											size="sm"
+											onClick={() => handleRemoveWorkout(slot.id)}
+											disabled={loadingSlotId === slot.id}
+											className="text-red-600 hover:text-red-700"
+										>
+											<Trash2 className="h-4 w-4" />
+										</DuoButton>
+									)}
+									{slot.type === "rest" && (
+										<>
+											<DuoButton
+												variant="secondary"
+												size="sm"
+												onClick={() =>
+													handleAddWorkout(slot.id, DAY_NAMES[slot.dayOfWeek])
+												}
+												disabled={loadingSlotId === slot.id}
+											>
+												{loadingSlotId === slot.id ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
+												) : (
+													<Plus className="h-4 w-4" />
+												)}
+												Treino
+											</DuoButton>
+											<DuoButton
+												variant="ghost"
+												size="sm"
+												onClick={() => setChatSlotId(slot.id)}
+												className="gap-1"
+											>
+												<Sparkles className="h-4 w-4" />
+												Chat IA
+											</DuoButton>
+										</>
+									)}
+								</div>
+							</div>
+						</DuoCard>
+					))}
+					<p className="text-center text-sm text-duo-gray">
+						Clique em &quot;Treino&quot; para adicionar um dia vazio ou &quot;Chat IA&quot; para criar com exercícios.
+					</p>
+				</div>
+			</ModalContent>
+			{chatSlotId && (
+				<WorkoutChat
+					planSlotId={chatSlotId}
+					slotContext={DAY_NAMES[weeklyPlan.slots.find((s: PlanSlotData) => s.id === chatSlotId)?.dayOfWeek ?? 0]}
+					onClose={() => {
+						setChatSlotId(null);
+						loadWeeklyPlan(true);
+						onPlanUpdated?.();
+					}}
+				/>
+			)}
+		</ModalContainer>
+	);
+}
 
 const muscleCategories = [
 	{ value: "", label: "Nenhum", icon: "⚪" },
@@ -41,14 +219,31 @@ const muscleCategories = [
 	{ value: "full_body", label: "Corpo Inteiro", icon: "💪" },
 ] as const;
 
-export function EditUnitModal() {
+interface EditUnitModalProps {
+	/** Quando true, exibe o editor de plano semanal (7 slots) em vez do editor de unit */
+	isWeeklyPlanMode?: boolean;
+	isOpen?: boolean;
+	onClose?: () => void;
+	onPlanUpdated?: () => void;
+}
+
+export function EditUnitModal({
+	isWeeklyPlanMode = false,
+	isOpen: isOpenProp,
+	onClose: onCloseProp,
+	onPlanUpdated,
+}: EditUnitModalProps = {}) {
 	const _router = useRouter();
 	const {
-		isOpen,
-		close,
+		isOpen: isOpenEditUnit,
+		close: closeEditUnit,
 		paramValue: unitId,
 	} = useModalStateWithParam("editUnit", "unitId");
 	const actions = useStudent("actions");
+
+	// Modo weekly plan: usa props do parent. Caso contrário: usa estado editUnit
+	const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
+	const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
 
 	const [showExerciseSearch, setShowExerciseSearch] = useState(false);
 
@@ -486,6 +681,17 @@ export function EditUnitModal() {
 
 	if (!isOpen) return null;
 
+	// --- MODO WEEKLY PLAN (7 slots Seg-Dom) - usado quando edit-plan abre ---
+	if (isWeeklyPlanMode) {
+		return (
+			<EditUnitModalWeeklyPlanContent
+				onClose={close}
+				onPlanUpdated={onPlanUpdated}
+			/>
+		);
+	}
+
+	// --- MODO UNIT (legado) ---
 	return (
 		<>
 			<ModalContainer isOpen={isOpen} onClose={close}>

@@ -129,6 +129,10 @@ export function useStudent<T extends StudentSelector>(
 	);
 	// Seletor específico para units para garantir reatividade imediata
 	const unitsData = useStudentUnifiedStore((state) => state.data.units);
+	// Seletor específico para weeklyPlan para garantir reatividade após loadWeeklyPlan
+	const weeklyPlanData = useStudentUnifiedStore(
+		(state) => state.data.weeklyPlan,
+	);
 	const loadAll = useStudentUnifiedStore((state) => state.loadAll);
 	const loadAllPrioritized = useStudentUnifiedStore(
 		(state) => state.loadAllPrioritized,
@@ -306,6 +310,10 @@ export function useStudent<T extends StudentSelector>(
 		if (selector === "units") {
 			return unitsData as any;
 		}
+		// Para weeklyPlan, usar valor já selecionado para garantir reatividade após loadWeeklyPlan
+		if (selector === "weeklyPlan") {
+			return weeklyPlanData as any;
+		}
 		return selectFromData(data, selector) as any;
 	}
 
@@ -371,6 +379,9 @@ export function useStudent<T extends StudentSelector>(
 		} else if (selector === "units") {
 			// Usar valor já selecionado para garantir reatividade imediata
 			result[selector] = unitsData;
+		} else if (selector === "weeklyPlan") {
+			// Usar valor já selecionado para garantir reatividade após loadWeeklyPlan
+			result[selector] = weeklyPlanData;
 		} else {
 			result[selector] = selectFromData(data, selector);
 		}

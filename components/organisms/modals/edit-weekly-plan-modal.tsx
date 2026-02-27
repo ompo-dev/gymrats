@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Moon, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Moon, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
@@ -32,7 +32,29 @@ export function EditWeeklyPlanModal({
 	const { loadWeeklyPlan } = useStudent("loaders");
 	const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
 	const [chatSlotId, setChatSlotId] = useState<string | null>(null);
+	const [resetting, setResetting] = useState(false);
 	const { toast } = useToast();
+
+	const handleResetWeek = async () => {
+		setResetting(true);
+		try {
+			await apiClient.patch("/api/students/week-reset");
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast({
+				title: "Semana resetada",
+				description: "Os treinos estão disponíveis novamente!",
+			});
+		} catch {
+			toast({
+				title: "Erro",
+				description: "Não foi possível resetar a semana.",
+				variant: "destructive",
+			});
+		} finally {
+			setResetting(false);
+		}
+	};
 
 	const handleRemoveWorkout = async (slotId: string) => {
 		const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
@@ -98,7 +120,23 @@ export function EditWeeklyPlanModal({
 	return (
 		<ModalContainer isOpen={isOpen} onClose={onClose}>
 			<ModalHeader title={weeklyPlan.title} onClose={onClose}>
-				<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
+				<div className="flex flex-col gap-1">
+					<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
+					<DuoButton
+						variant="ghost"
+						size="sm"
+						onClick={handleResetWeek}
+						disabled={resetting}
+						className="mt-1 w-fit gap-1 self-start"
+					>
+						{resetting ? (
+							<Loader2 className="h-4 w-4 animate-spin" />
+						) : (
+							<RotateCcw className="h-4 w-4" />
+						)}
+						Resetar semana
+					</DuoButton>
+				</div>
 			</ModalHeader>
 			<ModalContent>
 				<div className="space-y-4">

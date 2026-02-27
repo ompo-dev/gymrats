@@ -11,7 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { EditWeeklyPlanModal } from "@/components/organisms/modals";
+import { EditUnitModal } from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
 import { useModalState } from "@/hooks/use-modal-state";
 import {
@@ -131,7 +131,9 @@ export function StudentLayoutContent({
 				<>
 					<WorkoutModal />
 					{editPlanModal.isOpen && (
-						<EditWeeklyPlanModal
+						<EditUnitModal
+							isWeeklyPlanMode
+							isOpen={editPlanModal.isOpen}
 							onClose={editPlanModal.close}
 							onPlanUpdated={() => loadWeeklyPlan(true)}
 						/>
