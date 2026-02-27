@@ -372,6 +372,13 @@ ${previewsStructure}
           }
         }
 
+        // Instruções para plano semanal completo (7 dias) quando planSlotId
+        if (planSlotId) {
+          enhancedSystemPrompt += `\n\n📅 PLANO SEMANAL (7 dias Seg-Dom): Se o usuário pedir CRIAR um plano completo (ex: "5 dias de treino com descanso na quarta", "plano PPL 6 dias"), retorne SEMPRE 7 itens no array "workouts" - um por dia.
+Para dias de descanso use: { "title": "Descanso", "type": "strength", "muscleGroup": "full-body", "difficulty": "intermediario", "exercises": [] }.
+O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + descanso quarta = Seg(treino), Ter(treino), Qua(Descanso), Qui(treino), Sex(treino), Sab(treino), Dom(Descanso). Domingo também é descanso quando há 5 treinos.`;
+        }
+
         if (student?.profile) {
           const profileData = student.profile;
           const profileInfo: string[] = [];
@@ -641,6 +648,54 @@ ${previewsStructure}
           // Garantir action/targetWorkoutId coerentes
           parsed.action = parsed.action || "update_workout";
           parsed.targetWorkoutId = reference.workoutTitle;
+        }
+
+        // 11b. Expandir restDays em workouts para plano semanal (7 dias)
+        const parsedWithRest = parsed as { restDays?: number[] };
+        if (
+          planSlotId &&
+          parsed?.action === "create_workouts" &&
+          Array.isArray(parsedWithRest.restDays) &&
+          parsedWithRest.restDays.length > 0 &&
+          parsed.workouts &&
+          parsed.workouts.length < 7
+        ) {
+          const restDaysSet = new Set(
+            parsedWithRest.restDays.filter(
+              (d: unknown) => typeof d === "number" && d >= 0 && d <= 6,
+            ),
+          );
+          const trainingWorkouts = (parsed.workouts as Array<Record<string, unknown>>).filter(
+            (w) =>
+              !w.title?.toString().toLowerCase().includes("descanso") &&
+              Array.isArray(w.exercises) &&
+              (w.exercises as unknown[]).length > 0,
+          );
+          let trainingIndex = 0;
+          const expanded: Array<Record<string, unknown>> = [];
+          for (let day = 0; day < 7; day++) {
+            if (restDaysSet.has(day)) {
+              expanded.push({
+                title: "Descanso",
+                type: "strength",
+                muscleGroup: "full-body",
+                difficulty: "intermediario",
+                exercises: [],
+              });
+            } else if (trainingIndex < trainingWorkouts.length) {
+              expanded.push(trainingWorkouts[trainingIndex]);
+              trainingIndex++;
+            } else {
+              expanded.push({
+                title: "Descanso",
+                type: "strength",
+                muscleGroup: "full-body",
+                difficulty: "intermediario",
+                exercises: [],
+              });
+            }
+          }
+          parsed.workouts = expanded;
         }
 
         // 12. Incrementar contador (apenas para não-admins)

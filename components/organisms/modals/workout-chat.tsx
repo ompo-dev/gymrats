@@ -503,16 +503,33 @@ export function WorkoutChat({
   };
 
   const handleExportWorkouts = async () => {
-    // Priorizar previewWorkouts (o que o usuário vê no chat, incluindo alterações da IA)
-    // Depois workouts do store/props. Fallback: slots com treino do weeklyPlan (modo planSlot)
-    let sourceWorkouts =
-      previewWorkouts.length > 0 ? previewWorkouts : workouts;
+    // No contexto de plano semanal: usar weeklyPlan completo (inclui dias de descanso)
+    // Caso contrário: previewWorkouts ou workouts
+    let sourceWorkouts: Array<PreviewWorkout | WorkoutSession> = [];
 
-    if (sourceWorkouts.length === 0 && planSlotId && storeWeeklyPlan?.slots) {
-      const slotsWithWorkout = storeWeeklyPlan.slots
-        .filter((s: PlanSlotData) => s.type === "workout" && s.workout)
-        .map((s: PlanSlotData) => s.workout!);
-      sourceWorkouts = slotsWithWorkout;
+    if (planSlotId && storeWeeklyPlan?.slots?.length >= 7) {
+      // Plano semanal: exportar todos os 7 dias (workout + descanso) em ordem
+      sourceWorkouts = storeWeeklyPlan.slots
+        .slice()
+        .sort((a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek)
+        .map((s: PlanSlotData) => {
+          if (s.type === "workout" && s.workout) {
+            return s.workout as WorkoutSession;
+          }
+          return {
+            title: "Descanso",
+            description: "",
+            type: "strength" as const,
+            muscleGroup: "full-body",
+            difficulty: "intermediario" as const,
+            exercises: [] as Array<{ name: string; sets: number; reps: string; rest: number; notes?: string; alternatives?: string[] }>,
+          } as PreviewWorkout;
+        });
+    }
+
+    if (sourceWorkouts.length === 0) {
+      sourceWorkouts =
+        previewWorkouts.length > 0 ? previewWorkouts : workouts;
     }
 
     const payload = {

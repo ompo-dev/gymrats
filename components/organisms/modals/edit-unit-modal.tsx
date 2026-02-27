@@ -393,7 +393,10 @@ export function EditUnitModal({
   const handleSaveUnit = async () => {
     if (isWeeklyPlanMode) {
       try {
-        await apiClient.patch("/api/workouts/weekly-plan", { title, description });
+        await apiClient.patch("/api/workouts/weekly-plan", {
+          title,
+          description,
+        });
         await loadWeeklyPlan(true);
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");
@@ -729,7 +732,7 @@ export function EditUnitModal({
                           }}
                         >
                           <Sparkles className="h-4 w-4" />
-                          Chat IA
+                          Chat
                         </DuoButton>
                         <DuoButton
                           size="sm"
@@ -896,18 +899,6 @@ export function EditUnitModal({
                                     zIndex: 10,
                                   }}
                                 >
-                                  <DuoButton
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingWorkoutId(slot.workout!.id);
-                                    }}
-                                    title="Editar dia de treino"
-                                  >
-                                    <Edit2 className="h-5 w-5" />
-                                  </DuoButton>
                                   <DuoButton
                                     variant="ghost"
                                     size="icon"

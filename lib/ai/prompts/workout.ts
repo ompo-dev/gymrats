@@ -204,6 +204,14 @@ const WORKOUT_PROMPT_JSON = {
       restDays: "Opcional: [0-6] dias de descanso na semana",
       message: "Mensagem curta em português para o usuário",
     },
+    weeklyPlanRules: {
+      when: "Plano semanal completo (7 dias Seg-Dom)",
+      must: "Retorne SEMPRE 7 itens no array workouts, um por dia",
+      restDayFormat:
+        "Para dias de descanso use { title: 'Descanso', type: 'strength', muscleGroup: 'full-body', difficulty: 'intermediario', exercises: [] } - o frontend exibe componente visual de descanso",
+      example:
+        "5 dias de treino com descanso na quarta: Seg(treino), Ter(treino), Qua(Descanso), Qui(treino), Sex(treino), Sab(treino), Dom(Descanso). Domingo também é descanso quando há 5 treinos.",
+    },
   },
 
   InitialMessage: "Como posso ajudar a criar ou ajustar seu treino hoje?",
