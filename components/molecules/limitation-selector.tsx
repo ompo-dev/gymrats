@@ -108,7 +108,7 @@ function LimitationSelectorSimple({
 		>
 			<div className="flex items-center gap-2">
 				<Icon className={`h-5 w-5 ${iconColor}`} />
-				<label className="block text-sm font-bold text-gray-900">{title}</label>
+				<label className="block text-sm font-bold text-duo-fg">{title}</label>
 			</div>
 
 			{/* Pergunta inicial: Tem limitações? - Seguindo padrão do Step 1 */}
@@ -125,7 +125,7 @@ function LimitationSelectorSimple({
 							onClick={() => handleHasLimitationsChange(option.value)}
 							className={`rounded-2xl py-3 ${
 								hasLimitations !== (option.value === "sim")
-									? "border-gray-300 bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+									? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
 									: ""
 							}`}
 						>
@@ -144,7 +144,7 @@ function LimitationSelectorSimple({
 						transition={{ duration: 0.3 }}
 						className="space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
 					>
-						<p className="text-xs text-gray-600">
+						<p className="text-xs text-duo-fg-muted">
 							Selecione todas as limitações que se aplicam a você
 						</p>
 
@@ -180,7 +180,7 @@ function LimitationSelectorSimple({
 									transition={{ duration: 0.3 }}
 									className={`space-y-4 rounded-xl border-2 ${borderColor} ${bgColor} p-4 mt-4`}
 								>
-									<p className="text-sm font-bold text-gray-900">
+									<p className="text-sm font-bold text-duo-fg">
 										{detail.label || `Detalhes sobre ${limitationKey}`}
 									</p>
 									{detail.type === "selector" && detail.options && (
@@ -220,7 +220,7 @@ function LimitationSelectorSimple({
 				)}
 			</div>
 
-			{error && <p className="text-sm font-bold text-red-500">{error}</p>}
+			{error && <p className="text-sm font-bold text-duo-danger">{error}</p>}
 		</motion.div>
 	);
 }

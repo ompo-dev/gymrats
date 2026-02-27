@@ -3,8 +3,7 @@
 import { Minus, Plus, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { DuoButton } from "@/components/duo";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { EquipmentSearch } from "@/components/organisms/modals/equipment-search";
 import type { EquipmentItem } from "@/lib/equipment-database";
 import type { StepProps } from "./types";
@@ -86,11 +85,26 @@ export function Step4({ formData, setFormData }: StepProps) {
 
 	return (
 		<>
-			<StepCard.Simple
-				title="Equipamentos"
-				description="Quais equipamentos sua academia possui?"
+			<motion.div
+				initial={{ opacity: 0, x: 50, scale: 0.95 }}
+				animate={{ opacity: 1, x: 0, scale: 1 }}
+				exit={{ opacity: 0, x: -50, scale: 0.95 }}
+				transition={{ type: "spring", stiffness: 100, damping: 15 }}
 			>
-				<div className="space-y-5">
+				<DuoCard.Root
+					variant="outlined"
+					padding="lg"
+					className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+				>
+					<div className="mb-6 text-center">
+						<h2 className="mb-2 text-2xl font-bold text-duo-fg">
+							Equipamentos
+						</h2>
+						<p className="text-sm text-duo-fg-muted">
+							Quais equipamentos sua academia possui?
+						</p>
+					</div>
+					<div className="space-y-5">
 					<DuoButton
 						onClick={() => setShowEquipmentSearch(true)}
 						variant="primary"
@@ -106,7 +120,7 @@ export function Step4({ formData, setFormData }: StepProps) {
 							animate={{ opacity: 1, y: 0 }}
 							className="space-y-3"
 						>
-							<span className="block text-sm font-bold text-gray-600">
+							<span className="block text-sm font-bold text-duo-fg-muted">
 								Equipamentos Adicionados ({equipmentGroups.length} tipo
 								{equipmentGroups.length !== 1 ? "s" : ""} •{" "}
 								{formData.equipment.length} total):
@@ -123,13 +137,13 @@ export function Step4({ formData, setFormData }: StepProps) {
 											animate={{ opacity: 1, y: 0 }}
 											exit={{ opacity: 0, scale: 0.9, height: 0 }}
 											transition={{ delay: index * 0.05, duration: 0.2 }}
-											className="flex items-center justify-between rounded-xl border-2 border-gray-200 bg-gray-50 p-3"
+											className="flex items-center justify-between rounded-xl border-2 border-duo-border bg-duo-bg-card p-3"
 										>
 											<div className="flex-1">
-												<div className="text-sm font-bold text-gray-900">
+												<div className="text-sm font-bold text-duo-fg">
 													{group.equipment.name}
 												</div>
-												<div className="text-xs text-gray-600">
+												<div className="text-xs text-duo-fg-muted">
 													{group.equipment.category} • {group.equipment.type}
 												</div>
 											</div>
@@ -139,15 +153,15 @@ export function Step4({ formData, setFormData }: StepProps) {
 													onClick={() =>
 														handleQuantityChange(group.equipment.id, -1)
 													}
-													className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-gray-700 transition-all hover:bg-gray-100 active:scale-90"
+													className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-border bg-duo-bg-card text-duo-fg transition-all hover:bg-duo-bg-elevated active:scale-90"
 												>
 													<Minus className="h-4 w-4" />
 												</button>
 												<div className="w-16 text-center">
-													<div className="text-sm font-bold text-gray-900">
+													<div className="text-sm font-bold text-duo-fg">
 														{group.quantity}
 													</div>
-													<div className="text-xs text-gray-600">
+													<div className="text-xs text-duo-fg-muted">
 														{group.quantity === 1 ? "unidade" : "unidades"}
 													</div>
 												</div>
@@ -165,7 +179,7 @@ export function Step4({ formData, setFormData }: StepProps) {
 													onClick={() =>
 														handleRemoveEquipment(group.equipment.id)
 													}
-													className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-red-300 bg-red-50 text-red-700 transition-all hover:bg-red-100 active:scale-90"
+													className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-danger/50 bg-duo-danger/10 text-duo-danger transition-all hover:bg-duo-danger/20 active:scale-90"
 												>
 													<X className="h-4 w-4" />
 												</button>
@@ -181,16 +195,17 @@ export function Step4({ formData, setFormData }: StepProps) {
 						<motion.div
 							initial={{ opacity: 0 }}
 							animate={{ opacity: 1 }}
-							className="rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 p-8 text-center"
+							className="rounded-xl border-2 border-dashed border-duo-border bg-duo-bg-elevated p-8 text-center"
 						>
-							<p className="text-sm text-gray-600">
+							<p className="text-sm text-duo-fg-muted">
 								Nenhum equipamento adicionado ainda. Clique no botão acima para
 								adicionar.
 							</p>
 						</motion.div>
 					)}
 				</div>
-			</StepCard.Simple>
+				</DuoCard.Root>
+			</motion.div>
 
 			{showEquipmentSearch && (
 				<EquipmentSearch.Simple

@@ -4,8 +4,7 @@ import axios from "axios";
 import { Loader2 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { DuoInput } from "@/components/duo";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoCard, DuoInput } from "@/components/duo";
 import type { StepProps } from "./types";
 
 interface ViaCepResponse {
@@ -79,11 +78,26 @@ export function Step2({ formData, setFormData }: StepProps) {
 	};
 
 	return (
-		<StepCard.Simple
-			title="Localização"
-			description="Onde sua academia está localizada?"
+		<motion.div
+			initial={{ opacity: 0, x: 50, scale: 0.95 }}
+			animate={{ opacity: 1, x: 0, scale: 1 }}
+			exit={{ opacity: 0, x: -50, scale: 0.95 }}
+			transition={{ type: "spring", stiffness: 100, damping: 15 }}
 		>
-			<div className="space-y-5">
+			<DuoCard.Root
+				variant="outlined"
+				padding="lg"
+				className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+			>
+				<div className="mb-6 text-center">
+					<h2 className="mb-2 text-2xl font-bold text-duo-fg">
+						Localização
+					</h2>
+					<p className="text-sm text-duo-fg-muted">
+						Onde sua academia está localizada?
+					</p>
+				</div>
+				<div className="space-y-5">
 				<div className="relative">
 					<DuoInput.Simple
 						label="CEP *"
@@ -104,7 +118,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 						<motion.p
 							initial={{ opacity: 0, y: -10 }}
 							animate={{ opacity: 1, y: 0 }}
-							className="mt-1 text-sm text-red-600"
+							className="mt-1 text-sm text-duo-danger"
 							role="alert"
 						>
 							{cepError}
@@ -155,6 +169,7 @@ export function Step2({ formData, setFormData }: StepProps) {
 					/>
 				</div>
 			</div>
-		</StepCard.Simple>
+			</DuoCard.Root>
+		</motion.div>
 	);
 }

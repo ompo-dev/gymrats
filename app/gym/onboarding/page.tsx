@@ -182,7 +182,7 @@ export default function GymOnboardingPage() {
 	};
 
 	return (
-		<div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-orange scrollbar-hide">
+		<div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-bg scrollbar-hide">
 			{showConfetti && <Confetti />}
 
 			{/* Botão voltar para modo "nova academia" */}
@@ -204,7 +204,7 @@ export default function GymOnboardingPage() {
 					Array.from({ length: 20 }, (_, i) => `particle-${i}`).map((id) => (
 						<motion.div
 							key={id}
-							className="absolute h-1 w-1 rounded-full bg-white/20"
+							className="absolute h-1 w-1 rounded-full bg-duo-fg/20"
 							style={{
 								left: `${Math.random() * 100}%`,
 								top: `${Math.random() * 100}%`,
@@ -232,10 +232,10 @@ export default function GymOnboardingPage() {
 							animate={{ opacity: 1, y: 0 }}
 							className="mb-6 text-center"
 						>
-							<h1 className="text-3xl font-black text-white">
+							<h1 className="text-3xl font-black text-duo-fg">
 								🏋️ Nova Academia
 							</h1>
-							<p className="text-lg text-white/90 mt-2">
+							<p className="text-lg text-duo-fg-muted mt-2">
 								Configure sua nova unidade
 							</p>
 						</motion.div>
@@ -259,8 +259,7 @@ export default function GymOnboardingPage() {
 			</div>
 
 			<div
-				className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/20 p-4 backdrop-blur-md"
-				style={{ backgroundColor: "#FFE5CC" }}
+				className="fixed bottom-0 left-0 right-0 z-40 border-t border-duo-border p-4 backdrop-blur-md bg-duo-bg-card"
 			>
 				<div className="mx-auto max-w-2xl">
 					<motion.div

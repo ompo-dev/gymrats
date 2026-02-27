@@ -238,7 +238,7 @@ export default function StudentOnboardingPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-duo-green scrollbar-hide">
+    <div className="relative flex min-h-screen flex-col bg-duo-bg scrollbar-hide">
       {showConfetti && <Confetti />}
 
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -246,7 +246,7 @@ export default function StudentOnboardingPage() {
           Array.from({ length: 20 }, (_, i) => `particle-${i}`).map((id) => (
             <motion.div
               key={id}
-              className="absolute h-1 w-1 rounded-full bg-white/20"
+              className="absolute h-1 w-1 rounded-full bg-duo-fg/20"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -270,7 +270,7 @@ export default function StudentOnboardingPage() {
         <div className="flex min-h-full items-center justify-center p-4">
           <div className="relative mx-auto w-full max-w-2xl py-8">
             <div className="mb-4 text-center">
-              <span className="text-sm font-bold text-gray-600">
+              <span className="text-sm font-bold text-duo-fg-muted">
                 {step} de {TOTAL_STEPS}
               </span>
             </div>
@@ -303,8 +303,7 @@ export default function StudentOnboardingPage() {
 
       {/* Botões fixos na parte inferior */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/20 p-4 backdrop-blur-md"
-        style={{ backgroundColor: "#D7FFB8" }}
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-duo-border p-4 backdrop-blur-md bg-duo-bg-card"
       >
         <div className="mx-auto max-w-2xl">
           <motion.div
