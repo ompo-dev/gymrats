@@ -1,7 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "@/components/duo";
-import { StatCard } from "@/components/molecules/cards/stat-card";
+import { DuoCard, DuoStatCard } from "@/components/duo";
 
 export interface ProfileHeaderProps
 	extends React.HTMLAttributes<HTMLDivElement> {
@@ -14,7 +13,7 @@ export interface ProfileHeaderProps
 		streak: number;
 	};
 	quickStats: Array<{
-		value: string | number | React.ReactNode;
+		value: string | number;
 		label: string;
 		highlighted?: boolean;
 	}>;
@@ -66,11 +65,11 @@ export function ProfileHeader({
 
 			<div className="mt-6 grid sm:grid-cols-2 grid-cols-2 gap-3">
 				{quickStats.map((stat, index) => (
-					<StatCard
+					<DuoStatCard.Simple
 						key={index}
 						value={stat.value}
 						label={stat.label}
-						variant={stat.highlighted ? "highlighted" : "default"}
+						className={stat.highlighted ? "text-[var(--duo-success)]" : undefined}
 					/>
 				))}
 				{quickStatsButtons}

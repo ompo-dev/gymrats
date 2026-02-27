@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { DuoInput } from "@/components/duo";
 import { Label } from "@/components/molecules/forms/label";
-import { Select } from "@/components/atoms/inputs/select";
+import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 
 const EXPENSE_TYPES = [
@@ -108,8 +108,11 @@ export function AddExpenseModal({
 				<form onSubmit={handleSubmit} className="space-y-4">
 					<div>
 						<Label htmlFor="type">Tipo</Label>
-						<Select
-							options={EXPENSE_TYPES.map((t) => ({ value: t.value, label: t.label }))}
+						<DuoSelect.Simple
+							options={EXPENSE_TYPES.map((t) => ({
+								value: t.value,
+								label: t.label,
+							}))}
 							value={form.type}
 							onChange={(v) =>
 								setForm((f) => ({

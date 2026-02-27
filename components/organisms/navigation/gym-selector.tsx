@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Select, type SelectOption } from "@/components/atoms/inputs/select";
+import { DuoSelect, type DuoSelectOption } from "@/components/duo";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
 function GymSelectorSimple() {
@@ -43,8 +43,8 @@ function GymSelectorSimple() {
 		router.refresh();
 	};
 
-	// Preparar opções para o Select
-	const selectOptions: SelectOption[] = [
+	// Preparar opções para o DuoSelect
+	const selectOptions: DuoSelectOption[] = [
 		...gyms.map((gym) => ({
 			value: gym.id,
 			label: gym.name,
@@ -93,14 +93,12 @@ function GymSelectorSimple() {
 	}
 
 	return (
-		<Select
+		<DuoSelect.Simple
 			options={selectOptions}
 			value={activeGymId || undefined}
 			onChange={handleSelectGym}
-			variant="default"
-			size="default"
 			placeholder="Selecione uma academia"
-			className="w-fit"
+			className="w-fit min-w-[180px]"
 		/>
 	);
 }

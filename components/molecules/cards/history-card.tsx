@@ -1,7 +1,6 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { DuoCard } from "@/components/duo";
-import { StatusBadge } from "../badges/status-badge";
+import { DuoBadge, DuoCard } from "@/components/duo";
 
 export interface HistoryCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	title: string;
@@ -74,7 +73,22 @@ function HistoryCardSimple({
 					<div className="font-bold text-duo-text">{title}</div>
 					<div className="text-xs text-duo-gray-dark">{formattedDate}</div>
 				</div>
-				{status && <StatusBadge.Simple status={status} label={status} />}
+				{status && (
+					<DuoBadge
+						variant={
+							status === "excelente"
+								? "success"
+								: status === "bom"
+									? "secondary"
+									: status === "regular"
+										? "warning"
+										: "danger"
+						}
+						size="sm"
+					>
+						{status}
+					</DuoBadge>
+				)}
 			</div>
 			{metadata.length > 0 && (
 				<div className="flex gap-4 text-sm text-duo-gray-dark">

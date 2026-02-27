@@ -4,10 +4,9 @@ import { Thermometer } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
+import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
-import { FormInput } from "@/components/molecules/forms/form-input";
-import { DuoButton, DuoSelect } from "@/components/duo";
 import { RangeSlider } from "@/components/ui/range-slider";
 import {
   type consolidatedStep1Schema,
@@ -199,13 +198,22 @@ export function ConsolidatedStep1({
             Informações Pessoais
           </h3>
           <div className="grid gap-4 sm:grid-cols-3">
-            <FormInput.Simple
-              label="Idade"
-              type="number"
+            <DuoInput.Simple
+              label="Idade *"
+              type="text"
+              inputMode="numeric"
               placeholder="25"
-              value={formData.age}
-              onChange={(value) => {
-                setFormData({ ...formData, age: value as number | "" });
+              value={formData.age === "" ? "" : formData.age}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, age: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, age: Math.min(120, Math.max(13, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, age: true }));
@@ -213,17 +221,23 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.age ? errors.age : undefined}
-              delay={0}
-              min={13}
-              max={120}
             />
-            <FormInput.Simple
-              label="Altura (cm)"
-              type="number"
+            <DuoInput.Simple
+              label="Altura (cm) *"
+              type="text"
+              inputMode="numeric"
               placeholder="170"
-              value={formData.height}
-              onChange={(value) => {
-                setFormData({ ...formData, height: value as number | "" });
+              value={formData.height === "" ? "" : formData.height}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, height: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, height: Math.min(250, Math.max(100, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, height: true }));
@@ -231,17 +245,23 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.height ? errors.height : undefined}
-              delay={0}
-              min={100}
-              max={250}
             />
-            <FormInput.Simple
-              label="Peso (kg)"
-              type="number"
+            <DuoInput.Simple
+              label="Peso (kg) *"
+              type="text"
+              inputMode="numeric"
               placeholder="70"
-              value={formData.weight}
-              onChange={(value) => {
-                setFormData({ ...formData, weight: value as number | "" });
+              value={formData.weight === "" ? "" : formData.weight}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || v === "-") {
+                  setFormData({ ...formData, weight: "" });
+                  return;
+                }
+                const n = parseFloat(v);
+                if (!Number.isNaN(n)) {
+                  setFormData({ ...formData, weight: Math.min(300, Math.max(30, n)) });
+                }
               }}
               onBlur={() => {
                 setTouched((prev) => ({ ...prev, weight: true }));
@@ -249,9 +269,6 @@ export function ConsolidatedStep1({
               }}
               required
               error={touched.weight ? errors.weight : undefined}
-              delay={0}
-              min={30}
-              max={300}
             />
           </div>
 
@@ -327,17 +344,28 @@ export function ConsolidatedStep1({
                       label="Tipo de hormônio"
                       placeholder="Selecione"
                     />
-                    <FormInput.Simple
+                    <DuoInput.Simple
                       label="Meses de tratamento"
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       placeholder="0"
                       value={formData.hormoneTreatmentDuration ?? ""}
-                      onChange={(value) => {
-                        setFormData({
-                          ...formData,
-                          hormoneTreatmentDuration:
-                            typeof value === "number" ? value : undefined,
-                        });
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "" || v === "-") {
+                          setFormData({
+                            ...formData,
+                            hormoneTreatmentDuration: undefined,
+                          });
+                          return;
+                        }
+                        const n = parseFloat(v);
+                        if (!Number.isNaN(n)) {
+                          setFormData({
+                            ...formData,
+                            hormoneTreatmentDuration: Math.min(120, Math.max(0, n)),
+                          });
+                        }
                       }}
                       onBlur={() =>
                         setTouched((prev) => ({
@@ -350,9 +378,6 @@ export function ConsolidatedStep1({
                           ? errors.hormoneTreatmentDuration
                           : undefined
                       }
-                      min={0}
-                      max={120}
-                      delay={0}
                     />
                   </>
                 )}

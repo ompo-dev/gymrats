@@ -3,7 +3,7 @@
 import { Crown, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface SubscriptionBadgeProps {
+export interface SubscriptionBadgeProps {
 	status: "trial" | "premium" | "free";
 	daysRemaining?: number;
 	className?: string;

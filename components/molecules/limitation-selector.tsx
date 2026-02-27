@@ -3,8 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
-import { FormInput } from "@/components/molecules/forms/form-input";
-import { DuoButton, DuoSelect } from "@/components/duo";
+import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
 
 interface LimitationOption {
 	value: string;
@@ -200,7 +199,7 @@ function LimitationSelectorSimple({
 										/>
 									)}
 									{detail.type === "text" && (
-										<FormInput.Simple
+										<DuoInput.Simple
 											label="Descrição"
 											type="text"
 											placeholder={detail.placeholder}
@@ -209,10 +208,9 @@ function LimitationSelectorSimple({
 													? limitationDetails[limitationKey]
 													: ""
 											}
-											onChange={(value) =>
-												onDetailChange?.(limitationKey, value as string)
+											onChange={(e) =>
+												onDetailChange?.(limitationKey, e.target.value)
 											}
-											delay={0}
 										/>
 									)}
 								</motion.div>

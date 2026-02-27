@@ -3,10 +3,9 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
+import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
-import { FormInput } from "@/components/molecules/forms/form-input";
-import { DuoButton, DuoSelect } from "@/components/duo";
 import { type step1Schema, validateStep1 } from "../schemas";
 import type { DifficultyLevel, OnboardingData, StepProps } from "./types";
 
@@ -103,13 +102,23 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
       description="Vamos conhecer você melhor"
     >
       <div className="space-y-5">
-        <FormInput.Simple
-          label="Idade"
-          type="number"
+        <DuoInput.Simple
+          label="Idade *"
+          type="text"
+          inputMode="numeric"
           placeholder="25"
-          value={formData.age}
-          onChange={(value) => {
-            setFormData({ ...formData, age: value as number | "" });
+          value={formData.age === undefined ? "" : formData.age}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "" || v === "-") {
+              setFormData({ ...formData, age: undefined as unknown as number });
+              return;
+            }
+            const n = parseFloat(v);
+            if (!Number.isNaN(n)) {
+              const clamped = Math.min(120, Math.max(13, n));
+              setFormData({ ...formData, age: clamped });
+            }
           }}
           onBlur={() => {
             setTouched((prev) => ({ ...prev, age: true }));
@@ -117,17 +126,24 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           }}
           required
           error={touched.age ? errors.age : undefined}
-          delay={0.3}
-          min={13}
-          max={120}
         />
-        <FormInput.Simple
-          label="Altura (cm)"
-          type="number"
+        <DuoInput.Simple
+          label="Altura (cm) *"
+          type="text"
+          inputMode="numeric"
           placeholder="170"
-          value={formData.height}
-          onChange={(value) => {
-            setFormData({ ...formData, height: value as number | "" });
+          value={formData.height === undefined ? "" : formData.height}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "" || v === "-") {
+              setFormData({ ...formData, height: undefined as unknown as number });
+              return;
+            }
+            const n = parseFloat(v);
+            if (!Number.isNaN(n)) {
+              const clamped = Math.min(250, Math.max(100, n));
+              setFormData({ ...formData, height: clamped });
+            }
           }}
           onBlur={() => {
             setTouched((prev) => ({ ...prev, height: true }));
@@ -135,17 +151,24 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           }}
           required
           error={touched.height ? errors.height : undefined}
-          delay={0.4}
-          min={100}
-          max={250}
         />
-        <FormInput.Simple
-          label="Peso (kg)"
-          type="number"
+        <DuoInput.Simple
+          label="Peso (kg) *"
+          type="text"
+          inputMode="numeric"
           placeholder="70"
-          value={formData.weight}
-          onChange={(value) => {
-            setFormData({ ...formData, weight: value as number | "" });
+          value={formData.weight === undefined ? "" : formData.weight}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "" || v === "-") {
+              setFormData({ ...formData, weight: undefined as unknown as number });
+              return;
+            }
+            const n = parseFloat(v);
+            if (!Number.isNaN(n)) {
+              const clamped = Math.min(300, Math.max(30, n));
+              setFormData({ ...formData, weight: clamped });
+            }
           }}
           onBlur={() => {
             setTouched((prev) => ({ ...prev, weight: true }));
@@ -153,9 +176,6 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           }}
           required
           error={touched.weight ? errors.weight : undefined}
-          delay={0.5}
-          min={30}
-          max={300}
         />
 
         <div className="space-y-4">
