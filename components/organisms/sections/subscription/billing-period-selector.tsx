@@ -13,7 +13,7 @@ interface BillingPeriodSelectorProps {
 	annualDiscount: number;
 }
 
-export function BillingPeriodSelector({
+function BillingPeriodSelectorSimple({
 	selectedPeriod,
 	onSelect,
 	monthlyLabel,
@@ -63,3 +63,5 @@ export function BillingPeriodSelector({
 		</div>
 	);
 }
+
+export const BillingPeriodSelector = { Simple: BillingPeriodSelectorSimple };

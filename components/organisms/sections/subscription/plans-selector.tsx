@@ -34,7 +34,7 @@ interface PlansSelectorProps {
 	onSubscribe: () => void;
 }
 
-export function PlansSelector({
+function PlansSelectorSimple({
 	userType,
 	plans,
 	selectedPlan,
@@ -107,7 +107,7 @@ export function PlansSelector({
 
 				{/* Billing Period Selector - Ocultar para student com subscription ativa mensal */}
 				{!(userType === "student" && isPremiumActive) && (
-					<BillingPeriodSelector
+					<BillingPeriodSelector.Simple
 						selectedPeriod={selectedBillingPeriod}
 						onSelect={onSelectBillingPeriod}
 						monthlyLabel={texts.monthlyLabel}
@@ -189,7 +189,7 @@ export function PlansSelector({
 							return true;
 						})
 							.map((plan) => (
-								<PlanCard
+								<PlanCard.Simple
 									key={plan.id}
 									plan={plan}
 									isSelected={selectedPlan === plan.id}
@@ -228,3 +228,5 @@ export function PlansSelector({
 		</DuoCard.Root>
 	);
 }
+
+export const PlansSelector = { Simple: PlansSelectorSimple };

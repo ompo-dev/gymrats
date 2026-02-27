@@ -15,7 +15,7 @@ interface WorkoutHeaderProps {
 	skippedIndices?: number[];
 }
 
-export function WorkoutHeader({
+function WorkoutHeaderSimple({
 	onClose,
 	hearts: _hearts,
 	currentExercise,
@@ -56,3 +56,5 @@ export function WorkoutHeader({
 		</div>
 	);
 }
+
+export const WorkoutHeader = { Simple: WorkoutHeaderSimple };

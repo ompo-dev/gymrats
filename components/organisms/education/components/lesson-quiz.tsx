@@ -16,7 +16,7 @@ interface LessonQuizProps {
 	onRetry: () => void;
 }
 
-export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
+function LessonQuizSimple({ lesson, onComplete, onRetry }: LessonQuizProps) {
 	const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
 	const [quizScore, setQuizScore] = useState<number | null>(null);
 	const [showResults, setShowResults] = useState(false);
@@ -279,3 +279,5 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
 		</div>
 	);
 }
+
+export const LessonQuiz = { Simple: LessonQuizSimple };

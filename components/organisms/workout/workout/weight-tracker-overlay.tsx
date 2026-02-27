@@ -53,7 +53,7 @@ interface WeightTrackerOverlayProps {
 	isUnilateral?: boolean; // Se o exercício é unilateral
 }
 
-export function WeightTrackerOverlay({
+function WeightTrackerOverlaySimple({
 	isOpen,
 	onClose,
 	exerciseName,
@@ -123,3 +123,5 @@ export function WeightTrackerOverlay({
 		</AnimatePresence>
 	);
 }
+
+export const WeightTrackerOverlay = { Simple: WeightTrackerOverlaySimple };

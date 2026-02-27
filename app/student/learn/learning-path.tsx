@@ -138,7 +138,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
           if (slot.type === "rest" || !slot.workout) {
             return (
               <StaggerItem key={slot.id} className="relative w-full">
-                <WorkoutNode variant="rest" position={position} />
+                <WorkoutNode.Simple variant="rest" position={position} />
               </StaggerItem>
             );
           }
@@ -152,7 +152,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
           return (
             <StaggerItem key={slot.id} className="relative w-full">
-              <WorkoutNode
+              <WorkoutNode.Simple
                 workout={{
                   ...workout,
                   locked: slot.locked,

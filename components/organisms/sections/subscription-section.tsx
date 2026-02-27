@@ -376,7 +376,7 @@ function SubscriptionSectionSimple({
 
 			{/* Trial Offer - Mostrar apenas se não há subscription */}
 			{!isLoading && !isStartingTrial && hasNoSubscription && (
-				<TrialOffer
+				<TrialOffer.Simple
 					title={finalTexts.trialTitle}
 					description={finalTexts.trialDescription}
 					buttonText={finalTexts.trialButton}
@@ -387,7 +387,7 @@ function SubscriptionSectionSimple({
 
 			{/* Subscription Status */}
 			{subscription && (
-				<SubscriptionStatus
+				<SubscriptionStatus.Simple
 					subscription={subscription}
 					userType={userType}
 					texts={{
@@ -412,7 +412,7 @@ function SubscriptionSectionSimple({
 
 			{/* Plans Selector */}
 			{shouldShowPlans && (
-				<PlansSelector
+				<PlansSelector.Simple
 					userType={userType}
 					plans={plans}
 					selectedPlan={selectedPlan}

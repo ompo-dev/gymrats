@@ -110,7 +110,7 @@ function EducationalLessonsSimple({
 
 	if (showQuiz && selectedLesson?.quiz) {
 		return (
-			<LessonQuiz
+			<LessonQuiz.Simple
 				lesson={selectedLesson}
 				onComplete={handleQuizComplete}
 				onRetry={() => setShowQuiz(false)}
@@ -120,7 +120,7 @@ function EducationalLessonsSimple({
 
 	if (selectedLesson) {
 		return (
-			<LessonDetail
+			<LessonDetail.Simple
 				lesson={selectedLesson}
 				onBack={handleBack}
 				onComplete={handleCompleteLesson}
@@ -159,7 +159,7 @@ function EducationalLessonsSimple({
 				</div>
 			</FadeIn>
 
-			<LessonFilters
+			<LessonFilters.Simple
 				searchQuery={searchQuery}
 				selectedCategory={selectedCategory}
 				categoryOptions={categoryOptions}
@@ -167,7 +167,7 @@ function EducationalLessonsSimple({
 				onCategoryChange={setSelectedCategory}
 			/>
 
-			<LessonList
+			<LessonList.Simple
 				lessons={filteredLessons}
 				lessonsByCategory={lessonsByCategory}
 				categoryColors={categoryColors}

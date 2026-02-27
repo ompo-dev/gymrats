@@ -59,7 +59,7 @@ function WorkoutModalSimple() {
     );
 
     return (
-      <WorkoutCompletionView
+      <WorkoutCompletionView.Simple
         workout={workout}
         workoutData={workoutData}
         totalVolume={totalVolume}
@@ -146,7 +146,7 @@ function WorkoutModalSimple() {
           className="fixed inset-0 z-50 flex h-screen flex-col bg-duo-bg overflow-hidden"
         >
           {/* Sub-Modals & Overlays */}
-          <WeightTrackerOverlay
+          <WeightTrackerOverlay.Simple
             isOpen={weightTrackerModal.isOpen}
             onClose={weightTrackerModal.close}
             exerciseName={methods.getCurrentExerciseName()}
@@ -165,13 +165,13 @@ function WorkoutModalSimple() {
             isUnilateral={methods.isCurrentExerciseUnilateral()}
           />
 
-          <CardioConfigModal
+          <CardioConfigModal.Simple
             isOpen={cardioConfigModal.isOpen}
             onClose={cardioConfigModal.close}
             onSelectPreference={actions.setCardioPreference}
           />
 
-          <WorkoutHeader
+          <WorkoutHeader.Simple
             onClose={handlers.handleClose}
             hearts={5} // Default value or could be dynamic
             currentExercise={currentIndex + 1}
@@ -187,7 +187,7 @@ function WorkoutModalSimple() {
           <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col items-center justify-center p-4 sm:p-6 min-h-0">
             <div className="w-full max-w-2xl">
               <AnimatePresence mode="wait">
-                <ExerciseCardView
+                <ExerciseCardView.Simple
                   key={currentIndex}
                   exercise={currentExercise}
                   exerciseName={methods.getCurrentExerciseName()}
@@ -203,7 +203,7 @@ function WorkoutModalSimple() {
             </div>
           </div>
 
-          <WorkoutFooter
+          <WorkoutFooter.Simple
             isCardio={!!methods.isCurrentExerciseCardio()}
             isRunning={isRunning}
             currentExercise={currentExercise}

@@ -13,7 +13,7 @@ interface LessonFiltersProps {
 	onCategoryChange: (category: string) => void;
 }
 
-export function LessonFilters({
+function LessonFiltersSimple({
 	searchQuery,
 	selectedCategory,
 	categoryOptions,
@@ -66,3 +66,5 @@ export function LessonFilters({
 		</SlideIn>
 	);
 }
+
+export const LessonFilters = { Simple: LessonFiltersSimple };

@@ -23,7 +23,7 @@ interface LessonDetailProps {
 	};
 }
 
-export function LessonDetail({
+function LessonDetailSimple({
 	lesson,
 	onBack,
 	onComplete,
@@ -103,3 +103,5 @@ export function LessonDetail({
 		</div>
 	);
 }
+
+export const LessonDetail = { Simple: LessonDetailSimple };

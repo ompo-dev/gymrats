@@ -16,7 +16,7 @@ interface ExerciseCardViewProps {
 	completedSetsCount?: number; // Número de séries completadas
 }
 
-export function ExerciseCardView({
+function ExerciseCardViewSimple({
 	exercise,
 	exerciseName,
 	hasAlternative,
@@ -156,3 +156,5 @@ export function ExerciseCardView({
 		</motion.div>
 	);
 }
+
+export const ExerciseCardView = { Simple: ExerciseCardViewSimple };

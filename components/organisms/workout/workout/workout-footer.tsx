@@ -21,7 +21,7 @@ interface WorkoutFooterProps {
 	onSkip: () => void;
 }
 
-export function WorkoutFooter({
+function WorkoutFooterSimple({
 	isCardio,
 	isRunning,
 	currentExercise,
@@ -156,3 +156,5 @@ export function WorkoutFooter({
 		</div>
 	);
 }
+
+export const WorkoutFooter = { Simple: WorkoutFooterSimple };

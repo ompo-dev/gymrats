@@ -19,7 +19,7 @@ interface WorkoutCompletionViewProps {
 	onRepeat: () => void;
 }
 
-export function WorkoutCompletionView({
+function WorkoutCompletionViewSimple({
 	workout,
 	workoutData,
 	totalVolume,
@@ -243,3 +243,5 @@ export function WorkoutCompletionView({
 		</AnimatePresence>
 	);
 }
+
+export const WorkoutCompletionView = { Simple: WorkoutCompletionViewSimple };

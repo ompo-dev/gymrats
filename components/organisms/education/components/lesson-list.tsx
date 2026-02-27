@@ -16,7 +16,7 @@ interface LessonListProps {
 	getCategoryLabel: (category: string) => string;
 }
 
-export function LessonList({
+function LessonListSimple({
 	lessons,
 	lessonsByCategory,
 	categoryColors,
@@ -134,6 +134,8 @@ export function LessonList({
 		</SlideIn>
 	);
 }
+
+export const LessonList = { Simple: LessonListSimple };
 
 function LessonCard({
 	lesson,

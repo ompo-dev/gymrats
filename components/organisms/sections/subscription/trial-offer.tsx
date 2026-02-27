@@ -12,7 +12,7 @@ interface TrialOfferProps {
 	onStartTrial: () => Promise<void>;
 }
 
-export function TrialOffer({
+function TrialOfferSimple({
 	title,
 	description,
 	buttonText,
@@ -41,3 +41,5 @@ export function TrialOffer({
 		</DuoCard.Root>
 	);
 }
+
+export const TrialOffer = { Simple: TrialOfferSimple };

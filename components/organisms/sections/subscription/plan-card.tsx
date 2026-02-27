@@ -17,7 +17,7 @@ interface PlanCardProps {
 	};
 }
 
-export function PlanCard({
+function PlanCardSimple({
 	plan,
 	isSelected,
 	onSelect,
@@ -123,3 +123,5 @@ export function PlanCard({
 		</DuoCard.Root>
 	);
 }
+
+export const PlanCard = { Simple: PlanCardSimple };

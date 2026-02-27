@@ -34,7 +34,7 @@ interface WorkoutNodeRestProps extends WorkoutNodeBaseProps {
 
 type WorkoutNodeProps = WorkoutNodeWorkoutProps | WorkoutNodeRestProps;
 
-export function WorkoutNode(props: WorkoutNodeProps) {
+function WorkoutNodeSimple(props: WorkoutNodeProps) {
 	const { position } = props;
 	const isRest = props.variant === "rest";
 
@@ -303,3 +303,5 @@ export function WorkoutNode(props: WorkoutNodeProps) {
 		</div>
 	);
 }
+
+export const WorkoutNode = { Simple: WorkoutNodeSimple };

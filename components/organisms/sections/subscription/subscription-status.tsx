@@ -42,7 +42,7 @@ interface SubscriptionStatusProps {
 	onCancel: () => Promise<void>;
 }
 
-export function SubscriptionStatus({
+function SubscriptionStatusSimple({
 	subscription,
 	userType,
 	texts,
@@ -307,3 +307,5 @@ export function SubscriptionStatus({
 		</DuoCard.Root>
 	);
 }
+
+export const SubscriptionStatus = { Simple: SubscriptionStatusSimple };

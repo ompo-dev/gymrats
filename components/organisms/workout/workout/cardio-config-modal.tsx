@@ -13,7 +13,7 @@ interface CardioConfigModalProps {
 	) => void;
 }
 
-export function CardioConfigModal({
+function CardioConfigModalSimple({
 	isOpen,
 	onClose,
 	onSelectPreference,
@@ -140,3 +140,5 @@ export function CardioConfigModal({
 		</AnimatePresence>
 	);
 }
+
+export const CardioConfigModal = { Simple: CardioConfigModalSimple };
