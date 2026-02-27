@@ -393,6 +393,22 @@ function SubscriptionSectionSimple({
 				/>
 			)}
 
+			{/* Aluno com plano gratuito via academia Enterprise — não mostrar planos para assinar */}
+			{userType === "student" && subscription?.source === "GYM_ENTERPRISE" && (
+				<DuoCard.Root variant="default" className="border-duo-purple/30 bg-duo-purple/5">
+					<div className="p-4">
+						<p className="font-bold text-duo-text">
+							Você tem plano Basic gratuito
+						</p>
+						<p className="text-sm text-duo-gray-dark mt-1">
+							Está incluído por estar cadastrado em{" "}
+							<strong>{subscription.enterpriseGymName || "sua academia parceira"}</strong>.
+							Não é necessário assinar um plano próprio.
+						</p>
+					</div>
+				</DuoCard.Root>
+			)}
+
 			{/* Subscription Status */}
 			{subscription && (
 				<SubscriptionStatus.Simple

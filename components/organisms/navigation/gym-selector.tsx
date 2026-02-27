@@ -29,6 +29,8 @@ function GymSelectorSimple() {
 
 	const { toast } = useToast();
 
+	const subscriptionTabUrl = "/gym?tab=financial&view=subscription&subTab=subscription";
+
 	const handleSelectGym = async (gymId: string) => {
 		if (gymId === "create-new") {
 			if (!canCreateMultipleGyms) {
@@ -37,19 +39,21 @@ function GymSelectorSimple() {
 					description: "Seu plano atual não permite mais de uma academia. Faça upgrade para Premium para expandir sua rede!",
 					variant: "default",
 				});
+				router.push(subscriptionTabUrl);
 				return;
 			}
 			router.push("/gym/onboarding?mode=new");
 			return;
 		}
-		// Bloquear troca para academia inativa (downgrade) — exibir aviso de upgrade
+		// Bloquear troca para academia inativa — redirecionar para aba de assinatura
 		const gym = gyms.find((g) => g.id === gymId);
 		if (gym && !gym.isActive) {
 			toast({
 				title: "Unidade Inativa",
-				description: "Esta unidade está inativa no seu plano atual. Faça upgrade para Premium ou Enterprise para reativar múltiplas academias.",
+				description: "Faça upgrade para Premium ou Enterprise para reativar esta unidade.",
 				variant: "default",
 			});
+			router.push(subscriptionTabUrl);
 			return;
 		}
 		// 1. Limpar stores e cache para evitar dados da academia anterior
@@ -57,11 +61,11 @@ function GymSelectorSimple() {
 		const { useSubscriptionStore } = await import("@/stores/subscription-store");
 		useGymUnifiedStore.getState().resetForGymChange();
 		useSubscriptionStore.getState().resetForGymChange();
-		// Invalidar cache React Query (subscription, etc.)
-		queryClient.invalidateQueries({ queryKey: ["gym-subscription"] });
 		// 2. Atualizar academia ativa
 		await setActiveGymId(gymId);
-		// 3. Refetch dados da página para a nova academia
+		// 3. Invalidar e refetch subscription e dados da página para a nova academia
+		await queryClient.invalidateQueries({ queryKey: ["gym-subscription"] });
+		await queryClient.refetchQueries({ queryKey: ["gym-subscription"] });
 		router.refresh();
 	};
 

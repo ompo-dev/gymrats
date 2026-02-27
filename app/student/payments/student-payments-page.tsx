@@ -26,6 +26,8 @@ interface StudentPaymentsPageProps {
 		trialEnd: Date | null;
 		isTrial: boolean;
 		daysRemaining: number | null;
+		source?: "OWN" | "GYM_ENTERPRISE";
+		enterpriseGymName?: string;
 	} | null;
 	startTrial?: () => Promise<{ error?: string; success?: boolean }>;
 }

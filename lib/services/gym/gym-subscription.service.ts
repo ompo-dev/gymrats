@@ -8,21 +8,30 @@ export class GymSubscriptionService {
    * 2. Se houver múltiplas ativas, mantém a mais antiga (createdAt asc).
    */
   static async enforceActiveGymLimit(userId: string) {
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { activeGymId: true }
-    });
-
     const gyms = await db.gym.findMany({
       where: { userId },
       orderBy: { createdAt: "asc" }
     });
 
+    if (gyms.length === 0) return;
+
+    const hasQualifiedSubscription = await this.hasQualifiedSubscription(gyms.map(g => g.id));
+
+    // Se tem plano Premium/Enterprise, reativar TODAS as academias (ex.: usuário voltou ao plano)
+    if (hasQualifiedSubscription) {
+      await db.gym.updateMany({
+        where: { userId },
+        data: { isActive: true }
+      });
+      return;
+    }
+
     if (gyms.length <= 1) return;
 
-    // Verificar se o plano ainda permite múltiplas (redundância de segurança)
-    const hasQualifiedSubscription = await this.hasQualifiedSubscription(gyms.map(g => g.id));
-    if (hasQualifiedSubscription) return;
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { activeGymId: true }
+    });
 
     // Se chegou aqui, o usuário está no plano Basic/Free e tem > 1 gym.
     // Critério: manter a activeGymId ou a mais antiga.

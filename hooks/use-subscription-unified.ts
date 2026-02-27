@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
+import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
@@ -298,6 +299,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			) {
 				syncStores(cachedData);
 			}
+
+			// Gym: atualizar lista de academias após criar assinatura
+			if (userType === "gym") {
+				useGymsDataStore.getState().loadAllGyms();
+			}
 		},
 	});
 
@@ -382,6 +388,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			]);
 			if (updatedData !== undefined) {
 				syncStores(updatedData);
+			}
+
+			// Gym: atualizar lista de academias (canCreateMultipleGyms, isActive)
+			if (userType === "gym") {
+				useGymsDataStore.getState().loadAllGyms();
 			}
 		},
 	});

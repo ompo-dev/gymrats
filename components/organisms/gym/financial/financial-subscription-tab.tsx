@@ -281,7 +281,7 @@ export function FinancialSubscriptionTab({
 						}
 					: null
 			}
-			onPaymentSuccess={refetchSubscription}
+			onPaymentSuccess={async () => { await refetchSubscription(); }}
 			isLoading={isLoadingSubscription}
 			isStartingTrial={isStartingTrial}
 			isCreatingSubscription={isCreatingSubscription}
@@ -297,10 +297,10 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.basic,
 					perStudentPrice: perStudentPrices.basic,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard básico",
-						"Premium gratuito para todos os alunos",
-						"Relatórios básicos",
+						"1 unidade (uma academia)",
+						"Gestão de alunos e check-ins",
+						"Planos de mensalidade e cobrança",
+						"Dashboard e relatórios básicos",
 						"Suporte por email",
 					],
 				},
@@ -311,12 +311,11 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.premium,
 					perStudentPrice: perStudentPrices.premium,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard avançado",
-						"Premium gratuito para todos os alunos",
-						"Relatórios detalhados",
+						"Todas as features do Plano Básico",
+						"Múltiplas unidades (academias)",
+						"Relatórios avançados e métricas",
 						"Suporte prioritário",
-						"Integrações avançadas",
+						"Integrações (contabilidade, etc.)",
 					],
 				},
 				{
@@ -326,13 +325,11 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.enterprise,
 					perStudentPrice: perStudentPrices.enterprise,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard empresarial",
-						"Premium gratuito para todos os alunos",
+						"Todas as features do Plano Premium",
+						"Plano Basic gratuito para todos os seus alunos",
+						"Suporte dedicado",
 						"Relatórios personalizados",
-						"Suporte dedicado 24/7",
-						"Integrações ilimitadas",
-						"API personalizada",
+						"API e integrações ilimitadas",
 					],
 				},
 			]}

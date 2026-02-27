@@ -32,6 +32,8 @@ export interface UsePaymentsPageProps {
 		trialEnd: Date | null;
 		isTrial: boolean;
 		daysRemaining: number | null;
+		source?: "OWN" | "GYM_ENTERPRISE";
+		enterpriseGymName?: string;
 	} | null;
 	startTrial?: () => Promise<{ error?: string; success?: boolean }>;
 }
@@ -93,6 +95,8 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 		}
 	}, [subTab]);
 
+	// Ao abrir a aba Assinatura, garantir que subscription tem source/enterpriseGymName (refetch)
+
 	const hasOptimisticUpdate = storeSubscription?.id === "temp-trial-id";
 
 	const subscription: SubscriptionData | null = hasOptimisticUpdate
@@ -146,7 +150,14 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	}, [subscription?.trialEnd, subscription?.daysRemaining]);
 
 	const loaders = useStudent("loaders");
-	const { loadPaymentMethods, loadMemberships, loadPayments } = loaders;
+	const { loadSubscription, loadPaymentMethods, loadMemberships, loadPayments } = loaders;
+
+	// Ao abrir a aba Assinatura, refetch para ter source/enterpriseGymName atualizados
+	useEffect(() => {
+		if (activeTab === "subscription" && loadSubscription) {
+			loadSubscription();
+		}
+	}, [activeTab, loadSubscription]);
 
 	const membershipsData = useMemo(() => {
 		if (!storeMemberships || storeMemberships.length === 0) return [];
@@ -197,12 +208,13 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				monthlyPrice: 15,
 				annualPrice: 150.0,
 				features: [
-					"Gerador de treinos com IA",
-					"Gerador de dietas com IA",
-					"Análise de postura avançada",
-					"Coach pessoal virtual",
-					"Consultoria nutricional",
-					"Relatórios avançados",
+					"Treinos personalizados com IA",
+					"Planos de dieta com IA",
+					"Análise de postura",
+					"Acompanhamento de progresso e métricas",
+					"Histórico de treinos e recordes",
+					"Integração com academias parceiras",
+					"Suporte prioritário",
 				],
 			},
 		],
