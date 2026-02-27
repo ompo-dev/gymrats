@@ -91,6 +91,11 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Cache API só suporta http/https - ignora chrome-extension, blob, data, etc.
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return;
+  }
+
   // Ignora requisições não-GET para APIs (são gerenciadas pela fila offline)
   if (request.method !== "GET") {
     // Para requisições POST/PUT/PATCH/DELETE, deixa passar normalmente
@@ -147,10 +152,14 @@ async function networkFirstStrategy(request) {
   try {
     const response = await fetch(request);
 
-    // Se sucesso, cacheia a resposta
-    if (response.status === 200) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, response.clone());
+    // Se sucesso, cacheia a resposta (apenas para http/https)
+    if (response.status === 200 && (request.url.startsWith("http:") || request.url.startsWith("https:"))) {
+      try {
+        const cache = await caches.open(RUNTIME_CACHE);
+        await cache.put(request, response.clone());
+      } catch (cacheErr) {
+        console.warn("[SW] Não foi possível cachear:", request.url, cacheErr.message);
+      }
     }
 
     return response;
@@ -178,10 +187,14 @@ async function cacheFirstStrategy(request) {
   try {
     const response = await fetch(request);
 
-    // Cacheia resposta válida (status 200-299)
-    if (response.ok) {
-      const cache = await caches.open(RUNTIME_CACHE);
-      cache.put(request, response.clone());
+    // Cacheia resposta válida (apenas http/https - Cache API não suporta chrome-extension, etc.)
+    if (response.ok && (request.url.startsWith("http:") || request.url.startsWith("https:"))) {
+      try {
+        const cache = await caches.open(RUNTIME_CACHE);
+        await cache.put(request, response.clone());
+      } catch (cacheErr) {
+        console.warn("[SW] Não foi possível cachear:", request.url, cacheErr.message);
+      }
     }
 
     return response;

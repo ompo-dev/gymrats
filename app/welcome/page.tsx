@@ -396,7 +396,7 @@ function WelcomePageContent() {
 	];
 
 	return (
-		<div className="min-h-screen bg-white flex flex-col">
+		<div className="flex min-h-screen flex-col bg-duo-bg">
 			{/* Main Content */}
 			<div className="flex-1 flex items-center justify-center px-4 py-12 pb-32">
 				<div className="w-full max-w-md">
@@ -462,10 +462,10 @@ function WelcomePageContent() {
 												<div className="w-12 h-12 bg-duo-green/10 rounded-xl flex items-center justify-center mb-2">
 													<Icon className="w-6 h-6 text-duo-green" />
 												</div>
-												<h3 className="text-sm font-bold text-gray-900 mb-1">
+												<h3 className="mb-1 text-sm font-bold text-duo-fg">
 													{feature.title}
 												</h3>
-												<p className="text-xs text-gray-600 leading-tight">
+												<p className="text-xs leading-tight text-duo-fg-muted">
 													{feature.description}
 												</p>
 											</motion.div>
@@ -481,7 +481,7 @@ function WelcomePageContent() {
 						<motion.div
 							initial={{ opacity: 0, y: -10 }}
 							animate={{ opacity: 1, y: 0 }}
-							className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 text-sm font-medium"
+							className="mb-4 rounded-xl border-2 border-duo-danger bg-duo-danger/10 p-3 text-sm font-medium text-duo-danger"
 						>
 							{error}
 						</motion.div>
@@ -522,18 +522,18 @@ function WelcomePageContent() {
 						transition={{ delay: 0.7, duration: 0.6 }}
 						className="text-center"
 					>
-						<p className="text-sm text-gray-500">
+						<p className="text-sm text-duo-fg-muted">
 							Ao continuar, você concorda com nossos{" "}
 							<a
 								href="/terms"
-								className="text-[#58CC02] underline hover:text-[#47A302]"
+								className="text-duo-primary underline hover:text-duo-primary-dark"
 							>
 								Termos de Uso
 							</a>{" "}
 							e{" "}
 							<a
 								href="/privacy"
-								className="text-[#58CC02] underline hover:text-[#47A302]"
+								className="text-duo-primary underline hover:text-duo-primary-dark"
 							>
 								Política de Privacidade
 							</a>
@@ -549,12 +549,12 @@ export default function WelcomePage() {
 	return (
 		<Suspense
 			fallback={
-				<div className="min-h-screen bg-white flex items-center justify-center">
+				<div className="flex min-h-screen items-center justify-center bg-duo-bg">
 					<div className="text-center">
-						<div className="w-20 h-20 bg-linear-to-br from-[#58CC02] to-[#47A302] rounded-3xl flex items-center justify-center shadow-lg mx-auto mb-4">
-							<Dumbbell className="w-10 h-10 text-white" />
+						<div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-duo-primary shadow-lg">
+							<Dumbbell className="h-10 w-10 text-white" />
 						</div>
-						<p className="text-gray-600">Carregando...</p>
+						<p className="text-duo-fg-muted">Carregando...</p>
 					</div>
 				</div>
 			}

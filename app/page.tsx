@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LoadingScreen } from "@/components/organisms/loading-screen";
 
 export default function Home() {
 	const router = useRouter();
@@ -51,11 +52,9 @@ export default function Home() {
 	}, [router, mounted]);
 
 	return (
-		<div className="min-h-screen bg-linear-to-b from-[#58CC02] to-[#47A302] flex items-center justify-center">
-			<div className="text-center">
-				<div className="w-20 h-20 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-				<p className="text-white text-xl font-bold">Carregando...</p>
-			</div>
-		</div>
+		<LoadingScreen.Simple
+			variant="student"
+			message="Carregando..."
+		/>
 	);
 }
