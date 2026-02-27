@@ -200,14 +200,19 @@ export async function createPixForPendingPayment(
 	paymentId: string,
 	studentId: string,
 ): Promise<MembershipPaymentPixResult> {
-	const payment = await db.payment.findFirst({
-		where: { id: paymentId, studentId },
-		include: {
-			gym: true,
-			plan: true,
-			student: { include: { user: true } },
-		},
-	});
+	const [payment, student] = await Promise.all([
+		db.payment.findFirst({
+			where: { id: paymentId, studentId },
+			include: {
+				gym: true,
+				plan: true,
+			},
+		}),
+		db.student.findUnique({
+			where: { id: studentId },
+			include: { user: true },
+		}),
+	]);
 
 	if (!payment) throw new Error("Pagamento não encontrado");
 	if (payment.status !== "pending" && payment.status !== "overdue") {
@@ -241,11 +246,11 @@ export async function createPixForPendingPayment(
 			membershipId,
 			kind,
 		},
-		customer: payment.student?.user?.email
+		customer: student?.user?.email
 			? {
-					name: payment.student.user.name ?? "Aluno",
-					email: payment.student.user.email,
-					cellphone: payment.student.phone ?? "",
+					name: student.user.name ?? "Aluno",
+					email: student.user.email,
+					cellphone: student.phone ?? "",
 					taxId: "",
 				}
 			: undefined,
