@@ -832,7 +832,7 @@ export function StudentPaymentsPage({
 				/>
 			)}
 
-			<SubscriptionCancelDialog
+			<SubscriptionCancelDialog.Simple
 				open={cancelDialogModal.isOpen}
 				onOpenChange={(open) => {
 					if (open) {

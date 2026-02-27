@@ -432,9 +432,9 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 
 			<Modal.Content ref={scrollContainerRef}>
 				{isLoading ? (
-					<LoadingState message="Carregando exercícios..." />
+					<LoadingState.Simple message="Carregando exercícios..." />
 				) : exercises.length === 0 ? (
-					<EmptyState
+					<EmptyState.Simple
 						message={
 							debouncedQuery || selectedCategory || selectedMuscle
 								? `Nenhum exercício encontrado${
@@ -568,7 +568,7 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 							<LoadingMoreState message="Carregando mais exercícios..." />
 						)}
 						{!hasMore && exercises.length > 0 && (
-							<EndOfListState total={exercises.length} itemName="exercícios" />
+							<EndOfListState.Simple total={exercises.length} itemName="exercícios" />
 						)}
 					</>
 				)}

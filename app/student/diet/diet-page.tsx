@@ -132,7 +132,7 @@ export function DietPage() {
 			/>
 
 			{addMealModal.isOpen && (
-				<AddMealModal
+				<AddMealModal.Simple
 					onClose={addMealModal.close}
 					onAddMeal={(mealsData) => {
 						handleAddMealSubmit(mealsData);
@@ -142,7 +142,7 @@ export function DietPage() {
 			)}
 
 			{foodSearchModal.isOpen && (
-				<FoodSearch
+				<FoodSearch.Simple
 					onAddFood={handleAddFood}
 					onAddMeal={handleAddMealSubmit}
 					onClose={handleCloseFoodSearch}

@@ -6,7 +6,7 @@ interface EmptyStateProps {
 	message: string;
 }
 
-export function EmptyState({ message }: EmptyStateProps) {
+function EmptyStateSimple({ message }: EmptyStateProps) {
 	return (
 		<motion.div
 			initial={{ opacity: 0 }}
@@ -17,3 +17,5 @@ export function EmptyState({ message }: EmptyStateProps) {
 		</motion.div>
 	);
 }
+
+export const EmptyState = { Simple: EmptyStateSimple };

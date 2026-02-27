@@ -64,7 +64,7 @@ const categories = [
 
 const ITEMS_PER_PAGE = 40;
 
-export function FoodSearch({
+function FoodSearchSimple({
 	onAddFood,
 	onClose,
 	selectedMealId,
@@ -731,3 +731,5 @@ export function FoodSearch({
 		</AnimatePresence>
 	);
 }
+
+export const FoodSearch = { Simple: FoodSearchSimple };

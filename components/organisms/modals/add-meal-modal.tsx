@@ -32,7 +32,7 @@ const mealTypes = [
 	{ id: "post-workout", label: "Pós Treino", icon: "🏋️", defaultTime: "18:30" },
 ] as const;
 
-export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
+function AddMealModalSimple({ onClose, onAddMeal }: AddMealModalProps) {
 	const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 	const [times, setTimes] = useState<Record<string, string>>({});
 
@@ -222,3 +222,5 @@ export function AddMealModal({ onClose, onAddMeal }: AddMealModalProps) {
 		</AnimatePresence>
 	);
 }
+
+export const AddMealModal = { Simple: AddMealModalSimple };

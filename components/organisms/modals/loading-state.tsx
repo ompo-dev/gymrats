@@ -7,7 +7,7 @@ interface LoadingStateProps {
 	message?: string;
 }
 
-export function LoadingState({ message = "Carregando..." }: LoadingStateProps) {
+function LoadingStateSimple({ message = "Carregando..." }: LoadingStateProps) {
 	return (
 		<motion.div
 			initial={{ opacity: 0 }}
@@ -19,3 +19,5 @@ export function LoadingState({ message = "Carregando..." }: LoadingStateProps) {
 		</motion.div>
 	);
 }
+
+export const LoadingState = { Simple: LoadingStateSimple };

@@ -100,7 +100,7 @@ function AppHeaderSimple({
       </header>
 
       {!isGym && (
-        <StreakModal
+        <StreakModal.Simple
           open={streakModalOpen}
           onClose={() => setStreakModalOpen(false)}
           currentStreak={stats.streak}

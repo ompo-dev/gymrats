@@ -9,7 +9,7 @@ interface StreakModalProps {
 	currentStreak: number;
 }
 
-export function StreakModal({
+function StreakModalSimple({
 	open,
 	onClose,
 	currentStreak,
@@ -80,6 +80,8 @@ export function StreakModal({
 		</Dialog>
 	);
 }
+
+export const StreakModal = { Simple: StreakModalSimple };
 
 function cn(...classes: (string | boolean | undefined)[]) {
 	return classes.filter(Boolean).join(" ");

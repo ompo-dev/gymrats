@@ -193,7 +193,7 @@ export function Step4({ formData, setFormData }: StepProps) {
 			</StepCard.Simple>
 
 			{showEquipmentSearch && (
-				<EquipmentSearch
+				<EquipmentSearch.Simple
 					onAddEquipment={handleAddEquipment}
 					onClose={() => setShowEquipmentSearch(false)}
 					selectedEquipment={formData.equipment}

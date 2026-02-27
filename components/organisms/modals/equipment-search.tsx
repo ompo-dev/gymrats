@@ -16,7 +16,7 @@ interface EquipmentSearchProps {
 	selectedEquipment?: EquipmentItem[];
 }
 
-export function EquipmentSearch({
+function EquipmentSearchSimple({
 	onAddEquipment,
 	onClose,
 	selectedEquipment = [],
@@ -272,3 +272,5 @@ export function EquipmentSearch({
 		</AnimatePresence>
 	);
 }
+
+export const EquipmentSearch = { Simple: EquipmentSearchSimple };

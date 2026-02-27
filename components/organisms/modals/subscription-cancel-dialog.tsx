@@ -20,7 +20,7 @@ interface SubscriptionCancelDialogProps {
 	isLoading?: boolean;
 }
 
-export function SubscriptionCancelDialog({
+function SubscriptionCancelDialogSimple({
 	open,
 	onOpenChange,
 	onConfirm,
@@ -63,3 +63,5 @@ export function SubscriptionCancelDialog({
 		</AlertDialog>
 	);
 }
+
+export const SubscriptionCancelDialog = { Simple: SubscriptionCancelDialogSimple };

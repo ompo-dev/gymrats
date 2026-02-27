@@ -7,7 +7,7 @@ interface EndOfListStateProps {
 	itemName?: string;
 }
 
-export function EndOfListState({
+function EndOfListStateSimple({
 	total,
 	itemName = "itens",
 }: EndOfListStateProps) {
@@ -21,3 +21,5 @@ export function EndOfListState({
 		</motion.div>
 	);
 }
+
+export const EndOfListState = { Simple: EndOfListStateSimple };
