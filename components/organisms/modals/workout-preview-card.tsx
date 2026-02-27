@@ -284,10 +284,9 @@ export function WorkoutPreviewCard({
                 className="mt-4 space-y-2 border-t border-duo-border pt-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                {!hasExercises && isStreaming ? (
-                  <div className="flex items-center gap-2 py-4 text-sm text-duo-fg-muted">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-duo-green border-t-transparent" />
-                    Adicionando exercícios...
+                {!hasExercises ? (
+                  <div className="py-4 text-center text-sm text-duo-fg-muted">
+                    Nenhum exercício. Peça à IA para adicionar alguns!
                   </div>
                 ) : (
                   <AnimatePresence mode="popLayout">
