@@ -36,6 +36,14 @@ const SILENT_404_ROUTES = [
 	"/api/nutrition/",
 ];
 
+let _axiosInstance: AxiosInstance | null = null;
+
+/** Retorna instância axios compartilhada (com interceptors). Usado pelo mutator Orval. */
+export function getAxiosInstance(): AxiosInstance {
+	if (!_axiosInstance) _axiosInstance = createAxiosClient();
+	return _axiosInstance;
+}
+
 function createAxiosClient(): AxiosInstance {
 	const finalBaseURL =
 		typeof window !== "undefined" ? "" : API_BASE_URL || "http://localhost:3000";

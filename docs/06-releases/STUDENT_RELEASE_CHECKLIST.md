@@ -149,6 +149,8 @@ if (!progress) {
 
 ### 4.1 🔴 `getStudentUnits` – remover fallback para mock
 
+**Nota:** `lib/mock-data.ts` foi removido. Não usar mocks.
+
 **Problema:** Retorna `mockUnits` quando:
 
 - não autenticado (linhas 317-318)
@@ -335,6 +337,8 @@ A tab `payments` está em `blockedTabs` e `AdminOnly` envolve `StudentPaymentsPa
 
 ### 9.1 🔴 Remover fallback para `mockWorkouts`
 
+**Nota:** `lib/mock-data.ts` foi removido. Não usar mocks.
+
 **Problema:** Quando o workout não está nas units do store, usa `mockWorkouts.find(...)` (linhas 147-148, 158-159, 389, 407).
 
 **Arquivo:** `components/organisms/workout/workout-modal.tsx`  
@@ -398,7 +402,7 @@ Cardio está bloqueado para não-admin. Para quando liberar: substituir `mockUse
 
 ### 11.3 `ai-diet-generator` e `ai-workout-generator`
 
-Usam `generateDietWithAI` e `generateWorkoutWithAI` de `@/lib/mock-data`. Esses geradores provavelmente são usados na **PersonalizationPage**, que não está ligada a uma rota. Verificar se algum fluxo ativo usa esses componentes e, se sim, integrar com APIs reais.
+**Nota:** O arquivo `lib/mock-data.ts` foi removido (incluindo `generateDietWithAI` e `generateWorkoutWithAI`). Esses componentes devem usar as APIs reais (`/api/workouts/process`, `/api/nutrition/chat`, etc.). A **PersonalizationPage** não está ligada a uma rota; ao integrá-la, usar apenas APIs reais.
 
 ---
 

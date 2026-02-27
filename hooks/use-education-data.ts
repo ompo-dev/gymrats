@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { educationalLessons } from "@/lib/educational-data";
+import { educationalLessons } from "@/lib/educational-data/lessons";
 import type { EducationalLesson } from "@/lib/types";
 
 export function useEducationCategories() {

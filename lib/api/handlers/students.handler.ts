@@ -8,7 +8,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getAllStudentData } from "@/app/student/actions-unified";
 import { db } from "@/lib/db";
 import { getNextMonday } from "@/lib/utils/week";
-import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import { updateStudentProfileUseCase } from "@/lib/use-cases/students/update-profile";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
 	validateBody,
@@ -186,196 +186,25 @@ export async function updateStudentProfileHandler(
 ): Promise<NextResponse> {
 	try {
 		const auth = await requireStudent(request);
-		if ("error" in auth) {
-			return auth.response;
-		}
+		if ("error" in auth) return auth.response;
 
-		const userId = auth.userId;
-
-		// Validar body com Zod
 		const validation = await validateBody(request, updateStudentProfileSchema);
-		if (!validation.success) {
-			return validation.response;
-		}
+		if (!validation.success) return validation.response;
 
-		const data = validation.data;
-
-		const user = await db.user.findUnique({
-			where: { id: userId },
-			include: { student: true },
+		await updateStudentProfileUseCase({
+			userId: auth.userId,
+			data: validation.data,
 		});
 
-		if (!user) {
-			return badRequestResponse("Usuário não encontrado");
-		}
-
-		if (user.role !== "STUDENT") {
-			return badRequestResponse("Usuário não é um aluno");
-		}
-
-		let student = user.student;
-		if (!student) {
-			student = await db.student.create({
-				data: {
-					userId,
-					age: data.age,
-					gender: data.gender,
-					// Informações sobre identidade de gênero e terapia hormonal
-					isTrans: data.isTrans ?? false,
-					usesHormones: data.usesHormones ?? false,
-					hormoneType: data.hormoneType || null,
-				},
-			});
-		} else {
-			student = await db.student.update({
-				where: { id: student.id },
-				data: {
-					age: data.age,
-					gender: data.gender,
-					// Informações sobre identidade de gênero e terapia hormonal
-					isTrans: data.isTrans ?? undefined,
-					usesHormones: data.usesHormones ?? undefined,
-					hormoneType: data.hormoneType || null,
-				},
-			});
-		}
-
-		const profileData = {
-			studentId: student.id,
-			height: data.height
-				? typeof data.height === "number"
-					? data.height
-					: parseFloat(String(data.height))
-				: null,
-			weight: data.weight
-				? typeof data.weight === "number"
-					? data.weight
-					: parseFloat(String(data.weight))
-				: null,
-			fitnessLevel: data.fitnessLevel || null,
-			weeklyWorkoutFrequency: data.weeklyWorkoutFrequency
-				? parseInt(String(data.weeklyWorkoutFrequency), 10)
-				: null,
-			workoutDuration: data.workoutDuration
-				? parseInt(String(data.workoutDuration), 10)
-				: null,
-			goals:
-				data.goals && Array.isArray(data.goals)
-					? JSON.stringify(data.goals)
-					: null,
-			injuries:
-				data.injuries && Array.isArray(data.injuries)
-					? JSON.stringify(data.injuries)
-					: null,
-			availableEquipment:
-				data.availableEquipment && Array.isArray(data.availableEquipment)
-					? JSON.stringify(data.availableEquipment)
-					: null,
-			gymType: data.gymType || null,
-			preferredWorkoutTime: data.preferredWorkoutTime || null,
-			preferredSets: data.preferredSets
-				? parseInt(String(data.preferredSets), 10)
-				: null,
-			preferredRepRange: data.preferredRepRange || null,
-			restTime: data.restTime || null,
-			dietType: data.dietType || null,
-			allergies:
-				data.allergies && Array.isArray(data.allergies)
-					? JSON.stringify(data.allergies)
-					: null,
-			targetCalories: data.targetCalories
-				? parseInt(String(data.targetCalories), 10)
-				: null,
-			targetProtein: data.targetProtein
-				? typeof data.targetProtein === "number"
-					? data.targetProtein
-					: parseFloat(String(data.targetProtein))
-				: null,
-			targetCarbs: data.targetCarbs
-				? typeof data.targetCarbs === "number"
-					? data.targetCarbs
-					: parseFloat(String(data.targetCarbs))
-				: null,
-			targetFats: data.targetFats
-				? typeof data.targetFats === "number"
-					? data.targetFats
-					: parseFloat(String(data.targetFats))
-				: null,
-			mealsPerDay: data.mealsPerDay
-				? parseInt(String(data.mealsPerDay), 10)
-				: null,
-			// Valores metabólicos calculados
-			bmr: data.bmr
-				? typeof data.bmr === "number"
-					? data.bmr
-					: parseFloat(String(data.bmr))
-				: null,
-			tdee: data.tdee
-				? typeof data.tdee === "number"
-					? data.tdee
-					: parseFloat(String(data.tdee))
-				: null,
-			// Nível de atividade física (1-10)
-			activityLevel: data.activityLevel
-				? parseInt(String(data.activityLevel), 10)
-				: null,
-			// Tempo de tratamento hormonal (meses)
-			hormoneTreatmentDuration: data.hormoneTreatmentDuration
-				? parseInt(String(data.hormoneTreatmentDuration), 10)
-				: null,
-			// Limitações separadas
-			physicalLimitations:
-				data.physicalLimitations && Array.isArray(data.physicalLimitations)
-					? JSON.stringify(data.physicalLimitations)
-					: null,
-			motorLimitations:
-				data.motorLimitations && Array.isArray(data.motorLimitations)
-					? JSON.stringify(data.motorLimitations)
-					: null,
-			medicalConditions:
-				data.medicalConditions && Array.isArray(data.medicalConditions)
-					? JSON.stringify(data.medicalConditions)
-					: null,
-			// Detalhes das limitações
-			limitationDetails:
-				data.limitationDetails && typeof data.limitationDetails === "object"
-					? JSON.stringify(data.limitationDetails)
-					: null,
-			// Horas disponíveis por dia para treino
-			dailyAvailableHours: data.dailyAvailableHours
-				? typeof data.dailyAvailableHours === "number"
-					? data.dailyAvailableHours
-					: parseFloat(String(data.dailyAvailableHours))
-				: null,
-		};
-
-		await db.studentProfile.upsert({
-			where: { studentId: student.id },
-			create: profileData,
-			update: profileData,
-		});
-
-		// Verificar se já existe progress
-		const existingProgress = await db.studentProgress.findUnique({
-			where: { studentId: student.id },
-		});
-
-		if (!existingProgress) {
-			await db.studentProgress.create({
-				data: {
-					studentId: student.id,
-				},
-			});
-		}
-
-		// Inicializar trial de 14 dias automaticamente
-		await initializeStudentTrial(student.id);
-
-		return successResponse({
-			message: "Perfil salvo com sucesso",
-		});
+		return successResponse({ message: "Perfil salvo com sucesso" });
 	} catch (error) {
 		console.error("[updateStudentProfileHandler] Erro:", error);
+		if (error instanceof Error) {
+			if (error.message === "Usuário não encontrado")
+				return badRequestResponse("Usuário não encontrado");
+			if (error.message === "Usuário não é um aluno")
+				return badRequestResponse("Usuário não é um aluno");
+		}
 		return internalErrorResponse("Erro ao salvar perfil", error);
 	}
 }

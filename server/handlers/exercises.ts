@@ -1,5 +1,5 @@
 import type { Context } from "elysia";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import { successResponse } from "../utils/response";
 
 const EXERCISE_SEARCH_LIMIT = 50;

@@ -66,13 +66,16 @@ export function notFoundResponse(
 export function internalErrorResponse(
 	set: Context["set"],
 	message = "Erro interno do servidor",
-	error?: Error | { message?: string },
+	error?: unknown,
 ) {
 	console.error("[API Error]:", error);
-	return errorResponse(
-		set,
-		message,
-		500,
-		error instanceof Error ? error.message : error,
-	);
+	const details: Record<string, string> | undefined =
+		error instanceof Error
+			? { message: error.message }
+			: error && typeof error === "object" && "message" in error
+				? { message: String((error as { message?: unknown }).message ?? "") }
+				: error != null
+					? { message: String(error) }
+					: undefined;
+	return errorResponse(set, message, 500, details);
 }

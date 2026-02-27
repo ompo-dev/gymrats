@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
-import { muscleDatabase } from "@/lib/educational-data";
+import { muscleDatabase } from "@/lib/educational-data/muscles";
 import type { MuscleInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./empty-state";

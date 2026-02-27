@@ -19,7 +19,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
   calculateReps,
   calculateRest,

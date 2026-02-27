@@ -115,14 +115,8 @@
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/student/onboarding/steps/step5.tsx`
 
-### `mock-data.ts`
-- O que faz: implementa o módulo `mock-data.ts` da camada `lib`.
-- Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
-- Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `./types`
-- Expõe: `calculateLevel`, `checkStreak`, `generateWorkoutWithAI`, `generateDietWithAI`, `calculatePlacementResult`, `mockAchievements`, `mockUserProgress`, `mockUserStats`, `mockWorkouts`, `mockLessons`, `mockMeals`, `mockDietPlans`
-- Comunica com: Observabilidade/logs
-- Onde é usado/importado: `components/organisms/generators/ai-diet-generator.tsx`, `components/organisms/generators/ai-workout-generator.tsx`
+### ~~`mock-data.ts`~~ (removido)
+- O arquivo `mock-data.ts` foi removido. Dados de seed estão em `scripts/seed-database.js`. Componentes devem usar APIs reais.
 
 ### `posture-analysis.ts`
 - O que faz: implementa o módulo `posture-analysis.ts` da camada `lib`.

@@ -8,7 +8,7 @@ import {
 	updateWorkoutSchema,
 } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
 	calculateReps,
 	calculateRest,

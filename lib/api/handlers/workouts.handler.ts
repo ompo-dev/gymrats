@@ -6,7 +6,9 @@
 
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { addDays, getWeekStart } from "@/lib/utils/week";
+import { calculateStreak } from "@/lib/use-cases/workouts/streak";
+import { getUnitsUseCase } from "@/lib/use-cases/workouts/get-units";
+import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   validateBody,
@@ -27,47 +29,6 @@ import {
 } from "../utils/response.utils";
 
 /**
- * Calcula o streak baseado em dias consecutivos de treino
- * @param studentId ID do estudante
- * @returns Número de dias consecutivos que o estudante treinou
- */
-async function calculateStreak(studentId: string): Promise<number> {
-  // Buscar todos os workouts do histórico
-  const allWorkoutHistory = await db.workoutHistory.findMany({
-    where: { studentId },
-    select: { date: true },
-    orderBy: { date: "desc" },
-  });
-
-  // Agrupar por dia (ignorar hora)
-  const workoutDays = new Set<string>();
-  allWorkoutHistory.forEach((wh) => {
-    const dateOnly = new Date(wh.date);
-    dateOnly.setHours(0, 0, 0, 0);
-    workoutDays.add(dateOnly.toISOString().split("T")[0]);
-  });
-
-  // Calcular dias consecutivos desde hoje para trás
-  let currentStreak = 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const checkDate = new Date(today);
-
-  while (true) {
-    const dateStr = checkDate.toISOString().split("T")[0];
-    if (workoutDays.has(dateStr)) {
-      currentStreak++;
-      // Ir para o dia anterior
-      checkDate.setDate(checkDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  return currentStreak;
-}
-
-/**
  * GET /api/workouts/units
  * Busca units com workouts e exercícios
  */
@@ -76,205 +37,13 @@ export async function getUnitsHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
-
-    // Buscar units personalizadas do aluno primeiro, se não houver, buscar treinos globais
-    let units = await db.unit.findMany({
-      where: { studentId: studentId }, // Treinos personalizados do aluno
-      orderBy: { order: "asc" },
-      include: {
-        workouts: {
-          orderBy: { order: "asc" },
-          include: {
-            exercises: {
-              orderBy: { order: "asc" },
-              include: {
-                alternatives: {
-                  orderBy: { order: "asc" },
-                },
-              },
-            },
-            completions: {
-              where: {
-                studentId: studentId,
-              },
-              orderBy: {
-                date: "desc",
-              },
-              take: 1,
-            },
-          },
-        },
-      },
+    const { units } = await getUnitsUseCase({
+      studentId: auth.user.student!.id,
     });
 
-    // Se não houver treinos personalizados, buscar treinos globais (fallback)
-    if (units.length === 0) {
-      units = await db.unit.findMany({
-        where: { studentId: null }, // Treinos globais
-        orderBy: { order: "asc" },
-        include: {
-          workouts: {
-            orderBy: { order: "asc" },
-            include: {
-              exercises: {
-                orderBy: { order: "asc" },
-                include: {
-                  alternatives: {
-                    orderBy: { order: "asc" },
-                  },
-                },
-              },
-              completions: {
-                where: {
-                  studentId: studentId,
-                },
-                orderBy: {
-                  date: "desc",
-                },
-                take: 1,
-              },
-            },
-          },
-        },
-      });
-    }
-
-    // Buscar histórico de workouts completados
-    const completedWorkoutIds = await db.workoutHistory.findMany({
-      where: {
-        studentId: studentId,
-      },
-      select: {
-        workoutId: true,
-      },
-      distinct: ["workoutId"],
-    });
-
-    const completedIdsSet = new Set(
-      completedWorkoutIds.map((wh) => wh.workoutId),
-    );
-
-    // Transformar dados
-    const formattedUnits = units.map((unit) => ({
-      id: unit.id,
-      title: unit.title,
-      description: unit.description || "",
-      color: unit.color || "#58CC02",
-      icon: unit.icon || "💪",
-      workouts: unit.workouts.map((workout) => {
-        const isCompleted = completedIdsSet.has(workout.id);
-        const lastCompletion = workout.completions[0];
-
-        // Calcular locked
-        let isLocked = workout.locked;
-        const workoutIndex = unit.workouts.findIndex(
-          (w) => w.id === workout.id,
-        );
-        const unitIndex = units.findIndex((u) => u.id === unit.id);
-
-        if (unitIndex === 0 && workoutIndex === 0) {
-          isLocked = false;
-        } else if (!isLocked) {
-          if (unitIndex > 0 || workoutIndex > 0) {
-            let previousWorkout = null;
-
-            if (workoutIndex > 0) {
-              previousWorkout = unit.workouts[workoutIndex - 1];
-            } else if (unitIndex > 0) {
-              const previousUnit = units[unitIndex - 1];
-              if (previousUnit.workouts.length > 0) {
-                previousWorkout =
-                  previousUnit.workouts[previousUnit.workouts.length - 1];
-              }
-            }
-
-            if (previousWorkout) {
-              isLocked = !completedIdsSet.has(previousWorkout.id);
-            }
-          }
-        }
-
-        // Calcular stars
-        let stars: number | undefined;
-        if (lastCompletion) {
-          if (lastCompletion.overallFeedback === "excelente") {
-            stars = 3;
-          } else if (lastCompletion.overallFeedback === "bom") {
-            stars = 2;
-          } else if (lastCompletion.overallFeedback === "regular") {
-            stars = 1;
-          } else {
-            stars = 0;
-          }
-        }
-
-        return {
-          id: workout.id,
-          title: workout.title,
-          description: workout.description || "",
-          type: workout.type as "strength" | "cardio" | "flexibility" | "rest",
-          muscleGroup: workout.muscleGroup,
-          difficulty: workout.difficulty as
-            | "iniciante"
-            | "intermediario"
-            | "avancado",
-          exercises: workout.exercises.map((exercise) => ({
-            id: exercise.id,
-            name: exercise.name,
-            sets: exercise.sets,
-            reps: exercise.reps,
-            rest: exercise.rest,
-            notes: exercise.notes || undefined,
-            videoUrl: exercise.videoUrl || undefined,
-            educationalId: exercise.educationalId || undefined,
-            // Dados educacionais
-            primaryMuscles: exercise.primaryMuscles
-              ? JSON.parse(exercise.primaryMuscles)
-              : undefined,
-            secondaryMuscles: exercise.secondaryMuscles
-              ? JSON.parse(exercise.secondaryMuscles)
-              : undefined,
-            difficulty: exercise.difficulty || undefined,
-            equipment: exercise.equipment
-              ? JSON.parse(exercise.equipment)
-              : undefined,
-            instructions: exercise.instructions
-              ? JSON.parse(exercise.instructions)
-              : undefined,
-            tips: exercise.tips ? JSON.parse(exercise.tips) : undefined,
-            commonMistakes: exercise.commonMistakes
-              ? JSON.parse(exercise.commonMistakes)
-              : undefined,
-            benefits: exercise.benefits
-              ? JSON.parse(exercise.benefits)
-              : undefined,
-            scientificEvidence: exercise.scientificEvidence || undefined,
-            alternatives:
-              exercise.alternatives.length > 0
-                ? exercise.alternatives.map((alt) => ({
-                    id: alt.id,
-                    name: alt.name,
-                    reason: alt.reason,
-                    educationalId: alt.educationalId || undefined,
-                  }))
-                : undefined,
-          })),
-          xpReward: workout.xpReward,
-          estimatedTime: workout.estimatedTime,
-          locked: isLocked,
-          completed: isCompleted,
-          stars: stars,
-          completedAt: lastCompletion?.date || undefined,
-        };
-      }),
-    }));
-
-    return successResponse({ units: formattedUnits });
+    return successResponse({ units });
   } catch (error) {
     console.error("[getUnitsHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar treinos", error);
@@ -290,196 +59,29 @@ export async function getWeeklyPlanHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
-
-    const studentId = auth.user.student!.id;
+    if ("error" in auth) return auth.response;
 
     const student = await db.student.findUnique({
-      where: { id: studentId },
+      where: { id: auth.user.student!.id },
       select: { weekOverride: true },
     });
 
-    const weekStart = getWeekStart(student?.weekOverride ?? null);
-    const weekEnd = addDays(weekStart, 7);
-
-    let weeklyPlan = await db.weeklyPlan.findUnique({
-      where: { studentId },
-      include: {
-        slots: {
-          orderBy: { dayOfWeek: "asc" },
-          include: {
-            workout: {
-              include: {
-                exercises: {
-                  orderBy: { order: "asc" },
-                  include: {
-                    alternatives: { orderBy: { order: "asc" } },
-                  },
-                },
-                completions: {
-                  where: { studentId },
-                  orderBy: { date: "desc" },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
+    const result = await getWeeklyPlanUseCase({
+      studentId: auth.user.student!.id,
+      weekOverride: student?.weekOverride ?? null,
     });
 
-    if (!weeklyPlan) {
+    if (!result.weeklyPlan) {
       return successResponse({
         weeklyPlan: null,
         message: "Nenhum plano semanal. Crie um plano para começar.",
       });
     }
 
-    const completionsThisWeek = await db.workoutHistory.findMany({
-      where: {
-        studentId,
-        date: { gte: weekStart, lt: weekEnd },
-        workoutId: { not: null },
-      },
-      select: { workoutId: true, overallFeedback: true, date: true },
-    });
-
-    const completedByWorkoutId = new Map(
-      completionsThisWeek.map((c) => [
-        c.workoutId!,
-        { feedback: c.overallFeedback, date: c.date },
-      ]),
-    );
-
-    const formattedSlots = weeklyPlan.slots.map((slot, index) => {
-      const isRest = slot.type === "rest";
-      const completed = isRest
-        ? true
-        : slot.workoutId
-          ? completedByWorkoutId.has(slot.workoutId)
-          : false;
-
-      const prevSlot = index > 0 ? weeklyPlan!.slots[index - 1] : null;
-      const prevCompleted =
-        !prevSlot || prevSlot.type === "rest"
-          ? true
-          : prevSlot.workoutId
-            ? completedByWorkoutId.has(prevSlot.workoutId)
-            : false;
-
-      const locked = isRest ? false : !prevCompleted;
-
-      const completion = slot.workoutId
-        ? completedByWorkoutId.get(slot.workoutId)
-        : null;
-      let stars: number | undefined;
-      if (completion?.feedback) {
-        stars =
-          completion.feedback === "excelente"
-            ? 3
-            : completion.feedback === "bom"
-              ? 2
-              : completion.feedback === "regular"
-                ? 1
-                : 0;
-      }
-
-      if (isRest) {
-        return {
-          id: slot.id,
-          dayOfWeek: slot.dayOfWeek,
-          type: "rest" as const,
-          locked: false,
-          completed: true,
-        };
-      }
-
-      const workout = slot.workout;
-      if (!workout) {
-        return {
-          id: slot.id,
-          dayOfWeek: slot.dayOfWeek,
-          type: "rest" as const,
-          locked: false,
-          completed: true,
-        };
-      }
-
-      return {
-        id: slot.id,
-        dayOfWeek: slot.dayOfWeek,
-        type: "workout" as const,
-        workout: {
-          id: workout.id,
-          title: workout.title,
-          description: workout.description || "",
-          type: workout.type as "strength" | "cardio" | "flexibility" | "rest",
-          muscleGroup: workout.muscleGroup,
-          difficulty: workout.difficulty as
-            | "iniciante"
-            | "intermediario"
-            | "avancado",
-          exercises: workout.exercises.map((ex) => ({
-            id: ex.id,
-            name: ex.name,
-            sets: ex.sets,
-            reps: ex.reps,
-            rest: ex.rest,
-            notes: ex.notes || undefined,
-            videoUrl: ex.videoUrl || undefined,
-            educationalId: ex.educationalId || undefined,
-            primaryMuscles: ex.primaryMuscles
-              ? JSON.parse(ex.primaryMuscles)
-              : undefined,
-            secondaryMuscles: ex.secondaryMuscles
-              ? JSON.parse(ex.secondaryMuscles)
-              : undefined,
-            difficulty: ex.difficulty || undefined,
-            equipment: ex.equipment ? JSON.parse(ex.equipment) : undefined,
-            instructions: ex.instructions
-              ? JSON.parse(ex.instructions)
-              : undefined,
-            tips: ex.tips ? JSON.parse(ex.tips) : undefined,
-            commonMistakes: ex.commonMistakes
-              ? JSON.parse(ex.commonMistakes)
-              : undefined,
-            benefits: ex.benefits ? JSON.parse(ex.benefits) : undefined,
-            scientificEvidence: ex.scientificEvidence || undefined,
-            alternatives:
-              ex.alternatives.length > 0
-                ? ex.alternatives.map((alt) => ({
-                    id: alt.id,
-                    name: alt.name,
-                    reason: alt.reason,
-                    educationalId: alt.educationalId || undefined,
-                  }))
-                : undefined,
-          })),
-          xpReward: workout.xpReward,
-          estimatedTime: workout.estimatedTime,
-          locked,
-          completed,
-          stars,
-          completedAt: completion?.date || undefined,
-        },
-        locked,
-        completed,
-        stars,
-        completedAt: completion?.date || undefined,
-      };
-    });
-
     return successResponse(
       {
-        weeklyPlan: {
-          id: weeklyPlan.id,
-          title: weeklyPlan.title,
-          description: weeklyPlan.description ?? null,
-          slots: formattedSlots,
-        },
-        weekStart: weekStart.toISOString(),
+        weeklyPlan: result.weeklyPlan,
+        weekStart: result.weekStart.toISOString(),
       },
       200,
       { "Cache-Control": "no-store, no-cache, must-revalidate" },

@@ -17,22 +17,30 @@ export interface WorkoutExerciseItem {
 	order?: number;
 }
 
+export interface ParsedWorkoutPlanExercise {
+	name?: string;
+	sets?: number;
+	reps?: string;
+	rest?: number;
+	notes?: string;
+	focus?: string | null;
+	alternatives?: Array<{ name: string; reason?: string }>;
+}
+
+export interface ParsedWorkoutPlanItem {
+	title?: string;
+	name?: string;
+	description?: string;
+	type?: string;
+	muscleGroup?: string;
+	difficulty?: string;
+	exercises?: ParsedWorkoutPlanExercise[];
+}
+
 export interface ParsedWorkoutPlan {
 	intent?: string;
 	action?: string;
-	workouts?: Array<{
-		title?: string;
-		name?: string;
-		exercises?: Array<{
-			name?: string;
-			sets?: number;
-			reps?: string;
-			rest?: number;
-			notes?: string;
-			focus?: string | null;
-			alternatives?: Array<{ name: string; reason?: string }>;
-		}>;
-	}>;
+	workouts?: ParsedWorkoutPlanItem[];
 	targetWorkoutId?: string;
 	exerciseToRemove?: string;
 	exerciseToReplace?: { old: string; new?: string };
@@ -70,7 +78,12 @@ export interface WorkoutsAiProfile {
 	preferredSets?: number | null;
 	preferredRepRange?: "forca" | "hipertrofia" | "resistencia" | null;
 	restTime?: "curto" | "medio" | "longo" | null;
-	gymType?: string | null;
+	gymType?:
+		| "academia-completa"
+		| "academia-basica"
+		| "home-gym"
+		| "peso-corporal"
+		| null;
 	activityLevel?: number | null;
 	physicalLimitations?: string[];
 	motorLimitations?: string[];

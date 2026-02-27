@@ -1,6 +1,6 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
   calculateReps,
   calculateRest,
@@ -8,6 +8,7 @@ import {
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   createUnitSchema,
@@ -477,62 +478,6 @@ export async function deleteWorkoutHandler(
 // ==========================================
 // EXERCISES
 // ==========================================
-
-/**
- * Normaliza dados educacionais para formato do banco (JSON string)
- */
-interface EducationalDataInput {
-  primaryMuscles?: string[] | string;
-  secondaryMuscles?: string[] | string;
-  equipment?: string[] | string;
-  instructions?: string[] | string;
-  tips?: string[] | string;
-  commonMistakes?: string[] | string;
-  benefits?: string[] | string;
-  [key: string]: string | string[] | null | undefined;
-}
-
-function normalizeEducationalData(data: EducationalDataInput): Record<string, string | null> {
-  const normalized: Record<string, string | string[] | null | undefined> = { ...data };
-
-  // Campos que devem ser convertidos de array para JSON string
-  const arrayFields = [
-    "primaryMuscles",
-    "secondaryMuscles",
-    "equipment",
-    "instructions",
-    "tips",
-    "commonMistakes",
-    "benefits",
-  ];
-
-  for (const field of arrayFields) {
-    if (normalized[field] !== undefined && normalized[field] !== null) {
-      // Se já é string JSON, manter
-      if (typeof normalized[field] === "string") {
-        // Verificar se é JSON válido
-        try {
-          JSON.parse(normalized[field] as string);
-          // Já é JSON válido, manter
-        } catch {
-          // Não é JSON válido, tratar como string simples
-          normalized[field] = null;
-        }
-      } else if (Array.isArray(normalized[field])) {
-        // Converter array para JSON string
-        normalized[field] =
-          (normalized[field] as string[]).length > 0
-            ? JSON.stringify(normalized[field])
-            : null;
-      } else {
-        // Tipo inválido, remover
-        normalized[field] = null;
-      }
-    }
-  }
-
-  return normalized as Record<string, string | null>;
-}
 
 export async function createExerciseHandler(
   request: NextRequest,

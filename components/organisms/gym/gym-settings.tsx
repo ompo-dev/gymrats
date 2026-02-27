@@ -132,10 +132,10 @@ export function GymSettingsPage({
     const payload: Record<string, import("@/lib/types/api-error").JsonValue> = {};
     if (section === "info") {
       if (address !== (profile.address ?? "")) {
-        payload.address = address.trim() || undefined;
+        payload.address = address.trim() || null;
       }
       if (phone !== (profile.phone ?? "")) {
-        payload.phone = phone.trim() || undefined;
+        payload.phone = phone.trim() || null;
       }
       if (cnpj !== (profile.cnpj ?? "")) {
         payload.cnpj = cnpj.trim() || null;
@@ -162,7 +162,7 @@ export function GymSettingsPage({
       }
       payload.openingHours = {
         days: openDays,
-        byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
+        byDay: Object.keys(byDay).length > 0 ? byDay : null,
         open: DEFAULT_OPEN,
         close: DEFAULT_CLOSE,
       };

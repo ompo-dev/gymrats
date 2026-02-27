@@ -12,7 +12,7 @@
  */
 
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import { log } from "@/lib/observability";
 import type { ExerciseInfo } from "@/lib/types";
 

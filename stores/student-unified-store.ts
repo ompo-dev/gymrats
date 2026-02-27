@@ -8,7 +8,7 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
 import { logCommand } from "@/lib/offline/command-logger";
@@ -53,6 +53,15 @@ import {
 	loadSection,
 	loadSectionsIncremental,
 } from "./student/load-helpers";
+import {
+	createAuthSlice,
+	createFinancialSlice,
+	createNutritionSlice,
+	createProfileSlice,
+	createProgressSlice,
+	createSocialSlice,
+	createSyncSlice,
+} from "./student/slices";
 
 // ============================================
 // INTERFACE DO STORE
@@ -121,9 +130,12 @@ export interface StudentUnifiedState {
 		estimatedTime?: number;
 		type?: string;
 	}) => Promise<string>; // Retorna o ID do workout criado (temporário ou real)
-	updateWorkout: (workoutId: string, data: Partial<{ title?: string; description?: string; muscleGroup?: string; difficulty?: string; [key: string]: string | number | boolean | object | null }>) => Promise<void>;
+	updateWorkout: (
+		workoutId: string,
+		data: Partial<Pick<WorkoutSession, "title" | "description" | "muscleGroup" | "difficulty">>,
+	) => Promise<void>;
 	deleteWorkout: (workoutId: string) => Promise<void>;
-	addWorkoutExercise: (workoutId: string, data: { educationalId?: string; name?: string; [key: string]: string | number | boolean | object | null }) => Promise<void>;
+	addWorkoutExercise: (workoutId: string, data: Partial<WorkoutExercise>) => Promise<void>;
 	updateWorkoutExercise: (exerciseId: string, data: Partial<import("@/lib/types").WorkoutExercise>) => Promise<void>;
 	deleteWorkoutExercise: (exerciseId: string) => Promise<void>;
 
@@ -150,12 +162,30 @@ export interface StudentUnifiedState {
 
 export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 	persist(
-		(set, get) => ({
-			// === DADOS INICIAIS ===
-			data: initialStudentData,
+		(set, get) => {
+			const authSlice = createAuthSlice(set, get);
+			const profileSlice = createProfileSlice(set, get);
+			const progressSlice = createProgressSlice(set, get);
+			const socialSlice = createSocialSlice(set, get);
+			const financialSlice = createFinancialSlice(set, get);
+			const nutritionSlice = createNutritionSlice(set, get);
+			const syncSlice = createSyncSlice(set, get);
 
-			// === ACTIONS - CARREGAR DADOS ===
-			loadAll: async () => {
+			return {
+				// === DADOS INICIAIS ===
+				data: initialStudentData,
+
+				// === SLICES ===
+				...authSlice,
+				...profileSlice,
+				...progressSlice,
+				...socialSlice,
+				...financialSlice,
+				...nutritionSlice,
+				...syncSlice,
+
+				// === ACTIONS - CARREGAR DADOS (orquestração) ===
+				loadAll: async () => {
 				const currentState = get();
 				if (currentState.data.metadata.isLoading) {
 					return; // Já está carregando
@@ -414,72 +444,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 			},
 
-			// === MÉTODOS INDIVIDUAIS (Mantidos para compatibilidade) ===
-			loadUser: async () => {
-				const section = await loadSection("user");
-				set((state) => ({
-					data: {
-						...state.data,
-						user: { ...state.data.user, ...section.user },
-					},
-				}));
-			},
-
-			loadProgress: async () => {
-				const section = await loadSection("progress");
-				set((state) => ({
-					data: {
-						...state.data,
-						progress: { ...state.data.progress, ...section.progress },
-					},
-				}));
-			},
-
-			loadProfile: async () => {
-				const section = await loadSection("profile");
-				set((state) => ({
-					data: {
-						...state.data,
-						profile: { ...state.data.profile, ...section.profile },
-					},
-				}));
-			},
-
-			loadWeightHistory: async () => {
-				const section = await loadSection("weightHistory");
-				const newWeightHistory = section.weightHistory || [];
-
-				set((state) => {
-					// Calcular weightGain
-					const weightGain = calculateWeightGain(
-						newWeightHistory.length > 0
-							? newWeightHistory
-							: state.data.weightHistory,
-					);
-
-					// Atualizar currentWeight no profile se não existir
-					const currentWeight =
-						newWeightHistory.length > 0
-							? newWeightHistory[0].weight
-							: state.data.profile?.weight;
-
-					return {
-						data: {
-							...state.data,
-							weightHistory:
-								newWeightHistory.length > 0
-									? newWeightHistory
-									: state.data.weightHistory,
-							weightGain: weightGain ?? state.data.weightGain,
-							profile: {
-								...state.data.profile,
-								weight: currentWeight ?? state.data.profile?.weight,
-							},
-						},
-					};
-				});
-			},
-
+			// === MÉTODOS INDIVIDUAIS (loadUser, loadProgress, loadProfile, loadWeightHistory em slices) ===
 			loadWorkouts: async (force = false) => {
 				const currentState = get();
 
@@ -511,186 +476,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						weeklyPlan: section.weeklyPlan ?? state.data.weeklyPlan,
 					},
 				}));
-			},
-
-			loadWorkoutHistory: async () => {
-				const section = await loadSection("workoutHistory");
-				set((state) => ({
-					data: {
-						...state.data,
-						workoutHistory: section.workoutHistory || state.data.workoutHistory,
-					},
-				}));
-			},
-
-			loadPersonalRecords: async () => {
-				const section = await loadSection("personalRecords");
-				set((state) => ({
-					data: {
-						...state.data,
-						personalRecords:
-							section.personalRecords || state.data.personalRecords,
-					},
-				}));
-			},
-
-			loadNutrition: async () => {
-				// IMPORTANTE: Usar loadSection para aproveitar sistema de deduplicação
-				// Isso evita requisições duplicadas quando useLoadPrioritized também está carregando
-				const sectionData = await loadSection("dailyNutrition");
-
-				if (sectionData?.dailyNutrition) {
-					// Atualizar store com os dados carregados
-					// loadSection já atualiza o store via updateStoreWithSection em loadSectionsIncremental
-					// Mas garantimos aqui também para manter compatibilidade
-					set((state) => ({
-						data: {
-							...state.data,
-							dailyNutrition: sectionData.dailyNutrition!,
-						},
-					}));
-				}
-			},
-
-			loadSubscription: async () => {
-				const section = await loadSection("subscription");
-				set((state) => ({
-					data: {
-						...state.data,
-						subscription: section.subscription ?? state.data.subscription,
-					},
-				}));
-			},
-
-			loadMemberships: async () => {
-				const section = await loadSection("memberships");
-				set((state) => ({
-					data: {
-						...state.data,
-						memberships: section.memberships || state.data.memberships,
-					},
-				}));
-			},
-
-			loadPayments: async () => {
-				const section = await loadSection("payments");
-				set((state) => ({
-					data: {
-						...state.data,
-						payments: section.payments || state.data.payments,
-					},
-				}));
-			},
-
-			loadPaymentMethods: async () => {
-				const section = await loadSection("paymentMethods");
-				set((state) => ({
-					data: {
-						...state.data,
-						paymentMethods: section.paymentMethods || state.data.paymentMethods,
-					},
-				}));
-			},
-
-			loadDayPasses: async () => {
-				const section = await loadSection("dayPasses");
-				set((state) => ({
-					data: {
-						...state.data,
-						dayPasses: section.dayPasses || state.data.dayPasses,
-					},
-				}));
-			},
-
-			loadFriends: async () => {
-				const section = await loadSection("friends");
-				set((state) => ({
-					data: {
-						...state.data,
-						friends: section.friends || state.data.friends,
-					},
-				}));
-			},
-
-			loadGymLocations: async () => {
-				const section = await loadSection("gymLocations");
-				set((state) => ({
-					data: {
-						...state.data,
-						gymLocations: section.gymLocations || state.data.gymLocations,
-					},
-				}));
-			},
-
-			loadGymLocationsWithPosition: async (lat: number, lng: number) => {
-				try {
-					const response = await apiClient.get<{
-						gyms?: import("@/lib/types").GymLocation[];
-						gymLocations?: import("@/lib/types").GymLocation[];
-					}>("/api/gyms/locations", {
-						params: { lat: String(lat), lng: String(lng) },
-						timeout: 30000,
-					});
-					const data = response.data;
-					const gymLocations = Array.isArray(data)
-						? data
-						: data.gymLocations || data.gyms || [];
-					set((state) => ({
-						data: { ...state.data, gymLocations },
-					}));
-				} catch (error) {
-					if (process.env.NODE_ENV === "development") {
-						console.warn("[loadGymLocationsWithPosition] Erro:", error);
-					}
-				}
-			},
-
-			loadFoodDatabase: async () => {
-				try {
-					// Buscar todos os alimentos da API (sem query para pegar todos)
-					const response = await apiClient.get<{ foods: import("@/lib/types").FoodItem[] }>(
-						"/api/foods/search?limit=1000",
-						{
-							timeout: 30000, // 30 segundos
-						},
-					);
-
-					const foods = response.data.foods || [];
-
-					// Armazenar no store
-					set((state) => ({
-						data: {
-							...state.data,
-							foodDatabase: foods,
-						},
-					}));
-				} catch (error) {
-					// Tratamento específico para timeout
-					const err = error as { code?: string; message?: string; response?: { status?: number } };
-					if (
-						err?.code === "ECONNABORTED" ||
-						err?.message?.includes("timeout")
-					) {
-						console.warn(
-							"⚠️ Timeout ao carregar alimentos. Continuando com dados existentes.",
-						);
-						return;
-					}
-
-					// Se a tabela não existir, não mostrar erro
-					if (
-						err?.response?.status === 500 ||
-						err?.message?.includes("does not exist")
-					) {
-						console.log(
-							"⚠️ Tabela de alimentos não existe. Execute: node scripts/apply-nutrition-migration.js",
-						);
-						return;
-					}
-
-					console.error("Erro ao carregar alimentos:", error);
-					// Manter dados atuais do store em caso de erro
-				}
 			},
 
 			// === ACTIONS - ATUALIZAR DADOS ===
@@ -829,146 +614,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 			},
 
-			updateProfile: async (updates) => {
-				// Optimistic update
-				const previousProfile = get().data.profile;
-				set((state) => ({
-					data: {
-						...state.data,
-						profile: { ...state.data.profile, ...updates },
-					},
-				}));
-
-				// Sync with backend usando syncManager
-				try {
-					const token =
-						typeof window !== "undefined"
-							? getAuthToken()
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/students/profile",
-						method: "POST",
-						body: updates,
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "normal",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log("✅ Perfil salvo offline. Sincronizará quando online.");
-						return;
-					}
-				} catch (error) {
-					const err = error as { code?: string; message?: string };
-					const isNetworkError =
-						err?.code === "ECONNABORTED" ||
-						err?.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao atualizar perfil:", error);
-						set((state) => ({
-							data: {
-								...state.data,
-								profile: previousProfile,
-							},
-						}));
-					}
-				}
-			},
-
-			addWeight: async (weight, date = new Date(), notes) => {
-				const newEntry: WeightHistoryItem = {
-					date,
-					weight,
-					notes,
-				};
-
-				// Optimistic update - atualiza UI imediatamente
-				const previousWeightHistory = get().data.weightHistory;
-				const previousProfile = get().data.profile;
-				const newWeightHistory = [newEntry, ...get().data.weightHistory];
-
-				set((state) => {
-					// Recalcular weightGain após adicionar novo peso
-					const newWeightGain = calculateWeightGain(newWeightHistory);
-
-					return {
-						data: {
-							...state.data,
-							weightHistory: newWeightHistory,
-							weightGain: newWeightGain ?? state.data.weightGain,
-							profile: {
-								...state.data.profile,
-								weight,
-							},
-						},
-					};
-				});
-
-				// Sync with backend usando syncManager
-				try {
-					const token =
-						typeof window !== "undefined"
-							? getAuthToken()
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/students/weight",
-						method: "POST",
-						body: {
-							weight,
-							date: date.toISOString(),
-							notes,
-						},
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "high",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log("✅ Peso salvo offline. Sincronizará quando online.");
-						return;
-					}
-
-					// Se online e sucesso, atualizar weightHistory localmente (já foi feito optimistic update)
-					// Não precisa recarregar do servidor, o optimistic update já está correto
-					// await get().loadWeightHistory(); // Removido para evitar requisições desnecessárias
-				} catch (error) {
-					const err = error as { code?: string; message?: string };
-					const isNetworkError =
-						err?.code === "ECONNABORTED" ||
-						err?.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao adicionar peso:", error);
-						set((state) => ({
-							data: {
-								...state.data,
-								weightHistory: previousWeightHistory,
-								profile: previousProfile,
-							},
-						}));
-					}
-				}
-			},
-
 			completeWorkout: async (data) => {
 				// O workout já foi salvo no backend pelo workout-modal
 				// O handler completeWorkoutHandler já atualiza o progresso automaticamente
@@ -1007,243 +652,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						new CustomEvent("workoutCompleted", { detail: { workoutId: data.workoutId } }),
 					);
 				}
-			},
-
-			addPersonalRecord: (record) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						personalRecords: [record, ...state.data.personalRecords],
-					},
-				}));
-			},
-
-			addDayPass: (dayPass) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						dayPasses: [...state.data.dayPasses, dayPass],
-					},
-				}));
-			},
-
-			updateNutrition: async (updates) => {
-				// Optimistic update - atualiza UI imediatamente
-				const previousNutrition = get().data.dailyNutrition;
-				let updatedNutrition: DailyNutrition | undefined;
-				set((state) => {
-					const currentNutrition = state.data.dailyNutrition;
-					const updatedMeals =
-						updates.meals !== undefined
-							? updates.meals
-							: currentNutrition.meals;
-
-					// Recalcular totais automaticamente se meals foram atualizados
-					// IMPORTANTE: Calcular apenas refeições completadas (completed: true)
-					let calculatedTotals = {};
-					if (updates.meals !== undefined) {
-						const completedMeals = updatedMeals.filter(
-							(meal: Meal) => meal.completed === true,
-						);
-						const totalCalories = completedMeals.reduce(
-							(sum: number, meal: Meal) => sum + (meal.calories || 0),
-							0,
-						);
-						const totalProtein = completedMeals.reduce(
-							(sum: number, meal: Meal) => sum + (meal.protein || 0),
-							0,
-						);
-						const totalCarbs = completedMeals.reduce(
-							(sum: number, meal: Meal) => sum + (meal.carbs || 0),
-							0,
-						);
-						const totalFats = completedMeals.reduce(
-							(sum: number, meal: Meal) => sum + (meal.fats || 0),
-							0,
-						);
-
-						calculatedTotals = {
-							totalCalories,
-							totalProtein,
-							totalCarbs,
-							totalFats,
-						};
-					}
-
-					// Remover duplicatas se meals foram atualizados
-					const finalMeals =
-						updates.meals !== undefined
-							? deduplicateMeals(updatedMeals)
-							: currentNutrition.meals;
-
-					updatedNutrition = {
-						...currentNutrition,
-						...updates,
-						meals: finalMeals, // Usar meals sem duplicatas
-						...calculatedTotals, // Sobrescrever totais calculados se meals foram atualizados
-					};
-
-					return {
-						data: {
-							...state.data,
-							dailyNutrition: updatedNutrition,
-						},
-					};
-				});
-
-				// Sync with backend usando syncManager
-				try {
-					// Formatar dados para API (formato esperado: { date, meals?, waterIntake })
-					// Normalizar data para dateKey Brasil (reset às 03:00 BRT)
-					let normalizedDate: string;
-					try {
-						normalizedDate = getBrazilNutritionDateKey(updatedNutrition.date);
-					} catch {
-						normalizedDate = getBrazilNutritionDateKey();
-					}
-
-					// Determinar o que foi atualizado
-					const hasMealsUpdate = updates.meals !== undefined;
-					const hasWaterIntakeUpdate = updates.waterIntake !== undefined;
-
-					// Construir payload apenas com o que foi atualizado
-					const apiPayload: {
-						date: string;
-						meals?: Array<{
-							id?: string;
-							name: string;
-							calories: number;
-							protein: number;
-							carbs: number;
-							fats: number;
-							completed?: boolean;
-							type: string;
-							foods: Array<{ foodId: string; foodName: string; servings: number; calories: number; protein: number; carbs: number; fats: number; servingSize: string }>;
-						}>;
-					} = {
-						date: normalizedDate,
-					};
-
-					// Só incluir meals se meals foi explicitamente atualizado
-					// Isso evita deletar todas as refeições quando apenas waterIntake é atualizado
-					if (hasMealsUpdate) {
-						apiPayload.meals = (updatedNutrition.meals || []).map(
-							(meal: Meal, index: number) => ({
-								name: meal.name || "Refeição",
-								type: meal.type || "snack",
-								calories: meal.calories || 0,
-								protein: meal.protein || 0,
-								carbs: meal.carbs || 0,
-								fats: meal.fats || 0,
-								time: meal.time || null,
-								completed: meal.completed || false,
-								order: index,
-								foods: (meal.foods || []).map((food: import("@/lib/types").MealFoodItem) => ({
-									foodId: food.foodId || null,
-									foodName: food.foodName || "Alimento",
-									servings: food.servings || 1,
-									calories: food.calories || 0,
-									protein: food.protein || 0,
-									carbs: food.carbs || 0,
-									fats: food.fats || 0,
-									servingSize: food.servingSize || "100g",
-								})),
-							}),
-						);
-					}
-
-					// Só incluir waterIntake se foi explicitamente atualizado
-					if (hasWaterIntakeUpdate) {
-						apiPayload.waterIntake = updatedNutrition.waterIntake || 0;
-					}
-
-					const token =
-						typeof window !== "undefined"
-							? getAuthToken()
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/nutrition/daily",
-						method: "POST",
-						body: apiPayload,
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "normal",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log(
-							"✅ Nutrição salva offline. Sincronizará quando online.",
-						);
-						return;
-					}
-
-					// Se sincronizado com sucesso, recarregar dados do servidor
-					// para garantir que o store está sincronizado com o backend
-					// (o backend pode ter processado/validado os dados de forma diferente)
-					if (result.success && !result.queued) {
-						try {
-							// Recarregar nutrição do servidor para garantir sincronização
-							await get().loadNutrition();
-							console.log(
-								"[updateNutrition] ✅ Dados recarregados do servidor após atualização",
-							);
-						} catch (reloadError) {
-							console.warn(
-								"[updateNutrition] ⚠️ Erro ao recarregar dados após atualização:",
-								reloadError,
-							);
-							// Não falhar a operação se o reload falhar - optimistic update já foi aplicado
-						}
-					}
-				} catch (error) {
-					// Se a migration não foi aplicada, não mostrar erro
-					const err = error as {
-						response?: { data?: { code?: string } };
-						code?: string;
-						message?: string;
-					};
-					if (err?.response?.data?.code === "MIGRATION_REQUIRED") {
-						console.log(
-							"⚠️ Tabela de nutrição não existe. Execute: node scripts/apply-nutrition-migration.js",
-						);
-						return;
-					}
-
-					const isNetworkError =
-						err?.code === "ECONNABORTED" ||
-						err?.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao atualizar nutrição:", error);
-						// Reverter mudança otimista em caso de erro
-						set((state) => ({
-							data: {
-								...state.data,
-								dailyNutrition: previousNutrition,
-							},
-						}));
-					}
-				}
-			},
-
-			updateSubscription: async (updates) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						subscription: updates
-							? { ...(state.data.subscription || {}), ...updates } as StudentData["subscription"]
-							: null,
-					},
-				}));
 			},
 
 			createUnit: async (data) => {
@@ -1320,8 +728,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					}
 
 					// Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
-					if (result.success && !result.queued && result.data?.id) {
-						const realId = result.data.id;
+					const apiData = result.data as { id?: string } | undefined;
+					if (result.success && !result.queued && apiData?.id) {
+						const realId = apiData.id;
 						// Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
 						set((state) => ({
 							data: {
@@ -1736,9 +1145,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
 					// A resposta vem como { success: true, data: { data: workout, message: "..." } }
 					// ou { success: true, data: workout } dependendo da estrutura
-					const workoutData = result.data?.data || result.data;
-					if (result.success && !result.queued && workoutData?.id) {
-						const realId = workoutData.id;
+					const workoutData = (result.data as { data?: { id?: string }; id?: string })?.data ?? (result.data as { id?: string } | undefined);
+					const realId = workoutData?.id;
+					if (result.success && !result.queued && realId) {
 						// Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
 						set((state) => ({
 							data: {
@@ -2123,10 +1532,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				const newExercise: WorkoutExercise = {
 					id: command.id, // Usar command ID como ID temporário
-					name: data.name || "Novo Exercício",
-					sets: data.sets || 3,
-					reps: data.reps || "12",
-					rest: data.rest || 60,
+					name: data.name ?? "Novo Exercício",
+					sets: data.sets ?? 3,
+					reps: data.reps ?? "12",
+					rest: data.rest ?? 60,
 					notes: data.notes,
 					videoUrl: data.videoUrl,
 					educationalId: data.educationalId,
@@ -2276,13 +1685,30 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Se sincronizado com sucesso, atualizar exercício com TODOS os dados da resposta
 					// A resposta vem como { success: true, data: { data: exercise, message: "..." } }
 					// ou { success: true, data: exercise } dependendo da estrutura
-					const exerciseData = result.data?.data || result.data;
-					if (result.success && !result.queued && exerciseData?.id) {
+					const rawExerciseData = result.data?.data ?? result.data;
+					const exerciseData = (typeof rawExerciseData === "object" && rawExerciseData !== null && !Array.isArray(rawExerciseData))
+						? (rawExerciseData as Record<string, unknown>)
+						: undefined;
+					const exerciseId = exerciseData && typeof exerciseData.id === "string" ? exerciseData.id : undefined;
+					if (result.success && !result.queued && exerciseData && exerciseId) {
 						// Atualizar exercício com TODOS os dados retornados pela API
 						// Isso inclui: primaryMuscles, secondaryMuscles, instructions, tips, benefits,
 						// commonMistakes, equipment, difficulty, scientificEvidence, alternatives, etc.
 						// IMPORTANTE: workoutId pode ser temporário ou real - buscar workout por qualquer um
 						// Quando o workout for atualizado com ID real, o exercício já estará lá
+						const safeParse = (value: unknown): string[] | undefined => {
+							if (!value) return undefined;
+							if (Array.isArray(value)) return value.map(String);
+							if (typeof value === "string") {
+								try {
+									const parsed = JSON.parse(value);
+									return Array.isArray(parsed) ? parsed.map(String) : [value];
+								} catch {
+									return [value];
+								}
+							}
+							return undefined;
+						};
 						set((state) => ({
 							data: {
 								...state.data,
@@ -2300,44 +1726,27 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 												...workout,
 												exercises: workout.exercises.map((exercise) =>
 													exercise.id === command.id
-														? (() => {
-																// Função helper para parsear JSON com segurança
-																const safeParse = (value: string | number | boolean | object | null) => {
-																	if (!value) return null;
-																	if (Array.isArray(value)) return value;
-																	if (typeof value === "string") {
-																		try {
-																			return JSON.parse(value);
-																		} catch {
-																			return null;
-																		}
-																	}
-																	return value;
-																};
-
-																// Substituir exercício temporário pelo exercício completo da API
-																return {
-																	...exerciseData,
-																	// Garantir que arrays sejam parseados se vierem como JSON strings
-																	primaryMuscles: safeParse(
-																		exerciseData.primaryMuscles,
-																	),
-																	secondaryMuscles: safeParse(
-																		exerciseData.secondaryMuscles,
-																	),
-																	equipment: safeParse(exerciseData.equipment),
-																	instructions: safeParse(
-																		exerciseData.instructions,
-																	),
-																	tips: safeParse(exerciseData.tips),
-																	commonMistakes: safeParse(
-																		exerciseData.commonMistakes,
-																	),
-																	benefits: safeParse(exerciseData.benefits),
-																	// Garantir que alternatives seja um array
-																	alternatives: exerciseData.alternatives || [],
-																};
-															})()
+														? {
+																...exercise,
+																id: exerciseId,
+																name: (exerciseData.name as string) ?? exercise.name,
+																sets: typeof exerciseData.sets === "number" ? exerciseData.sets : exercise.sets,
+																reps: typeof exerciseData.reps === "string" ? exerciseData.reps : exercise.reps,
+																rest: typeof exerciseData.rest === "number" ? exerciseData.rest : exercise.rest,
+																notes: (exerciseData.notes as string | undefined) ?? exercise.notes,
+																videoUrl: (exerciseData.videoUrl as string | undefined) ?? exercise.videoUrl,
+																educationalId: (exerciseData.educationalId as string | undefined) ?? exercise.educationalId,
+																primaryMuscles: safeParse(exerciseData.primaryMuscles) ?? exercise.primaryMuscles,
+																secondaryMuscles: safeParse(exerciseData.secondaryMuscles) ?? exercise.secondaryMuscles,
+																equipment: safeParse(exerciseData.equipment) ?? exercise.equipment,
+																instructions: safeParse(exerciseData.instructions) ?? exercise.instructions,
+																tips: safeParse(exerciseData.tips) ?? exercise.tips,
+																commonMistakes: safeParse(exerciseData.commonMistakes) ?? exercise.commonMistakes,
+																benefits: safeParse(exerciseData.benefits) ?? exercise.benefits,
+																difficulty: (exerciseData.difficulty as WorkoutExercise["difficulty"]) ?? exercise.difficulty,
+																scientificEvidence: (exerciseData.scientificEvidence as string | undefined) ?? exercise.scientificEvidence,
+																alternatives: Array.isArray(exerciseData.alternatives) ? (exerciseData.alternatives as WorkoutExercise["alternatives"]) : (exercise.alternatives ?? []),
+															}
 														: exercise,
 												),
 											};
@@ -2851,77 +2260,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}));
 			},
 
-			// === ACTIONS - SYNC ===
-			syncAll: async () => {
-				await get().loadAll();
-			},
-
-			syncProgress: async () => {
-				await get().loadProgress();
-			},
-
-			syncNutrition: async () => {
-				await get().loadNutrition();
-			},
-
-			syncPendingActions: async () => {
-				// Sincroniza ações pendentes quando volta online
-				const { pendingActions } = get().data.metadata;
-
-				if (pendingActions.length === 0) {
-					return;
-				}
-
-				// Verificar se está online
-				if (typeof navigator !== "undefined" && !navigator.onLine) {
-					console.log(
-						"📡 Ainda offline - ações pendentes serão sincronizadas quando voltar online",
-					);
-					return;
-				}
-
-				console.log(
-					`🔄 Sincronizando ${pendingActions.length} ação(ões) pendente(s)...`,
-				);
-
-				// Tentar sincronizar cada ação pendente
-				// Nota: A sincronização real acontece automaticamente via syncManager
-				// quando a fila offline é processada. Esta função apenas marca como sincronizadas
-				// após verificar que não há mais ações na fila.
-
-				// Por enquanto, apenas limpa ações antigas (mais de 1 hora)
-				const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-				set((state) => ({
-					data: {
-						...state.data,
-						metadata: {
-							...state.data.metadata,
-							pendingActions: state.data.metadata.pendingActions.filter(
-								(action) => action.createdAt > oneHourAgo,
-							),
-						},
-					},
-				}));
-			},
-
-			// === ACTIONS - RESET ===
-			reset: () => {
-				set({ data: initialStudentData });
-			},
-
-			clearCache: () => {
-				// Limpa cache local (localStorage)
-				localStorage.removeItem("student-unified-storage");
-				set({ data: initialStudentData });
-			},
-		}),
+			};
+		},
 		{
 			name: "student-unified-storage",
-			storage: createIndexedDBStorage(),
-			partialize: (state) =>
-				({
-					data: state.data, // Persistir apenas os dados, não as actions
-				}),
+			storage: createJSONStorage(() => createIndexedDBStorage()),
+			partialize: (state): Pick<StudentUnifiedState, "data"> => ({
+				data: state.data, // Persistir apenas os dados, não as actions
+			}),
 			// Migra dados do localStorage para IndexedDB na primeira vez
 			onRehydrateStorage: () => {
 				return async (state) => {
