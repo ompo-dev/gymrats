@@ -54,11 +54,11 @@ export function DuoAchievementCard({
           <span className="mb-3 truncate text-sm font-bold text-[var(--duo-fg)]">
             {title}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-0.5">
             <span className="block tabular-nums text-xs font-bold text-[var(--duo-fg-muted)]">
               {current}/{total}
             </span>
-            <p className="mt-1 truncate text-xs text-[var(--duo-fg-muted)]">
+            <p className="truncate text-xs text-[var(--duo-fg-muted)]">
               {description}
             </p>
           </div>

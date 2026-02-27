@@ -122,12 +122,9 @@ export function ContinueWorkoutCard({
               <p className="font-bold text-duo-text">
                 {nextWorkout.workout.title}
               </p>
-              <p className="text-xs text-duo-fg-muted">{nextWorkout.unitTitle}</p>
-              {nextWorkout.workout.estimatedTime && (
-                <p className="mt-1 text-xs text-duo-fg-muted">
-                  ⏱️ {nextWorkout.workout.estimatedTime} min
-                </p>
-              )}
+              <p className="text-xs text-duo-fg-muted">
+                {nextWorkout.unitTitle}
+              </p>
             </div>
           </div>
           <DuoButton

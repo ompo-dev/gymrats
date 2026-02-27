@@ -294,6 +294,7 @@ export function StudentPaymentsPage({
 			});
 			setChangePlanPlans([]);
 			setChangePlanMembershipId(null);
+			await Promise.all([loadMemberships(), loadPayments()]);
 		} catch (err: unknown) {
 			const msg =
 				err && typeof err === "object" && "response" in err
@@ -305,6 +306,29 @@ export function StudentPaymentsPage({
 
 	const handlePixConfirmed = async () => {
 		await Promise.all([loadMemberships(), loadPayments()]);
+	};
+
+	const handlePayNowClick = async (payment: StudentPayment) => {
+		try {
+			const res = await apiClient.post<{
+				paymentId: string;
+				brCode: string;
+				brCodeBase64: string;
+				amount: number;
+			}>(`/api/students/payments/${payment.id}/pay-now`, {});
+			setPixModal({
+				paymentId: res.data.paymentId,
+				brCode: res.data.brCode,
+				brCodeBase64: res.data.brCodeBase64,
+				amount: res.data.amount,
+			});
+		} catch (err: unknown) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
+					: err instanceof Error ? err.message : "Erro ao gerar PIX";
+			toast({ variant: "destructive", title: "Erro", description: String(msg) });
+		}
 	};
 
 	// Usar dados do store (API → Zustand → Component)
@@ -528,19 +552,20 @@ export function StudentPaymentsPage({
 										setExpandedMembershipId(isExpanded ? null : membership.id)
 									}
 								>
-									<div className="flex items-start gap-3">
-										<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-green/20 flex items-center justify-center">
-											<Building2 className="h-6 w-6 text-duo-green" />
-										</div>
-										<div className="flex-1 min-w-0">
-											<h3 className="font-bold text-duo-text truncate">
-												{membership.gymName}
-											</h3>
-											<p className="text-xs text-duo-gray-dark mt-0.5 line-clamp-2 break-words">
-												{membership.gymAddress}
-											</p>
+									<div className="flex-1 min-w-0">
+										<div className="flex items-start gap-3">
+											<div className="h-12 w-12 shrink-0 rounded-xl bg-duo-green/20 flex items-center justify-center">
+												<Building2 className="h-6 w-6 text-duo-green" />
+											</div>
+											<div className="flex-1 min-w-0">
+												<h3 className="font-bold text-duo-text truncate">
+													{membership.gymName}
+												</h3>
+												<p className="text-xs text-duo-gray-dark mt-0.5 line-clamp-2 break-words">
+													{membership.gymAddress}
+												</p>
 
-											<div className="mt-3 flex flex-wrap items-center gap-2">
+												<div className="mt-3 flex flex-wrap items-center gap-2">
 												<span
 													className={cn(
 														"px-2 py-1 rounded-lg text-xs font-bold shrink-0",
@@ -564,22 +589,17 @@ export function StudentPaymentsPage({
 														Renovação automática
 													</span>
 												)}
-											</div>
+												</div>
 
-											<div className="mt-3 pt-3 border-t-2 border-duo-border">
-												<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+												<div className="mt-3 pt-3 border-t-2 border-duo-border flex flex-wrap items-center justify-between gap-4">
 													<div className="min-w-0">
-														<p className="text-xs text-duo-gray-dark">
-															{membership.planName}
-														</p>
+														<p className="text-xs text-duo-gray-dark">{membership.planName}</p>
 														<p className="text-lg font-bold text-duo-green mt-0.5">
 															R$ {membership.amount.toFixed(2)}/mês
 														</p>
 													</div>
-													<div className="sm:text-right min-w-0">
-														<p className="text-xs text-duo-gray-dark">
-															Próxima cobrança
-														</p>
+													<div className="min-w-0 text-right">
+														<p className="text-xs text-duo-gray-dark">Próxima cobrança</p>
 														<p className="text-sm font-bold text-duo-text mt-0.5">
 															{membership.nextBillingDate
 																? new Date(membership.nextBillingDate).toLocaleDateString(
@@ -589,9 +609,8 @@ export function StudentPaymentsPage({
 														</p>
 													</div>
 												</div>
-											</div>
 
-											{isExpanded && isActive && (
+												{isExpanded && isActive && (
 												<div
 													className="mt-4 pt-4 border-t-2 border-duo-border space-y-3"
 													onClick={(e) => e.stopPropagation()}
@@ -671,6 +690,7 @@ export function StudentPaymentsPage({
 													</span>
 												</div>
 											)}
+											</div>
 										</div>
 									</div>
 								</DuoCard>
@@ -730,7 +750,7 @@ export function StudentPaymentsPage({
 														payment.status === "overdue" &&
 															"bg-duo-red/20 text-duo-red",
 														payment.status === "canceled" &&
-															"bg-gray-100 text-duo-gray-dark",
+															"bg-[var(--duo-bg-elevated)] text-duo-gray-dark",
 													)}
 												>
 													{payment.status === "paid" && (
@@ -780,8 +800,15 @@ export function StudentPaymentsPage({
 												</div>
 											</div>
 
-											{payment.status === "pending" && (
-												<DuoButton className="w-full mt-3" size="sm">
+											{(payment.status === "pending" || payment.status === "overdue") && (
+												<DuoButton
+													className="w-full mt-3"
+													size="sm"
+													onClick={(e) => {
+														e.stopPropagation();
+														handlePayNowClick(payment);
+													}}
+												>
 													Pagar agora
 												</DuoButton>
 											)}

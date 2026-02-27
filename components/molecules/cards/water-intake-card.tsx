@@ -9,6 +9,8 @@ export interface WaterIntakeCardProps
 	target: number;
 	glasses: number;
 	onToggleGlass: (index: number) => void;
+	/** Modo somente leitura: copos não são clicáveis */
+	readOnly?: boolean;
 }
 
 export function WaterIntakeCard({
@@ -16,6 +18,7 @@ export function WaterIntakeCard({
 	target,
 	glasses,
 	onToggleGlass,
+	readOnly = false,
 	className,
 	...props
 }: WaterIntakeCardProps) {
@@ -43,25 +46,32 @@ export function WaterIntakeCard({
 			</div>
 
 			<div className="grid grid-cols-6 gap-2">
-				{Array.from({ length: totalGlasses }).map((_, i) => (
-					<button
-						key={i}
-						onClick={() => onToggleGlass(i)}
-						className={cn(
-							"aspect-square rounded-lg border-2 transition-all active:scale-95",
-							i < glasses
-								? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
-								: "border-duo-border bg-duo-bg-card hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
-						)}
-					>
-						<Droplets
+				{Array.from({ length: totalGlasses }).map((_, i) => {
+					const Wrapper = readOnly ? "div" : "button";
+					return (
+						<Wrapper
+							key={i}
+							{...(readOnly
+								? {}
+								: { onClick: () => onToggleGlass(i) })}
 							className={cn(
-								"mx-auto h-4 w-4",
-								i < glasses ? "text-duo-blue" : "text-duo-border",
+								"aspect-square rounded-lg border-2 transition-all",
+								!readOnly && "active:scale-95",
+								i < glasses
+									? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
+									: "border-duo-border bg-duo-bg-card",
+								!readOnly && "hover:border-duo-blue/50 shadow-[0_2px_0_#D1D5DB]",
 							)}
-						/>
-					</button>
-				))}
+						>
+							<Droplets
+								className={cn(
+									"mx-auto h-4 w-4",
+									i < glasses ? "text-duo-blue" : "text-duo-border",
+								)}
+							/>
+						</Wrapper>
+					);
+				})}
 			</div>
 		</DuoCard>
 	);

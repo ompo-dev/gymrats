@@ -74,9 +74,10 @@ export class GymMemberService {
             },
             workouts: {
               orderBy: { date: "desc" },
-              take: 5,
+              take: 50,
               include: {
                 exercises: true,
+                workout: { select: { id: true, title: true } },
               },
             },
           },
@@ -88,24 +89,98 @@ export class GymMemberService {
     if (!membership) return null;
 
     const { student } = membership;
+    const weightHistoryList = (student as any).weightHistory ?? [];
+    const goals: string[] = student.profile?.goals
+      ? JSON.parse(student.profile.goals)
+      : [];
+    const hasWeightLossGoal = goals.includes("perder-peso");
+    const currentWeight = student.profile?.weight ?? 0;
+    const oldestWeight =
+      weightHistoryList.length > 0
+        ? weightHistoryList[weightHistoryList.length - 1]?.weight
+        : null;
+    const weightGain =
+      currentWeight && oldestWeight != null
+        ? currentWeight - oldestWeight
+        : null;
+
+    const workoutHistory = student.workouts.map((wh: any) => {
+      const setsParsed = (ex: any) => {
+        try {
+          const s = JSON.parse(ex.sets);
+          return Array.isArray(s)
+            ? s.map((set: any, i: number) => ({
+                setNumber: i + 1,
+                weight: set.weight ?? 0,
+                reps: set.reps ?? 0,
+                completed: true,
+              }))
+            : [];
+        } catch {
+          return [];
+        }
+      };
+      return {
+        date: wh.date,
+        workoutId: wh.workoutId ?? "",
+        workoutName: wh.workout?.title ?? "Treino",
+        duration: wh.duration ?? 0,
+        totalVolume: wh.totalVolume ?? 0,
+        exercises: wh.exercises.map((ex: any) => ({
+          id: ex.id,
+          exerciseId: ex.exerciseId,
+          exerciseName: ex.exerciseName,
+          workoutId: wh.workoutId ?? "",
+          date: wh.date,
+          sets: setsParsed(ex),
+          notes: ex.notes ?? undefined,
+          formCheckScore: ex.formCheckScore ?? undefined,
+          difficulty: (ex.difficulty as any) ?? "ideal",
+        })),
+        overallFeedback: wh.overallFeedback as any,
+        bodyPartsFatigued: wh.bodyPartsFatigued
+          ? (JSON.parse(wh.bodyPartsFatigued) as any[])
+          : [],
+      };
+    });
+
+    const workoutsCompleted = student.progress?.workoutsCompleted ?? 0;
+    const totalVisits = Math.max(workoutsCompleted, workoutHistory.length);
+    const weeklyFreq = student.profile?.weeklyWorkoutFrequency ?? 3;
+    const expectedMonthly = weeklyFreq * 4;
+    const attendanceRate =
+      expectedMonthly > 0
+        ? Math.min(100, Math.round((totalVisits / expectedMonthly) * 100))
+        : 0;
+
+    const availableEquipment = student.profile?.availableEquipment
+      ? (JSON.parse(student.profile.availableEquipment) as string[])
+      : [];
+    const favoriteEquipment = availableEquipment;
+
     const studentData = {
       id: student.id,
       name: student.user.name,
       email: student.user.email,
       avatar: student.avatar || student.user.image,
-      age: student.age,
-      gender: student.gender,
-      phone: student.phone,
+      age: student.age ?? 0,
+      gender: student.gender ?? "",
+      phone: student.phone ?? "",
       joinDate: membership.createdAt,
       status: membership.status as any,
       membershipStatus: membership.status as any,
       plan: membership.plan?.name || "Sem plano",
       profile: student.profile
         ? {
-            height: student.profile.height,
-            weight: student.profile.weight,
-            fitnessLevel: student.profile.fitnessLevel,
-            goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
+            height: student.profile.height ?? 0,
+            weight: student.profile.weight ?? 0,
+            fitnessLevel: student.profile.fitnessLevel ?? "iniciante",
+            goals,
+            weeklyWorkoutFrequency: student.profile.weeklyWorkoutFrequency ?? 3,
+            targetCalories: student.profile.targetCalories ?? 2000,
+            targetProtein: student.profile.targetProtein ?? 150,
+            targetCarbs: student.profile.targetCarbs ?? 250,
+            targetFats: student.profile.targetFats ?? 65,
           }
         : null,
       currentStreak: student.progress?.currentStreak ?? 0,
@@ -116,19 +191,32 @@ export class GymMemberService {
             workoutsCompleted: student.progress.workoutsCompleted,
           }
         : null,
-      recentWorkouts: student.workouts.map((wh: any) => ({
+      recentWorkouts: student.workouts.slice(0, 5).map((wh: any) => ({
         id: wh.id,
         date: wh.date,
         duration: wh.duration,
         exercises: wh.exercises.map((ex: any) => ({
           name: ex.exerciseName,
-          sets: JSON.parse(ex.sets),
+          sets: (() => {
+            try {
+              return JSON.parse(ex.sets);
+            } catch {
+              return [];
+            }
+          })(),
         })),
       })),
-      weightHistory: (student as any).weightHistory?.map((wh: { date: Date; weight: number }) => ({
+      workoutHistory,
+      weightHistory: weightHistoryList.map((wh: { date: Date; weight: number }) => ({
         date: wh.date,
         weight: wh.weight,
-      })) ?? [],
+      })),
+      weightGain,
+      hasWeightLossGoal,
+      totalVisits,
+      attendanceRate,
+      favoriteEquipment,
+      currentWeight,
       gymMembership: {
         id: membership.id,
         gymId: membership.gymId,

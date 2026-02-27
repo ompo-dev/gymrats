@@ -17,6 +17,8 @@ export interface MealCardProps extends React.HTMLAttributes<HTMLDivElement> {
 	onToggleExpand?: () => void;
 	expandedFoodId?: string | null;
 	onToggleFoodExpand?: (foodId: string) => void;
+	/** Modo somente leitura: oculta botões de marcar completa e adicionar alimento */
+	readOnly?: boolean;
 }
 
 const mealIcons: Record<string, string> = {
@@ -49,6 +51,7 @@ export function MealCard({
 	onToggleExpand,
 	expandedFoodId,
 	onToggleFoodExpand,
+	readOnly = false,
 	className,
 	...props
 }: MealCardProps) {
@@ -103,44 +106,46 @@ export function MealCard({
 							</div>
 						</div>
 					</div>
-					<div className="flex items-center gap-2">
-						{onAddFood && (
-							<DuoButton
-								variant="white"
-								size="icon-sm"
-								onClick={(e) => {
-									e.stopPropagation();
-									onAddFood();
-								}}
-								title="Adicionar alimento"
-							>
-								<Plus className="h-4 w-4" />
-							</DuoButton>
-						)}
-						{!meal.completed ? (
-							<button
-								onClick={(e) => {
-									e.stopPropagation();
-									onComplete();
-								}}
-								className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green text-duo-green transition-all hover:bg-duo-green hover:text-white active:scale-90"
-								title="Marcar como completa"
-							>
-								<Check className="h-5 w-5" />
-							</button>
-						) : (
-							<button
-								onClick={(e) => {
-									e.stopPropagation();
-									onComplete();
-								}}
-								className="flex h-8 w-8 items-center justify-center rounded-full bg-duo-green transition-all hover:bg-duo-green/90 active:scale-90"
-								title="Desmarcar"
-							>
-								<Check className="h-5 w-5 text-white" />
-							</button>
-						)}
-					</div>
+					{!readOnly && (
+						<div className="flex items-center gap-2">
+							{onAddFood && (
+								<DuoButton
+									variant="white"
+									size="icon-sm"
+									onClick={(e) => {
+										e.stopPropagation();
+										onAddFood();
+									}}
+									title="Adicionar alimento"
+								>
+									<Plus className="h-4 w-4" />
+								</DuoButton>
+							)}
+							{!meal.completed ? (
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										onComplete();
+									}}
+									className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green text-duo-green transition-all hover:bg-duo-green hover:text-white active:scale-90"
+									title="Marcar como completa"
+								>
+									<Check className="h-5 w-5" />
+								</button>
+							) : (
+								<button
+									onClick={(e) => {
+										e.stopPropagation();
+										onComplete();
+									}}
+									className="flex h-8 w-8 items-center justify-center rounded-full bg-duo-green transition-all hover:bg-duo-green/90 active:scale-90"
+									title="Desmarcar"
+								>
+									<Check className="h-5 w-5 text-white" />
+								</button>
+							)}
+						</div>
+					)}
 				</div>
 
 				<div className="grid grid-cols-4 gap-2 text-center">
@@ -222,7 +227,7 @@ export function MealCard({
 
 				{/* Botão de excluir refeição quando expandido */}
 				<AnimatePresence>
-					{isExpanded && onDelete && (
+					{isExpanded && !readOnly && onDelete && (
 						<motion.div
 							initial={{ opacity: 0, height: 0 }}
 							animate={{ opacity: 1, height: "auto" }}

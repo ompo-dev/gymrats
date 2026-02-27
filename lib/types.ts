@@ -627,6 +627,8 @@ export interface StudentData {
   personalRecords: PersonalRecord[];
   currentWeight: number;
   weightHistory: { date: Date; weight: number }[];
+  weightGain?: number | null; // variação desde o primeiro registro (academia)
+  hasWeightLossGoal?: boolean; // objetivo perder-peso (academia)
   attendanceRate: number; // percentual
   favoriteEquipment: string[];
   assignedTrainer?: string;

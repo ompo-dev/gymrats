@@ -29,7 +29,7 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
-import type { GymLocation } from "@/lib/types";
+import type { GymLocation, PlanSlotData } from "@/lib/types";
 
 /**
  * Componente de Conteúdo da Home do Student
@@ -194,6 +194,7 @@ function StudentHomeContent() {
 		brCodeBase64: string;
 		amount: number;
 	} | null>(null);
+	const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
 	const handleJoinGym = async (gymId: string, planId: string) => {
 		try {
@@ -266,6 +267,7 @@ function StudentHomeContent() {
 
 	const handlePixConfirmed = async () => {
 		await Promise.all([loadMemberships(), loadPayments()]);
+		setProfileRefreshKey((k) => k + 1);
 	};
 
 	const handlePurchaseDayPass = (gymId: string) => {
@@ -413,11 +415,11 @@ function StudentHomeContent() {
 												description: "",
 												workouts: storeWeeklyPlan.slots
 													.filter(
-														(s) =>
+														(s: PlanSlotData) =>
 															s.type === "workout" &&
 															s.workout,
 													)
-													.map((s) => s.workout!),
+													.map((s: PlanSlotData) => s.workout!),
 												color: "#58CC02",
 												icon: "💪",
 											},
@@ -483,6 +485,7 @@ function StudentHomeContent() {
 							onBack={() => setGymId(null)}
 							onJoinPlan={handleJoinGym}
 							onChangePlan={handleChangePlan}
+							profileRefreshKey={profileRefreshKey}
 						/>
 					) : (
 						<GymMap

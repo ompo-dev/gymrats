@@ -13,6 +13,7 @@ import {
 	Flame,
 	Loader2,
 	Mail,
+	Moon,
 	PauseCircle,
 	Phone,
 	Target,
@@ -23,7 +24,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton } from "@/components/duo";
@@ -34,8 +35,10 @@ import {
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
+import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
+import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useGym } from "@/hooks/use-gym";
-import type { Payment, StudentData } from "@/lib/types";
+import type { DailyNutrition, Payment, PlanSlotData, StudentData, WeeklyPlanData } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +47,8 @@ interface GymStudentDetailProps {
 	payments?: Payment[];
 	onBack: () => void;
 }
+
+const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 export function GymStudentDetail({
 	student,
@@ -56,6 +61,77 @@ export function GymStudentDetail({
 	const [membershipStatus, setMembershipStatus] = useState<"active" | "inactive" | "suspended" | "canceled">(student?.membershipStatus ?? "inactive");
 
 	const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+	const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlanData | null | undefined>(undefined);
+	const [dailyNutrition, setDailyNutrition] = useState<DailyNutrition | null>(null);
+	const [nutritionDate, setNutritionDate] = useState(() =>
+		new Date().toISOString().slice(0, 10),
+	);
+	const [isLoadingWeeklyPlan, setIsLoadingWeeklyPlan] = useState(false);
+	const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+
+	const fetchWeeklyPlan = useCallback(async () => {
+		if (!student?.id) return;
+		setIsLoadingWeeklyPlan(true);
+		try {
+			const res = await fetch(`/api/gym/students/${student.id}/weekly-plan`);
+			const data = await res.json();
+			if (data.success && data.weeklyPlan) {
+				setWeeklyPlan(data.weeklyPlan);
+			} else {
+				setWeeklyPlan(null);
+			}
+		} catch {
+			setWeeklyPlan(null);
+		} finally {
+			setIsLoadingWeeklyPlan(false);
+		}
+	}, [student?.id]);
+
+	const fetchNutrition = useCallback(async (date?: string) => {
+		if (!student?.id) return;
+		const d = date ?? nutritionDate;
+		setIsLoadingNutrition(true);
+		try {
+			const res = await fetch(
+				`/api/gym/students/${student.id}/nutrition?date=${d}`,
+			);
+			const data = await res.json();
+			if (data.success) {
+				setDailyNutrition({
+					date: data.date,
+					meals: data.meals ?? [],
+					totalCalories: data.totalCalories ?? 0,
+					totalProtein: data.totalProtein ?? 0,
+					totalCarbs: data.totalCarbs ?? 0,
+					totalFats: data.totalFats ?? 0,
+					waterIntake: data.waterIntake ?? 0,
+					targetCalories: data.targetCalories ?? 2000,
+					targetProtein: data.targetProtein ?? 150,
+					targetCarbs: data.targetCarbs ?? 250,
+					targetFats: data.targetFats ?? 65,
+					targetWater: data.targetWater ?? 3000,
+				});
+			} else {
+				setDailyNutrition(null);
+			}
+		} catch {
+			setDailyNutrition(null);
+		} finally {
+			setIsLoadingNutrition(false);
+		}
+	}, [student?.id, nutritionDate]);
+
+	useEffect(() => {
+		if (activeTab === "workouts" && student?.id) {
+			fetchWeeklyPlan();
+		}
+	}, [activeTab, student?.id, fetchWeeklyPlan]);
+
+	useEffect(() => {
+		if (activeTab === "diet" && student?.id) {
+			fetchNutrition();
+		}
+	}, [activeTab, student?.id, fetchNutrition]);
 
 	const handleMembershipAction = async (
 		action: "suspended" | "canceled" | "active",
@@ -363,21 +439,21 @@ export function GymStudentDetail({
 									<h2 className="font-bold text-[var(--duo-fg)]">Informações do Perfil</h2>
 								</div>
 							</DuoCardHeader>
-							<div className="space-y-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 								{[
-									{ label: "Idade", value: `${student.age} anos` },
+									{ label: "Idade", value: `${student.age ?? 0} anos` },
 									{
 										label: "Gênero",
-										value: student.gender === "male" ? "Masculino" : "Feminino",
+										value: student.gender === "male" ? "Masculino" : student.gender === "female" ? "Feminino" : student.gender || "—",
 									},
-									{ label: "Altura", value: `${student.profile?.height ?? 0}cm` },
+									{ label: "Altura", value: `${student.profile?.height ?? 0} cm` },
 									{
 										label: "Peso Atual",
-										value: `${student.currentWeight}kg`,
+										value: `${student.currentWeight ?? 0} kg`,
 									},
 									{
 										label: "Nível",
-										value: student.profile?.fitnessLevel ?? "beginner",
+										value: String(student.profile?.fitnessLevel ?? "iniciante").replace("beginner", "iniciante"),
 									},
 									{
 										label: "Frequência Semanal",
@@ -405,174 +481,201 @@ export function GymStudentDetail({
 									<h2 className="font-bold text-[var(--duo-fg)]">Objetivos</h2>
 								</div>
 							</DuoCardHeader>
-							<div className="space-y-2">
+							<div className="flex flex-wrap gap-2">
 								{(student.profile?.goals ?? []).map((goal) => (
-									<DuoCard
+									<span
 										key={goal}
-										variant="highlighted"
-										size="sm"
-										className="p-3"
+										className="rounded-full bg-duo-blue/15 px-3 py-1 text-sm font-bold text-duo-blue capitalize"
 									>
-										<p className="font-bold capitalize text-duo-text">
-											{goal.replace("-", " ")}
-										</p>
-									</DuoCard>
+										{goal.replace("-", " ")}
+									</span>
 								))}
+								{(student.profile?.goals ?? []).length === 0 && (
+									<span className="text-sm text-duo-gray-dark">Nenhum objetivo definido</span>
+								)}
 							</div>
 
 							<h3 className="mb-3 mt-6 font-bold text-duo-text">
 								Equipamentos Favoritos
 							</h3>
-							<div className="space-y-2">
+							<div className="flex flex-wrap gap-2">
 								{(student.favoriteEquipment ?? []).map((equipment) => (
-									<DuoCard key={equipment} variant="default" size="sm">
-										<div className="flex items-center gap-2">
-											<Dumbbell className="h-4 w-4 text-duo-orange" />
-											<span className="text-sm text-duo-text">{equipment}</span>
-										</div>
-									</DuoCard>
+									<span
+										key={equipment}
+										className="inline-flex items-center gap-1.5 rounded-full bg-duo-orange/15 px-3 py-1 text-sm font-bold text-duo-orange"
+									>
+										<Dumbbell className="h-3.5 w-3.5" />
+										{equipment}
+									</span>
 								))}
+								{(student.favoriteEquipment ?? []).length === 0 && (
+									<span className="text-sm text-duo-gray-dark">Nenhum equipamento preferido</span>
+								)}
 							</div>
 						</DuoCard>
 
-						<DuoCard variant="default" padding="md" className="lg:col-span-2">
-							<DuoCardHeader>
-								<div className="flex items-center gap-2">
-									<TrendingUp className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-									<h2 className="font-bold text-[var(--duo-fg)]">Evolução de Peso</h2>
-								</div>
-							</DuoCardHeader>
-							<div className="space-y-2">
-								{(student.weightHistory ?? []).map((record, whIdx) => (
-									<DuoCard
-										key={`${record.date?.toISOString?.() ?? whIdx}-${record.weight}`}
-										variant="default"
-										size="sm"
-									>
-										<div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-											<div className="flex items-center gap-2 flex-1 min-w-0">
-												<Calendar className="h-5 w-5 text-duo-gray-dark shrink-0" />
-												<span className="font-bold text-duo-text text-sm sm:text-base truncate">
-													{formatDatePtBr(record.date) || "N/A"}
-												</span>
-											</div>
-											<div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
-												<span className="text-xl sm:text-2xl font-bold text-duo-blue">
-													{record.weight}kg
-												</span>
-												{whIdx < (student.weightHistory ?? []).length - 1 && (
-													<div className="flex items-center gap-1">
-														{record.weight <
-														(student.weightHistory ?? [])[
-															whIdx + 1
-														]?.weight ? (
-															<>
-																<TrendingUp className="h-4 w-4 text-duo-red shrink-0" />
-																<span className="text-xs sm:text-sm font-bold text-duo-red whitespace-nowrap">
-																	+
-																	{(
-																		((student.weightHistory ?? [])[whIdx + 1]?.weight ?? record.weight) -
-																		record.weight
-																	).toFixed(1)}
-																	kg
-																</span>
-															</>
-														) : (
-															<>
-																<TrendingUp className="h-4 w-4 rotate-180 text-duo-green shrink-0" />
-																<span className="text-xs sm:text-sm font-bold text-duo-green whitespace-nowrap">
-																	{(
-																		record.weight -
-																		((student.weightHistory ?? [])[whIdx + 1]?.weight ?? record.weight)
-																	).toFixed(1)}
-																	kg
-																</span>
-															</>
-														)}
-													</div>
-												)}
-											</div>
-										</div>
-									</DuoCard>
-								))}
-							</div>
-						</DuoCard>
+						<div className="lg:col-span-2">
+							<WeightProgressCard
+								currentWeight={student.currentWeight ?? null}
+								weightGain={(student as { weightGain?: number | null }).weightGain ?? null}
+								hasWeightLossGoal={(student as { hasWeightLossGoal?: boolean }).hasWeightLossGoal ?? false}
+								weightHistory={student.weightHistory ?? []}
+							/>
+						</div>
 					</div>
 				</SlideIn>
 			)}
 
 			{activeTab === "workouts" && (
 				<SlideIn delay={0.4}>
-					<DuoCard variant="default" padding="md">
-						<DuoCardHeader>
-							<div className="flex items-center gap-2">
-								<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-								<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Treinos</h2>
-							</div>
-						</DuoCardHeader>
-						{(student.workoutHistory ?? []).length === 0 ? (
-							<DuoCard variant="default" size="default" className="p-8 text-center">
-								<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
-								<p className="font-bold text-duo-gray-dark">Nenhum treino registrado ainda</p>
-								<p className="mt-1 text-sm text-duo-gray-dark">
-									Os treinos do aluno aparecerão aqui assim que forem completados.
-								</p>
-							</DuoCard>
-						) : (
-							<div className="space-y-3">
-								{(student.workoutHistory ?? []).map((wh, idx) => {
-									const exercises = wh.exercises ?? [];
-									return (
-										<DuoCard
-											key={`wh-${idx}-${wh.date?.toISOString?.() ?? idx}`}
-											variant="default"
-											size="default"
-										>
-											<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-												<div className="flex-1 min-w-0">
-													<p className="font-bold text-duo-text text-sm sm:text-base">
-														{wh.workoutName || "Treino"}
-													</p>
-													<p className="text-xs text-duo-gray-dark mt-0.5">
-														{wh.date ? new Date(wh.date).toLocaleDateString("pt-BR") : "N/A"}
-													</p>
-												</div>
-												<div className="flex gap-4 text-sm">
-													<span className="flex items-center gap-1 text-duo-blue font-bold">
-														<Activity className="h-3.5 w-3.5" />
-														{wh.duration ?? 0} min
-													</span>
-													{(wh.totalVolume ?? 0) > 0 && (
-														<span className="flex items-center gap-1 text-duo-green font-bold">
-															<TrendingUp className="h-3.5 w-3.5" />
-															{(wh.totalVolume ?? 0).toFixed(0)} kg
+					<div className="space-y-6">
+						{/* Plano Semanal */}
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Calendar className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Plano Semanal do Aluno</h2>
+								</div>
+							</DuoCardHeader>
+							{isLoadingWeeklyPlan ? (
+								<div className="flex items-center justify-center py-12">
+									<Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
+								</div>
+							) : weeklyPlan && weeklyPlan.slots?.length > 0 ? (
+								<div className="space-y-4">
+									<p className="text-sm text-duo-gray-dark">
+										{weeklyPlan.title}
+										{weeklyPlan.description && ` • ${weeklyPlan.description}`}
+									</p>
+									<div className="flex flex-col gap-4">
+										{weeklyPlan.slots.map((slot: PlanSlotData, index: number) => {
+											if (slot.type === "rest" || !slot.workout) {
+												return (
+													<div key={slot.id} className="flex items-center gap-3">
+														<span className="w-16 text-sm font-bold text-duo-gray-dark">
+															{DAY_NAMES[slot.dayOfWeek] ?? "—"}
 														</span>
-													)}
+														<div className="flex items-center gap-2 rounded-lg bg-duo-gray/20 px-4 py-2">
+															<Moon className="h-4 w-4 text-duo-gray" />
+															<span className="text-sm font-bold text-duo-gray-dark">Descanso</span>
+														</div>
+													</div>
+												);
+											}
+											const w = slot.workout;
+											return (
+												<div key={slot.id} className="flex items-start gap-3">
+													<span className="w-16 shrink-0 pt-1 text-sm font-bold text-duo-gray-dark">
+														{DAY_NAMES[slot.dayOfWeek] ?? "—"}
+													</span>
+													<DuoCard variant="default" size="sm" className="flex-1 p-3">
+														<div className="font-bold text-duo-text">{w.title}</div>
+														<div className="mt-1 text-xs text-duo-gray-dark">
+															{w.estimatedTime} min • {w.muscleGroup}
+														</div>
+														{w.exercises?.length > 0 && (
+															<div className="mt-2 space-y-1 border-t border-duo-border pt-2">
+																{w.exercises.slice(0, 5).map((ex: { id: string; name: string }) => (
+																	<p key={ex.id} className="text-xs text-duo-gray-dark">
+																		• {ex.name}
+																	</p>
+																))}
+																{(w.exercises?.length ?? 0) > 5 && (
+																	<p className="text-xs text-duo-gray-dark">
+																		+ {(w.exercises?.length ?? 0) - 5} exercício(s)
+																	</p>
+																)}
+															</div>
+														)}
+													</DuoCard>
 												</div>
-											</div>
-											{exercises.length > 0 && (
-												<div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-													{exercises.slice(0, 3).map((ex) => (
-														<p
-															key={ex.id ?? ex.exerciseName}
-															className="text-xs text-duo-gray-dark"
-														>
-															• {ex.exerciseName}
+											);
+										})}
+									</div>
+								</div>
+							) : (
+								<div className="py-8 text-center">
+									<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+									<p className="font-bold text-duo-gray-dark">Aluno ainda não possui plano semanal</p>
+									<p className="mt-1 text-sm text-duo-gray-dark">
+										O plano será exibido aqui quando o aluno criar um no app.
+									</p>
+								</div>
+							)}
+						</DuoCard>
+
+						{/* Histórico de Treinos */}
+						<DuoCard variant="default" padding="md">
+							<DuoCardHeader>
+								<div className="flex items-center gap-2">
+									<Trophy className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Treinos</h2>
+								</div>
+							</DuoCardHeader>
+							{(student.workoutHistory ?? []).length === 0 ? (
+								<DuoCard variant="default" size="default" className="p-8 text-center">
+									<Dumbbell className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+									<p className="font-bold text-duo-gray-dark">Nenhum treino registrado ainda</p>
+									<p className="mt-1 text-sm text-duo-gray-dark">
+										Os treinos do aluno aparecerão aqui assim que forem completados.
+									</p>
+								</DuoCard>
+							) : (
+								<div className="space-y-3">
+									{(student.workoutHistory ?? []).map((wh, idx) => {
+										const exercises = wh.exercises ?? [];
+										return (
+											<DuoCard
+												key={`wh-${idx}-${wh.date?.toISOString?.() ?? idx}`}
+												variant="default"
+												size="default"
+											>
+												<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+													<div className="flex-1 min-w-0">
+														<p className="font-bold text-duo-text text-sm sm:text-base">
+															{wh.workoutName || "Treino"}
 														</p>
-													))}
-													{exercises.length > 3 && (
-														<p className="text-xs text-duo-gray-dark">
-															e mais {exercises.length - 3} exercício(s)...
+														<p className="text-xs text-duo-gray-dark mt-0.5">
+															{wh.date ? new Date(wh.date).toLocaleDateString("pt-BR") : "N/A"}
 														</p>
-													)}
+													</div>
+													<div className="flex gap-4 text-sm">
+														<span className="flex items-center gap-1 text-duo-blue font-bold">
+															<Activity className="h-3.5 w-3.5" />
+															{wh.duration ?? 0} min
+														</span>
+														{(wh.totalVolume ?? 0) > 0 && (
+															<span className="flex items-center gap-1 text-duo-green font-bold">
+																<TrendingUp className="h-3.5 w-3.5" />
+																{(wh.totalVolume ?? 0).toFixed(0)} kg
+															</span>
+														)}
+													</div>
 												</div>
-											)}
-										</DuoCard>
-									);
-								})}
-							</div>
-						)}
-					</DuoCard>
+												{exercises.length > 0 && (
+													<div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+														{exercises.slice(0, 3).map((ex) => (
+															<p
+																key={ex.id ?? ex.exerciseName}
+																className="text-xs text-duo-gray-dark"
+															>
+																• {ex.exerciseName}
+															</p>
+														))}
+														{exercises.length > 3 && (
+															<p className="text-xs text-duo-gray-dark">
+																e mais {exercises.length - 3} exercício(s)...
+															</p>
+														)}
+													</div>
+												)}
+											</DuoCard>
+										);
+									})}
+								</div>
+							)}
+						</DuoCard>
+					</div>
 				</SlideIn>
 			)}
 
@@ -580,194 +683,49 @@ export function GymStudentDetail({
 				<SlideIn delay={0.4}>
 					<DuoCard variant="default" padding="md">
 						<DuoCardHeader>
-							<div className="flex items-center gap-2">
-								<Apple className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-								<h2 className="font-bold text-[var(--duo-fg)]">Nutrição e Dieta</h2>
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-2">
+									<Apple className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+									<h2 className="font-bold text-[var(--duo-fg)]">Nutrição e Dieta do Aluno</h2>
+								</div>
+								<div className="flex items-center gap-2">
+									<input
+										type="date"
+										value={nutritionDate}
+										onChange={(e) => {
+											setNutritionDate(e.target.value);
+											fetchNutrition(e.target.value);
+										}}
+										className="rounded-lg border border-duo-border bg-duo-bg px-3 py-1.5 text-sm font-bold text-duo-text"
+									/>
+								</div>
 							</div>
 						</DuoCardHeader>
-						<div className="space-y-6">
-							{/* Targets vs Consumed */}
-							<div className="space-y-4">
-								<h3 className="font-bold text-duo-text">Resumo do Dia</h3>
-
-								{student.todayNutrition ? (
-									<>
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<DuoCard variant="default" size="default">
-												<div className="flex items-center justify-between mb-2">
-													<p className="font-bold text-duo-text">Calorias</p>
-													<p className="text-sm font-bold text-duo-gray-dark">
-														{student.todayNutrition.totalCalories} /{" "}
-														{student.profile.targetCalories} kcal
-													</p>
-												</div>
-												<div className="h-4 overflow-hidden rounded-full bg-gray-200">
-													<div
-														className="h-full bg-duo-orange"
-														style={{
-															width: `${Math.min(
-																(student.todayNutrition.totalCalories /
-																	(student.profile.targetCalories || 2000)) *
-																	100,
-																100,
-															)}%`,
-														}}
-													/>
-												</div>
-											</DuoCard>
-
-											<DuoCard variant="blue" size="default">
-												<div className="flex items-center justify-between mb-2">
-													<p className="font-bold text-duo-gray-dark">Água</p>
-													<p className="text-sm font-bold text-duo-blue">
-														{student.todayNutrition.waterIntake} / 3000 ml
-													</p>
-												</div>
-												<div className="h-4 overflow-hidden rounded-full bg-duo-gray">
-													<div
-														className="h-full bg-duo-blue"
-														style={{
-															width: `${Math.min(
-																(student.todayNutrition.waterIntake / 3000) *
-																	100,
-																100,
-															)}%`,
-														}}
-													/>
-												</div>
-											</DuoCard>
-										</div>
-
-										<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-											<DuoCard variant="highlighted" size="sm" className="p-3">
-												<p className="text-xs font-bold text-duo-gray-dark mb-1">
-													Proteína
-												</p>
-												<p className="text-lg font-bold text-duo-green">
-													{student.todayNutrition.totalProtein.toFixed(0)} /{" "}
-													{student.profile.targetProtein}g
-												</p>
-												<div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
-													<div
-														className="h-full bg-duo-green"
-														style={{
-															width: `${Math.min(
-																(student.todayNutrition.totalProtein /
-																	(student.profile.targetProtein || 150)) *
-																	100,
-																100,
-															)}%`,
-														}}
-													/>
-												</div>
-											</DuoCard>
-											<DuoCard variant="blue" size="sm" className="p-3">
-												<p className="text-xs font-bold text-duo-gray-dark mb-1">
-													Carboidratos
-												</p>
-												<p className="text-lg font-bold text-duo-blue">
-													{student.todayNutrition.totalCarbs.toFixed(0)} /{" "}
-													{student.profile.targetCarbs}g
-												</p>
-												<div className="mt-1 h-2 overflow-hidden rounded-full bg-duo-gray">
-													<div
-														className="h-full bg-duo-blue"
-														style={{
-															width: `${Math.min(
-																(student.todayNutrition.totalCarbs /
-																	(student.profile.targetCarbs || 250)) *
-																	100,
-																100,
-															)}%`,
-														}}
-													/>
-												</div>
-											</DuoCard>
-											<DuoCard
-												variant="default"
-												size="sm"
-												className="border-duo-purple bg-duo-purple/10 p-3"
-											>
-												<p className="text-xs font-bold text-duo-gray-dark mb-1">
-													Gorduras
-												</p>
-												<p className="text-lg font-bold text-duo-purple">
-													{student.todayNutrition.totalFats.toFixed(0)} /{" "}
-													{student.profile.targetFats}g
-												</p>
-												<div className="mt-1 h-2 overflow-hidden rounded-full bg-purple-100">
-													<div
-														className="h-full bg-duo-purple"
-														style={{
-															width: `${Math.min(
-																(student.todayNutrition.totalFats /
-																	(student.profile.targetFats || 70)) *
-																	100,
-																100,
-															)}%`,
-														}}
-													/>
-												</div>
-											</DuoCard>
-										</div>
-
-										<h3 className="font-bold text-duo-text mt-4">Refeições</h3>
-										<div className="space-y-3">
-											{(student.todayNutrition?.meals ?? []).map((meal) => (
-												<DuoCard
-													key={meal.id}
-													variant="default"
-													size="default"
-												>
-													<div className="flex items-center justify-between mb-2">
-														<div>
-															<p className="font-bold text-duo-text capitalize">
-																{meal.name}
-															</p>
-															<p className="text-xs text-duo-gray-dark">
-																{meal.time || "Sem horário"}
-															</p>
-														</div>
-														<p className="font-bold text-duo-orange">
-															{meal.calories} kcal
-														</p>
-													</div>
-													{meal.foods && meal.foods.length > 0 && (
-														<div className="space-y-1 pl-2 border-l-2 border-gray-100">
-															{(meal.foods ?? []).map((food, idx) => (
-																<div
-																	// biome-ignore lint/suspicious/noArrayIndexKey: simple list
-																	key={idx}
-																	className="flex justify-between text-xs text-duo-gray-dark"
-																>
-																	<span>
-																		{food.servings}x {food.foodName}
-																	</span>
-																	<span>{food.calories} kcal</span>
-																</div>
-															))}
-														</div>
-													)}
-												</DuoCard>
-											))}
-										</div>
-									</>
-								) : (
-									<div className="text-center py-8">
-										<Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
-										<p className="font-bold text-duo-gray-dark">
-											Nenhum registro de nutrição hoje
-										</p>
-										<p className="mt-1 text-sm text-duo-gray-dark">
-											As metas do plano são: {student.profile.targetCalories}{" "}
-											kcal, {student.profile.targetProtein}g Proteína,{" "}
-											{student.profile.targetCarbs}g Carboidratos,{" "}
-											{student.profile.targetFats}g Gorduras.
-										</p>
-									</div>
-								)}
+						{isLoadingNutrition ? (
+							<div className="flex items-center justify-center py-12">
+								<Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
 							</div>
-						</div>
+						) : dailyNutrition ? (
+							<NutritionTracker
+								nutrition={dailyNutrition}
+								onMealComplete={() => {}}
+								onAddMeal={() => {}}
+								readOnly
+							/>
+						) : (
+							<div className="py-12 text-center">
+								<Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
+								<p className="font-bold text-duo-gray-dark">
+									Nenhum registro de nutrição para esta data
+								</p>
+								<p className="mt-1 text-sm text-duo-gray-dark">
+									As metas do perfil: {student.profile?.targetCalories ?? 2000} kcal,{" "}
+									{student.profile?.targetProtein ?? 150}g Proteína,{" "}
+									{student.profile?.targetCarbs ?? 250}g Carboidratos,{" "}
+									{student.profile?.targetFats ?? 65}g Gorduras.
+								</p>
+							</div>
+						)}
 					</DuoCard>
 				</SlideIn>
 			)}
@@ -880,7 +838,7 @@ export function GymStudentDetail({
 								<h2 className="font-bold text-[var(--duo-fg)]">Histórico de Pagamentos</h2>
 							</div>
 						</DuoCardHeader>
-						<div className="mb-6 grid gap-4 md:grid-cols-3">
+						<div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
 							<DuoCard variant="highlighted" size="sm">
 								<div className="flex items-center gap-3">
 									<CheckCircle className="h-6 w-6 text-duo-green" />
@@ -907,8 +865,9 @@ export function GymStudentDetail({
 										</p>
 										<p className="text-2xl font-bold text-duo-orange">
 											{
-												studentPayments.filter((p) => p.status === "pending")
-													.length
+												studentPayments.filter((p) =>
+													p.status === "pending" || p.status === "overdue",
+												).length
 											}
 										</p>
 									</div>
@@ -926,6 +885,26 @@ export function GymStudentDetail({
 											R${" "}
 											{studentPayments
 												.filter((p) => p.status === "paid")
+												.reduce((sum, p) => sum + p.amount, 0)
+												.toFixed(2)}
+										</p>
+									</div>
+								</div>
+							</DuoCard>
+
+							<DuoCard variant="default" size="sm">
+								<div className="flex items-center gap-3">
+									<AlertCircle className="h-6 w-6 text-duo-orange" />
+									<div>
+										<p className="text-sm font-bold text-duo-gray-dark">
+											Total Pendente
+										</p>
+										<p className="text-xl font-bold text-duo-orange">
+											R${" "}
+											{studentPayments
+												.filter((p) =>
+													p.status === "pending" || p.status === "overdue",
+												)
 												.reduce((sum, p) => sum + p.amount, 0)
 												.toFixed(2)}
 										</p>

@@ -55,6 +55,8 @@ interface GymProfileViewProps {
 	onBack: () => void;
 	onJoinPlan: (gymId: string, planId: string) => void;
 	onChangePlan?: (membershipId: string, planId: string) => void;
+	/** Quando mudar, refaz o fetch do perfil (ex: após PIX confirmado) */
+	profileRefreshKey?: number;
 }
 
 export function GymProfileView({
@@ -62,6 +64,7 @@ export function GymProfileView({
 	onBack,
 	onJoinPlan,
 	onChangePlan,
+	profileRefreshKey,
 }: GymProfileViewProps) {
 	const [profile, setProfile] = useState<GymProfileData | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -69,6 +72,7 @@ export function GymProfileView({
 
 	useEffect(() => {
 		let cancelled = false;
+		setLoading(true);
 		apiClient
 			.get<GymProfileData>(`/api/students/gyms/${gymId}/profile`)
 			.then((res) => {
@@ -88,7 +92,7 @@ export function GymProfileView({
 		return () => {
 			cancelled = true;
 		};
-	}, [gymId]);
+	}, [gymId, profileRefreshKey]);
 
 	if (loading) {
 		return (
@@ -252,7 +256,7 @@ export function GymProfileView({
 									"rounded-lg border-2 px-2 py-1 text-xs font-bold",
 									e.status === "available"
 										? "border-duo-green bg-duo-green/10 text-duo-green"
-										: "border-duo-border bg-gray-50 text-duo-gray-dark",
+										: "border-duo-border bg-[var(--duo-bg-elevated)] text-duo-gray-dark",
 								)}
 							>
 								{e.name}

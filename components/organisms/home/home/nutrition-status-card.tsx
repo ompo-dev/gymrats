@@ -66,10 +66,10 @@ export function NutritionStatusCard({
           className="flex flex-col items-center justify-center space-y-4 py-6 text-center"
         >
           <UtensilsCrossed className="h-10 w-10 text-duo-green" />
-          <p className="text-base font-bold text-gray-900">
+          <p className="text-base font-bold text-[var(--duo-fg)]">
             Comece a registrar!
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[var(--duo-fg-muted)]">
             Registre suas refeições e hidratação para acompanhar seu progresso.
           </p>
           <DuoButton
@@ -77,8 +77,7 @@ export function NutritionStatusCard({
             variant="primary"
             className="w-fit"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            {isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
+            {isPremium ? "Abrir Chat" : "Ir para Nutrição"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </DuoButton>
         </motion.div>
@@ -118,10 +117,10 @@ export function NutritionStatusCard({
           className="flex flex-col items-center justify-center space-y-4 py-6 text-center"
         >
           <UtensilsCrossed className="h-10 w-10 text-duo-green" />
-          <p className="text-base font-bold text-gray-900">
+          <p className="text-base font-bold text-[var(--duo-fg)]">
             Comece a registrar!
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-[var(--duo-fg-muted)]">
             Registre suas refeições e hidratação para acompanhar seu progresso.
           </p>
           <DuoButton
@@ -129,8 +128,7 @@ export function NutritionStatusCard({
             variant="primary"
             className="w-fit"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            {isPremium ? "Abrir Chat IA" : "Ir para Nutrição"}
+            {isPremium ? "Abrir Chat" : "Ir para Nutrição"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </DuoButton>
         </motion.div>

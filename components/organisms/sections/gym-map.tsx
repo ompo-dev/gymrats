@@ -280,44 +280,44 @@ export function GymMap({
 																				onChangePlan?.(myMembership!.id, plan.id);
 																		}}
 																	>
-																		<div className="flex flex-col gap-0.5 min-w-0">
-																			<div className="flex items-center justify-between gap-2">
+																		<div className="flex w-full min-w-0 items-start justify-between gap-3">
+																			<div className="flex flex-col gap-0.5 min-w-0 flex-1">
 																				<p className="text-xs font-bold text-[var(--duo-fg)] truncate">
 																					{plan.name}
 																				</p>
-																				<p className="text-sm font-bold text-[var(--duo-primary)] shrink-0">
-																					R$ {plan.price.toFixed(2)}
-																				</p>
+																				<div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--duo-fg-muted)]">
+																					<span>{plan.duration} dias</span>
+																					<span>•</span>
+																					<span>{planTypeLabel[plan.type] || plan.type}</span>
+																					{(isMyPlan && isActive) && (
+																						<>
+																							<span>•</span>
+																							<span className="font-bold text-[var(--duo-primary)]">Plano ativo</span>
+																						</>
+																					)}
+																					{isMyPlan && isPending && (
+																						<>
+																							<span>•</span>
+																							<span className="font-bold text-[var(--duo-warning)]">Matrícula pendente</span>
+																						</>
+																					)}
+																					{canContract && (
+																						<>
+																							<span>•</span>
+																							<span>Contratar</span>
+																						</>
+																					)}
+																					{canChangePlan && (
+																						<>
+																							<span>•</span>
+																							<span className="font-bold text-[var(--duo-secondary)]">Trocar de plano</span>
+																						</>
+																					)}
+																				</div>
 																			</div>
-																			<div className="flex items-center gap-1.5 text-[10px] text-[var(--duo-fg-muted)]">
-																				<span>{plan.duration} dias</span>
-																				<span>•</span>
-																				<span>{planTypeLabel[plan.type] || plan.type}</span>
-																				{(isMyPlan && isActive) && (
-																					<>
-																						<span>•</span>
-																						<span className="font-bold text-[var(--duo-primary)]">Plano ativo</span>
-																					</>
-																				)}
-																				{isMyPlan && isPending && (
-																					<>
-																						<span>•</span>
-																						<span className="font-bold text-[var(--duo-warning)]">Matrícula pendente</span>
-																					</>
-																				)}
-																				{canContract && (
-																					<>
-																						<span>•</span>
-																						<span>Contratar</span>
-																					</>
-																				)}
-																				{canChangePlan && (
-																					<>
-																						<span>•</span>
-																						<span className="font-bold text-[var(--duo-secondary)]">Trocar de plano</span>
-																					</>
-																				)}
-																			</div>
+																			<p className="text-sm font-bold text-[var(--duo-primary)] shrink-0">
+																				R$ {plan.price.toFixed(2)}
+																			</p>
 																		</div>
 																	</DuoCard>
 																);
