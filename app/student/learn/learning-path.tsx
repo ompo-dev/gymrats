@@ -1,12 +1,11 @@
 "use client";
 
-import { Dumbbell, Lock, Moon, Plus } from "lucide-react";
+import { Dumbbell, Lock, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
 import { DuoButton } from "@/components/duo";
 import { DuoCard, DuoCardHeader } from "@/components/duo";
-import { RestNode } from "@/components/organisms/workout/rest-node";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
@@ -18,8 +17,6 @@ import { useWorkoutStore } from "@/stores/workout-store";
 import { useToast } from "@/hooks/use-toast";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
-
-const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 interface LearningPathProps {
 	onLessonSelect: (lessonId: string) => void;
@@ -136,18 +133,10 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 				{weeklyPlan!.slots.map((slot: PlanSlotData, index: number) => {
 					const position = positions[index % 7];
 
-					if (slot.type === "rest") {
+					if (slot.type === "rest" || !slot.workout) {
 						return (
 							<StaggerItem key={slot.id} className="relative w-full">
-								<RestNode dayOfWeek={slot.dayOfWeek} position={position} />
-							</StaggerItem>
-						);
-					}
-
-					if (!slot.workout) {
-						return (
-							<StaggerItem key={slot.id} className="relative w-full">
-								<RestNode dayOfWeek={slot.dayOfWeek} position={position} />
+								<WorkoutNode variant="rest" position={position} />
 							</StaggerItem>
 						);
 					}

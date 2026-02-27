@@ -33,176 +33,11 @@ import { WorkoutChat } from "./workout-chat";
 
 const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
-function EditUnitModalWeeklyPlanContent({
-	onClose,
-	onPlanUpdated,
-}: {
-	onClose: () => void;
+interface EditUnitModalProps {
+	isWeeklyPlanMode?: boolean;
+	isOpen?: boolean;
+	onClose?: () => void;
 	onPlanUpdated?: () => void;
-}) {
-	const weeklyPlan = useStudent("weeklyPlan");
-	const { loadWeeklyPlan } = useStudent("loaders");
-	const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
-	const [chatSlotId, setChatSlotId] = useState<string | null>(null);
-	const [resetting, setResetting] = useState(false);
-
-	const handleResetWeek = async () => {
-		setResetting(true);
-		try {
-			await apiClient.patch("/api/students/week-reset");
-			await loadWeeklyPlan(true);
-			onPlanUpdated?.();
-			toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
-		} catch {
-			toast.error("Não foi possível resetar a semana.");
-		} finally {
-			setResetting(false);
-		}
-	};
-
-	const handleRemoveWorkout = async (slotId: string) => {
-		const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
-		if (!slot?.workout) return;
-		setLoadingSlotId(slotId);
-		try {
-			await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
-			await loadWeeklyPlan(true);
-			onPlanUpdated?.();
-			toast.success("Treino removido. O dia foi marcado como descanso.");
-		} catch {
-			toast.error("Não foi possível remover o treino.");
-		} finally {
-			setLoadingSlotId(null);
-		}
-	};
-
-	const handleAddWorkout = async (slotId: string, dayName: string) => {
-		setLoadingSlotId(slotId);
-		try {
-			await apiClient.post("/api/workouts/manage", {
-				planSlotId: slotId,
-				title: `Treino ${dayName}`,
-				description: "",
-				type: "strength",
-				muscleGroup: "full-body",
-				difficulty: "iniciante",
-				estimatedTime: 0,
-			});
-			await loadWeeklyPlan(true);
-			onPlanUpdated?.();
-			toast.success("Treino adicionado. Adicione exercícios ou use o Chat IA.");
-		} catch {
-			toast.error("Não foi possível adicionar o treino.");
-		} finally {
-			setLoadingSlotId(null);
-		}
-	};
-
-	if (!weeklyPlan) return null;
-
-	return (
-		<ModalContainer isOpen onClose={onClose}>
-			<ModalHeader title={weeklyPlan.title} onClose={onClose}>
-				<div className="flex flex-col gap-1">
-					<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
-					<DuoButton
-						variant="ghost"
-						size="sm"
-						onClick={handleResetWeek}
-						disabled={resetting}
-						className="mt-1 w-fit gap-1 self-start"
-					>
-						{resetting ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : (
-							<RotateCcw className="h-4 w-4" />
-						)}
-						Resetar semana
-					</DuoButton>
-				</div>
-			</ModalHeader>
-			<ModalContent>
-				<div className="space-y-4">
-					{weeklyPlan.slots.map((slot: PlanSlotData) => (
-						<DuoCard key={slot.id} variant="default" padding="md">
-							<div className="flex items-center justify-between gap-4">
-								<div className="flex items-center gap-3">
-									<span className="text-sm font-medium text-duo-gray-dark">
-										{DAY_NAMES[slot.dayOfWeek]}
-									</span>
-									{slot.type === "rest" ? (
-										<span className="flex items-center gap-1 text-duo-gray">
-											<Moon className="h-4 w-4" />
-											Descanso
-										</span>
-									) : (
-										<span className="font-medium text-duo-text">
-											{slot.workout?.title}
-										</span>
-									)}
-								</div>
-								<div className="flex items-center gap-2">
-									{slot.type === "workout" && slot.workout && (
-										<DuoButton
-											variant="ghost"
-											size="sm"
-											onClick={() => handleRemoveWorkout(slot.id)}
-											disabled={loadingSlotId === slot.id}
-											className="text-red-600 hover:text-red-700"
-										>
-											<Trash2 className="h-4 w-4" />
-										</DuoButton>
-									)}
-									{slot.type === "rest" && (
-										<>
-											<DuoButton
-												variant="secondary"
-												size="sm"
-												onClick={() =>
-													handleAddWorkout(slot.id, DAY_NAMES[slot.dayOfWeek])
-												}
-												disabled={loadingSlotId === slot.id}
-											>
-												{loadingSlotId === slot.id ? (
-													<Loader2 className="h-4 w-4 animate-spin" />
-												) : (
-													<Plus className="h-4 w-4" />
-												)}
-												Treino
-											</DuoButton>
-											<DuoButton
-												variant="ghost"
-												size="sm"
-												onClick={() => setChatSlotId(slot.id)}
-												className="gap-1"
-											>
-												<Sparkles className="h-4 w-4" />
-												Chat IA
-											</DuoButton>
-										</>
-									)}
-								</div>
-							</div>
-						</DuoCard>
-					))}
-					<p className="text-center text-sm text-duo-gray">
-						Clique em &quot;Treino&quot; para adicionar um dia vazio ou &quot;Chat IA&quot; para criar com exercícios.
-					</p>
-				</div>
-			</ModalContent>
-			{chatSlotId && (
-				<WorkoutChat
-					planSlotId={chatSlotId}
-					slotContext={DAY_NAMES[weeklyPlan.slots.find((s: PlanSlotData) => s.id === chatSlotId)?.dayOfWeek ?? 0]}
-					onClose={() => {
-						setChatSlotId(null);
-						loadWeeklyPlan(true);
-						onPlanUpdated?.();
-					}}
-				/>
-			)}
-		</ModalContainer>
-	);
 }
 
 const muscleCategories = [
@@ -219,14 +54,6 @@ const muscleCategories = [
 	{ value: "full_body", label: "Corpo Inteiro", icon: "💪" },
 ] as const;
 
-interface EditUnitModalProps {
-	/** Quando true, exibe o editor de plano semanal (7 slots) em vez do editor de unit */
-	isWeeklyPlanMode?: boolean;
-	isOpen?: boolean;
-	onClose?: () => void;
-	onPlanUpdated?: () => void;
-}
-
 export function EditUnitModal({
 	isWeeklyPlanMode = false,
 	isOpen: isOpenProp,
@@ -240,8 +67,9 @@ export function EditUnitModal({
 		paramValue: unitId,
 	} = useModalStateWithParam("editUnit", "unitId");
 	const actions = useStudent("actions");
+	const weeklyPlan = useStudent("weeklyPlan");
+	const { loadWeeklyPlan } = useStudent("loaders");
 
-	// Modo weekly plan: usa props do parent. Caso contrário: usa estado editUnit
 	const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
 	const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
 
@@ -250,6 +78,11 @@ export function EditUnitModal({
 	// View state
 	const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
 	const [showWorkoutChat, setShowWorkoutChat] = useState(false);
+
+	// Weekly plan mode state
+	const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
+	const [chatSlotId, setChatSlotId] = useState<string | null>(null);
+	const [resetting, setResetting] = useState(false);
 
 	// Form states (Unit) - apenas para inputs controlados
 	const [title, setTitle] = useState("");
@@ -305,14 +138,8 @@ export function EditUnitModal({
 	}, [sortedWorkouts, workoutItems.length, workoutItems.map]); // IMPORTANTE: Não incluir workoutItems para evitar loops
 
 	// IMPORTANTE: Seletor específico para exercises do workout ativo
-	// CRÍTICO: Usar useMemo para garantir referência estável e evitar loops infinitos
-	// Quando addWorkoutExercise faz optimistic update:
-	// 1. Store atualiza state.data.units com NOVO array (nova referência)
-	// 2. Zustand detecta mudança em state.data.units (shallow equality)
-	// 3. Este seletor é executado novamente
-	// 4. Retorna NOVO array de exercises (criado no optimistic update)
-	// 5. useMemo detecta mudança e recalcula, componente re-renderiza IMEDIATAMENTE
-	const exercisesRaw = useStudentUnifiedStore((state) => {
+	// Quando isWeeklyPlanMode: vem de weeklyPlan.slots. Caso contrário: do store (units)
+	const exercisesRawFromStore = useStudentUnifiedStore((state) => {
 		if (!editingWorkoutId || !unitId) return null;
 		const foundUnit = state.data.units.find((u) => u.id === unitId);
 		if (!foundUnit) return null;
@@ -320,9 +147,18 @@ export function EditUnitModal({
 			(w) => w.id === editingWorkoutId,
 		);
 		if (!foundWorkout) return null;
-		// IMPORTANTE: Retornar null quando não encontrado, não [] (evita nova referência a cada render)
 		return foundWorkout.exercises || null;
 	});
+
+	const exercisesRawFromWeeklyPlan = useMemo(() => {
+		if (!isWeeklyPlanMode || !weeklyPlan || !editingWorkoutId) return null;
+		const slot = weeklyPlan.slots.find(
+			(s: PlanSlotData) => s.workout?.id === editingWorkoutId,
+		);
+		return slot?.workout?.exercises ?? null;
+	}, [isWeeklyPlanMode, weeklyPlan, editingWorkoutId]);
+
+	const exercisesRaw = isWeeklyPlanMode ? exercisesRawFromWeeklyPlan : exercisesRawFromStore;
 
 	// Usar useMemo para garantir referência estável quando exercises não existe
 	// Isso evita loops infinitos causados por novas referências a cada render
@@ -330,12 +166,18 @@ export function EditUnitModal({
 		return exercisesRaw || [];
 	}, [exercisesRaw]);
 
-	// Calcular activeWorkout baseado nos sortedWorkouts (para outros dados como título, etc)
+	// Calcular activeWorkout - de weeklyPlan quando isWeeklyPlanMode, senão de sortedWorkouts
 	const activeWorkout = useMemo(() => {
+		if (isWeeklyPlanMode && weeklyPlan && editingWorkoutId) {
+			const slot = weeklyPlan.slots.find(
+				(s: PlanSlotData) => s.workout?.id === editingWorkoutId,
+			);
+			return slot?.workout ?? null;
+		}
 		return sortedWorkouts.find(
 			(w: WorkoutSession) => w.id === editingWorkoutId,
-		);
-	}, [sortedWorkouts, editingWorkoutId]);
+		) ?? null;
+	}, [isWeeklyPlanMode, weeklyPlan, sortedWorkouts, editingWorkoutId]);
 
 	// Ordenar exercícios por ordem - IMPORTANTE: usar exercises do store diretamente!
 	// CRÍTICO: Usar IDs para comparação estável e evitar loops infinitos
@@ -347,7 +189,7 @@ export function EditUnitModal({
 	// 5. Componente re-renderiza IMEDIATAMENTE com novos exercícios!
 	const _exercisesIds = useMemo(() => {
 		if (!exercises || exercises.length === 0) return "";
-		return exercises.map((e) => e.id).join(",");
+		return exercises.map((ex: WorkoutExercise) => ex.id).join(",");
 	}, [exercises]);
 
 	const sortedExercises = useMemo(() => {
@@ -478,10 +320,14 @@ export function EditUnitModal({
 		}
 	}, [calculatedEstimatedTime, activeWorkout, handleUpdateWorkout]);
 
-	// Sincronizar inputs apenas quando unit mudar (mas não durante edição)
+	// Sincronizar inputs - de unit ou weeklyPlan
 	useEffect(() => {
-		if (isOpen && unitId && unit) {
-			// Só atualiza os inputs se o ID mudou ou se o título/descrição local está vazio (primeira carga)
+		if (isOpen && isWeeklyPlanMode && weeklyPlan) {
+			if (!isEditingUnitInputs && title === "" && description === "") {
+				setTitle(weeklyPlan.title ?? "");
+				setDescription("");
+			}
+		} else if (isOpen && unitId && unit) {
 			if (!isEditingUnitInputs && title === "" && description === "") {
 				setTitle(unit.title ?? "");
 				setDescription(unit.description ?? "");
@@ -495,11 +341,11 @@ export function EditUnitModal({
 			setWorkoutTitle("");
 			setDeleteConfirmationId(null);
 			setDeleteWorkoutConfirmationId(null);
-			// Limpar estados de reordenação
+			setChatSlotId(null);
 			setWorkoutItems([]);
 			setExerciseItems([]);
 		}
-	}, [isOpen, unitId, unit?.id, isEditingUnitInputs, title, unit, description]);
+	}, [isOpen, unitId, unit?.id, isWeeklyPlanMode, weeklyPlan, isEditingUnitInputs, title, unit, description]);
 
 	// Sincronizar workoutTitle e muscleGroup quando activeWorkout mudar
 	useEffect(() => {
@@ -520,15 +366,21 @@ export function EditUnitModal({
 	// --- Unit Actions ---
 
 	const handleSaveUnit = async () => {
+		if (isWeeklyPlanMode) {
+			try {
+				await apiClient.patch("/api/workouts/weekly-plan", { title });
+				await loadWeeklyPlan(true);
+				onPlanUpdated?.();
+				toast.success("Plano atualizado com sucesso!");
+			} catch (error) {
+				console.error(error);
+				toast.error("Erro ao atualizar plano");
+			}
+			return;
+		}
 		if (!unitId) return;
-
-		// Não precisa de setIsSaving - optimistic update já atualiza UI instantaneamente!
 		try {
-			await actions.updateUnit(unitId, {
-				title,
-				description,
-			});
-			// Toast apenas para feedback - UI já atualizou via optimistic update
+			await actions.updateUnit(unitId, { title, description });
 			toast.success("Treino atualizado com sucesso!");
 		} catch (error) {
 			console.error(error);
@@ -595,6 +447,59 @@ export function EditUnitModal({
 
 	const cancelDeleteWorkout = () => {
 		setDeleteWorkoutConfirmationId(null);
+	};
+
+	// --- Weekly Plan Actions ---
+	const handleResetWeek = async () => {
+		setResetting(true);
+		try {
+			await apiClient.patch("/api/students/week-reset");
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
+		} catch {
+			toast.error("Não foi possível resetar a semana.");
+		} finally {
+			setResetting(false);
+		}
+	};
+
+	const handleRemoveWorkoutFromSlot = async (slotId: string) => {
+		const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
+		if (!slot?.workout) return;
+		setLoadingSlotId(slotId);
+		try {
+			await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Treino removido. O dia foi marcado como descanso.");
+		} catch {
+			toast.error("Não foi possível remover o treino.");
+		} finally {
+			setLoadingSlotId(null);
+		}
+	};
+
+	const handleAddWorkoutToSlot = async (slotId: string, dayName: string) => {
+		setLoadingSlotId(slotId);
+		try {
+			await apiClient.post("/api/workouts/manage", {
+				planSlotId: slotId,
+				title: `Treino ${dayName}`,
+				description: "",
+				type: "strength",
+				muscleGroup: "full-body",
+				difficulty: "iniciante",
+				estimatedTime: 0,
+			});
+			await loadWeeklyPlan(true);
+			onPlanUpdated?.();
+			toast.success("Treino adicionado. Adicione exercícios ou use o Chat IA.");
+		} catch {
+			toast.error("Não foi possível adicionar o treino.");
+		} finally {
+			setLoadingSlotId(null);
+		}
 	};
 
 	// Reordenar workouts usando Reorder
@@ -680,18 +585,8 @@ export function EditUnitModal({
 	};
 
 	if (!isOpen) return null;
+	if (isWeeklyPlanMode && !weeklyPlan) return null;
 
-	// --- MODO WEEKLY PLAN (7 slots Seg-Dom) - usado quando edit-plan abre ---
-	if (isWeeklyPlanMode) {
-		return (
-			<EditUnitModalWeeklyPlanContent
-				onClose={close}
-				onPlanUpdated={onPlanUpdated}
-			/>
-		);
-	}
-
-	// --- MODO UNIT (legado) ---
 	return (
 		<>
 			<ModalContainer isOpen={isOpen} onClose={close}>
@@ -732,20 +627,42 @@ export function EditUnitModal({
 										placeholder="Ex: Treino de Hipertrofia"
 									/>
 								</div>
-								<div>
-									<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-										Descrição
-									</label>
-									<textarea
-										value={description || ""}
-										onChange={(e) => setDescription(e.target.value)}
-										onFocus={() => setIsEditingUnitInputs(true)}
-										onBlur={() => setIsEditingUnitInputs(false)}
-										className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
-										placeholder="Descreva o objetivo deste plano..."
-									/>
-								</div>
-								<div className="flex justify-end pt-2">
+								{!isWeeklyPlanMode && (
+									<div>
+										<label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
+											Descrição
+										</label>
+										<textarea
+											value={description || ""}
+											onChange={(e) => setDescription(e.target.value)}
+											onFocus={() => setIsEditingUnitInputs(true)}
+											onBlur={() => setIsEditingUnitInputs(false)}
+											className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
+											placeholder="Descreva o objetivo deste plano..."
+										/>
+									</div>
+								)}
+								<div className="flex justify-end gap-2 pt-2">
+									{isWeeklyPlanMode && (
+										<DuoButton
+											variant="outline"
+											onClick={handleResetWeek}
+											disabled={resetting}
+											className="font-bold flex items-center gap-2"
+											style={{
+												opacity: 1,
+												visibility: "visible",
+												display: "flex",
+											}}
+										>
+											{resetting ? (
+												<Loader2 className="h-4 w-4 animate-spin" />
+											) : (
+												<RotateCcw className="h-4 w-4" />
+											)}
+											Resetar
+										</DuoButton>
+									)}
 									<DuoButton
 										onClick={handleSaveUnit}
 										className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2"
@@ -761,49 +678,140 @@ export function EditUnitModal({
 								</div>
 							</div>
 
-							{/* Workouts List */}
+							{/* Workouts List - por dia da semana quando weekly plan, senão lista reordenável */}
 							<div className="space-y-4">
 								<div className="flex items-center justify-between px-1 mb-4">
 									<h3 className="text-lg font-bold text-duo-text">
-										Dias de Treino
+										{isWeeklyPlanMode ? "Dias da Semana" : "Dias de Treino"}
 									</h3>
-									<div className="flex items-center gap-2">
-										<DuoButton
-											size="sm"
-											variant="outline"
-											onClick={() => setShowWorkoutChat(true)}
-											className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
-											style={{
-												opacity: 1,
-												visibility: "visible",
-												display: "flex",
-												pointerEvents: "auto",
-												zIndex: 10,
-											}}
-										>
-											<Sparkles className="h-4 w-4" />
-											Chat IA
-										</DuoButton>
-										<DuoButton
-											size="sm"
-											variant="outline"
-											onClick={handleCreateWorkout}
-											className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
-											style={{
-												opacity: 1,
-												visibility: "visible",
-												display: "flex",
-												pointerEvents: "auto",
-												zIndex: 10,
-											}}
-										>
-											<Plus className="h-4 w-4" />
-											Adicionar Dia
-										</DuoButton>
-									</div>
+									{!isWeeklyPlanMode && (
+										<div className="flex items-center gap-2">
+											<DuoButton
+												size="sm"
+												variant="outline"
+												onClick={() => setShowWorkoutChat(true)}
+												className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
+												style={{
+													opacity: 1,
+													visibility: "visible",
+													display: "flex",
+													pointerEvents: "auto",
+													zIndex: 10,
+												}}
+											>
+												<Sparkles className="h-4 w-4" />
+												Chat IA
+											</DuoButton>
+											<DuoButton
+												size="sm"
+												variant="outline"
+												onClick={handleCreateWorkout}
+												className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
+												style={{
+													opacity: 1,
+													visibility: "visible",
+													display: "flex",
+													pointerEvents: "auto",
+													zIndex: 10,
+												}}
+											>
+												<Plus className="h-4 w-4" />
+												Adicionar Dia
+											</DuoButton>
+										</div>
+									)}
 								</div>
 
-								{workoutItems.length > 0 ? (
+								{isWeeklyPlanMode && weeklyPlan ? (
+									<div className="space-y-3">
+										{weeklyPlan.slots
+											.slice()
+											.sort((a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek)
+											.map((slot: PlanSlotData) => (
+												<DuoCard key={slot.id} variant="default" padding="md">
+													<div className="flex items-center justify-between gap-4">
+														<div className="flex items-center gap-3">
+															<span className="text-sm font-medium text-duo-gray-dark w-20">
+																{DAY_NAMES[slot.dayOfWeek]}
+															</span>
+															{slot.type === "rest" ? (
+																<span className="flex items-center gap-1 text-duo-gray">
+																	<Moon className="h-4 w-4" />
+																	Descanso
+																</span>
+															) : (
+																<span
+																	className="font-medium text-duo-text cursor-pointer hover:text-duo-green"
+																	onClick={() =>
+																		slot.workout && setEditingWorkoutId(slot.workout.id)
+																	}
+																>
+																	{slot.workout?.title}
+																</span>
+															)}
+														</div>
+														<div className="flex items-center gap-2">
+															{slot.type === "workout" && slot.workout && (
+																<>
+																	<DuoButton
+																		variant="ghost"
+																		size="icon"
+																		className="text-duo-fg-muted hover:text-duo-green"
+																		onClick={() =>
+																			setEditingWorkoutId(slot.workout!.id)
+																		}
+																		title="Editar treino"
+																	>
+																		<Edit2 className="h-4 w-4" />
+																	</DuoButton>
+																	<DuoButton
+																		variant="ghost"
+																		size="sm"
+																		onClick={() => handleRemoveWorkoutFromSlot(slot.id)}
+																		disabled={loadingSlotId === slot.id}
+																		className="text-red-600 hover:text-red-700"
+																	>
+																		<Trash2 className="h-4 w-4" />
+																	</DuoButton>
+																</>
+															)}
+															{slot.type === "rest" && (
+																<>
+																	<DuoButton
+																		variant="secondary"
+																		size="sm"
+																		onClick={() =>
+																			handleAddWorkoutToSlot(
+																				slot.id,
+																				DAY_NAMES[slot.dayOfWeek],
+																			)
+																		}
+																		disabled={loadingSlotId === slot.id}
+																	>
+																		{loadingSlotId === slot.id ? (
+																			<Loader2 className="h-4 w-4 animate-spin" />
+																		) : (
+																			<Plus className="h-4 w-4" />
+																		)}
+																		Treino
+																	</DuoButton>
+																	<DuoButton
+																		variant="ghost"
+																		size="sm"
+																		onClick={() => setChatSlotId(slot.id)}
+																		className="gap-1"
+																	>
+																		<Sparkles className="h-4 w-4" />
+																		Chat IA
+																	</DuoButton>
+																</>
+															)}
+														</div>
+													</div>
+												</DuoCard>
+											))}
+									</div>
+								) : workoutItems.length > 0 ? (
 									<Reorder.Group
 										axis="y"
 										values={workoutItems}
@@ -901,7 +909,7 @@ export function EditUnitModal({
 										</div>
 										<p className="font-bold">Nenhum dia de treino adicionado</p>
 										<p className="text-sm mt-1">
-											Clique em "Adicionar Dia" para começar
+											Clique em &quot;Adicionar Dia&quot; para começar
 										</p>
 									</div>
 								)}
@@ -1161,6 +1169,18 @@ export function EditUnitModal({
 					unitId={unitId}
 					workouts={sortedWorkouts}
 					onClose={() => setShowWorkoutChat(false)}
+				/>
+			)}
+
+			{chatSlotId && isWeeklyPlanMode && weeklyPlan && (
+				<WorkoutChat
+					planSlotId={chatSlotId}
+					slotContext={DAY_NAMES[weeklyPlan.slots.find((s: PlanSlotData) => s.id === chatSlotId)?.dayOfWeek ?? 0]}
+					onClose={() => {
+						setChatSlotId(null);
+						loadWeeklyPlan(true);
+						onPlanUpdated?.();
+					}}
 				/>
 			)}
 

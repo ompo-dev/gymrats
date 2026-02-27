@@ -130,6 +130,7 @@ export function StudentLayoutContent({
 			additionalContent={
 				<>
 					<WorkoutModal />
+					<EditUnitModal />
 					{editPlanModal.isOpen && (
 						<EditUnitModal
 							isWeeklyPlanMode

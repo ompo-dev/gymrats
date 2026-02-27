@@ -2,6 +2,7 @@
 
 // ARQUIVO LIMPO - SEM COLORS
 
+import { Moon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ProgressRing } from "@/components/atoms/progress/progress-ring";
 import { WorkoutNodeButton } from "@/components/ui/workout-node-button";
@@ -9,23 +10,78 @@ import type { WorkoutSession } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useWorkoutStore } from "@/stores/workout-store";
 
-interface WorkoutNodeProps {
-	workout: WorkoutSession;
+interface WorkoutNodeBaseProps {
 	position: "left" | "center" | "right";
-	onClick: (isLocked: boolean) => void; // Passa isLocked calculado
+}
+
+interface WorkoutNodeWorkoutProps extends WorkoutNodeBaseProps {
+	variant?: "workout";
+	workout: WorkoutSession;
+	onClick: (isLocked: boolean) => void;
 	isFirst?: boolean;
 	previousWorkouts?: WorkoutSession[];
 	previousUnitsWorkouts?: WorkoutSession[];
 }
 
-export function WorkoutNode({
-	workout,
-	position,
-	onClick,
-	isFirst = false,
-	previousWorkouts = [],
-	previousUnitsWorkouts = [],
-}: WorkoutNodeProps) {
+interface WorkoutNodeRestProps extends WorkoutNodeBaseProps {
+	variant: "rest";
+	workout?: never;
+	onClick?: never;
+	isFirst?: never;
+	previousWorkouts?: never;
+	previousUnitsWorkouts?: never;
+}
+
+type WorkoutNodeProps = WorkoutNodeWorkoutProps | WorkoutNodeRestProps;
+
+export function WorkoutNode(props: WorkoutNodeProps) {
+	const { position } = props;
+	const isRest = props.variant === "rest";
+
+	const getPositionClasses = () => {
+		if (position === "left") return "mr-auto ml-[20%]";
+		if (position === "right") return "ml-auto mr-[20%]";
+		return "mx-auto";
+	};
+
+	// Variante REST: ícone de lua, "Descanso" abaixo, não clicável
+	if (isRest) {
+		return (
+			<div
+				className={cn(
+					"relative flex w-fit flex-col items-center gap-3",
+					getPositionClasses(),
+				)}
+			>
+				<div
+					className="relative flex w-[70px] h-[65px] min-w-[70px] min-h-[65px] items-center justify-center rounded-[31.75px] border-0 bg-duo-gray/20 cursor-default select-none"
+					style={{
+						boxShadow: "0px 8px 0px rgba(0, 0, 0, 0.08), 0px 8px 0px #D1D5DB",
+					}}
+				>
+					<Moon
+						className="h-8 w-8 text-duo-gray"
+						style={{ width: "42px", height: "34px" }}
+						aria-hidden
+					/>
+				</div>
+				<div className="max-w-[200px] text-center">
+					<p className="text-sm font-bold leading-tight text-duo-fg-muted">
+						Descanso
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	const {
+		workout,
+		onClick,
+		isFirst = false,
+		previousWorkouts = [],
+		previousUnitsWorkouts = [],
+	} = props;
+
 	// Usar useWorkoutStore apenas para progresso local durante execução
 	const _workoutProgress = useWorkoutStore(
 		(state) => state.workoutProgress[workout.id],
@@ -144,12 +200,6 @@ export function WorkoutNode({
 			);
 		};
 	}, [workout.id, previousWorkouts, previousUnitsWorkouts]);
-
-	const getPositionClasses = () => {
-		if (position === "left") return "mr-auto ml-[20%]";
-		if (position === "right") return "ml-auto mr-[20%]";
-		return "mx-auto";
-	};
 
 	return (
 		<div
