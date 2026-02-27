@@ -6,8 +6,8 @@ import {
 	CreateGymButton,
 	CreateGymDialog,
 	GymCard,
-} from "./components";
-import { useAcademiasPage } from "./hooks/use-academias-page";
+	useAcademiasPage,
+} from "@/components/organisms/gym/academias";
 
 export function AcademiasPageContent() {
 	const {

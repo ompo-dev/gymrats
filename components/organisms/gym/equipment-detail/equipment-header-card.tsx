@@ -5,7 +5,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import type { Equipment } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { getStatusColor, getStatusIcon, getStatusText } from "../utils/equipment-status";
+import { getStatusColor, getStatusIcon, getStatusText } from "./utils/equipment-status";
 
 export interface EquipmentHeaderCardProps {
 	equipment: Equipment;

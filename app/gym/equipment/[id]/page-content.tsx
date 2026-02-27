@@ -10,7 +10,7 @@ import {
 	EquipmentNotFound,
 	EquipmentStatsGrid,
 	EquipmentTabs,
-} from "./components";
+} from "@/components/organisms/gym/equipment-detail";
 import type { Equipment } from "@/lib/types";
 
 interface EquipmentDetailPageProps {

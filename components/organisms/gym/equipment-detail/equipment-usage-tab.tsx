@@ -9,6 +9,7 @@ export interface EquipmentUsageTabProps {
 }
 
 export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
+	const usagePercent = Math.round((equipment.usageStats.totalUses / 2000) * 100);
 	return (
 		<div className="grid gap-6 lg:grid-cols-2">
 			<DuoCard.Root variant="highlighted" padding="md">
@@ -55,17 +56,11 @@ export function EquipmentUsageTab({ equipment }: EquipmentUsageTabProps) {
 						<p className="text-sm font-bold text-duo-gray-dark">
 							Taxa de Utilização
 						</p>
-						<p className="text-3xl font-bold text-duo-purple">
-							{Math.round((equipment.usageStats.totalUses / 2000) * 100)}%
-						</p>
+						<p className="text-3xl font-bold text-duo-purple">{usagePercent}%</p>
 						<div className="mt-2 h-2 overflow-hidden rounded-full bg-duo-gray">
 							<div
 								className="h-full bg-duo-purple transition-all"
-								style={{
-									width: `${
-										(equipment.usageStats.totalUses / 2000) * 100
-									}%`,
-								}}
+								style={{ width: `${usagePercent}%` }}
 							/>
 						</div>
 					</DuoCard.Root>

@@ -27,17 +27,13 @@ export function EquipmentStatsGrid({ equipment }: EquipmentStatsGridProps) {
 				/>
 				<DuoStatCard.Simple
 					icon={Calendar}
-					value={
-						equipment.lastMaintenance?.toLocaleDateString("pt-BR") || "N/A"
-					}
+					value={equipment.lastMaintenance?.toLocaleDateString("pt-BR") || "N/A"}
 					label="Última Manutenção"
 					iconColor="var(--duo-primary)"
 				/>
 				<DuoStatCard.Simple
 					icon={Calendar}
-					value={
-						equipment.nextMaintenance?.toLocaleDateString("pt-BR") || "N/A"
-					}
+					value={equipment.nextMaintenance?.toLocaleDateString("pt-BR") || "N/A"}
 					label="Próxima Manutenção"
 					iconColor="var(--duo-accent)"
 				/>

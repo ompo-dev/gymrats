@@ -8,7 +8,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { DuoButton, DuoInput } from "@/components/duo";
-import type { CreateGymFormData } from "../hooks/use-academias-page";
+import type { CreateGymFormData } from "./hooks/use-academias-page";
 
 export interface CreateGymDialogProps {
 	open: boolean;
