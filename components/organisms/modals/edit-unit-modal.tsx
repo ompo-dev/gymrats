@@ -340,7 +340,7 @@ export function EditUnitModal({
     if (isOpen && isWeeklyPlanMode && weeklyPlan) {
       if (!isEditingUnitInputs && title === "" && description === "") {
         setTitle(weeklyPlan.title ?? "");
-        setDescription("");
+        setDescription(weeklyPlan.description ?? "");
       }
     } else if (isOpen && unitId && unit) {
       if (!isEditingUnitInputs && title === "" && description === "") {
@@ -393,7 +393,7 @@ export function EditUnitModal({
   const handleSaveUnit = async () => {
     if (isWeeklyPlanMode) {
       try {
-        await apiClient.patch("/api/workouts/weekly-plan", { title });
+        await apiClient.patch("/api/workouts/weekly-plan", { title, description });
         await loadWeeklyPlan(true);
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");

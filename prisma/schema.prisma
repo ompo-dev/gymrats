@@ -354,10 +354,11 @@ model GymStats {
 // ============================================
 
 model WeeklyPlan {
-  id        String   @id @default(cuid())
-  studentId String   @unique
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  title     String   @default("Meu Plano Semanal")
+  id          String   @id @default(cuid())
+  studentId   String   @unique
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title       String   @default("Meu Plano Semanal")
+  description String?  // Subtítulo editável (ex: "7 dias • Segunda a Domingo")
 
   slots PlanSlot[]
 

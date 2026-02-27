@@ -123,8 +123,10 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     <div className="relative mx-auto max-w-2xl py-8">
       <div className="mb-8">
         <UnitSectionCard
-          sectionLabel={weeklyPlan!.title}
-          title="7 dias • Segunda a Domingo"
+          sectionLabel={
+            weeklyPlan!.description?.trim() || "7 dias • Segunda a Domingo"
+          }
+          title={weeklyPlan!.title}
           onButtonClick={() => editPlanModal.open()}
         />
       </div>
