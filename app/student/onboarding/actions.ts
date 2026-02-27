@@ -3,6 +3,8 @@
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
+import { getUserContext } from "@/lib/context/auth-context-factory";
 import { getStudentContext } from "@/lib/utils/student/student-context";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
@@ -77,10 +79,25 @@ export async function submitOnboarding(formData: OnboardingData) {
       };
     }
 
-    const { ctx, error } = await getStudentContext();
+    let ctx = (await getStudentContext()).ctx;
 
-    if (error || !ctx) {
-      return { success: false, error: error || "Sessão inválida" };
+    // Se PENDING, cadastra agora (apenas ao concluir onboarding)
+    if (!ctx) {
+      const { ctx: userCtx, error: userError } = await getUserContext();
+      if (userError || !userCtx) {
+        return { success: false, error: userError || "Sessão inválida" };
+      }
+      if (userCtx.user.role !== "PENDING") {
+        return { success: false, error: "Fluxo inválido" };
+      }
+      const ensure = await ensureStudentRole(userCtx.user.id);
+      if (!ensure.ok) {
+        return { success: false, error: ensure.error };
+      }
+      ctx = (await getStudentContext()).ctx;
+      if (!ctx) {
+        return { success: false, error: "Erro ao obter contexto após cadastro" };
+      }
     }
 
     const userId = ctx.user.id;

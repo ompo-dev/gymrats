@@ -130,8 +130,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(120, Math.max(13, n));
-              setFormData({ ...formData, age: clamped });
+              setFormData({ ...formData, age: n });
             }
           }}
           onBlur={() => {
@@ -155,8 +154,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(250, Math.max(100, n));
-              setFormData({ ...formData, height: clamped });
+              setFormData({ ...formData, height: n });
             }
           }}
           onBlur={() => {
@@ -180,8 +178,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(300, Math.max(30, n));
-              setFormData({ ...formData, weight: clamped });
+              setFormData({ ...formData, weight: n });
             }
           }}
           onBlur={() => {
@@ -193,7 +190,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
         />
 
         <div className="space-y-4">
-          <span className="block text-sm font-bold text-gray-900">Gênero</span>
+          <span className="block text-sm font-bold text-duo-fg">Gênero</span>
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: "male", label: "Masculino" },

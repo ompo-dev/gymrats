@@ -38,18 +38,18 @@ export function GymLayoutContent({
 	const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
 	const canAccessGym = role === "GYM" || role === "ADMIN" || isAdmin;
 
-	// Redirecionar conforme role
+	// Redirecionar conforme role (PENDING pode acessar onboarding para explorar)
 	useEffect(() => {
 		if (sessionLoading) return;
 
-		if (role === "PENDING") {
+		if (role === "PENDING" && !isOnboarding) {
 			router.push("/auth/register/user-type");
 			return;
 		}
-		if (!canAccessGym && role) {
+		if (!canAccessGym && role && !isOnboarding) {
 			router.push("/student");
 		}
-	}, [canAccessGym, role, sessionLoading, router]);
+	}, [canAccessGym, role, sessionLoading, router, isOnboarding]);
 
 	const isOnboarding =
 		typeof pathname === "string" && pathname.includes("/onboarding");

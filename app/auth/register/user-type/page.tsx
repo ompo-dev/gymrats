@@ -1,6 +1,7 @@
 "use client";
 
-import { Building2, Check, Dumbbell, Users } from "lucide-react";
+import { ArrowLeft, Building2, Check, Dumbbell, Users } from "lucide-react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
 import { useRouter } from "next/navigation";
@@ -13,11 +14,10 @@ import { useAuthStore } from "@/stores";
  */
 export default function UserTypePage() {
 	const router = useRouter();
-	const { setUserRole, userId, setAuthenticated } = useAuthStore();
+	const { setUserRole } = useAuthStore();
 	const [selectedType, setSelectedType] = useState<"student" | "gym" | null>(
 		null,
 	);
-	const [isLoading, setIsLoading] = useState(false);
 	const [isChecking, setIsChecking] = useState(true);
 
 	// Se já tem role definido (STUDENT/GYM), redirecionar para área correspondente
@@ -61,75 +61,14 @@ export default function UserTypePage() {
 		checkAndRedirect();
 	}, [router, setUserRole]);
 
-	const checkStudentProfile = async () => {
-		try {
-			const { apiClient } = await import("@/lib/api/client");
-			const response = await apiClient.get<{ hasProfile: boolean }>(
-				"/api/students/profile",
-			);
-			return response.data.hasProfile === true;
-		} catch {
-			return false;
-		}
-	};
-
-	const checkGymProfile = async () => {
-		try {
-			const { apiClient } = await import("@/lib/api/client");
-			const response = await apiClient.get<{ hasProfile: boolean }>(
-				"/api/gyms/profile",
-			);
-			return response.data.hasProfile === true;
-		} catch {
-			return false;
-		}
-	};
-
-	const handleSelectType = async (type: "student" | "gym") => {
+	const handleSelectType = (type: "student" | "gym") => {
 		setSelectedType(type);
-		setIsLoading(true);
-
-		try {
-			const currentUserId = userId || localStorage.getItem("userId");
-			if (!currentUserId) {
-				throw new Error("Sessão inválida. Faça login novamente.");
-			}
-
-			const { apiClient } = await import("@/lib/api/client");
-			const response = await apiClient.post<{ error?: string }>(
-				"/api/users/update-role",
-				{
-					userId: currentUserId,
-					role: type === "student" ? "STUDENT" : "GYM",
-				},
-			);
-
-			if (response.data.error) {
-				throw new Error(
-					response.data.error || "Erro ao atualizar tipo de usuário",
-				);
-			}
-
-			const role = type === "student" ? "STUDENT" : "GYM";
-			setUserRole(role);
-			setAuthenticated(true);
-
-			if (type === "student") {
-				const hasProfile = await checkStudentProfile();
-				router.push(hasProfile ? "/student" : "/student/onboarding");
-			} else {
-				const hasProfile = await checkGymProfile();
-				router.push(hasProfile ? "/gym" : "/gym/onboarding");
-			}
-		} catch (error) {
-			console.error("Erro ao selecionar tipo:", error);
-			const msg =
-				error instanceof Error
-					? error.message
-					: "Erro ao selecionar tipo de usuário. Tente novamente.";
-			alert(msg);
-			setIsLoading(false);
+		// Armazena intenção localmente - cadastro só ocorre ao concluir onboarding
+		if (typeof window !== "undefined") {
+			sessionStorage.setItem("gymrats:onboarding-intent", type);
 		}
+		// Navega para onboarding sem cadastrar no banco
+		router.push(type === "student" ? "/student/onboarding" : "/gym/onboarding");
 	};
 
 	if (isChecking) {
@@ -159,6 +98,15 @@ export default function UserTypePage() {
 
 	return (
 		<div className="flex min-h-screen flex-col bg-duo-bg">
+			<div className="absolute top-4 left-4 z-10">
+				<Link
+					href="/welcome"
+					className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-duo-fg-muted transition-colors hover:bg-duo-bg-elevated hover:text-duo-fg"
+				>
+					<ArrowLeft className="h-4 w-4" />
+					Voltar
+				</Link>
+			</div>
 			<div className="flex flex-1 items-center justify-center px-4 py-12">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -206,12 +154,12 @@ export default function UserTypePage() {
 							<DuoCard.Root
 								variant="outlined"
 								padding="lg"
-								onClick={() => !isLoading && handleSelectType("student")}
+								onClick={() => handleSelectType("student")}
 								className={`cursor-pointer border-2 transition-all ${
 									selectedType === "student"
 										? "border-duo-green bg-duo-green/10 shadow-xl"
 										: "border-duo-border bg-duo-bg-card hover:border-duo-green/50 hover:shadow-lg"
-								} ${isLoading ? "pointer-events-none opacity-70" : ""}`}
+								}`}
 							>
 								<div className="w-full p-2">
 										<div className="mb-6 text-center">
@@ -289,12 +237,12 @@ export default function UserTypePage() {
 							<DuoCard.Root
 								variant="outlined"
 								padding="lg"
-								onClick={() => !isLoading && handleSelectType("gym")}
+								onClick={() => handleSelectType("gym")}
 								className={`cursor-pointer border-2 transition-all ${
 									selectedType === "gym"
 										? "border-duo-orange bg-duo-orange/10 shadow-xl"
 										: "border-duo-border bg-duo-bg-card hover:border-duo-orange/50 hover:shadow-lg"
-								} ${isLoading ? "pointer-events-none opacity-70" : ""}`}
+								}`}
 							>
 								<div className="w-full p-2">
 										<div className="mb-6 text-center">

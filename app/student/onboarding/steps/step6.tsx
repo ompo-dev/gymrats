@@ -238,10 +238,9 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  const clamped = Math.min(120, Math.max(0, n));
                   setFormData({
                     ...formData,
-                    hormoneTreatmentDuration: clamped,
+                    hormoneTreatmentDuration: n,
                   });
                 }
                 setTouched((prev) => ({

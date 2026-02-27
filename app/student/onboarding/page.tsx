@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -71,12 +72,15 @@ export default function StudentOnboardingPage() {
   }, []);
 
   // Verificar se já tem perfil e redirecionar para /student
-  // Mas não verificar se estiver submetendo (para evitar conflito)
+  // Pula verificação quando usuário veio do user-type (PENDING explorando) - evita 401
   useEffect(() => {
     let isChecking = false;
 
     const checkProfileAndRedirect = async () => {
       if (!isMounted || isSubmitting || isChecking) return;
+      if (sessionStorage.getItem("gymrats:onboarding-intent") === "student") {
+        return; // PENDING explorando, não chamar API (retornaria 401)
+      }
       isChecking = true;
 
       try {
@@ -86,20 +90,16 @@ export default function StudentOnboardingPage() {
         );
 
         if (response.data.hasProfile === true) {
-          // Já tem perfil, redirecionar para /student
-          // Usar window.location para evitar loop
           window.location.href = "/student";
           return;
         }
       } catch (error) {
-        // Se der erro (usuário não autenticado), continuar normalmente
         console.error("Erro ao verificar perfil:", error);
       } finally {
         isChecking = false;
       }
     };
 
-    // Adicionar um pequeno delay para evitar múltiplas verificações simultâneas
     const timeoutId = setTimeout(checkProfileAndRedirect, 100);
 
     return () => {
@@ -187,6 +187,8 @@ export default function StudentOnboardingPage() {
         throw new Error(result.error || "Erro ao salvar perfil");
       }
 
+      sessionStorage.removeItem("gymrats:onboarding-intent");
+
       // Redirecionar imediatamente após salvar o perfil
       // A geração de treinos continuará em background
       // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
@@ -240,6 +242,19 @@ export default function StudentOnboardingPage() {
   return (
     <div className="relative flex min-h-screen flex-col bg-duo-bg scrollbar-hide">
       {showConfetti && <Confetti />}
+
+      {step === 1 && (
+        <div className="absolute top-4 left-4 z-50">
+          <DuoButton
+            onClick={() => _router.push("/auth/register/user-type")}
+            variant="white"
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </DuoButton>
+        </div>
+      )}
 
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {isMounted &&
@@ -302,9 +317,7 @@ export default function StudentOnboardingPage() {
       </div>
 
       {/* Botões fixos na parte inferior */}
-      <div
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-duo-border p-4 backdrop-blur-md bg-duo-bg-card"
-      >
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-duo-border p-4 backdrop-blur-md bg-duo-bg-card">
         <div className="mx-auto max-w-2xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -314,7 +327,11 @@ export default function StudentOnboardingPage() {
           >
             {step > 1 && (
               <div className="flex-1">
-                <DuoButton onClick={handleBack} variant="white" className="w-full">
+                <DuoButton
+                  onClick={handleBack}
+                  variant="white"
+                  className="w-full"
+                >
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   VOLTAR
                 </DuoButton>
@@ -347,7 +364,7 @@ export default function StudentOnboardingPage() {
                         SALVANDO...
                       </>
                     ) : (
-                      "PULAR POR AGORA"
+                      "PULAR"
                     )}
                   </DuoButton>
                 </div>
@@ -364,11 +381,7 @@ export default function StudentOnboardingPage() {
                         SALVANDO...
                       </>
                     ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        COMPLETAR PERFIL
-                        <Check className="ml-2 h-4 w-4" />
-                      </>
+                      <>COMPLETAR</>
                     )}
                   </DuoButton>
                 </div>

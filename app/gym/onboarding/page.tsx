@@ -124,12 +124,9 @@ export default function GymOnboardingPage() {
 					throw new Error(result.error || "Erro ao criar nova academia");
 				}
 
-				// Sinalizar que precisa refresh das academias
+				sessionStorage.removeItem("gymrats:onboarding-intent");
 				sessionStorage.setItem("refresh-gyms", "true");
-
-				// Forçar revalidação dos dados do servidor
 				router.refresh();
-
 				setTimeout(() => {
 					router.push("/gym?tab=dashboard");
 				}, 1500);
@@ -142,12 +139,9 @@ export default function GymOnboardingPage() {
 					throw new Error(result.error || "Erro ao salvar perfil");
 				}
 
-				// Sinalizar que precisa refresh das academias
+				sessionStorage.removeItem("gymrats:onboarding-intent");
 				sessionStorage.setItem("refresh-gyms", "true");
-
-				// Forçar revalidação dos dados do servidor
 				router.refresh();
-
 				setTimeout(() => {
 					router.push("/gym?tab=dashboard");
 				}, 1500);
@@ -185,16 +179,20 @@ export default function GymOnboardingPage() {
 		<div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-bg scrollbar-hide">
 			{showConfetti && <Confetti />}
 
-			{/* Botão voltar para modo "nova academia" */}
-			{isNewGymMode && (
+			{/* Botão voltar: nova academia → dashboard; onboarding inicial → user-type */}
+			{step === 1 && (
 				<div className="absolute top-4 left-4 z-50">
 					<DuoButton
-						onClick={() => router.push("/gym?tab=dashboard")}
+						onClick={() =>
+							router.push(
+								isNewGymMode ? "/gym?tab=dashboard" : "/auth/register/user-type",
+							)
+						}
 						variant="white"
 						className="gap-2"
 					>
 						<ArrowLeft className="h-4 w-4" />
-						Voltar ao Dashboard
+						{isNewGymMode ? "Voltar ao Dashboard" : "Voltar"}
 					</DuoButton>
 				</div>
 			)}

@@ -3,6 +3,8 @@
 import type { Gym, GymProfile, GymStats } from "@prisma/client";
 import { db } from "@/lib/db";
 import { initializeGymTrial } from "@/lib/utils/auto-trial";
+import { ensureGymRole } from "@/lib/utils/ensure-user-role";
+import { getUserContext } from "@/lib/context/auth-context-factory";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { GymOnboardingData } from "./steps/types";
 
@@ -42,8 +44,30 @@ export async function submitNewGym(formData: GymOnboardingData) {
 
 export async function submitGymOnboarding(formData: GymOnboardingData) {
 	try {
-		const { ctx, errorResponse } = await getGymContext();
-		if (errorResponse || !ctx) return { success: false, error: "Não autenticado" };
+		let ctx = (await getGymContext()).ctx;
+
+		// Se PENDING, cadastra agora (apenas ao concluir onboarding)
+		if (!ctx) {
+			const { ctx: userCtx, error: userError } = await getUserContext();
+			if (userError || !userCtx) {
+				return { success: false, error: "Não autenticado" };
+			}
+			if (userCtx.user.role !== "PENDING") {
+				return { success: false, error: "Fluxo inválido" };
+			}
+			const ensure = await ensureGymRole(
+				userCtx.user.id,
+				(userCtx.user.name as string) || formData.name,
+				(userCtx.user.email as string) || formData.email,
+			);
+			if (!ensure.ok) {
+				return { success: false, error: ensure.error };
+			}
+			ctx = (await getGymContext()).ctx;
+			if (!ctx) {
+				return { success: false, error: "Erro ao obter contexto após cadastro" };
+			}
+		}
 
 		const fullAddress = formData.addressNumber
 			? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`

@@ -99,7 +99,9 @@ export function ConsolidatedStep1({
   }, [forceValidation]);
 
   useEffect(() => {
-    if (Object.keys(touched).length > 0) {
+    if (Object.keys(touched).length === 0) return;
+
+    const timeoutId = setTimeout(() => {
       const validation = validateConsolidatedStep1({
         age: typeof formData.age === "number" ? formData.age : undefined,
         gender: formData.gender || undefined,
@@ -131,7 +133,9 @@ export function ConsolidatedStep1({
       } else {
         setErrors({});
       }
-    }
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
   }, [formData, touched]);
 
   const validateField = (
@@ -226,7 +230,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, age: Math.min(120, Math.max(13, n)) });
+                  setFormData({ ...formData, age: n });
                 }
               }}
               onBlur={() => {
@@ -250,7 +254,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, height: Math.min(250, Math.max(100, n)) });
+                  setFormData({ ...formData, height: n });
                 }
               }}
               onBlur={() => {
@@ -274,7 +278,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, weight: Math.min(300, Math.max(30, n)) });
+                  setFormData({ ...formData, weight: n });
                 }
               }}
               onBlur={() => {
@@ -377,7 +381,7 @@ export function ConsolidatedStep1({
                         if (!Number.isNaN(n)) {
                           setFormData({
                             ...formData,
-                            hormoneTreatmentDuration: Math.min(120, Math.max(0, n)),
+                            hormoneTreatmentDuration: n,
                           });
                         }
                       }}

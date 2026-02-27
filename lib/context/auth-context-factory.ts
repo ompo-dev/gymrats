@@ -37,6 +37,15 @@ export type StudentContextResult =
 	| { ctx: StudentContext; error?: undefined }
 	| { ctx?: undefined; error: string };
 
+export type UserOnlyContext = {
+	user: AuthSession["user"];
+	session: AuthSession["session"];
+};
+
+export type UserOnlyContextResult =
+	| { ctx: UserOnlyContext; error?: undefined }
+	| { ctx?: undefined; error: string };
+
 async function getAuthSession(): Promise<AuthSession | null> {
 	const headerList = await import("next/headers").then((m) => m.headers());
 
@@ -172,4 +181,11 @@ export async function getAuthContext(
 			student,
 		},
 	};
+}
+
+/** Retorna apenas o usuário autenticado, sem exigir student/gym. Útil para PENDING. */
+export async function getUserContext(): Promise<UserOnlyContextResult> {
+	const auth = await getAuthSession();
+	if (!auth) return { error: "Não autenticado." };
+	return { ctx: { user: auth.user, session: auth.session } };
 }
