@@ -11,7 +11,7 @@ interface WeightProgressCardProps {
 	weightHistory: Array<{ date: Date | string; weight: number }>;
 }
 
-export function WeightProgressCard({
+function WeightProgressCardSimple({
 	currentWeight,
 	weightGain,
 	hasWeightLossGoal = false,
@@ -96,3 +96,7 @@ export function WeightProgressCard({
 		</DuoCard.Root>
 	);
 }
+
+export const WeightProgressCard = {
+	Simple: WeightProgressCardSimple,
+};

@@ -320,7 +320,7 @@ function StudentHomeContent() {
 					{/* Card de Progresso de Nível */}
 					{storeProgress && (
 						<WhileInView delay={0.4}>
-							<LevelProgressCard
+							<LevelProgressCard.Simple
 								currentLevel={storeProgress.currentLevel}
 								totalXP={storeProgress.totalXP}
 								xpToNextLevel={storeProgress.xpToNextLevel}
@@ -394,7 +394,7 @@ function StudentHomeContent() {
 					{/* Card de Evolução de Peso */}
 					{currentWeight && (
 						<WhileInView delay={0.45}>
-							<WeightProgressCard
+							<WeightProgressCard.Simple
 								currentWeight={currentWeight}
 								weightGain={currentWeightGain}
 								hasWeightLossGoal={storeProfile?.hasWeightLossGoal || false}
@@ -405,7 +405,7 @@ function StudentHomeContent() {
 
 					{/* Card: Continue seu Treino */}
 					<WhileInView delay={0.3}>
-						<ContinueWorkoutCard
+						<ContinueWorkoutCard.Simple
 							units={
 								storeWeeklyPlan?.slots
 									? [
@@ -432,13 +432,13 @@ function StudentHomeContent() {
 
 					{/* Card: Status de Nutrição */}
 					<WhileInView delay={0.35}>
-						<NutritionStatusCard dailyNutrition={storeDailyNutrition} />
+						<NutritionStatusCard.Simple dailyNutrition={storeDailyNutrition} />
 					</WhileInView>
 
 					{/* Card de Treinos Recentes */}
 					{currentWorkoutHistory.length > 0 && (
 						<WhileInView delay={0.5}>
-							<RecentWorkoutsCard workoutHistory={currentWorkoutHistory} />
+							<RecentWorkoutsCard.Simple workoutHistory={currentWorkoutHistory} />
 						</WhileInView>
 					)}
 				</div>

@@ -15,7 +15,7 @@ interface NutritionStatusCardProps {
   dailyNutrition: DailyNutrition | null | undefined;
 }
 
-export function NutritionStatusCard({
+function NutritionStatusCardSimple({
   dailyNutrition,
 }: NutritionStatusCardProps) {
   const router = useRouter();
@@ -244,3 +244,7 @@ export function NutritionStatusCard({
     </DuoCard.Root>
   );
 }
+
+export const NutritionStatusCard = {
+  Simple: NutritionStatusCardSimple,
+};

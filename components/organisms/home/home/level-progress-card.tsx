@@ -10,7 +10,7 @@ interface LevelProgressCardProps {
 	ranking?: number | null;
 }
 
-export function LevelProgressCard({
+function LevelProgressCardSimple({
 	currentLevel,
 	totalXP,
 	xpToNextLevel,
@@ -78,3 +78,7 @@ export function LevelProgressCard({
 		</DuoCard.Root>
 	);
 }
+
+export const LevelProgressCard = {
+	Simple: LevelProgressCardSimple,
+};

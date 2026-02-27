@@ -12,7 +12,7 @@ interface ContinueWorkoutCardProps {
   workoutHistory: any[];
 }
 
-export function ContinueWorkoutCard({
+function ContinueWorkoutCardSimple({
   units,
   workoutHistory,
 }: ContinueWorkoutCardProps) {
@@ -194,3 +194,7 @@ export function ContinueWorkoutCard({
 
   return null;
 }
+
+export const ContinueWorkoutCard = {
+  Simple: ContinueWorkoutCardSimple,
+};

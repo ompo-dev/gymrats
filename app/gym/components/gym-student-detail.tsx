@@ -511,7 +511,7 @@ export function GymStudentDetail({
 						</DuoCard.Root>
 
 						<div className="lg:col-span-2">
-							<WeightProgressCard
+							<WeightProgressCard.Simple
 								currentWeight={student.currentWeight ?? null}
 								weightGain={(student as { weightGain?: number | null }).weightGain ?? null}
 								hasWeightLossGoal={(student as { hasWeightLossGoal?: boolean }).hasWeightLossGoal ?? false}

@@ -9,7 +9,7 @@ interface RecentWorkoutsCardProps {
 	workoutHistory: WorkoutHistory[];
 }
 
-export function RecentWorkoutsCard({
+function RecentWorkoutsCardSimple({
 	workoutHistory,
 }: RecentWorkoutsCardProps) {
 	const recentWorkouts = workoutHistory.slice(0, 3);
@@ -115,3 +115,7 @@ export function RecentWorkoutsCard({
 		</DuoCard.Root>
 	);
 }
+
+export const RecentWorkoutsCard = {
+	Simple: RecentWorkoutsCardSimple,
+};
