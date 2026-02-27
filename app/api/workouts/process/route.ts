@@ -218,6 +218,7 @@ export async function POST(request: NextRequest) {
       case "add_exercise": {
         if (parsedPlan.targetWorkoutId && parsedPlan.workouts.length > 0) {
           const workoutPlan = parsedPlan.workouts[0];
+          const exercisesToAdd = workoutPlan.exercises || [];
           const workouts = planSlot?.workout
             ? [planSlot.workout]
             : unit?.workouts ?? [];
@@ -225,12 +226,12 @@ export async function POST(request: NextRequest) {
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
 
-          if (targetWorkout) {
+          if (targetWorkout && exercisesToAdd.length > 0) {
             const currentExerciseCount = targetWorkout.exercises.length;
 
             const exercises = await createExercisesInBatch(
               parsedPlan.targetWorkoutId,
-              workoutPlan.exercises,
+              exercisesToAdd,
               student.profile,
               workoutPlan.difficulty,
               currentExerciseCount,

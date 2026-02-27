@@ -169,6 +169,31 @@ export function WorkoutChat({
       // Se há referência e a ação é update_workout ou replace_exercise, garantir que o targetWorkoutId está correto
       let targetWorkoutId = pendingWorkoutData.targetWorkoutId;
 
+      // Fallback targetWorkoutId quando IA não retorna - necessário para add_exercise, remove_exercise, replace_exercise, update_workout, delete_workout
+      if (!targetWorkoutId && workouts.length > 0) {
+        const needsTarget =
+          pendingWorkoutData.action === "add_exercise" ||
+          pendingWorkoutData.action === "remove_exercise" ||
+          pendingWorkoutData.action === "replace_exercise" ||
+          pendingWorkoutData.action === "update_workout" ||
+          pendingWorkoutData.action === "delete_workout";
+
+        if (needsTarget) {
+          if (planSlotId && workouts.length === 1) {
+            targetWorkoutId = workouts[0].id;
+          } else if (
+            pendingWorkoutData.workouts?.length > 0 &&
+            pendingWorkoutData.workouts[0].title
+          ) {
+            const workoutTitle = pendingWorkoutData.workouts[0].title;
+            const match = workouts.find(
+              (w: WorkoutSession) => w.title === workoutTitle,
+            );
+            if (match) targetWorkoutId = match.id;
+          }
+        }
+      }
+
       // Se targetWorkoutId é um título (não é um ID válido), buscar o workout correto
       if (
         targetWorkoutId &&
