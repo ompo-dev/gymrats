@@ -1247,9 +1247,19 @@ export function WorkoutChat({
                         workout={msg.workoutPreview}
                         index={workoutIndex}
                         displayNumber={
-                          planSlot && planSlot.type === "workout"
-                            ? planSlot.dayOfWeek + 1
-                            : undefined
+                          previewWorkouts.length > 1
+                            ? workoutIndex + 1
+                            : planSlot && planSlot.type === "workout"
+                              ? planSlot.dayOfWeek + 1
+                              : workoutIndex + 1
+                        }
+                        variant={
+                          msg.workoutPreview.title
+                            ?.toLowerCase()
+                            .includes("descanso") ||
+                          !msg.workoutPreview.exercises?.length
+                            ? "rest"
+                            : "default"
                         }
                         defaultExpanded={
                           !allWorkoutsComplete &&

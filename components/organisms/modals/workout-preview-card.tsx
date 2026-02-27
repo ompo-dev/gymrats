@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Dumbbell, MessageSquare } from "lucide-react";
+import { ChevronDown, Dumbbell, MessageSquare, Moon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { DuoCard } from "@/components/duo";
@@ -27,6 +27,8 @@ interface WorkoutPreviewCardProps {
   index: number;
   /** Número exibido no badge (ex: 4 para Quarta). Se não informado, usa index + 1 */
   displayNumber?: number;
+  /** Variante rest: dia de descanso (ícone lua, sem exercícios) */
+  variant?: "default" | "rest";
   /** Último workout e ainda em streaming: mantém expandido para ver exercícios em tempo real */
   defaultExpanded?: boolean;
   /** Em streaming com 0 exercícios: mostra área de exercícios com placeholder */
@@ -183,6 +185,7 @@ export function WorkoutPreviewCard({
   workout,
   index,
   displayNumber,
+  variant = "default",
   defaultExpanded = false,
   isStreaming = false,
   onReference,
@@ -193,8 +196,10 @@ export function WorkoutPreviewCard({
   const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<
     number | null
   >(null);
+  const isRest = variant === "rest";
   const hasExercises = workout.exercises.length > 0;
-  const showExercisesArea = hasExercises || (isStreaming && defaultExpanded);
+  const showExercisesArea =
+    !isRest && (hasExercises || (isStreaming && defaultExpanded));
 
   const handleWorkoutReference = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -202,6 +207,39 @@ export function WorkoutPreviewCard({
       onReference("workout", index);
     }
   };
+
+  // Variante REST: dia de descanso
+  if (isRest) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: index * 0.1 }}
+      >
+        <DuoCard
+          variant="default"
+          className="group border-duo-border bg-duo-bg-elevated/50 cursor-default"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-gray/20 text-duo-fg-muted">
+              {displayNumber ?? index + 1}
+            </div>
+            <div className="flex-1 flex items-center gap-3">
+              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-duo-gray/20">
+                <Moon className="h-6 w-6 text-duo-fg-muted" aria-hidden />
+              </div>
+              <div>
+                <h4 className="font-bold text-duo-fg-muted text-lg">
+                  {workout.title}
+                </h4>
+                <p className="text-sm text-duo-fg-muted">Dia de descanso</p>
+              </div>
+            </div>
+          </div>
+        </DuoCard>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

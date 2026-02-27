@@ -128,6 +128,17 @@ export async function POST(request: NextRequest) {
       case "create_workouts": {
         // Criar workouts e exercícios em batch
         const workoutsToCreate = parsedPlan.workouts || [];
+
+        // Plano semanal com múltiplos workouts: buscar todos os slots para distribuir
+        let weeklyPlanSlots: { id: string; dayOfWeek: number; workoutId: string | null }[] = [];
+        if (planSlotId && planSlot && workoutsToCreate.length > 1) {
+          weeklyPlanSlots = await db.planSlot.findMany({
+            where: { weeklyPlanId: planSlot.weeklyPlanId },
+            orderBy: { dayOfWeek: "asc" },
+            select: { id: true, dayOfWeek: true, workoutId: true },
+          });
+        }
+
         for (let i = 0; i < workoutsToCreate.length; i++) {
           const workoutPlan = workoutsToCreate[i];
           try {
@@ -136,9 +147,22 @@ export async function POST(request: NextRequest) {
             let planSlotIdForCreate: string | null = null;
 
             if (planSlotId && planSlot) {
-              // Contexto: plano semanal - criar no slot (apenas 1 workout por slot)
-              planSlotIdForCreate = planSlotId;
-              order = planSlot.dayOfWeek;
+              // Plano semanal: distribuir workouts nos slots (1 por dia)
+              if (workoutsToCreate.length > 1 && weeklyPlanSlots.length > 0) {
+                const targetSlot = weeklyPlanSlots[i];
+                if (!targetSlot) {
+                  results.errors.push(
+                    `Slot para dia ${i} não encontrado. Ignorando ${workoutPlan.title}.`,
+                  );
+                  continue;
+                }
+                planSlotIdForCreate = targetSlot.id;
+                order = targetSlot.dayOfWeek;
+              } else {
+                // Apenas 1 workout: usar o slot referenciado
+                planSlotIdForCreate = planSlotId;
+                order = planSlot.dayOfWeek;
+              }
             } else if (unit) {
               // Contexto: unit legado
               unitIdForCreate = unit.id;
@@ -146,6 +170,24 @@ export async function POST(request: NextRequest) {
                 unit.workouts.length > 0
                   ? Math.max(...unit.workouts.map((w) => w.order ?? 0)) + i + 1
                   : i;
+            }
+
+            const isRestDay =
+              workoutPlan.title?.toLowerCase().includes("descanso") ||
+              !workoutPlan.exercises?.length;
+
+            if (isRestDay && planSlotIdForCreate) {
+              const oldWorkoutId =
+                weeklyPlanSlots[i]?.workoutId ?? planSlot?.workoutId ?? null;
+              if (oldWorkoutId) {
+                await db.workout.delete({ where: { id: oldWorkoutId } });
+              }
+              await db.planSlot.update({
+                where: { id: planSlotIdForCreate },
+                data: { type: "rest", workoutId: null },
+              });
+              results.created.push(`Workout: ${workoutPlan.title} (descanso)`);
+              continue;
             }
 
             const workout = await db.workout.create({
@@ -162,6 +204,11 @@ export async function POST(request: NextRequest) {
             });
 
             if (planSlotIdForCreate) {
+              const oldWorkoutId =
+                weeklyPlanSlots[i]?.workoutId ?? planSlot?.workoutId ?? null;
+              if (oldWorkoutId) {
+                await db.workout.delete({ where: { id: oldWorkoutId } });
+              }
               await db.planSlot.update({
                 where: { id: planSlotIdForCreate },
                 data: { type: "workout", workoutId: workout.id },
