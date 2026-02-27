@@ -503,21 +503,29 @@ export function WorkoutChat({
   };
 
   const handleExportWorkouts = async () => {
+    // Priorizar previewWorkouts (o que o usuário vê no chat, incluindo alterações da IA)
+    // Depois workouts do store/props. Fallback: slots com treino do weeklyPlan (modo planSlot)
+    let sourceWorkouts =
+      previewWorkouts.length > 0 ? previewWorkouts : workouts;
+
+    if (sourceWorkouts.length === 0 && planSlotId && storeWeeklyPlan?.slots) {
+      const slotsWithWorkout = storeWeeklyPlan.slots
+        .filter((s: PlanSlotData) => s.type === "workout" && s.workout)
+        .map((s: PlanSlotData) => s.workout!);
+      sourceWorkouts = slotsWithWorkout;
+    }
+
     const payload = {
-      workouts: workouts.map((w: WorkoutSession) => ({
-        title: w.title,
-        description: w.description || "",
-        type: w.type,
-        muscleGroup: w.muscleGroup,
-        difficulty:
-          (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
-        exercises: w.exercises.map(
-          (
-            e: WorkoutExercise & {
-              rest?: number;
-              alternatives?: (string | { name?: string })[];
-            },
-          ) => ({
+      workouts: sourceWorkouts.map((w: PreviewWorkout | WorkoutSession) => {
+        const exercises = "exercises" in w ? w.exercises : [];
+        return {
+          title: w.title,
+          description: w.description || "",
+          type: w.type,
+          muscleGroup: w.muscleGroup,
+          difficulty:
+            (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
+          exercises: exercises.map((e: { name: string; sets: number; reps: string; rest?: number; notes?: string; alternatives?: (string | { name?: string })[] }) => ({
             name: e.name,
             sets: e.sets,
             reps: e.reps,
@@ -527,9 +535,9 @@ export function WorkoutChat({
               e.alternatives?.map((alt) =>
                 typeof alt === "string" ? alt : (alt?.name ?? ""),
               ) || [],
-          }),
-        ),
-      })),
+          })),
+        };
+      }),
     };
 
     const json = JSON.stringify(payload, null, 2);
@@ -925,9 +933,79 @@ export function WorkoutChat({
             }),
           );
         } else if (
+          parsedData.action === "replace_exercise" &&
+          parsedData.workouts.length > 0 &&
+          parsedData.exerciseToReplace
+        ) {
+          // replace_exercise: mesclar como add_exercise - manter existentes, substituir apenas o indicado
+          const newExercise = parsedData.workouts[0].exercises?.[0];
+          const targetId = parsedData.targetWorkoutId;
+          const oldName = parsedData.exerciseToReplace.old?.toLowerCase();
+
+          const mergedPreviews = previewWorkouts.map((w) => {
+            let existingExercises = w.exercises || [];
+            if (workouts.length > 0) {
+              const storeWorkout =
+                previewWorkouts.length === 1
+                  ? workouts[0]
+                  : workouts.find(
+                      (sw: WorkoutSession) =>
+                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                    );
+              if (storeWorkout?.exercises?.length) {
+                existingExercises = storeWorkout.exercises.map(
+                  (e: WorkoutExercise) => ({
+                    name: e.name,
+                    sets: e.sets,
+                    reps: e.reps,
+                    rest: e.rest ?? 60,
+                    notes: e.notes,
+                    alternatives: e.alternatives?.map(
+                      (a: { name?: string } | string) =>
+                        typeof a === "object" && a?.name ? a.name : String(a),
+                    ),
+                  }),
+                );
+              }
+            }
+
+            const isTarget =
+              !targetId ||
+              previewWorkouts.length === 1 ||
+              w.title === targetId ||
+              (w as { id?: string }).id === targetId;
+
+            if (!isTarget || !newExercise) return w;
+
+            const filtered = existingExercises.filter((e) => {
+              const en = e.name.toLowerCase();
+              const old = oldName ?? "";
+              return !en.includes(old) && !old.includes(en);
+            });
+            const replaced = [...filtered, newExercise];
+
+            return { ...w, exercises: replaced };
+          });
+          setPreviewWorkouts(mergedPreviews);
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (!msg.workoutPreview) return msg;
+              const idx =
+                typeof msg.workoutPreviewIndex === "number"
+                  ? msg.workoutPreviewIndex
+                  : 0;
+              const merged = mergedPreviews[idx];
+              if (merged) {
+                return { ...msg, workoutPreview: merged };
+              }
+              return msg;
+            }),
+          );
+          // parsedData.workouts mantém o original da IA (apenas novo exercício) para o approve/process
+        } else if (
           reference &&
-          (parsedData.action === "update_workout" ||
-            parsedData.action === "replace_exercise")
+          parsedData.action === "update_workout"
         ) {
           // A IA DEVE retornar TODOS os workouts atualizados
           if (parsedData.workouts.length === previewWorkouts.length) {

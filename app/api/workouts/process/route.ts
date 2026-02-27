@@ -318,9 +318,16 @@ export async function POST(request: NextRequest) {
           const workouts = planSlot?.workout
             ? [planSlot.workout]
             : unit?.workouts ?? [];
-          const workout = workouts.find(
+          let workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
+          if (!workout) {
+            workout = workouts.find(
+              (w) =>
+                w.title.toLowerCase() ===
+                String(parsedPlan.targetWorkoutId).toLowerCase(),
+            );
+          }
           if (workout) {
             const oldExercise = workout.exercises.find(
               (e) =>
@@ -341,9 +348,9 @@ export async function POST(request: NextRequest) {
                 where: { id: oldExercise.id },
               });
 
-              // Criar novo exercício
+              // Criar novo exercício (usar workout.id - workout pode ter sido encontrado por título)
               const _exercises = await createExercisesInBatch(
-                parsedPlan.targetWorkoutId,
+                workout.id,
                 [newExercisePlan],
                 student.profile,
                 "intermediario",
