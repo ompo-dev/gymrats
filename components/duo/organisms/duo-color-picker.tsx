@@ -150,7 +150,7 @@ export function DuoColorPicker({
 					<Plus size={12} />
 				</button>
 
-				<DuoModal
+				<DuoModal.Simple
 					isOpen={isOpen}
 					onClose={() => setIsOpen(false)}
 					title="Tema Personalizado"
@@ -192,7 +192,7 @@ export function DuoColorPicker({
 							Criar Tema
 						</DuoButton>
 					</div>
-				</DuoModal>
+				</DuoModal.Simple>
 			</div>
 		);
 	}
@@ -323,7 +323,7 @@ export function DuoColorPicker({
 				<span className="text-xs font-bold">Adicionar Tema Personalizado</span>
 			</button>
 
-			<DuoModal
+			<DuoModal.Simple
 				isOpen={isOpen}
 				onClose={() => setIsOpen(false)}
 				title="Tema Personalizado"
@@ -369,7 +369,7 @@ export function DuoColorPicker({
 						Criar Tema
 					</DuoButton>
 				</div>
-			</DuoModal>
+			</DuoModal.Simple>
 		</div>
 	);
 }

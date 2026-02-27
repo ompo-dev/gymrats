@@ -143,7 +143,7 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 				)}
 
 				{/* Campo de busca */}
-				<DuoInput
+				<DuoInput.Simple
 					ref={inputRef}
 					placeholder="Buscar aluno pelo nome..."
 					value={search}

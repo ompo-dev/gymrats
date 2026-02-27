@@ -105,20 +105,20 @@ export function DietPage() {
 				</p>
 			</div>
 
-			<DuoStatsGrid columns={2} className="gap-4">
-				<DuoStatCard
+			<DuoStatsGrid.Root columns={2} className="gap-4">
+				<DuoStatCard.Simple
 					icon={Calendar}
 					value={`${completedMeals}/${totalMeals}`}
 					label="refeições hoje"
 					iconColor="var(--duo-secondary)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={TrendingUp}
 					value={`${caloriesPercentage}%`}
 					label="meta calórica"
 					iconColor="var(--duo-primary)"
 				/>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			<NutritionTracker
 				nutrition={dailyNutrition}

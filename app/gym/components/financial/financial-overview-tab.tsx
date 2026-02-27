@@ -30,35 +30,35 @@ export function FinancialOverviewTab({
 
 	return (
 		<div className="space-y-6">
-			<DuoStatsGrid columns={2} className="gap-3">
-				<DuoStatCard
+			<DuoStatsGrid.Root columns={2} className="gap-3">
+				<DuoStatCard.Simple
 					icon={TrendingUp}
 					value={formatCurrency(financialSummary.totalRevenue)}
 					label="Receita Total"
 					badge={`+${financialSummary.revenueGrowth}%`}
 					iconColor="var(--duo-primary)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={TrendingDown}
 					value={formatCurrency(financialSummary.totalExpenses)}
 					label="Despesas"
 					badge="Mensal"
 					iconColor="var(--duo-danger)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={DollarSign}
 					value={formatCurrency(financialSummary.netProfit)}
 					label="Lucro Líquido"
 					iconColor="var(--duo-secondary)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={CreditCard}
 					value={formatCurrency(financialSummary.monthlyRecurring)}
 					label="Recorrente Mensal"
 					badge="MRR"
 					iconColor="#A560E8"
 				/>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			{(financialSummary.overduePayments ?? 0) > 0 && (
 				<DuoCard.Root

@@ -121,7 +121,7 @@ export function AddExpenseModal({
 							className="mt-1"
 						/>
 					</div>
-					<DuoInput
+					<DuoInput.Simple
 						id="description"
 						label="Descrição (opcional)"
 						value={form.description}
@@ -130,7 +130,7 @@ export function AddExpenseModal({
 						}
 						placeholder="Ex: Conserto do ar condicionado"
 					/>
-					<DuoInput
+					<DuoInput.Simple
 						id="amount"
 						label="Valor (R$)"
 						type="text"
@@ -145,7 +145,7 @@ export function AddExpenseModal({
 						placeholder="0,00"
 						required
 					/>
-					<DuoInput
+					<DuoInput.Simple
 						id="category"
 						label="Categoria (opcional)"
 						value={form.category}

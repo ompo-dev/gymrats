@@ -147,7 +147,7 @@ export function AddStudentModal({
 				{/* Campo de busca */}
 				<div className="mb-4">
 					<div className="flex gap-2">
-						<DuoInput
+						<DuoInput.Simple
 							label="Buscar por e-mail"
 							placeholder="email@exemplo.com"
 							value={email}
@@ -256,7 +256,7 @@ export function AddStudentModal({
 									)}
 
 									{/* Valor */}
-									<DuoInput
+									<DuoInput.Simple
 										label={
 											selectedPlanId
 												? "Valor (deixe em branco para usar o valor do plano)"

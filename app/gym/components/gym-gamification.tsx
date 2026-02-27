@@ -112,35 +112,35 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoStatsGrid columns={4} className="gap-4">
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={4} className="gap-4">
+					<DuoStatCard.Simple
 						icon={Flame}
 						value={String(gamification.currentStreak)}
 						label="Sequência"
 						badge={`Recorde: ${gamification.longestStreak} dias`}
 						iconColor="var(--duo-accent)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value={`#${gamification.ranking}`}
 						label="Ranking"
 						badge="Entre academias da região"
 						iconColor="#A560E8"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Users}
 						value={`${profile.totalStudents}/${gamification.monthlyStudentGoal}`}
 						label="Meta de Alunos"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Target}
 						value={`${gamification.equipmentUtilization}%`}
 						label="Utilização"
 						badge="Equipamentos em uso"
 						iconColor="var(--duo-primary)"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<div className="grid gap-6 lg:grid-cols-2">

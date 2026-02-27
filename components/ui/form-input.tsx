@@ -163,7 +163,7 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
 				transition={{ delay, type: "spring" }}
 				className={cn("space-y-2", className)}
 			>
-				<DuoInput
+				<DuoInput.Simple
 					ref={ref}
 					label={label ? `${label}${required ? " *" : ""}` : undefined}
 					leftIcon={icon}

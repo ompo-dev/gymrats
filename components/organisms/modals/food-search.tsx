@@ -481,7 +481,7 @@ export function FoodSearch({
 						</div>
 
 						{/* Campo de busca */}
-						<DuoInput
+						<DuoInput.Simple
 							type="text"
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}

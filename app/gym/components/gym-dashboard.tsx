@@ -65,36 +65,36 @@ export function GymDashboardPage({
       </FadeIn>
 
       <SlideIn delay={0.1}>
-        <DuoStatsGrid columns={4} className="gap-4">
-          <DuoStatCard
+        <DuoStatsGrid.Root columns={4} className="gap-4">
+          <DuoStatCard.Simple
             icon={Users}
             value={String(today.checkins)}
             label="Check-ins Hoje"
             badge={`Pico: ${today.peakHour}`}
             iconColor="var(--duo-primary)"
           />
-          <DuoStatCard
+          <DuoStatCard.Simple
             icon={Users}
             value={String(today.activeStudents)}
             label="Alunos Ativos"
             badge={`Total: ${profile.totalStudents}`}
             iconColor="var(--duo-secondary)"
           />
-          <DuoStatCard
+          <DuoStatCard.Simple
             icon={Dumbbell}
             value={String(today.equipmentInUse)}
             label="Equipamentos em Uso"
             badge={`Total: ${equipment.length}`}
             iconColor="var(--duo-accent)"
           />
-          <DuoStatCard
+          <DuoStatCard.Simple
             icon={Users}
             value={`+${week.newMembers}`}
             label="Novos Alunos"
             badge="Esta semana"
             iconColor="#A560E8"
           />
-        </DuoStatsGrid>
+        </DuoStatsGrid.Root>
       </SlideIn>
 
       <div className="grid gap-6 lg:grid-cols-2">

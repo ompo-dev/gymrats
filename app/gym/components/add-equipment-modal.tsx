@@ -144,7 +144,7 @@ export function AddEquipmentModal({
 				</DialogHeader>
 
 				<div className="grid gap-4 py-4">
-					<DuoInput
+					<DuoInput.Simple
 						id="name"
 						label="Nome *"
 						value={form.name}
@@ -163,14 +163,14 @@ export function AddEquipmentModal({
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
-						<DuoInput
+						<DuoInput.Simple
 							id="brand"
 							label="Marca"
 							value={form.brand}
 							onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
 							placeholder="Ex: Technogym"
 						/>
-						<DuoInput
+						<DuoInput.Simple
 							id="model"
 							label="Modelo"
 							value={form.model}
@@ -180,14 +180,14 @@ export function AddEquipmentModal({
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
-						<DuoInput
+						<DuoInput.Simple
 							id="serialNumber"
 							label="Nº Série"
 							value={form.serialNumber}
 							onChange={(e) => setForm((f) => ({ ...f, serialNumber: e.target.value }))}
 							placeholder="Ex: SN123456"
 						/>
-						<DuoInput
+						<DuoInput.Simple
 							id="purchaseDate"
 							label="Data Aquisição"
 							type="date"

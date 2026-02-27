@@ -105,7 +105,7 @@ export function MaintenanceModal({
 						/>
 					</div>
 
-					<DuoInput
+					<DuoInput.Simple
 						label="Descrição do Serviço *"
 						placeholder="O que foi feito?"
 						value={form.description}
@@ -114,7 +114,7 @@ export function MaintenanceModal({
 						}
 					/>
 
-					<DuoInput
+					<DuoInput.Simple
 						label="Realizado por *"
 						placeholder="Nome do técnico ou empresa"
 						value={form.performedBy}
@@ -124,7 +124,7 @@ export function MaintenanceModal({
 					/>
 
 					<div className="flex gap-2">
-						<DuoInput
+						<DuoInput.Simple
 							label="Custo (R$)"
 							type="number"
 							placeholder="0.00"
@@ -134,7 +134,7 @@ export function MaintenanceModal({
 							}
 							className="flex-1"
 						/>
-						<DuoInput
+						<DuoInput.Simple
 							label="Próxima Visita"
 							type="date"
 							value={form.nextScheduled}

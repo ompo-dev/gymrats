@@ -324,32 +324,32 @@ export function GymStudentDetail({
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
-				<DuoStatsGrid columns={4} className="gap-4">
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={4} className="gap-4">
+					<DuoStatCard.Simple
 						icon={Flame}
 						value={String(student.currentStreak)}
 						label="Sequência"
 						iconColor="var(--duo-accent)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Trophy}
 						value={String(student.progress?.currentLevel ?? 1)}
 						label="Nível"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Activity}
 						value={String(student.totalVisits)}
 						label="Treinos"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Target}
 						value={`${student.attendanceRate}%`}
 						label="Frequência"
 						iconColor="#A560E8"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

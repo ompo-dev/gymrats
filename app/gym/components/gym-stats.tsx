@@ -38,36 +38,36 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoStatsGrid columns={2} className="gap-4">
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={2} className="gap-4">
+					<DuoStatCard.Simple
 						icon={Users}
 						value={String(stats.week.totalCheckins)}
 						label="Check-ins Semana"
 						badge="+8%"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Activity}
 						value={`${stats.month.retentionRate}%`}
 						label="Taxa Retenção"
 						badge="+5%"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Target}
 						value={String(stats.week.avgDailyCheckins)}
 						label="Média Diária"
 						badge="85%"
 						iconColor="#A560E8"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Dumbbell}
 						value={String(equipment.length)}
 						label="Equipamentos Ativos"
 						badge="78%"
 						iconColor="var(--duo-accent)"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>

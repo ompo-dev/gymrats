@@ -329,13 +329,13 @@ function StudentHomeContent() {
 					)}
 
 					{/* Cards de Estatísticas Principais */}
-					<DuoStatsGrid columns={2} className="gap-4">
+					<DuoStatsGrid.Root columns={2} className="gap-4">
 						<motion.div
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.1, duration: 0.4 }}
 						>
-							<DuoStatCard
+							<DuoStatCard.Simple
 								icon={Flame}
 								value={displayProgress.currentStreak}
 								label="dias de sequência"
@@ -349,7 +349,7 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.15, duration: 0.4 }}
 						>
-							<DuoStatCard
+							<DuoStatCard.Simple
 								icon={Zap}
 								value={`${displayProgress.todayXP} XP`}
 								label="ganho hoje"
@@ -363,7 +363,7 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.2, duration: 0.4 }}
 						>
-							<DuoStatCard
+							<DuoStatCard.Simple
 								icon={Trophy}
 								value={`#${displayProgress.currentLevel}`}
 								label="nível atual"
@@ -377,7 +377,7 @@ function StudentHomeContent() {
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.25, duration: 0.4 }}
 						>
-							<DuoStatCard
+							<DuoStatCard.Simple
 								icon={Dumbbell}
 								value={displayProgress.workoutsCompleted}
 								label="treinos completos"
@@ -389,7 +389,7 @@ function StudentHomeContent() {
 								iconColor="var(--duo-primary)"
 							/>
 						</motion.div>
-					</DuoStatsGrid>
+					</DuoStatsGrid.Root>
 
 					{/* Card de Evolução de Peso */}
 					{currentWeight && (

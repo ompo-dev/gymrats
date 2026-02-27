@@ -179,32 +179,32 @@ export function GymEquipmentPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<DuoStatsGrid columns={4} className="gap-4">
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={4} className="gap-4">
+					<DuoStatCard.Simple
 						icon={Dumbbell}
 						value={String(statsOverview.total)}
 						label="Total"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={CheckCircle2}
 						value={String(statsOverview.available)}
 						label="Disponíveis"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Activity}
 						value={String(statsOverview.inUse)}
 						label="Em Uso"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Wrench}
 						value={String(statsOverview.maintenance)}
 						label="Manutenção"
 						iconColor="var(--duo-accent)"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.2}>
@@ -216,7 +216,7 @@ export function GymEquipmentPage({
 						</div>
 					</DuoCard.Header>
 					<div className="space-y-4">
-						<DuoInput
+						<DuoInput.Simple
 							placeholder="Buscar por nome ou tipo..."
 							value={searchQuery || ""}
 							onChange={(e) => setSearchQuery(e.target.value)}

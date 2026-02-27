@@ -452,15 +452,15 @@ export function ProfilePageContent() {
 				}
 			/>
 
-			<DuoStatsGrid columns={4} className="gap-4">
-				<DuoStatCard
+			<DuoStatsGrid.Root columns={4} className="gap-4">
+				<DuoStatCard.Simple
 					icon={Flame}
 					value={displayProgress.currentStreak}
 					label="Dias seguidos"
 					badge={`Recorde: ${displayProgress.longestStreak}`}
 					iconColor="var(--duo-accent)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={Zap}
 					value={displayProgress.totalXP}
 					label="XP Total"
@@ -469,14 +469,14 @@ export function ProfilePageContent() {
 					}`}
 					iconColor="var(--duo-warning)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={Trophy}
 					value={`#${displayProgress.currentLevel}`}
 					label="Nível atual"
 					badge="Continue treinando"
 					iconColor="var(--duo-secondary)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={TrendingUp}
 					value={displayProgress.workoutsCompleted}
 					label="Treinos"
@@ -487,7 +487,7 @@ export function ProfilePageContent() {
 					}
 					iconColor="var(--duo-primary)"
 				/>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			<DuoCard.Root variant="default" padding="md">
 				<DuoCard.Header>

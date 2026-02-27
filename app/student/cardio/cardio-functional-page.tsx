@@ -49,13 +49,13 @@ export function CardioFunctionalPage() {
 				</div>
 			</FadeIn>
 
-			<DuoStatsGrid columns={2} className="gap-4">
+			<DuoStatsGrid.Root columns={2} className="gap-4">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.1, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Heart}
 						value="3x"
 						label="cardio esta semana"
@@ -68,14 +68,14 @@ export function CardioFunctionalPage() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.15, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value="850"
 						label="kcal queimadas"
 						iconColor="var(--duo-secondary)"
 					/>
 				</motion.div>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			<SlideIn delay={0.2}>
 				<div className="grid gap-4">

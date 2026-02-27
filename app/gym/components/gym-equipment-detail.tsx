@@ -261,20 +261,20 @@ export function GymEquipmentDetail({
 			)}
 
 			<SlideIn delay={0.2}>
-				<DuoStatsGrid columns={4} className="gap-3 sm:gap-4">
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={4} className="gap-3 sm:gap-4">
+					<DuoStatCard.Simple
 						icon={BarChart3}
 						value={String(equipment.usageStats.totalUses)}
 						label="Total de Usos"
 						iconColor="#A560E8"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Clock}
 						value={`${equipment.usageStats.avgUsageTime}min`}
 						label="Tempo Médio"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Calendar}
 						value={
 							formatDatePtBr(equipment.lastMaintenance) || "N/A"
@@ -282,7 +282,7 @@ export function GymEquipmentDetail({
 						label="Última Manutenção"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Calendar}
 						value={
 							formatDatePtBr(equipment.nextMaintenance) || "N/A"
@@ -290,7 +290,7 @@ export function GymEquipmentDetail({
 						label="Próxima Manutenção"
 						iconColor="var(--duo-accent)"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

@@ -262,7 +262,7 @@ export function AcademiasPageContent() {
 					</DialogHeader>
 
 					<form onSubmit={handleCreateGym} className="space-y-4">
-						<DuoInput
+						<DuoInput.Simple
 							id="name"
 							label="Nome da Academia *"
 							value={formData.name}
@@ -273,7 +273,7 @@ export function AcademiasPageContent() {
 							placeholder="Ex: Minha Academia Centro"
 						/>
 
-						<DuoInput
+						<DuoInput.Simple
 							id="address"
 							label="Endereço *"
 							value={formData.address}
@@ -284,7 +284,7 @@ export function AcademiasPageContent() {
 							placeholder="Rua, número, bairro"
 						/>
 
-						<DuoInput
+						<DuoInput.Simple
 							id="phone"
 							label="Telefone *"
 							type="tel"
@@ -296,7 +296,7 @@ export function AcademiasPageContent() {
 							placeholder="(00) 00000-0000"
 						/>
 
-						<DuoInput
+						<DuoInput.Simple
 							id="email"
 							label="Email *"
 							type="email"
@@ -308,7 +308,7 @@ export function AcademiasPageContent() {
 							placeholder="contato@minhaacademia.com"
 						/>
 
-						<DuoInput
+						<DuoInput.Simple
 							id="cnpj"
 							label="CNPJ (opcional)"
 							value={formData.cnpj}

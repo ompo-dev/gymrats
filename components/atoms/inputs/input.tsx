@@ -5,7 +5,7 @@ import { DuoInput } from "@/components/duo/molecules/duo-input";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 	({ className, ...props }, ref) => (
-		<DuoInput ref={ref} className={className} {...props} />
+		<DuoInput.Simple ref={ref} className={className} {...props} />
 	),
 );
 

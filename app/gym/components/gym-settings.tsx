@@ -334,7 +334,7 @@ export function GymSettingsPage({
                 description: "Opcional",
                 color: "duo-green",
                 content: (
-                  <DuoInput
+                  <DuoInput.Simple
                     id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -349,7 +349,7 @@ export function GymSettingsPage({
                 description: "Opcional",
                 color: "duo-blue",
                 content: (
-                  <DuoInput
+                  <DuoInput.Simple
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -375,7 +375,7 @@ export function GymSettingsPage({
                 description: "Opcional",
                 color: "duo-purple",
                 content: (
-                  <DuoInput
+                  <DuoInput.Simple
                     id="cnpj"
                     value={cnpj}
                     onChange={(e) => setCnpj(e.target.value)}
@@ -405,7 +405,7 @@ export function GymSettingsPage({
                       placeholder="Tipo de chave"
                       className="min-w-[180px] sm:min-w-0 sm:flex-1"
                     />
-                    <DuoInput
+                    <DuoInput.Simple
                       value={pixKey}
                       onChange={(e) => setPixKey(e.target.value)}
                       placeholder={
@@ -562,7 +562,7 @@ export function GymSettingsPage({
                         </label>
                       <div className="flex flex-1 items-center gap-2 sm:gap-4">
                         <div className="flex items-center gap-1.5">
-                          <DuoInput
+                          <DuoInput.Simple
                             type="time"
                             value={s.open}
                             onChange={(e) =>
@@ -573,7 +573,7 @@ export function GymSettingsPage({
                         </div>
                         <span className="text-[var(--duo-fg-muted)]">–</span>
                         <div className="flex items-center gap-1.5">
-                          <DuoInput
+                          <DuoInput.Simple
                             type="time"
                             value={s.close}
                             onChange={(e) =>

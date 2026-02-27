@@ -489,20 +489,20 @@ export function StudentPaymentsPage({
 				</p>
 			</div>
 
-			<DuoStatsGrid columns={2}>
-				<DuoStatCard
+			<DuoStatsGrid.Root columns={2}>
+				<DuoStatCard.Simple
 					icon={DollarSign}
 					value={`R$ ${totalMonthly.toFixed(2)}`}
 					label="Total mensal"
 					iconColor="var(--duo-primary)"
 				/>
-				<DuoStatCard
+				<DuoStatCard.Simple
 					icon={AlertCircle}
 					value={String(pendingPayments.length)}
 					label="Pendentes"
 					iconColor={pendingPayments.length > 0 ? "var(--duo-accent)" : "var(--duo-secondary)"}
 				/>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			<DuoCard.Root variant="default" padding="md">
 				<DuoCard.Header>

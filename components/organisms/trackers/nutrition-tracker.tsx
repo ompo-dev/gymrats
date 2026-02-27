@@ -77,7 +77,7 @@ export function NutritionTracker({
 
   return (
     <div className="space-y-6">
-      <DuoStatsGrid columns={2} className="gap-3">
+      <DuoStatsGrid.Root columns={2} className="gap-3">
         <DuoAchievementCard
           icon={Flame}
           iconColor="var(--duo-accent)"
@@ -110,7 +110,7 @@ export function NutritionTracker({
           current={nutrition.totalFats}
           total={nutrition.targetFats}
         />
-      </DuoStatsGrid>
+      </DuoStatsGrid.Root>
 
       {nutrition.waterIntake === 0 ? (
         <DuoCard.Root variant="default" padding="md">

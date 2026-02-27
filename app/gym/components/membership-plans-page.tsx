@@ -252,7 +252,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Nome do Plano
 							</label>
-							<DuoInput
+							<DuoInput.Simple
 								placeholder="Ex: Mensal Básico"
 								value={form.name}
 								onChange={(e) =>
@@ -278,7 +278,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Preço (R$)
 							</label>
-							<DuoInput
+							<DuoInput.Simple
 								type="number"
 								placeholder="0.00"
 								value={form.price}
@@ -291,7 +291,7 @@ export function MembershipPlansPage({
 							<label className="mb-1 block text-xs font-bold text-[var(--duo-fg-muted)]">
 								Benefícios (separados por vírgula)
 							</label>
-							<DuoInput
+							<DuoInput.Simple
 								placeholder="Acesso total, Avaliação física..."
 								value={form.benefits}
 								onChange={(e) =>

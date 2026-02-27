@@ -202,20 +202,20 @@ export default function EquipmentDetailPage({
 			)}
 
 			<SlideIn delay={0.2}>
-				<DuoStatsGrid columns={4}>
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={4}>
+					<DuoStatCard.Simple
 						icon={BarChart3}
 						value={String(equipment.usageStats.totalUses)}
 						label="Total de Usos"
 						iconColor="#A560E8"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Clock}
 						value={`${equipment.usageStats.avgUsageTime}min`}
 						label="Tempo Médio"
 						iconColor="var(--duo-secondary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Calendar}
 						value={
 							equipment.lastMaintenance?.toLocaleDateString("pt-BR") || "N/A"
@@ -223,7 +223,7 @@ export default function EquipmentDetailPage({
 						label="Última Manutenção"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Calendar}
 						value={
 							equipment.nextMaintenance?.toLocaleDateString("pt-BR") || "N/A"
@@ -231,7 +231,7 @@ export default function EquipmentDetailPage({
 						label="Próxima Manutenção"
 						iconColor="var(--duo-accent)"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</SlideIn>
 
 			<SlideIn delay={0.3}>

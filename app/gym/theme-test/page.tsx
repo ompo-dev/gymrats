@@ -127,31 +127,31 @@ export default function GymThemeTestPage() {
 				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">
 					Stat Cards
 				</h2>
-				<DuoStatsGrid columns={2}>
-					<DuoStatCard
+				<DuoStatsGrid.Root columns={2}>
+					<DuoStatCard.Simple
 						icon={Flame}
 						value={12}
 						label="Streak"
 						iconColor="var(--duo-accent)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Zap}
 						value={450}
 						label="XP"
 						iconColor="var(--duo-primary)"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Trophy}
 						value={3}
 						label="Nível"
 						badge="Novo"
 					/>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value="#42"
 						label="Ranking"
 					/>
-				</DuoStatsGrid>
+				</DuoStatsGrid.Root>
 			</section>
 
 			{/* Achievement Cards */}
@@ -191,11 +191,11 @@ export default function GymThemeTestPage() {
 				<h2 className="mb-3 text-lg font-bold text-[var(--duo-fg)]">
 					Stats Grid (3 colunas)
 				</h2>
-				<DuoStatsGrid columns={3}>
-					<DuoStatCard icon={Flame} value={12} label="Streak" />
-					<DuoStatCard icon={Zap} value={450} label="XP" />
-					<DuoStatCard icon={Trophy} value={3} label="Nível" />
-				</DuoStatsGrid>
+				<DuoStatsGrid.Root columns={3}>
+					<DuoStatCard.Simple icon={Flame} value={12} label="Streak" />
+					<DuoStatCard.Simple icon={Zap} value={450} label="XP" />
+					<DuoStatCard.Simple icon={Trophy} value={3} label="Nível" />
+				</DuoStatsGrid.Root>
 			</section>
 		</div>
 	);

@@ -172,13 +172,13 @@ export function CardioTracker() {
 				</DuoCard.Root>
 			</SlideIn>
 
-			<DuoStatsGrid columns={4} className="gap-4">
+			<DuoStatsGrid.Root columns={4} className="gap-4">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.2, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Timer}
 						value={formatTime(duration)}
 						label="Duração"
@@ -191,7 +191,7 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.25, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Flame}
 						value={estimatedCalories}
 						label="Calorias"
@@ -204,7 +204,7 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.3, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						value={distance.toFixed(2)}
 						label="Distância (km)"
@@ -217,14 +217,14 @@ export function CardioTracker() {
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ delay: 0.35, duration: 0.4 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={Heart}
 						value={heartRate}
 						label="FC (bpm)"
 						iconColor="var(--duo-danger)"
 					/>
 				</motion.div>
-			</DuoStatsGrid>
+			</DuoStatsGrid.Root>
 
 			<SlideIn delay={0.4}>
 				<DuoCard.Root variant="default" padding="md">

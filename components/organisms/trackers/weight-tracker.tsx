@@ -474,7 +474,7 @@ export function WeightTracker({
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
 				>
-					<DuoStatCard
+					<DuoStatCard.Simple
 						icon={TrendingUp}
 						iconColor="var(--duo-warning)"
 						value={`${totalVolume.toFixed(0)} kg`}

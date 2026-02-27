@@ -3,17 +3,17 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-interface DuoStatsGridProps {
+interface DuoStatsGridRootProps {
 	children: ReactNode;
 	columns?: 2 | 3 | 4;
 	className?: string;
 }
 
-export function DuoStatsGrid({
+function DuoStatsGridRoot({
 	children,
 	columns = 2,
 	className,
-}: DuoStatsGridProps) {
+}: DuoStatsGridRootProps) {
 	return (
 		<div
 			className={cn(
@@ -28,3 +28,16 @@ export function DuoStatsGrid({
 		</div>
 	);
 }
+
+function DuoStatsGridItem({ children, className, ...props }: { children?: ReactNode; className?: string }) {
+	return (
+		<div className={cn(className)} {...props}>
+			{children}
+		</div>
+	);
+}
+
+export const DuoStatsGrid = {
+	Root: DuoStatsGridRoot,
+	Item: DuoStatsGridItem,
+};

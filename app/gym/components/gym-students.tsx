@@ -174,7 +174,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 						</div>
 					</DuoCard.Header>
 					<div className="space-y-4">
-						<DuoInput
+						<DuoInput.Simple
 							placeholder="Buscar por nome ou email..."
 							value={searchQuery || ""}
 							onChange={(e) => setSearchQuery(e.target.value)}

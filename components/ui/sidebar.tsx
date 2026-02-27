@@ -320,9 +320,9 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
 function SidebarInput({
 	className,
 	...props
-}: React.ComponentProps<typeof DuoInput>) {
+}: React.ComponentProps<typeof DuoInput.Simple>) {
 	return (
-		<DuoInput
+		<DuoInput.Simple
 			data-slot="sidebar-input"
 			data-sidebar="input"
 			className={cn("bg-background h-8 w-full shadow-none", className)}

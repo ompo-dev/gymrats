@@ -107,14 +107,14 @@ export function AppHeader({
         />
       )}
 
-      <DuoModal
+      <DuoModal.Simple
         isOpen={themeModalOpen}
         onClose={() => setThemeModalOpen(false)}
         title="Teste de Cores"
         size="md"
       >
         <DuoColorPicker />
-      </DuoModal>
+      </DuoModal.Simple>
     </>
   );
 }
