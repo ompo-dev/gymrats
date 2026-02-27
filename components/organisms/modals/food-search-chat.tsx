@@ -18,7 +18,7 @@ interface FoodSearchChatProps {
   onAddMeal: (
     mealsData: Array<{
       name: string;
-      type: string;
+      type: DietType;
       time?: string;
     }>,
   ) => void;

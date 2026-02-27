@@ -54,7 +54,7 @@ const getDifficultyClasses = (difficulty: string) => {
 	return `${colors.bg} ${colors.text}`;
 };
 
-export function MuscleExplorer({
+function MuscleExplorerSimple({
 	muscleId,
 	exerciseId,
 	onMuscleSelect,
@@ -265,3 +265,7 @@ export function MuscleExplorer({
 		</div>
 	);
 }
+
+export const MuscleExplorer = {
+	Simple: MuscleExplorerSimple,
+};

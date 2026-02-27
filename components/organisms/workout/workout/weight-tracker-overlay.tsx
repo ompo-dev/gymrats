@@ -108,7 +108,7 @@ export function WeightTrackerOverlay({
 				</div>
 
 				<div className="flex-1 overflow-y-auto scrollbar-hide p-6">
-					<WeightTracker
+					<WeightTracker.Simple
 						exerciseName={exerciseName}
 						exerciseId={exercise.id}
 						defaultSets={exercise.sets}

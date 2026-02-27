@@ -67,7 +67,7 @@ const DEFAULT_SET: SetLog = {
 	completed: false,
 };
 
-export function WeightTracker({
+function WeightTrackerSimple({
 	exerciseName,
 	exerciseId,
 	defaultSets,
@@ -524,3 +524,7 @@ export function WeightTracker({
 		</div>
 	);
 }
+
+export const WeightTracker = {
+	Simple: WeightTrackerSimple,
+};

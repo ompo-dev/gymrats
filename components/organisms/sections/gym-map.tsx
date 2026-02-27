@@ -31,7 +31,7 @@ interface GymMapProps {
 	onViewGymProfile?: (gymId: string) => void;
 }
 
-export function GymMap({
+function GymMapSimple({
 	gyms,
 	dayPasses,
 	memberships = [],
@@ -451,3 +451,7 @@ export function GymMap({
 		</div>
 	);
 }
+
+export const GymMap = {
+	Simple: GymMapSimple,
+};

@@ -10,7 +10,7 @@ interface EducationPageProps {
 	onSelectView: (view: "muscles" | "lessons") => void;
 }
 
-export function EducationPage({ onSelectView }: EducationPageProps) {
+function EducationPageSimple({ onSelectView }: EducationPageProps) {
 	return (
 		<div className="mx-auto max-w-4xl space-y-6  ">
 			<FadeIn>
@@ -89,3 +89,7 @@ export function EducationPage({ onSelectView }: EducationPageProps) {
 		</div>
 	);
 }
+
+export const EducationPage = {
+	Simple: EducationPageSimple,
+};

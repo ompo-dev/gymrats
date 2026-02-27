@@ -817,7 +817,7 @@ export function StudentPaymentsPage({
 			)}
 
 			{activeTab === "subscription" && (
-				<SubscriptionSection
+				<SubscriptionSection.Simple
 					userType="student"
 					subscription={subscription}
 					isLoading={isLoading}

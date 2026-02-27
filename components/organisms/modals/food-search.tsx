@@ -24,7 +24,7 @@ interface FoodSearchProps {
 	onAddMeal?: (
 		mealsData: Array<{
 			name: string;
-			type: string;
+			type: Meal["type"];
 			time?: string;
 		}>,
 	) => void;

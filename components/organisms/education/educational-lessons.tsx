@@ -53,7 +53,7 @@ const categoryColors: Record<
 	},
 };
 
-export function EducationalLessons({
+function EducationalLessonsSimple({
 	lessonId,
 	onLessonSelect,
 	onBack,
@@ -178,3 +178,7 @@ export function EducationalLessons({
 		</div>
 	);
 }
+
+export const EducationalLessons = {
+	Simple: EducationalLessonsSimple,
+};

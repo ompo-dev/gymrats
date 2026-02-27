@@ -84,7 +84,7 @@ const intensityOptions = [
 	{ value: "muito-alta", label: "Muito Alta", emoji: "💥" },
 ];
 
-export function CardioTracker() {
+function CardioTrackerSimple() {
 	const [selectedType, setSelectedType] = useState<CardioType>("corrida");
 	const [isRunning, setIsRunning] = useState(false);
 	const [duration, setDuration] = useState(0);
@@ -324,3 +324,7 @@ export function CardioTracker() {
 		</div>
 	);
 }
+
+export const CardioTracker = {
+	Simple: CardioTrackerSimple,
+};

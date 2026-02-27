@@ -10,7 +10,7 @@ import { DuoSelect } from "@/components/duo";
 import { functionalExercises } from "@/lib/functional-exercises-data";
 import type { FunctionalCategory } from "@/lib/types";
 
-export function FunctionalWorkout() {
+function FunctionalWorkoutSimple() {
 	const [selectedCategory, setSelectedCategory] = useState<
 		FunctionalCategory | "all"
 	>("all");
@@ -207,3 +207,7 @@ export function FunctionalWorkout() {
 		</div>
 	);
 }
+
+export const FunctionalWorkout = {
+	Simple: FunctionalWorkoutSimple,
+};

@@ -124,7 +124,7 @@ export function StudentLayoutContent({
 			onTabChange={handleTabChange}
 			additionalContent={
 				<>
-					<WorkoutModal />
+					<WorkoutModal.Simple />
 					<EditUnitModal />
 					{editPlanModal.isOpen && (
 						<EditUnitModal

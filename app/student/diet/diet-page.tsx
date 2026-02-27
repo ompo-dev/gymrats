@@ -17,6 +17,7 @@ import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
+import type { FoodItem } from "@/lib/types";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
@@ -120,7 +121,7 @@ export function DietPage() {
 				/>
 			</DuoStatsGrid.Root>
 
-			<NutritionTracker
+			<NutritionTracker.Simple
 				nutrition={dailyNutrition}
 				onMealComplete={handleMealComplete}
 				onAddMeal={addMealModal.open}
@@ -147,7 +148,7 @@ export function DietPage() {
 					onClose={handleCloseFoodSearch}
 					selectedMealId={foodSearchModal.paramValue || selectedMealId}
 					meals={dailyNutrition.meals}
-					foodDatabase={foodDatabase || []}
+					foodDatabase={(Array.isArray(foodDatabase) ? foodDatabase : []) as FoodItem[]}
 					onSelectMeal={(mealId) => {
 						setSelectedMealId(mealId);
 						foodSearchModal.setParamValue(mealId);

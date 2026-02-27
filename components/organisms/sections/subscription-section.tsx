@@ -93,7 +93,7 @@ export interface SubscriptionSectionProps {
 	trialEndingDays?: number;
 }
 
-export function SubscriptionSection({
+function SubscriptionSectionSimple({
 	userType,
 	subscription,
 	isLoading = false,
@@ -451,3 +451,7 @@ export function SubscriptionSection({
 		</div>
 	);
 }
+
+export const SubscriptionSection = {
+	Simple: SubscriptionSectionSimple,
+};

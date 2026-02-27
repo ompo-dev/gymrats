@@ -20,7 +20,7 @@ export function CardioFunctionalPage() {
 				<FadeIn>
 					<BackButton onClick={() => setView("menu")} color="duo-red" />
 				</FadeIn>
-				<CardioTracker />
+				<CardioTracker.Simple />
 			</div>
 		);
 	}
@@ -31,7 +31,7 @@ export function CardioFunctionalPage() {
 				<FadeIn>
 					<BackButton onClick={() => setView("menu")} color="duo-blue" />
 				</FadeIn>
-				<FunctionalWorkout />
+				<FunctionalWorkout.Simple />
 			</div>
 		);
 	}

@@ -259,7 +259,7 @@ export function FinancialSubscriptionTab({
 
 	return (
 		<>
-		<SubscriptionSection
+		<SubscriptionSection.Simple
 			userType="gym"
 			subscription={
 				subscription

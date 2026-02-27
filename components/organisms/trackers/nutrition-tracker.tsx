@@ -32,7 +32,7 @@ interface NutritionTrackerProps {
   readOnly?: boolean;
 }
 
-export function NutritionTracker({
+function NutritionTrackerSimple({
   nutrition,
   onMealComplete,
   onAddMeal,
@@ -251,3 +251,7 @@ export function NutritionTracker({
     </div>
   );
 }
+
+export const NutritionTracker = {
+  Simple: NutritionTrackerSimple,
+};

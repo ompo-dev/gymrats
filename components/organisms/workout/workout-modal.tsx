@@ -19,7 +19,7 @@ import { WorkoutHeader } from "./workout/workout-header";
  * Logic extracted to useWorkoutExecution hook
  * UI broken down into sub-components
  */
-export function WorkoutModal() {
+function WorkoutModalSimple() {
   const {
     workout,
     activeWorkout,
@@ -253,3 +253,7 @@ export function WorkoutModal() {
     </AnimatePresence>
   );
 }
+
+export const WorkoutModal = {
+  Simple: WorkoutModalSimple,
+};

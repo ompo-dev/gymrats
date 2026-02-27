@@ -488,7 +488,7 @@ function StudentHomeContent() {
 							profileRefreshKey={profileRefreshKey}
 						/>
 					) : (
-						<GymMap
+						<GymMap.Simple
 							gyms={currentGymLocations}
 							dayPasses={currentDayPasses}
 							memberships={currentMemberships}
@@ -519,7 +519,7 @@ function StudentHomeContent() {
 						!exerciseId &&
 						!muscleId &&
 						!lessonId && (
-							<EducationPage
+							<EducationPage.Simple
 								onSelectView={(view) => {
 									setEducationView(view);
 								}}
@@ -527,7 +527,7 @@ function StudentHomeContent() {
 						)}
 
 					{(educationView === "muscles" || exerciseId || muscleId) && (
-						<MuscleExplorer
+						<MuscleExplorer.Simple
 							muscleId={muscleId || null}
 							exerciseId={exerciseId || null}
 							onMuscleSelect={(id) => setMuscleId(id)}
@@ -541,7 +541,7 @@ function StudentHomeContent() {
 					)}
 
 					{educationView === "lessons" && !exerciseId && !muscleId && (
-						<EducationalLessons
+						<EducationalLessons.Simple
 							lessonId={lessonId || null}
 							onLessonSelect={(id) => setLessonId(id)}
 							onBack={() => {
