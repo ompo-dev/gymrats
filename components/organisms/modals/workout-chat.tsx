@@ -834,8 +834,72 @@ export function WorkoutChat({
 
       // Se recebeu dados completos, atualizar estado
       if (parsedData) {
-        // Se há referência e a ação é update_workout ou replace_exercise
-        if (
+        // add_exercise: mesclar novos exercícios no workout existente (não substituir)
+        // O workout_progress pode ter substituído o preview com só os novos - usar workouts do store como base
+        if (parsedData.action === "add_exercise" && parsedData.workouts.length > 0) {
+          const newExercises = parsedData.workouts[0].exercises || [];
+          const targetId = parsedData.targetWorkoutId;
+          const mergedPreviews = previewWorkouts.map((w, idx) => {
+            // Base: workouts do store (original) ou preview atual (workout_progress pode ter sobrescrito)
+            let existingExercises = w.exercises || [];
+            if (workouts.length > 0) {
+              const storeWorkout =
+                previewWorkouts.length === 1
+                  ? workouts[0]
+                  : workouts.find(
+                      (sw: WorkoutSession) =>
+                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                    );
+              if (storeWorkout?.exercises?.length) {
+                existingExercises = storeWorkout.exercises.map(
+                  (e: WorkoutExercise) => ({
+                    name: e.name,
+                    sets: e.sets,
+                    reps: e.reps,
+                    rest: e.rest ?? 60,
+                    notes: e.notes,
+                    alternatives: e.alternatives?.map(
+                      (a: { name?: string } | string) =>
+                        typeof a === "object" && a?.name ? a.name : String(a),
+                    ),
+                  }),
+                );
+              }
+            }
+            if (previewWorkouts.length === 1) {
+              return {
+                ...w,
+                exercises: [...existingExercises, ...newExercises],
+              };
+            }
+            const matches =
+              targetId &&
+              (w.title === targetId || (w as { id?: string }).id === targetId);
+            if (matches) {
+              return {
+                ...w,
+                exercises: [...existingExercises, ...newExercises],
+              };
+            }
+            return w;
+          });
+          setPreviewWorkouts(mergedPreviews);
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              if (!msg.workoutPreview) return msg;
+              const idx =
+                typeof msg.workoutPreviewIndex === "number"
+                  ? msg.workoutPreviewIndex
+                  : 0;
+              const merged = mergedPreviews[idx];
+              if (merged) {
+                return { ...msg, workoutPreview: merged };
+              }
+              return msg;
+            }),
+          );
+        } else if (
           reference &&
           (parsedData.action === "update_workout" ||
             parsedData.action === "replace_exercise")
