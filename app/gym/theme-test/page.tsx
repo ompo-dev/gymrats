@@ -35,7 +35,7 @@ export default function GymThemeTestPage() {
 
 			{/* Color Picker Full */}
 			<DuoCard.Root variant="elevated" padding="lg">
-				<DuoColorPicker />
+				<DuoColorPicker.Simple />
 			</DuoCard.Root>
 
 			{/* Tabs */}

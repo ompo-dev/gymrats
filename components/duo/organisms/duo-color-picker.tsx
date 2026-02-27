@@ -34,7 +34,7 @@ function adjustBrightness(hex: string, amount: number): string {
 	return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
-export function DuoColorPicker({
+function DuoColorPickerSimple({
 	compact = false,
 	className,
 	...props
@@ -373,3 +373,7 @@ export function DuoColorPicker({
 		</div>
 	);
 }
+
+export const DuoColorPicker = {
+	Simple: DuoColorPickerSimple,
+};

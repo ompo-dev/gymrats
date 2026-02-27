@@ -113,7 +113,7 @@ export function AppHeader({
         title="Teste de Cores"
         size="md"
       >
-        <DuoColorPicker />
+        <DuoColorPicker.Simple />
       </DuoModal.Simple>
     </>
   );
