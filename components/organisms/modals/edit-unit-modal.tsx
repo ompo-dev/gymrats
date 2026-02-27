@@ -671,7 +671,7 @@ export function EditUnitModal({
                       variant="outline"
                       onClick={handleResetWeek}
                       disabled={resetting}
-                      className="font-bold flex items-center gap-2"
+                      className="font-bold flex items-center gap-2 w-full"
                       style={{
                         opacity: 1,
                         visibility: "visible",
@@ -688,7 +688,7 @@ export function EditUnitModal({
                   )}
                   <DuoButton
                     onClick={handleSaveUnit}
-                    className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2"
+                    className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 w-full"
                     style={{
                       opacity: 1,
                       visibility: "visible",
@@ -704,7 +704,7 @@ export function EditUnitModal({
               {/* Workouts List - por dia da semana quando weekly plan, senão lista reordenável */}
               <div className="space-y-4">
                 <div className="flex flex-col md:flex-row items-center justify-between px-1 mb-4">
-                  <h3 className="text-lg font-bold text-duo-text">
+                  <h3 className="text-lg font-bold text-duo-text mb-2 md:mb-0">
                     {isWeeklyPlanMode ? "Dias da Semana" : "Dias de Treino"}
                   </h3>
                   <div className="flex items-center gap-2">
@@ -1119,8 +1119,10 @@ export function EditUnitModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-between px-1 mb-4">
-                <h3 className="text-lg font-bold text-duo-text">Exercícios</h3>
+              <div className="flex flex-col md:flex-row items-center justify-between px-1 mb-4">
+                <h3 className="text-lg font-bold text-duo-text mb-2 md:mb-0">
+                  Exercícios
+                </h3>
                 <div className="flex items-center gap-2">
                   {isWeeklyPlanMode && activeWorkout && weeklyPlan && (
                     <DuoButton
@@ -1128,7 +1130,8 @@ export function EditUnitModal({
                       size="sm"
                       onClick={() => {
                         const slot = weeklyPlan.slots.find(
-                          (s: PlanSlotData) => s.workout?.id === activeWorkout.id
+                          (s: PlanSlotData) =>
+                            s.workout?.id === activeWorkout.id,
                         );
                         if (slot) setChatSlotId(slot.id);
                       }}
@@ -1162,7 +1165,7 @@ export function EditUnitModal({
                     }}
                   >
                     <Plus className="h-4 w-4" />
-                    Adicionar Exercício
+                    Exercício
                   </DuoButton>
                 </div>
               </div>

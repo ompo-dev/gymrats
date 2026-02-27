@@ -7,7 +7,7 @@ import {
 	calculateSets,
 	generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
-import type { ExerciseInfo } from "@/lib/types";
+import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
 	createUnitSchema,
@@ -595,9 +595,10 @@ export async function createExerciseHandler(
 		let exerciseInfo: ExerciseInfo | null = null;
 
 		if (exerciseData.educationalId && exerciseData.educationalId !== null) {
-			exerciseInfo = exerciseDatabase.find(
-				(ex) => ex.id === exerciseData.educationalId,
-			);
+			exerciseInfo =
+				exerciseDatabase.find(
+					(ex) => ex.id === exerciseData.educationalId,
+				) ?? null;
 		}
 
 		// Se não encontrou por ID, tentar buscar por nome (case-insensitive e removendo acentos)
@@ -608,7 +609,8 @@ export async function createExerciseHandler(
 				.normalize("NFD")
 				.replace(/[\u0300-\u036f]/g, ""); // Remove acentos
 
-			exerciseInfo = exerciseDatabase.find((ex) => {
+			exerciseInfo =
+				exerciseDatabase.find((ex) => {
 				const exName = ex.name
 					.toLowerCase()
 					.trim()
@@ -621,7 +623,7 @@ export async function createExerciseHandler(
 					exName.includes(searchName) ||
 					searchName.includes(exName)
 				);
-			});
+			}) ?? null;
 		}
 
 		// Se ainda não encontrou, criar um novo exercício virtual usando os dados fornecidos
@@ -645,11 +647,11 @@ export async function createExerciseHandler(
 					.replace(/[^a-z0-9]+/g, "-")
 					.replace(/^-+|-+$/g, "");
 
-			// Helper para normalizar arrays (aceita string JSON ou array)
+			// Helper para normalizar arrays (aceita string JSON, array ou null)
 			const normalizeArray = (
-				value: string | string[] | undefined,
+				value: string | string[] | null | undefined,
 			): string[] => {
-				if (!value) return [];
+				if (value == null) return [];
 				if (Array.isArray(value)) return value;
 				try {
 					const parsed = JSON.parse(value);
@@ -660,7 +662,7 @@ export async function createExerciseHandler(
 			};
 
 			// Helper para inferir grupo muscular baseado no nome
-			const inferMuscleGroup = (name: string): string[] => {
+			const inferMuscleGroup = (name: string): MuscleGroup[] => {
 				const normalized = name
 					.toLowerCase()
 					.normalize("NFD")
@@ -672,7 +674,7 @@ export async function createExerciseHandler(
 					normalized.includes("supino") ||
 					normalized.includes("crucifixo")
 				) {
-					return ["peito"];
+					return ["peito" as MuscleGroup];
 				}
 				if (
 					normalized.includes("costas") ||
@@ -680,7 +682,7 @@ export async function createExerciseHandler(
 					normalized.includes("puxada") ||
 					normalized.includes("barra fixa")
 				) {
-					return ["costas"];
+					return ["costas" as MuscleGroup];
 				}
 				if (
 					normalized.includes("pernas") ||
@@ -691,13 +693,13 @@ export async function createExerciseHandler(
 					normalized.includes("flexora") ||
 					normalized.includes("afundo")
 				) {
-					return ["pernas"];
+					return ["pernas" as MuscleGroup];
 				}
 				if (
 					normalized.includes("quadriceps") ||
 					normalized.includes("quadríceps")
 				) {
-					return ["pernas"];
+					return ["pernas" as MuscleGroup];
 				}
 				if (
 					normalized.includes("posterior") ||
@@ -705,7 +707,7 @@ export async function createExerciseHandler(
 					normalized.includes("gluteo") ||
 					normalized.includes("glúteo")
 				) {
-					return ["pernas", "gluteos"];
+					return ["pernas", "gluteos"] as MuscleGroup[];
 				}
 				if (
 					normalized.includes("ombros") ||
@@ -715,7 +717,7 @@ export async function createExerciseHandler(
 					normalized.includes("lateral") ||
 					normalized.includes("frontal")
 				) {
-					return ["ombros"];
+					return ["ombros" as MuscleGroup];
 				}
 				if (
 					normalized.includes("triceps") ||
@@ -725,14 +727,14 @@ export async function createExerciseHandler(
 					normalized.includes("frances") ||
 					normalized.includes("francês")
 				) {
-					return ["bracos"];
+					return ["bracos" as MuscleGroup];
 				}
 				if (
 					normalized.includes("biceps") ||
 					normalized.includes("bíceps") ||
 					normalized.includes("rosca")
 				) {
-					return ["bracos"];
+					return ["bracos" as MuscleGroup];
 				}
 				if (
 					normalized.includes("abdominal") ||
@@ -740,9 +742,9 @@ export async function createExerciseHandler(
 					normalized.includes("core") ||
 					normalized.includes("prancha")
 				) {
-					return ["core"];
+					return ["core" as MuscleGroup];
 				}
-				return ["full-body"];
+				return ["core" as MuscleGroup]; // fallback - full-body não existe em MuscleGroup
 			};
 
 			// Helper para inferir equipamento baseado no nome
@@ -795,9 +797,13 @@ export async function createExerciseHandler(
 			};
 
 			// Normalizar arrays (se vierem vazios, usar inferência)
-			const primaryMuscles = normalizeArray(exerciseData.primaryMuscles);
-			const secondaryMuscles = normalizeArray(exerciseData.secondaryMuscles);
-			const equipment = normalizeArray(exerciseData.equipment);
+			const primaryMuscles = normalizeArray(
+				exerciseData.primaryMuscles ?? undefined,
+			);
+			const secondaryMuscles = normalizeArray(
+				exerciseData.secondaryMuscles ?? undefined,
+			);
+			const equipment = normalizeArray(exerciseData.equipment ?? undefined);
 
 			// Criar exercício virtual com dados fornecidos ou inferidos
 			exerciseInfo = {
@@ -805,46 +811,49 @@ export async function createExerciseHandler(
 				name: exerciseData.name,
 				primaryMuscles:
 					primaryMuscles.length > 0
-						? primaryMuscles
+						? (primaryMuscles as MuscleGroup[])
 						: inferMuscleGroup(exerciseData.name),
-				secondaryMuscles: secondaryMuscles.length > 0 ? secondaryMuscles : [],
+				secondaryMuscles:
+					secondaryMuscles.length > 0
+						? (secondaryMuscles as MuscleGroup[])
+						: [],
 				difficulty: exerciseData.difficulty || "intermediario",
 				equipment:
 					equipment.length > 0 ? equipment : inferEquipment(exerciseData.name),
 				// Se não vierem instruções, criar básicas baseadas no nome
 				instructions:
-					normalizeArray(exerciseData.instructions).length > 0
-						? normalizeArray(exerciseData.instructions)
+					normalizeArray(exerciseData.instructions ?? undefined).length > 0
+						? normalizeArray(exerciseData.instructions ?? undefined)
 						: [
 								`Execute ${exerciseData.name} com forma correta`,
 								"Mantenha o movimento controlado",
 								"Use peso adequado",
 							],
 				tips:
-					normalizeArray(exerciseData.tips).length > 0
-						? normalizeArray(exerciseData.tips)
+					normalizeArray(exerciseData.tips ?? undefined).length > 0
+						? normalizeArray(exerciseData.tips ?? undefined)
 						: [
 								"Mantenha a forma correta",
 								"Controle o movimento",
 								"Use amplitude completa",
 							],
 				commonMistakes:
-					normalizeArray(exerciseData.commonMistakes).length > 0
-						? normalizeArray(exerciseData.commonMistakes)
+					normalizeArray(exerciseData.commonMistakes ?? undefined).length > 0
+						? normalizeArray(exerciseData.commonMistakes ?? undefined)
 						: [
 								"Não usar amplitude completa",
 								"Peso excessivo",
 								"Forma incorreta",
 							],
 				benefits:
-					normalizeArray(exerciseData.benefits).length > 0
-						? normalizeArray(exerciseData.benefits)
+					normalizeArray(exerciseData.benefits ?? undefined).length > 0
+						? normalizeArray(exerciseData.benefits ?? undefined)
 						: [
 								"Desenvolvimento muscular",
 								"Aumento de força",
 								"Melhora de condicionamento",
 							],
-				scientificEvidence: exerciseData.scientificEvidence || null,
+				scientificEvidence: exerciseData.scientificEvidence ?? undefined,
 			};
 
 			console.log("[createExerciseHandler] Exercício virtual criado:", {
@@ -859,21 +868,23 @@ export async function createExerciseHandler(
 		}
 
 		// Calcular sets, reps e rest baseado nas preferências do aluno (igual ao generate)
-		const profile: any = {
-			preferredSets: student.profile.preferredSets || null,
+		const profile = {
+			preferredSets: student.profile.preferredSets ?? undefined,
 			preferredRepRange: student.profile.preferredRepRange as
 				| "forca"
 				| "hipertrofia"
 				| "resistencia"
-				| null,
-			restTime: student.profile.restTime as "curto" | "medio" | "longo" | null,
-			activityLevel: student.profile.activityLevel,
+				| undefined,
+			restTime: student.profile.restTime as "curto" | "medio" | "longo" | undefined,
+			activityLevel: student.profile.activityLevel ?? undefined,
 			fitnessLevel: student.profile.fitnessLevel as
 				| "iniciante"
 				| "intermediario"
 				| "avancado"
-				| null,
-			goals: student.profile.goals ? JSON.parse(student.profile.goals) : [],
+				| undefined,
+			goals: student.profile.goals
+				? (JSON.parse(student.profile.goals) as string[])
+				: undefined,
 		};
 
 		// Calcular valores baseado nas preferências do aluno
@@ -908,6 +919,11 @@ export async function createExerciseHandler(
 			}
 			return [];
 		};
+
+		// Guard: exerciseInfo deve estar definido neste ponto
+		if (!exerciseInfo) {
+			return badRequestResponse("Erro ao processar exercício");
+		}
 
 		// Popular dados educacionais (sempre usar dados do exerciseInfo encontrado/criado)
 		// Se o cliente enviou dados, eles foram usados na criação do exerciseInfo
@@ -1132,32 +1148,36 @@ export async function deleteExerciseHandler(
 
 		const exercise = await db.workoutExercise.findUnique({
 			where: { id },
-			include: { workout: { include: { unit: true } } },
+			include: {
+				workout: {
+					include: {
+						unit: true,
+						planSlot: { include: { weeklyPlan: true } },
+					},
+				},
+			},
 		});
 
 		if (!exercise) return notFoundResponse("Exercício não encontrado");
 
-		// Verificar integridade dos dados
-		if (!exercise.workout || !exercise.workout.unit) {
-			console.error(
-				"Inconsistência de dados: Exercício sem treino ou unidade vinculada",
-				{
-					exerciseId: id,
-					workoutId: exercise.workoutId,
-				},
-			);
+		if (!exercise.workout) {
+			console.error("Exercício sem treino vinculado", { exerciseId: id });
 			return internalErrorResponse(
 				"Erro de inconsistência de dados. Contate o suporte.",
 			);
 		}
 
-		// Allow if student owns the unit OR if we want to allow admins later (but for now strict ownership)
-		// Note: If unit.studentId is null (global unit), student cannot delete exercises from it.
-		// They should have cloned the unit first.
-		const unit = exercise.workout.unit;
-		if (unit.studentId !== auth.user.student.id) {
-			// Additional check: maybe they are admin? For now, just block.
-			// If studentId is null, this check correctly fails (null !== id).
+		const workout = exercise.workout;
+		const studentId = auth.user.student.id;
+
+		// Verificar ownership: unit OU planSlot (weeklyPlan)
+		const ownsViaUnit =
+			workout.unit && workout.unit.studentId === studentId;
+		const ownsViaPlanSlot =
+			workout.planSlot &&
+			workout.planSlot.weeklyPlan.studentId === studentId;
+
+		if (!ownsViaUnit && !ownsViaPlanSlot) {
 			return unauthorizedResponse("Você não pode excluir este exercício");
 		}
 

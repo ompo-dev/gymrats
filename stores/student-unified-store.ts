@@ -3118,36 +3118,70 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 			},
 
 			deleteWorkoutExercise: async (exerciseId) => {
-				// 1. Optimistic update - remove da UI imediatamente
-				const previousUnits = get().data.units;
+				// Guardar exercício para possível revert em caso de erro
 				let exerciseToDelete: WorkoutExercise | null = null;
 				let workoutId: string | undefined;
-
-				// Encontrar exercício antes de remover
-				for (const unit of previousUnits) {
+				for (const unit of get().data.units) {
 					for (const workout of unit.workouts) {
-						const exercise = workout.exercises.find((e) => e.id === exerciseId);
-						if (exercise) {
-							exerciseToDelete = exercise;
+						const ex = workout.exercises.find((e) => e.id === exerciseId);
+						if (ex) {
+							exerciseToDelete = ex;
 							workoutId = workout.id;
 							break;
 						}
 					}
 					if (exerciseToDelete) break;
 				}
+				// Também verificar weeklyPlan
+				const wp = get().data.weeklyPlan;
+				if (!exerciseToDelete && wp?.slots) {
+					for (const slot of wp.slots) {
+						if (slot.type === "workout" && slot.workout) {
+							const ex = slot.workout.exercises.find((e) => e.id === exerciseId);
+							if (ex) {
+								exerciseToDelete = ex;
+								workoutId = slot.workout.id;
+								break;
+							}
+						}
+					}
+				}
 
-				set((state) => ({
-					data: {
-						...state.data,
-						units: state.data.units.map((unit) => ({
-							...unit,
-							workouts: unit.workouts.map((workout) => ({
-								...workout,
-								exercises: workout.exercises.filter((e) => e.id !== exerciseId),
-							})),
+				// 1. Optimistic update - remove da UI imediatamente (units + weeklyPlan)
+				set((state) => {
+					const updatedUnits = state.data.units.map((unit) => ({
+						...unit,
+						workouts: unit.workouts.map((workout) => ({
+							...workout,
+							exercises: workout.exercises.filter((e) => e.id !== exerciseId),
 						})),
-					},
-				}));
+					}));
+
+					let updatedWeeklyPlan = state.data.weeklyPlan;
+					if (state.data.weeklyPlan?.slots) {
+						updatedWeeklyPlan = {
+							...state.data.weeklyPlan,
+							slots: state.data.weeklyPlan.slots.map((slot) => {
+								if (slot.type !== "workout" || !slot.workout) return slot;
+								return {
+									...slot,
+									workout: {
+										...slot.workout,
+										exercises: slot.workout.exercises.filter((e) => e.id !== exerciseId),
+									},
+								};
+							}),
+						};
+					}
+
+					return {
+						data: {
+							...state.data,
+							units: updatedUnits,
+							weeklyPlan: updatedWeeklyPlan ?? state.data.weeklyPlan,
+						},
+					};
+				});
 
 				// 2. Criar command explícito
 				const command = createCommand("DELETE_WORKOUT_EXERCISE", {
@@ -3252,25 +3286,62 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 						// Erro não é de rede - reverter optimistic update
 						console.error("Erro ao deletar exercício:", error);
 						if (exerciseToDelete && workoutId) {
-							set((state) => ({
-								data: {
-									...state.data,
-									units: state.data.units.map((unit) => ({
-										...unit,
-										workouts: unit.workouts.map((workout) =>
-											workout.id === workoutId
-												? {
-														...workout,
-														exercises: [
-															...workout.exercises,
-															exerciseToDelete!,
-														].sort((a, b) => (a.order || 0) - (b.order || 0)),
-													}
-												: workout,
-										),
-									})),
-								},
-							}));
+							set((state) => {
+								const inUnit = state.data.units.some((u) =>
+									u.workouts.some((w) => w.id === workoutId),
+								);
+								if (inUnit) {
+									return {
+										data: {
+											...state.data,
+											units: state.data.units.map((unit) => ({
+												...unit,
+												workouts: unit.workouts.map((workout) =>
+													workout.id === workoutId
+														? {
+																...workout,
+																exercises: [
+																	...workout.exercises,
+																	exerciseToDelete!,
+																].sort((a, b) => (a.order || 0) - (b.order || 0)),
+															}
+														: workout,
+												),
+											})),
+										},
+									};
+								}
+								// Reverter em weeklyPlan
+								if (state.data.weeklyPlan?.slots) {
+									return {
+										data: {
+											...state.data,
+											weeklyPlan: {
+												...state.data.weeklyPlan,
+												slots: state.data.weeklyPlan.slots.map((slot) => {
+													if (
+														slot.type !== "workout" ||
+														!slot.workout ||
+														slot.workout.id !== workoutId
+													)
+														return slot;
+													return {
+														...slot,
+														workout: {
+															...slot.workout,
+															exercises: [
+																...slot.workout.exercises,
+																exerciseToDelete,
+															].sort((a, b) => (a.order || 0) - (b.order || 0)),
+														},
+													};
+												}),
+											},
+										},
+									};
+								}
+								return {};
+							});
 						}
 					}
 				}

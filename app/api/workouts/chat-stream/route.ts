@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
           conversationHistory = [],
           unitId,
           planSlotId,
+          slotContext,
           existingWorkouts: _existingWorkouts = [],
           profile: _profile,
           reference,
@@ -236,7 +237,20 @@ export async function POST(request: NextRequest) {
                 `- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
             )
             .join("\n");
-          enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
+          const contextLabel = planSlotId
+            ? (slotContext
+                ? `O usuário está editando APENAS o dia de ${slotContext}. `
+                : "O usuário está editando um dia específico do plano semanal. ") +
+              "Todas as modificações devem ser aplicadas a ESTE treino.\n\n"
+            : "";
+          enhancedSystemPrompt += `\n\n${contextLabel}WORKOUTS JÁ EXISTENTES${planSlotId ? " (DIA ATUAL)" : " NA UNIT"}:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
+
+          // Quando planSlotId: instruções para ADICIONAR exercício sem remover existentes
+          if (planSlotId && workoutsInfo.length === 1) {
+            const w = workoutsInfo[0];
+            enhancedSystemPrompt += `\n\n⚠️ CONTEXTO DIA ESPECÍFICO: O usuário está editando APENAS este treino. NÃO peça clarificação sobre "qual treino" - é ESTE.
+⚠️ ADICIONAR EXERCÍCIO: Quando pedir para ADICIONAR (ex: "adicione leg press", "coloque supino"), use action="add_exercise", targetWorkoutId="${w.id}", e workouts: [{ "title": "${w.title}", "type": "${w.type}", "muscleGroup": "${w.muscleGroup}", "difficulty": "intermediario", "exercises": [/* APENAS o(s) novo(s) exercício(s) */] }]. Os existentes serão preservados. NUNCA use update_workout substituindo todos.`;
+          }
 
           // Se houver referência, adicionar instruções específicas
           if (reference && previewWorkouts.length > 0) {

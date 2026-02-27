@@ -198,7 +198,7 @@ const WORKOUT_PROMPT_JSON = {
     schema: {
       intent: "create | edit | delete (use 'create' para criar treinos novos)",
       action:
-        "create_workouts | update_workout | delete_workout | replace_exercise | remove_exercise",
+        "create_workouts | update_workout | delete_workout | replace_exercise | remove_exercise | add_exercise",
       workouts:
         "Array de treinos com title, type, muscleGroup, difficulty, exercises. Para slot de descanso vazio, array vazio.",
       restDays: "Opcional: [0-6] dias de descanso na semana",

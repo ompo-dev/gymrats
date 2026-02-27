@@ -533,6 +533,52 @@ export function WorkoutChat({
     }
   };
 
+  const hasInitializedSlotPreview = useRef(false);
+  // Inicializar previewWorkouts quando planSlotId e temos workout - para exibir card ao abrir
+  useEffect(() => {
+    if (
+      planSlotId &&
+      workouts.length === 1 &&
+      !hasInitializedSlotPreview.current
+    ) {
+      hasInitializedSlotPreview.current = true;
+      const w = workouts[0] as WorkoutSession;
+      const preview: PreviewWorkout = {
+        title: w.title,
+        description: w.description ?? "",
+        type: (w.type as PreviewWorkout["type"]) || "strength",
+        muscleGroup: w.muscleGroup || "full-body",
+        difficulty: (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
+        exercises: (w.exercises || []).map((e) => ({
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+          rest: e.rest ?? 60,
+          notes: e.notes ?? undefined,
+          alternatives: e.alternatives?.map((a) =>
+            typeof a === "string" ? a : a.name ?? "",
+          ),
+        })),
+      };
+      setPreviewWorkouts([preview]);
+      setMessages((prev) => {
+        if (prev.length === 1 && prev[0].role === "assistant" && !prev[0].workoutPreview) {
+          return [
+            ...prev,
+            {
+              role: "assistant" as const,
+              content: "",
+              timestamp: new Date(),
+              workoutPreview: preview,
+              workoutPreviewIndex: 0,
+            },
+          ];
+        }
+        return prev;
+      });
+    }
+  }, [planSlotId, workouts]);
+
   // Scroll para última mensagem
   // biome-ignore lint/correctness/useExhaustiveDependencies: precisamos reagir à mudança de mensagens
   useEffect(() => {
@@ -624,6 +670,7 @@ export function WorkoutChat({
           conversationHistory,
           unitId: unitId ?? undefined,
           planSlotId: planSlotId ?? undefined,
+          slotContext: slotContext ?? undefined,
           existingWorkouts,
           profile,
           reference: currentReference || undefined,
@@ -1032,6 +1079,11 @@ export function WorkoutChat({
                       <WorkoutPreviewCard
                         workout={msg.workoutPreview}
                         index={workoutIndex}
+                        displayNumber={
+                          planSlot && planSlot.type === "workout"
+                            ? planSlot.dayOfWeek + 1
+                            : undefined
+                        }
                         defaultExpanded={
                           !allWorkoutsComplete &&
                           workoutIndex === previewWorkouts.length - 1

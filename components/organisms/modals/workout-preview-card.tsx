@@ -25,6 +25,8 @@ interface WorkoutPreviewCardProps {
     exercises: Array<Exercise>;
   };
   index: number;
+  /** Número exibido no badge (ex: 4 para Quarta). Se não informado, usa index + 1 */
+  displayNumber?: number;
   /** Último workout e ainda em streaming: mantém expandido para ver exercícios em tempo real */
   defaultExpanded?: boolean;
   /** Em streaming com 0 exercícios: mostra área de exercícios com placeholder */
@@ -180,6 +182,7 @@ function ExerciseItemCard({
 export function WorkoutPreviewCard({
   workout,
   index,
+  displayNumber,
   defaultExpanded = false,
   isStreaming = false,
   onReference,
@@ -224,9 +227,9 @@ export function WorkoutPreviewCard({
       >
         {/* Número do workout e conteúdo na mesma div */}
         <div className="flex items-start gap-4">
-          {/* Número do workout */}
+          {/* Número do workout (dia da semana quando planSlot, senão index+1) */}
           <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
-            {index + 1}
+            {displayNumber ?? index + 1}
           </div>
 
           {/* Conteúdo */}
