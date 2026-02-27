@@ -2,4 +2,4 @@
 // IMPORTANTE: Este arquivo é atualizado automaticamente pelo script sync-version.js
 // Para alterar a versão, edite apenas o package.json e execute: npm run version:sync
 export const APP_VERSION = "33.0.0";
-export const CACHE_VERSION = "33.0.0";
+export const CACHE_VERSION = "v33.0.0";

@@ -3,7 +3,7 @@
 import { Play, Trophy } from "lucide-react";
 import { motion } from "motion/react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { RecordCard } from "@/components/ui/record-card";
+import { RecordCard } from "@/components/molecules/cards/record-card";
 import type { PersonalRecord } from "@/lib/types";
 
 export interface PersonalRecordsCardProps {

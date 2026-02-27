@@ -3,7 +3,7 @@
 import { Calendar, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { HistoryCard } from "@/components/ui/history-card";
+import { HistoryCard } from "@/components/molecules/cards/history-card";
 import type { WorkoutHistory } from "@/lib/types";
 
 export interface RecentHistoryCardProps {

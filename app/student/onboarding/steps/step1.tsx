@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
-import { FormInput } from "@/components/ui/form-input";
+import { FormInput } from "@/components/molecules/forms/form-input";
 import { DuoButton, DuoSelect } from "@/components/duo";
 import { type step1Schema, validateStep1 } from "../schemas";
 import type { DifficultyLevel, OnboardingData, StepProps } from "./types";

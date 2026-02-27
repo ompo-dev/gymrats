@@ -2,7 +2,7 @@
 
 import { cva, type VariantProps } from "class-variance-authority";
 import { DuoButton } from "@/components/duo";
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/atoms/inputs/textarea";
 import { cn } from "@/lib/utils";
 
 function InputGroup({ className, ...props }: React.ComponentProps<"div">) {

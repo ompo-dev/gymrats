@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { StepCard } from "@/components/molecules/cards/step-card";
-import { FormInput } from "@/components/ui/form-input";
+import { FormInput } from "@/components/molecules/forms/form-input";
 import { RangeSlider } from "@/components/ui/range-slider";
 import { type step5Schema_Activity, validateStep5 } from "../schemas";
 import type { StepProps } from "./types";

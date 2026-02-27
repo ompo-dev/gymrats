@@ -1,7 +1,7 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 import { DuoCard } from "@/components/duo";
-import { StatCard } from "./stat-card";
+import { StatCard } from "@/components/molecules/cards/stat-card";
 
 export interface ProfileHeaderProps
 	extends React.HTMLAttributes<HTMLDivElement> {

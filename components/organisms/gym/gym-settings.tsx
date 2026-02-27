@@ -23,7 +23,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/molecules/forms/label";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";

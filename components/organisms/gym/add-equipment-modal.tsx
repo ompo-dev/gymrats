@@ -11,7 +11,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { DuoInput } from "@/components/duo";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/molecules/forms/label";
 import { Loader2 } from "lucide-react";
 import { DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";

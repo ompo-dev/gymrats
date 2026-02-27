@@ -21,10 +21,46 @@ function HistoryCardSimple({
 	className,
 	...props
 }: HistoryCardProps) {
-	const formattedDate =
-		typeof date === "string"
-			? date
-			: new Date(date).toLocaleDateString("pt-BR");
+	// Formatar data de forma amigável: "Hoje", "Ontem" ou data formatada
+	const formatDate = (dateValue: string | Date): string => {
+		const d = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+
+		if (Number.isNaN(d.getTime())) {
+			return "Data inválida";
+		}
+
+		const today = new Date();
+		const yesterday = new Date(today);
+		yesterday.setDate(yesterday.getDate() - 1);
+
+		const dateOnly = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+		const todayOnly = new Date(
+			today.getFullYear(),
+			today.getMonth(),
+			today.getDate(),
+		);
+		const yesterdayOnly = new Date(
+			yesterday.getFullYear(),
+			yesterday.getMonth(),
+			yesterday.getDate(),
+		);
+
+		if (dateOnly.getTime() === todayOnly.getTime()) {
+			return "Hoje";
+		}
+		if (dateOnly.getTime() === yesterdayOnly.getTime()) {
+			return "Ontem";
+		}
+
+		const day = d.getDate();
+		const month = d.toLocaleDateString("pt-BR", { month: "short" });
+		const year =
+			d.getFullYear() !== today.getFullYear() ? ` de ${d.getFullYear()}` : "";
+
+		return `${day} de ${month}${year}`;
+	};
+
+	const formattedDate = formatDate(date);
 
 	return (
 		<DuoCard.Root

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useRef } from "react";
 import { DuoInput } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ interface FormInputProps {
 	type?: "text" | "number" | "email" | "password" | "tel" | "url";
 	value: string | number;
 	onChange: (value: string | number) => void;
+	onBlur?: () => void;
 	error?: string;
 	required?: boolean;
 	disabled?: boolean;
@@ -19,6 +20,8 @@ interface FormInputProps {
 	delay?: number;
 	icon?: React.ReactNode;
 	maxLength?: number;
+	min?: number;
+	max?: number;
 }
 
 const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
@@ -29,6 +32,7 @@ const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
 			type = "text",
 			value,
 			onChange,
+			onBlur,
 			error,
 			required,
 			disabled,
@@ -37,6 +41,8 @@ const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
 			delay = 0,
 			icon,
 			maxLength,
+			min,
+			max,
 		},
 		ref,
 	) => {
@@ -46,13 +52,108 @@ const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
 			lg: "h-14 text-lg",
 		};
 
+		const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
 		const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+			const inputValue = e.target.value;
+
 			if (type === "number") {
-				const numValue = e.target.value ? parseFloat(e.target.value) : "";
-				onChange(numValue);
+				// Permite valores vazios
+				if (inputValue === "" || inputValue === "-") {
+					onChange("");
+					return;
+				}
+
+				// Permite apenas números e ponto decimal durante a digitação
+				const isValidPartial = /^-?\d*\.?\d*$/.test(inputValue);
+				if (!isValidPartial) {
+					return;
+				}
+
+				// Não permite números negativos se min >= 0
+				const numValue = parseFloat(inputValue);
+				if (
+					!Number.isNaN(numValue) &&
+					numValue < 0 &&
+					(min === undefined || min >= 0)
+				) {
+					return;
+				}
+
+				// Permite qualquer valor durante a digitação (validação será com debounce)
+				onChange(inputValue);
 			} else {
-				onChange(e.target.value);
+				onChange(inputValue);
 			}
+		};
+
+		// Debounce para validação de números (500ms após parar de digitar)
+		useEffect(() => {
+			if (type === "number" && typeof value === "string" && value !== "") {
+				// Limpa timer anterior
+				if (debounceTimerRef.current) {
+					clearTimeout(debounceTimerRef.current);
+				}
+
+				// Cria novo timer
+				debounceTimerRef.current = setTimeout(() => {
+					const numValue = parseFloat(value);
+
+					if (!Number.isNaN(numValue)) {
+						// Valida min e max após debounce
+						let finalValue = numValue;
+
+						if (min !== undefined && numValue < min) {
+							finalValue = min;
+						} else if (max !== undefined && numValue > max) {
+							finalValue = max;
+						}
+
+						// Converte para número apenas quando válido
+						onChange(finalValue);
+					} else {
+						// Se não for um número válido, limpa o campo
+						onChange("");
+					}
+				}, 1000); // 1000ms de debounce (dobrado)
+			}
+
+			// Cleanup
+			return () => {
+				if (debounceTimerRef.current) {
+					clearTimeout(debounceTimerRef.current);
+				}
+			};
+		}, [value, type, min, max, onChange]);
+
+		const handleBlur = () => {
+			// Validação imediata no blur (sem debounce)
+			if (type === "number" && typeof value === "string" && value !== "") {
+				const numValue = parseFloat(value);
+
+				if (!Number.isNaN(numValue)) {
+					let finalValue = numValue;
+
+					if (min !== undefined && numValue < min) {
+						finalValue = min;
+					} else if (max !== undefined && numValue > max) {
+						finalValue = max;
+					}
+
+					onChange(finalValue);
+				} else {
+					onChange("");
+				}
+			}
+
+			// Limpa timer de debounce ao perder foco
+			if (debounceTimerRef.current) {
+				clearTimeout(debounceTimerRef.current);
+				debounceTimerRef.current = null;
+			}
+
+			// Chama o onBlur original se fornecido
+			onBlur?.();
 		};
 
 		return (
@@ -67,9 +168,11 @@ const FormInputSimple = forwardRef<HTMLInputElement, FormInputProps>(
 					label={label ? `${label}${required ? " *" : ""}` : undefined}
 					leftIcon={icon}
 					error={error}
-					type={type}
+					type={type === "number" ? "text" : type}
+					inputMode={type === "number" ? "numeric" : undefined}
 					value={String(value || "")}
 					onChange={handleChange}
+					onBlur={handleBlur}
 					placeholder={placeholder}
 					disabled={disabled}
 					maxLength={maxLength}
