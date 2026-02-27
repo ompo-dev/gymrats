@@ -8,9 +8,7 @@ import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import type { PlanSlotData } from "@/lib/types";
-import { ModalContainer } from "./modal-container";
-import { ModalContent } from "./modal-content";
-import { ModalHeader } from "./modal-header";
+import { Modal } from "./modal";
 import { WorkoutChat } from "./workout-chat";
 
 const DAY_NAMES = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
@@ -118,8 +116,8 @@ export function EditWeeklyPlanModal({
 	}
 
 	return (
-		<ModalContainer isOpen={isOpen} onClose={onClose}>
-			<ModalHeader title={weeklyPlan.title} onClose={onClose}>
+		<Modal.Root isOpen={isOpen} onClose={onClose}>
+			<Modal.Header title={weeklyPlan.title} onClose={onClose}>
 				<div className="flex flex-col gap-1">
 					<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
 					<DuoButton
@@ -137,8 +135,8 @@ export function EditWeeklyPlanModal({
 						Resetar semana
 					</DuoButton>
 				</div>
-			</ModalHeader>
-			<ModalContent>
+			</Modal.Header>
+			<Modal.Content>
 				<div className="space-y-4">
 				{weeklyPlan.slots.map((slot: PlanSlotData) => (
 					<DuoCard.Root key={slot.id} variant="default" padding="md">
@@ -206,7 +204,7 @@ export function EditWeeklyPlanModal({
 					Clique em &quot;Treino&quot; para adicionar um dia vazio ou &quot;Chat IA&quot; para criar com exercícios.
 				</p>
 				</div>
-			</ModalContent>
+			</Modal.Content>
 
 			{chatSlotId && (
 				<WorkoutChat
@@ -219,6 +217,6 @@ export function EditWeeklyPlanModal({
 					}}
 				/>
 			)}
-		</ModalContainer>
+		</Modal.Root>
 	);
 }

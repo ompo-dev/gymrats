@@ -14,9 +14,7 @@ import { EmptyState } from "./empty-state";
 import { EndOfListState } from "./end-of-list-state";
 import { LoadingMoreState } from "./loading-more-state";
 import { LoadingState } from "./loading-state";
-import { ModalContainer } from "./modal-container";
-import { ModalContent } from "./modal-content";
-import { ModalHeader } from "./modal-header";
+import { Modal } from "./modal";
 import { SearchInput } from "./search-input";
 
 interface ExerciseSearchProps {
@@ -352,8 +350,8 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 	const hasSelectedExercises = selectedExerciseIds.length > 0;
 
 	return (
-		<ModalContainer isOpen={true} onClose={onClose}>
-			<ModalHeader title="Buscar Exercícios" onClose={onClose}>
+		<Modal.Root isOpen={true} onClose={onClose}>
+			<Modal.Header title="Buscar Exercícios" onClose={onClose}>
 				{/* Navegação hierárquica de categorias */}
 				<motion.div
 					initial={{ opacity: 0, y: -10 }}
@@ -430,9 +428,9 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 					onChange={setQuery}
 					placeholder="Buscar exercícios..."
 				/>
-			</ModalHeader>
+			</Modal.Header>
 
-			<ModalContent ref={scrollContainerRef}>
+			<Modal.Content ref={scrollContainerRef}>
 				{isLoading ? (
 					<LoadingState message="Carregando exercícios..." />
 				) : exercises.length === 0 ? (
@@ -574,7 +572,7 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 						)}
 					</>
 				)}
-			</ModalContent>
+			</Modal.Content>
 
 			<AnimatePresence>
 				{hasSelectedExercises && (
@@ -682,6 +680,6 @@ export function ExerciseSearch({ workoutId, onClose }: ExerciseSearchProps) {
 					</motion.div>
 				)}
 			</AnimatePresence>
-		</ModalContainer>
+		</Modal.Root>
 	);
 }

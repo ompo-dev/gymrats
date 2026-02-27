@@ -2,8 +2,7 @@
 
 import { useEffect, useCallback, useState, useRef } from "react";
 import { Copy, QrCode, Play } from "lucide-react";
-import { ModalContainer } from "@/components/organisms/modals/modal-container";
-import { ModalHeader } from "@/components/organisms/modals/modal-header";
+import { Modal } from "@/components/organisms/modals/modal";
 import { DuoButton } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
@@ -118,8 +117,8 @@ export function PixPaymentModal({
 	const valueReais = (amount / 100).toFixed(2);
 
 	return (
-		<ModalContainer isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
-			<ModalHeader
+		<Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
+			<Modal.Header
 				title="Pagamento PIX"
 				onClose={onClose}
 			/>
@@ -176,6 +175,6 @@ export function PixPaymentModal({
 					O pagamento é confirmado automaticamente. Você pode fechar e ir ao app do banco — ao voltar aqui, o PIX estará disponível novamente.
 				</p>
 			</div>
-		</ModalContainer>
+		</Modal.Root>
 	);
 }

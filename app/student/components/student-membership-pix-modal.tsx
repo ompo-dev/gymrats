@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Copy, Play, QrCode } from "lucide-react";
-import { ModalContainer } from "@/components/organisms/modals/modal-container";
-import { ModalHeader } from "@/components/organisms/modals/modal-header";
+import { Modal } from "@/components/organisms/modals/modal";
 import { DuoButton } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
@@ -139,8 +138,8 @@ export function StudentMembershipPixModal({
 	const valueReais = (amount / 100).toFixed(2);
 
 	return (
-		<ModalContainer isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
-			<ModalHeader title="Pagamento PIX" onClose={onClose} />
+		<Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
+			<Modal.Header title="Pagamento PIX" onClose={onClose} />
 			<div className="space-y-6 p-6">
 				<p className="text-sm text-duo-gray-dark">
 					Escaneie o QR Code ou copie o código PIX para pagar no app do seu
@@ -198,6 +197,6 @@ export function StudentMembershipPixModal({
 					do banco — ao voltar aqui, o PIX estará disponível novamente.
 				</p>
 			</div>
-		</ModalContainer>
+		</Modal.Root>
 	);
 }

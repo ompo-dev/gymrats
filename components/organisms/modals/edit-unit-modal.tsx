@@ -30,9 +30,7 @@ import { cn } from "@/lib/utils";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { ExerciseSearch } from "./exercise-search";
-import { ModalContainer } from "./modal-container";
-import { ModalContent } from "./modal-content";
-import { ModalHeader } from "./modal-header";
+import { Modal } from "./modal";
 import { WorkoutChat } from "./workout-chat";
 
 const DAY_NAMES = [
@@ -617,8 +615,8 @@ export function EditUnitModal({
 
   return (
     <>
-      <ModalContainer isOpen={isOpen} onClose={close}>
-        <ModalHeader
+      <Modal.Root isOpen={isOpen} onClose={close}>
+        <Modal.Header
           title={
             editingWorkoutId
               ? `Editar ${activeWorkout?.title}`
@@ -635,7 +633,7 @@ export function EditUnitModal({
           }
         />
 
-        <ModalContent maxHeight="none">
+        <Modal.Content maxHeight="none">
           {!editingWorkoutId ? (
             // --- UNIT VIEW ---
             <div className="space-y-8" style={{ minHeight: "400px" }}>
@@ -1305,8 +1303,8 @@ export function EditUnitModal({
               )}
             </div>
           )}
-        </ModalContent>
-      </ModalContainer>
+        </Modal.Content>
+      </Modal.Root>
 
       {showExerciseSearch && editingWorkoutId && isOpen && (
         <ExerciseSearch

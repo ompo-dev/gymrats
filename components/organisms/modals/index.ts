@@ -1,3 +1,4 @@
+export { Modal } from "./modal";
 export type { AddMealModalProps } from "./add-meal-modal";
 export { AddMealModal } from "./add-meal-modal";
 export { EditUnitModal } from "./edit-unit-modal";
