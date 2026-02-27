@@ -159,8 +159,13 @@ function AuthCallbackPageContent() {
 					window.close();
 				}, 1000);
 			} else {
-				// Navegador normal - redirecionar normalmente
-				const redirectURL = userRole === "GYM" ? "/gym" : "/student";
+				// Navegador normal - redirecionar conforme role
+				const redirectURL =
+					userRole === "PENDING"
+						? "/auth/register/user-type"
+						: userRole === "GYM"
+							? "/gym"
+							: "/student";
 				window.location.href = redirectURL;
 			}
 		};

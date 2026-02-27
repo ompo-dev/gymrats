@@ -8,6 +8,7 @@
 
 ## Arquivos
 - `apply-alternative-exercises-migration.js`: Arquivo da camada local.
+- `apply-pending-user-role-migration.js`: Adiciona role PENDING ao UserRole para fluxo de seleção aluno/academia após primeiro login.
 - `apply-weekly-plan-migration.js`: Migra Units → WeeklyPlan (7 slots Seg-Dom). Cria WeeklyPlan + PlanSlot para cada student. Distribui workouts nos slots por ordem. Students sem units recebem 7 slots rest.
 - `apply-google-auth-migration.js`: Arquivo da camada local.
 - `apply-gym-locations-payment-migration.js`: Arquivo da camada local.

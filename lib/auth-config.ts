@@ -214,6 +214,10 @@ export const auth = betterAuth({
 			create: {
 				after: async (user, _ctx) => {
 					// Quando um novo usuário é criado via Google OAuth
+					// PENDING: não criar Student nem Gym - usuário será redirecionado para /auth/register/user-type
+					if (user.role === "PENDING") {
+						return;
+					}
 					// Garantir que tenha student profile se for role STUDENT
 					if (user.role === "STUDENT" || user.role === "ADMIN") {
 						try {

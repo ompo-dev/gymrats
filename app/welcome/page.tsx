@@ -76,6 +76,12 @@ function WelcomePageContent() {
 						restTime: "medio",
 					});
 
+					// PENDING: novo usuário precisa escolher tipo (aluno ou academia)
+					if (user.role === "PENDING") {
+						router.push("/auth/register/user-type");
+						setIsLoading(false);
+						return;
+					}
 					// Carregar dados do student se for STUDENT ou ADMIN
 					if (user.role === "STUDENT" || user.role === "ADMIN") {
 						loadAll().catch((err) => {
@@ -191,6 +197,11 @@ function WelcomePageContent() {
 								restTime: "medio",
 							});
 
+							// PENDING: novo usuário precisa escolher tipo (aluno ou academia)
+							if (userRole === "PENDING") {
+								router.push("/auth/register/user-type");
+								return;
+							}
 							// Carregar dados do student se for STUDENT ou ADMIN
 							if (userRole === "STUDENT" || userRole === "ADMIN") {
 								loadAll().catch((err) => {
@@ -203,7 +214,6 @@ function WelcomePageContent() {
 							} else if (userRole === "GYM") {
 								router.push("/gym");
 							} else {
-								// Se não tem role, permanecer na welcome
 								router.push("/welcome");
 							}
 						}

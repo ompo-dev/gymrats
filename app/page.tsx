@@ -24,12 +24,17 @@ export default function Home() {
 			try {
 				const { apiClient } = await import("@/lib/api/client");
 				const response = await apiClient.get<{
-					user: { role: "STUDENT" | "GYM" | "ADMIN" } | null;
+					user: { role: "PENDING" | "STUDENT" | "GYM" | "ADMIN" } | null;
 				}>("/api/auth/session");
 
 				if (response.data.user) {
 					const role = response.data.user.role;
 
+					// PENDING: novo usuário precisa escolher tipo (aluno ou academia)
+					if (role === "PENDING") {
+						router.push("/auth/register/user-type");
+						return;
+					}
 					// Redirecionar baseado no role validado no servidor
 					if (role === "STUDENT" || role === "ADMIN") {
 						router.push("/student");

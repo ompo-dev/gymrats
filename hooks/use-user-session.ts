@@ -6,7 +6,7 @@ interface UserSession {
 	id: string;
 	email: string;
 	name: string;
-	role: "STUDENT" | "GYM" | "ADMIN";
+	role: "PENDING" | "STUDENT" | "GYM" | "ADMIN";
 	hasGym: boolean;
 	hasStudent: boolean;
 }
@@ -72,6 +72,11 @@ export function useUserSession() {
 		userSession,
 		isAdmin,
 		isLoading,
-		role: userSession?.role || null,
+		role: (userSession?.role ?? null) as
+			| "PENDING"
+			| "STUDENT"
+			| "GYM"
+			| "ADMIN"
+			| null,
 	};
 }
