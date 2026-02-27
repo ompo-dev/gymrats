@@ -11,6 +11,7 @@
 
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
+import { log } from "@/lib/observability";
 
 /**
  * Popula WorkoutExercises existentes com dados do educational database
@@ -27,9 +28,9 @@ export async function populateWorkoutExercisesWithEducationalData(
 }> {
 	try {
 		const scope = studentId ? `do aluno ${studentId}` : "de todos os alunos";
-		console.log(
-			`🔄 Iniciando população de WorkoutExercises ${scope} com dados educacionais...\n`,
-		);
+		log.info("Iniciando população de WorkoutExercises com dados educacionais", {
+			scope,
+		});
 
 		// Construir where clause baseado em studentId
 		const whereClause: any = {
@@ -57,7 +58,7 @@ export async function populateWorkoutExercisesWithEducationalData(
 			);
 
 			if (workoutIds.length === 0) {
-				console.log(`⚠️  Nenhum workout encontrado para o aluno ${studentId}`);
+				log.warn("Nenhum workout encontrado para o aluno", { studentId });
 				return { updated: 0, notFound: 0, errors: 0 };
 			}
 
@@ -69,9 +70,9 @@ export async function populateWorkoutExercisesWithEducationalData(
 			where: whereClause,
 		});
 
-		console.log(
-			`📊 Encontrados ${workoutExercises.length} exercícios para atualizar\n`,
-		);
+		log.info("Exercícios encontrados para atualizar", {
+			count: workoutExercises.length,
+		});
 
 		let updated = 0;
 		let notFound = 0;
@@ -87,9 +88,10 @@ export async function populateWorkoutExercisesWithEducationalData(
 				);
 
 				if (!educationalExercise) {
-					console.warn(
-						`⚠️  Exercício educacional não encontrado: ${workoutExercise.name} (educationalId: ${workoutExercise.educationalId})`,
-					);
+					log.warn("Exercício educacional não encontrado", {
+						name: workoutExercise.name,
+						educationalId: workoutExercise.educationalId,
+					});
 					notFound++;
 					continue;
 				}
@@ -138,27 +140,27 @@ export async function populateWorkoutExercisesWithEducationalData(
 
 				updated++;
 				if (updated % 10 === 0) {
-					console.log(`✅ ${updated} exercícios atualizados...`);
+					log.info("Progresso atualização exercícios", { updated });
 				}
-			} catch (error: any) {
-				console.error(
-					`❌ Erro ao atualizar exercício ${workoutExercise.name} (${workoutExercise.id}):`,
-					error.message,
-				);
+			} catch (error: unknown) {
+				log.error("Erro ao atualizar exercício", {
+					name: workoutExercise.name,
+					id: workoutExercise.id,
+					error,
+				});
 				errors++;
 			}
 		}
 
-		console.log(`\n✅ População concluída!`);
-		console.log(`   - ${updated} exercícios atualizados`);
-		console.log(
-			`   - ${notFound} exercícios não encontrados no educational database`,
-		);
-		console.log(`   - ${errors} erros`);
+		log.info("População concluída", {
+			updated,
+			notFound,
+			errors,
+		});
 
 		return { updated, notFound, errors };
-	} catch (error: any) {
-		console.error("❌ Erro ao popular WorkoutExercises:", error);
+	} catch (error: unknown) {
+		log.error("Erro ao popular WorkoutExercises", { error });
 		throw error;
 	}
 }
@@ -232,11 +234,11 @@ export async function populateSingleWorkoutExercise(
 		});
 
 		return true;
-	} catch (error: any) {
-		console.error(
-			`❌ Erro ao popular WorkoutExercise ${workoutExerciseId}:`,
-			error.message,
-		);
+	} catch (error: unknown) {
+		log.error("Erro ao popular WorkoutExercise", {
+			workoutExerciseId,
+			error,
+		});
 		throw error;
 	}
 }

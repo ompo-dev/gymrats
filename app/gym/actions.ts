@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
 import { GymMemberService } from "@/lib/services/gym/gym-member.service";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";

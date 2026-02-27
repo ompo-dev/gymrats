@@ -1,6 +1,6 @@
 "use client";
 
-import type { GymSelectorReturnMap } from "@/lib/utils/gym-selectors";
+import type { GymSelectorReturnMap } from "@/lib/utils/gym/gym-selectors";
 import {
 	type GymUnifiedState,
 	useGymUnifiedStore,

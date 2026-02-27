@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { createAbacateBilling } from "@/lib/actions/abacate-pay";
+import { createAbacateBilling } from "@/lib/actions/payments/abacate-pay";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";

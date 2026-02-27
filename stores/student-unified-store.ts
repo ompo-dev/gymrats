@@ -9,6 +9,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
@@ -44,6 +45,13 @@ import type {
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import {
+	calculateWeightGain,
+	deduplicateMeals,
+	loadAllDataIncremental,
+	loadSection,
+	loadSectionsIncremental,
+} from "./student/load-helpers";
 
 // ============================================
 // INTERFACE DO STORE
@@ -136,608 +144,6 @@ export interface StudentUnifiedState {
 }
 
 // ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-/**
- * Formata a data de criação do usuário para memberSince
- */
-function formatMemberSince(date: Date | string | null | undefined): string {
-	if (!date) return "Jan 2025";
-	const d = typeof date === "string" ? new Date(date) : date;
-
-	// Mapeamento de meses em português
-	const months = [
-		"Jan",
-		"Fev",
-		"Mar",
-		"Abr",
-		"Mai",
-		"Jun",
-		"Jul",
-		"Ago",
-		"Set",
-		"Out",
-		"Nov",
-		"Dez",
-	];
-
-	const month = months[d.getMonth()];
-	const year = d.getFullYear();
-
-	return `${month} ${year}`;
-}
-
-/**
- * Carrega uma seção específica dos dados
- */
-/**
- * Mapeamento de seções para rotas específicas
- * Usa rotas dedicadas ao invés de /api/students/all?sections=...
- * Se não tiver rota específica, usa null e será carregado via /api/students/all?sections=...
- */
-const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
-	// TODAS as rotas específicas - NÃO usar mais /api/students/all
-	user: "/api/auth/session", // User vem da sessão
-	student: "/api/students/student", // Informações básicas do student
-	progress: "/api/students/progress", // Progresso (XP, streaks, achievements)
-	profile: "/api/students/profile",
-	weightHistory: "/api/students/weight",
-	units: "/api/workouts/units",
-	weeklyPlan: "/api/workouts/weekly-plan",
-	workoutHistory: "/api/workouts/history",
-	personalRecords: "/api/students/personal-records",
-	subscription: "/api/subscriptions/current",
-	memberships: "/api/memberships",
-	payments: "/api/payments",
-	paymentMethods: "/api/payment-methods",
-	dayPasses: "/api/students/day-passes",
-	friends: "/api/students/friends",
-	gymLocations: "/api/gyms/locations",
-	dailyNutrition: "/api/nutrition/daily",
-
-	// NOTA: Todas as seções agora têm rotas específicas!
-	// O /api/students/all ainda existe para compatibilidade, mas não é mais usado
-};
-
-/**
- * Rastreamento de seções sendo carregadas no momento
- * Evita carregar a mesma seção múltiplas vezes simultaneamente
- */
-const loadingSections = new Set<StudentDataSection>();
-const loadingPromises = new Map<
-	StudentDataSection,
-	Promise<Partial<StudentData>>
->();
-
-/**
- * Carrega uma seção específica dos dados
- * TODAS as seções agora têm rotas específicas - não usa mais /api/students/all
- *
- * IMPORTANTE: Evita carregamentos duplicados - se a seção já está sendo carregada,
- * retorna a promise existente em vez de fazer nova requisição
- *
- * @param forceRefresh - Se true, ignora deduplicação e força nova requisição (ex: após week-reset)
- */
-async function loadSection(
-	section: StudentDataSection,
-	forceRefresh = false,
-): Promise<Partial<StudentData>> {
-	// Se forceRefresh, limpar cache da seção para garantir dados frescos (ex: após week-reset)
-	if (forceRefresh) {
-		loadingSections.delete(section);
-		loadingPromises.delete(section);
-	}
-
-	// Se já está sendo carregada, retornar a promise existente
-	if (loadingSections.has(section) && loadingPromises.has(section)) {
-		const existingPromise = loadingPromises.get(section);
-		if (existingPromise) {
-			console.log(
-				`[loadSection] Seção ${section} já está sendo carregada, reutilizando promise`,
-			);
-			return existingPromise;
-		}
-	}
-
-	// Marcar como carregando e criar promise
-	loadingSections.add(section);
-
-	const loadPromise = (async () => {
-		const route = SECTION_ROUTES[section]; // Declarar route dentro da função assíncrona para estar disponível no catch
-
-		// Wrapper para capturar erros silenciosamente antes que sejam logados pelo navegador
-		try {
-			if (!route) {
-				console.warn(`⚠️ Seção ${section} não tem rota específica mapeada`);
-				return {};
-			}
-
-			// Usar rota específica (mais rápida e eficiente)
-			// Capturar erro diretamente na Promise com .catch() para evitar "unhandled promise rejection"
-			// Isso previne que o erro apareça no console antes de ser tratado
-			const response = await apiClient
-				.get<any>(route, {
-					timeout: 30000, // 30 segundos para rotas específicas
-				})
-				.catch((error: any) => {
-					// Tratar erro imediatamente aqui para evitar log no console
-					const status = error?.response?.status;
-					const _errorMessage =
-						error?.response?.data?.error ||
-						error?.message ||
-						"Erro desconhecido";
-					const _errorCode = error?.response?.data?.code;
-
-					// Se o erro já foi marcado como tratado no interceptor, retornar vazio silenciosamente
-					if (error._isHandled || error._isSilent) {
-						return null; // Retornar null para indicar que houve erro mas foi tratado
-					}
-
-					// Tratamento específico para timeout
-					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
-					) {
-						if (process.env.NODE_ENV === "development") {
-							console.debug(
-								`⏱️ Timeout ao carregar ${section} (rota: ${route})`,
-							);
-						}
-						return null;
-					}
-
-					// Tratamento para erros HTTP (500, 404, etc)
-					if (status === 500 || status === 404) {
-						// Erros esperados - não logar, apenas retornar null
-						return null;
-					}
-
-					// Para outros erros HTTP, também retornar null silenciosamente
-					if (status && status >= 400) {
-						return null;
-					}
-
-					// Para erros não-HTTP (rede, etc), re-lançar para ser logado
-					throw error;
-				});
-
-			// Se response é null, significa que houve erro mas foi tratado silenciosamente
-			if (!response) {
-				return {};
-			}
-
-			// Transformar resposta da rota específica para formato do store
-			return transformSectionResponse(section, response.data);
-		} catch (error: any) {
-			// Este catch só captura erros não-HTTP (erros de rede, etc)
-			// Erros HTTP já foram tratados no .catch() acima
-			console.error(
-				`❌ Erro não-HTTP ao carregar ${section}${route ? ` (rota: ${route})` : ""}:`,
-				error,
-			);
-			return {};
-		} finally {
-			// Remover do tracking quando terminar (sucesso ou erro)
-			loadingSections.delete(section);
-			loadingPromises.delete(section);
-		}
-	})();
-
-	// Armazenar promise para reutilização
-	loadingPromises.set(section, loadPromise);
-
-	return loadPromise;
-}
-
-/**
- * Transforma resposta da rota específica para formato do store
- */
-function transformSectionResponse(
-	section: StudentDataSection,
-	data: any,
-): Partial<StudentData> {
-	switch (section) {
-		case "user": {
-			// User vem de /api/auth/session como { user: {...}, session: {...} }
-			// Extrair apenas os dados do user e transformar
-			const userData = data.user || data;
-
-			// Gerar username do email se não existir
-			const username =
-				userData.username ||
-				(userData.email
-					? `@${userData.email.split("@")[0].toLowerCase()}`
-					: "@usuario");
-
-			return {
-				user: {
-					id: userData.id || "",
-					name: userData.name || "",
-					email: userData.email || "",
-					username,
-					memberSince:
-						userData.memberSince || formatMemberSince(userData.createdAt),
-					avatar: userData.avatar || userData.image,
-					role: userData.role || "STUDENT",
-					isAdmin: userData.role === "ADMIN" || userData.isAdmin || false,
-				},
-			};
-		}
-
-		case "student":
-			// Student vem direto da rota /api/students/student
-			return { student: data };
-
-		case "profile":
-			// Profile vem de /api/students/profile como { success: true, hasProfile: true, profile: {...}, student: {...} }
-			// ou pode vir como objeto direto do /api/students/all
-			if (data.profile) {
-				return { profile: data.profile };
-			}
-			// Se vier direto (sem wrapper)
-			return { profile: data };
-
-		case "progress":
-			// Progress vem direto da rota /api/students/progress
-			return { progress: data };
-
-		case "weightHistory":
-			// Weight history vem de /api/students/weight como { history: [...], total: number }
-			// ou pode vir como array direto
-			if (Array.isArray(data)) {
-				return { weightHistory: data };
-			}
-			if (data.history && Array.isArray(data.history)) {
-				return { weightHistory: data.history };
-			}
-			return { weightHistory: data.weightHistory || [] };
-
-		case "units":
-			// Units vem como array
-			return { units: Array.isArray(data) ? data : data.units || [] };
-
-		case "weeklyPlan":
-			// Weekly plan vem como { weeklyPlan: { id, title, slots }, weekStart }
-			return {
-				weeklyPlan: data?.weeklyPlan ?? null,
-			};
-
-		case "workoutHistory":
-			// Workout history vem de /api/workouts/history como { history: [...], total: number }
-			// ou pode vir como array direto
-			if (Array.isArray(data)) {
-				return { workoutHistory: data };
-			}
-			if (data.history && Array.isArray(data.history)) {
-				return { workoutHistory: data.history };
-			}
-			return { workoutHistory: data.workoutHistory || [] };
-
-		case "personalRecords":
-			// Personal records vem como { records: [...], total: number }
-			return { personalRecords: data.records || data.personalRecords || [] };
-
-		case "subscription":
-			// Se vier no formato { success: true, subscription: ... }
-			if (data && typeof data === "object" && "success" in data) {
-				return { subscription: data.subscription || null };
-			}
-			// Se vier direto (objeto subscription ou null)
-			return { subscription: data || null };
-
-		case "memberships":
-			// Memberships vem como array
-			return {
-				memberships: Array.isArray(data) ? data : data.memberships || [],
-			};
-
-		case "payments":
-			// Payments vem como array
-			return { payments: Array.isArray(data) ? data : data.payments || [] };
-
-		case "paymentMethods":
-			// Payment methods vem como array
-			return {
-				paymentMethods: Array.isArray(data) ? data : data.paymentMethods || [],
-			};
-
-		case "dayPasses":
-			// Day passes vem como { dayPasses: [...], total: number }
-			return { dayPasses: data.dayPasses || [] };
-
-		case "friends":
-			// Friends vem como { count: number, list: [...] }
-			return { friends: data };
-
-		case "gymLocations":
-			// API retorna gyms ou gymLocations
-			return {
-				gymLocations: Array.isArray(data)
-					? data
-					: data.gymLocations || data.gyms || [],
-			};
-
-		default:
-			return { [section]: data };
-	}
-}
-
-/**
- * Remove refeições duplicadas baseado em ID ou combinação de campos únicos
- */
-function deduplicateMeals(meals: any[]): any[] {
-	if (!meals || meals.length === 0) return [];
-
-	const seen = new Set<string>();
-	const uniqueMeals: any[] = [];
-
-	for (const meal of meals) {
-		// Criar chave única baseada em ID ou combinação de campos
-		let key: string;
-		if (meal.id) {
-			key = `id:${meal.id}`;
-		} else {
-			// Se não tem ID, usar combinação de name + type + time como chave
-			const timeStr = meal.time ? new Date(meal.time).toISOString() : "";
-			key = `${meal.name || ""}:${meal.type || ""}:${timeStr}`;
-		}
-
-		if (!seen.has(key)) {
-			seen.add(key);
-			uniqueMeals.push(meal);
-		} else {
-			console.warn("[deduplicateMeals] ⚠️ Refeição duplicada removida:", {
-				name: meal.name,
-				type: meal.type,
-				id: meal.id,
-			});
-		}
-	}
-
-	return uniqueMeals;
-}
-
-/**
- * Calcula weightGain baseado no weightHistory
- * Ganho/perda no último mês
- */
-function calculateWeightGain(
-	weightHistory: WeightHistoryItem[],
-): number | null {
-	if (!weightHistory || weightHistory.length === 0) {
-		return null;
-	}
-
-	const currentWeight = weightHistory[0].weight;
-	const oneMonthAgo = new Date();
-	oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-	// Encontrar peso mais próximo de 1 mês atrás
-	const weightOneMonthAgo = weightHistory.find((wh) => {
-		const whDate = new Date(wh.date);
-		return whDate <= oneMonthAgo;
-	});
-
-	if (weightOneMonthAgo) {
-		return currentWeight - weightOneMonthAgo.weight;
-	}
-
-	return null;
-}
-
-/**
- * Função auxiliar para atualizar o store incrementalmente com uma seção
- * Esta função é chamada pelo loadAll para atualizar o store assim que cada seção carrega
- * sectionData já vem transformado de loadSection (via transformSectionResponse)
- */
-function updateStoreWithSection(
-	set: any,
-	_section: StudentDataSection,
-	sectionData: Partial<StudentData>,
-): void {
-	set((state: StudentUnifiedState) => {
-		const newState = { ...state.data };
-
-		// Mesclar dados da seção no estado atual
-		// sectionData já vem transformado de loadSection
-		if (sectionData.user) {
-			newState.user = { ...newState.user, ...sectionData.user };
-		}
-		if (sectionData.student) {
-			newState.student = { ...newState.student, ...sectionData.student };
-		}
-		if (sectionData.progress) {
-			newState.progress = { ...newState.progress, ...sectionData.progress };
-		}
-		if (sectionData.profile) {
-			newState.profile = { ...newState.profile, ...sectionData.profile };
-		}
-		if (sectionData.weightHistory) {
-			newState.weightHistory = sectionData.weightHistory;
-			// Calcular weightGain
-			if (sectionData.weightHistory.length > 0) {
-				newState.weightGain = calculateWeightGain(sectionData.weightHistory);
-				// Atualizar currentWeight no profile se não existir
-				if (!newState.profile?.weight && sectionData.weightHistory[0]) {
-					newState.profile = {
-						...newState.profile,
-						weight: sectionData.weightHistory[0].weight,
-					};
-				}
-			}
-		}
-		if (sectionData.units !== undefined) {
-			newState.units = sectionData.units;
-		}
-		if (sectionData.weeklyPlan !== undefined) {
-			newState.weeklyPlan = sectionData.weeklyPlan;
-		}
-		if (sectionData.workoutHistory !== undefined) {
-			newState.workoutHistory = sectionData.workoutHistory;
-		}
-		if (sectionData.personalRecords !== undefined) {
-			newState.personalRecords = sectionData.personalRecords;
-		}
-		if (sectionData.subscription !== undefined) {
-			newState.subscription = sectionData.subscription;
-		}
-		if (sectionData.memberships !== undefined) {
-			newState.memberships = sectionData.memberships;
-		}
-		if (sectionData.payments !== undefined) {
-			newState.payments = sectionData.payments;
-		}
-		if (sectionData.paymentMethods !== undefined) {
-			newState.paymentMethods = sectionData.paymentMethods;
-		}
-		if (sectionData.dayPasses !== undefined) {
-			newState.dayPasses = sectionData.dayPasses;
-		}
-		if (sectionData.friends !== undefined) {
-			newState.friends = sectionData.friends;
-		}
-		if (sectionData.gymLocations !== undefined) {
-			newState.gymLocations = sectionData.gymLocations;
-		}
-		if (sectionData.dailyNutrition !== undefined) {
-			newState.dailyNutrition = sectionData.dailyNutrition;
-		}
-
-		return {
-			data: newState,
-		};
-	});
-}
-
-/**
- * Carrega seções específicas e atualiza store incrementalmente
- * Usado por loadAllPrioritized para carregar apenas seções necessárias
- */
-async function loadSectionsIncremental(
-	set: any,
-	sections: StudentDataSection[],
-	skipNutrition: boolean = false,
-): Promise<void> {
-	// Carregar todas as seções em paralelo, mas atualizar store incrementalmente
-	const sectionPromises = sections.map(async (section) => {
-		try {
-			const sectionData = await loadSection(section);
-
-			// Atualizar store imediatamente quando esta seção carregar
-			if (sectionData && Object.keys(sectionData).length > 0) {
-				updateStoreWithSection(set, section, sectionData);
-			}
-
-			return sectionData;
-		} catch (error) {
-			console.warn(
-				`[loadSectionsIncremental] Erro ao carregar seção ${section}:`,
-				error,
-			);
-			return {};
-		}
-	});
-
-	// Aguardar todas as requisições (mas store já foi atualizado incrementalmente)
-	await Promise.all(sectionPromises);
-
-	// Se dailyNutrition está nas seções e não devemos pular, carregar separadamente
-	if (!skipNutrition && sections.includes("dailyNutrition")) {
-		try {
-			const nutritionResponse = await apiClient.get<{
-				date: string;
-				meals: any[];
-				totalCalories: number;
-				totalProtein: number;
-				totalCarbs: number;
-				totalFats: number;
-				waterIntake: number;
-				targetCalories: number;
-				targetProtein: number;
-				targetCarbs: number;
-				targetFats: number;
-				targetWater: number;
-			}>("/api/nutrition/daily", {
-				timeout: 30000,
-			});
-
-			const nutritionResponseData = nutritionResponse.data;
-
-			// Normalizar data para dateKey Brasil (reset às 03:00 BRT)
-			let normalizedDate: string;
-			try {
-				normalizedDate = getBrazilNutritionDateKey(nutritionResponseData.date);
-			} catch {
-				normalizedDate = getBrazilNutritionDateKey();
-			}
-
-			// Remover duplicatas antes de salvar
-			const uniqueMeals = deduplicateMeals(nutritionResponseData.meals || []);
-
-			const nutritionData: Partial<StudentData> = {
-				dailyNutrition: {
-					date: normalizedDate,
-					meals: uniqueMeals,
-					totalCalories: nutritionResponseData.totalCalories ?? 0,
-					totalProtein: nutritionResponseData.totalProtein ?? 0,
-					totalCarbs: nutritionResponseData.totalCarbs ?? 0,
-					totalFats: nutritionResponseData.totalFats ?? 0,
-					waterIntake: nutritionResponseData.waterIntake ?? 0,
-					targetCalories: nutritionResponseData.targetCalories ?? 2000,
-					targetProtein: nutritionResponseData.targetProtein ?? 150,
-					targetCarbs: nutritionResponseData.targetCarbs ?? 250,
-					targetFats: nutritionResponseData.targetFats ?? 65,
-					targetWater: nutritionResponseData.targetWater ?? 3000,
-				},
-			};
-
-			// Atualizar store com nutrição
-			updateStoreWithSection(set, "dailyNutrition", nutritionData);
-		} catch (error) {
-			console.warn(
-				"[loadSectionsIncremental] Erro ao carregar nutrição:",
-				error,
-			);
-		}
-	}
-}
-
-/**
- * Carrega todos os dados fazendo múltiplas requisições separadas
- * ATUALIZA O STORE INCREMENTALMENTE conforme cada seção carrega
- * Isso permite que a UI apareça progressivamente, sem esperar tudo terminar
- */
-async function loadAllDataIncremental(
-	set: any,
-	_get: () => StudentUnifiedState,
-): Promise<void> {
-	// Seções em ordem de prioridade (mais importantes primeiro)
-	// Isso permite que units, progress apareçam primeiro na tela de learn
-	const sections: StudentDataSection[] = [
-		"user",
-		"student",
-		"progress", // Importante para tela de learn
-		"units", // Legado - mantido para compatibilidade
-		"weeklyPlan", // Plano semanal 7 slots - usado em learn e ContinueWorkoutCard
-		"profile",
-		"weightHistory",
-		"workoutHistory",
-		"personalRecords",
-		"subscription",
-		"memberships",
-		"payments",
-		"paymentMethods",
-		"dayPasses",
-		"friends",
-		"gymLocations",
-	];
-
-	// Usar função auxiliar para carregar todas as seções
-	await loadSectionsIncremental(set, sections);
-}
-
-// ============================================
 // STORE
 // ============================================
 
@@ -767,7 +173,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				try {
 					// Carregar dados incrementalmente (atualiza store conforme cada seção carrega)
-					await loadAllDataIncremental(set, get);
+					await loadAllDataIncremental(set);
 
 					// Marcar como concluído após todas as seções carregarem
 					set((state) => ({
@@ -1310,7 +716,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -1434,7 +840,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					// Gerar idempotencyKey explicitamente para evitar avisos
@@ -1508,7 +914,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					// Gerar idempotencyKey explicitamente para evitar avisos
@@ -1735,7 +1141,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					// Gerar idempotencyKey explicitamente para evitar avisos
@@ -1846,7 +1252,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -1985,7 +1391,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2106,7 +1512,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2255,7 +1661,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2429,7 +1835,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2565,7 +1971,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2792,7 +2198,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -3025,7 +2431,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -3203,7 +2609,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(

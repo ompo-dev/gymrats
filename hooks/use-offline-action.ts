@@ -11,6 +11,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { getAuthToken } from "@/lib/auth/token-client";
 import {
 	type SyncManagerResult,
 	syncManager,
@@ -50,10 +51,7 @@ export function useOfflineAction<T = any>(options: UseOfflineActionOptions) {
 			customHeaders?: Record<string, string>,
 		): Promise<SyncManagerResult> => {
 			// Obtém token de autenticação
-			const token =
-				typeof window !== "undefined"
-					? localStorage.getItem("auth_token")
-					: null;
+			const token = getAuthToken();
 
 			const headers: Record<string, string> = {
 				...customHeaders,

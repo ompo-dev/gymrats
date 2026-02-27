@@ -36,7 +36,7 @@ export default function ApiDocsPage() {
 					tryItOutEnabled: true,
 					persistAuthorization: true,
 					supportedSubmitMethods: ["get", "post", "put", "delete", "patch"],
-					requestInterceptor: (req: {
+					requestInterceptor: async (req: {
 						headers?: Record<string, string>;
 						credentials?: string;
 					}) => {
@@ -51,9 +51,10 @@ export default function ApiDocsPage() {
 							}
 						}
 
-						// Se não encontrou no cookie, tentar localStorage
+						// Se não encontrou no cookie, tentar token client
 						if (!token) {
-							token = localStorage.getItem("auth_token");
+							const { getAuthToken } = await import("@/lib/auth/token-client");
+							token = getAuthToken();
 						}
 
 						if (token && req.headers) {

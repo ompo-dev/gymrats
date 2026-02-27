@@ -1,5 +1,6 @@
-import { db } from "@/lib/db";
 import { abacatePay } from "@/lib/api/abacatepay";
+import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 
 export interface MembershipPaymentPixResult {
 	brCode: string;
@@ -65,7 +66,7 @@ export async function createMembershipPaymentPix(
 	});
 
 	if (pixResponse.error || !pixResponse.data) {
-		console.error("[createMembershipPaymentPix] Erro:", pixResponse.error);
+		log.error("[createMembershipPaymentPix] Erro", { error: pixResponse.error });
 		throw new Error(
 			pixResponse.error || "Erro ao criar PIX na AbacatePay",
 		);
@@ -160,7 +161,7 @@ export async function createChangePlanPaymentPix(
 	});
 
 	if (pixResponse.error || !pixResponse.data) {
-		console.error("[createChangePlanPaymentPix] Erro:", pixResponse.error);
+		log.error("[createChangePlanPaymentPix] Erro", { error: pixResponse.error });
 		throw new Error(
 			pixResponse.error || "Erro ao criar PIX na AbacatePay",
 		);

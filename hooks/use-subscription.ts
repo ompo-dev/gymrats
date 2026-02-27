@@ -4,6 +4,7 @@ import {
 	type StudentSubscriptionData,
 	useSubscriptionUnified,
 } from "./use-subscription-unified";
+import { useUserSession } from "./use-user-session";
 
 export type SubscriptionData = StudentSubscriptionData;
 
@@ -17,7 +18,7 @@ type UseSubscriptionReturn = {
 	subscription: StudentSubscriptionData | null;
 	isLoading: boolean;
 	error: Error | null;
-	refetch: () => Promise<any>;
+	refetch: () => Promise<unknown>;
 	startTrial: () => Promise<{ success?: boolean; error?: string }>;
 	isStartingTrial: boolean;
 	createSubscription: (
@@ -28,6 +29,7 @@ type UseSubscriptionReturn = {
 	isCancelingSubscription: boolean;
 };
 
+/** Subscription para student. Para gym, use useGymSubscription. */
 export function useSubscription(
 	options?: UseSubscriptionOptions,
 ): UseSubscriptionReturn {
@@ -43,4 +45,15 @@ export function useSubscription(
 			plan: "monthly" | "annual",
 		) => Promise<{ billingUrl?: string; error?: string }>,
 	};
+}
+
+/**
+ * Detecta contexto (student vs gym) via useUserSession e retorna subscription apropriada.
+ * Útil em componentes compartilhados.
+ */
+export function useSubscriptionByContext() {
+	const { role, hasGym } = useUserSession();
+	const userType =
+		role === "GYM" || (role === "ADMIN" && hasGym) ? "gym" : "student";
+	return useSubscriptionUnified({ userType });
 }

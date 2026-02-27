@@ -1,3 +1,4 @@
+import { log } from "@/lib/observability";
 import nodemailer from "nodemailer";
 
 // Configuração do transporter usando Gmail com senha de aplicativo
@@ -37,9 +38,9 @@ export async function sendWelcomeEmail({
 		};
 
 		await transporter.sendMail(mailOptions);
-		console.log(`Email de boas-vindas enviado para ${to}`);
+		log.info("Email de boas-vindas enviado", { to });
 	} catch (error) {
-		console.error("Erro ao enviar email de boas-vindas:", error);
+		log.error("Erro ao enviar email de boas-vindas", { to, error });
 		// Não lançar erro para não interromper o fluxo de registro
 		// O email é opcional
 	}
@@ -263,9 +264,9 @@ export async function sendResetPasswordEmail({
 		};
 
 		await transporter.sendMail(mailOptions);
-		console.log(`Email de recuperação de senha enviado para ${to}`);
+		log.info("Email de recuperação de senha enviado", { to });
 	} catch (error) {
-		console.error("Erro ao enviar email de recuperação de senha:", error);
+		log.error("Erro ao enviar email de recuperação de senha", { to, error });
 		throw error;
 	}
 }

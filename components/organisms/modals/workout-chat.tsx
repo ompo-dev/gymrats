@@ -15,6 +15,7 @@ import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
+import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
 import type { PlanSlotData, Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -703,10 +704,7 @@ export function WorkoutChat({
         typeof window !== "undefined"
           ? ""
           : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("auth_token")
-          : null;
+      const token = getAuthToken();
 
       // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
       const response = await fetch(`${API_BASE_URL}/api/workouts/chat-stream`, {

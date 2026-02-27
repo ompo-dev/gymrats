@@ -13,6 +13,7 @@
 
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data";
+import { log } from "@/lib/observability";
 import type { ExerciseInfo } from "@/lib/types";
 
 interface OnboardingProfile {
@@ -937,9 +938,9 @@ export async function updateExercisesWithAlternatives(
 		});
 
 		if (!student?.profile) {
-			console.warn(
-				`[updateExercisesWithAlternatives] Perfil não encontrado para studentId: ${studentId}`,
-			);
+			log.warn("[updateExercisesWithAlternatives] Perfil não encontrado", {
+				studentId,
+			});
 			return;
 		}
 
@@ -983,8 +984,9 @@ export async function updateExercisesWithAlternatives(
 					);
 
 					if (!exerciseInfo) {
-						console.warn(
-							`[updateExercisesWithAlternatives] Exercício não encontrado no database: ${exercise.name} (educationalId: ${exercise.educationalId})`,
+						log.warn(
+							"[updateExercisesWithAlternatives] Exercício não encontrado no database",
+							{ name: exercise.name, educationalId: exercise.educationalId },
 						);
 						continue;
 					}
@@ -1015,11 +1017,11 @@ export async function updateExercisesWithAlternatives(
 			}
 		}
 
-		console.log(
-			`[updateExercisesWithAlternatives] ${updatedCount} exercícios atualizados com alternativas`,
-		);
+		log.info("[updateExercisesWithAlternatives] Exercícios atualizados", {
+			updatedCount,
+		});
 	} catch (error) {
-		console.error("Erro ao atualizar exercícios com alternativas:", error);
+		log.error("Erro ao atualizar exercícios com alternativas", { error });
 		throw error;
 	}
 }

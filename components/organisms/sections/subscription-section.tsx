@@ -5,7 +5,7 @@ import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
-import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/abacate-pay";
+import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/payments/abacate-pay";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";

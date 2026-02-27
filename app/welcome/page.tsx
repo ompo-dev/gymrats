@@ -15,6 +15,7 @@ import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
 import { authClient } from "@/lib/auth-client";
+import { setAuthToken } from "@/lib/auth/token-client";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
 import { useAuthStore } from "@/stores";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -45,7 +46,7 @@ function WelcomePageContent() {
 					// ⚠️ SEGURANÇA: Salvar apenas token no localStorage para compatibilidade
 					// NÃO salvar userRole e isAdmin - sempre validar no servidor
 					if (session?.token) {
-						localStorage.setItem("auth_token", session.token);
+						setAuthToken(session.token);
 					}
 					localStorage.setItem("isAuthenticated", "true");
 					localStorage.setItem("userEmail", user.email);

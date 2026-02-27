@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodType } from "zod";
+import { log, recordApiRequest } from "@/lib/observability";
 import { requireGym, requireStudent } from "../middleware/auth.middleware";
 import {
 	completeIdempotencyKey,
@@ -68,7 +69,7 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         };
         // Ensure gymId is set (middleware should have it or user should have activeGymId)
         if (!gymContext.gymId) {
-          const { getGymContext } = await import("@/lib/utils/gym-context");
+          const { getGymContext } = await import("@/lib/utils/gym/gym-context");
           const ctxResult = await getGymContext();
           if (ctxResult.ctx) gymContext.gymId = ctxResult.ctx.gymId;
         }
@@ -116,15 +117,15 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         const response = await handler({ req, body, query, gymContext, studentContext, params });
         const latencyMs = Date.now() - startedAt;
         response.headers.set("X-Response-Time-Ms", String(latencyMs));
-        console.info(
-          "[api-observability]",
-          JSON.stringify({
-            ...logMetaBase,
-            status: response.status,
-            latencyMs,
-            idempotencyReplay: false,
-          }),
-        );
+        recordApiRequest({
+          method: logMetaBase.method,
+          path: logMetaBase.route,
+          status: response.status,
+          latencyMs,
+          userId: gymContext?.user?.id ?? studentContext?.user?.id,
+          studentId: studentContext?.studentId,
+          gymId: gymContext?.gymId,
+        });
         return response;
       }
 
@@ -138,15 +139,12 @@ export function createSafeHandler<TBody = any, TQuery = any>(
           });
           replayResponse.headers.set("X-Idempotency-Replay", "true");
           replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
-          console.info(
-            "[api-observability]",
-            JSON.stringify({
-              ...logMetaBase,
-              status: replay.response_status,
-              latencyMs: Date.now() - startedAt,
-              idempotencyReplay: true,
-            }),
-          );
+          recordApiRequest({
+            method: logMetaBase.method,
+            path: logMetaBase.route,
+            status: replay.response_status,
+            latencyMs: Date.now() - startedAt,
+          });
           return replayResponse;
         } catch {
           const replayResponse = NextResponse.json(
@@ -155,15 +153,12 @@ export function createSafeHandler<TBody = any, TQuery = any>(
           );
           replayResponse.headers.set("X-Idempotency-Replay", "true");
           replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
-          console.info(
-            "[api-observability]",
-            JSON.stringify({
-              ...logMetaBase,
-              status: replay.response_status,
-              latencyMs: Date.now() - startedAt,
-              idempotencyReplay: true,
-            }),
-          );
+          recordApiRequest({
+            method: logMetaBase.method,
+            path: logMetaBase.route,
+            status: replay.response_status,
+            latencyMs: Date.now() - startedAt,
+          });
           return replayResponse;
         }
       }
@@ -193,32 +188,31 @@ export function createSafeHandler<TBody = any, TQuery = any>(
         });
         const latencyMs = Date.now() - startedAt;
         response.headers.set("X-Response-Time-Ms", String(latencyMs));
-        console.info(
-          "[api-observability]",
-          JSON.stringify({
-            ...logMetaBase,
-            status: response.status,
-            latencyMs,
-            idempotencyReplay: false,
-            idempotencyKey: idemKey,
-          }),
-        );
+        recordApiRequest({
+          method: logMetaBase.method,
+          path: logMetaBase.route,
+          status: response.status,
+          latencyMs,
+          userId: gymContext?.user?.id ?? studentContext?.user?.id,
+          studentId: studentContext?.studentId,
+          gymId: gymContext?.gymId,
+        });
         return response;
       } catch (innerError) {
         await failIdempotencyKey(idemKey);
         throw innerError;
       }
     } catch (error: any) {
-      console.error("[SafeHandler] Error:", error);
-      console.error(
-        "[api-observability]",
-        JSON.stringify({
-          ...logMetaBase,
-          status: error?.name === "ZodError" ? 400 : 500,
-          latencyMs: Date.now() - startedAt,
-          error: error?.message || "unknown",
-        }),
-      );
+      const status = error?.name === "ZodError" ? 400 : 500;
+      const latencyMs = Date.now() - startedAt;
+      log.error("[SafeHandler] Error", { error: error?.message, ...logMetaBase });
+      recordApiRequest({
+        method: logMetaBase.method,
+        path: logMetaBase.route,
+        status,
+        latencyMs,
+        error: error?.message || "unknown",
+      });
       
       if (error.name === "ZodError") {
         return NextResponse.json(

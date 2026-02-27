@@ -3,7 +3,7 @@
 import type { Gym, GymProfile, GymStats } from "@prisma/client";
 import { db } from "@/lib/db";
 import { initializeGymTrial } from "@/lib/utils/auto-trial";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
 import type { GymOnboardingData } from "./steps/types";
 
 type GymWithProfileAndStats = Gym & {

@@ -2,7 +2,8 @@
 
 import { db } from "@/lib/db";
 import { abacatePay } from "@/lib/api/abacatepay";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { log } from "@/lib/observability";
+import { getStudentContext } from "@/lib/utils/student/student-context";
 
 export async function createAbacateBilling(planId: string, billingPeriod: string) {
 	try {
@@ -70,8 +71,10 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 		});
 
 		if (billingResponse.error || !billingResponse.data) {
-			console.error("[Action] Erro Abacate Pay:", billingResponse.error);
-			console.error("[Action] Token Presente:", !!process.env.ABACATEPAY_API_TOKEN);
+			log.error("[Action] Erro Abacate Pay", {
+				error: billingResponse.error,
+				tokenPresent: !!process.env.ABACATEPAY_API_TOKEN,
+			});
 			throw new Error(
 				billingResponse.error || "Erro ao processar pagamento com Abacate Pay. Verifique se o token de API está configurado."
 			);
@@ -113,8 +116,8 @@ export async function createAbacateBilling(planId: string, billingPeriod: string
 		});
 
 		return { url: abacatePayData.url };
-	} catch (error: any) {
-		console.error("[Action] Erro inesperado:", error);
+	} catch (error: unknown) {
+		log.error("[Action] Erro inesperado", { error });
 		throw error instanceof Error ? error : new Error("Erro inesperado ao criar checkout.");
 	}
 }
@@ -166,7 +169,9 @@ export async function confirmAbacatePayment(): Promise<{
 		// Se o usuário CANCELOU explicitamente, não devemos reativar automaticamente
 		// mesmo que a cobrança no AbacatePay esteja PAID.
 		if (subscription.status === "canceled") {
-			console.log(`[confirmAbacatePayment] Subscription ${subscription.id} está cancelada. Pulando reativação automática.`);
+			log.info("[confirmAbacatePayment] Subscription cancelada, pulando reativação", {
+				subscriptionId: subscription.id,
+			});
 			const billingPeriod = subscription.plan.toLowerCase().includes("anual")
 				? "annual"
 				: "monthly";
@@ -189,10 +194,9 @@ export async function confirmAbacatePayment(): Promise<{
 		const listResponse = await abacatePay.listBillings();
 
 		if (listResponse.error || !listResponse.data) {
-			console.error(
-				"[confirmAbacatePayment] Erro ao listar billings:",
-				listResponse.error,
-			);
+			log.error("[confirmAbacatePayment] Erro ao listar billings", {
+				error: listResponse.error,
+			});
 			return {
 				success: false,
 				error: "Não foi possível verificar o status do pagamento.",
@@ -204,9 +208,9 @@ export async function confirmAbacatePayment(): Promise<{
 		);
 
 		if (!billing) {
-			console.error(
-				`[confirmAbacatePayment] Billing ${subscription.abacatePayBillingId} não encontrado na lista`,
-			);
+			log.error("[confirmAbacatePayment] Billing não encontrado na lista", {
+				billingId: subscription.abacatePayBillingId,
+			});
 			return {
 				success: false,
 				error: "Cobrança não encontrada no AbacatePay.",
@@ -214,9 +218,10 @@ export async function confirmAbacatePayment(): Promise<{
 		}
 
 		const billingStatus = billing.status;
-		console.log(
-			`[confirmAbacatePayment] Billing ${subscription.abacatePayBillingId} status: ${billingStatus}`,
-		);
+		log.info("[confirmAbacatePayment] Status do billing", {
+			billingId: subscription.abacatePayBillingId,
+			status: billingStatus,
+		});
 
 		if (billingStatus === "PAID") {
 			// Calcular período correto
@@ -244,9 +249,10 @@ export async function confirmAbacatePayment(): Promise<{
 				? "annual"
 				: "monthly";
 
-			console.log(
-				`[confirmAbacatePayment] Assinatura ativada: ${updated.plan} (${billingPeriod})`,
-			);
+			log.info("[confirmAbacatePayment] Assinatura ativada", {
+				plan: updated.plan,
+				billingPeriod,
+			});
 
 			return {
 				success: true,
@@ -264,7 +270,7 @@ export async function confirmAbacatePayment(): Promise<{
 			error: `Pagamento ainda não confirmado. Status: ${billingStatus}`,
 		};
 	} catch (error: unknown) {
-		console.error("[confirmAbacatePayment] Erro inesperado:", error);
+		log.error("[confirmAbacatePayment] Erro inesperado", { error });
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : "Erro ao confirmar pagamento.",

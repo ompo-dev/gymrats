@@ -9,7 +9,7 @@
 
 import { db } from "@/lib/db";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { getStudentContext } from "@/lib/utils/student/student-context";
 
 /**
  * HELPER: Obter Student ID e User ID da sessão atual

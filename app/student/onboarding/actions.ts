@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { getStudentContext } from "@/lib/utils/student/student-context";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
 

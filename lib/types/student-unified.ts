@@ -19,7 +19,7 @@ import type {
 	UserProgress,
 	WeeklyPlanData,
 	WorkoutHistory,
-} from "@/lib/types";
+} from "./core";
 
 // ============================================
 // USER INFO

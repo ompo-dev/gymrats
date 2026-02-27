@@ -14,7 +14,7 @@
 "use client";
 
 import type { StudentData } from "@/lib/types/student-unified";
-import { selectFromData } from "@/lib/utils/student-selectors";
+import { selectFromData } from "@/lib/utils/student/student-selectors";
 import {
 	type StudentUnifiedState,
 	useStudentUnifiedStore,

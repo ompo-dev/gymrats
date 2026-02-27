@@ -104,32 +104,6 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					}>(currentEndpoint);
 					const sub = response.data.subscription;
 
-					// Log detalhado para debug - verificar se billingPeriod está presente
-					const billingPeriodValue = (sub as any)?.billingPeriod;
-					const allKeys = sub ? Object.keys(sub) : [];
-
-					console.log(`[${userType}] API Response:`, {
-						hasSubscription: !!sub,
-						subscriptionId: sub?.id,
-						subscriptionStatus: sub?.status,
-						subscriptionPlan: sub?.plan,
-						billingPeriod: billingPeriodValue,
-						billingPeriodType: typeof billingPeriodValue,
-						allKeys: allKeys,
-						hasBillingPeriodKey: allKeys.includes("billingPeriod"),
-					});
-
-					// Log completo do objeto para debug
-					if (sub) {
-						console.log(
-							`[${userType}] Full subscription object:`,
-							JSON.parse(JSON.stringify(sub)),
-						);
-						console.log(
-							`[${userType}] BillingPeriod direto:`,
-							(sub as any).billingPeriod,
-						);
-					}
 
 					if (!sub) {
 						return null;
@@ -171,18 +145,12 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 							billingPeriod: billingPeriodFromAPI as "monthly" | "annual", // Garantir que billingPeriod seja preservado
 						};
 
-						console.log(`[${userType}] Gym subscription data preparada:`, {
-							billingPeriod: gymData.billingPeriod,
-							plan: gymData.plan,
-						});
-
 						return gymData as GymSubscriptionData;
 					}
 
 					const result = baseData as StudentSubscriptionData;
 					return result;
 				} catch (error) {
-					console.error(`[${userType}] Erro ao buscar subscription:`, error);
 					return null;
 				}
 			},

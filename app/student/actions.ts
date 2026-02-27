@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { getStudentContext } from "@/lib/utils/student/student-context";
 import { StudentProgressService } from "@/lib/services/student/student-progress.service";
 import { StudentWorkoutService } from "@/lib/services/student/student-workout.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";

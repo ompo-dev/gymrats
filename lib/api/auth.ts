@@ -1,3 +1,4 @@
+import { clearAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "./client";
 
 export interface LoginCredentials {
@@ -69,7 +70,7 @@ export const authApi = {
 		} catch (error: any) {
 			// Se falhar, apenas limpar localStorage e cookies
 			if (typeof window !== "undefined") {
-				localStorage.removeItem("auth_token");
+				clearAuthToken();
 				localStorage.removeItem("isAuthenticated");
 				localStorage.removeItem("userEmail");
 				localStorage.removeItem("userId");

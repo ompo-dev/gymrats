@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
+import { getAuthToken } from "@/lib/auth/token-client";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
@@ -249,10 +250,7 @@ export function FoodSearchChat({
         typeof window !== "undefined"
           ? ""
           : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("auth_token")
-          : null;
+      const token = getAuthToken();
 
       const response = await fetch(`${API_BASE}/api/nutrition/chat-stream`, {
         method: "POST",
