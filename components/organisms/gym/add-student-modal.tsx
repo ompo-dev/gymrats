@@ -71,13 +71,21 @@ export function AddStudentModal({
 	const handleEnroll = async () => {
 		if (!searchResult?.student) return;
 
+		const hasPlan = !!selectedPlanId;
+		const hasCustomAmount =
+			customAmount.trim() !== "" && Number.parseFloat(customAmount) > 0;
+		if (!hasPlan && !hasCustomAmount) {
+			setError("Selecione um plano ou informe o valor da mensalidade.");
+			return;
+		}
+
 		const selectedPlan = membershipPlans.find((p) => p.id === selectedPlanId);
-		const amount = customAmount
+		const amount = customAmount.trim()
 			? Number.parseFloat(customAmount)
 			: (selectedPlan?.price ?? 0);
 
 		if (amount <= 0) {
-			setError("Defina um valor para a matrícula.");
+			setError("Defina um valor para a mensalidade (plano ou valor manual).");
 			return;
 		}
 

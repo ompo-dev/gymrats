@@ -139,20 +139,21 @@ export async function getStudentSubscription() {
 		if (error || !ctx) return null;
 
 		const subInfo = await getStudentSubscriptionSource(ctx.studentId);
-		const sub = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
+		if (subInfo.source === null) {
+			return null;
+		}
 
+		const sub = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
 		const now = new Date();
 		const trialEnd = sub?.trialEnd ? new Date(sub.trialEnd) : null;
 		const isTrialActive = trialEnd ? trialEnd > now : false;
 
-		// Nome amigável da academia se vier via enterprise
 		let enterpriseGymName: string | undefined;
 		if (subInfo.source === "GYM_ENTERPRISE" && subInfo.gymId) {
 			const gym = await db.gym.findUnique({ where: { id: subInfo.gymId } });
 			enterpriseGymName = gym?.name;
 		}
 
-		// Assinatura virtual (Enterprise sem linha em Subscription): garantir objeto completo para o frontend
 		const isVirtualEnterprise = !sub && subInfo.source === "GYM_ENTERPRISE";
 		const virtualPeriodEnd = new Date(now);
 		virtualPeriodEnd.setFullYear(virtualPeriodEnd.getFullYear() + 1);
@@ -161,11 +162,14 @@ export async function getStudentSubscription() {
 			id: sub?.id ?? (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
 			...subInfo,
 			abacatePayBillingId: sub?.abacatePayBillingId,
-			currentPeriodEnd: sub?.currentPeriodEnd ?? (isVirtualEnterprise ? virtualPeriodEnd : undefined),
+			currentPeriodEnd:
+				sub?.currentPeriodEnd ?? (isVirtualEnterprise ? virtualPeriodEnd : undefined),
 			currentPeriodStart: sub?.currentPeriodStart ?? (isVirtualEnterprise ? now : undefined),
 			cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
 			isTrial: isTrialActive,
-			daysRemaining: trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24))) : null,
+			daysRemaining: trialEnd
+				? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24)))
+				: null,
 			enterpriseGymName,
 		};
 	} catch (error) {

@@ -104,30 +104,8 @@ export interface SubscriptionSourceInfo {
 }
 
 export async function getStudentSubscriptionSource(studentId: string): Promise<SubscriptionSourceInfo> {
-	const subscription = await db.subscription.findUnique({
-		where: { studentId },
-	});
-
-	const subWithSource = subscription as typeof subscription & { source?: string; enterpriseGymId?: string | null };
-	if (subscription && subWithSource.source === "GYM_ENTERPRISE") {
-		return {
-			plan: subscription.plan,
-			status: subscription.status,
-			source: "GYM_ENTERPRISE",
-			gymId: subWithSource.enterpriseGymId || undefined,
-		};
-	}
-
-	if (subscription) {
-		return {
-			plan: subscription.plan,
-			status: subscription.status,
-			source: "OWN",
-		};
-	}
-
-	// Tentar encontrar via academia enterprise de forma virtual (só gym ativa)
-	const membership = await db.gymMembership.findFirst({
+	// 1. Prioridade: benefício Enterprise (membership ativa em academia enterprise)
+	const enterpriseMembership = await db.gymMembership.findFirst({
 		where: {
 			studentId,
 			status: "active",
@@ -139,17 +117,43 @@ export async function getStudentSubscriptionSource(studentId: string): Promise<S
 				},
 			},
 		},
-		include: {
-			gym: true
-		}
+		select: { gymId: true },
 	});
-
-	if (membership) {
+	if (enterpriseMembership) {
 		return {
 			plan: "premium",
 			status: "active",
 			source: "GYM_ENTERPRISE",
-			gymId: membership.gymId,
+			gymId: enterpriseMembership.gymId,
+		};
+	}
+
+	const subscription = await db.subscription.findUnique({
+		where: { studentId },
+	});
+	const subWithSource = subscription as typeof subscription & { source?: string; enterpriseGymId?: string | null };
+
+	// 2. Assinatura própria ativa (GYM_ENTERPRISE no registro ou OWN ativa/trial)
+	if (subscription && subWithSource.source === "GYM_ENTERPRISE") {
+		return {
+			plan: subscription.plan,
+			status: subscription.status,
+			source: "GYM_ENTERPRISE",
+			gymId: subWithSource.enterpriseGymId || undefined,
+		};
+	}
+
+	if (subscription) {
+		const isCanceled = subscription.status === "canceled" || subscription.status === "expired";
+		const isTrialActive =
+			subscription.trialEnd && new Date(subscription.trialEnd) > new Date();
+		if (isCanceled && !isTrialActive) {
+			return { plan: "free", status: "inactive", source: null };
+		}
+		return {
+			plan: subscription.plan,
+			status: subscription.status,
+			source: "OWN",
 		};
 	}
 
