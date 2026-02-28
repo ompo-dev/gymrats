@@ -70,6 +70,7 @@ export function useEditUnitModal({
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const [deleteWorkoutConfirmationId, setDeleteWorkoutConfirmationId] = useState<string | null>(null);
+  const [weeklyPlanSlotsKey, setWeeklyPlanSlotsKey] = useState(0);
 
   const unit = useStudentUnifiedStore((state) =>
     state.data.units.find((u) => u.id === unitId) || null
@@ -282,6 +283,7 @@ export function useEditUnitModal({
     try {
       await apiClient.patch("/api/students/week-reset");
       await loadWeeklyPlan(true);
+      setWeeklyPlanSlotsKey((k) => k + 1);
       onPlanUpdated?.();
       toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
     } catch {
@@ -441,6 +443,7 @@ export function useEditUnitModal({
     chatSlotId,
     setChatSlotId,
     resetting,
+    weeklyPlanSlotsKey,
 
     calculatedEstimatedTime,
 

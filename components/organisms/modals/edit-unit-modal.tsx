@@ -54,6 +54,7 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     chatSlotId,
     setChatSlotId,
     resetting,
+    weeklyPlanSlotsKey,
     calculatedEstimatedTime,
     deleteConfirmationId,
     deleteWorkoutConfirmationId,
@@ -111,6 +112,7 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 resetting={resetting}
               />
               <WorkoutsListSection
+                key={isWeeklyPlanMode ? `weekly-${weeklyPlanSlotsKey}` : undefined}
                 isWeeklyPlanMode={isWeeklyPlanMode}
                 weeklyPlan={weeklyPlan ? { id: String(weeklyPlan.id) } : null}
                 planSlots={planSlots}

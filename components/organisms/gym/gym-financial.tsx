@@ -10,7 +10,7 @@ import { FinancialExpensesTab } from "./financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "./financial/financial-overview-tab";
 import { FinancialPaymentsTab } from "./financial/financial-payments-tab";
 import { FinancialSubscriptionTab } from "./financial/financial-subscription-tab";
-import { FinancialTabsNavigation } from "./financial/financial-tabs-navigation";
+import { DuoCard, DuoSelect } from "@/components/duo";
 
 interface GymFinancialPageProps {
 	financialSummary: FinancialSummary | null;
@@ -97,10 +97,23 @@ export function GymFinancialPage({
 			</FadeIn>
 
 			<SlideIn delay={0.1}>
-				<FinancialTabsNavigation
-					activeTab={viewMode}
-					onTabChange={handleTabChange}
-				/>
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<h2 className="font-bold text-duo-fg">Categoria</h2>
+					</DuoCard.Header>
+					<DuoSelect.Simple
+						options={[
+							{ value: "overview", label: "Resumo" },
+							{ value: "payments", label: "Pagamentos" },
+							{ value: "coupons", label: "Cupons" },
+							{ value: "expenses", label: "Despesas" },
+							{ value: "subscription", label: "Assinatura" },
+						]}
+						value={viewMode}
+						onChange={(value) => handleTabChange(value)}
+						placeholder="Selecione a categoria"
+					/>
+				</DuoCard.Root>
 			</SlideIn>
 
 			{viewMode === "overview" && financialSummary && (
