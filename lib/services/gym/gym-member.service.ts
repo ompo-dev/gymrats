@@ -60,6 +60,7 @@ export class GymMemberService {
       where: {
         gymId,
         studentId,
+        status: { in: ["active", "pending"] },
       },
       include: {
         gym: { select: { name: true, address: true } },

@@ -79,10 +79,15 @@ export class GymDomainService {
    */
   static async getMembers(gymId: string, filters: { status?: string; search?: string }) {
     const { status, search } = filters;
+    // Listagem padrão: só alunos vinculados (active/pending). Cancelados/suspended não aparecem.
+    const statusFilter =
+      status && status !== "all"
+        ? { status }
+        : { status: { in: ["active", "pending"] } };
     return db.gymMembership.findMany({
       where: {
         gymId,
-        ...(status && status !== "all" ? { status } : {}),
+        ...statusFilter,
         ...(search
           ? {
               student: {
@@ -553,7 +558,7 @@ export class GymDomainService {
     const user = await db.user.findFirst({
       where: {
         email: { contains: normalizedEmail, mode: "insensitive" },
-        role: "STUDENT",
+        role: { in: ["STUDENT", "ADMIN"] },
       },
       include: {
         student: {

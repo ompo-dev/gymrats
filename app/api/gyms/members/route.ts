@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { gymMembersQuerySchema, createGymMemberSchema } from "@/lib/api/schemas/gyms.schemas";
 
 // GET — listar membros da academia (com suporte a ?status= e ?search=)
@@ -22,6 +23,8 @@ export const POST = createSafeHandler(
     const { gymId } = gymContext!;
     try {
       const membership = await GymDomainService.enrollStudent(gymId, body);
+      // Se a academia for Enterprise, aluno recebe Premium de aluno grátis
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(body.studentId);
       return NextResponse.json({ success: true, membership }, { status: 201 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao matricular aluno";

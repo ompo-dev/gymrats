@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { createMembershipPaymentPix } from "@/lib/services/gym/gym-membership-payment.service";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { z } from "zod";
 
 const paramsSchema = z.object({
@@ -40,8 +41,37 @@ export const POST = createSafeHandler(
 			);
 		}
 
+		// Academia Enterprise: matrícula ativa sem pagamento; aluno recebe Premium grátis
+		const gymWithSub = await db.gym.findUnique({
+			where: { id: gymId },
+			include: { subscription: true },
+		});
+		const isEnterprise =
+			gymWithSub?.subscription?.plan === "enterprise" &&
+			gymWithSub?.subscription?.status === "active";
+
 		const nextBillingDate = new Date();
 		nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
+
+		if (isEnterprise) {
+			const membership = await db.gymMembership.create({
+				data: {
+					gymId,
+					studentId,
+					planId,
+					amount: 0,
+					status: "active",
+					autoRenew: true,
+					nextBillingDate,
+				},
+			});
+			await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
+			return NextResponse.json({
+				success: true,
+				membershipId: membership.id,
+				noPaymentRequired: true,
+			});
+		}
 
 		const membership = await db.gymMembership.create({
 			data: {

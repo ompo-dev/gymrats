@@ -200,18 +200,29 @@ function StudentHomeContent() {
 		try {
 			const { apiClient } = await import("@/lib/api/client");
 			const res = await apiClient.post<{
-				brCode: string;
-				brCodeBase64: string;
-				amount: number;
-				paymentId: string;
+				brCode?: string;
+				brCodeBase64?: string;
+				amount?: number;
+				paymentId?: string;
 				membershipId?: string;
+				noPaymentRequired?: boolean;
+				success?: boolean;
 			}>(`/api/students/gyms/${gymId}/join`, { planId });
+			// Academia Enterprise: matrícula ativa sem PIX; aluno já tem Premium grátis
+			if (res.data.noPaymentRequired) {
+				toast({
+					title: "Você entrou na academia!",
+					description: "Seu plano Premium de aluno está ativo.",
+				});
+				await handlePixConfirmed();
+				return;
+			}
 			setPixModal({
 				open: true,
-				paymentId: res.data.paymentId,
-				brCode: res.data.brCode,
-				brCodeBase64: res.data.brCodeBase64,
-				amount: res.data.amount,
+				paymentId: res.data.paymentId!,
+				brCode: res.data.brCode!,
+				brCodeBase64: res.data.brCodeBase64!,
+				amount: res.data.amount!,
 			});
 		} catch (err) {
 			const msg =
