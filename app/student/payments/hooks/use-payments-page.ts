@@ -6,32 +6,16 @@ import { createAbacateBilling } from "@/lib/actions/payments/abacate-pay";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import {
-	type SubscriptionData,
-	useSubscription,
-} from "@/hooks/use-subscription";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
+import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 
 export type PaymentsTab = "memberships" | "payments" | "subscription";
 
 export interface UsePaymentsPageProps {
-	subscription?: {
-		id: string;
-		plan: string;
-		status: string;
-		currentPeriodStart: Date;
-		currentPeriodEnd: Date;
-		cancelAtPeriodEnd: boolean;
-		canceledAt: Date | null;
-		trialStart: Date | null;
-		trialEnd: Date | null;
-		isTrial: boolean;
-		daysRemaining: number | null;
-		source?: "OWN" | "GYM_ENTERPRISE";
-		enterpriseGymName?: string;
-	} | null;
+	subscription?: StudentSubscriptionData | null;
 	startTrial?: () => Promise<{ error?: string; success?: boolean }>;
 }
 
@@ -92,22 +76,20 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 		}
 	}, [subTab]);
 
-	// Ao abrir a aba Assinatura, garantir que subscription tem source/enterpriseGymName (refetch)
-	const subFromStore = storeSubscription as SubscriptionData | null | undefined;
-
+	const subFromStore = storeSubscription as StudentSubscriptionData | null | undefined;
 	const hasOptimisticUpdate = subFromStore?.id === "temp-trial-id";
 
-	const subscription: SubscriptionData | null = hasOptimisticUpdate
-		? (subFromStore as SubscriptionData)
+	const subscription: StudentSubscriptionData | null = hasOptimisticUpdate
+		? (subFromStore as StudentSubscriptionData)
 		: subFromStore !== null && subFromStore !== undefined
-			? (subFromStore as SubscriptionData)
+			? (subFromStore as StudentSubscriptionData)
 			: subscriptionData !== undefined && subscriptionData !== null
 				? subscriptionData
 				: subscriptionData === null && initialSubscription
 					? initialSubscription
 					: subscriptionData === null
 						? null
-						: initialSubscription || null;
+						: initialSubscription ?? null;
 
 	useEffect(() => {
 		if (
@@ -160,7 +142,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	const membershipsArray = Array.isArray(storeMemberships) ? storeMemberships : [];
 	const membershipsData = useMemo(() => {
 		if (membershipsArray.length === 0) return [];
-		return (membershipsArray as StudentGymMembership[]).map((m: StudentGymMembership) => ({
+		return (membershipsArray as unknown as StudentGymMembership[]).map((m: StudentGymMembership) => ({
 			...m,
 			startDate: m.startDate
 				? m.startDate instanceof Date
@@ -178,7 +160,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	const paymentsArray = Array.isArray(storePayments) ? storePayments : [];
 	const paymentsData = useMemo(() => {
 		if (paymentsArray.length === 0) return [];
-		return (paymentsArray as StudentPayment[]).map((p: StudentPayment) => ({
+		return (paymentsArray as unknown as StudentPayment[]).map((p: StudentPayment) => ({
 			...p,
 			date: p.date
 				? p.date instanceof Date ? p.date : new Date(p.date)
@@ -224,7 +206,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	const handleCancelMembership = async (membershipId: string) => {
 		try {
 			await apiClient.post(`/api/students/memberships/${membershipId}/cancel`, {});
-			toast({ title: "Plano cancelado", description: "Sua matrícula foi cancelada." });
+			toast({ title: "Plano cancelado", description: "Sua mensalidade na academia foi cancelada." });
 			setExpandedMembershipId(null);
 			await loadMemberships();
 		} catch (err) {

@@ -129,9 +129,10 @@ export class GymDomainService {
 
   /**
    * Enrolls a student in a gym plan.
-   * - Com planId: cria membership "pending" + pagamento pendente no perfil do aluno;
-   *   o aluno paga em student?tab=payments&subTab=payments e a matrícula ativa no webhook.
-   * - Sem planId (valor manual/cortesia): cria membership "active" direto, sem pagamento.
+   * - Com planId: cria membership "pending" + pagamento pendente; o aluno paga a mensalidade
+   *   em student?tab=payments e a membership ativa no webhook. Em nenhuma hipótese o aluno
+   *   deixa de pagar a academia; enterprise só concede Premium do app quando ativo.
+   * - Sem planId (cortesia manual): cria membership "active" direto, sem pagamento.
    */
   static async enrollStudent(gymId: string, data: {
     studentId: string;
@@ -141,47 +142,34 @@ export class GymDomainService {
   }) {
     const { studentId, planId, amount, autoRenew = true } = data;
 
-    // 1. Check if student exists
     const student = await db.student.findUnique({ where: { id: studentId } });
     if (!student) throw new Error("Aluno não encontrado");
 
-    // 2. Check for existing active/pending membership
     const existing = await db.gymMembership.findFirst({
-      where: {
-        gymId,
-        studentId,
-        status: { in: ["active", "pending"] },
-      },
+      where: { gymId, studentId, status: { in: ["active", "pending"] } },
     });
     if (existing) throw new Error("Aluno já está matriculado");
 
-    // 3. Academia Enterprise: aluno entra ativo e ganha Premium grátis (sem PIX)
-    const gymSub = await db.gymSubscription.findUnique({
-      where: { gymId },
-      select: { plan: true, status: true },
-    });
-    const isEnterprise = gymSub?.status === "active" && gymSub?.plan?.toLowerCase().includes("enterprise");
-
-    // 4. Calculate next billing date
     let nextBillingDate: Date | null = null;
+    let resolvedAmount = amount;
     if (planId) {
       const plan = await db.membershipPlan.findUnique({ where: { id: planId, gymId } });
       if (plan) {
         nextBillingDate = new Date();
         nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
+        if (resolvedAmount <= 0) resolvedAmount = plan.price;
       }
     }
 
-    const withPlan = !!planId && amount > 0;
-    const membershipActive = !withPlan || isEnterprise;
+    const withPlan = !!planId && resolvedAmount > 0;
+    const membershipActive = !withPlan;
 
-    // 5. Create membership (Enterprise ou cortesia → active; senão com plano → pending)
     const membership = await db.gymMembership.create({
       data: {
         gymId,
         studentId,
         planId: planId || null,
-        amount,
+        amount: resolvedAmount,
         status: membershipActive ? "active" : "pending",
         autoRenew,
         nextBillingDate,
@@ -189,13 +177,21 @@ export class GymDomainService {
       include: { student: { include: { user: true } }, plan: true },
     });
 
-    // 6. Pagamento: só criar pendente se não for Enterprise (aluno paga em Pagamentos)
-    if (withPlan && planId && !isEnterprise) {
+    if (withPlan && planId) {
       const { createPendingMembershipPayment } = await import("@/lib/services/gym/gym-membership-payment.service");
-      await createPendingMembershipPayment(gymId, studentId, planId, amount, membership.id);
+      await createPendingMembershipPayment(gymId, studentId, planId, resolvedAmount, membership.id);
       await this.incrementTotalStudentsOnly(gymId);
     } else {
       await this.incrementStudentCounters(gymId);
+      const gymSub = await db.gymSubscription.findUnique({
+        where: { gymId },
+        select: { plan: true, status: true },
+      });
+      const isEnterprise = gymSub?.status === "active" && gymSub?.plan?.toLowerCase().includes("enterprise");
+      if (isEnterprise) {
+        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
+      }
     }
 
     return membership;

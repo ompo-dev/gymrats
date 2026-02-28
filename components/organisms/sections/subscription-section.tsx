@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
 import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/payments/abacate-pay";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
+import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
@@ -23,28 +24,10 @@ export interface SubscriptionPlan {
 }
 
 export interface SubscriptionSectionProps {
-	// Tipo de usuário
 	userType: "student" | "gym";
 
-	// Estado da subscription
-	subscription?: {
-		id: string;
-		plan: string;
-		status: string;
-		currentPeriodStart: Date;
-		currentPeriodEnd: Date;
-		cancelAtPeriodEnd: boolean;
-		canceledAt: Date | null;
-		trialStart: Date | null;
-		trialEnd: Date | null;
-		isTrial: boolean;
-		daysRemaining: number | null;
-		activeStudents?: number;
-		totalAmount?: number;
-		billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
-		source?: "OWN" | "GYM_ENTERPRISE";
-		enterpriseGymName?: string;
-	} | null;
+	/** Subscription do student ou gym; datas e id podem ser opcionais (ex.: virtual enterprise). Gym pode passar activeStudents/totalAmount. */
+	subscription?: (StudentSubscriptionData & { activeStudents?: number; totalAmount?: number }) | null;
 
 	// Estados de loading
 	isLoading?: boolean;

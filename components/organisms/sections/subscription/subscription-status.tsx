@@ -7,17 +7,17 @@ import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusProps {
   subscription: {
-    id: string;
+    id?: string;
     plan: string;
     status: string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-    canceledAt: Date | null;
-    trialStart: Date | null;
-    trialEnd: Date | null;
-    isTrial: boolean;
-    daysRemaining: number | null;
+    currentPeriodStart?: Date | string;
+    currentPeriodEnd?: Date | string;
+    cancelAtPeriodEnd?: boolean;
+    canceledAt?: Date | string | null;
+    trialStart?: Date | string | null;
+    trialEnd?: Date | string | null;
+    isTrial?: boolean;
+    daysRemaining?: number | null;
     activeStudents?: number;
     totalAmount?: number;
     billingPeriod?: "monthly" | "annual";
@@ -303,18 +303,18 @@ function SubscriptionStatusSimple({
                       {subscription.activeStudents}
                     </p>
                   </div>
-                  {subscription.totalAmount !== undefined && (
-                    <div>
-                      <p className="text-xs text-duo-gray-dark">
-                        {subscription.billingPeriod === "annual"
-                          ? "Valor anual"
-                          : "Valor mensal"}
-                      </p>
-                      <p className="text-lg font-bold text-duo-green">
-                        R$ {subscription.totalAmount.toFixed(2)}
-                      </p>
-                    </div>
-                  )}
+				{subscription.totalAmount !== undefined && subscription.totalAmount > 0 && (
+					<div>
+						<p className="text-xs text-duo-gray-dark">
+							{subscription.billingPeriod === "annual"
+								? "Valor anual"
+								: "Valor mensal"}
+						</p>
+						<p className="text-lg font-bold text-duo-green">
+							R$ {subscription.totalAmount.toFixed(2)}
+						</p>
+					</div>
+				)}
                 </div>
               )}
             <div className="flex items-center justify-between text-sm">
@@ -326,9 +326,9 @@ function SubscriptionStatusSimple({
               <span className="font-bold text-duo-text">
                 {subscription.source === "GYM_ENTERPRISE"
                   ? "Vitalício via academia"
-                  : new Date(subscription.currentPeriodEnd).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                  : subscription.currentPeriodEnd != null
+                    ? new Date(subscription.currentPeriodEnd).toLocaleDateString("pt-BR")
+                    : "—"}
               </span>
             </div>
             <div className="mt-3">

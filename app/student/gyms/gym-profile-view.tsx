@@ -328,7 +328,7 @@ export function GymProfileView({
 											)}
 											{isMyPlan && isPending && (
 												<span className="mt-2 inline-flex items-center rounded-full border-2 border-duo-yellow bg-duo-yellow/10 px-3 py-1 text-xs font-bold text-duo-yellow">
-													Matrícula pendente
+													Mensalidade pendente
 												</span>
 											)}
 											{canContract && (

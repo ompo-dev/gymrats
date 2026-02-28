@@ -64,7 +64,7 @@ export function StudentMembershipPixModal({
 				onClose();
 				toast({
 					title: "Pagamento confirmado!",
-					description: "Sua matrícula está ativa.",
+					description: "Sua mensalidade está ativa.",
 				});
 			} else {
 				toast({
@@ -107,7 +107,7 @@ export function StudentMembershipPixModal({
 				onClose();
 				toast({
 					title: "Pagamento confirmado!",
-					description: "Sua matrícula está ativa.",
+					description: "Sua mensalidade está ativa.",
 				});
 			}
 		};

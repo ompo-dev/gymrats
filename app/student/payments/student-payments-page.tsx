@@ -13,7 +13,7 @@ import {
 import { usePaymentsPage } from "./hooks/use-payments-page";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 
-interface StudentPaymentsPageProps {
+export interface StudentPaymentsPageProps {
 	subscription?: {
 		id: string;
 		plan: string;
