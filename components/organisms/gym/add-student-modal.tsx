@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
+import { useToast } from "@/hooks/use-toast";
 import type { MembershipPlan } from "@/lib/types";
 
 interface StudentSearchResult {
@@ -39,6 +40,7 @@ export function AddStudentModal({
 	membershipPlans,
 }: AddStudentModalProps) {
 	const { actions, loaders } = useGym("actions", "loaders");
+	const { toast } = useToast();
 	const [email, setEmail] = useState("");
 	const [isSearching, setIsSearching] = useState(false);
 	const [searchResult, setSearchResult] =
@@ -90,6 +92,13 @@ export function AddStudentModal({
 			await loaders.loadSection("students");
 			await loaders.loadSection("stats");
 			onSuccess();
+			if (selectedPlanId) {
+				toast({
+					title: "Matrícula criada",
+					description:
+						"O aluno deve acessar Perfil > Pagamentos (aba Pagamentos) para quitar e ativar o acesso à academia.",
+				});
+			}
 			handleClose();
 		} catch {
 			setError("Erro ao matricular aluno. Tente novamente.");
@@ -273,6 +282,14 @@ export function AddStudentModal({
 										value={customAmount}
 										onChange={(e) => setCustomAmount(e.target.value)}
 									/>
+
+									{/* Aviso: pagamento pendente para o aluno */}
+									{selectedPlanId && (
+										<p className="rounded-lg bg-duo-blue/10 px-3 py-2 text-sm text-duo-text">
+											Será criado um pagamento pendente para o aluno. Ele deverá acessar{" "}
+											<strong>Perfil → Pagamentos</strong> para quitar e ativar a matrícula.
+										</p>
+									)}
 
 									{/* Erro */}
 									{error && (

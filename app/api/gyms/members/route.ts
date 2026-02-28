@@ -23,9 +23,15 @@ export const POST = createSafeHandler(
     const { gymId } = gymContext!;
     try {
       const membership = await GymDomainService.enrollStudent(gymId, body);
-      // Se a academia for Enterprise, aluno recebe Premium de aluno grátis
-      await GymSubscriptionService.syncStudentEnterpriseBenefit(body.studentId);
-      return NextResponse.json({ success: true, membership }, { status: 201 });
+      // Só concede Premium grátis se a matrícula já estiver ativa (cortesia sem plano)
+      if (membership.status === "active") {
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(body.studentId);
+      }
+      return NextResponse.json({
+        success: true,
+        membership,
+        pendingPayment: membership.status === "pending",
+      }, { status: 201 });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erro ao matricular aluno";
       const status = message === "Aluno não encontrado" ? 404 :

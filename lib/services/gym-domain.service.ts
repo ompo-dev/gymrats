@@ -26,7 +26,7 @@ export class GymDomainService {
   }
 
   /**
-   * Updates student counters when a new membership is created
+   * Updates student counters when a new membership is created (active)
    */
   static async incrementStudentCounters(gymId: string) {
     return db.gymProfile.updateMany({
@@ -35,6 +35,26 @@ export class GymDomainService {
         totalStudents: { increment: 1 },
         activeStudents: { increment: 1 },
       },
+    });
+  }
+
+  /**
+   * Incrementa só totalStudents (ex.: matrícula pendente de pagamento)
+   */
+  static async incrementTotalStudentsOnly(gymId: string) {
+    return db.gymProfile.updateMany({
+      where: { gymId },
+      data: { totalStudents: { increment: 1 } },
+    });
+  }
+
+  /**
+   * Incrementa activeStudents (ex.: webhook ativou matrícula após PIX pago)
+   */
+  static async incrementActiveStudentsOnly(gymId: string) {
+    return db.gymProfile.updateMany({
+      where: { gymId },
+      data: { activeStudents: { increment: 1 } },
     });
   }
 
@@ -108,7 +128,10 @@ export class GymDomainService {
   }
 
   /**
-   * Enrolls a student in a gym plan
+   * Enrolls a student in a gym plan.
+   * - Com planId: cria membership "pending" + pagamento pendente no perfil do aluno;
+   *   o aluno paga em student?tab=payments&subTab=payments e a matrícula ativa no webhook.
+   * - Sem planId (valor manual/cortesia): cria membership "active" direto, sem pagamento.
    */
   static async enrollStudent(gymId: string, data: {
     studentId: string;
@@ -122,7 +145,7 @@ export class GymDomainService {
     const student = await db.student.findUnique({ where: { id: studentId } });
     if (!student) throw new Error("Aluno não encontrado");
 
-    // 2. Check for existing active membership
+    // 2. Check for existing active/pending membership
     const existing = await db.gymMembership.findFirst({
       where: {
         gymId,
@@ -135,29 +158,37 @@ export class GymDomainService {
     // 3. Calculate next billing date
     let nextBillingDate: Date | null = null;
     if (planId) {
-      const plan = await db.membershipPlan.findUnique({ where: { id: planId } });
+      const plan = await db.membershipPlan.findUnique({ where: { id: planId, gymId } });
       if (plan) {
         nextBillingDate = new Date();
         nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
       }
     }
 
-    // 4. Create membership
+    const withPlan = !!planId && amount > 0;
+
+    // 4. Create membership (pending se tem plano e valor; active se cortesia)
     const membership = await db.gymMembership.create({
       data: {
         gymId,
         studentId,
         planId: planId || null,
         amount,
-        status: "active",
+        status: withPlan ? "pending" : "active",
         autoRenew,
         nextBillingDate,
       },
       include: { student: { include: { user: true } }, plan: true },
     });
 
-    // 5. Update gym stats
-    await this.incrementStudentCounters(gymId);
+    // 5. Se matrícula com plano: criar pagamento pendente no perfil do aluno (ele paga em Pagamentos)
+    if (withPlan && planId) {
+      const { createPendingMembershipPayment } = await import("@/lib/services/gym/gym-membership-payment.service");
+      await createPendingMembershipPayment(gymId, studentId, planId, amount, membership.id);
+      await this.incrementTotalStudentsOnly(gymId);
+    } else {
+      await this.incrementStudentCounters(gymId);
+    }
 
     return membership;
   }
