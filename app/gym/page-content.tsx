@@ -1,8 +1,10 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
+import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
+import { useUserSession } from "@/hooks/use-user-session";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
@@ -76,8 +78,11 @@ function GymHomeContent({
 	initialCoupons = [],
 	initialSubscription,
 }: GymHomeContentProps) {
+	const router = useRouter();
 	const { activeGymId } = useGymsList();
 	const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
+	const { isAdmin, role } = useUserSession();
+	const userIsAdmin = isAdmin || role === "ADMIN";
 	useGymInitializer();
 	useLoadPrioritizedGym({ onlyPriorities: true });
 
@@ -144,6 +149,13 @@ function GymHomeContent({
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
+	// Bloquear acesso à gamificação para não-admin (redireciona e não renderiza)
+	useEffect(() => {
+		if (tab === "gamification" && !userIsAdmin) {
+			router.replace("/gym?tab=dashboard");
+		}
+	}, [tab, userIsAdmin, router]);
+
 	// key força remount ao trocar academia, evitando estado desatualizado
 	return (
 		<div key={activeGymId || "gym"} className="px-4 py-6">
@@ -177,7 +189,7 @@ function GymHomeContent({
 			{tab === "settings" && profile && (
 				<GymSettingsPage profile={profile} plans={plans} />
 			)}
-			{tab === "gamification" && profile && (
+			{tab === "gamification" && profile && userIsAdmin && (
 				<GymGamificationPage profile={profile} />
 			)}
 			{tab === "more" && <GymMoreMenu.Simple />}

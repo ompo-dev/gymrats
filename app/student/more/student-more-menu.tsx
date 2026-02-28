@@ -5,8 +5,10 @@ import {
 	BookOpen,
 	Crown,
 	type LucideIcon,
+	MapPin,
 	Palette,
 	Settings,
+	Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -25,13 +27,37 @@ interface MoreMenuItem {
 	adminOnly?: boolean;
 }
 
+// Para não-admin: apenas Academias, Pagamentos e Assinatura Premium.
+// Itens com adminOnly só aparecem para admins.
 const moreMenuItems: MoreMenuItem[] = [
+	{
+		id: "gyms",
+		icon: MapPin,
+		label: "Academias",
+		description: "Encontre academias parceiras",
+		color: "duo-blue",
+	},
+	{
+		id: "payments",
+		icon: Wallet,
+		label: "Pagamentos",
+		description: "Assinaturas e histórico",
+		color: "duo-purple",
+	},
+	{
+		id: "subscription",
+		icon: Crown,
+		label: "Assinatura Premium",
+		description: "Gerencie sua assinatura",
+		color: "duo-yellow",
+	},
 	{
 		id: "home",
 		icon: BarChart3,
 		label: "Estatísticas",
 		description: "Resumo e evolução",
 		color: "duo-blue",
+		adminOnly: true,
 	},
 	{
 		id: "profile",
@@ -39,13 +65,7 @@ const moreMenuItems: MoreMenuItem[] = [
 		label: "Configurações",
 		description: "Perfil e preferências",
 		color: "duo-green",
-	},
-	{
-		id: "subscription",
-		icon: Crown,
-		label: "Assinatura",
-		description: "Gerencie sua assinatura",
-		color: "duo-yellow",
+		adminOnly: true,
 	},
 	{
 		id: "education",
@@ -87,6 +107,10 @@ export function StudentMoreMenu() {
 		}
 		if (itemId === "home") {
 			await setTab("home");
+			return;
+		}
+		if (itemId === "payments") {
+			await setTab("payments");
 			return;
 		}
 		setTab(itemId);

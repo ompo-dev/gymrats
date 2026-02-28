@@ -304,11 +304,14 @@ export async function startGymTrial() {
 		const existingSubscription = await db.gymSubscription.findUnique({ where: { gymId } });
 
 		if (existingSubscription) {
-			if (existingSubscription.status === "canceled") {
-				await db.gymSubscription.delete({ where: { id: existingSubscription.id } });
-			} else {
+			// Não apagamos assinaturas existentes (mesmo canceladas), pois elas podem
+			// ter sido suspensas por causa da academia principal e serão restauradas.
+			if (existingSubscription.status !== "canceled") {
 				return { error: "Assinatura já existe" };
 			}
+
+			// Se estiver cancelada, retornamos erro orientando renovar em vez de recriar trial.
+			return { error: "Esta academia já possui uma assinatura cancelada. Renove o plano em vez de iniciar um novo trial." };
 		}
 
 		const now = new Date();

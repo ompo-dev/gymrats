@@ -71,9 +71,8 @@ function StudentHomeContent() {
 	const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
-	// Proteger rotas bloqueadas (versão beta)
-	// gyms e payments liberados para todos os alunos
-	const blockedTabs = ["cardio"];
+	// Rotas bloqueadas para não-admin: learn (Aprender), profile (Configurações), cardio
+	const blockedTabs = ["learn", "profile", "cardio"];
 	const isBlockedTab = tab && blockedTabs.includes(tab) && !userIsAdmin;
 
 	// Redirecionar se tentar acessar rota bloqueada
@@ -504,7 +503,7 @@ function StudentHomeContent() {
 				</div>
 			)}
 
-			{tab === "learn" && (
+			{tab === "learn" && userIsAdmin && (
 				<div className="pb-8" key="learn-tab">
 					<LearningPath
 						key="learning-path"
@@ -574,7 +573,7 @@ function StudentHomeContent() {
 				/>
 			)}
 
-			{(tab === "education" || exerciseId) && (
+			{(tab === "education" || exerciseId) && userIsAdmin && (
 				<>
 					{educationView === "menu" &&
 						!exerciseId &&
@@ -614,7 +613,7 @@ function StudentHomeContent() {
 				</>
 			)}
 
-			{tab === "profile" && <ProfilePage />}
+			{tab === "profile" && userIsAdmin && <ProfilePage />}
 
 			{tab === "more" && <StudentMoreMenu />}
 		</motion.div>
