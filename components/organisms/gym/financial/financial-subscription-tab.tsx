@@ -12,7 +12,7 @@ interface FinancialSubscriptionTabProps {
 	subscription?: {
 		id: string;
 		plan: string;
-		status: string;
+		status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 		basePrice: number;
 		pricePerStudent: number;
 		currentPeriodStart: Date;
@@ -100,15 +100,11 @@ export function FinancialSubscriptionTab({
 	const subscription: SubscriptionType =
 		hasOptimisticUpdate && storeSubscription
 			? (storeSubscription as SubscriptionType)
-			: subscriptionData !== undefined && subscriptionData !== null
+			: subscriptionData !== undefined
 				? (subscriptionData as SubscriptionType)
 				: storeSubscription !== null
 					? (storeSubscription as SubscriptionType)
-					: subscriptionData === null && initialSubscription
-						? initialSubscription
-						: subscriptionData === null
-							? null
-							: initialSubscription;
+					: initialSubscription;
 
 	// Restaurar PIX pendente ao voltar (ex.: fechou modal, foi ao banco, voltou)
 	useEffect(() => {
@@ -267,7 +263,7 @@ export function FinancialSubscriptionTab({
 					? {
 							id: subscription.id,
 							plan: subscription.plan,
-							status: subscription.status,
+							status: subscription.status as any,
 							currentPeriodStart: subscription.currentPeriodStart,
 							currentPeriodEnd: subscription.currentPeriodEnd,
 							cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -367,6 +363,8 @@ export function FinancialSubscriptionTab({
 				onPaymentConfirmed={() => {
 					clearPendingPixStorage();
 					refetchSubscription();
+					// Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
+					useGymsDataStore.getState().loadAllGyms();
 				}}
 				pixId={pendingPix.pixId}
 				brCode={pendingPix.brCode}

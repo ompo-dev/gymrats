@@ -8,13 +8,14 @@ export const GET = createSafeHandler(
 		const gymId = gymContext!.gymId;
 		const subscription = await db.gymSubscription.findUnique({ where: { gymId } });
 
-		if (
-			!subscription ||
-			(subscription.status === "canceled" &&
-				(!subscription.trialEnd || (getTimeMs(subscription.trialEnd) ?? 0) < Date.now()))
-		) {
+		if (!subscription) {
 			return NextResponse.json({ subscription: null, canStartTrial: true });
 		}
+
+		// Se expirou trial ou cancelado, ainda assim retornamos o objeto para o frontend saber o histórico (ex.: canStartTrial: false)
+		const isCanceledAndExpired = 
+			subscription.status === "canceled" &&
+			(!subscription.trialEnd || (getTimeMs(subscription.trialEnd) ?? 0) < Date.now());
 
 		const activeStudents = await db.gymMembership.count({
 			where: { gymId, status: "active" },

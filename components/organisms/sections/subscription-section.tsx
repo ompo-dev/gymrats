@@ -261,6 +261,11 @@ function SubscriptionSectionSimple({
 
 		// Se há subscription ativa
 		if (subscription && isPremiumActive) {
+			// Gym com Enterprise ativo: não mostrar planos (já está no melhor plano)
+			if (userType === "gym" && String(subscription.plan).toLowerCase().includes("enterprise")) {
+				return false;
+			}
+
 			// Para student: apenas mostrar se estiver no plano mensal OWN (para mudar para anual)
 			if (userType === "student") {
 				const currentBillingPeriod = subscription.billingPeriod || "monthly";
@@ -275,16 +280,14 @@ function SubscriptionSectionSimple({
 
 		// Se há subscription em trial ou cancelada, mostrar planos normalmente
 		if (subscription && (isTrialActive || isCanceled)) {
+			// Novamente: se for cancelada mas era Enterprise, talvez ocultar?
+			// Por enquanto deixaremos visível para permitir re-assinar se cancelado.
 			return true;
 		}
 
 		// Se não há subscription, mostrar baseado na configuração
 		switch (showPlansWhen) {
 			case "always":
-				// Gym com Enterprise ativo: não mostrar "Escolha seu Plano" (já está no melhor plano)
-				if (userType === "gym" && subscription?.status === "active" && subscription?.plan?.toLowerCase().includes("enterprise")) {
-					return false;
-				}
 				// Para student com subscription ativa anual, não mostrar mesmo com "always"
 				if (userType === "student" && subscription && isPremiumActive) {
 					const currentBillingPeriod = subscription.billingPeriod || "monthly";

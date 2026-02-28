@@ -32,7 +32,7 @@ interface GymFinancialPageProps {
 	subscription?: {
 		id: string;
 		plan: string;
-		status: string;
+		status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 		basePrice?: number;
 		pricePerStudent?: number;
 		currentPeriodStart?: Date;
