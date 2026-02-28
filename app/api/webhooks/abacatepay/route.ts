@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
 			// 1. Tentar GymSubscription (abacatePayBillingId armazena billing id ou pix id)
 			const gymSub = await db.gymSubscription.findFirst({
 				where: { abacatePayBillingId: paymentId },
+				include: { gym: { select: { userId: true } } },
 			});
 
 			if (gymSub) {
@@ -147,9 +148,14 @@ export async function POST(request: NextRequest) {
 						currentPeriodEnd: periodEnd,
 						cancelAtPeriodEnd: false,
 						canceledAt: null,
+						canceledBecausePrincipalCanceled: null,
 					},
 				});
 
+				// Se a academia principal voltou ao plano, restaurar as demais cujo período não expirou
+				await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
+					gymSub.gym.userId,
+				);
 				// Sincronizar limites de gyms e benefícios de alunos
 				await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 

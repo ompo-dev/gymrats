@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, DollarSign, Plus } from "lucide-react";
+import { AlertCircle, Building2, ChevronDown, ChevronRight, DollarSign, Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
@@ -10,8 +11,9 @@ import {
 	PaymentCard,
 	PaymentsTabSelector,
 } from "./components";
-import { usePaymentsPage } from "./hooks/use-payments-page";
+import { usePaymentsPage, type UsePaymentsPageProps } from "./hooks/use-payments-page";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export interface StudentPaymentsPageProps {
 	subscription?: {
@@ -66,7 +68,54 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
 		handleStartTrial,
 		handleUpgrade,
 		handleCancelConfirm,
-	} = usePaymentsPage(props);
+	} = usePaymentsPage(props as UsePaymentsPageProps);
+
+	const [expandedGymIdMemberships, setExpandedGymIdMemberships] = useState<string | null>(null);
+	const [expandedGymIdPayments, setExpandedGymIdPayments] = useState<string | null>(null);
+
+	type GymMembershipGroup = { gymId: string; gymName: string; gymAddress?: string; memberships: StudentGymMembership[] };
+	const membershipsByGym = useMemo((): GymMembershipGroup[] => {
+		const list = Array.isArray(memberships) ? memberships : [];
+		const map = new Map<string, GymMembershipGroup>();
+		for (const m of list) {
+			const key = m.gymId;
+			if (!map.has(key)) {
+				map.set(key, { gymId: m.gymId, gymName: m.gymName, gymAddress: m.gymAddress, memberships: [] });
+			}
+			map.get(key)!.memberships.push(m);
+		}
+		const result = Array.from(map.values());
+		result.sort((a, b) => {
+			const aMax = Math.max(...a.memberships.map((x: StudentGymMembership) => new Date(x.nextBillingDate ?? x.startDate).getTime()));
+			const bMax = Math.max(...b.memberships.map((x: StudentGymMembership) => new Date(x.nextBillingDate ?? x.startDate).getTime()));
+			return bMax - aMax;
+		});
+		return result;
+	}, [memberships]);
+
+	const paymentsByGym = useMemo(() => {
+		const list = Array.isArray(payments) ? payments : [];
+		const map = new Map<string, { gymId: string; gymName: string; payments: StudentPayment[] }>();
+		for (const p of list) {
+			const key = p.gymId;
+			if (!map.has(key)) {
+				map.set(key, { gymId: p.gymId, gymName: p.gymName, payments: [] });
+			}
+			map.get(key)!.payments.push(p);
+		}
+		const result = Array.from(map.values()).map((g) => ({
+			...g,
+			payments: [...g.payments].sort(
+				(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+			),
+		}));
+		result.sort((a, b) => {
+			const aMax = Math.max(...a.payments.map((x) => new Date(x.date).getTime()));
+			const bMax = Math.max(...b.payments.map((x) => new Date(x.date).getTime()));
+			return bMax - aMax;
+		});
+		return result;
+	}, [payments]);
 
 	return (
 		<div className="mx-auto max-w-4xl space-y-6">
@@ -86,10 +135,10 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
 				/>
 				<DuoStatCard.Simple
 					icon={AlertCircle}
-					value={String(pendingPayments.length)}
+					value={String((pendingPayments ?? []).length)}
 					label="Pendentes"
 					iconColor={
-						pendingPayments.length > 0 ? "var(--duo-accent)" : "var(--duo-secondary)"
+						(pendingPayments ?? []).length > 0 ? "var(--duo-accent)" : "var(--duo-secondary)"
 					}
 				/>
 			</DuoStatsGrid.Root>
@@ -98,28 +147,58 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
 
 			{activeTab === "memberships" && (
 				<div className="space-y-3">
-					{memberships.map((membership: StudentGymMembership) => (
-						<div key={membership.id}>
-							<MembershipCard
-								membership={membership}
-								isExpanded={expandedMembershipId === membership.id}
-								isChangePlanSelecting={changePlanMembershipId === membership.id}
-								changePlanPlans={changePlanPlans}
-								onToggleExpand={() =>
-									setExpandedMembershipId(
-										expandedMembershipId === membership.id ? null : membership.id,
-									)
-								}
-								onTrocarPlano={() => handleTrocarPlanoClick(membership)}
-								onSelectChangePlan={handleSelectChangePlan}
-								onCancelChangePlan={() => {
-									setChangePlanPlans([]);
-									setChangePlanMembershipId(null);
-								}}
-								onCancelMembership={() => handleCancelMembership(membership.id)}
-							/>
-						</div>
-					))}
+					{(membershipsByGym ?? []).map((group) => {
+						const isExpanded = expandedGymIdMemberships === group.gymId;
+						return (
+							<DuoCard.Root key={group.gymId} variant="default" size="default">
+								<button
+									type="button"
+									className="flex w-full items-center gap-2 text-left"
+									onClick={() =>
+										setExpandedGymIdMemberships(isExpanded ? null : group.gymId)
+									}
+								>
+									{isExpanded ? (
+										<ChevronDown className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+									) : (
+										<ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+									)}
+									<Building2 className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+									<div className="min-w-0 flex-1">
+										<div className="font-bold text-duo-text truncate">{group.gymName}</div>
+										<div className="text-xs text-duo-gray-dark">
+											{group.memberships.length} plano(s) nesta academia
+										</div>
+									</div>
+								</button>
+								{isExpanded && (
+									<div className="mt-3 space-y-3 border-t border-duo-border pt-3">
+										{group.memberships.map((membership: StudentGymMembership) => (
+											<MembershipCard
+												key={membership.id}
+												membership={membership}
+												isExpanded={expandedMembershipId === membership.id}
+												isChangePlanSelecting={changePlanMembershipId === membership.id}
+												changePlanPlans={changePlanPlans}
+												onToggleExpand={() =>
+													setExpandedMembershipId(
+														expandedMembershipId === membership.id ? null : membership.id,
+													)
+												}
+												onTrocarPlano={() => handleTrocarPlanoClick(membership)}
+												onSelectChangePlan={handleSelectChangePlan}
+												onCancelChangePlan={() => {
+													setChangePlanPlans([]);
+													setChangePlanMembershipId(null);
+												}}
+												onCancelMembership={() => handleCancelMembership(membership.id)}
+											/>
+										))}
+									</div>
+								)}
+							</DuoCard.Root>
+						);
+					})}
 
 					<DuoCard.Root
 						variant="default"
@@ -143,19 +222,54 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
 						<div className="text-center py-8 text-duo-gray-dark">
 							Carregando pagamentos...
 						</div>
-					) : payments.length === 0 ? (
+					) : (paymentsByGym ?? []).length === 0 ? (
 						<div className="text-center py-8 text-duo-gray-dark">
 							Nenhum pagamento encontrado
 						</div>
 					) : (
-						payments.map((payment: StudentPayment) => (
-							<div key={payment.id}>
-								<PaymentCard
-									payment={payment}
-									onPayNow={handlePayNowClick}
-								/>
-							</div>
-						))
+						(paymentsByGym ?? []).map((group) => {
+							const isExpanded = expandedGymIdPayments === group.gymId;
+							const totalPaid = group.payments.reduce(
+								(s, p) => s + (p.status === "paid" ? p.amount : 0),
+								0,
+							);
+							return (
+								<DuoCard.Root key={group.gymId} variant="default" size="default">
+									<button
+										type="button"
+										className="flex w-full items-center gap-2 text-left"
+										onClick={() =>
+											setExpandedGymIdPayments(isExpanded ? null : group.gymId)
+										}
+									>
+										{isExpanded ? (
+											<ChevronDown className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+										) : (
+											<ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+										)}
+										<Building2 className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+										<div className="min-w-0 flex-1">
+											<div className="font-bold text-duo-text truncate">{group.gymName}</div>
+											<div className="text-xs text-duo-gray-dark">
+												{group.payments.length} pagamento(s) • Total pago: R${" "}
+												{totalPaid.toFixed(2)}
+											</div>
+										</div>
+									</button>
+									{isExpanded && (
+										<div className="mt-3 space-y-2 border-t border-duo-border pt-3">
+											{group.payments.map((payment: StudentPayment) => (
+												<PaymentCard
+													key={payment.id}
+													payment={payment}
+													onPayNow={handlePayNowClick}
+												/>
+											))}
+										</div>
+									)}
+								</DuoCard.Root>
+							);
+						})
 					)}
 				</div>
 			)}

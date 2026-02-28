@@ -106,6 +106,41 @@ export class GymSubscriptionService {
   }
 
   /**
+   * Quando a academia principal volta a assinar (ex.: Premium de novo), restaura as assinaturas
+   * das outras academias que foram canceladas "por causa da principal", desde que o período
+   * original (currentPeriodEnd) não tenha expirado. Em seguida reaplica limites de gyms ativas
+   * e benefício Premium dos alunos.
+   */
+  static async restoreSubscriptionsSuspendedByPrincipalCancel(userId: string) {
+    const now = new Date();
+    const subsToRestore = await db.gymSubscription.findMany({
+      where: {
+        gym: { userId },
+        status: "canceled",
+        canceledBecausePrincipalCanceled: true,
+        currentPeriodEnd: { gt: now },
+      },
+      select: { id: true, gymId: true },
+    });
+
+    if (subsToRestore.length === 0) return;
+
+    for (const sub of subsToRestore) {
+      await db.gymSubscription.update({
+        where: { id: sub.id },
+        data: {
+          status: "active",
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+          canceledBecausePrincipalCanceled: null,
+        },
+      });
+    }
+
+    await this.enforceActiveGymLimit(userId);
+  }
+
+  /**
    * Sincroniza o benefício de plano Premium (gratuito) para alunos de academia Enterprise.
    * - Com Enterprise: aluno passa a usar Premium da academia (substitui até OWN pago).
    *   Se tinha OWN Premium com período futuro, guardamos em ownPeriodEndBackup para restaurar ao sair.

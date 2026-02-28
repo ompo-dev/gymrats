@@ -1024,6 +1024,8 @@ model GymSubscription {
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)
   canceledAt         DateTime?
+  /** Quando true: foi cancelada porque a academia principal cancelou; pode ser restaurada se a principal voltar e o período não tiver expirado */
+  canceledBecausePrincipalCanceled Boolean?
   trialStart         DateTime?
   trialEnd           DateTime?
 

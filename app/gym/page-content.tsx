@@ -97,22 +97,29 @@ function GymHomeContent({
 
 	const store = useGymUnifiedStore((state) => state.data);
 
+	const storeStudents = store.students ?? [];
+	const storeEquipment = store.equipment ?? [];
+	const storeRecentCheckIns = store.recentCheckIns ?? [];
+	const storeMembershipPlans = store.membershipPlans ?? [];
+	const storePayments = store.payments ?? [];
+	const storeExpenses = store.expenses ?? [];
+
 	const profile = store.profile ?? initialProfile;
 	const stats = store.stats ?? initialStats;
-	const students = store.students.length > 0 ? store.students : initialStudents;
-	const equipment = store.equipment.length > 0 ? store.equipment : initialEquipment;
+	const students = storeStudents.length > 0 ? storeStudents : initialStudents;
+	const equipment = storeEquipment.length > 0 ? storeEquipment : initialEquipment;
 	const financialSummary =
 		store.financialSummary ?? initialFinancialSummary;
 	const recentCheckIns =
-		store.recentCheckIns.length > 0
-			? store.recentCheckIns
+		storeRecentCheckIns.length > 0
+			? storeRecentCheckIns
 			: initialRecentCheckIns || [];
 	const plans =
-		store.membershipPlans.length > 0
-			? store.membershipPlans
+		storeMembershipPlans.length > 0
+			? storeMembershipPlans
 			: initialPlans;
-	const payments = store.payments.length > 0 ? store.payments : initialPayments;
-	const expenses = store.expenses.length > 0 ? store.expenses : initialExpenses;
+	const payments = storePayments.length > 0 ? storePayments : initialPayments;
+	const expenses = storeExpenses.length > 0 ? storeExpenses : initialExpenses;
 
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
