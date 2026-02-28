@@ -152,10 +152,15 @@ export async function POST(request: NextRequest) {
 					},
 				});
 
-				// Se a academia principal voltou ao plano, restaurar as demais cujo período não expirou
-				await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
-					gymSub.gym.userId,
+				// Só Premium e Enterprise permitem múltiplas academias: restaurar as demais apenas nesses casos
+				const planQualified = ["premium", "enterprise"].includes(
+					gymSub.plan?.toLowerCase() ?? "",
 				);
+				if (planQualified) {
+					await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
+						gymSub.gym.userId,
+					);
+				}
 				// Sincronizar limites de gyms e benefícios de alunos
 				await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
