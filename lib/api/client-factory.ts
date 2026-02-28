@@ -86,6 +86,10 @@ function createAxiosClient(): AxiosInstance {
 			const url = error?.config?.url;
 
 			if (status === 401 && typeof window !== "undefined") {
+				// Prevent automatic redirect for session validation
+				if (url && url.includes("/api/auth/session")) {
+					return Promise.reject(error);
+				}
 				clearAuthToken();
 				window.location.href = "/welcome";
 			}
@@ -145,8 +149,8 @@ async function requestViaSyncManager<T>(
 			status: 202,
 			statusText: "Accepted",
 			headers: {},
-			config: config as Record<string, string | number | boolean | object | null>,
-		} as AxiosResponse<T>;
+			config: config as any,
+		} as unknown as AxiosResponse<T>;
 	}
 
 	return {
@@ -154,8 +158,8 @@ async function requestViaSyncManager<T>(
 		status: 200,
 		statusText: "OK",
 		headers: {},
-		config: config as Record<string, string | number | boolean | object | null>,
-	} as AxiosResponse<T>;
+		config: config as any,
+	} as unknown as AxiosResponse<T>;
 }
 
 export type ApiClient = {
