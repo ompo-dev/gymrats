@@ -22,8 +22,7 @@ export function RecentHistoryCard({
 			<DuoCard.Header>
 				<div className="flex items-center gap-2">
 					<Calendar
-						className="h-5 w-5 shrink-0"
-						style={{ color: "var(--duo-secondary)" }}
+						className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
 						aria-hidden
 					/>
 					<h2 className="font-bold text-[var(--duo-fg)]">Histórico Recente</h2>
@@ -62,12 +61,12 @@ export function RecentHistoryCard({
 									{workout.exercises.map((exercise) => (
 										<div
 											key={exercise.id}
-											className="text-sm text-duo-gray-dark flex items-center gap-2"
+											className="flex items-center gap-2 text-sm text-[var(--duo-fg-muted)]"
 										>
-											<span className="text-duo-green">✓</span>
+											<span className="text-[var(--duo-success)]">✓</span>
 											<span>{exercise.exerciseName}</span>
 											{exercise.sets && exercise.sets.length > 0 && (
-												<span className="text-xs text-duo-gray">
+												<span className="text-xs text-[var(--duo-fg-muted)]">
 													({exercise.sets.length} séries)
 												</span>
 											)}
@@ -82,13 +81,13 @@ export function RecentHistoryCard({
 				<motion.div
 					initial={{ opacity: 0, y: 10 }}
 					animate={{ opacity: 1, y: 0 }}
-					className="flex flex-col items-center justify-center py-8 px-4 text-center"
+					className="flex flex-col items-center justify-center px-4 py-8 text-center"
 				>
-					<Play className="h-12 w-12 text-duo-gray-dark mb-4 opacity-50" />
-					<h3 className="text-lg font-bold text-duo-text mb-2">
+					<Play className="mb-4 h-12 w-12 text-[var(--duo-fg-muted)] opacity-50" />
+					<h3 className="mb-2 text-lg font-bold text-[var(--duo-fg)]">
 						Hora de começar!
 					</h3>
-					<p className="text-sm text-duo-gray-dark mb-4 max-w-sm">
+					<p className="mb-4 max-w-sm text-sm text-[var(--duo-fg-muted)]">
 						Complete seu primeiro treino para ver seu histórico aqui. Vamos
 						começar com algo fácil e tranquilo!
 					</p>
@@ -97,7 +96,7 @@ export function RecentHistoryCard({
 						variant="primary"
 						className="w-full max-w-xs"
 					>
-						<Play className="h-4 w-4 mr-2" />
+						<Play className="mr-2 h-4 w-4" />
 						Primeiro Treino
 					</DuoButton>
 				</motion.div>

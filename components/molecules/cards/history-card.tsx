@@ -65,13 +65,13 @@ function HistoryCardSimple({
 		<DuoCard.Root
 			variant="default"
 			size="md"
-			className={cn("bg-gray-50", className)}
+			className={className}
 			{...props}
 		>
 			<div className="mb-2 flex items-start justify-between">
 				<div>
-					<div className="font-bold text-duo-text">{title}</div>
-					<div className="text-xs text-duo-gray-dark">{formattedDate}</div>
+					<div className="font-bold text-[var(--duo-fg)]">{title}</div>
+					<div className="text-xs text-[var(--duo-fg-muted)]">{formattedDate}</div>
 				</div>
 				{status && (
 					<DuoBadge
@@ -91,7 +91,7 @@ function HistoryCardSimple({
 				)}
 			</div>
 			{metadata.length > 0 && (
-				<div className="flex gap-4 text-sm text-duo-gray-dark">
+				<div className="flex gap-4 text-sm text-[var(--duo-fg-muted)]">
 					{metadata.map((item, index) => (
 						<div key={index}>
 							{item.icon && <span>{item.icon} </span>}

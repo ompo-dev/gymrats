@@ -1,34 +1,24 @@
 "use client";
 
-import {
-  Dumbbell,
-  Edit2,
-  GripVertical,
-  Loader2,
-  Moon,
-  Plus,
-  RotateCcw,
-  Save,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
-import { motion, Reorder } from "motion/react";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type {
+  MuscleGroup,
   PlanSlotData,
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
+import {
+  UnitDetailsForm,
+  WorkoutsListSection,
+  WorkoutDetailView,
+} from "./edit-unit-modal/index";
 import { ExerciseSearch } from "./exercise-search";
 import { Modal } from "./modal";
 import { WorkoutChat } from "./workout-chat";
@@ -50,20 +40,6 @@ interface EditUnitModalProps {
   onPlanUpdated?: () => void;
 }
 
-const muscleCategories = [
-  { value: "", label: "Nenhum", icon: "⚪" },
-  { value: "peito", label: "Peito", icon: "🫁" },
-  { value: "costas", label: "Costas", icon: "🏋️" },
-  { value: "pernas", label: "Pernas", icon: "🦵" },
-  { value: "ombros", label: "Ombros", icon: "💪" },
-  { value: "bracos", label: "Braços", icon: "💪" },
-  { value: "core", label: "Core", icon: "🔥" },
-  { value: "gluteos", label: "Glúteos", icon: "🍑" },
-  { value: "cardio", label: "Cardio", icon: "❤️" },
-  { value: "funcional", label: "Funcional", icon: "⚡" },
-  { value: "full_body", label: "Corpo Inteiro", icon: "💪" },
-] as const;
-
 export function EditUnitModal({
   isWeeklyPlanMode = false,
   isOpen: isOpenProp,
@@ -82,6 +58,14 @@ export function EditUnitModal({
 
   const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
   const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
+
+  // Slots do plano semanal de forma type-safe (API/store podem devolver JsonValue)
+  const planSlots = useMemo((): PlanSlotData[] => {
+    if (!weeklyPlan?.slots) return [];
+    return Array.isArray(weeklyPlan.slots)
+      ? (weeklyPlan.slots as unknown as PlanSlotData[])
+      : [];
+  }, [weeklyPlan?.slots]);
 
   const [showExerciseSearch, setShowExerciseSearch] = useState(false);
 
@@ -162,11 +146,11 @@ export function EditUnitModal({
 
   const exercisesRawFromWeeklyPlan = useMemo(() => {
     if (!isWeeklyPlanMode || !weeklyPlan || !editingWorkoutId) return null;
-    const slot = weeklyPlan.slots.find(
+    const slot = planSlots.find(
       (s: PlanSlotData) => s.workout?.id === editingWorkoutId,
     );
     return slot?.workout?.exercises ?? null;
-  }, [isWeeklyPlanMode, weeklyPlan, editingWorkoutId]);
+  }, [isWeeklyPlanMode, weeklyPlan, editingWorkoutId, planSlots]);
 
   const exercisesRaw = isWeeklyPlanMode
     ? exercisesRawFromWeeklyPlan
@@ -181,7 +165,7 @@ export function EditUnitModal({
   // Calcular activeWorkout - de weeklyPlan quando isWeeklyPlanMode, senão de sortedWorkouts
   const activeWorkout = useMemo(() => {
     if (isWeeklyPlanMode && weeklyPlan && editingWorkoutId) {
-      const slot = weeklyPlan.slots.find(
+      const slot = planSlots.find(
         (s: PlanSlotData) => s.workout?.id === editingWorkoutId,
       );
       return slot?.workout ?? null;
@@ -190,7 +174,7 @@ export function EditUnitModal({
       sortedWorkouts.find((w: WorkoutSession) => w.id === editingWorkoutId) ??
       null
     );
-  }, [isWeeklyPlanMode, weeklyPlan, sortedWorkouts, editingWorkoutId]);
+  }, [isWeeklyPlanMode, weeklyPlan, planSlots, sortedWorkouts, editingWorkoutId]);
 
   // Ordenar exercícios por ordem - IMPORTANTE: usar exercises do store diretamente!
   // CRÍTICO: Usar IDs para comparação estável e evitar loops infinitos
@@ -305,8 +289,13 @@ export function EditUnitModal({
       },
     ) => {
       // Não precisa de try/catch com toast - optimistic update já atualiza UI instantaneamente!
-      // Apenas chamar a action - o store gerencia tudo
-      actions.updateWorkout(workoutId, data).catch((error) => {
+      // Store espera muscleGroup como MuscleGroup
+      const { muscleGroup: mg, ...rest } = data;
+      const payload = {
+        ...rest,
+        ...(mg !== undefined && { muscleGroup: mg as MuscleGroup }),
+      };
+      actions.updateWorkout(workoutId, payload).catch((error) => {
         console.error(error);
         toast.error("Erro ao atualizar treino");
       });
@@ -333,17 +322,17 @@ export function EditUnitModal({
     }
   }, [calculatedEstimatedTime, activeWorkout, handleUpdateWorkout]);
 
-  // Sincronizar inputs - de unit ou weeklyPlan
+  // Sincronizar inputs - de unit ou weeklyPlan (garantir string para setState)
   useEffect(() => {
     if (isOpen && isWeeklyPlanMode && weeklyPlan) {
       if (!isEditingUnitInputs && title === "" && description === "") {
-        setTitle(weeklyPlan.title ?? "");
-        setDescription(weeklyPlan.description ?? "");
+        setTitle(String(weeklyPlan.title ?? ""));
+        setDescription(String(weeklyPlan.description ?? ""));
       }
     } else if (isOpen && unitId && unit) {
       if (!isEditingUnitInputs && title === "" && description === "") {
-        setTitle(unit.title ?? "");
-        setDescription(unit.description ?? "");
+        setTitle(String(unit.title ?? ""));
+        setDescription(String(unit.description ?? ""));
       }
     } else {
       // Reset state when closed
@@ -491,7 +480,7 @@ export function EditUnitModal({
   };
 
   const handleRemoveWorkoutFromSlot = async (slotId: string) => {
-    const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
+    const slot = planSlots.find((s: PlanSlotData) => s.id === slotId);
     if (!slot?.workout) return;
     setLoadingSlotId(slotId);
     try {
@@ -635,673 +624,76 @@ export function EditUnitModal({
 
         <Modal.Content maxHeight="none">
           {!editingWorkoutId ? (
-            // --- UNIT VIEW ---
             <div className="space-y-8" style={{ minHeight: "400px" }}>
-              {/* Unit Details */}
-              <div className="space-y-4 bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border">
-                <div>
-                  <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-                    Nome do Plano
-                  </label>
-                  <input
-                    type="text"
-                    value={title || ""}
-                    onChange={(e) => setTitle(e.target.value)}
-                    onFocus={() => setIsEditingUnitInputs(true)}
-                    onBlur={() => setIsEditingUnitInputs(false)}
-                    className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold text-lg"
-                    placeholder="Ex: Treino de Hipertrofia"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={description || ""}
-                    onChange={(e) => setDescription(e.target.value)}
-                    onFocus={() => setIsEditingUnitInputs(true)}
-                    onBlur={() => setIsEditingUnitInputs(false)}
-                    className="w-full px-4 py-3 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all resize-none h-24"
-                    placeholder="Descreva o objetivo deste plano..."
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  {isWeeklyPlanMode && (
-                    <DuoButton
-                      variant="outline"
-                      onClick={handleResetWeek}
-                      disabled={resetting}
-                      className="font-bold flex items-center gap-2 w-full"
-                      style={{
-                        opacity: 1,
-                        visibility: "visible",
-                        display: "flex",
-                      }}
-                    >
-                      {resetting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RotateCcw className="h-4 w-4" />
-                      )}
-                      Resetar
-                    </DuoButton>
-                  )}
-                  <DuoButton
-                    onClick={handleSaveUnit}
-                    className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 w-full"
-                    style={{
-                      opacity: 1,
-                      visibility: "visible",
-                      display: "flex",
-                    }}
-                  >
-                    <Save className="h-4 w-4" />
-                    Salvar
-                  </DuoButton>
-                </div>
-              </div>
-
-              {/* Workouts List - por dia da semana quando weekly plan, senão lista reordenável */}
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row items-center justify-between px-1 mb-4">
-                  <h3 className="text-lg font-bold text-duo-text mb-2 md:mb-0">
-                    {isWeeklyPlanMode ? "Dias da Semana" : "Dias de Treino"}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {isWeeklyPlanMode ? (
-                      <>
-                        <DuoButton
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const firstRest = weeklyPlan?.slots.find(
-                              (s: PlanSlotData) => s.type === "rest",
-                            );
-                            if (firstRest) setChatSlotId(firstRest.id);
-                          }}
-                          className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
-                          style={{
-                            opacity: 1,
-                            visibility: "visible",
-                            display: "flex",
-                            pointerEvents: "auto",
-                            zIndex: 10,
-                          }}
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          Chat
-                        </DuoButton>
-                        <DuoButton
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const firstRest = weeklyPlan?.slots.find(
-                              (s: PlanSlotData) => s.type === "rest",
-                            );
-                            if (firstRest)
-                              handleAddWorkoutToSlot(
-                                firstRest.id,
-                                DAY_NAMES[firstRest.dayOfWeek],
-                              );
-                            else toast.info("Todos os dias já têm treino.");
-                          }}
-                          className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
-                          style={{
-                            opacity: 1,
-                            visibility: "visible",
-                            display: "flex",
-                            pointerEvents: "auto",
-                            zIndex: 10,
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Adicionar Dia
-                        </DuoButton>
-                      </>
-                    ) : (
-                      <>
-                        <DuoButton
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setShowWorkoutChat(true)}
-                          className="border-2 border-duo-green font-bold hover:bg-duo-green/10 text-duo-green flex items-center gap-2 z-10 relative"
-                          style={{
-                            opacity: 1,
-                            visibility: "visible",
-                            display: "flex",
-                            pointerEvents: "auto",
-                            zIndex: 10,
-                          }}
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          Chat IA
-                        </DuoButton>
-                        <DuoButton
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCreateWorkout}
-                          className="border-2 font-bold hover:bg-duo-bg-elevated flex items-center gap-2 z-10 relative"
-                          style={{
-                            opacity: 1,
-                            visibility: "visible",
-                            display: "flex",
-                            pointerEvents: "auto",
-                            zIndex: 10,
-                          }}
-                        >
-                          <Plus className="h-4 w-4" />
-                          Adicionar Dia
-                        </DuoButton>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {isWeeklyPlanMode && weeklyPlan ? (
-                  <div className="space-y-4">
-                    {weeklyPlan.slots
-                      .slice()
-                      .sort(
-                        (a: PlanSlotData, b: PlanSlotData) =>
-                          a.dayOfWeek - b.dayOfWeek,
-                      )
-                      .map((slot: PlanSlotData) => (
-                        <div key={slot.id} className="space-y-2">
-                          {/* Divider com nome do dia */}
-                          <div className="flex items-center gap-2">
-                            <div className="h-px flex-1 bg-duo-border" />
-                            <span className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider px-2">
-                              {DAY_NAMES[slot.dayOfWeek]}
-                            </span>
-                            <div className="h-px flex-1 bg-duo-border" />
-                          </div>
-                          {slot.type === "rest" ? (
-                            <DuoCard.Root
-                              variant="default"
-                              padding="md"
-                              className="bg-duo-gray/5 border-dashed"
-                            >
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-2 text-duo-fg-muted">
-                                  <Moon className="h-5 w-5" />
-                                  <span className="text-sm font-medium">
-                                    Descanso
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <DuoButton
-                                    variant="secondary"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleAddWorkoutToSlot(
-                                        slot.id,
-                                        DAY_NAMES[slot.dayOfWeek],
-                                      )
-                                    }
-                                    disabled={loadingSlotId === slot.id}
-                                  >
-                                    {loadingSlotId === slot.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Plus className="h-4 w-4" />
-                                    )}
-                                    Treino
-                                  </DuoButton>
-                                  <DuoButton
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setChatSlotId(slot.id)}
-                                    className="gap-1"
-                                  >
-                                    <Sparkles className="h-4 w-4" />
-                                    Chat IA
-                                  </DuoButton>
-                                </div>
-                              </div>
-                            </DuoCard.Root>
-                          ) : slot.workout ? (
-                            <DuoCard.Root
-                              variant="highlighted"
-                              className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
-                                  <GripVertical className="h-5 w-5" />
-                                </div>
-                                <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
-                                  {slot.dayOfWeek + 1}
-                                </div>
-                                <div
-                                  className="flex-1 min-w-0 cursor-pointer"
-                                  onClick={() =>
-                                    setEditingWorkoutId(slot.workout!.id)
-                                  }
-                                >
-                                  <h4 className="font-bold text-duo-text truncate text-lg">
-                                    {slot.workout.title}
-                                  </h4>
-                                  <p className="text-sm text-duo-fg-muted truncate">
-                                    {slot.workout.exercises?.length ?? 0}{" "}
-                                    exercícios •{" "}
-                                    {slot.workout.muscleGroup || "-"}
-                                  </p>
-                                </div>
-                                <div
-                                  className="flex items-center gap-2 z-10 relative"
-                                  style={{
-                                    opacity: 1,
-                                    visibility: "visible",
-                                    display: "flex",
-                                    pointerEvents: "auto",
-                                    zIndex: 10,
-                                  }}
-                                >
-                                  <DuoButton
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setChatSlotId(slot.id);
-                                    }}
-                                    title="Chat IA - Editar este dia"
-                                  >
-                                    <Sparkles className="h-4 w-4" />
-                                  </DuoButton>
-                                  <DuoButton
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveWorkoutFromSlot(slot.id);
-                                    }}
-                                    title="Remover dia de treino"
-                                  >
-                                    <Trash2 className="h-5 w-5" />
-                                  </DuoButton>
-                                </div>
-                              </div>
-                            </DuoCard.Root>
-                          ) : null}
-                        </div>
-                      ))}
-                  </div>
-                ) : workoutItems.length > 0 ? (
-                  <Reorder.Group
-                    axis="y"
-                    values={workoutItems}
-                    onReorder={handleReorderWorkouts}
-                    className="space-y-3"
-                  >
-                    {workoutItems.map(
-                      (workout: WorkoutSession, index: number) => (
-                        <Reorder.Item
-                          key={workout.id}
-                          value={workout}
-                          className="cursor-grab active:cursor-grabbing"
-                        >
-                          <DuoCard.Root
-                            variant="highlighted"
-                            className="group hover:border-duo-green/50 transition-colors bg-duo-bg-card"
-                          >
-                            <div className="flex items-center gap-4">
-                              {/* Handle de arrastar */}
-                              <div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
-                                <GripVertical className="h-5 w-5" />
-                              </div>
-                              <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
-                                {index + 1}
-                              </div>
-                              <div
-                                className="flex-1 min-w-0 cursor-pointer"
-                                onClick={() => setEditingWorkoutId(workout.id)}
-                              >
-                                <h4 className="font-bold text-duo-text truncate text-lg">
-                                  {workout.title}
-                                </h4>
-                                <p className="text-sm text-duo-fg-muted truncate">
-                                  {workout.exercises.length} exercícios •{" "}
-                                  {workout.muscleGroup}
-                                </p>
-                              </div>
-                              <div
-                                className="flex items-center gap-2 z-10 relative"
-                                style={{
-                                  opacity: 1,
-                                  visibility: "visible",
-                                  display: "flex",
-                                  pointerEvents: "auto",
-                                  zIndex: 10,
-                                }}
-                              >
-                                <DuoButton
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-duo-fg-muted hover:text-duo-green hover:bg-duo-green/10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingWorkoutId(workout.id);
-                                  }}
-                                  title="Editar dia de treino"
-                                  style={{
-                                    opacity: 1,
-                                    visibility: "visible",
-                                    display: "flex",
-                                    pointerEvents: "auto",
-                                  }}
-                                >
-                                  <Edit2 className="h-5 w-5" />
-                                </DuoButton>
-                                <DuoButton
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteWorkoutClick(workout.id);
-                                  }}
-                                  title="Remover dia de treino"
-                                  style={{
-                                    opacity: 1,
-                                    visibility: "visible",
-                                    display: "flex",
-                                    pointerEvents: "auto",
-                                  }}
-                                >
-                                  <Trash2 className="h-5 w-5" />
-                                </DuoButton>
-                              </div>
-                            </div>
-                          </DuoCard.Root>
-                        </Reorder.Item>
-                      ),
-                    )}
-                  </Reorder.Group>
-                ) : (
-                  <div className="text-center py-12 text-duo-fg-muted bg-duo-bg-card rounded-2xl border-2 border-dashed border-duo-border">
-                    <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center mx-auto mb-3">
-                      <Dumbbell className="h-6 w-6 text-duo-fg-muted" />
-                    </div>
-                    <p className="font-bold">Nenhum dia de treino adicionado</p>
-                    <p className="text-sm mt-1">
-                      Clique em &quot;Adicionar Dia&quot; para começar
-                    </p>
-                  </div>
-                )}
-              </div>
+              <UnitDetailsForm
+                title={title}
+                description={description}
+                onTitleChange={setTitle}
+                onDescriptionChange={setDescription}
+                onTitleFocus={() => setIsEditingUnitInputs(true)}
+                onTitleBlur={() => setIsEditingUnitInputs(false)}
+                onDescriptionFocus={() => setIsEditingUnitInputs(true)}
+                onDescriptionBlur={() => setIsEditingUnitInputs(false)}
+                onSave={handleSaveUnit}
+                isWeeklyPlanMode={isWeeklyPlanMode}
+                onResetWeek={handleResetWeek}
+                resetting={resetting}
+              />
+              <WorkoutsListSection
+                isWeeklyPlanMode={isWeeklyPlanMode}
+                weeklyPlan={weeklyPlan ? { id: String(weeklyPlan.id) } : null}
+                planSlots={planSlots}
+                workoutItems={workoutItems}
+                loadingSlotId={loadingSlotId}
+                onChatClick={setChatSlotId}
+                onAddWorkoutToSlot={handleAddWorkoutToSlot}
+                onRemoveWorkoutFromSlot={handleRemoveWorkoutFromSlot}
+                onEditWorkout={setEditingWorkoutId}
+                onReorderWorkouts={handleReorderWorkouts}
+                onCreateWorkout={handleCreateWorkout}
+                onDeleteWorkoutClick={handleDeleteWorkoutClick}
+                onOpenWorkoutChat={() => setShowWorkoutChat(true)}
+              />
             </div>
           ) : (
-            // --- WORKOUT VIEW ---
-            <div className="space-y-6">
-              {/* Header do Workout */}
-              <div className="bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border space-y-4">
-                <div>
-                  <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-                    Título do Dia
-                  </label>
-                  <input
-                    type="text"
-                    value={workoutTitle}
-                    onChange={(e) => setWorkoutTitle(e.target.value)}
-                    onBlur={(e) => {
-                      if (
-                        activeWorkout &&
-                        e.target.value !== activeWorkout.title &&
-                        e.target.value.trim() !== ""
-                      ) {
-                        handleUpdateWorkout(activeWorkout.id, {
-                          title: e.target.value,
-                        });
-                      } else if (e.target.value.trim() === "") {
-                        // Reverter se ficou vazio
-                        setWorkoutTitle(activeWorkout?.title ?? "");
-                      }
-                    }}
-                    className="w-full px-4 py-2 rounded-xl bg-duo-bg-elevated border border-duo-border focus:outline-none focus:ring-2 focus:ring-duo-green/20 focus:border-duo-green transition-all font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider mb-2 block">
-                    Grupo Muscular
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {muscleCategories.map((category) => (
-                      <DuoButton
-                        key={category.value}
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          setWorkoutMuscleGroup(category.value);
-                          if (activeWorkout) {
-                            handleUpdateWorkout(activeWorkout.id, {
-                              muscleGroup: category.value,
-                            });
-                          }
-                        }}
-                        className={cn(
-                          "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-xs min-h-0",
-                          workoutMuscleGroup === category.value
-                            ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
-                            : "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
-                        )}
-                      >
-                        <span>{category.icon}</span>
-                        <span>{category.label}</span>
-                      </DuoButton>
-                    ))}
-                  </div>
-                </div>
-                {calculatedEstimatedTime > 0 && (
-                  <div className="rounded-xl bg-duo-green/10 border border-duo-green/20 p-3">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                      Tempo Estimado
-                    </div>
-                    <div className="text-lg font-bold text-duo-green">
-                      {calculatedEstimatedTime} min
-                    </div>
-                    <div className="text-xs text-duo-fg-muted mt-1">
-                      Calculado automaticamente baseado nos exercícios
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col md:flex-row items-center justify-between px-1 mb-4">
-                <h3 className="text-lg font-bold text-duo-text mb-2 md:mb-0">
-                  Exercícios
-                </h3>
-                <div className="flex items-center gap-2">
-                  {isWeeklyPlanMode && activeWorkout && weeklyPlan && (
-                    <DuoButton
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const slot = weeklyPlan.slots.find(
-                          (s: PlanSlotData) =>
-                            s.workout?.id === activeWorkout.id,
-                        );
-                        if (slot) setChatSlotId(slot.id);
-                      }}
-                      className="gap-1.5 z-10 relative"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Chat IA
-                    </DuoButton>
-                  )}
-                  {!isWeeklyPlanMode && (
-                    <DuoButton
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowWorkoutChat(true)}
-                      className="gap-1.5 z-10 relative"
-                    >
-                      <Sparkles className="h-4 w-4" />
-                      Chat IA
-                    </DuoButton>
-                  )}
-                  <DuoButton
-                    size="sm"
-                    onClick={handleAddExercise}
-                    className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 z-10 relative"
-                    style={{
-                      opacity: 1,
-                      visibility: "visible",
-                      display: "flex",
-                      pointerEvents: "auto",
-                      zIndex: 10,
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Exercício
-                  </DuoButton>
-                </div>
-              </div>
-
-              {exerciseItems.length > 0 ? (
-                <Reorder.Group
-                  axis="y"
-                  values={exerciseItems}
-                  onReorder={handleReorderExercises}
-                  className="space-y-3"
-                >
-                  {exerciseItems.map(
-                    (exercise: WorkoutExercise, index: number) => (
-                      <Reorder.Item
-                        key={exercise.id}
-                        value={exercise}
-                        className="cursor-grab active:cursor-grabbing"
-                      >
-                        <DuoCard.Root
-                          variant="highlighted"
-                          size="md"
-                          className="group hover:border-duo-green/50 transition-all bg-duo-bg-card"
-                        >
-                          {/* Primeira div: Número, Nome e Botão de excluir */}
-                          <div className="flex items-center gap-4">
-                            {/* Handle de arrastar */}
-                            <div className="flex-none cursor-grab active:cursor-grabbing text-duo-fg-muted hover:text-duo-green transition-colors">
-                              <GripVertical className="h-5 w-5" />
-                            </div>
-                            {/* Número do exercício */}
-                            <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg shrink-0">
-                              {index + 1}
-                            </div>
-
-                            {/* Nome do exercício */}
-                            <div className="flex-1 min-w-0">
-                              <input
-                                type="text"
-                                defaultValue={exercise.name ?? ""}
-                                onBlur={(e) =>
-                                  handleUpdateExercise(exercise.id, {
-                                    name: e.target.value,
-                                  })
-                                }
-                                className="w-full px-4 py-2.5 rounded-xl bg-duo-bg-elevated border border-duo-border hover:bg-duo-bg-card hover:border-duo-border focus:bg-duo-bg-card focus:border-duo-green focus:outline-none focus:ring-2 focus:ring-duo-green/20 font-bold text-base transition-all"
-                                placeholder="Nome do exercício"
-                              />
-                            </div>
-
-                            {/* Botão de deletar */}
-                            <div
-                              className="flex-none z-10 relative"
-                              style={{
-                                opacity: 1,
-                                visibility: "visible",
-                                display: "flex",
-                                pointerEvents: "auto",
-                                zIndex: 10,
-                              }}
-                            >
-                              <DuoButton
-                                variant="ghost"
-                                size="icon"
-                                className="text-duo-fg-muted hover:text-duo-danger hover:bg-duo-danger/10 transition-colors"
-                                onClick={() =>
-                                  handleDeleteExercise(exercise.id)
-                                }
-                                title="Remover exercício"
-                                style={{
-                                  opacity: 1,
-                                  visibility: "visible",
-                                  display: "flex",
-                                  pointerEvents: "auto",
-                                }}
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </DuoButton>
-                            </div>
-                          </div>
-
-                          {/* Segunda div: Séries, Repetições e Descanso */}
-                          <div className="grid grid-cols-3 gap-3 mt-4">
-                            <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
-                              <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
-                                Séries
-                              </label>
-                              <input
-                                type="number"
-                                defaultValue={exercise.sets ?? 0}
-                                onBlur={(e) =>
-                                  handleUpdateExercise(exercise.id, {
-                                    sets: parseInt(e.target.value, 10) || 0,
-                                  })
-                                }
-                                className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
-                                min="0"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
-                              <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
-                                Repetições
-                              </label>
-                              <input
-                                type="text"
-                                defaultValue={exercise.reps ?? ""}
-                                onBlur={(e) =>
-                                  handleUpdateExercise(exercise.id, {
-                                    reps: e.target.value,
-                                  })
-                                }
-                                className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
-                                placeholder="8-12"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border hover:bg-duo-bg-elevated transition-colors items-center justify-center">
-                              <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
-                                Descanso
-                              </label>
-                              <div className="flex items-center justify-center gap-1">
-                                <input
-                                  type="number"
-                                  defaultValue={exercise.rest ?? 0}
-                                  onBlur={(e) =>
-                                    handleUpdateExercise(exercise.id, {
-                                      rest: parseInt(e.target.value, 10) || 0,
-                                    })
-                                  }
-                                  className="w-full bg-transparent font-bold text-duo-text text-center text-lg focus:outline-none border-b-2 border-transparent focus:border-duo-green transition-colors"
-                                  min="0"
-                                />
-                                <span className="text-xs font-bold text-duo-fg-muted">
-                                  s
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </DuoCard.Root>
-                      </Reorder.Item>
-                    ),
-                  )}
-                </Reorder.Group>
-              ) : (
-                <div className="text-center py-12 text-duo-fg-muted">
-                  <p>Nenhum exercício neste dia.</p>
-                </div>
-              )}
-            </div>
+            <WorkoutDetailView
+              workoutTitle={workoutTitle}
+              workoutMuscleGroup={workoutMuscleGroup}
+              onWorkoutTitleChange={setWorkoutTitle}
+              onWorkoutTitleBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                if (
+                  activeWorkout &&
+                  e.target.value !== activeWorkout.title &&
+                  e.target.value.trim() !== ""
+                ) {
+                  handleUpdateWorkout(activeWorkout.id, {
+                    title: e.target.value,
+                  });
+                } else if (e.target.value.trim() === "") {
+                  setWorkoutTitle(activeWorkout?.title ?? "");
+                }
+              }}
+              onMuscleGroupChange={(value: string) => {
+                setWorkoutMuscleGroup(value);
+                if (activeWorkout) {
+                  handleUpdateWorkout(activeWorkout.id, {
+                    muscleGroup: value,
+                  });
+                }
+              }}
+              activeWorkoutId={editingWorkoutId}
+              calculatedEstimatedTime={calculatedEstimatedTime}
+              exerciseItems={exerciseItems}
+              onReorderExercises={handleReorderExercises}
+              onUpdateExercise={handleUpdateExercise}
+              onAddExercise={handleAddExercise}
+              onDeleteExercise={handleDeleteExercise}
+              isWeeklyPlanMode={isWeeklyPlanMode}
+              weeklyPlan={weeklyPlan ? { id: String(weeklyPlan.id) } : null}
+              planSlots={planSlots}
+              onOpenSlotChat={setChatSlotId}
+              onOpenWorkoutChat={() => setShowWorkoutChat(true)}
+            />
           )}
         </Modal.Content>
       </Modal.Root>
@@ -1326,7 +718,7 @@ export function EditUnitModal({
           planSlotId={chatSlotId}
           slotContext={
             DAY_NAMES[
-              weeklyPlan.slots.find((s: PlanSlotData) => s.id === chatSlotId)
+              planSlots.find((s: PlanSlotData) => s.id === chatSlotId)
                 ?.dayOfWeek ?? 0
             ]
           }

@@ -302,37 +302,37 @@ export function GymSettingsPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
         <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+          <h1 className="mb-2 text-3xl font-bold text-[var(--duo-fg)]">
             Configurações
           </h1>
-          <p className="text-sm text-duo-gray-dark">
+          <p className="text-sm text-[var(--duo-fg-muted)]">
             Gerencie o perfil e configurações da academia
           </p>
         </div>
       </FadeIn>
 
       <SlideIn delay={0.1}>
-        <DuoCard.Root variant="orange" padding="md">
+        <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Building2
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
                 aria-hidden
               />
               <h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
             </div>
           </DuoCard.Header>
-          <p className="mb-4 text-sm font-medium text-duo-text">
+          <p className="mb-4 text-sm font-medium text-[var(--duo-fg)]">
             Plano {profile.plan}
           </p>
           <div className="space-y-3">
             {[
               {
-                icon: MapPin,
                 title: "Endereço",
                 description: "Opcional",
-                color: "duo-green",
+                iconBg: "bg-duo-green/10",
+                Icon: MapPin,
+                iconClass: "text-duo-green",
                 content: (
                   <DuoInput.Simple
                     id="address"
@@ -344,10 +344,11 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: Phone,
                 title: "Telefone",
                 description: "Opcional",
-                color: "duo-blue",
+                iconBg: "bg-duo-blue/10",
+                Icon: Phone,
+                iconClass: "text-duo-blue",
                 content: (
                   <DuoInput.Simple
                     id="phone"
@@ -359,21 +360,23 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: Mail,
                 title: "Email",
                 description: "Não pode ser alterado aqui",
-                color: "neutral",
+                iconBg: "bg-[var(--duo-bg-elevated)]",
+                Icon: Mail,
+                iconClass: "text-[var(--duo-fg-muted)]",
                 content: (
-                  <p className="mt-2 text-sm font-medium text-duo-text">
+                  <p className="mt-2 text-sm font-medium text-[var(--duo-fg)]">
                     {profile.email}
                   </p>
                 ),
               },
               {
-                icon: FileText,
                 title: "CNPJ",
                 description: "Opcional",
-                color: "duo-purple",
+                iconBg: "bg-duo-purple/10",
+                Icon: FileText,
+                iconClass: "text-duo-purple",
                 content: (
                   <DuoInput.Simple
                     id="cnpj"
@@ -385,11 +388,12 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: CreditCard,
                 title: "Chave PIX para Recebimentos",
                 description:
                   "Os pagamentos dos alunos serão transferidos para esta chave",
-                color: "duo-yellow",
+                iconBg: "bg-duo-yellow/10",
+                Icon: CreditCard,
+                iconClass: "text-duo-yellow",
                 content: (
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <DuoSelect.Simple
@@ -433,40 +437,26 @@ export function GymSettingsPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
-                <DuoCard.Root variant="default" size="default">
+                <DuoCard.Root
+                  variant="default"
+                  size="default"
+                  className="border-2 border-[var(--duo-border)]"
+                >
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
-                          "shrink-0 rounded-xl p-3",
-                          field.color === "duo-green" && "bg-duo-green/10",
-                          field.color === "duo-blue" && "bg-duo-blue/10",
-                          field.color === "neutral" && "bg-gray-100",
-                          field.color === "duo-purple" && "bg-duo-purple/10",
-                          field.color === "duo-yellow" && "bg-duo-yellow/10",
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-3",
+                          field.iconBg,
                         )}
                       >
-                        {field.color === "duo-green" && (
-                          <MapPin className="h-5 w-5 text-duo-green" />
-                        )}
-                        {field.color === "duo-blue" && (
-                          <Phone className="h-5 w-5 text-duo-blue" />
-                        )}
-                        {field.color === "neutral" && (
-                          <Mail className="h-5 w-5 text-duo-gray-dark" />
-                        )}
-                        {field.color === "duo-purple" && (
-                          <FileText className="h-5 w-5 text-duo-purple" />
-                        )}
-                        {field.color === "duo-yellow" && (
-                          <CreditCard className="h-5 w-5 text-duo-yellow" />
-                        )}
+                        <field.Icon className={cn("h-5 w-5", field.iconClass)} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-duo-text">
+                        <div className="text-sm font-bold text-[var(--duo-fg)]">
                           {field.title}
                         </div>
-                        <div className="text-xs text-duo-gray-dark">
+                        <div className="text-xs text-[var(--duo-fg-muted)]">
                           {field.description}
                         </div>
                       </div>
@@ -507,8 +497,7 @@ export function GymSettingsPage({
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Clock
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
                 aria-hidden
               />
               <h2 className="font-bold text-[var(--duo-fg)]">
@@ -647,8 +636,7 @@ export function GymSettingsPage({
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Shield
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
                 aria-hidden
               />
               <h2 className="font-bold text-[var(--duo-fg)]">
@@ -708,10 +696,10 @@ export function GymSettingsPage({
                       )}
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="text-sm font-bold text-duo-text">
+                      <div className="text-sm font-bold text-[var(--duo-fg)]">
                         {setting.title}
                       </div>
-                      <div className="text-xs text-duo-gray-dark">
+                      <div className="text-xs text-[var(--duo-fg-muted)]">
                         {setting.description}
                       </div>
                     </div>
@@ -728,8 +716,7 @@ export function GymSettingsPage({
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Shield
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
                 aria-hidden
               />
               <h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
@@ -748,10 +735,10 @@ export function GymSettingsPage({
                     <ArrowRightLeft className="h-5 w-5 text-duo-blue" />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm font-bold text-duo-text">
+                    <div className="text-sm font-bold text-[var(--duo-fg)]">
                       Trocar para Perfil de Aluno
                     </div>
-                    <div className="text-xs text-duo-gray-dark">
+                    <div className="text-xs text-[var(--duo-fg-muted)]">
                       Acessar como estudante
                     </div>
                   </div>
@@ -765,12 +752,12 @@ export function GymSettingsPage({
               onClick={handleLogout}
             >
               <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-red-50 p-3">
-                  <LogOut className="h-5 w-5 text-red-600" />
+                <div className="rounded-xl bg-[var(--duo-danger)]/10 p-3">
+                  <LogOut className="h-5 w-5 text-[var(--duo-danger)]" />
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-bold text-duo-text">Sair</div>
-                  <div className="text-xs text-duo-gray-dark">
+                  <div className="text-sm font-bold text-[var(--duo-fg)]">Sair</div>
+                  <div className="text-xs text-[var(--duo-fg-muted)]">
                     Fazer logout da conta
                   </div>
                 </div>
