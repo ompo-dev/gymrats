@@ -98,7 +98,9 @@ export class GymSubscriptionService {
 
   /**
    * Sincroniza o benefício de plano Premium (gratuito) para alunos de academia Enterprise.
-   * Quando a academia tem plano Enterprise ativo, todos os alunos recebem Premium de aluno gratuitamente.
+   * - Com Enterprise: aluno passa a usar Premium da academia (substitui até OWN pago).
+   *   Se tinha OWN Premium com período futuro, guardamos em ownPeriodEndBackup para restaurar ao sair.
+   * - Ao sair da academia Enterprise: se existir ownPeriodEndBackup futura, restaura Premium OWN até essa data.
    */
   static async syncStudentEnterpriseBenefit(studentId: string) {
     const enterpriseMemberships = await db.gymMembership.findMany({
@@ -120,46 +122,72 @@ export class GymSubscriptionService {
       where: { studentId }
     });
 
-    // Plano próprio Premium (OWN) tem prioridade
-    if (currentSub?.source === "OWN" && currentSub.plan.toLowerCase().includes("premium") && currentSub.status === "active") {
-      return;
-    }
+    const now = new Date();
+    const oneYearFromNow = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
     if (hasEnterpriseBenefit) {
       const mainGymId = enterpriseMemberships[0].gymId;
 
-      // Garantir Premium gratuito via Enterprise (substitui free/basic ou já existente GYM_ENTERPRISE)
-      if (!currentSub || currentSub.plan === "free" || currentSub.plan === "basic" || currentSub.source === "GYM_ENTERPRISE") {
-        await db.subscription.upsert({
-          where: { studentId },
-          create: {
-            studentId,
-            plan: "premium",
-            status: "active",
-            source: "GYM_ENTERPRISE",
-            enterpriseGymId: mainGymId,
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-          },
-          update: {
-            plan: "premium",
-            status: "active",
-            source: "GYM_ENTERPRISE",
-            enterpriseGymId: mainGymId
-          }
-        });
-      }
+      // Guardar fim do período OWN se o aluno tinha Premium próprio (para restaurar ao sair)
+      const hadOwnPremium =
+        currentSub?.source === "OWN" &&
+        currentSub.plan.toLowerCase().includes("premium") &&
+        new Date(currentSub.currentPeriodEnd) > now;
+      const ownPeriodEndBackup = hadOwnPremium ? currentSub!.currentPeriodEnd : undefined;
+
+      await db.subscription.upsert({
+        where: { studentId },
+        create: {
+          studentId,
+          plan: "premium",
+          status: "active",
+          source: "GYM_ENTERPRISE",
+          enterpriseGymId: mainGymId,
+          currentPeriodStart: now,
+          currentPeriodEnd: oneYearFromNow,
+          ...(ownPeriodEndBackup && { ownPeriodEndBackup: ownPeriodEndBackup })
+        },
+        update: {
+          plan: "premium",
+          status: "active",
+          source: "GYM_ENTERPRISE",
+          enterpriseGymId: mainGymId,
+          ...(ownPeriodEndBackup != null && { ownPeriodEndBackup: ownPeriodEndBackup })
+        }
+      });
     } else {
       if (currentSub?.source === "GYM_ENTERPRISE") {
-        await db.subscription.update({
-          where: { id: currentSub.id },
-          data: {
-            plan: "free",
-            status: "inactive",
-            source: "OWN",
-            enterpriseGymId: null
-          }
-        });
+        const sub = currentSub as typeof currentSub & { ownPeriodEndBackup?: Date | null };
+        const backupEnd = sub.ownPeriodEndBackup ? new Date(sub.ownPeriodEndBackup) : null;
+        const hasValidOwnBackup = backupEnd && backupEnd > now;
+
+        if (hasValidOwnBackup) {
+          await db.subscription.update({
+            where: { id: currentSub.id },
+            data: {
+              plan: "premium",
+              status: "active",
+              source: "OWN",
+              enterpriseGymId: null,
+              currentPeriodStart: now,
+              currentPeriodEnd: backupEnd,
+              ownPeriodEndBackup: null
+            }
+          });
+        } else {
+          await db.subscription.update({
+            where: { id: currentSub.id },
+            data: {
+              plan: "free",
+              status: "inactive",
+              source: "OWN",
+              enterpriseGymId: null,
+              currentPeriodStart: now,
+              currentPeriodEnd: now,
+              ownPeriodEndBackup: null
+            }
+          });
+        }
       }
     }
   }

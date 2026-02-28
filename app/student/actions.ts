@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getStudentContext } from "@/lib/utils/student/student-context";
+import { getStudentSubscriptionSource } from "@/lib/utils/subscription";
 import { StudentProgressService } from "@/lib/services/student/student-progress.service";
 import { StudentWorkoutService } from "@/lib/services/student/student-workout.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";
@@ -151,11 +152,18 @@ export async function getStudentSubscription() {
 			enterpriseGymName = gym?.name;
 		}
 
+		// Assinatura virtual (Enterprise sem linha em Subscription): garantir objeto completo para o frontend
+		const isVirtualEnterprise = !sub && subInfo.source === "GYM_ENTERPRISE";
+		const virtualPeriodEnd = new Date(now);
+		virtualPeriodEnd.setFullYear(virtualPeriodEnd.getFullYear() + 1);
+
 		return {
+			id: sub?.id ?? (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
 			...subInfo,
 			abacatePayBillingId: sub?.abacatePayBillingId,
-			currentPeriodEnd: sub?.currentPeriodEnd,
-			cancelAtPeriodEnd: sub?.cancelAtPeriodEnd,
+			currentPeriodEnd: sub?.currentPeriodEnd ?? (isVirtualEnterprise ? virtualPeriodEnd : undefined),
+			currentPeriodStart: sub?.currentPeriodStart ?? (isVirtualEnterprise ? now : undefined),
+			cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
 			isTrial: isTrialActive,
 			daysRemaining: trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24))) : null,
 			enterpriseGymName,

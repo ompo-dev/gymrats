@@ -296,6 +296,10 @@ function SubscriptionSectionSimple({
 		// Se não há subscription, mostrar baseado na configuração
 		switch (showPlansWhen) {
 			case "always":
+				// Gym com Enterprise ativo: não mostrar "Escolha seu Plano" (já está no melhor plano)
+				if (userType === "gym" && subscription?.status === "active" && subscription?.plan?.toLowerCase().includes("enterprise")) {
+					return false;
+				}
 				// Para student com subscription ativa anual, não mostrar mesmo com "always"
 				if (userType === "student" && subscription && isPremiumActive) {
 					const currentBillingPeriod = subscription.billingPeriod || "monthly";

@@ -155,7 +155,14 @@ export class GymDomainService {
     });
     if (existing) throw new Error("Aluno já está matriculado");
 
-    // 3. Calculate next billing date
+    // 3. Academia Enterprise: aluno entra ativo e ganha Premium grátis (sem PIX)
+    const gymSub = await db.gymSubscription.findUnique({
+      where: { gymId },
+      select: { plan: true, status: true },
+    });
+    const isEnterprise = gymSub?.status === "active" && gymSub?.plan?.toLowerCase().includes("enterprise");
+
+    // 4. Calculate next billing date
     let nextBillingDate: Date | null = null;
     if (planId) {
       const plan = await db.membershipPlan.findUnique({ where: { id: planId, gymId } });
@@ -166,23 +173,24 @@ export class GymDomainService {
     }
 
     const withPlan = !!planId && amount > 0;
+    const membershipActive = !withPlan || isEnterprise;
 
-    // 4. Create membership (pending se tem plano e valor; active se cortesia)
+    // 5. Create membership (Enterprise ou cortesia → active; senão com plano → pending)
     const membership = await db.gymMembership.create({
       data: {
         gymId,
         studentId,
         planId: planId || null,
         amount,
-        status: withPlan ? "pending" : "active",
+        status: membershipActive ? "active" : "pending",
         autoRenew,
         nextBillingDate,
       },
       include: { student: { include: { user: true } }, plan: true },
     });
 
-    // 5. Se matrícula com plano: criar pagamento pendente no perfil do aluno (ele paga em Pagamentos)
-    if (withPlan && planId) {
+    // 6. Pagamento: só criar pendente se não for Enterprise (aluno paga em Pagamentos)
+    if (withPlan && planId && !isEnterprise) {
       const { createPendingMembershipPayment } = await import("@/lib/services/gym/gym-membership-payment.service");
       await createPendingMembershipPayment(gymId, studentId, planId, amount, membership.id);
       await this.incrementTotalStudentsOnly(gymId);
@@ -398,6 +406,8 @@ export class GymDomainService {
           where: { gymId },
           data: { activeStudents: { decrement: 1 } },
         });
+        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(membership.studentId);
       } else if (!wasActive && isNowActive) {
         await db.gymProfile.updateMany({
           where: { gymId },
@@ -412,7 +422,7 @@ export class GymDomainService {
   static async cancelMember(gymId: string, membershipId: string) {
     const current = await db.gymMembership.findFirst({
       where: { id: membershipId, gymId },
-      select: { status: true },
+      select: { status: true, studentId: true },
     });
 
     if (!current) {
@@ -432,6 +442,8 @@ export class GymDomainService {
           totalStudents: { decrement: 1 },
         },
       });
+      const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(current.studentId);
     }
   }
 

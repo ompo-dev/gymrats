@@ -108,6 +108,9 @@ export async function POST(request: NextRequest) {
 						console.log(
 							`[Webhook] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
 						);
+						if (payment.studentId) {
+							await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+						}
 						return successResponse({
 							received: true,
 							type: "membership-change-plan",

@@ -1000,6 +1000,10 @@ model Subscription {
   abacatePayBillingId  String? @unique // ID da cobrança na AbacatePay
   abacatePayCustomerId String? // ID do cliente na AbacatePay
 
+  // Backup do fim do período OWN quando o aluno recebe Premium via GYM_ENTERPRISE.
+  // Ao sair da academia Enterprise, restauramos Premium OWN até esta data se ainda for futura.
+  ownPeriodEndBackup   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

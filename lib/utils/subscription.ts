@@ -145,7 +145,7 @@ export async function getStudentSubscriptionSource(studentId: string): Promise<S
 
 	if (membership) {
 		return {
-			plan: "basic",
+			plan: "premium",
 			status: "active",
 			source: "GYM_ENTERPRISE",
 			gymId: membership.gymId,
