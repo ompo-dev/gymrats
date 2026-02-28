@@ -1,23 +1,39 @@
 import { db } from "@/lib/db";
 
-export async function initializeStudentTrial(studentId: string) {
+export type StudentTrialResult =
+	| { success: true; subscription: Awaited<ReturnType<typeof db.subscription.create>> }
+	| { success: false; reason: "already_used_trial" | "already_subscribed" };
+
+/**
+ * Trial só pode ser ativado uma vez por aluno.
+ * Se já usou trial (trialStart preenchido) ou já assinou um plano (plan !== "free"), não permite mais trial.
+ * Trial = 14 dias de acesso premium. Cancelar trial ou assinar durante o trial = nunca mais trial.
+ */
+export async function initializeStudentTrial(
+	studentId: string,
+): Promise<StudentTrialResult | null> {
 	try {
 		const existingSubscription = await db.subscription.findUnique({
 			where: { studentId },
 		});
 
-		// Se já teve trial no passado, não permite iniciar novamente (apenas uma única vez)
+		// Já usou trial (cancelou ou assinou durante o trial = trialStart fica preenchido para sempre)
 		if (existingSubscription?.trialStart) {
-			return existingSubscription;
+			return { success: false, reason: "already_used_trial" };
+		}
+
+		// Já assinou um plano pago (basic/premium) → trial não é mais possível
+		if (existingSubscription && existingSubscription.plan !== "free") {
+			return { success: false, reason: "already_subscribed" };
 		}
 
 		const now = new Date();
 		const trialEnd = new Date(now);
 		trialEnd.setDate(trialEnd.getDate() + 14);
 
-		// Se já existe um registro (plano free ou algo do tipo), atualiza para trial
+		// Plano free sem trial ainda: atualizar para trial (14 dias premium)
 		if (existingSubscription) {
-			return await db.subscription.update({
+			const subscription = await db.subscription.update({
 				where: { id: existingSubscription.id },
 				data: {
 					plan: "premium",
@@ -30,9 +46,10 @@ export async function initializeStudentTrial(studentId: string) {
 					cancelAtPeriodEnd: false,
 				},
 			});
+			return { success: true, subscription };
 		}
 
-		// Caso contrário, cria um novo registro de assinatura com trial
+		// Sem registro: criar assinatura em trial
 		const subscription = await db.subscription.create({
 			data: {
 				studentId,
@@ -45,7 +62,7 @@ export async function initializeStudentTrial(studentId: string) {
 			},
 		});
 
-		return subscription;
+		return { success: true, subscription };
 	} catch (error) {
 		console.error("Erro ao inicializar trial do aluno:", error);
 		return null;

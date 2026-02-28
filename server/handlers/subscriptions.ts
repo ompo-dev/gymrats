@@ -40,19 +40,19 @@ export async function createSubscriptionHandler({
 	studentId,
 }: SubscriptionContext) {
 	try {
-		const validation = validateBody(body, createSubscriptionSchema);
+		const validation = validateBody(body ?? {}, createSubscriptionSchema);
 		if (!validation.success) {
 			return badRequestResponse(
 				set,
 				`Erros de validação: ${validation.errors.join("; ")}`,
-				{ errors: validation.errors },
+				{ errors: validation.errors } as Record<string, string | number | boolean | object | null>,
 			);
 		}
 
-		const data = validation.data as { plan: string };
+		const { plan } = validation.data;
 		const now = new Date();
 		const periodEnd = new Date(now);
-		if (data.billingPeriod === "annual") {
+		if (plan === "annual") {
 			periodEnd.setFullYear(periodEnd.getFullYear() + 1);
 		} else {
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -96,12 +96,30 @@ export async function startTrialHandler({
 	studentId,
 }: SubscriptionContext) {
 	try {
-		const validation = validateBody(body, startTrialSchema);
+		const validation = validateBody(body ?? {}, startTrialSchema);
 		if (!validation.success) {
 			return badRequestResponse(
 				set,
 				`Erros de validação: ${validation.errors.join("; ")}`,
-				{ errors: validation.errors },
+				{ errors: validation.errors } as Record<string, string | number | boolean | object | null>,
+			);
+		}
+
+		const existingSubscription = await db.subscription.findUnique({
+			where: { studentId },
+		});
+
+		// Trial só uma vez: já usou (trialStart) ou já assinou plano pago
+		if (existingSubscription?.trialStart) {
+			return badRequestResponse(
+				set,
+				"Você já utilizou o trial anteriormente. Trial só pode ser ativado uma vez.",
+			);
+		}
+		if (existingSubscription && existingSubscription.plan !== "free") {
+			return badRequestResponse(
+				set,
+				"Você já possui uma assinatura. Renove ou escolha um plano para continuar.",
 			);
 		}
 
@@ -109,26 +127,31 @@ export async function startTrialHandler({
 		const trialEnd = new Date(now);
 		trialEnd.setDate(trialEnd.getDate() + 14);
 
-		const subscription = await db.subscription.upsert({
-			where: { studentId },
-			update: {
-				plan: "premium",
-				status: "trialing",
-				trialStart: now,
-				trialEnd,
-				currentPeriodStart: now,
-				currentPeriodEnd: trialEnd,
-			},
-			create: {
-				studentId,
-				plan: "premium",
-				status: "trialing",
-				trialStart: now,
-				trialEnd,
-				currentPeriodStart: now,
-				currentPeriodEnd: trialEnd,
-			},
-		});
+		const subscription = existingSubscription
+			? await db.subscription.update({
+					where: { id: existingSubscription.id },
+					data: {
+						plan: "premium",
+						status: "trialing",
+						trialStart: now,
+						trialEnd,
+						currentPeriodStart: now,
+						currentPeriodEnd: trialEnd,
+						canceledAt: null,
+						cancelAtPeriodEnd: false,
+					},
+				})
+			: await db.subscription.create({
+					data: {
+						studentId,
+						plan: "premium",
+						status: "trialing",
+						currentPeriodStart: now,
+						currentPeriodEnd: trialEnd,
+						trialStart: now,
+						trialEnd,
+					},
+				});
 
 		return successResponse(set, {
 			subscription,
@@ -195,6 +218,7 @@ export async function activatePremiumHandler({
 			where: { studentId },
 		});
 
+		// Ao ativar premium, não limpar trialStart/trialEnd: quem já usou trial não pode usar de novo
 		const subscription = existingSubscription
 			? await db.subscription.update({
 					where: { id: existingSubscription.id },
@@ -203,8 +227,6 @@ export async function activatePremiumHandler({
 						status: "active",
 						currentPeriodStart: now,
 						currentPeriodEnd: periodEnd,
-						trialStart: null,
-						trialEnd: null,
 						canceledAt: null,
 						cancelAtPeriodEnd: false,
 					},
@@ -216,8 +238,6 @@ export async function activatePremiumHandler({
 						status: "active",
 						currentPeriodStart: now,
 						currentPeriodEnd: periodEnd,
-						trialStart: null,
-						trialEnd: null,
 						canceledAt: null,
 						cancelAtPeriodEnd: false,
 					},

@@ -24,6 +24,8 @@ export interface StudentSubscriptionData {
 	source?: "OWN" | "GYM_ENTERPRISE";
 	gymId?: string;
 	enterpriseGymName?: string;
+	/** Trial só uma vez: false se já usou trial ou já assinou */
+	canStartTrial?: boolean;
 }
 
 // Tipo unificado para subscription de gym
@@ -43,7 +45,9 @@ export interface GymSubscriptionData {
 	daysRemaining: number | null;
 	activeStudents: number;
 	totalAmount: number;
-	billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
+	billingPeriod?: "monthly" | "annual";
+	/** Trial só uma vez: false quando já existe assinatura */
+	canStartTrial?: boolean;
 }
 
 // Tipo unificado
@@ -268,13 +272,14 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				);
 			}
 
-			if (errorMessage.includes("já existe")) {
-				await queryClient.invalidateQueries({
-					queryKey: [queryKey],
-				});
-				await queryClient.refetchQueries({
-					queryKey: [queryKey],
-				});
+			// Refetch para atualizar canStartTrial quando trial não é mais permitido
+			if (
+				errorMessage.includes("já existe") ||
+				errorMessage.includes("já utilizou") ||
+				errorMessage.includes("já possui")
+			) {
+				await queryClient.invalidateQueries({ queryKey: [queryKey] });
+				await queryClient.refetchQueries({ queryKey: [queryKey] });
 			}
 		},
 		onSuccess: async () => {

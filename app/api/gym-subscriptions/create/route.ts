@@ -52,8 +52,6 @@ export const POST = createSafeHandler(
 					pricePerStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},

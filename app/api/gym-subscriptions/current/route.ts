@@ -13,7 +13,7 @@ export const GET = createSafeHandler(
 			(subscription.status === "canceled" &&
 				(!subscription.trialEnd || (getTimeMs(subscription.trialEnd) ?? 0) < Date.now()))
 		) {
-			return NextResponse.json({ subscription: null });
+			return NextResponse.json({ subscription: null, canStartTrial: true });
 		}
 
 		const activeStudents = await db.gymMembership.count({
@@ -56,6 +56,7 @@ export const GET = createSafeHandler(
 				daysRemaining,
 				activeStudents,
 				totalAmount,
+				canStartTrial: false,
 			},
 		});
 	},

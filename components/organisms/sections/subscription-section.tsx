@@ -242,6 +242,10 @@ function SubscriptionSectionSimple({
 		(!isLoading && !isStartingTrial && !subscription) ||
 		isCanceledAndTrialExpired;
 
+	// Trial só uma vez: ocultar oferta se já usou trial ou já assinou (canStartTrial === false)
+	const canStartTrial =
+		subscription == null || ("canStartTrial" in subscription && subscription.canStartTrial !== false);
+
 	const daysRemaining = subscription?.daysRemaining ?? null;
 	const isTrialEnding =
 		isTrialActive && daysRemaining !== null && daysRemaining <= trialEndingDays;
@@ -367,8 +371,8 @@ function SubscriptionSectionSimple({
 				</DuoCard.Root>
 			)}
 
-			{/* Trial Offer - Mostrar apenas se não há subscription */}
-			{!isLoading && !isStartingTrial && hasNoSubscription && (
+			{/* Trial Offer - Apenas se não há subscription (ou expirou) e ainda pode ativar trial (uma vez por conta) */}
+			{!isLoading && !isStartingTrial && hasNoSubscription && canStartTrial && (
 				<TrialOffer.Simple
 					title={finalTexts.trialTitle}
 					description={finalTexts.trialDescription}

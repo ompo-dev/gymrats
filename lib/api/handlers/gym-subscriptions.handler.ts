@@ -125,7 +125,7 @@ export async function createGymSubscriptionHandler(
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
 		}
 
-		// Se existe subscription, atualizar
+		// Se existe subscription, atualizar (não limpar trialStart/trialEnd: trial só uma vez)
 		if (existingSubscription) {
 			await db.gymSubscription.update({
 				where: { id: existingSubscription.id },
@@ -137,8 +137,6 @@ export async function createGymSubscriptionHandler(
 					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},

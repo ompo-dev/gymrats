@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
 
 		let subscription: Subscription;
 
+		// Ao ativar premium, não limpar trialStart/trialEnd: trial só uma vez por usuário
 		if (existingSubscription) {
-			// Atualizar subscription existente
 			subscription = await db.subscription.update({
 				where: { id: existingSubscription.id },
 				data: {
@@ -80,14 +80,11 @@ export async function POST(request: NextRequest) {
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},
 			});
 		} else {
-			// Criar nova subscription
 			subscription = await db.subscription.create({
 				data: {
 					studentId,
@@ -95,8 +92,6 @@ export async function POST(request: NextRequest) {
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},
