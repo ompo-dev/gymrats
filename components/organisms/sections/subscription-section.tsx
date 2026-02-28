@@ -265,27 +265,25 @@ function SubscriptionSectionSimple({
 
 	// Determinar quando mostrar os planos
 	// Para gym: sempre mostrar planos quando há subscription (para permitir upgrade/downgrade)
-	// Para student: apenas mostrar opção de mudar para anual se estiver no mensal
+	// Para student: não mostrar upgrade quando Premium via academia; só "mudar para anual" se OWN mensal
 	const shouldShowPlans = (() => {
+		// Student com Premium via academia: nunca mostrar planos/upgrade
+		if (userType === "student" && subscription?.source === "GYM_ENTERPRISE") {
+			return false;
+		}
+
 		// Se há subscription ativa
 		if (subscription && isPremiumActive) {
-			// Para student: apenas mostrar se estiver no plano mensal (para mudar para anual)
+			// Para student: apenas mostrar se estiver no plano mensal OWN (para mudar para anual)
 			if (userType === "student") {
 				const currentBillingPeriod = subscription.billingPeriod || "monthly";
-				// Se estiver no plano anual, não mostrar opções de planos
 				if (currentBillingPeriod === "annual") {
 					return false;
 				}
-				// Se estiver no plano mensal, mostrar apenas opção de mudar para anual
 				return true;
 			}
 			// Para gym: sempre mostrar todos os planos (para permitir upgrade/downgrade)
 			return true;
-		}
-
-		// Se tem benefício enterprise, não mostrar planos
-		if (subscription?.source === "GYM_ENTERPRISE") {
-			return false;
 		}
 
 		// Se há subscription em trial ou cancelada, mostrar planos normalmente

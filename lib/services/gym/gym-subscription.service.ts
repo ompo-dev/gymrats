@@ -19,10 +19,15 @@ export class GymSubscriptionService {
 
     // Se tem plano Premium/Enterprise, reativar TODAS as academias (ex.: usuário voltou ao plano)
     if (hasQualifiedSubscription) {
+      const previouslyInactive = gyms.filter(g => !g.isActive).map(g => g.id);
       await db.gym.updateMany({
         where: { userId },
         data: { isActive: true }
       });
+      // Reaplicar benefício Enterprise só nas academias que estavam inativas e voltaram a ativas
+      for (const gymId of previouslyInactive) {
+        await this.syncAllStudentsEnterpriseBenefit(gymId);
+      }
       return;
     }
 
@@ -42,6 +47,8 @@ export class GymSubscriptionService {
         gymToKeepId = gyms[0].id;
     }
 
+    const gymIdsToInactivate = gyms.filter(g => g.id !== gymToKeepId).map(g => g.id);
+
     // Inativar todas as outras
     await db.gym.updateMany({
       where: {
@@ -51,15 +58,17 @@ export class GymSubscriptionService {
       },
       data: { isActive: false }
     });
-    
+
+    // Alunos das academias inativadas perdem Premium dessa academia; se tiverem outra Enterprise ativa, mantêm
+    for (const gymId of gymIdsToInactivate) {
+      await this.syncAllStudentsEnterpriseBenefit(gymId);
+    }
+
     // Garantir que a escolhida está ativa
     await db.gym.update({
         where: { id: gymToKeepId },
         data: { isActive: true }
     });
-
-    // Se a academia que foi inativada era a activeGymId, atualizar o usuário? 
-    // Na verdade, tentamos manter a activeGymId ativa acima.
   }
 
   /**
@@ -108,6 +117,7 @@ export class GymSubscriptionService {
         studentId,
         status: "active",
         gym: {
+          isActive: true,
           subscription: {
             plan: "enterprise",
             status: "active"

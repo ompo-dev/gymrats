@@ -126,12 +126,13 @@ export async function getStudentSubscriptionSource(studentId: string): Promise<S
 		};
 	}
 
-	// Tentar encontrar via academia enterprise de forma virtual
+	// Tentar encontrar via academia enterprise de forma virtual (só gym ativa)
 	const membership = await db.gymMembership.findFirst({
 		where: {
 			studentId,
 			status: "active",
 			gym: {
+				isActive: true,
 				subscription: {
 					plan: "enterprise",
 					status: "active",

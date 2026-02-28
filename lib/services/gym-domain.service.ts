@@ -609,7 +609,10 @@ export class GymDomainService {
             profile: true,
             progress: true,
             memberships: {
-              where: { gymId },
+              where: {
+                gymId,
+                status: { in: ["active", "pending"] },
+              },
             },
           },
         },
