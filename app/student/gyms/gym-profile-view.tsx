@@ -9,6 +9,7 @@ import {
 	MapPin,
 	Phone,
 	Star,
+	UserMinus,
 	Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -53,6 +54,7 @@ interface GymProfileViewProps {
 	onBack: () => void;
 	onJoinPlan: (gymId: string, planId: string) => void;
 	onChangePlan?: (membershipId: string, planId: string) => void;
+	onCancelMembership?: (membershipId: string) => void | Promise<void>;
 	/** Quando mudar, refaz o fetch do perfil (ex: após PIX confirmado) */
 	profileRefreshKey?: number;
 }
@@ -62,6 +64,7 @@ export function GymProfileView({
 	onBack,
 	onJoinPlan,
 	onChangePlan,
+	onCancelMembership,
 	profileRefreshKey,
 }: GymProfileViewProps) {
 	const [profile, setProfile] = useState<GymProfileData | null>(null);
@@ -131,8 +134,8 @@ export function GymProfileView({
 				<DuoCard.Root variant="default" padding="md">
 					<DuoCard.Header>
 						<div className="flex items-center gap-2">
-							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+							<Dumbbell className="h-5 w-5 shrink-0 text-duo-secondary" aria-hidden />
+							<h2 className="font-bold text-duo-fg">{profile.name}</h2>
 						</div>
 					</DuoCard.Header>
 					<div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -221,8 +224,8 @@ export function GymProfileView({
 				<DuoCard.Root variant="default" padding="md">
 					<DuoCard.Header>
 						<div className="flex items-center gap-2">
-							<Check className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Comodidades</h2>
+							<Check className="h-5 w-5 shrink-0 text-duo-secondary" aria-hidden />
+							<h2 className="font-bold text-duo-fg">Comodidades</h2>
 						</div>
 					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
@@ -242,8 +245,8 @@ export function GymProfileView({
 				<DuoCard.Root variant="default" padding="md">
 					<DuoCard.Header>
 						<div className="flex items-center gap-2">
-							<Dumbbell className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Equipamentos</h2>
+							<Dumbbell className="h-5 w-5 shrink-0 text-duo-secondary" aria-hidden />
+							<h2 className="font-bold text-duo-fg">Equipamentos</h2>
 						</div>
 					</DuoCard.Header>
 					<div className="flex flex-wrap gap-2">
@@ -254,7 +257,7 @@ export function GymProfileView({
 									"rounded-lg border-2 px-2 py-1 text-xs font-bold",
 									e.status === "available"
 										? "border-duo-green bg-duo-green/10 text-duo-green"
-										: "border-duo-border bg-[var(--duo-bg-elevated)] text-duo-gray-dark",
+										: "border-duo-border bg-duo-bg-elevated text-duo-gray-dark",
 								)}
 							>
 								{e.name}
@@ -269,11 +272,38 @@ export function GymProfileView({
 				</DuoCard.Root>
 			)}
 
+			{profile.myMembership &&
+				(profile.myMembership.status === "active" ||
+					profile.myMembership.status === "pending") &&
+				onCancelMembership && (
+					<DuoCard.Root variant="default" padding="md">
+						<div className="flex flex-wrap items-center justify-between gap-3">
+							<div>
+								<p className="font-bold text-duo-fg">Sua matrícula nesta academia</p>
+								<p className="text-sm text-duo-fg-muted">
+									{profile.myMembership.status === "active"
+										? "Ativa"
+										: "Pendente de pagamento"}
+								</p>
+							</div>
+							<DuoButton
+								variant="outline"
+								size="sm"
+								onClick={() => onCancelMembership(profile.myMembership!.id)}
+								className="gap-2 border-duo-red text-duo-red hover:bg-duo-red/10"
+							>
+								<UserMinus className="h-4 w-4" />
+								Cancelar assinatura
+							</DuoButton>
+						</div>
+					</DuoCard.Root>
+				)}
+
 			<DuoCard.Root variant="default" padding="md">
 				<DuoCard.Header>
 					<div className="flex items-center gap-2">
-						<CreditCard className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-						<h2 className="font-bold text-[var(--duo-fg)]">Planos disponíveis</h2>
+						<CreditCard className="h-5 w-5 shrink-0 text-duo-secondary" aria-hidden />
+						<h2 className="font-bold text-duo-fg">Planos disponíveis</h2>
 					</div>
 				</DuoCard.Header>
 				<div className="space-y-3">

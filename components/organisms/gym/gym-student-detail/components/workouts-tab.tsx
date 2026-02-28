@@ -10,14 +10,14 @@ import type {
 	WorkoutHistory,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { WorkoutPreviewCard } from "@/components/organisms/modals/workout-preview-card";
 
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+const DAY_NAMES_FULL = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
 
-/** Início da semana (segunda-feira 00:00) em UTC do timezone local */
 function getStartOfWeek(d: Date): Date {
 	const date = new Date(d);
 	const day = date.getDay();
-	// Domingo = 0, Segunda = 1, ... Sábado = 6. Queremos segunda como início.
 	const diff = day === 0 ? -6 : 1 - day;
 	date.setDate(date.getDate() + diff);
 	date.setHours(0, 0, 0, 0);
@@ -57,7 +57,7 @@ function getFeedbackColor(feedback?: string): string {
 	}
 }
 
-/** Card de treino no mesmo layout do recent-workouts: linha 1 = nome + dia, linha 2 = tempo + kg (ou tempo + grupo muscular) */
+/** Card de treino (histórico): nome + dia, tempo + kg, feedback */
 function WorkoutRowCard({
 	title,
 	dayLabel,
@@ -109,6 +109,27 @@ function WorkoutRowCard({
 	);
 }
 
+/** Converte WorkoutSession do plano para o formato do WorkoutPreviewCard */
+function toPreviewWorkout(slot: PlanSlotData) {
+	if (!slot.workout) return null;
+	const w = slot.workout;
+	return {
+		title: w.title,
+		description: w.description || "",
+		type: "strength" as const,
+		muscleGroup: w.muscleGroup || "",
+		difficulty: (w.difficulty || "iniciante") as "iniciante" | "intermediario" | "avancado",
+		exercises: (w.exercises ?? []).map((ex) => ({
+			name: ex.name,
+			sets: ex.sets ?? 0,
+			reps: ex.reps ?? "",
+			rest: ex.rest ?? 0,
+			notes: ex.notes,
+			alternatives: undefined,
+		})),
+	};
+}
+
 export interface WorkoutsTabProps {
 	student: StudentData;
 	weeklyPlan: WeeklyPlanData | null | undefined;
@@ -157,74 +178,39 @@ export function WorkoutsTab({
 									` • ${weeklyPlan.description}`}
 							</p>
 						)}
-						<div className="space-y-2">
-							{sortedSlots.map((slot: PlanSlotData) => {
-								if (slot.type === "rest" || !slot.workout) {
-									return (
-										<div
-											key={slot.id}
-											className="flex items-center gap-3"
+						{/* Mesma estrutura do workouts-list-section: divider + card por slot */}
+						<div className="space-y-4">
+							{sortedSlots.map((slot: PlanSlotData) => (
+								<div key={slot.id} className="space-y-2">
+									<div className="flex items-center gap-2">
+										<div className="h-px flex-1 bg-duo-border" />
+										<span className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider px-2">
+											{DAY_NAMES_FULL[slot.dayOfWeek] ?? "—"}
+										</span>
+										<div className="h-px flex-1 bg-duo-border" />
+									</div>
+									{slot.type === "rest" || !slot.workout ? (
+										<DuoCard.Root
+											variant="default"
+											padding="md"
+											className="bg-duo-gray/5 border-dashed"
 										>
-											<span className="w-16 text-sm font-bold text-duo-gray-dark shrink-0">
-												{DAY_NAMES[slot.dayOfWeek] ?? "—"}
-											</span>
-											<div className="flex flex-1 items-center gap-2 rounded-lg bg-duo-gray/20 px-4 py-2">
-												<Moon className="h-4 w-4 text-duo-gray" />
-												<span className="text-sm font-bold text-duo-gray-dark">
+											<div className="flex items-center gap-2 text-duo-fg-muted">
+												<Moon className="h-5 w-5" />
+												<span className="text-sm font-medium">
 													Descanso
 												</span>
 											</div>
-										</div>
-									);
-								}
-								const w = slot.workout;
-								const dayLabel = DAY_NAMES[slot.dayOfWeek] ?? "—";
-								return (
-									<div
-										key={slot.id}
-										className="flex items-start gap-3"
-									>
-										<span className="w-16 shrink-0 pt-1.5 text-sm font-bold text-duo-gray-dark">
-											{dayLabel}
-										</span>
-										<div className="flex-1 min-w-0">
-											<WorkoutRowCard
-												title={w.title}
-												dayLabel={dayLabel}
-												minutes={w.estimatedTime ?? 0}
-											/>
-											{w.exercises?.length > 0 && (
-												<div className="mt-2 space-y-1 border-t border-duo-border pt-2 pl-3">
-													{w.exercises
-														.slice(0, 5)
-														.map(
-															(ex: {
-																id: string;
-																name: string;
-															}) => (
-																<p
-																	key={ex.id}
-																	className="text-xs text-duo-gray-dark"
-																>
-																	• {ex.name}
-																</p>
-															),
-														)}
-													{(w.exercises?.length ??
-														0) > 5 && (
-														<p className="text-xs text-duo-gray-dark">
-															+{" "}
-															{(w.exercises?.length ??
-																0) - 5}{" "}
-															exercício(s)
-														</p>
-													)}
-												</div>
-											)}
-										</div>
-									</div>
-								);
-							})}
+										</DuoCard.Root>
+									) : (
+										<WorkoutPreviewCard
+											workout={toPreviewWorkout(slot)!}
+											index={slot.dayOfWeek}
+											displayNumber={slot.dayOfWeek + 1}
+										/>
+									)}
+								</div>
+							))}
 						</div>
 					</div>
 				) : (

@@ -1,32 +1,30 @@
 "use client";
 
 import {
-  ArrowRightLeft,
-  Bell,
   Building2,
   Clock,
   CreditCard,
   FileText,
   Loader2,
-  LogOut,
   Mail,
   MapPin,
   Phone,
-  Shield,
-  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
-import { Label } from "@/components/molecules/forms/label";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+	GymSettingsAccountCard,
+	GymSettingsHeader,
+	GymSettingsOtherCard,
+} from "./gym-settings/index";
 import { MembershipPlansPage } from "./membership-plans-page";
 
 const WEEKDAYS = [
@@ -300,29 +298,20 @@ export function GymSettingsPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <FadeIn>
-        <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-[var(--duo-fg)]">
-            Configurações
-          </h1>
-          <p className="text-sm text-[var(--duo-fg-muted)]">
-            Gerencie o perfil e configurações da academia
-          </p>
-        </div>
-      </FadeIn>
+      <GymSettingsHeader />
 
       <SlideIn delay={0.1}>
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Building2
-                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
+                className="h-5 w-5 shrink-0 text-duo-secondary"
                 aria-hidden
               />
-              <h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+              <h2 className="font-bold text-duo-fg">{profile.name}</h2>
             </div>
           </DuoCard.Header>
-          <p className="mb-4 text-sm font-medium text-[var(--duo-fg)]">
+          <p className="mb-4 text-sm font-medium text-duo-fg">
             Plano {profile.plan}
           </p>
           <div className="space-y-3">
@@ -362,11 +351,11 @@ export function GymSettingsPage({
               {
                 title: "Email",
                 description: "Não pode ser alterado aqui",
-                iconBg: "bg-[var(--duo-bg-elevated)]",
+                iconBg: "bg-duo-bg-elevated",
                 Icon: Mail,
-                iconClass: "text-[var(--duo-fg-muted)]",
+                iconClass: "text-duo-fg-muted",
                 content: (
-                  <p className="mt-2 text-sm font-medium text-[var(--duo-fg)]">
+                  <p className="mt-2 text-sm font-medium text-duo-fg">
                     {profile.email}
                   </p>
                 ),
@@ -440,7 +429,7 @@ export function GymSettingsPage({
                 <DuoCard.Root
                   variant="default"
                   size="default"
-                  className="border-2 border-[var(--duo-border)]"
+                  className="border-2 border-duo-border"
                 >
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
@@ -453,10 +442,10 @@ export function GymSettingsPage({
                         <field.Icon className={cn("h-5 w-5", field.iconClass)} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-[var(--duo-fg)]">
+                        <div className="text-sm font-bold text-duo-fg">
                           {field.title}
                         </div>
-                        <div className="text-xs text-[var(--duo-fg-muted)]">
+                        <div className="text-xs text-duo-fg-muted">
                           {field.description}
                         </div>
                       </div>
@@ -497,15 +486,15 @@ export function GymSettingsPage({
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Clock
-                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
+                className="h-5 w-5 shrink-0 text-duo-secondary"
                 aria-hidden
               />
-              <h2 className="font-bold text-[var(--duo-fg)]">
+              <h2 className="font-bold text-duo-fg">
                 Horários e Dias de Funcionamento
               </h2>
             </div>
           </DuoCard.Header>
-          <p className="mb-4 text-sm text-[var(--duo-fg-muted)]">
+          <p className="mb-4 text-sm text-duo-fg-muted">
             Marque os dias em que a academia abre e defina o horário de cada um
           </p>
           <div className="space-y-2">
@@ -521,13 +510,13 @@ export function GymSettingsPage({
                   className={cn(
                     "rounded-xl border-2 p-3 transition-all",
                     s.enabled
-                      ? "flex flex-col gap-3 border-[var(--duo-secondary)]/40 bg-[var(--duo-secondary)]/5"
-                      : "flex items-center gap-3 border-[var(--duo-border)] bg-[var(--duo-bg-elevated)]/50",
+                      ? "flex flex-col gap-3 border-duo-secondary/40 bg-duo-secondary/5"
+                      : "flex items-center gap-3 border-duo-border bg-duo-bg-elevated/50",
                   )}
                 >
                   {s.enabled ? (
                     <>
-                      <span className="text-sm font-bold text-[var(--duo-fg)]">
+                      <span className="text-sm font-bold text-duo-fg">
                         {day.label}
                       </span>
                       <div className="flex items-center gap-2">
@@ -545,8 +534,8 @@ export function GymSettingsPage({
                               }
                               className="peer sr-only"
                             />
-                            <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
-                            <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
+                            <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
+                            <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
                           </div>
                         </label>
                       <div className="flex flex-1 items-center gap-2 sm:gap-4">
@@ -560,7 +549,7 @@ export function GymSettingsPage({
                             className="h-8 w-24 min-w-0 text-sm"
                           />
                         </div>
-                        <span className="text-[var(--duo-fg-muted)]">–</span>
+                        <span className="text-duo-fg-muted">–</span>
                         <div className="flex items-center gap-1.5">
                           <DuoInput.Simple
                             type="time"
@@ -589,10 +578,10 @@ export function GymSettingsPage({
                           }
                           className="peer sr-only"
                         />
-                        <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
-                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
+                        <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
+                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-sm font-bold text-[var(--duo-fg)]">
+                      <span className="text-sm font-bold text-duo-fg">
                         {day.label}
                       </span>
                     </label>
@@ -632,139 +621,15 @@ export function GymSettingsPage({
       </SlideIn>
 
       <SlideIn delay={0.4}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Shield
-                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
-                aria-hidden
-              />
-              <h2 className="font-bold text-[var(--duo-fg)]">
-                Outras Configurações
-              </h2>
-            </div>
-          </DuoCard.Header>
-          <div className="space-y-3">
-            {[
-              {
-                icon: Users,
-                title: "Gerenciar Equipe",
-                description: "Adicionar e remover funcionários",
-                color: "duo-purple",
-              },
-              {
-                icon: Bell,
-                title: "Notificações",
-                description: "Configurar alertas e lembretes",
-                color: "duo-yellow",
-              },
-              {
-                icon: Shield,
-                title: "Privacidade e Segurança",
-                description: "Gerencie dados e permissões",
-                color: "duo-red",
-              },
-            ].map((setting, index) => (
-              <motion.div
-                key={setting.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
-                <DuoCard.Root
-                  variant="default"
-                  size="default"
-                  className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "rounded-xl p-3",
-                        setting.color === "duo-purple" && "bg-duo-purple/10",
-                        setting.color === "duo-yellow" && "bg-duo-yellow/10",
-                        setting.color === "duo-red" && "bg-duo-red/10",
-                      )}
-                    >
-                      {setting.color === "duo-purple" && (
-                        <Users className="h-5 w-5 text-duo-purple" />
-                      )}
-                      {setting.color === "duo-yellow" && (
-                        <Bell className="h-5 w-5 text-duo-yellow" />
-                      )}
-                      {setting.color === "duo-red" && (
-                        <Shield className="h-5 w-5 text-duo-red" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-bold text-[var(--duo-fg)]">
-                        {setting.title}
-                      </div>
-                      <div className="text-xs text-[var(--duo-fg-muted)]">
-                        {setting.description}
-                      </div>
-                    </div>
-                  </div>
-                </DuoCard.Root>
-              </motion.div>
-            ))}
-          </div>
-        </DuoCard.Root>
+        <GymSettingsOtherCard />
       </SlideIn>
 
       <SlideIn delay={0.5}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Shield
-                className="h-5 w-5 shrink-0 text-[var(--duo-secondary)]"
-                aria-hidden
-              />
-              <h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
-            </div>
-          </DuoCard.Header>
-          <div className="space-y-3">
-            {(isAdmin || userInfo?.role === "ADMIN") && (
-              <DuoCard.Root
-                variant="default"
-                size="default"
-                className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
-                onClick={handleSwitchToStudent}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-duo-blue/10 p-3">
-                    <ArrowRightLeft className="h-5 w-5 text-duo-blue" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-bold text-[var(--duo-fg)]">
-                      Trocar para Perfil de Aluno
-                    </div>
-                    <div className="text-xs text-[var(--duo-fg-muted)]">
-                      Acessar como estudante
-                    </div>
-                  </div>
-                </div>
-              </DuoCard.Root>
-            )}
-            <DuoCard.Root
-              variant="default"
-              size="default"
-              className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
-              onClick={handleLogout}
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-[var(--duo-danger)]/10 p-3">
-                  <LogOut className="h-5 w-5 text-[var(--duo-danger)]" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-bold text-[var(--duo-fg)]">Sair</div>
-                  <div className="text-xs text-[var(--duo-fg-muted)]">
-                    Fazer logout da conta
-                  </div>
-                </div>
-              </div>
-            </DuoCard.Root>
-          </div>
-        </DuoCard.Root>
+        <GymSettingsAccountCard
+          isAdmin={isAdmin || userInfo?.role === "ADMIN"}
+          onSwitchToStudent={handleSwitchToStudent}
+          onLogout={handleLogout}
+        />
       </SlideIn>
     </div>
   );

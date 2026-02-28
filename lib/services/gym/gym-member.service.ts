@@ -6,7 +6,10 @@ export class GymMemberService {
    */
   static async getStudents(gymId: string) {
     const memberships = await db.gymMembership.findMany({
-      where: { gymId },
+      where: {
+        gymId,
+        status: { in: ["active", "pending"] },
+      },
       include: {
         student: {
           include: {

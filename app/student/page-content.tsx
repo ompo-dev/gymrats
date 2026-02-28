@@ -299,6 +299,32 @@ function StudentHomeContent() {
 		setGymId(id);
 	};
 
+	const handleCancelMembership = async (membershipId: string) => {
+		try {
+			const { apiClient } = await import("@/lib/api/client");
+			await apiClient.post(`/api/students/memberships/${membershipId}/cancel`, {});
+			toast({
+				title: "Assinatura cancelada",
+				description: "Sua matrícula nesta academia foi cancelada.",
+			});
+			await loadMemberships();
+			setProfileRefreshKey((k) => k + 1);
+		} catch (err) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data
+							?.error
+					: err instanceof Error
+						? err.message
+						: "Erro ao cancelar";
+			toast({
+				variant: "destructive",
+				title: "Erro",
+				description: String(msg),
+			});
+		}
+	};
+
 	const handlePixConfirmed = async () => {
 		await Promise.all([loadMemberships(), loadPayments()]);
 		setProfileRefreshKey((k) => k + 1);
@@ -519,6 +545,7 @@ function StudentHomeContent() {
 							onBack={() => setGymId(null)}
 							onJoinPlan={handleJoinGym}
 							onChangePlan={handleChangePlan}
+							onCancelMembership={handleCancelMembership}
 							profileRefreshKey={profileRefreshKey}
 						/>
 					) : (

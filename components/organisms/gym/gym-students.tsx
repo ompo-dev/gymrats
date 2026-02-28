@@ -88,7 +88,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
 	});
 	const [statusFilter, setStatusFilter] = useQueryState(
 		"status",
-		parseAsString.withDefault("all"),
+		parseAsString.withDefault("active"),
 	);
 	const [studentId, setStudentId] = useQueryState("studentId");
 

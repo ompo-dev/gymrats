@@ -9,13 +9,14 @@ import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import type {
 	CheckIn,
+	Coupon,
 	Equipment,
-	Expense, // Added
+	Expense,
 	FinancialSummary,
 	GymProfile,
 	GymStats,
 	MembershipPlan,
-	Payment, // Added
+	Payment,
 	StudentData,
 } from "@/lib/types";
 import { GymDashboardPage } from "@/components/organisms/gym/gym-dashboard";
@@ -52,6 +53,7 @@ interface GymHomeContentProps {
 	initialPayments: Payment[];
 	initialExpenses: Expense[];
 	initialBalanceWithdraws?: BalanceWithdraws;
+	initialCoupons?: Coupon[];
 	initialSubscription?: {
 		id: string;
 		plan: string;
@@ -71,6 +73,7 @@ function GymHomeContent({
 	initialPayments,
 	initialExpenses,
 	initialBalanceWithdraws,
+	initialCoupons = [],
 	initialSubscription,
 }: GymHomeContentProps) {
 	const { activeGymId } = useGymsList();
@@ -160,10 +163,12 @@ function GymHomeContent({
 				<GymFinancialPage
 					financialSummary={financialSummary}
 					payments={payments}
+					coupons={initialCoupons}
 					expenses={expenses}
 					balanceReais={initialBalanceWithdraws?.balanceReais ?? 0}
 					balanceCents={initialBalanceWithdraws?.balanceCents ?? 0}
 					withdraws={initialBalanceWithdraws?.withdraws ?? []}
+					subscription={initialSubscription}
 				/>
 			)}
 			{tab === "stats" && stats && (
@@ -191,6 +196,7 @@ export default function GymHome({
 	initialPayments,
 	initialExpenses,
 	initialBalanceWithdraws,
+	initialCoupons,
 	initialSubscription,
 }: GymHomeContentProps) {
 	return (
@@ -212,6 +218,7 @@ export default function GymHome({
 				initialPayments={initialPayments}
 				initialExpenses={initialExpenses}
 				initialBalanceWithdraws={initialBalanceWithdraws}
+				initialCoupons={initialCoupons}
 				initialSubscription={initialSubscription}
 			/>
 		</Suspense>

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import {
 	getGymBalanceWithdraws,
+	getGymCoupons,
 	getGymEquipment,
 	getGymExpenses,
 	getGymFinancialSummary,
@@ -10,6 +11,7 @@ import {
 	getGymRecentCheckIns,
 	getGymStats,
 	getGymStudents,
+	getGymSubscription,
 } from "./actions";
 import GymHome from "./page-content";
 
@@ -25,6 +27,8 @@ export default async function GymPage() {
 		payments,
 		expenses,
 		balanceWithdraws,
+		coupons,
+		subscription,
 	] = await Promise.all([
 		getGymProfile(),
 		getGymStats(),
@@ -36,6 +40,8 @@ export default async function GymPage() {
 		getGymPayments(),
 		getGymExpenses(),
 		getGymBalanceWithdraws(),
+		getGymCoupons(),
+		getGymSubscription(),
 	]);
 
 	return (
@@ -51,6 +57,8 @@ export default async function GymPage() {
 				initialPayments={payments}
 				initialExpenses={expenses}
 				initialBalanceWithdraws={balanceWithdraws}
+				initialCoupons={coupons}
+				initialSubscription={subscription}
 			/>
 		</Suspense>
 	);

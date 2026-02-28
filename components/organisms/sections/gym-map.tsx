@@ -41,12 +41,17 @@ function GymMapSimple({
 	onViewGymProfile,
 }: GymMapProps) {
 	const [selectedGym, setSelectedGym] = useState<GymLocation | null>(null);
-	const [filter, setFilter] = useState<"all" | "open" | "near">("all");
+	const [filter, setFilter] = useState<"all" | "open" | "near" | "subscribed">("all");
+	const [expandedPlanKey, setExpandedPlanKey] = useState<string | null>(null);
 	const [_userLocation, setUserLocation] = useState<{
 		lat: number;
 		lng: number;
 	} | null>(null);
 	const { loadGymLocationsWithPosition } = useStudent("loaders");
+
+	useEffect(() => {
+		if (!selectedGym) setExpandedPlanKey(null);
+	}, [selectedGym]);
 
 	useEffect(() => {
 		if (navigator.geolocation) {
@@ -65,7 +70,11 @@ function GymMapSimple({
 
 	const filteredGyms = gyms.filter((gym) => {
 		if (filter === "open") return gym.openNow;
-		if (filter === "near") return gym.distance! < 3;
+		if (filter === "near") return (gym.distance ?? 0) < 3;
+		if (filter === "subscribed")
+			return memberships.some(
+				(m) => m.gymId === gym.id && m.status !== "canceled",
+			);
 		return true;
 	});
 
@@ -75,6 +84,7 @@ function GymMapSimple({
 
 	const filterOptions = [
 		{ value: "all", label: "Todas" },
+		{ value: "subscribed", label: "Onde estou inscrito" },
 		{ value: "near", label: "Próximas" },
 		{ value: "open", label: "Abertas" },
 	];
@@ -107,13 +117,15 @@ function GymMapSimple({
 					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Filtros</h2>
+							<h2 className="font-bold text-duo-fg">Filtros</h2>
 						</div>
 					</DuoCard.Header>
 					<DuoSelect.Simple
 						options={filterOptions}
 						value={filter}
-						onChange={(value) => setFilter(value as "all" | "open" | "near")}
+						onChange={(value) =>
+							setFilter(value as "all" | "open" | "near" | "subscribed")
+						}
 						placeholder="Filtro"
 					/>
 				</DuoCard.Root>
@@ -136,7 +148,7 @@ function GymMapSimple({
 					<DuoCard.Header>
 						<div className="flex items-center gap-2">
 							<MapPin className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Academias Cadastradas</h2>
+							<h2 className="font-bold text-duo-fg">Academias Cadastradas</h2>
 						</div>
 					</DuoCard.Header>
 					<div className="space-y-3">
@@ -246,7 +258,7 @@ function GymMapSimple({
 
 												<div>
 													<p className="mb-2 text-xs font-bold text-duo-gray-dark">
-														Planos disponíveis:
+														Planos disponíveis
 													</p>
 													{gym.membershipPlans && gym.membershipPlans.length > 0 ? (
 														<div className="space-y-2">
@@ -263,6 +275,9 @@ function GymMapSimple({
 																	isActive &&
 																	!isMyPlan &&
 																	!!onChangePlan;
+																const planKey = `${gym.id}-${plan.id}`;
+																const isExpanded = expandedPlanKey === planKey;
+																const isInteractive = canContract || canChangePlan;
 
 																return (
 																	<DuoCard.Root
@@ -270,54 +285,106 @@ function GymMapSimple({
 																		variant="default"
 																		size="sm"
 																		className={cn(
-																			(canContract || canChangePlan) &&
-																				"flex cursor-pointer items-center justify-between transition-all hover:border-duo-blue",
+																			isInteractive &&
+																				"cursor-pointer transition-all hover:border-duo-blue",
+																			isExpanded && "ring-2 ring-duo-blue",
 																		)}
 																		onClick={(e) => {
 																			e.stopPropagation();
-																			if (canContract) onJoinPlan?.(gym.id, plan.id);
-																			if (canChangePlan)
-																				onChangePlan?.(myMembership!.id, plan.id);
+																			if (!isInteractive) return;
+																			if (isExpanded) {
+																				if (canContract) onJoinPlan?.(gym.id, plan.id);
+																				if (canChangePlan)
+																					onChangePlan?.(myMembership!.id, plan.id);
+																			} else {
+																				setExpandedPlanKey(planKey);
+																			}
 																		}}
 																	>
-																		<div className="flex w-full min-w-0 items-start justify-between gap-3">
-																			<div className="flex flex-col gap-0.5 min-w-0 flex-1">
-																				<p className="text-xs font-bold text-[var(--duo-fg)] truncate">
-																					{plan.name}
+																		<div className="flex w-full min-w-0 flex-col gap-2">
+																			<div className="flex min-w-0 items-start justify-between gap-3">
+																				<div className="flex flex-col gap-0.5 min-w-0 flex-1">
+																					<p className="text-xs font-bold text-duo-fg truncate">
+																						{plan.name}
+																					</p>
+																					<div className="flex flex-wrap items-center gap-1.5 text-[10px] text-duo-fg-muted">
+																						<span>{plan.duration} dias</span>
+																						<span>•</span>
+																						<span>{planTypeLabel[plan.type] || plan.type}</span>
+																						{isMyPlan && isActive && (
+																							<>
+																								<span>•</span>
+																								<span className="font-bold text-duo-primary">Plano ativo</span>
+																							</>
+																						)}
+																						{isMyPlan && isPending && (
+																							<>
+																								<span>•</span>
+																								<span className="font-bold text-duo-warning">Matrícula pendente</span>
+																							</>
+																						)}
+																						{canContract && !isExpanded && (
+																							<>
+																								<span>•</span>
+																								<span>Clique para assinar</span>
+																							</>
+																						)}
+																						{canChangePlan && !isExpanded && (
+																							<>
+																								<span>•</span>
+																								<span className="font-bold text-duo-secondary">Clique para trocar</span>
+																							</>
+																						)}
+																					</div>
+																				</div>
+																				<p className="text-sm font-bold text-duo-primary shrink-0">
+																					R$ {plan.price.toFixed(2)}
 																				</p>
-																				<div className="flex flex-wrap items-center gap-1.5 text-[10px] text-[var(--duo-fg-muted)]">
-																					<span>{plan.duration} dias</span>
-																					<span>•</span>
-																					<span>{planTypeLabel[plan.type] || plan.type}</span>
-																					{(isMyPlan && isActive) && (
-																						<>
-																							<span>•</span>
-																							<span className="font-bold text-[var(--duo-primary)]">Plano ativo</span>
-																						</>
-																					)}
-																					{isMyPlan && isPending && (
-																						<>
-																							<span>•</span>
-																							<span className="font-bold text-[var(--duo-warning)]">Matrícula pendente</span>
-																						</>
-																					)}
+																			</div>
+																			{isExpanded && isInteractive && (
+																				<div className="flex gap-2 pt-1 border-t border-duo-border">
+																					<DuoButton
+																						variant="outline"
+																						size="sm"
+																						onClick={(e) => {
+																							e.stopPropagation();
+																							setExpandedPlanKey(null);
+																						}}
+																					>
+																						Fechar
+																					</DuoButton>
 																					{canContract && (
-																						<>
-																							<span>•</span>
-																							<span>Contratar</span>
-																						</>
+																						<DuoButton
+																							variant="primary"
+																							size="sm"
+																							onClick={(e) => {
+																								e.stopPropagation();
+																								onJoinPlan?.(gym.id, plan.id);
+																								setExpandedPlanKey(null);
+																							}}
+																							className="flex items-center gap-2"
+																						>
+																							<CreditCard className="h-4 w-4" />
+																							Assinar este plano
+																						</DuoButton>
 																					)}
 																					{canChangePlan && (
-																						<>
-																							<span>•</span>
-																							<span className="font-bold text-[var(--duo-secondary)]">Trocar de plano</span>
-																						</>
+																						<DuoButton
+																							variant="primary"
+																							size="sm"
+																							onClick={(e) => {
+																								e.stopPropagation();
+																								onChangePlan?.(myMembership!.id, plan.id);
+																								setExpandedPlanKey(null);
+																							}}
+																							className="flex items-center gap-2"
+																						>
+																							<CreditCard className="h-4 w-4" />
+																							Trocar para este plano
+																						</DuoButton>
 																					)}
 																				</div>
-																			</div>
-																			<p className="text-sm font-bold text-[var(--duo-primary)] shrink-0">
-																				R$ {plan.price.toFixed(2)}
-																			</p>
+																			)}
 																		</div>
 																	</DuoCard.Root>
 																);
@@ -331,10 +398,10 @@ function GymMapSimple({
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
+																	<p className="text-[10px] font-bold text-duo-fg-muted">
 																		Diária
 																	</p>
-																	<p className="text-sm font-bold text-[var(--duo-warning)]">
+																	<p className="text-sm font-bold text-duo-warning">
 																		R$ {gym.plans.daily}
 																	</p>
 																</DuoCard.Root>
@@ -345,10 +412,10 @@ function GymMapSimple({
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
+																	<p className="text-[10px] font-bold text-duo-fg-muted">
 																		Semanal
 																	</p>
-																	<p className="text-sm font-bold text-[var(--duo-accent)]">
+																	<p className="text-sm font-bold text-duo-accent">
 																		R$ {gym.plans.weekly}
 																	</p>
 																</DuoCard.Root>
@@ -359,10 +426,10 @@ function GymMapSimple({
 																	size="sm"
 																	className="p-2 flex items-center justify-between gap-2"
 																>
-																	<p className="text-[10px] font-bold text-[var(--duo-fg-muted)]">
+																	<p className="text-[10px] font-bold text-duo-fg-muted">
 																		Mensal
 																	</p>
-																	<p className="text-sm font-bold text-[var(--duo-primary)]">
+																	<p className="text-sm font-bold text-duo-primary">
 																		R$ {gym.plans.monthly}
 																	</p>
 																</DuoCard.Root>

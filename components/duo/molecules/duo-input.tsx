@@ -63,14 +63,17 @@ const DuoInputField = forwardRef<
 			leftAddon,
 			rightAddon,
 			className,
+			type,
 			...props
 		},
 		ref,
 	) => (
 		<input
 			ref={ref}
+			type={type}
 			className={cn(
 				"w-full rounded-xl border-2 bg-[var(--duo-bg-card)] px-4 py-3 text-base text-[var(--duo-fg)]",
+				type === "time" && "[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer",
 				"placeholder:opacity-60 placeholder:text-[var(--duo-fg-muted)]",
 				"transition-all duration-200 ease-out",
 				"focus:border-[var(--duo-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--duo-primary)]/20",
