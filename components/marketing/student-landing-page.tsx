@@ -359,7 +359,7 @@ export function StudentLandingPage() {
       className="pt-20 sm:pt-24 md:pt-28"
     >
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden py-10 sm:py-12 md:py-14 lg:py-16">
         <div className="absolute top-0 right-0 -z-10 h-[500px] w-[500px] rounded-full bg-[var(--duo-primary)]/5 blur-[100px]" />
         <div className="absolute bottom-0 left-0 -z-10 h-[500px] w-[500px] rounded-full bg-[var(--duo-secondary)]/5 blur-[100px]" />
         <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 lg:px-8">
@@ -405,27 +405,25 @@ export function StudentLandingPage() {
               transition={{ duration: 0.6, delay: 0.15 }}
               className="relative order-2 flex flex-col items-center lg:block"
             >
-              <div className="relative mx-auto w-full overflow-hidden rounded-2xl border border-[var(--duo-border)]/50 bg-[var(--duo-bg)] shadow-xl lg:rounded-none lg:border-0 lg:shadow-none">
-                <div className="flex h-full flex-col p-4 sm:p-5 pt-3 sm:pt-4 overflow-y-auto no-scrollbar">
-                  <div className="space-y-4 sm:space-y-6">
-                    <WeightProgressCard.Simple
-                      currentWeight={MOCK_STUDENT_DATA.currentWeight}
-                      weightGain={MOCK_STUDENT_DATA.weightGain}
-                      weightHistory={MOCK_STUDENT_DATA.weightHistory}
-                    />
-                    <div className="space-y-2">
-                      {MOCK_PLAN_SLOTS.map((slot) => (
-                        <WeeklyPlanSlotRow
-                          key={slot.id}
-                          slot={slot}
-                          loadingSlotId={null}
-                          onAddWorkout={() => {}}
-                          onEditWorkout={() => {}}
-                          onOpenChat={() => {}}
-                          onRemoveWorkout={() => {}}
-                        />
-                      ))}
-                    </div>
+              <div className="relative mx-auto w-full overflow-hidden rounded-2xl bg-[var(--duo-bg)] lg:rounded-none">
+                <div className="space-y-4 sm:space-y-6">
+                  <WeightProgressCard.Simple
+                    currentWeight={MOCK_STUDENT_DATA.currentWeight}
+                    weightGain={MOCK_STUDENT_DATA.weightGain}
+                    weightHistory={MOCK_STUDENT_DATA.weightHistory}
+                  />
+                  <div className="space-y-2">
+                    {MOCK_PLAN_SLOTS.map((slot) => (
+                      <WeeklyPlanSlotRow
+                        key={slot.id}
+                        slot={slot}
+                        loadingSlotId={null}
+                        onAddWorkout={() => {}}
+                        onEditWorkout={() => {}}
+                        onOpenChat={() => {}}
+                        onRemoveWorkout={() => {}}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
@@ -448,8 +446,62 @@ export function StudentLandingPage() {
               A sua. E ela está só começando.
             </p>
           </div>
-          <div className="grid grid-cols-1 gap-12 sm:gap-16 lg:grid-cols-2 lg:gap-20 lg:items-center">
-            <div className="relative min-h-[480px] sm:min-h-[540px] lg:h-[600px] overflow-hidden group">
+          {/* Uma estrutura flex: mobile = 3 linhas (col), desktop = 2 colunas (row). Só "Do zero ao resultado" duplicado (mobile vs desktop). */}
+          <div className="flex flex-col gap-12 sm:gap-16 md:flex-row md:gap-20 md:items-start">
+            {/* "Do zero ao resultado" — cópia só para mobile (acima do workout) */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:gap-6 md:hidden">
+              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-primary)]/10 text-[var(--duo-primary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-primary)]/20">
+                <Layout className="h-7 w-7 sm:h-8 sm:w-8" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
+                  Do zero ao resultado sem achismos
+                </h3>
+                <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
+                  Nada de planilha genérica da internet. Seu plano é construído
+                  pro seu corpo, seu tempo e sua meta. Você só precisa aparecer.
+                </p>
+              </div>
+            </div>
+
+            {/* Coluna esquerda no desktop: "Do zero ao resultado" + "Você vê o quanto evoluiu" (2 linhas) */}
+            <div className="hidden md:flex flex-1 flex-col gap-6 lg:gap-8">
+              {/* "Do zero ao resultado" — cópia só para desktop */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-primary)]/10 text-[var(--duo-primary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-primary)]/20">
+                  <Layout className="h-7 w-7 sm:h-8 sm:w-8" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
+                    Do zero ao resultado sem achismos
+                  </h3>
+                  <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
+                    Nada de planilha genérica da internet. Seu plano é
+                    construído pro seu corpo, seu tempo e sua meta. Você só
+                    precisa aparecer.
+                  </p>
+                </div>
+              </div>
+              {/* "Você vê o quanto evoluiu" — único, no desktop fica aqui */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-secondary)]/10 text-[var(--duo-secondary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-secondary)]/20">
+                  <Activity className="h-7 w-7 sm:h-8 sm:w-8" />
+                </div>
+                <div>
+                  <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
+                    Você vê o quanto evoluiu
+                  </h3>
+                  <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
+                    Cada kg a mais no supino. Cada semana na sequência. O
+                    GymRats registra tudo para que você nunca duvide do seu
+                    próprio progresso.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Workout nodes — único, no mobile fica no meio; no desktop na coluna direita */}
+            <div className="relative min-h-[480px] sm:min-h-[540px] md:min-h-[600px] w-full flex-shrink-0 overflow-hidden group md:max-w-[50%]">
               <div className="h-full overflow-y-auto no-scrollbar scroll-smooth p-4 sm:p-5">
                 <StaggerContainer className="flex flex-col items-center space-y-16">
                   {MOCK_WORKOUTS_PATH.map((item, idx) => (
@@ -482,36 +534,21 @@ export function StudentLandingPage() {
                 </StaggerContainer>
               </div>
             </div>
-            <div className="order-1 flex flex-col gap-8 sm:gap-10 lg:order-2 lg:gap-12">
-              <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-primary)]/10 text-[var(--duo-primary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-primary)]/20">
-                  <Layout className="h-7 w-7 sm:h-8 sm:w-8" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
-                    Do zero ao resultado sem achismos
-                  </h3>
-                  <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
-                    Nada de planilha genérica da internet. Seu plano é
-                    construído pro seu corpo, seu tempo e sua meta. Você só
-                    precisa aparecer.
-                  </p>
-                </div>
+
+            {/* "Você vê o quanto evoluiu" — só no mobile (abaixo do workout) */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:gap-6 md:hidden">
+              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-secondary)]/10 text-[var(--duo-secondary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-secondary)]/20">
+                <Activity className="h-7 w-7 sm:h-8 sm:w-8" />
               </div>
-              <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl sm:rounded-3xl bg-[var(--duo-secondary)]/10 text-[var(--duo-secondary)] flex items-center justify-center shrink-0 shadow-sm border border-[var(--duo-secondary)]/20">
-                  <Activity className="h-7 w-7 sm:h-8 sm:w-8" />
-                </div>
-                <div>
-                  <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
-                    Você vê o quanto evoluiu
-                  </h3>
-                  <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
-                    Cada kg a mais no supino. Cada semana na sequência. O
-                    GymRats registra tudo para que você nunca duvide do seu
-                    próprio progresso.
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mb-2">
+                  Você vê o quanto evoluiu
+                </h3>
+                <p className="text-base sm:text-lg md:text-xl font-medium text-[var(--duo-fg-muted)] leading-relaxed">
+                  Cada kg a mais no supino. Cada semana na sequência. O GymRats
+                  registra tudo para que você nunca duvide do seu próprio
+                  progresso.
+                </p>
               </div>
             </div>
           </div>
@@ -520,10 +557,10 @@ export function StudentLandingPage() {
 
       {/* Nutrição */}
       <section className="pt-10 sm:pt-14 md:pt-16 lg:pt-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-8 lg:px-8 pt-10">
           <div className="grid grid-cols-1 gap-10 sm:gap-14 lg:grid-cols-2 lg:gap-20 lg:items-center">
             <div className="space-y-6 sm:space-y-8">
-              <h2 className="text-3xl font-black text-[var(--duo-fg)] sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-tighter">
+              <h2 className="mt-10 text-3xl font-black text-[var(--duo-fg)] sm:text-4xl md:text-5xl lg:text-6xl uppercase tracking-tighter">
                 Treino bom com{" "}
                 <span className="text-[var(--duo-primary)]">dieta ruim</span>{" "}
                 <br /> não chega a lugar nenhum.

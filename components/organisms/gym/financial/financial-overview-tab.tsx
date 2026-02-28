@@ -47,6 +47,10 @@ interface FinancialOverviewTabProps {
 	withdraws?: WithdrawItem[];
 	/** Quando true, saque é simulado (só persiste no DB). Remover para produção. */
 	fakeWithdraw?: boolean;
+	/** Quando false, oculta botão Sacar, texto de modo dev e modal (ex.: landing page). */
+	showWithdraw?: boolean;
+	/** Quando true, mostra o botão Sacar mas o clique não faz nada (ex.: amostra na landing). */
+	disableWithdraw?: boolean;
 }
 
 export function FinancialOverviewTab({
@@ -57,6 +61,8 @@ export function FinancialOverviewTab({
 	balanceCents = 0,
 	withdraws = [],
 	fakeWithdraw = true,
+	showWithdraw = true,
+	disableWithdraw = false,
 }: FinancialOverviewTabProps) {
 	const { toast } = useToast();
 	const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
@@ -133,27 +139,29 @@ export function FinancialOverviewTab({
 						<Wallet className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
 						<h2 className="font-bold text-[var(--duo-fg)]">Saldo disponível</h2>
 					</div>
-					<DuoButton
-						size="sm"
-						onClick={() => setWithdrawModalOpen(true)}
-						disabled={balanceCents < 350}
-					>
-						<Banknote className="h-4 w-4" />
-						Sacar
-					</DuoButton>
+					{showWithdraw && (
+						<DuoButton
+							size="sm"
+							onClick={disableWithdraw ? undefined : () => setWithdrawModalOpen(true)}
+							disabled={!disableWithdraw && balanceCents < 350}
+						>
+							<Banknote className="h-4 w-4" />
+							Sacar
+						</DuoButton>
+					)}
 				</DuoCard.Header>
 				<div className="text-2xl font-bold text-duo-green">
 					{formatCurrency(balanceReais)}
 				</div>
-				{balanceCents < 350 && (
+				{showWithdraw && balanceCents < 350 && (
 					<p className="text-xs text-duo-gray-dark">Mínimo para saque: R$ 3,50</p>
 				)}
-				{fakeWithdraw && (
+				{showWithdraw && !disableWithdraw && fakeWithdraw && (
 					<p className="mt-2 text-xs text-duo-orange">Modo dev: saques são simulados (sem transferência real).</p>
 				)}
 			</DuoCard.Root>
 
-			{withdrawModalOpen && (
+			{showWithdraw && !disableWithdraw && withdrawModalOpen && (
 				<div
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
 					onClick={(e) => e.target === e.currentTarget && setWithdrawModalOpen(false)}

@@ -454,7 +454,7 @@ export function GymLandingPage() {
                   balanceReais={2450.75}
                   balanceCents={245075}
                   payments={MOCK_PAYMENTS as any}
-                  fakeWithdraw={true}
+                  disableWithdraw
                 />
               </div>
             </motion.div>
