@@ -15,20 +15,40 @@ export class GymSubscriptionService {
 
     if (gyms.length === 0) return;
 
-    const hasQualifiedSubscription = await this.hasQualifiedSubscription(gyms.map(g => g.id));
+    // Só a academia PRINCIPAL (mais antiga) pode desbloquear as outras: ela precisa ter Premium/Enterprise ativo
+    const principalGymId = gyms[0].id;
+    const principalHasQualified = await this.hasQualifiedSubscription([principalGymId]);
 
-    // Se tem plano Premium/Enterprise, reativar TODAS as academias (ex.: usuário voltou ao plano)
-    if (hasQualifiedSubscription) {
+    // Se a principal tem Premium/Enterprise, restaurar assinaturas suspensas das outras e reativar todas
+    if (principalHasQualified) {
+      await this.restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId);
       const previouslyInactive = gyms.filter(g => !g.isActive).map(g => g.id);
       await db.gym.updateMany({
         where: { userId },
         data: { isActive: true }
       });
-      // Reaplicar benefício Enterprise só nas academias que estavam inativas e voltaram a ativas
       for (const gymId of previouslyInactive) {
         await this.syncAllStudentsEnterpriseBenefit(gymId);
       }
       return;
+    }
+
+    // Principal não tem Premium/Enterprise (cancelou, sem plano ou Basic): suspender as outras
+    // (cancelar com flag para poder restaurar quando a principal voltar a assinar)
+    if (gyms.length > 1) {
+      const otherGymIds = gyms.slice(1).map(g => g.id);
+      await db.gymSubscription.updateMany({
+        where: {
+          gymId: { in: otherGymIds },
+          status: "active",
+        },
+        data: {
+          status: "canceled",
+          canceledAt: new Date(),
+          cancelAtPeriodEnd: false,
+          canceledBecausePrincipalCanceled: true,
+        },
+      });
     }
 
     if (gyms.length <= 1) return;
@@ -106,12 +126,43 @@ export class GymSubscriptionService {
   }
 
   /**
-   * Quando a academia principal volta a assinar (ex.: Premium de novo), restaura as assinaturas
-   * das outras academias que foram canceladas "por causa da principal", desde que o período
-   * original (currentPeriodEnd) não tenha expirado. Em seguida reaplica limites de gyms ativas
-   * e benefício Premium dos alunos.
+   * Quando a academia PRINCIPAL (mais antiga) faz downgrade para Basic: suspende as assinaturas
+   * das outras academias (status canceled + canceledBecausePrincipalCanceled: true) para que
+   * possam ser reativadas quando a principal voltar a Premium/Enterprise.
    */
-  static async restoreSubscriptionsSuspendedByPrincipalCancel(userId: string) {
+  static async suspendOtherGymsBecausePrincipalDowngraded(
+    userId: string,
+    principalGymId: string,
+  ) {
+    const allGyms = await db.gym.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    const oldestId = allGyms[0]?.id;
+    if (oldestId !== principalGymId) return; // quem pagou não é a principal
+
+    const otherGymIds = allGyms.filter((g) => g.id !== principalGymId).map((g) => g.id);
+    if (otherGymIds.length === 0) return;
+
+    await db.gymSubscription.updateMany({
+      where: { gymId: { in: otherGymIds }, status: "active" },
+      data: {
+        status: "canceled",
+        canceledAt: new Date(),
+        cancelAtPeriodEnd: false,
+        canceledBecausePrincipalCanceled: true,
+      },
+    });
+
+    await this.enforceActiveGymLimit(userId);
+  }
+
+  /**
+   * Apenas restaura as assinaturas suspensas (sem chamar enforceActiveGymLimit).
+   * Usado internamente por enforceActiveGymLimit para evitar recursão.
+   */
+  static async restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId: string) {
     const now = new Date();
     const subsToRestore = await db.gymSubscription.findMany({
       where: {
@@ -120,7 +171,7 @@ export class GymSubscriptionService {
         canceledBecausePrincipalCanceled: true,
         currentPeriodEnd: { gt: now },
       },
-      select: { id: true, gymId: true },
+      select: { id: true },
     });
 
     if (subsToRestore.length === 0) return;
@@ -136,7 +187,15 @@ export class GymSubscriptionService {
         },
       });
     }
+  }
 
+  /**
+   * Quando a academia principal volta a assinar (ex.: Premium de novo), restaura as assinaturas
+   * das outras academias que foram canceladas "por causa da principal", desde que o período
+   * original (currentPeriodEnd) não tenha expirado. Em seguida reaplica limites de gyms ativas.
+   */
+  static async restoreSubscriptionsSuspendedByPrincipalCancel(userId: string) {
+    await this.restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId);
     await this.enforceActiveGymLimit(userId);
   }
 

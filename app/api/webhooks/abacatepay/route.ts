@@ -154,16 +154,22 @@ export async function POST(request: NextRequest) {
 					},
 				});
 
-				// Só Premium e Enterprise permitem múltiplas academias: restaurar as demais apenas nesses casos
 				const planQualified = ["premium", "enterprise"].includes(
 					gymSub.plan?.toLowerCase() ?? "",
 				);
 				if (planQualified) {
+					// Principal voltou a Premium/Enterprise: reativar assinaturas suspensas das outras academias
 					await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
 						gymSub.gym.userId,
 					);
+				} else {
+					// Principal assinou Basic: suspender as outras academias (podem ser restauradas depois)
+					await GymSubscriptionService.suspendOtherGymsBecausePrincipalDowngraded(
+						gymSub.gym.userId,
+						gymSub.gymId,
+					);
 				}
-				// Sincronizar limites de gyms e benefícios de alunos
+				// Ajustar isActive das academias e benefícios dos alunos
 				await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
 				console.log(`[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`);
