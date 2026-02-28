@@ -21,6 +21,8 @@ interface WorkoutNodeWorkoutProps extends WorkoutNodeBaseProps {
 	isFirst?: boolean;
 	previousWorkouts?: WorkoutSession[];
 	previousUnitsWorkouts?: WorkoutSession[];
+	/** Quando definido (ex: landing/marketing), exibe o anel de progresso com essa porcentagem em vez do store. */
+	mockProgressPercent?: number;
 }
 
 interface WorkoutNodeRestProps extends WorkoutNodeBaseProps {
@@ -80,9 +82,10 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
 		isFirst = false,
 		previousWorkouts = [],
 		previousUnitsWorkouts = [],
+		mockProgressPercent,
 	} = props;
 
-	// Usar useWorkoutStore apenas para progresso local durante execução
+	// Usar useWorkoutStore apenas para progresso local durante execução (ignorado quando mockProgressPercent está definido)
 	const _workoutProgress = useWorkoutStore(
 		(state) => state.workoutProgress[workout.id],
 	);
@@ -127,14 +130,19 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
 		? false // Desbloquear se todos anteriores estão completos
 		: workout.locked; // Usar locked do backend caso contrário
 
-	const hasProgress = !isCompleted && isWorkoutInProgress(workout.id);
+	const useMockProgress = mockProgressPercent !== undefined && mockProgressPercent !== null;
+	const hasProgress = useMockProgress
+		? true
+		: !isCompleted && isWorkoutInProgress(workout.id);
 	const totalSeenExercises = !isCompleted ? getWorkoutProgress(workout.id) : 0;
-	const targetProgressPercent =
-		totalSeenExercises > 0 && workout.exercises.length > 0
+	const targetProgressPercent = useMockProgress
+		? Math.min(100, Math.max(0, mockProgressPercent))
+		: totalSeenExercises > 0 && workout.exercises.length > 0
 			? Math.min(100, (totalSeenExercises / workout.exercises.length) * 100)
 			: 0;
 
 	const canShowProgress =
+		useMockProgress ||
 		(isFirst && previousUnitsWorkouts.length === 0) ||
 		(isFirst && allPreviousUnitsCompleted) ||
 		(!isFirst && allPreviousInUnitCompleted);
@@ -146,7 +154,7 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
 	const isInProgressState = inProgress && !isCompleted && !isLocked;
 
 	const shouldShowProgress =
-		!isCompleted && !isLocked && canShowProgress && (hasProgress || !isLocked);
+		!isCompleted && !isLocked && canShowProgress && (hasProgress || useMockProgress || !isLocked);
 
 	const [, forceUpdate] = useState(0);
 
