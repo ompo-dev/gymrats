@@ -21,6 +21,18 @@ interface GymFinancialPageProps {
 	coupons?: never[];
 	referrals?: never[];
 	expenses?: Expense[];
+	balanceReais?: number;
+	balanceCents?: number;
+	withdraws?: {
+		id: string;
+		amount: number;
+		pixKey: string;
+		pixKeyType: string;
+		externalId: string;
+		status: string;
+		createdAt: Date;
+		completedAt: Date | null;
+	}[];
 }
 
 export function GymFinancialPage({
@@ -29,6 +41,9 @@ export function GymFinancialPage({
 	coupons = [],
 	referrals = [],
 	expenses = [],
+	balanceReais = 0,
+	balanceCents = 0,
+	withdraws = [],
 }: GymFinancialPageProps) {
 	const [subTab, setSubTab] = useQueryState(
 		"subTab",
@@ -112,6 +127,9 @@ export function GymFinancialPage({
 					<FinancialOverviewTab
 						financialSummary={financialSummary}
 						payments={payments}
+						balanceReais={balanceReais}
+						balanceCents={balanceCents}
+						withdraws={withdraws}
 					/>
 				</SlideIn>
 			)}

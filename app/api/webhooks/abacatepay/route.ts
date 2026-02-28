@@ -59,10 +59,11 @@ export async function POST(request: NextRequest) {
 				if (kind === "membership-payment") {
 					const membershipId = metadata.membershipId as string | undefined;
 					if (membershipId) {
+						const now = new Date();
 						await db.$transaction([
 							db.payment.update({
 								where: { id: payment.id },
-								data: { status: "paid" },
+								data: { status: "paid", date: now },
 							}),
 							db.gymMembership.update({
 								where: { id: membershipId },
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
 					const membershipId = metadata.membershipId as string | undefined;
 					const planId = metadata.planId as string | undefined;
 					if (membershipId && planId && payment.plan) {
+						const now = new Date();
 						const nextBillingDate = new Date();
 						nextBillingDate.setDate(
 							nextBillingDate.getDate() + payment.plan.duration,
@@ -93,7 +95,7 @@ export async function POST(request: NextRequest) {
 						await db.$transaction([
 							db.payment.update({
 								where: { id: payment.id },
-								data: { status: "paid" },
+								data: { status: "paid", date: now },
 							}),
 							db.gymMembership.update({
 								where: { id: membershipId },

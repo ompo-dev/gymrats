@@ -78,11 +78,12 @@ export const POST = createSafeHandler(
 
 			if (membership) {
 				const isChangePlan = membership.status === "active";
+				const paidAt = new Date();
 
 				await db.$transaction([
 					db.payment.update({
 						where: { id: payment.id },
-						data: { status: "paid" },
+						data: { status: "paid", date: paidAt },
 					}),
 					db.gymMembership.update({
 						where: { id: membership.id },

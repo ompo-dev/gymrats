@@ -26,6 +26,21 @@ import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
 import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 
+interface BalanceWithdraws {
+	balanceReais: number;
+	balanceCents: number;
+	withdraws: {
+		id: string;
+		amount: number;
+		pixKey: string;
+		pixKeyType: string;
+		externalId: string;
+		status: string;
+		createdAt: Date;
+		completedAt: Date | null;
+	}[];
+}
+
 interface GymHomeContentProps {
 	initialProfile: GymProfile | null;
 	initialStats: GymStats | null;
@@ -36,6 +51,7 @@ interface GymHomeContentProps {
 	initialPlans: MembershipPlan[];
 	initialPayments: Payment[];
 	initialExpenses: Expense[];
+	initialBalanceWithdraws?: BalanceWithdraws;
 	initialSubscription?: {
 		id: string;
 		plan: string;
@@ -54,6 +70,7 @@ function GymHomeContent({
 	initialPlans,
 	initialPayments,
 	initialExpenses,
+	initialBalanceWithdraws,
 	initialSubscription,
 }: GymHomeContentProps) {
 	const { activeGymId } = useGymsList();
@@ -144,6 +161,9 @@ function GymHomeContent({
 					financialSummary={financialSummary}
 					payments={payments}
 					expenses={expenses}
+					balanceReais={initialBalanceWithdraws?.balanceReais ?? 0}
+					balanceCents={initialBalanceWithdraws?.balanceCents ?? 0}
+					withdraws={initialBalanceWithdraws?.withdraws ?? []}
 				/>
 			)}
 			{tab === "stats" && stats && (
@@ -170,6 +190,7 @@ export default function GymHome({
 	initialPlans,
 	initialPayments,
 	initialExpenses,
+	initialBalanceWithdraws,
 	initialSubscription,
 }: GymHomeContentProps) {
 	return (
@@ -190,6 +211,7 @@ export default function GymHome({
 				initialPlans={initialPlans}
 				initialPayments={initialPayments}
 				initialExpenses={initialExpenses}
+				initialBalanceWithdraws={initialBalanceWithdraws}
 				initialSubscription={initialSubscription}
 			/>
 		</Suspense>

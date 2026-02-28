@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { FinancialSummary, Expense, Payment } from "@/lib/types";
 
+/** Taxa AbacatePay por transação (recebimento de pagamento e saque). */
+const ABACATEPAY_FEE_REAIS = 0.8;
+
 export interface GymBalanceWithdraws {
 	balanceReais: number;
 	balanceCents: number;
@@ -133,23 +136,31 @@ export class GymFinancialService {
   }
 
   /**
-   * Saldo disponível (soma dos pagamentos pagos menos saques concluídos) e lista de saques.
+   * Saldo disponível: (soma dos pagamentos pagos - taxa AbacatePay por pagamento)
+   * menos (soma dos saques concluídos + taxa AbacatePay por saque).
    */
   static async getBalanceAndWithdraws(gymId: string): Promise<GymBalanceWithdraws> {
-    const [paidSum, withdraws] = await Promise.all([
+    const [paidAgg, withdraws] = await Promise.all([
       db.payment.aggregate({
         where: { gymId, status: "paid" },
         _sum: { amount: true },
+        _count: { id: true },
       }),
       db.gymWithdraw.findMany({
         where: { gymId },
         orderBy: { createdAt: "desc" },
       }),
     ]);
-    const totalReceived = paidSum._sum.amount ?? 0;
-    const totalWithdrawn = withdraws
-      .filter((w) => w.status === "complete" || w.status === "completed")
-      .reduce((s, w) => s + w.amount, 0);
+    const paidCount = paidAgg._count.id ?? 0;
+    const totalReceivedGross = paidAgg._sum.amount ?? 0;
+    const totalReceived = totalReceivedGross - paidCount * ABACATEPAY_FEE_REAIS;
+
+    const completedWithdraws = withdraws.filter(
+      (w) => w.status === "complete" || w.status === "completed",
+    );
+    const totalWithdrawnGross = completedWithdraws.reduce((s, w) => s + w.amount, 0);
+    const totalWithdrawn = totalWithdrawnGross + completedWithdraws.length * ABACATEPAY_FEE_REAIS;
+
     const balanceReais = Math.max(0, totalReceived - totalWithdrawn);
     const balanceCents = Math.floor(balanceReais * 100);
 
