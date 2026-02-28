@@ -35,27 +35,27 @@ interface WithdrawItem {
 
 interface FinancialOverviewTabProps {
 	financialSummary: FinancialSummary;
-	payments: Payment[];
+	payments?: Payment[];
 	subscription?: {
 		id: string;
 		plan: string;
 		status: string;
 		currentPeriodEnd: Date;
 	} | null;
-	balanceReais: number;
-	balanceCents: number;
-	withdraws: WithdrawItem[];
+	balanceReais?: number;
+	balanceCents?: number;
+	withdraws?: WithdrawItem[];
 	/** Quando true, saque é simulado (só persiste no DB). Remover para produção. */
 	fakeWithdraw?: boolean;
 }
 
 export function FinancialOverviewTab({
 	financialSummary,
-	payments,
+	payments = [],
 	subscription,
-	balanceReais,
-	balanceCents,
-	withdraws,
+	balanceReais = 0,
+	balanceCents = 0,
+	withdraws = [],
 	fakeWithdraw = true,
 }: FinancialOverviewTabProps) {
 	const { toast } = useToast();
@@ -120,7 +120,7 @@ export function FinancialOverviewTab({
 			{/* Alertas de Pagamentos de Alunos */}
 			{(financialSummary.overduePayments ?? 0) > 0 && (
 				<DuoAlert variant="danger" title="Mensalidades Atrasadas">
-					{payments.filter((p) => p.status === "overdue").length} pagamento(s)
+					{(payments ?? []).filter((p) => p.status === "overdue").length} pagamento(s)
 					atrasado(s) de alunos, totalizando{" "}
 					{formatCurrency(financialSummary.overduePayments)}.
 				</DuoAlert>
@@ -199,13 +199,13 @@ export function FinancialOverviewTab({
 			)}
 
 			{/* Histórico de saques */}
-			{withdraws.length > 0 && (
+			{(withdraws ?? []).length > 0 && (
 				<DuoCard.Root variant="default" padding="md">
 					<DuoCard.Header>
 						<h2 className="font-bold text-[var(--duo-fg)]">Saques</h2>
 					</DuoCard.Header>
 					<div className="space-y-2">
-						{withdraws.map((w) => (
+						{(withdraws ?? []).map((w) => (
 							<div
 								key={w.id}
 								className="flex items-center justify-between rounded-lg border border-duo-border p-3"

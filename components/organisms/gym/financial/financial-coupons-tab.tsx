@@ -10,10 +10,10 @@ import type { Coupon } from "@/lib/types";
 import { toValidDate } from "@/lib/utils/date-safe";
 
 interface FinancialCouponsTabProps {
-	coupons: Coupon[];
+	coupons?: Coupon[];
 }
 
-export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
+export function FinancialCouponsTab({ coupons = [] }: FinancialCouponsTabProps) {
 	const router = useRouter();
 	const { toast } = useToast();
 	const [modalOpen, setModalOpen] = useState(false);
@@ -83,12 +83,12 @@ export function FinancialCouponsTab({ coupons }: FinancialCouponsTabProps) {
 					</DuoButton>
 				</DuoCard.Header>
 				<div className="space-y-3">
-					{coupons.length === 0 && (
+					{(coupons ?? []).length === 0 && (
 						<p className="py-8 text-center text-sm text-duo-gray-dark">
 							Nenhum cupom cadastrado. Crie um para oferecer descontos.
 						</p>
 					)}
-					{coupons.map((coupon) => (
+					{(coupons ?? []).map((coupon) => (
 						<DuoCard.Root
 							key={coupon.id}
 							variant="yellow"

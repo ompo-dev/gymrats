@@ -9,12 +9,13 @@ import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
 
 interface FinancialExpensesTabProps {
-	expenses: Expense[];
+	expenses?: Expense[];
 }
 
-export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
+export function FinancialExpensesTab({ expenses = [] }: FinancialExpensesTabProps) {
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-	const totalExpenses = expenses.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
+	const list = Array.isArray(expenses) ? expenses : [];
+	const totalExpenses = list.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
 
 	return (
 		<>
@@ -33,12 +34,12 @@ export function FinancialExpensesTab({ expenses }: FinancialExpensesTabProps) {
 					</DuoButton>
 				</DuoCard.Header>
 				<div className="space-y-3">
-				{expenses.length === 0 && (
+				{list.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
 						Nenhuma despesa registrada.
 					</p>
 				)}
-				{expenses.map((expense) => (
+				{list.map((expense) => (
 					<DuoCard.Root key={expense.id} variant="default" size="default">
 						<div className="mb-3 flex items-start justify-between">
 							<div>

@@ -8,7 +8,7 @@ import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
 
 interface FinancialPaymentsTabProps {
-	payments: Payment[];
+	payments?: Payment[];
 }
 
 const getStatusColor = (status: string) => {
@@ -49,30 +49,33 @@ function formatAmount(value: number) {
 	return `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
+type StudentPaymentGroup = { studentName: string; studentId: string; payments: Payment[] };
+
+export function FinancialPaymentsTab({ payments = [] }: FinancialPaymentsTabProps) {
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
-	const byStudent = useMemo(() => {
-		const map = new Map<string, { studentName: string; studentId: string; payments: Payment[] }>();
-		for (const p of payments) {
+	const byStudent = useMemo((): StudentPaymentGroup[] => {
+		const paymentsList = Array.isArray(payments) ? payments : [];
+		const map = new Map<string, StudentPaymentGroup>();
+		for (const p of paymentsList) {
 			const key = p.studentId;
 			if (!map.has(key)) {
 				map.set(key, { studentName: p.studentName, studentId: p.studentId, payments: [] });
 			}
 			map.get(key)!.payments.push(p);
 		}
-		const list = Array.from(map.values()).map((g) => ({
+		const result: StudentPaymentGroup[] = Array.from(map.values()).map((g) => ({
 			...g,
 			payments: [...g.payments].sort(
-				(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+				(a: Payment, b: Payment) => new Date(b.date).getTime() - new Date(a.date).getTime(),
 			),
 		}));
-		list.sort((a, b) => {
-			const dateA = Math.max(...a.payments.map((x) => new Date(x.date).getTime()));
-			const dateB = Math.max(...b.payments.map((x) => new Date(x.date).getTime()));
+		result.sort((a, b) => {
+			const dateA = Math.max(...a.payments.map((x: Payment) => new Date(x.date).getTime()));
+			const dateB = Math.max(...b.payments.map((x: Payment) => new Date(x.date).getTime()));
 			return dateB - dateA;
 		});
-		return list;
+		return result;
 	}, [payments]);
 
 	return (
@@ -91,7 +94,7 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 				)}
 				{byStudent.map(({ studentId, studentName, payments: studentPayments }) => {
 					const isExpanded = expandedId === studentId;
-					const total = studentPayments.reduce((s, p) => s + (p.status === "paid" || p.status === "withdrawn" ? p.amount : 0), 0);
+					const total = studentPayments.reduce((s: number, p: Payment) => s + (p.status === "paid" || p.status === "withdrawn" ? p.amount : 0), 0);
 					const lastPayment = studentPayments[0];
 					return (
 						<DuoCard.Root key={studentId} variant="default" size="default">
@@ -124,7 +127,7 @@ export function FinancialPaymentsTab({ payments }: FinancialPaymentsTabProps) {
 							</button>
 							{isExpanded && (
 								<div className="mt-3 space-y-2 border-t border-duo-border pt-3">
-									{studentPayments.map((payment) => (
+									{studentPayments.map((payment: Payment) => (
 										<div
 											key={payment.id}
 											className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-duo-border bg-duo-gray-lighter/30 p-3"
