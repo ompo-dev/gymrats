@@ -52,6 +52,11 @@ export default function StudentDetailPage({
 		);
 	}
 
+	if (!student) {
+		router.replace("/gym?tab=students");
+		return null;
+	}
+
 	return (
 		<GymStudentDetail
 			student={student}

@@ -8,7 +8,7 @@ import {
 	updateWorkoutSchema,
 } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
 	calculateReps,
 	calculateRest,
@@ -26,7 +26,7 @@ import {
 
 type WorkoutMgmtContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId: string;
 	params?: Record<string, string>;
 };
@@ -488,7 +488,7 @@ function getExerciseInfo(name: string, educationalId?: string | null) {
 export async function createExerciseAlternatives(
 	workoutExerciseId: string,
 	exerciseName: string,
-	profile: any,
+	profile: Record<string, string | number | boolean | object | null>,
 ) {
 	if (!exerciseName || !profile) return;
 
@@ -531,7 +531,7 @@ export async function createExerciseAlternatives(
 
 export function inferExerciseFromProfile(
 	exerciseName: string,
-	profile: any,
+	profile: Record<string, string | number | boolean | object | null>,
 	defaultDifficulty: string,
 ) {
 	const exerciseInfo = exerciseDatabase.find((ex) => ex.name === exerciseName);

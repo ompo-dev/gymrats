@@ -20,7 +20,7 @@ import { MealCard } from "@/components/molecules/cards/meal-card";
 import { WaterIntakeCard } from "@/components/molecules/cards/water-intake-card";
 import type { DailyNutrition } from "@/lib/types";
 
-interface NutritionTrackerProps {
+export interface NutritionTrackerProps {
   nutrition: DailyNutrition;
   onMealComplete: (mealId: string) => void;
   onAddMeal: () => void;

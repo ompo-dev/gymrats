@@ -34,6 +34,8 @@ export class StudentMembershipService {
           totalStudents: { decrement: 1 },
         },
       });
+      const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
     }
   }
 }

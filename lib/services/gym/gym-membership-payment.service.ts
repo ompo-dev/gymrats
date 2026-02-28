@@ -1,11 +1,54 @@
-import { db } from "@/lib/db";
 import { abacatePay } from "@/lib/api/abacatepay";
+import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 
 export interface MembershipPaymentPixResult {
 	brCode: string;
 	brCodeBase64: string;
 	amount: number; // centavos
 	paymentId: string;
+}
+
+/**
+ * Cria apenas o registro de pagamento pendente (sem PIX).
+ * Usado quando a academia adiciona um aluno com plano: o aluno vê o pagamento em
+ * student?tab=payments&subTab=payments e gera o PIX por "Pagar agora".
+ */
+export async function createPendingMembershipPayment(
+	gymId: string,
+	studentId: string,
+	planId: string,
+	amount: number,
+	membershipId: string,
+): Promise<{ paymentId: string }> {
+	const [gym, student, plan] = await Promise.all([
+		db.gym.findUnique({ where: { id: gymId } }),
+		db.student.findUnique({ where: { id: studentId }, include: { user: true } }),
+		db.membershipPlan.findUnique({ where: { id: planId, gymId } }),
+	]);
+	if (!gym) throw new Error("Academia não encontrada");
+	if (!student) throw new Error("Aluno não encontrado");
+	if (!plan) throw new Error("Plano não encontrado");
+	if (!plan.isActive) throw new Error("Plano não está ativo");
+	if (amount <= 0) throw new Error("Valor deve ser maior que zero");
+
+	const dueDate = new Date();
+	dueDate.setDate(dueDate.getDate() + plan.duration);
+
+	const payment = await db.payment.create({
+		data: {
+			gymId,
+			studentId,
+			studentName: student.user?.name ?? "Aluno",
+			planId,
+			amount,
+			dueDate,
+			status: "pending",
+			paymentMethod: "pix",
+			reference: `membership:${membershipId}`,
+		},
+	});
+	return { paymentId: payment.id };
 }
 
 /**
@@ -51,7 +94,7 @@ export async function createMembershipPaymentPix(
 			gymId,
 			studentId,
 			planId,
-			membershipId: options?.membershipId ?? undefined,
+			membershipId: options?.membershipId ?? null,
 			kind: "membership-payment",
 		},
 		customer: student.user?.email
@@ -65,7 +108,7 @@ export async function createMembershipPaymentPix(
 	});
 
 	if (pixResponse.error || !pixResponse.data) {
-		console.error("[createMembershipPaymentPix] Erro:", pixResponse.error);
+		log.error("[createMembershipPaymentPix] Erro", { error: pixResponse.error });
 		throw new Error(
 			pixResponse.error || "Erro ao criar PIX na AbacatePay",
 		);
@@ -160,7 +203,7 @@ export async function createChangePlanPaymentPix(
 	});
 
 	if (pixResponse.error || !pixResponse.data) {
-		console.error("[createChangePlanPaymentPix] Erro:", pixResponse.error);
+		log.error("[createChangePlanPaymentPix] Erro", { error: pixResponse.error });
 		throw new Error(
 			pixResponse.error || "Erro ao criar PIX na AbacatePay",
 		);
@@ -243,7 +286,7 @@ export async function createPixForPendingPayment(
 			gymId: payment.gymId,
 			studentId: payment.studentId,
 			planId: payment.planId!,
-			membershipId,
+			membershipId: membershipId ?? null,
 			kind,
 		},
 		customer: student?.user?.email

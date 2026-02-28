@@ -4,7 +4,7 @@ import { Activity, AlertCircle, Heart, Stethoscope } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoCard } from "@/components/duo";
 import { LimitationSelector } from "@/components/molecules/limitation-selector";
 import { type step7Schema, validateStep7 } from "../schemas";
 import type { StepProps } from "./types";
@@ -112,18 +112,33 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
   };
 
   return (
-    <StepCard.Simple
-      title="Limitações e Considerações"
-      description="Nos ajude a criar um treino seguro e adequado para você"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-6">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Limitações e Considerações
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Nos ajude a criar um treino seguro e adequado para você
+          </p>
+        </div>
+        <div className="space-y-6">
         {/* Limitações Físicas */}
         <LimitationSelector.Simple
           title="Você possui limitações físicas?"
           icon={Heart}
-          iconColor="text-red-500"
-          borderColor="border-red-200"
-          bgColor="bg-red-50/50"
+          iconColor="text-duo-danger"
+          borderColor="border-duo-danger/30"
+          bgColor="bg-duo-danger/10"
           options={physicalLimitations}
           selectedValues={formData.physicalLimitations || []}
           onChange={(values) =>
@@ -168,9 +183,9 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
         <LimitationSelector.Simple
           title="Você possui limitações motoras?"
           icon={Activity}
-          iconColor="text-blue-500"
-          borderColor="border-blue-200"
-          bgColor="bg-blue-50/50"
+          iconColor="text-duo-secondary"
+          borderColor="border-duo-secondary/30"
+          bgColor="bg-duo-secondary/10"
           options={motorLimitations}
           selectedValues={formData.motorLimitations || []}
           onChange={(values) =>
@@ -193,9 +208,9 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
         <LimitationSelector.Simple
           title="Você possui condições médicas?"
           icon={Stethoscope}
-          iconColor="text-orange-500"
-          borderColor="border-orange-200"
-          bgColor="bg-orange-50/50"
+          iconColor="text-duo-accent"
+          borderColor="border-duo-accent/30"
+          bgColor="bg-duo-accent/10"
           options={medicalConditions}
           selectedValues={formData.medicalConditions || []}
           onChange={(values) =>
@@ -243,15 +258,15 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4"
+            className="rounded-xl border-2 border-duo-secondary/30 bg-duo-secondary/10 p-4"
           >
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+              <AlertCircle className="h-5 w-5 text-duo-secondary mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-bold text-blue-900">
+                <p className="text-sm font-bold text-duo-fg">
                   Informações Importantes
                 </p>
-                <p className="text-xs text-blue-700 mt-1">
+                <p className="text-xs text-duo-fg-muted mt-1">
                   Com base nas suas limitações, criaremos um treino
                   personalizado e seguro. Sempre consulte um profissional de
                   saúde antes de iniciar qualquer programa de exercícios.
@@ -261,6 +276,7 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
           </motion.div>
         )}
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

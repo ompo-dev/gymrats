@@ -32,8 +32,7 @@ function LoadingScreenSimple({
 	return (
 		<div
 			className={cn(
-				"h-screen flex items-center justify-center",
-				variant === "student" ? "bg-white" : "bg-gray-50",
+				"flex h-screen items-center justify-center bg-duo-bg",
 				className,
 			)}
 		>

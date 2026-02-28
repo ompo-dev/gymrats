@@ -17,6 +17,7 @@
  */
 
 import { apiClient } from "@/lib/api/client";
+import { log } from "@/lib/observability";
 import { updateCommandStatus } from "./command-logger";
 import {
 	addToQueue,
@@ -32,7 +33,7 @@ import {
 export interface SyncManagerOptions {
 	url: string;
 	method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-	body?: any;
+	body?: Record<string, string | number | boolean | object | null>;
 	headers?: Record<string, string>;
 	priority?: "high" | "normal" | "low";
 	/**
@@ -52,7 +53,7 @@ export interface SyncManagerResult {
 	success: boolean;
 	queued: boolean;
 	queueId?: string;
-	data?: any;
+	data?: Record<string, string | number | boolean | object | null>;
 	error?: Error;
 }
 
@@ -109,27 +110,24 @@ async function registerBackgroundSync(): Promise<void> {
 
 		// Tenta registrar Background Sync
 		if ("sync" in registration && registration.sync) {
-			await (registration.sync as any).register("sync-queue");
-			console.log("[syncManager] ✅ Background Sync registrado");
+			await (registration.sync as { register: (tag: string) => Promise<void> }).register("sync-queue");
+			log.info("[syncManager] Background Sync registrado");
 		} else {
 			// Fallback: agenda sincronização manual quando online
-			console.warn(
-				"[syncManager] ⚠️ Background Sync não disponível, usando fallback",
-			);
+			log.warn("[syncManager] Background Sync não disponível, usando fallback");
 			scheduleManualSync(registration);
 		}
 	} catch (error) {
-		console.warn("[syncManager] Erro ao registrar Background Sync:", error);
+		log.warn("[syncManager] Erro ao registrar Background Sync", { error });
 
 		// Fallback: tenta sincronização manual
 		try {
 			const registration = await navigator.serviceWorker.ready;
 			scheduleManualSync(registration);
 		} catch (fallbackError) {
-			console.error(
-				"[syncManager] Erro no fallback de sincronização:",
-				fallbackError,
-			);
+			log.error("[syncManager] Erro no fallback de sincronização", {
+				error: fallbackError,
+			});
 		}
 	}
 }
@@ -166,9 +164,10 @@ export async function syncManager(
 		method,
 	);
 	if (requiresIdempotency && !idempotencyKey) {
-		console.warn(
-			`[syncManager] ⚠️ IdempotencyKey não fornecido para ${method} ${url}. Gerando automaticamente.`,
-		);
+		log.warn("[syncManager] IdempotencyKey não fornecido, gerando automaticamente", {
+			method,
+			url,
+		});
 	}
 
 	// Se estiver online, tenta enviar imediatamente
@@ -216,11 +215,12 @@ export async function syncManager(
 				queued: false,
 				data: response.data,
 			};
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as { code?: string; message?: string };
 			// Se erro e for erro de rede, salva na fila
 			if (
-				error.code === "ECONNABORTED" ||
-				error.message?.includes("Network Error") ||
+				err?.code === "ECONNABORTED" ||
+				err?.message?.includes("Network Error") ||
 				!isOnline()
 			) {
 				// Agora está offline, salva na fila
@@ -270,7 +270,7 @@ async function queueRequest(
 			await updateCommandStatus(options.commandId, "pending");
 		}
 
-		console.log(`[syncManager] ✅ Ação salva na fila offline (ID: ${queueId})`);
+		log.info("[syncManager] Ação salva na fila offline", { queueId });
 
 		return {
 			success: true,
@@ -278,7 +278,7 @@ async function queueRequest(
 			queueId,
 		};
 	} catch (error) {
-		console.error("[syncManager] Erro ao salvar na fila:", error);
+		log.error("[syncManager] Erro ao salvar na fila", { error });
 		return {
 			success: false,
 			queued: false,
@@ -346,20 +346,24 @@ export async function syncQueue(): Promise<{
 			await removeFromQueue(item.id);
 			synced++;
 
-			console.log(`[syncManager] ✅ Sincronizado: ${item.url}`);
-		} catch (error: any) {
+			log.info("[syncManager] Sincronizado", { url: item.url });
+		} catch (error) {
 			// Erro: incrementa retries
 			const newRetries = await incrementRetries(item.id);
 
 			if (newRetries >= 5) {
 				// Muitas tentativas: move para failed
-				await moveToFailed(item, error.message || "Erro ao sincronizar");
+				const msg =
+					error instanceof Error ? error.message : "Erro ao sincronizar";
+				await moveToFailed(item, msg);
 				failed++;
-				console.error(`[syncManager] ❌ Falhou após 5 tentativas: ${item.url}`);
+				log.error("[syncManager] Falhou após 5 tentativas", { url: item.url });
 			} else {
-				console.warn(
-					`[syncManager] ⚠️ Erro ao sincronizar (tentativa ${newRetries}/5): ${item.url}`,
-				);
+				log.warn("[syncManager] Erro ao sincronizar", {
+					url: item.url,
+					tentativa: newRetries,
+					maxTentativas: 5,
+				});
 			}
 		}
 	}

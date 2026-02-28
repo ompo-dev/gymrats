@@ -7,9 +7,11 @@
 
 import { create } from "zustand";
 
+import type { DailyNutrition } from "@/lib/types";
+
 interface NutritionState {
-	dailyNutrition: any;
-	setDailyNutrition: (nutrition: any) => void;
+	dailyNutrition: DailyNutrition | null;
+	setDailyNutrition: (nutrition: DailyNutrition | null) => void;
 }
 
 // Stub vazio apenas para limpar cache do HMR

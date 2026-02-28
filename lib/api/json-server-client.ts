@@ -16,23 +16,23 @@ class JsonServerClient {
 		});
 	}
 
-	async get<T = any>(url: string) {
+	async get<T = Record<string, string | number | boolean | object | null>>(url: string) {
 		return this.client.get<T>(url);
 	}
 
-	async post<T = any>(url: string, data?: any) {
+	async post<T = Record<string, string | number | boolean | object | null>>(url: string, data?: Record<string, string | number | boolean | object | null>) {
 		return this.client.post<T>(url, data);
 	}
 
-	async put<T = any>(url: string, data?: any) {
+	async put<T = Record<string, string | number | boolean | object | null>>(url: string, data?: Record<string, string | number | boolean | object | null>) {
 		return this.client.put<T>(url, data);
 	}
 
-	async patch<T = any>(url: string, data?: any) {
+	async patch<T = Record<string, string | number | boolean | object | null>>(url: string, data?: Record<string, string | number | boolean | object | null>) {
 		return this.client.patch<T>(url, data);
 	}
 
-	async delete<T = any>(url: string) {
+	async delete<T = Record<string, string | number | boolean | object | null>>(url: string) {
 		return this.client.delete<T>(url);
 	}
 }

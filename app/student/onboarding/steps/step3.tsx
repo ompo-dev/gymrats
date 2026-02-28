@@ -1,9 +1,9 @@
 "use client";
 
+import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { StepCard } from "@/components/molecules/cards/step-card";
-import { DuoSelect } from "@/components/duo";
+import { DuoCard, DuoSelect } from "@/components/duo";
 import { type step3Schema, validateStep3 } from "../schemas";
 import type { OnboardingData, StepProps } from "./types";
 
@@ -56,8 +56,26 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
   ]);
 
   return (
-    <StepCard.Simple title="Preferências" description="Como você gosta de treinar?">
-      <div className="space-y-6">
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+    >
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Preferências
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Como você gosta de treinar?
+          </p>
+        </div>
+        <div className="space-y-6">
         <DuoSelect.Simple
           options={[2, 3, 4, 5].map((num) => ({
             value: String(num),
@@ -123,6 +141,7 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

@@ -1,32 +1,30 @@
 "use client";
 
 import {
-  ArrowRightLeft,
-  Bell,
   Building2,
   Clock,
   CreditCard,
   FileText,
   Loader2,
-  LogOut,
   Mail,
   MapPin,
   Phone,
-  Shield,
-  Users,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { DuoInput } from "@/components/duo";
 import { DuoSelect } from "@/components/duo";
-import { Label } from "@/components/molecules/forms/label";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import {
+	GymSettingsAccountCard,
+	GymSettingsHeader,
+	GymSettingsOtherCard,
+} from "./gym-settings/index";
 import { MembershipPlansPage } from "./membership-plans-page";
 
 const WEEKDAYS = [
@@ -46,13 +44,13 @@ type DaySchedule = { open: string; close: string; enabled: boolean };
 
 interface GymSettingsPageProps {
   profile: GymProfile;
-  plans: MembershipPlan[];
+  plans?: MembershipPlan[];
   userInfo?: { isAdmin: boolean; role: string | null };
 }
 
 export function GymSettingsPage({
   profile: initialProfile,
-  plans,
+  plans = [],
   userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
   const router = useRouter();
@@ -128,14 +126,14 @@ export function GymSettingsPage({
 
   const buildPayload = (
     section: "info" | "schedules",
-  ): Record<string, unknown> => {
-    const payload: Record<string, unknown> = {};
+  ): Record<string, import("@/lib/types/api-error").JsonValue> => {
+    const payload: Record<string, import("@/lib/types/api-error").JsonValue> = {};
     if (section === "info") {
       if (address !== (profile.address ?? "")) {
-        payload.address = address.trim() || undefined;
+        payload.address = address.trim() || null;
       }
       if (phone !== (profile.phone ?? "")) {
-        payload.phone = phone.trim() || undefined;
+        payload.phone = phone.trim() || null;
       }
       if (cnpj !== (profile.cnpj ?? "")) {
         payload.cnpj = cnpj.trim() || null;
@@ -162,7 +160,7 @@ export function GymSettingsPage({
       }
       payload.openingHours = {
         days: openDays,
-        byDay: Object.keys(byDay).length > 0 ? byDay : undefined,
+        byDay: Object.keys(byDay).length > 0 ? byDay : null,
         open: DEFAULT_OPEN,
         close: DEFAULT_CLOSE,
       };
@@ -195,15 +193,15 @@ export function GymSettingsPage({
       if (data.profile) setProfile(data.profile);
       setSaveError("");
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: unknown } } }).response
+          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
               ?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: unknown }).details
+          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0
@@ -232,15 +230,15 @@ export function GymSettingsPage({
       if (data.profile) setProfile(data.profile);
       setSaveError("");
       router.refresh();
-    } catch (err: unknown) {
+    } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: unknown } } }).response
+          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
               ?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: unknown }).details
+          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0
@@ -300,39 +298,30 @@ export function GymSettingsPage({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <FadeIn>
-        <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-text">
-            Configurações
-          </h1>
-          <p className="text-sm text-duo-gray-dark">
-            Gerencie o perfil e configurações da academia
-          </p>
-        </div>
-      </FadeIn>
+      <GymSettingsHeader />
 
       <SlideIn delay={0.1}>
-        <DuoCard.Root variant="orange" padding="md">
+        <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Building2
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-duo-secondary"
                 aria-hidden
               />
-              <h2 className="font-bold text-[var(--duo-fg)]">{profile.name}</h2>
+              <h2 className="font-bold text-duo-fg">{profile.name}</h2>
             </div>
           </DuoCard.Header>
-          <p className="mb-4 text-sm font-medium text-duo-text">
+          <p className="mb-4 text-sm font-medium text-duo-fg">
             Plano {profile.plan}
           </p>
           <div className="space-y-3">
             {[
               {
-                icon: MapPin,
                 title: "Endereço",
                 description: "Opcional",
-                color: "duo-green",
+                iconBg: "bg-duo-green/10",
+                Icon: MapPin,
+                iconClass: "text-duo-green",
                 content: (
                   <DuoInput.Simple
                     id="address"
@@ -344,10 +333,11 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: Phone,
                 title: "Telefone",
                 description: "Opcional",
-                color: "duo-blue",
+                iconBg: "bg-duo-blue/10",
+                Icon: Phone,
+                iconClass: "text-duo-blue",
                 content: (
                   <DuoInput.Simple
                     id="phone"
@@ -359,21 +349,23 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: Mail,
                 title: "Email",
                 description: "Não pode ser alterado aqui",
-                color: "neutral",
+                iconBg: "bg-duo-bg-elevated",
+                Icon: Mail,
+                iconClass: "text-duo-fg-muted",
                 content: (
-                  <p className="mt-2 text-sm font-medium text-duo-text">
+                  <p className="mt-2 text-sm font-medium text-duo-fg">
                     {profile.email}
                   </p>
                 ),
               },
               {
-                icon: FileText,
                 title: "CNPJ",
                 description: "Opcional",
-                color: "duo-purple",
+                iconBg: "bg-duo-purple/10",
+                Icon: FileText,
+                iconClass: "text-duo-purple",
                 content: (
                   <DuoInput.Simple
                     id="cnpj"
@@ -385,11 +377,12 @@ export function GymSettingsPage({
                 ),
               },
               {
-                icon: CreditCard,
                 title: "Chave PIX para Recebimentos",
                 description:
                   "Os pagamentos dos alunos serão transferidos para esta chave",
-                color: "duo-yellow",
+                iconBg: "bg-duo-yellow/10",
+                Icon: CreditCard,
+                iconClass: "text-duo-yellow",
                 content: (
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                     <DuoSelect.Simple
@@ -433,40 +426,26 @@ export function GymSettingsPage({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
-                <DuoCard.Root variant="default" size="default">
+                <DuoCard.Root
+                  variant="default"
+                  size="default"
+                  className="border-2 border-duo-border"
+                >
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3">
                       <div
                         className={cn(
-                          "shrink-0 rounded-xl p-3",
-                          field.color === "duo-green" && "bg-duo-green/10",
-                          field.color === "duo-blue" && "bg-duo-blue/10",
-                          field.color === "neutral" && "bg-gray-100",
-                          field.color === "duo-purple" && "bg-duo-purple/10",
-                          field.color === "duo-yellow" && "bg-duo-yellow/10",
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-3",
+                          field.iconBg,
                         )}
                       >
-                        {field.color === "duo-green" && (
-                          <MapPin className="h-5 w-5 text-duo-green" />
-                        )}
-                        {field.color === "duo-blue" && (
-                          <Phone className="h-5 w-5 text-duo-blue" />
-                        )}
-                        {field.color === "neutral" && (
-                          <Mail className="h-5 w-5 text-duo-gray-dark" />
-                        )}
-                        {field.color === "duo-purple" && (
-                          <FileText className="h-5 w-5 text-duo-purple" />
-                        )}
-                        {field.color === "duo-yellow" && (
-                          <CreditCard className="h-5 w-5 text-duo-yellow" />
-                        )}
+                        <field.Icon className={cn("h-5 w-5", field.iconClass)} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-bold text-duo-text">
+                        <div className="text-sm font-bold text-duo-fg">
                           {field.title}
                         </div>
-                        <div className="text-xs text-duo-gray-dark">
+                        <div className="text-xs text-duo-fg-muted">
                           {field.description}
                         </div>
                       </div>
@@ -507,16 +486,15 @@ export function GymSettingsPage({
           <DuoCard.Header>
             <div className="flex items-center gap-2">
               <Clock
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
+                className="h-5 w-5 shrink-0 text-duo-secondary"
                 aria-hidden
               />
-              <h2 className="font-bold text-[var(--duo-fg)]">
+              <h2 className="font-bold text-duo-fg">
                 Horários e Dias de Funcionamento
               </h2>
             </div>
           </DuoCard.Header>
-          <p className="mb-4 text-sm text-[var(--duo-fg-muted)]">
+          <p className="mb-4 text-sm text-duo-fg-muted">
             Marque os dias em que a academia abre e defina o horário de cada um
           </p>
           <div className="space-y-2">
@@ -530,63 +508,14 @@ export function GymSettingsPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.3 }}
                   className={cn(
-                    "rounded-xl border-2 p-3 transition-all",
+                    "rounded-xl border-2 p-3 transition-all grid grid-cols-[1fr_auto] items-center gap-3",
                     s.enabled
-                      ? "flex flex-col gap-3 border-[var(--duo-secondary)]/40 bg-[var(--duo-secondary)]/5"
-                      : "flex items-center gap-3 border-[var(--duo-border)] bg-[var(--duo-bg-elevated)]/50",
+                      ? "border-duo-secondary/40 bg-duo-secondary/5"
+                      : "border-duo-border bg-duo-bg-elevated/50",
                   )}
                 >
-                  {s.enabled ? (
-                    <>
-                      <span className="text-sm font-bold text-[var(--duo-fg)]">
-                        {day.label}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <label className="flex cursor-pointer items-center">
-                          <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={s.enabled}
-                              onChange={(e) =>
-                                updateDaySchedule(
-                                  day.id,
-                                  "enabled",
-                                  e.target.checked,
-                                )
-                              }
-                              className="peer sr-only"
-                            />
-                            <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
-                            <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
-                          </div>
-                        </label>
-                      <div className="flex flex-1 items-center gap-2 sm:gap-4">
-                        <div className="flex items-center gap-1.5">
-                          <DuoInput.Simple
-                            type="time"
-                            value={s.open}
-                            onChange={(e) =>
-                              updateDaySchedule(day.id, "open", e.target.value)
-                            }
-                            className="h-8 w-24 min-w-0 text-sm"
-                          />
-                        </div>
-                        <span className="text-[var(--duo-fg-muted)]">–</span>
-                        <div className="flex items-center gap-1.5">
-                          <DuoInput.Simple
-                            type="time"
-                            value={s.close}
-                            onChange={(e) =>
-                              updateDaySchedule(day.id, "close", e.target.value)
-                            }
-                            className="h-8 w-24 min-w-0 text-sm"
-                          />
-                        </div>
-                      </div>
-                      </div>
-                    </>
-                  ) : (
-                    <label className="flex cursor-pointer items-center gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <label className="flex cursor-pointer items-center gap-2 shrink-0">
                       <div className="relative">
                         <input
                           type="checkbox"
@@ -600,13 +529,34 @@ export function GymSettingsPage({
                           }
                           className="peer sr-only"
                         />
-                        <div className="h-6 w-11 rounded-full bg-[var(--duo-border)] transition-colors peer-checked:bg-[var(--duo-secondary)]" />
-                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-[var(--duo-bg-card)] shadow-sm transition-transform peer-checked:translate-x-5" />
+                        <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
+                        <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-sm font-bold text-[var(--duo-fg)]">
+                      <span className="text-sm font-bold text-duo-fg">
                         {day.label}
                       </span>
                     </label>
+                  </div>
+                  {s.enabled && (
+                    <div className="flex flex-1 items-center gap-2 sm:gap-4 min-w-0">
+                      <DuoInput.Simple
+                        type="time"
+                        value={s.open}
+                        onChange={(e) =>
+                          updateDaySchedule(day.id, "open", e.target.value)
+                        }
+                        className="h-8 w-24 min-w-0 text-sm"
+                      />
+                      <span className="text-duo-fg-muted shrink-0">–</span>
+                      <DuoInput.Simple
+                        type="time"
+                        value={s.close}
+                        onChange={(e) =>
+                          updateDaySchedule(day.id, "close", e.target.value)
+                        }
+                        className="h-8 w-24 min-w-0 text-sm"
+                      />
+                    </div>
                   )}
                 </motion.div>
               );
@@ -643,141 +593,15 @@ export function GymSettingsPage({
       </SlideIn>
 
       <SlideIn delay={0.4}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Shield
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
-                aria-hidden
-              />
-              <h2 className="font-bold text-[var(--duo-fg)]">
-                Outras Configurações
-              </h2>
-            </div>
-          </DuoCard.Header>
-          <div className="space-y-3">
-            {[
-              {
-                icon: Users,
-                title: "Gerenciar Equipe",
-                description: "Adicionar e remover funcionários",
-                color: "duo-purple",
-              },
-              {
-                icon: Bell,
-                title: "Notificações",
-                description: "Configurar alertas e lembretes",
-                color: "duo-yellow",
-              },
-              {
-                icon: Shield,
-                title: "Privacidade e Segurança",
-                description: "Gerencie dados e permissões",
-                color: "duo-red",
-              },
-            ].map((setting, index) => (
-              <motion.div
-                key={setting.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
-                <DuoCard.Root
-                  variant="default"
-                  size="default"
-                  className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        "rounded-xl p-3",
-                        setting.color === "duo-purple" && "bg-duo-purple/10",
-                        setting.color === "duo-yellow" && "bg-duo-yellow/10",
-                        setting.color === "duo-red" && "bg-duo-red/10",
-                      )}
-                    >
-                      {setting.color === "duo-purple" && (
-                        <Users className="h-5 w-5 text-duo-purple" />
-                      )}
-                      {setting.color === "duo-yellow" && (
-                        <Bell className="h-5 w-5 text-duo-yellow" />
-                      )}
-                      {setting.color === "duo-red" && (
-                        <Shield className="h-5 w-5 text-duo-red" />
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-bold text-duo-text">
-                        {setting.title}
-                      </div>
-                      <div className="text-xs text-duo-gray-dark">
-                        {setting.description}
-                      </div>
-                    </div>
-                  </div>
-                </DuoCard.Root>
-              </motion.div>
-            ))}
-          </div>
-        </DuoCard.Root>
+        <GymSettingsOtherCard />
       </SlideIn>
 
       <SlideIn delay={0.5}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Shield
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
-                aria-hidden
-              />
-              <h2 className="font-bold text-[var(--duo-fg)]">Conta</h2>
-            </div>
-          </DuoCard.Header>
-          <div className="space-y-3">
-            {(isAdmin || userInfo?.role === "ADMIN") && (
-              <DuoCard.Root
-                variant="default"
-                size="default"
-                className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
-                onClick={handleSwitchToStudent}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="rounded-xl bg-duo-blue/10 p-3">
-                    <ArrowRightLeft className="h-5 w-5 text-duo-blue" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <div className="text-sm font-bold text-duo-text">
-                      Trocar para Perfil de Aluno
-                    </div>
-                    <div className="text-xs text-duo-gray-dark">
-                      Acessar como estudante
-                    </div>
-                  </div>
-                </div>
-              </DuoCard.Root>
-            )}
-            <DuoCard.Root
-              variant="default"
-              size="default"
-              className="cursor-pointer transition-all hover:border-red-300 active:scale-[0.98]"
-              onClick={handleLogout}
-            >
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-red-50 p-3">
-                  <LogOut className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-bold text-duo-text">Sair</div>
-                  <div className="text-xs text-duo-gray-dark">
-                    Fazer logout da conta
-                  </div>
-                </div>
-              </div>
-            </DuoCard.Root>
-          </div>
-        </DuoCard.Root>
+        <GymSettingsAccountCard
+          isAdmin={isAdmin || userInfo?.role === "ADMIN"}
+          onSwitchToStudent={handleSwitchToStudent}
+          onLogout={handleLogout}
+        />
       </SlideIn>
     </div>
   );

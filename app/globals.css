@@ -75,6 +75,16 @@
 }
 
 .dark {
+  /* Duo tokens para dark mode */
+  --duo-bg: #1a1f22;
+  --duo-bg-card: #232a2e;
+  --duo-bg-elevated: #2d3639;
+  --duo-fg: #e8ecea;
+  --duo-fg-muted: #8a9a94;
+  --duo-border: #3d484c;
+  --duo-gray: #3d484c;
+  --duo-gray-dark: #5a6b63;
+
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.145 0 0);

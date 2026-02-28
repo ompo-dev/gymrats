@@ -17,7 +17,7 @@ import { validateBody } from "../utils/validation";
 
 type WorkoutContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId?: string;
 	params?: Record<string, string>;
 };
@@ -173,7 +173,7 @@ export async function completeWorkoutHandler({
 		const workout = await db.workout.findUnique({ where: { id: workoutId } });
 		if (!workout) return notFoundResponse(set, "Treino não encontrado");
 
-		const payload = body as any;
+		const payload = body as Record<string, string | number | boolean | object | null>;
 		const completion = await db.workoutHistory.create({
 			data: {
 				studentId,
@@ -238,7 +238,7 @@ export async function saveWorkoutProgressHandler({
 			);
 		}
 
-		const data = validation.data as any;
+		const data = validation.data as Record<string, string | number | boolean | object | null | undefined>;
 		const progress = await db.workoutProgress.upsert({
 			where: { studentId_workoutId: { studentId, workoutId } },
 			create: {
@@ -310,7 +310,7 @@ export async function getWorkoutProgressHandler({
 		return successResponse(set, {
 			progress: {
 				...progress,
-				exerciseLogs: parseJsonArray<unknown>(progress.exerciseLogs),
+				exerciseLogs: parseJsonArray<Record<string, import("@/lib/types/api-error").JsonValue>>(progress.exerciseLogs),
 				skippedExercises: parseJsonArray<string>(progress.skippedExercises),
 				selectedAlternatives:
 					parseJsonSafe<Record<string, string>>(
@@ -379,7 +379,7 @@ export async function getWorkoutHistoryHandler({
 				exerciseName: el.exerciseName,
 				workoutId: wh.workoutId,
 				date: wh.date,
-				sets: parseJsonArray<unknown>(el.sets),
+				sets: parseJsonArray<Record<string, string | number | boolean | object | null>>(el.sets),
 				notes: el.notes || undefined,
 				formCheckScore: el.formCheckScore || undefined,
 				difficulty: el.difficulty || "ideal",
@@ -417,7 +417,7 @@ export async function updateExerciseLogHandler({
 			);
 		}
 
-		const data = validation.data as any;
+		const data = validation.data as Record<string, string | number | boolean | object | null | undefined>;
 		const exercise = await db.exerciseLog.findFirst({
 			where: { workoutHistoryId: historyId, exerciseId },
 		});
@@ -479,8 +479,8 @@ export async function updateWorkoutProgressExerciseHandler({
 			progress.exerciseLogs,
 		);
 
-		const updatePayload = validation.data as Record<string, unknown>;
-		const updatedLogs = exerciseLogs.map((log: any) =>
+		const updatePayload = validation.data as Record<string, import("@/lib/types/api-error").JsonValue>;
+		const updatedLogs = exerciseLogs.map((log: { exerciseId: string; sets: Array<{ weight?: number; reps?: number }> }) =>
 			log.exerciseId === exerciseId ? { ...log, ...updatePayload } : log,
 		);
 

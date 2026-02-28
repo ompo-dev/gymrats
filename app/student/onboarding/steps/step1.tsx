@@ -3,8 +3,7 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { type step1Schema, validateStep1 } from "../schemas";
 import type { DifficultyLevel, OnboardingData, StepProps } from "./types";
@@ -97,11 +96,26 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
   }, [formData, touched]);
 
   return (
-    <StepCard.Simple
-      title="Informações Pessoais"
-      description="Vamos conhecer você melhor"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-5">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Informações Pessoais
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Vamos conhecer você melhor
+          </p>
+        </div>
+        <div className="space-y-5">
         <DuoInput.Simple
           label="Idade *"
           type="text"
@@ -111,13 +125,12 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, age: undefined as unknown as number });
+              setFormData({ ...formData, age: "" });
               return;
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(120, Math.max(13, n));
-              setFormData({ ...formData, age: clamped });
+              setFormData({ ...formData, age: n });
             }
           }}
           onBlur={() => {
@@ -136,13 +149,12 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, height: undefined as unknown as number });
+              setFormData({ ...formData, height: "" });
               return;
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(250, Math.max(100, n));
-              setFormData({ ...formData, height: clamped });
+              setFormData({ ...formData, height: n });
             }
           }}
           onBlur={() => {
@@ -161,13 +173,12 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           onChange={(e) => {
             const v = e.target.value;
             if (v === "" || v === "-") {
-              setFormData({ ...formData, weight: undefined as unknown as number });
+              setFormData({ ...formData, weight: "" });
               return;
             }
             const n = parseFloat(v);
             if (!Number.isNaN(n)) {
-              const clamped = Math.min(300, Math.max(30, n));
-              setFormData({ ...formData, weight: clamped });
+              setFormData({ ...formData, weight: n });
             }
           }}
           onBlur={() => {
@@ -179,7 +190,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
         />
 
         <div className="space-y-4">
-          <span className="block text-sm font-bold text-gray-900">Gênero</span>
+          <span className="block text-sm font-bold text-duo-fg">Gênero</span>
           <div className="grid grid-cols-2 gap-3">
             {[
               { value: "male", label: "Masculino" },
@@ -270,6 +281,7 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           placeholder="Selecione"
         />
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

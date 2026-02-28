@@ -8,7 +8,7 @@ import type {
 	MembershipPlan,
 	Payment,
 	StudentData,
-} from "@/lib/types";
+} from "./core";
 
 export interface GymSubscriptionSnapshot {
 	id: string;

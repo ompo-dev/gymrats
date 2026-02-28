@@ -5,8 +5,9 @@ import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
-import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/abacate-pay";
+import { createAbacateBilling, confirmAbacatePayment } from "@/lib/actions/payments/abacate-pay";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
+import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import { PlansSelector } from "./subscription/plans-selector";
 import { SubscriptionStatus } from "./subscription/subscription-status";
 import { TrialOffer } from "./subscription/trial-offer";
@@ -23,26 +24,10 @@ export interface SubscriptionPlan {
 }
 
 export interface SubscriptionSectionProps {
-	// Tipo de usuário
 	userType: "student" | "gym";
 
-	// Estado da subscription
-	subscription?: {
-		id: string;
-		plan: string;
-		status: string;
-		currentPeriodStart: Date;
-		currentPeriodEnd: Date;
-		cancelAtPeriodEnd: boolean;
-		canceledAt: Date | null;
-		trialStart: Date | null;
-		trialEnd: Date | null;
-		isTrial: boolean;
-		daysRemaining: number | null;
-		activeStudents?: number;
-		totalAmount?: number;
-		billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
-	} | null;
+	/** Subscription do student ou gym; datas e id podem ser opcionais (ex.: virtual enterprise). Gym pode passar activeStudents/totalAmount. */
+	subscription?: (StudentSubscriptionData & { activeStudents?: number; totalAmount?: number }) | null;
 
 	// Estados de loading
 	isLoading?: boolean;
@@ -257,24 +242,36 @@ function SubscriptionSectionSimple({
 		(!isLoading && !isStartingTrial && !subscription) ||
 		isCanceledAndTrialExpired;
 
+	// Trial só uma vez: ocultar oferta se já usou trial ou já assinou (canStartTrial === false)
+	const canStartTrial =
+		subscription == null || ("canStartTrial" in subscription && subscription.canStartTrial !== false);
+
 	const daysRemaining = subscription?.daysRemaining ?? null;
 	const isTrialEnding =
 		isTrialActive && daysRemaining !== null && daysRemaining <= trialEndingDays;
 
 	// Determinar quando mostrar os planos
 	// Para gym: sempre mostrar planos quando há subscription (para permitir upgrade/downgrade)
-	// Para student: apenas mostrar opção de mudar para anual se estiver no mensal
+	// Para student: não mostrar upgrade quando Premium via academia; só "mudar para anual" se OWN mensal
 	const shouldShowPlans = (() => {
+		// Student com Premium via academia: nunca mostrar planos/upgrade
+		if (userType === "student" && subscription?.source === "GYM_ENTERPRISE") {
+			return false;
+		}
+
 		// Se há subscription ativa
 		if (subscription && isPremiumActive) {
-			// Para student: apenas mostrar se estiver no plano mensal (para mudar para anual)
+			// Gym com Enterprise ativo: não mostrar planos (já está no melhor plano)
+			if (userType === "gym" && String(subscription.plan).toLowerCase().includes("enterprise")) {
+				return false;
+			}
+
+			// Para student: apenas mostrar se estiver no plano mensal OWN (para mudar para anual)
 			if (userType === "student") {
 				const currentBillingPeriod = subscription.billingPeriod || "monthly";
-				// Se estiver no plano anual, não mostrar opções de planos
 				if (currentBillingPeriod === "annual") {
 					return false;
 				}
-				// Se estiver no plano mensal, mostrar apenas opção de mudar para anual
 				return true;
 			}
 			// Para gym: sempre mostrar todos os planos (para permitir upgrade/downgrade)
@@ -283,6 +280,8 @@ function SubscriptionSectionSimple({
 
 		// Se há subscription em trial ou cancelada, mostrar planos normalmente
 		if (subscription && (isTrialActive || isCanceled)) {
+			// Novamente: se for cancelada mas era Enterprise, talvez ocultar?
+			// Por enquanto deixaremos visível para permitir re-assinar se cancelado.
 			return true;
 		}
 
@@ -350,12 +349,13 @@ function SubscriptionSectionSimple({
 			} else {
 				throw new Error("URL de checkout não recebida do servidor.");
 			}
-		} catch (error: any) {
+		} catch (error) {
 			console.error("[Subscription] Erro no checkout:", error);
+			const message = error instanceof Error ? error.message : "Erro ao processar checkout.";
 			toast({
 				variant: "destructive",
 				title: "Erro ao iniciar checkout",
-				description: error.message || "Erro ao processar checkout.",
+				description: message,
 			});
 		} finally {
 			setIsProcessingPayment(false);
@@ -374,8 +374,8 @@ function SubscriptionSectionSimple({
 				</DuoCard.Root>
 			)}
 
-			{/* Trial Offer - Mostrar apenas se não há subscription */}
-			{!isLoading && !isStartingTrial && hasNoSubscription && (
+			{/* Trial Offer - Apenas se não há subscription (ou expirou) e ainda pode ativar trial (uma vez por conta) */}
+			{!isLoading && !isStartingTrial && hasNoSubscription && canStartTrial && (
 				<TrialOffer.Simple
 					title={finalTexts.trialTitle}
 					description={finalTexts.trialDescription}
@@ -383,6 +383,22 @@ function SubscriptionSectionSimple({
 					isLoading={isLoadingState}
 					onStartTrial={onStartTrial}
 				/>
+			)}
+
+			{/* Aluno com Premium gratuito via academia Enterprise — não mostrar planos para assinar */}
+			{userType === "student" && subscription?.source === "GYM_ENTERPRISE" && (
+				<DuoCard.Root variant="default" className="border-duo-purple/30 bg-duo-purple/5">
+					<div className="p-4">
+						<p className="font-bold text-duo-text">
+							Você tem plano Premium gratuito
+						</p>
+						<p className="text-sm text-duo-gray-dark mt-1">
+							Incluído por estar cadastrado em{" "}
+							<strong>{subscription.enterpriseGymName || "sua academia parceira"}</strong>.
+							Não é necessário assinar um plano próprio.
+						</p>
+					</div>
+				</DuoCard.Root>
 			)}
 
 			{/* Subscription Status */}

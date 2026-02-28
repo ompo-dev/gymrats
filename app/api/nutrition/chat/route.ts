@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
 			needsConfirmation: parsed.foods.some((f) => f.confidence < 0.8),
 			remainingMessages: MAX_MESSAGES_PER_DAY - chatUsage.messageCount - 1,
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[nutrition/chat] Erro:", error);
 		const err = error instanceof Error ? error : new Error(String(error));
 		return NextResponse.json(

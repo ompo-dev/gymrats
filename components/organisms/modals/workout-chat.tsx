@@ -15,8 +15,10 @@ import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
+import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
 import type { PlanSlotData, Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
+import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
@@ -98,9 +100,14 @@ export function WorkoutChat({
   const storeUnits = useStudent("units");
   const storeWeeklyPlan = useStudent("weeklyPlan");
 
-  const unit = unitId ? storeUnits.find((u: Unit) => u.id === unitId) : null;
+  const unitsArray = Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
+  const slotsArray: PlanSlotData[] = Array.isArray(storeWeeklyPlan?.slots)
+    ? (storeWeeklyPlan.slots as unknown as PlanSlotData[])
+    : [];
+
+  const unit = unitId ? unitsArray.find((u: Unit) => u.id === unitId) : null;
   const planSlot = planSlotId
-    ? storeWeeklyPlan?.slots.find((s: PlanSlotData) => s.id === planSlotId)
+    ? slotsArray.find((s: PlanSlotData) => s.id === planSlotId) ?? null
     : null;
 
   const storeWorkouts = unit?.workouts || [];
@@ -304,7 +311,7 @@ export function WorkoutChat({
                     workouts: [preview],
                     message: `Criando workout: ${preview.title}`,
                   },
-                  unitId,
+                  unitId: unitId ?? null,
                 },
                 {
                   timeout: 120000,
@@ -313,7 +320,7 @@ export function WorkoutChat({
               console.log(
                 `[handleApprove] ✅ Workout criado: ${preview.title}`,
               );
-            } catch (error: unknown) {
+            } catch (error) {
               console.error(
                 `[handleApprove] ❌ Erro ao criar workout ${preview.title}:`,
                 error,
@@ -449,7 +456,7 @@ export function WorkoutChat({
 
       // Fechar chat após aprovação
       onClose();
-    } catch (processError: unknown) {
+    } catch (processError) {
       console.error("[WorkoutChat] ❌ Erro ao processar treino:", processError);
       const apiMessage = (
         processError as { response?: { data?: { message?: string } } }
@@ -507,9 +514,9 @@ export function WorkoutChat({
     // Caso contrário: previewWorkouts ou workouts
     let sourceWorkouts: Array<PreviewWorkout | WorkoutSession> = [];
 
-    if (planSlotId && storeWeeklyPlan?.slots?.length >= 7) {
+    if (planSlotId && slotsArray.length >= 7) {
       // Plano semanal: exportar todos os 7 dias (workout + descanso) em ordem
-      sourceWorkouts = storeWeeklyPlan.slots
+      sourceWorkouts = slotsArray
         .slice()
         .sort((a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek)
         .map((s: PlanSlotData) => {
@@ -573,7 +580,7 @@ export function WorkoutChat({
           timestamp: new Date(),
         },
       ]);
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("Erro ao copiar JSON:", error);
       toast({
         title: "Erro ao copiar",
@@ -679,6 +686,25 @@ export function WorkoutChat({
 
     setIsProcessing(true);
 
+    // Verificar Premium antes de enviar à API — não chamar IA se não for premium
+    const subscription = useStudentUnifiedStore.getState().data.subscription;
+    if (!subscription || !hasActivePremiumStatus({
+      plan: subscription.plan ?? "",
+      status: subscription.status ?? "",
+      trialEnd: subscription.trialEnd ?? null,
+    })) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Recurso Premium. Assine o plano Premium ou tenha acesso via sua academia para usar o chat de treinos com IA.",
+          timestamp: new Date(),
+        },
+      ]);
+      setIsProcessing(false);
+      return;
+    }
+
     try {
       // Buscar perfil do student para contexto
       const profile = useStudentUnifiedStore.getState().data.profile;
@@ -703,10 +729,7 @@ export function WorkoutChat({
         typeof window !== "undefined"
           ? ""
           : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("auth_token")
-          : null;
+      const token = getAuthToken();
 
       // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
       const response = await fetch(`${API_BASE_URL}/api/workouts/chat-stream`, {
@@ -1130,7 +1153,7 @@ export function WorkoutChat({
         // parsedData.workouts já foi atualizado acima com todos os previews preservados
         setPendingWorkoutData(parsedData);
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("[WorkoutChat] Erro:", error);
 
       // Tratar erros específicos

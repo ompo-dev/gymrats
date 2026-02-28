@@ -1,9 +1,9 @@
 "use client";
 
+import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { StepCard } from "@/components/molecules/cards/step-card";
-import { DuoSelect } from "@/components/duo";
+import { DuoCard, DuoSelect } from "@/components/duo";
 import { type step4Schema, validateStep4 } from "../schemas";
 import type { OnboardingData, StepProps } from "./types";
 
@@ -45,11 +45,26 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
   }, [formData.gymType, touched.gymType]);
 
   return (
-    <StepCard.Simple
-      title="Equipamentos"
-      description="Selecione o que você tem acesso"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-6">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Equipamentos
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Selecione o que você tem acesso
+          </p>
+        </div>
+        <div className="space-y-6">
         <div>
           <DuoSelect.Simple
             options={[
@@ -70,12 +85,13 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
             placeholder="Selecione"
           />
           {touched.gymType && errors.gymType && (
-            <p className="mt-2 text-sm font-bold text-red-500">
+            <p className="mt-2 text-sm font-bold text-duo-danger">
               {errors.gymType}
             </p>
           )}
         </div>
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

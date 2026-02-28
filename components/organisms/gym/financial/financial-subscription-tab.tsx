@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
+import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixPaymentModal } from "./pix-payment-modal";
 
@@ -11,7 +12,7 @@ interface FinancialSubscriptionTabProps {
 	subscription?: {
 		id: string;
 		plan: string;
-		status: string;
+		status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 		basePrice: number;
 		pricePerStudent: number;
 		currentPeriodStart: Date;
@@ -98,16 +99,12 @@ export function FinancialSubscriptionTab({
 
 	const subscription: SubscriptionType =
 		hasOptimisticUpdate && storeSubscription
-			? (storeSubscription as unknown as SubscriptionType)
-			: subscriptionData !== undefined && subscriptionData !== null
-				? (subscriptionData as unknown as SubscriptionType)
+			? (storeSubscription as SubscriptionType)
+			: subscriptionData !== undefined
+				? (subscriptionData as SubscriptionType)
 				: storeSubscription !== null
-					? (storeSubscription as unknown as SubscriptionType)
-					: subscriptionData === null && initialSubscription
-						? initialSubscription
-						: subscriptionData === null
-							? null
-							: initialSubscription;
+					? (storeSubscription as SubscriptionType)
+					: initialSubscription;
 
 	// Restaurar PIX pendente ao voltar (ex.: fechou modal, foi ao banco, voltou)
 	useEffect(() => {
@@ -155,7 +152,7 @@ export function FinancialSubscriptionTab({
 					description: "Seu trial de 14 dias foi iniciado com sucesso!",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao iniciar trial";
 			toast({
@@ -196,7 +193,7 @@ export function FinancialSubscriptionTab({
 				setPendingPix(pixData);
 				savePendingPixToStorage(pixData);
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao criar cobrança";
 			toast({
@@ -223,7 +220,7 @@ export function FinancialSubscriptionTab({
 					description: "Sua assinatura foi cancelada com sucesso.",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao cancelar assinatura";
 			toast({
@@ -266,7 +263,7 @@ export function FinancialSubscriptionTab({
 					? {
 							id: subscription.id,
 							plan: subscription.plan,
-							status: subscription.status,
+							status: subscription.status as any,
 							currentPeriodStart: subscription.currentPeriodStart,
 							currentPeriodEnd: subscription.currentPeriodEnd,
 							cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -281,7 +278,11 @@ export function FinancialSubscriptionTab({
 						}
 					: null
 			}
-			onPaymentSuccess={refetchSubscription}
+			onPaymentSuccess={async () => {
+				await refetchSubscription();
+				// Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
+				useGymsDataStore.getState().loadAllGyms();
+			}}
 			isLoading={isLoadingSubscription}
 			isStartingTrial={isStartingTrial}
 			isCreatingSubscription={isCreatingSubscription}
@@ -297,10 +298,10 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.basic,
 					perStudentPrice: perStudentPrices.basic,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard básico",
-						"Premium gratuito para todos os alunos",
-						"Relatórios básicos",
+						"1 unidade (uma academia)",
+						"Gestão de alunos e check-ins",
+						"Planos de mensalidade e cobrança",
+						"Dashboard e relatórios básicos",
 						"Suporte por email",
 					],
 				},
@@ -311,12 +312,11 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.premium,
 					perStudentPrice: perStudentPrices.premium,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard avançado",
-						"Premium gratuito para todos os alunos",
-						"Relatórios detalhados",
+						"Todas as features do Plano Básico",
+						"Múltiplas unidades (academias)",
+						"Relatórios avançados e métricas",
 						"Suporte prioritário",
-						"Integrações avançadas",
+						"Integrações (contabilidade, etc.)",
 					],
 				},
 				{
@@ -326,13 +326,11 @@ export function FinancialSubscriptionTab({
 					annualPrice: annualPrices.enterprise,
 					perStudentPrice: perStudentPrices.enterprise,
 					features: [
-						"Gestão completa de alunos",
-						"Dashboard empresarial",
-						"Premium gratuito para todos os alunos",
+						"Todas as features do Plano Premium",
+						"Plano Basic gratuito para todos os seus alunos",
+						"Suporte dedicado",
 						"Relatórios personalizados",
-						"Suporte dedicado 24/7",
-						"Integrações ilimitadas",
-						"API personalizada",
+						"API e integrações ilimitadas",
 					],
 				},
 			]}
@@ -365,6 +363,8 @@ export function FinancialSubscriptionTab({
 				onPaymentConfirmed={() => {
 					clearPendingPixStorage();
 					refetchSubscription();
+					// Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
+					useGymsDataStore.getState().loadAllGyms();
 				}}
 				pixId={pendingPix.pixId}
 				brCode={pendingPix.brCode}

@@ -6,14 +6,14 @@ import {
 	type LucideIcon,
 	Palette,
 	Settings,
-	Trophy,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { NavigationButtonCard } from "@/components/ui/navigation-button-card"; // Componente específico - manter em ui/
+import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
+import { useUserSession } from "@/hooks/use-user-session";
 
 interface MoreMenuItem {
 	id: string;
@@ -21,6 +21,7 @@ interface MoreMenuItem {
 	label: string;
 	description: string;
 	color: "duo-blue" | "duo-yellow" | "duo-green";
+	adminOnly?: boolean;
 }
 
 const moreMenuItems: MoreMenuItem[] = [
@@ -39,13 +40,6 @@ const moreMenuItems: MoreMenuItem[] = [
 		color: "duo-green",
 	},
 	{
-		id: "gamification",
-		icon: Trophy,
-		label: "Gamificação",
-		description: "XP, rankings e conquistas",
-		color: "duo-yellow",
-	},
-	{
 		id: "subscription",
 		icon: Crown,
 		label: "Assinatura",
@@ -58,6 +52,7 @@ const moreMenuItems: MoreMenuItem[] = [
 		label: "Teste de Tema",
 		description: "Tabs, cards, stats e color picker",
 		color: "duo-yellow",
+		adminOnly: true,
 	},
 ];
 
@@ -68,9 +63,15 @@ function GymMoreMenuSimple() {
 		parseAsString.withDefault("overview"),
 	);
 	const [, setSubTab] = useQueryState("subTab", parseAsString);
+	const { isAdmin, role } = useUserSession();
+	const userIsAdmin = isAdmin || role === "ADMIN";
+
+	const visibleMenuItems = moreMenuItems.filter(
+		(item) => !item.adminOnly || userIsAdmin,
+	);
 
 	const handleItemClick = async (itemId: string) => {
-		if (itemId === "theme-test") return; // Link externo
+		if (itemId === "theme-test") return;
 		if (itemId === "subscription") {
 			await setTab("financial");
 			await setView("subscription");
@@ -93,7 +94,7 @@ function GymMoreMenuSimple() {
 
 			<SlideIn delay={0.1}>
 				<div className="grid gap-4">
-					{moreMenuItems.map((item, index) => (
+					{visibleMenuItems.map((item, index) => (
 						<motion.div
 							key={item.id}
 							initial={{ opacity: 0, y: 20 }}

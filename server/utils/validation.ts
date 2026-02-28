@@ -13,8 +13,8 @@ function formatZodErrors(prefix: string, error: ZodError): string[] {
 }
 
 export function validateBody<T>(
-	body: unknown,
-	schema: ZodType<T, ZodTypeDef, unknown>,
+	body: string | number | boolean | null | object,
+	schema: ZodType<T, ZodTypeDef, string | number | boolean | null | object>,
 ): ValidationResult<T> {
 	try {
 		const parsed = schema.parse(body);
@@ -28,8 +28,8 @@ export function validateBody<T>(
 }
 
 export function validateQuery<T>(
-	query: Record<string, unknown>,
-	schema: ZodType<T, ZodTypeDef, unknown>,
+	query: Record<string, string | number | boolean | object | null>,
+	schema: ZodType<T, ZodTypeDef, object>,
 ): ValidationResult<T> {
 	try {
 		const parsed = schema.parse(query);

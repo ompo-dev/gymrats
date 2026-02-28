@@ -9,10 +9,10 @@
 
 import { create } from "zustand";
 
-interface GymSubscription {
+export interface GymSubscription {
 	id: string;
 	plan: string;
-	status: string;
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 	basePrice: number;
 	pricePerStudent: number;
 	currentPeriodStart: Date;
@@ -28,14 +28,31 @@ interface GymSubscription {
 	billingPeriod?: "monthly" | "annual";
 }
 
+/** Subscription mínima (student ou gym) */
+export type SubscriptionLike = Omit<
+	GymSubscription,
+	"basePrice" | "pricePerStudent" | "activeStudents" | "totalAmount" | "currentPeriodStart" | "currentPeriodEnd"
+> & {
+	currentPeriodStart?: Date;
+	currentPeriodEnd?: Date;
+	source?: "OWN" | "GYM_ENTERPRISE";
+	gymId?: string;
+	enterpriseGymName?: string;
+} & Partial<
+		Pick<
+			GymSubscription,
+			"basePrice" | "pricePerStudent" | "activeStudents" | "totalAmount"
+		>
+	>;
+
 interface SubscriptionState {
 	// Gym subscription (mantido para compatibilidade)
-	gymSubscription: GymSubscription | null;
-	setGymSubscription: (subscription: GymSubscription | null) => void;
+	gymSubscription: SubscriptionLike | null;
+	setGymSubscription: (subscription: SubscriptionLike | null) => void;
 
 	// Student subscription (DEPRECATED - usar useStudent('subscription'))
-	subscription: GymSubscription | null;
-	setSubscription: (subscription: GymSubscription | null) => void;
+	subscription: SubscriptionLike | null;
+	setSubscription: (subscription: SubscriptionLike | null) => void;
 
 	/** Limpa dados ao trocar de academia */
 	resetForGymChange: () => void;

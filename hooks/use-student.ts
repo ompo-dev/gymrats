@@ -14,7 +14,7 @@
 "use client";
 
 import type { StudentData } from "@/lib/types/student-unified";
-import { selectFromData } from "@/lib/utils/student-selectors";
+import { selectFromData } from "@/lib/utils/student/student-selectors";
 import {
 	type StudentUnifiedState,
 	useStudentUnifiedStore,
@@ -120,7 +120,7 @@ export function useStudent<T extends StudentSelector>(
 				? First extends StudentSelector
 					? ReturnType<typeof selectFromData>
 					: never
-				: Record<string, any> {
+				: Record<string, import("@/lib/types/api-error").JsonValue> {
 	// Usar seletores do Zustand para reatividade correta
 	const data = useStudentUnifiedStore((state) => state.data);
 	// Seletor específico para dailyNutrition para garantir reatividade
@@ -236,7 +236,7 @@ export function useStudent<T extends StudentSelector>(
 
 	// Se nenhum seletor, retorna tudo
 	if (selectors.length === 0) {
-		return data as any;
+		return data as StudentData;
 	}
 
 	// Se apenas um seletor
@@ -272,7 +272,7 @@ export function useStudent<T extends StudentSelector>(
 				syncNutrition,
 				reset,
 				clearCache,
-			}) as any;
+			});
 		}
 
 		// Se for 'loaders', retorna loaders
@@ -298,27 +298,27 @@ export function useStudent<T extends StudentSelector>(
 				loadGymLocations,
 				loadGymLocationsWithPosition,
 				loadFoodDatabase,
-			}) as any;
+			});
 		}
 
 		// Caso contrário, retorna o dado selecionado
 		// Para dailyNutrition, usar valor já selecionado para garantir reatividade
 		if (selector === "dailyNutrition") {
-			return dailyNutritionData as any;
+			return dailyNutritionData as StudentData["dailyNutrition"];
 		}
 		// Para units, usar valor já selecionado para garantir reatividade imediata
 		if (selector === "units") {
-			return unitsData as any;
+			return unitsData as StudentData["units"];
 		}
 		// Para weeklyPlan, usar valor já selecionado para garantir reatividade após loadWeeklyPlan
 		if (selector === "weeklyPlan") {
-			return weeklyPlanData as any;
+			return weeklyPlanData as StudentData["weeklyPlan"];
 		}
-		return selectFromData(data, selector) as any;
+		return selectFromData(data, selector);
 	}
 
 	// Múltiplos seletores
-	const result: Record<string, any> = {};
+	const result: Record<string, import("@/lib/types/api-error").JsonValue> = {};
 
 	selectors.forEach((selector) => {
 		if (selector === "actions") {
@@ -387,7 +387,8 @@ export function useStudent<T extends StudentSelector>(
 		}
 	});
 
-	return result as any;
+	// Tipo dinâmico baseado nos seletores - overloads garantem tipo correto no uso
+	return result as { [K in T[number]]: K extends "actions" ? ReturnType<typeof getActions> : K extends "loaders" ? ReturnType<typeof getLoaders> : StudentData[K & keyof StudentData] };
 }
 
 // ============================================

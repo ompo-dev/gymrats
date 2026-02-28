@@ -16,14 +16,13 @@ export function LoadingScreenFallback({
 	const primaryClass = isStudent ? "text-duo-green" : "text-duo-orange";
 	const bgClass = isStudent ? "bg-duo-green/10" : "bg-duo-orange/10";
 	const ringClass = isStudent ? "border-duo-green" : "border-duo-orange";
-	const screenBg = isStudent ? "bg-white" : "bg-gray-50";
 	const subtext = isStudent
 		? "Preparando sua experiência..."
 		: "Carregando sua academia...";
 
 	return (
 		<div
-			className={`h-screen flex items-center justify-center ${screenBg}`}
+			className="flex h-screen items-center justify-center bg-duo-bg"
 			role="status"
 			aria-live="polite"
 			aria-label={message}

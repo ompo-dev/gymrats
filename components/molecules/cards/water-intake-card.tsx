@@ -45,7 +45,7 @@ function WaterIntakeCardSimple({
 				/>
 			</div>
 
-			<div className="grid grid-cols-6 gap-2">
+			<div className="grid grid-cols-6 gap-1.5 sm:gap-2 w-full max-w-[10.5rem] sm:max-w-[12rem]">
 				{Array.from({ length: totalGlasses }).map((_, i) => {
 					const Wrapper = readOnly ? "div" : "button";
 					return (
@@ -55,7 +55,7 @@ function WaterIntakeCardSimple({
 								? {}
 								: { onClick: () => onToggleGlass(i) })}
 							className={cn(
-								"aspect-square rounded-lg border-2 transition-all",
+								"aspect-square rounded-lg border-2 transition-all flex items-center justify-center min-w-0",
 								!readOnly && "active:scale-95",
 								i < glasses
 									? "border-duo-blue bg-duo-blue/20 shadow-[0_2px_0_#1899D6]"
@@ -65,7 +65,7 @@ function WaterIntakeCardSimple({
 						>
 							<Droplets
 								className={cn(
-									"mx-auto h-4 w-4",
+									"shrink-0 w-[55%] h-[55%] min-w-3 min-h-3 max-w-5 max-h-5",
 									i < glasses ? "text-duo-blue" : "text-duo-border",
 								)}
 							/>

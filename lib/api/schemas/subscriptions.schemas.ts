@@ -15,4 +15,4 @@ export const createGymSubscriptionSchema = z.object({
 	billingPeriod: z.enum(["monthly", "annual"]).optional().default("monthly"),
 });
 
-export const startTrialSchema = z.any();
+export const startTrialSchema = z.object({}).passthrough();

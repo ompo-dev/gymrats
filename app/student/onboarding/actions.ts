@@ -2,8 +2,11 @@
 
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
+import { StudentProfileService } from "@/lib/services/student/student-profile.service";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
+import { getUserContext } from "@/lib/context/auth-context-factory";
+import { getStudentContext } from "@/lib/utils/student/student-context";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
 
@@ -77,10 +80,25 @@ export async function submitOnboarding(formData: OnboardingData) {
       };
     }
 
-    const { ctx, error } = await getStudentContext();
+    let ctx = (await getStudentContext()).ctx;
 
-    if (error || !ctx) {
-      return { success: false, error: error || "Sessão inválida" };
+    // Se PENDING, cadastra agora (apenas ao concluir onboarding)
+    if (!ctx) {
+      const { ctx: userCtx, error: userError } = await getUserContext();
+      if (userError || !userCtx) {
+        return { success: false, error: userError || "Sessão inválida" };
+      }
+      if (userCtx.user.role !== "PENDING") {
+        return { success: false, error: "Fluxo inválido" };
+      }
+      const ensure = await ensureStudentRole(userCtx.user.id);
+      if (!ensure.ok) {
+        return { success: false, error: ensure.error };
+      }
+      ctx = (await getStudentContext()).ctx;
+      if (!ctx) {
+        return { success: false, error: "Erro ao obter contexto após cadastro" };
+      }
     }
 
     const userId = ctx.user.id;
@@ -106,7 +124,10 @@ export async function submitOnboarding(formData: OnboardingData) {
     });
 
     // Salvar perfil via serviço
-    await StudentProfileService.saveOnboardingData(student.id, normalizedData);
+    await StudentProfileService.saveOnboardingData(
+      student.id,
+      normalizedData as Parameters<typeof StudentProfileService.saveOnboardingData>[1],
+    );
 
     // Se houver peso, registrar no histórico (lógica do serviço poderia ser usada aqui também)
     if (normalizedData.weight) {
@@ -130,11 +151,15 @@ export async function submitOnboarding(formData: OnboardingData) {
     });
 
     // Enviar email em background
-    sendWelcomeEmail({ to: ctx.user.email, name: ctx.user.name }).catch(console.error);
+    sendWelcomeEmail({
+      to: typeof ctx.user.email === "string" ? ctx.user.email : "",
+      name: typeof ctx.user.name === "string" ? ctx.user.name : "",
+    }).catch(console.error);
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Erro no onboarding:", error);
-    return { success: false, error: error.message || "Erro ao salvar perfil" };
+    const message = error instanceof Error ? error.message : "Erro ao salvar perfil";
+    return { success: false, error: message };
   }
 }

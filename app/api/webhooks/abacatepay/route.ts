@@ -5,8 +5,9 @@ import {
 	badRequestResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
-
 import { abacatePay } from "@/lib/api/abacatepay";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 
 export async function POST(request: NextRequest) {
 	try {
@@ -58,10 +59,11 @@ export async function POST(request: NextRequest) {
 				if (kind === "membership-payment") {
 					const membershipId = metadata.membershipId as string | undefined;
 					if (membershipId) {
+						const now = new Date();
 						await db.$transaction([
 							db.payment.update({
 								where: { id: payment.id },
-								data: { status: "paid" },
+								data: { status: "paid", date: now },
 							}),
 							db.gymMembership.update({
 								where: { id: membershipId },
@@ -75,6 +77,8 @@ export async function POST(request: NextRequest) {
 						console.log(
 							`[Webhook] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
 						);
+						await GymDomainService.incrementActiveStudentsOnly(payment.gymId);
+						await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
 						return successResponse({ received: true, type: "membership-payment" });
 					}
 				}
@@ -83,6 +87,7 @@ export async function POST(request: NextRequest) {
 					const membershipId = metadata.membershipId as string | undefined;
 					const planId = metadata.planId as string | undefined;
 					if (membershipId && planId && payment.plan) {
+						const now = new Date();
 						const nextBillingDate = new Date();
 						nextBillingDate.setDate(
 							nextBillingDate.getDate() + payment.plan.duration,
@@ -90,7 +95,7 @@ export async function POST(request: NextRequest) {
 						await db.$transaction([
 							db.payment.update({
 								where: { id: payment.id },
-								data: { status: "paid" },
+								data: { status: "paid", date: now },
 							}),
 							db.gymMembership.update({
 								where: { id: membershipId },
@@ -105,6 +110,9 @@ export async function POST(request: NextRequest) {
 						console.log(
 							`[Webhook] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
 						);
+						if (payment.studentId) {
+							await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+						}
 						return successResponse({
 							received: true,
 							type: "membership-change-plan",
@@ -121,6 +129,7 @@ export async function POST(request: NextRequest) {
 			// 1. Tentar GymSubscription (abacatePayBillingId armazena billing id ou pix id)
 			const gymSub = await db.gymSubscription.findFirst({
 				where: { abacatePayBillingId: paymentId },
+				include: { gym: { select: { userId: true } } },
 			});
 
 			if (gymSub) {
@@ -141,8 +150,27 @@ export async function POST(request: NextRequest) {
 						currentPeriodEnd: periodEnd,
 						cancelAtPeriodEnd: false,
 						canceledAt: null,
+						canceledBecausePrincipalCanceled: null,
 					},
 				});
+
+				const planQualified = ["premium", "enterprise"].includes(
+					gymSub.plan?.toLowerCase() ?? "",
+				);
+				if (planQualified) {
+					// Principal voltou a Premium/Enterprise: reativar assinaturas suspensas das outras academias
+					await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
+						gymSub.gym.userId,
+					);
+				} else {
+					// Principal assinou Basic: suspender as outras academias (podem ser restauradas depois)
+					await GymSubscriptionService.suspendOtherGymsBecausePrincipalDowngraded(
+						gymSub.gym.userId,
+						gymSub.gymId,
+					);
+				}
+				// Ajustar isActive das academias e benefícios dos alunos
+				await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
 				console.log(`[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`);
 				return successResponse({ received: true, type: "gym" });
@@ -210,7 +238,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		return successResponse({ received: true });
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[Webhook] Erro ao processar webhook:", error);
 		return internalErrorResponse("Error processing webhook", error);
 	}

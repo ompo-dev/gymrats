@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 		return successResponse({
 			message: "Treinos personalizados gerados com sucesso",
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[generateWorkouts] Erro:", error);
 		return internalErrorResponse("Erro ao gerar treinos personalizados", error);
 	}
@@ -137,7 +137,7 @@ export async function PATCH(request: NextRequest) {
 		return successResponse({
 			message: "Alternativas adicionadas aos exercícios com sucesso!",
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[PATCH /api/workouts/generate] Erro:", error);
 		return internalErrorResponse("Erro ao atualizar alternativas", error);
 	}

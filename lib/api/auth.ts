@@ -1,3 +1,5 @@
+import { clearAuthToken } from "@/lib/auth/token-client";
+import type { ApiError } from "@/lib/types";
 import { apiClient } from "./client";
 
 export interface LoginCredentials {
@@ -34,9 +36,10 @@ export const authApi = {
 				credentials,
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			const errorMessage =
-				error.response?.data?.error || error.message || "Erro ao fazer login";
+				err.response?.data?.error || err.message || "Erro ao fazer login";
 			throw new Error(errorMessage);
 		}
 	},
@@ -49,9 +52,10 @@ export const authApi = {
 				data,
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			const errorMessage =
-				error.response?.data?.error || error.message || "Erro ao criar conta";
+				err.response?.data?.error || err.message || "Erro ao criar conta";
 			throw new Error(errorMessage);
 		}
 	},
@@ -66,10 +70,10 @@ export const authApi = {
 
 			// Também chamar endpoint de logout para compatibilidade
 			await apiClient.post("/api/auth/sign-out");
-		} catch (error: any) {
+		} catch {
 			// Se falhar, apenas limpar localStorage e cookies
 			if (typeof window !== "undefined") {
-				localStorage.removeItem("auth_token");
+				clearAuthToken();
 				localStorage.removeItem("isAuthenticated");
 				localStorage.removeItem("userEmail");
 				localStorage.removeItem("userId");
@@ -98,10 +102,11 @@ export const authApi = {
 				{ email },
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			const errorMessage =
-				error.response?.data?.error ||
-				error.message ||
+				err.response?.data?.error ||
+				err.message ||
 				"Erro ao solicitar recuperação de senha";
 			throw new Error(errorMessage);
 		}
@@ -117,10 +122,11 @@ export const authApi = {
 				message: string;
 			}>("/api/auth/verify-reset-code", { email, code });
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			const errorMessage =
-				error.response?.data?.error ||
-				error.message ||
+				err.response?.data?.error ||
+				err.message ||
 				"Erro ao verificar código";
 			throw new Error(errorMessage);
 		}
@@ -137,10 +143,11 @@ export const authApi = {
 				{ email, code, newPassword },
 			);
 			return response.data;
-		} catch (error: any) {
+		} catch (error) {
+			const err = error as ApiError;
 			const errorMessage =
-				error.response?.data?.error ||
-				error.message ||
+				err.response?.data?.error ||
+				err.message ||
 				"Erro ao redefinir senha";
 			throw new Error(errorMessage);
 		}

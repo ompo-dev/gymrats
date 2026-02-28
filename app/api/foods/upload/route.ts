@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 			message: "Upload de alimentos concluído",
 			...result,
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("[uploadFoods] Erro:", error);
 		return internalErrorResponse("Erro ao fazer upload de alimentos", error);
 	}

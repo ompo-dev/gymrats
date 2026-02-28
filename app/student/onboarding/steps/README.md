@@ -25,7 +25,7 @@
 - O que faz: implementa o módulo `consolidated-step1.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/custom-checkbox`, `@/components/ui/form-input`, `@/components/ui/option-selector`, `@/components/ui/range-slider`, `../schemas`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoButton, etc.), `@/components/ui/custom-checkbox`, `@/components/ui/range-slider`, `../schemas`, `./types`
 - Expõe: `ConsolidatedStep1`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/student/onboarding/page.tsx`
@@ -43,7 +43,7 @@
 - O que faz: implementa o módulo `consolidated-step3.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/molecules/limitation-selector`, `@/components/ui/option-selector`, `../schemas`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoSelect), `@/components/molecules/limitation-selector`, `../schemas`, `./types`
 - Expõe: `ConsolidatedStep3`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/student/onboarding/page.tsx`
@@ -52,7 +52,7 @@
 - O que faz: implementa o módulo `step1.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `motion/react`, `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/custom-checkbox`, `@/components/ui/form-input`, `@/components/ui/option-selector`, `../schemas`, `./types`
+- Importa principalmente: `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoButton, DuoInput, DuoSelect), `@/components/ui/custom-checkbox`, `../schemas`, `./types`
 - Expõe: `Step1`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
@@ -61,7 +61,7 @@
 - O que faz: implementa o módulo `step2.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/option-selector`, `@/components/ui/range-slider`, `../schemas`, `./types`
+- Importa principalmente: `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoSelect), `@/components/ui/range-slider`, `../schemas`, `./types`
 - Expõe: `Step2`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
@@ -70,7 +70,7 @@
 - O que faz: implementa o módulo `step3.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/option-selector`, `../schemas`, `./types`
+- Importa principalmente: `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoSelect), `../schemas`, `./types`
 - Expõe: `Step3`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
@@ -79,7 +79,7 @@
 - O que faz: implementa o módulo `step4.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/option-selector`, `../schemas`, `./types`
+- Importa principalmente: `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoSelect), `../schemas`, `./types`
 - Expõe: `Step4`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
@@ -88,7 +88,7 @@
 - O que faz: implementa o módulo `step5.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `@/components/molecules/cards/step-card`, `@/lib/metabolic-calculator`, `../schemas`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `@/components/duo` (DuoCard), `@/lib/metabolic-calculator`, `../schemas`, `./types`
 - Expõe: `Step5`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/student/onboarding/steps/consolidated-step2.tsx`
@@ -97,7 +97,7 @@
 - O que faz: implementa o módulo `step6.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/ui/form-input`, `@/components/ui/range-slider`, `../schemas`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard, DuoInput), `@/components/ui/range-slider`, `../schemas`, `./types`
 - Expõe: `Step6`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
@@ -106,7 +106,7 @@
 - O que faz: implementa o módulo `step7.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/molecules/cards/step-card`, `@/components/molecules/limitation-selector`, `../schemas`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `zod`, `@/components/duo` (DuoCard), `@/components/molecules/limitation-selector`, `../schemas`, `./types`
 - Expõe: `Step7`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).

@@ -15,8 +15,8 @@ import { validateBody, validateQuery } from "../utils/validation";
 
 type NutritionContext = {
 	set: Context["set"];
-	query?: Record<string, unknown>;
-	body?: unknown;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
+	body?: Record<string, string | number | boolean | object | null>;
 	studentId: string;
 };
 
@@ -27,7 +27,7 @@ export async function getDailyNutritionHandler({
 }: NutritionContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			dailyNutritionQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -242,11 +242,11 @@ export async function searchFoodsHandler({
 	query,
 }: {
 	set: NutritionContext["set"];
-	query?: Record<string, unknown>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 }) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			foodSearchQuerySchema,
 		);
 		if (!queryValidation.success) {

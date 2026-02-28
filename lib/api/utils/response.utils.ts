@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
  * Resposta de sucesso
  */
 export function successResponse(
-	data: any,
+	data: Record<string, string | number | boolean | object | null>,
 	status: number = 200,
 	headers?: Record<string, string>,
 ): NextResponse {
@@ -32,9 +32,9 @@ export function successResponse(
 export function errorResponse(
 	message: string,
 	status: number = 500,
-	details?: any,
+	details?: Record<string, string | number | boolean | object | null>,
 ): NextResponse {
-	const response: any = {
+	const response: Record<string, string | number | boolean | object | null> = {
 		error: message,
 	};
 
@@ -50,7 +50,7 @@ export function errorResponse(
  */
 export function badRequestResponse(
 	message: string = "Dados inválidos",
-	details?: any,
+	details?: Record<string, string | number | boolean | object | null>,
 ): NextResponse {
 	return errorResponse(message, 400, details);
 }
@@ -87,8 +87,18 @@ export function notFoundResponse(
  */
 export function internalErrorResponse(
 	message: string = "Erro interno do servidor",
-	error?: any,
+	error?: unknown,
 ): NextResponse {
+	const errorMsg =
+		error instanceof Error
+			? error.message
+			: error && typeof error === "object" && "message" in error
+				? (error as { message?: string }).message
+				: undefined;
 	console.error("[API Error]:", error);
-	return errorResponse(message, 500, error?.message);
+	return errorResponse(
+		message,
+		500,
+		errorMsg ? { message: errorMsg } : undefined,
+	);
 }

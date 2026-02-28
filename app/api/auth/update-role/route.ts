@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		return NextResponse.json(result.data);
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao atualizar role:", error);
 		const message =
 			error instanceof Error

@@ -19,7 +19,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
   calculateReps,
   calculateRest,
@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
             results.created.push(
               `${exercises.length} exercícios em ${workoutPlan.title}`,
             );
-          } catch (error: unknown) {
+          } catch (error) {
             const err =
               error instanceof Error ? error : new Error(String(error));
             results.errors.push(
@@ -575,7 +575,7 @@ export async function POST(request: NextRequest) {
       message: "Comando processado com sucesso",
       results,
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error("[workouts/process] Erro:", error);
     return internalErrorResponse("Erro ao processar comando", error);
   }
@@ -788,7 +788,7 @@ async function createExercisesInBatch(
       console.log(
         `[createExercisesInBatch] ✅ Exercício criado com sucesso: ${exercise.name} (ID: ${exercise.id})`,
       );
-    } catch (exerciseError: unknown) {
+    } catch (exerciseError) {
       // Log do erro mas continue criando os outros exercícios
       console.error(
         `[createExercisesInBatch] ❌ Erro ao criar exercício ${exercisePlan.name}:`,
@@ -984,7 +984,7 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
       name: exerciseName,
       primaryMuscles: inferMuscleGroup(
         exerciseName,
-      ) as unknown as MuscleGroup[],
+      ) as MuscleGroup[],
       secondaryMuscles: [] as MuscleGroup[],
       difficulty: "intermediario",
       equipment: inferEquipment(exerciseName),

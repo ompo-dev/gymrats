@@ -2,12 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 
+interface SwaggerUIConfig {
+	url: string;
+	dom_id: string;
+	presets: Array<Record<string, string | number | boolean | object | null>>;
+	layout: string;
+	deepLinking?: boolean;
+	displayRequestDuration?: boolean;
+	filter?: boolean;
+	tryItOutEnabled?: boolean;
+	persistAuthorization?: boolean;
+	supportedSubmitMethods?: string[];
+	requestInterceptor?: (req: { headers?: Record<string, string>; credentials?: string }) => Promise<{ headers?: Record<string, string>; credentials?: string }>;
+	responseInterceptor?: (res: Record<string, string | number | boolean | object | null>) => Record<string, string | number | boolean | object | null>;
+}
+
 declare global {
 	interface Window {
-		// biome-ignore lint/suspicious/noExplicitAny: Swagger UI carregado via script externo
-		SwaggerUIBundle?: any;
-		// biome-ignore lint/suspicious/noExplicitAny: Swagger UI carregado via script externo
-		SwaggerUIStandalonePreset?: any;
+		SwaggerUIBundle?: ((config: SwaggerUIConfig) => void) & { presets?: { apis: Record<string, string | number | boolean | object | null> } };
+		SwaggerUIStandalonePreset?: Record<string, string | number | boolean | object | null>;
 	}
 }
 
@@ -36,7 +49,7 @@ export default function ApiDocsPage() {
 					tryItOutEnabled: true,
 					persistAuthorization: true,
 					supportedSubmitMethods: ["get", "post", "put", "delete", "patch"],
-					requestInterceptor: (req: {
+					requestInterceptor: async (req: {
 						headers?: Record<string, string>;
 						credentials?: string;
 					}) => {
@@ -51,9 +64,10 @@ export default function ApiDocsPage() {
 							}
 						}
 
-						// Se não encontrou no cookie, tentar localStorage
+						// Se não encontrou no cookie, tentar token client
 						if (!token) {
-							token = localStorage.getItem("auth_token");
+							const { getAuthToken } = await import("@/lib/auth/token-client");
+							token = getAuthToken();
 						}
 
 						if (token && req.headers) {
@@ -65,7 +79,7 @@ export default function ApiDocsPage() {
 
 						return req;
 					},
-					responseInterceptor: (res: unknown) => {
+					responseInterceptor: (res: Record<string, string | number | boolean | object | null>) => {
 						// Log de respostas para debug
 						console.log("[Swagger] Response:", res);
 						return res;

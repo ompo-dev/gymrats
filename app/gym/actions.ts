@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
 import { GymMemberService } from "@/lib/services/gym/gym-member.service";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
@@ -27,7 +27,7 @@ export async function getCurrentUserInfo() {
 
 		return {
 			isAdmin: ctx.user.role === "ADMIN",
-			role: ctx.user.role,
+			role: ctx.user.role ?? null,
 		};
 	} catch (error) {
 		console.error("[getCurrentUserInfo] Erro:", error);
@@ -91,7 +91,7 @@ export async function getGymStudents(): Promise<StudentData[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getStudents(ctx.gymId) as any;
+		return (await GymMemberService.getStudents(ctx.gymId)) as StudentData[];
 	} catch (error) {
 		console.error("[getGymStudents] Erro:", error);
 		return [];
@@ -102,7 +102,8 @@ export async function getGymRecentCheckIns(): Promise<CheckIn[]> {
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return [];
-		return GymMemberService.getRecentCheckIns(ctx.gymId) as any;
+		const checkIns = await GymMemberService.getRecentCheckIns(ctx.gymId);
+		return checkIns.map((c) => ({ ...c, checkOut: c.checkOut ?? undefined })) as CheckIn[];
 	} catch (error) {
 		console.error("[getGymRecentCheckIns] Erro:", error);
 		return [];
@@ -113,7 +114,7 @@ export async function getGymStudentById(studentId: string): Promise<StudentData 
 	try {
 		const { ctx, errorResponse } = await getGymContext();
 		if (errorResponse || !ctx) return null;
-		return GymMemberService.getStudentById(ctx.gymId, studentId) as any;
+		return (await GymMemberService.getStudentById(ctx.gymId, studentId)) as StudentData | null;
 	} catch (error) {
 		console.error("[getGymStudentById] Erro:", error);
 		return null;
@@ -183,8 +184,91 @@ export async function getGymStats(): Promise<GymStats | null> {
 	}
 }
 
-export async function getGymCoupons() { return []; }
-export async function getGymReferrals() { return []; }
+export async function getGymCoupons(): Promise<import("@/lib/types").Coupon[]> {
+	try {
+		const { abacatePay } = await import("@/lib/api/abacatepay");
+		const res = await abacatePay.listCoupons();
+		if (res.error || !res.data) return [];
+		return res.data.map((c) => ({
+			id: c.id,
+			code: c.id,
+			type: c.discountKind === "PERCENTAGE" ? "percentage" : "fixed",
+			value: c.discount,
+			maxUses: c.maxRedeems === -1 ? 999999 : c.maxRedeems,
+			currentUses: c.redeemsCount ?? 0,
+			expiryDate: new Date(c.updatedAt),
+			isActive: c.status === "ACTIVE",
+		}));
+	} catch (error) {
+		console.error("[getGymCoupons] Erro:", error);
+		return [];
+	}
+}
+
+export async function createGymCoupon(data: {
+	code: string;
+	notes: string;
+	discountKind: "PERCENTAGE" | "FIXED";
+	discount: number;
+	maxRedeems?: number;
+}): Promise<{ success: true } | { success: false; error: string }> {
+	try {
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse || !ctx) return { success: false, error: "Não autenticado" };
+		const { abacatePay } = await import("@/lib/api/abacatepay");
+		const res = await abacatePay.createCoupon({
+			code: data.code.trim().toUpperCase(),
+			notes: data.notes || data.code,
+			discountKind: data.discountKind,
+			discount: data.discount,
+			maxRedeems: data.maxRedeems ?? -1,
+		});
+		if (res.error || !res.data) return { success: false, error: res.error ?? "Falha ao criar cupom" };
+		return { success: true };
+	} catch (error) {
+		console.error("[createGymCoupon] Erro:", error);
+		return { success: false, error: error instanceof Error ? error.message : "Erro ao criar cupom" };
+	}
+}
+
+export async function getGymReferrals() {
+	return [];
+}
+
+export async function getGymBalanceWithdraws(): Promise<{
+	balanceReais: number;
+	balanceCents: number;
+	withdraws: { id: string; amount: number; pixKey: string; pixKeyType: string; externalId: string; status: string; createdAt: Date; completedAt: Date | null }[];
+}> {
+	try {
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse || !ctx) return { balanceReais: 0, balanceCents: 0, withdraws: [] };
+		return GymFinancialService.getBalanceAndWithdraws(ctx.gymId);
+	} catch (error) {
+		console.error("[getGymBalanceWithdraws] Erro:", error);
+		return { balanceReais: 0, balanceCents: 0, withdraws: [] };
+	}
+}
+
+/** Cria saque. Use fake: true em dev (AbacatePay dev mode) para não chamar a API real. */
+export async function createGymWithdraw(data: {
+	amountCents: number;
+	fake?: boolean;
+}): Promise<{ success: true; withdraw: { id: string; amount: number; status: string } } | { success: false; error: string }> {
+	try {
+		const { ctx, errorResponse } = await getGymContext();
+		if (errorResponse || !ctx) return { success: false, error: "Não autenticado" };
+		const result = await GymFinancialService.createWithdraw(ctx.gymId, {
+			amountCents: data.amountCents,
+			fake: data.fake ?? true,
+		});
+		if (!result.ok) return { success: false, error: result.error };
+		return { success: true, withdraw: result.withdraw };
+	} catch (error) {
+		console.error("[createGymWithdraw] Erro:", error);
+		return { success: false, error: error instanceof Error ? error.message : "Erro ao criar saque" };
+	}
+}
 
 // TODO: Mover lógica complexa abaixo para serviços correspondentes conforme necessário
 export async function getGymSubscription() {
@@ -220,11 +304,14 @@ export async function startGymTrial() {
 		const existingSubscription = await db.gymSubscription.findUnique({ where: { gymId } });
 
 		if (existingSubscription) {
-			if (existingSubscription.status === "canceled") {
-				await db.gymSubscription.delete({ where: { id: existingSubscription.id } });
-			} else {
+			// Não apagamos assinaturas existentes (mesmo canceladas), pois elas podem
+			// ter sido suspensas por causa da academia principal e serão restauradas.
+			if (existingSubscription.status !== "canceled") {
 				return { error: "Assinatura já existe" };
 			}
+
+			// Se estiver cancelada, retornamos erro orientando renovar em vez de recriar trial.
+			return { error: "Esta academia já possui uma assinatura cancelada. Renove o plano em vez de iniciar um novo trial." };
 		}
 
 		const now = new Date();

@@ -8,7 +8,7 @@ import { badRequestResponse, internalErrorResponse } from "../utils/response";
 
 type NutritionAiContext = {
 	set: Context["set"];
-	body?: any;
+	body?: { message?: string; existingMeals?: Array<{ type: string; name: string }>; selectedMeal?: { type: string; name: string }; conversationHistory?: Array<{ role: string; content: string }> };
 	studentId: string;
 };
 
@@ -102,7 +102,7 @@ export async function nutritionChatHandler({
 			});
 
 			if (nutrition) {
-				meals = nutrition.meals.map((m: any) => ({
+				meals = nutrition.meals.map((m) => ({
 					type: m.type,
 					name: m.name,
 				}));
@@ -112,7 +112,7 @@ export async function nutritionChatHandler({
 		let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
 		if (meals && meals.length > 0) {
 			const mealsInfo = meals
-				.map((m: any) => `- ${m.name} (${m.type})`)
+				.map((m: { name: string; type: string }) => `- ${m.name} (${m.type})`)
 				.join("\n");
 			enhancedSystemPrompt += `\n\nREFEIÇÕES JÁ EXISTENTES NO DIA DO USUÁRIO:\n${mealsInfo}\n\nUse essas informações para entender o contexto. Se o usuário mencionar uma refeição que já existe, use o tipo correto (ex: se já existe "Almoço", use mealType: "lunch").`;
 		}

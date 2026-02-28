@@ -5,11 +5,11 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { DuoButton } from "@/components/duo";
 import { DuoCard } from "@/components/duo";
-import type { Unit } from "@/lib/types";
+import type { Unit, WorkoutHistory } from "@/lib/types";
 
 interface ContinueWorkoutCardProps {
   units: Unit[];
-  workoutHistory: any[];
+  workoutHistory: WorkoutHistory[];
 }
 
 function ContinueWorkoutCardSimple({

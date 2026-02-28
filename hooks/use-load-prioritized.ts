@@ -114,7 +114,7 @@ function detectContextFromPath(
 /**
  * Verifica se uma seção já existe no store (não está vazia/initial)
  */
-function hasSectionData(section: StudentDataSection, storeData: any): boolean {
+function hasSectionData(section: StudentDataSection, storeData: Record<string, string | number | boolean | object | null>): boolean {
 	switch (section) {
 		case "user":
 			return !!storeData.user?.id;
@@ -174,7 +174,7 @@ function hasSectionData(section: StudentDataSection, storeData: any): boolean {
  */
 function _filterMissingSections(
 	sections: StudentDataSection[],
-	storeData: any,
+	storeData: Record<string, string | number | boolean | object | null>,
 ): StudentDataSection[] {
 	return sections.filter((section) => !hasSectionData(section, storeData));
 }

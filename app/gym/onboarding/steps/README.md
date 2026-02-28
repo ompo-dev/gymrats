@@ -19,7 +19,7 @@
 - O que faz: implementa o módulo `step1.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `@/components/molecules/cards/step-card`, `@/components/molecules/forms/form-input`, `./types`
+- Importa principalmente: `@/components/duo` (DuoCard, DuoInput), `./types`
 - Expõe: `Step1`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/gym/onboarding/page.tsx`
@@ -28,7 +28,7 @@
 - O que faz: implementa o módulo `step2.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `axios`, `lucide-react`, `motion/react`, `react`, `@/components/molecules/cards/step-card`, `@/components/molecules/forms/form-input`, `./types`
+- Importa principalmente: `axios`, `lucide-react`, `motion/react`, `react`, `@/components/duo` (DuoCard, DuoInput), `./types`
 - Expõe: `Step2`
 - Comunica com: HTTP interno/externo
 - Onde é usado/importado: `app/gym/onboarding/page.tsx`
@@ -37,7 +37,7 @@
 - O que faz: implementa o módulo `step3.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `motion/react`, `@/components/molecules/cards/step-card`, `@/components/molecules/forms/form-input`, `./types`
+- Importa principalmente: `motion/react`, `@/components/duo` (DuoCard, DuoInput), `./types`
 - Expõe: `Step3`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/gym/onboarding/page.tsx`
@@ -46,7 +46,7 @@
 - O que faz: implementa o módulo `step4.tsx` da camada `steps`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `lucide-react`, `motion/react`, `react`, `@/components/atoms/buttons/button`, `@/components/molecules/cards/step-card`, `@/components/organisms/modals/equipment-search`, `@/lib/equipment-database`, `./types`
+- Importa principalmente: `lucide-react`, `motion/react`, `react`, `@/components/duo` (DuoCard, DuoButton), `@/components/organisms/modals/equipment-search`, `@/lib/equipment-database`, `./types`
 - Expõe: `Step4`
 - Comunica com: camada local sem integrações explícitas detectadas.
 - Onde é usado/importado: `app/gym/onboarding/page.tsx`

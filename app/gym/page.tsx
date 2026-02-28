@@ -1,14 +1,17 @@
 import { Suspense } from "react";
 import {
+	getGymBalanceWithdraws,
+	getGymCoupons,
 	getGymEquipment,
-	getGymExpenses, // Added import
+	getGymExpenses,
 	getGymFinancialSummary,
 	getGymMembershipPlans,
-	getGymPayments, // Added import
+	getGymPayments,
 	getGymProfile,
 	getGymRecentCheckIns,
 	getGymStats,
 	getGymStudents,
+	getGymSubscription,
 } from "./actions";
 import GymHome from "./page-content";
 
@@ -21,8 +24,11 @@ export default async function GymPage() {
 		financialSummary,
 		recentCheckIns,
 		plans,
-		payments, // Added payments
-		expenses, // Added expenses
+		payments,
+		expenses,
+		balanceWithdraws,
+		coupons,
+		subscription,
 	] = await Promise.all([
 		getGymProfile(),
 		getGymStats(),
@@ -31,8 +37,11 @@ export default async function GymPage() {
 		getGymFinancialSummary(),
 		getGymRecentCheckIns(),
 		getGymMembershipPlans(),
-		getGymPayments(), // Added fetch
-		getGymExpenses(), // Added fetch
+		getGymPayments(),
+		getGymExpenses(),
+		getGymBalanceWithdraws(),
+		getGymCoupons(),
+		getGymSubscription(),
 	]);
 
 	return (
@@ -45,8 +54,11 @@ export default async function GymPage() {
 				initialFinancialSummary={financialSummary}
 				initialRecentCheckIns={recentCheckIns}
 				initialPlans={plans}
-				initialPayments={payments} // Added prop
-				initialExpenses={expenses} // Added prop
+				initialPayments={payments}
+				initialExpenses={expenses}
+				initialBalanceWithdraws={balanceWithdraws}
+				initialCoupons={coupons}
+				initialSubscription={subscription}
 			/>
 		</Suspense>
 	);

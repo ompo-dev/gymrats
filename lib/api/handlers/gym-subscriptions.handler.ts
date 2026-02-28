@@ -38,7 +38,7 @@ export async function getCurrentGymSubscriptionHandler(
 		}
 
 		return successResponse({ subscription });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getCurrentGymSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar assinatura", error);
 	}
@@ -125,7 +125,7 @@ export async function createGymSubscriptionHandler(
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
 		}
 
-		// Se existe subscription, atualizar
+		// Se existe subscription, atualizar (não limpar trialStart/trialEnd: trial só uma vez)
 		if (existingSubscription) {
 			await db.gymSubscription.update({
 				where: { id: existingSubscription.id },
@@ -137,8 +137,6 @@ export async function createGymSubscriptionHandler(
 					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},
@@ -172,7 +170,7 @@ export async function createGymSubscriptionHandler(
 			billingUrl: String(billing.url || ""),
 			billingId: String(billing.id || ""),
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[createGymSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao criar assinatura", error);
 	}
@@ -195,7 +193,7 @@ export async function startGymTrialHandler(
 		return successResponse({
 			subscription: result.subscription,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[startGymTrialHandler] Erro:", error);
 		return internalErrorResponse("Erro ao iniciar trial", error);
 	}
@@ -255,7 +253,7 @@ export async function cancelGymSubscriptionHandler(
 		return successResponse({
 			message: "Assinatura cancelada com sucesso",
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[cancelGymSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao cancelar assinatura", error);
 	}

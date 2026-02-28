@@ -196,11 +196,20 @@ const darkSurfaces = {
 
 type PresetKey = keyof typeof baseColors;
 
+type SurfaceShape = {
+	background: string;
+	backgroundCard: string;
+	backgroundElevated: string;
+	foreground: string;
+	foregroundMuted: string;
+	border: string;
+};
+
 function buildPreset(
 	id: string,
 	name: string,
 	baseKey: PresetKey,
-	surfaces: (typeof lightSurfaces)[PresetKey],
+	surfaces: SurfaceShape,
 ): ThemePreset {
 	const base = baseColors[baseKey];
 	return {

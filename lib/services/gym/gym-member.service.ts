@@ -6,7 +6,10 @@ export class GymMemberService {
    */
   static async getStudents(gymId: string) {
     const memberships = await db.gymMembership.findMany({
-      where: { gymId },
+      where: {
+        gymId,
+        status: { in: ["active", "pending"] },
+      },
       include: {
         student: {
           include: {
@@ -32,9 +35,9 @@ export class GymMemberService {
         email: user.email,
         avatar: student.avatar || user.image || undefined,
         age: student.age ?? 0,
-        gender: student.gender as any,
+        gender: student.gender ?? "",
         phone: student.phone || "",
-        membershipStatus: m.status as any,
+        membershipStatus: m.status,
         joinDate: m.createdAt,
         currentStreak: progress?.currentStreak || 0,
         currentWeight: profile?.weight ?? 0,
@@ -43,7 +46,7 @@ export class GymMemberService {
           name: user.name,
           height: profile.height ?? 0,
           weight: profile.weight ?? 0,
-          fitnessLevel: profile.fitnessLevel as any,
+          fitnessLevel: profile.fitnessLevel ?? "iniciante",
           goals: profile.goals ? JSON.parse(profile.goals) : [],
         } : undefined,
         progress: progress ? {
@@ -60,6 +63,7 @@ export class GymMemberService {
       where: {
         gymId,
         studentId,
+        status: { in: ["active", "pending"] },
       },
       include: {
         gym: { select: { name: true, address: true } },
@@ -89,7 +93,7 @@ export class GymMemberService {
     if (!membership) return null;
 
     const { student } = membership;
-    const weightHistoryList = (student as any).weightHistory ?? [];
+    const weightHistoryList = student.weightHistory ?? [];
     const goals: string[] = student.profile?.goals
       ? JSON.parse(student.profile.goals)
       : [];
@@ -104,12 +108,12 @@ export class GymMemberService {
         ? currentWeight - oldestWeight
         : null;
 
-    const workoutHistory = student.workouts.map((wh: any) => {
-      const setsParsed = (ex: any) => {
+    const workoutHistory = student.workouts.map((wh) => {
+      const setsParsed = (ex: { sets: string }) => {
         try {
           const s = JSON.parse(ex.sets);
           return Array.isArray(s)
-            ? s.map((set: any, i: number) => ({
+            ? s.map((set: { weight?: number; reps?: number }, i: number) => ({
                 setNumber: i + 1,
                 weight: set.weight ?? 0,
                 reps: set.reps ?? 0,
@@ -126,7 +130,7 @@ export class GymMemberService {
         workoutName: wh.workout?.title ?? "Treino",
         duration: wh.duration ?? 0,
         totalVolume: wh.totalVolume ?? 0,
-        exercises: wh.exercises.map((ex: any) => ({
+        exercises: wh.exercises.map((ex) => ({
           id: ex.id,
           exerciseId: ex.exerciseId,
           exerciseName: ex.exerciseName,
@@ -135,11 +139,11 @@ export class GymMemberService {
           sets: setsParsed(ex),
           notes: ex.notes ?? undefined,
           formCheckScore: ex.formCheckScore ?? undefined,
-          difficulty: (ex.difficulty as any) ?? "ideal",
+          difficulty: ex.difficulty ?? "ideal",
         })),
-        overallFeedback: wh.overallFeedback as any,
+        overallFeedback: wh.overallFeedback ?? undefined,
         bodyPartsFatigued: wh.bodyPartsFatigued
-          ? (JSON.parse(wh.bodyPartsFatigued) as any[])
+          ? (JSON.parse(wh.bodyPartsFatigued) as string[])
           : [],
       };
     });
@@ -167,8 +171,8 @@ export class GymMemberService {
       gender: student.gender ?? "",
       phone: student.phone ?? "",
       joinDate: membership.createdAt,
-      status: membership.status as any,
-      membershipStatus: membership.status as any,
+      status: membership.status,
+      membershipStatus: membership.status,
       plan: membership.plan?.name || "Sem plano",
       profile: student.profile
         ? {
@@ -191,11 +195,11 @@ export class GymMemberService {
             workoutsCompleted: student.progress.workoutsCompleted,
           }
         : null,
-      recentWorkouts: student.workouts.slice(0, 5).map((wh: any) => ({
+      recentWorkouts: student.workouts.slice(0, 5).map((wh) => ({
         id: wh.id,
         date: wh.date,
         duration: wh.duration,
-        exercises: wh.exercises.map((ex: any) => ({
+        exercises: wh.exercises.map((ex) => ({
           name: ex.exerciseName,
           sets: (() => {
             try {
@@ -224,11 +228,11 @@ export class GymMemberService {
         gymAddress: membership.gym?.address ?? "",
         planId: membership.planId ?? "",
         planName: membership.plan?.name ?? "",
-        planType: (membership.plan?.type as any) ?? "monthly",
+        planType: membership.plan?.type ?? "monthly",
         startDate: membership.startDate,
         nextBillingDate: membership.nextBillingDate ?? undefined,
         amount: membership.amount,
-        status: membership.status as any,
+        status: membership.status,
         autoRenew: membership.autoRenew,
         benefits: [],
       },

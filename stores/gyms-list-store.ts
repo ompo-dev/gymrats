@@ -11,6 +11,7 @@ export interface GymData {
 	cnpj?: string;
 	plan: "basic" | "premium" | "enterprise";
 	hasActiveSubscription: boolean;
+	isActive: boolean;
 
 	// Profile & Stats
 	profile?: {
@@ -30,11 +31,11 @@ export interface GymData {
 	};
 
 	// Dados relacionados
-	students?: any[];
-	equipment?: any[];
-	checkIns?: any[];
-	membershipPlans?: any[];
-	payments?: any[];
+	students?: Array<Record<string, string | number | boolean | object | null>>;
+	equipment?: Array<Record<string, string | number | boolean | object | null>>;
+	checkIns?: Array<Record<string, string | number | boolean | object | null>>;
+	membershipPlans?: Array<Record<string, string | number | boolean | object | null>>;
+	payments?: Array<Record<string, string | number | boolean | object | null>>;
 }
 
 interface GymsDataState {

@@ -57,7 +57,7 @@ export function PixPaymentModal({
 				description: "Aguardando confirmação...",
 			});
 			await refetchSubscription();
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg = err && typeof err === "object" && "response" in err
 				? (err as { response?: { data?: { error?: string } } }).response?.data?.error
 				: err instanceof Error ? err.message : "Erro ao simular";

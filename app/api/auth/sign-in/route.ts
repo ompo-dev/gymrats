@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 		});
 
 		return response;
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao fazer login:", error);
 		const errorMessage =
 			error instanceof Error ? error.message : "Erro ao fazer login";

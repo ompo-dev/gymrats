@@ -7,7 +7,6 @@ import {
 	Gift,
 	type LucideIcon,
 	Receipt,
-	UsersIcon,
 } from "lucide-react";
 
 interface Tab {
@@ -25,7 +24,6 @@ const tabs: Tab[] = [
 	{ id: "overview", label: "Resumo", icon: DollarSign },
 	{ id: "payments", label: "Pagamentos", icon: CreditCard },
 	{ id: "coupons", label: "Cupons", icon: Gift },
-	{ id: "referrals", label: "Indicações", icon: UsersIcon },
 	{ id: "expenses", label: "Despesas", icon: Receipt },
 	{ id: "subscription", label: "Assinatura", icon: Crown },
 ];

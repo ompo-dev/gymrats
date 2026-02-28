@@ -13,7 +13,7 @@ import {
 	useLessonsByCategory,
 } from "@/hooks/use-education-data";
 import { useScrollToTop } from "@/hooks/use-scroll-to-top";
-import { educationalLessons } from "@/lib/educational-data";
+import { educationalLessons } from "@/lib/educational-data/lessons";
 import type { EducationalLesson } from "@/lib/types";
 
 interface EducationalLessonsProps {

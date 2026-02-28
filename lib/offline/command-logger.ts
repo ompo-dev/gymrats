@@ -107,7 +107,7 @@ export async function logCommand(command: Command): Promise<void> {
 export async function updateCommandStatus(
 	commandId: string,
 	status: Command["status"],
-	error?: any,
+	error?: Error | { message?: string },
 ): Promise<void> {
 	try {
 		const db = await getLogDB();
@@ -122,12 +122,12 @@ export async function updateCommandStatus(
 				command: {
 					...existing.command,
 					status,
-					error: error?.message || error,
+					error: error instanceof Error ? error.message : (error != null ? String(error) : undefined),
 					errorDetails: error
 						? {
-								message: error?.message || String(error),
-								stack: error?.stack,
-								code: error?.code,
+								message: error instanceof Error ? error.message : String(error),
+								stack: error instanceof Error ? error.stack : undefined,
+								code: error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined,
 							}
 						: undefined,
 				},

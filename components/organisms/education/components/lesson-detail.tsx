@@ -10,7 +10,7 @@ import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MarkdownRenderer } from "./markdown-renderer";
 
-interface LessonDetailProps {
+export interface LessonDetailProps {
 	lesson: EducationalLesson;
 	onBack: () => void;
 	onComplete: () => void;

@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
 		}
 
 		return response;
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao buscar sessão:", error);
 		const message =
 			error instanceof Error ? error.message : "Erro ao buscar sessão";

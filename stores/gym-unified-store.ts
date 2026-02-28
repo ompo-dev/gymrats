@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { apiClient } from "@/lib/api/client";
+import { persist, type PersistStorage } from "zustand/middleware";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
 import {
@@ -23,22 +22,14 @@ import type {
 	GymUnifiedData,
 } from "@/lib/types/gym-unified";
 import { initialGymData } from "@/lib/types/gym-unified";
+import {
+	addPendingAction,
+	clearLoadingState,
+	loadSection as loadSectionHelper,
+	loadSectionsIncremental,
+	updateStoreWithSection,
+} from "./gym/load-helpers";
 
-const SECTION_ROUTES: Record<GymDataSection, string> = {
-	profile: "/api/gyms/profile",
-	stats: "/api/gyms/stats",
-	students: "/api/gyms/members?status=all",
-	equipment: "/api/gyms/equipment",
-	financialSummary: "/api/gyms/financial-summary",
-	recentCheckIns: "/api/gyms/checkins/recent",
-	membershipPlans: "/api/gyms/plans",
-	payments: "/api/gyms/payments",
-	expenses: "/api/gyms/expenses",
-	subscription: "/api/gym-subscriptions/current",
-};
-
-const loadingSections = new Set<GymDataSection>();
-const loadingPromises = new Map<GymDataSection, Promise<Partial<GymUnifiedData>>>();
 const GYM_COMMANDS: Record<string, CommandType> = {
 	GYM_EXPENSE_CREATE: "GYM_EXPENSE_CREATE",
 	GYM_PAYMENT_CREATE: "GYM_PAYMENT_CREATE",
@@ -56,204 +47,6 @@ const GYM_COMMANDS: Record<string, CommandType> = {
 	GYM_SUBSCRIPTION_CREATE: "GYM_SUBSCRIPTION_CREATE",
 	GYM_SUBSCRIPTION_CANCEL: "GYM_SUBSCRIPTION_CANCEL",
 };
-
-function addPendingAction(
-	pendingActions: GymPendingAction[],
-	action: Omit<GymPendingAction, "id" | "createdAt">,
-): GymPendingAction[] {
-	return [
-		...pendingActions,
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			createdAt: new Date(),
-			...action,
-		},
-	];
-}
-
-/** Converte membros da API (formato Prisma) para StudentData flat esperado pela UI */
-function transformMembersToStudents(members: any[]): any[] {
-	return members.map((m: any) => {
-		const student = m.student ?? m;
-		const user = student.user ?? {};
-		const profile = student.profile ?? {};
-		const progress = student.progress ?? {};
-		const status = m.status ?? m.membershipStatus ?? "active";
-		const membershipStatus =
-			status === "active" ? "active" : status === "suspended" ? "suspended" : "inactive";
-		return {
-			id: student.id ?? m.studentId ?? m.id,
-			name: user.name ?? student.name ?? "",
-			email: user.email ?? student.email ?? "",
-			avatar: student.avatar ?? user.image ?? undefined,
-			age: student.age ?? 0,
-			gender: student.gender ?? "",
-			phone: student.phone ?? "",
-			membershipStatus,
-			joinDate: m.createdAt ?? m.joinDate,
-			totalVisits: progress.workoutsCompleted ?? 0,
-			currentStreak: progress.currentStreak ?? 0,
-			currentWeight: profile.weight ?? 0,
-			attendanceRate: 0,
-			profile: {
-				id: student.id,
-				height: profile.height ?? 0,
-				weight: profile.weight ?? 0,
-				fitnessLevel: profile.fitnessLevel ?? "beginner",
-				goals: Array.isArray(profile.goals)
-					? profile.goals
-					: typeof profile.goals === "string"
-						? (() => {
-								try {
-									return JSON.parse(profile.goals) ?? [];
-								} catch {
-									return [];
-								}
-							})()
-						: [],
-				weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency ?? 0,
-			},
-			progress: {
-				currentStreak: progress.currentStreak ?? 0,
-				totalXP: progress.totalXP ?? 0,
-				currentLevel: progress.currentLevel ?? 1,
-				xpToNextLevel: progress.xpToNextLevel ?? 100,
-				weeklyXP: Array.isArray(progress.weeklyXP)
-					? progress.weeklyXP
-					: [0, 0, 0, 0, 0, 0, 0],
-			},
-			workoutHistory: [],
-			personalRecords: [],
-			weightHistory: [],
-			favoriteEquipment: [],
-		};
-	});
-}
-
-function transformSectionResponse(
-	section: GymDataSection,
-	data: any,
-): Partial<GymUnifiedData> {
-	let result: Partial<GymUnifiedData>;
-	switch (section) {
-		case "profile":
-			result = { profile: data.profile || null };
-			break;
-		case "stats":
-			result = { stats: data.stats || null };
-			break;
-		case "students":
-			result = {
-				students: transformMembersToStudents(data.members || []),
-			};
-			break;
-		case "equipment":
-			result = { equipment: data.equipment || [] };
-			break;
-		case "financialSummary":
-			result = { financialSummary: data.summary || null };
-			break;
-		case "recentCheckIns":
-			result = { recentCheckIns: data.checkIns || [] };
-			break;
-		case "membershipPlans":
-			result = { membershipPlans: data.plans || [] };
-			break;
-		case "payments":
-			result = {
-				payments: (data.payments || []).map((p: any) => ({
-					id: p.id,
-					studentId: p.studentId,
-					studentName: p.studentName,
-					planId: p.planId || "",
-					planName: p.plan?.name ?? p.planName ?? "",
-					amount: p.amount,
-					date: p.date,
-					dueDate: p.dueDate,
-					status: (p.withdrawnAt ? "withdrawn" : p.status) as any,
-					paymentMethod: p.paymentMethod || "pix",
-					reference: p.reference ?? undefined,
-					abacatePayBillingId: p.abacatePayBillingId ?? undefined,
-					withdrawnAt: p.withdrawnAt ?? undefined,
-					withdrawId: p.withdrawId ?? undefined,
-				})),
-			};
-			break;
-		case "expenses":
-			result = { expenses: data.expenses || [] };
-			break;
-		case "subscription":
-			result = { subscription: data.subscription || null };
-			break;
-		default:
-			result = {};
-	}
-	return normalizeGymDates(result) as Partial<GymUnifiedData>;
-}
-
-async function loadSection(section: GymDataSection): Promise<Partial<GymUnifiedData>> {
-	if (loadingSections.has(section) && loadingPromises.has(section)) {
-		return loadingPromises.get(section)!;
-	}
-
-	loadingSections.add(section);
-	const route = SECTION_ROUTES[section];
-	const promise = (async () => {
-		try {
-			const response = await apiClient.get(route, { timeout: 30000 });
-			return transformSectionResponse(section, response.data);
-		} catch (error: any) {
-			const isExpectedHttp =
-				error?.response?.status === 404 || error?.response?.status >= 500;
-			if (!isExpectedHttp) {
-				console.error(`[gym-unified] erro ao carregar ${section}:`, error);
-			}
-			return {};
-		} finally {
-			loadingSections.delete(section);
-			loadingPromises.delete(section);
-		}
-	})();
-
-	loadingPromises.set(section, promise);
-	return promise;
-}
-
-function updateStoreWithSection(
-	set: any,
-	sectionData: Partial<GymUnifiedData>,
-	elapsedMs?: number,
-	sectionName?: GymDataSection,
-) {
-	set((state: GymUnifiedState) => ({
-		data: {
-			...state.data,
-			...sectionData,
-			metadata: {
-				...state.data.metadata,
-				telemetry:
-					sectionName && elapsedMs !== undefined
-						? {
-								...state.data.metadata.telemetry,
-								[`section:${sectionName}:ms`]: elapsedMs,
-							}
-						: state.data.metadata.telemetry,
-			},
-		},
-	}));
-}
-
-async function loadSectionsIncremental(set: any, sections: GymDataSection[]) {
-	await Promise.all(
-		sections.map(async (section) => {
-			const start = Date.now();
-			const sectionData = await loadSection(section);
-			if (Object.keys(sectionData).length > 0) {
-				updateStoreWithSection(set, sectionData, Date.now() - start, section);
-			}
-		}),
-	);
-}
 
 export interface GymUnifiedState {
 	data: GymUnifiedData;
@@ -355,8 +148,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 			data: initialGymData,
 
 			resetForGymChange: () => {
-				loadingSections.clear();
-				loadingPromises.clear();
+				clearLoadingState();
 				set({
 					data: {
 						...initialGymData,
@@ -437,7 +229,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 
 			loadSection: async (section) => {
 				const start = Date.now();
-				const sectionData = await loadSection(section);
+				const sectionData = await loadSectionHelper(section);
 				updateStoreWithSection(set, sectionData, Date.now() - start, section);
 			},
 
@@ -808,8 +600,8 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 		}),
 		{
 			name: "gym-unified-storage",
-			storage: createIndexedDBStorage() as any,
-			partialize: (state) => ({ data: state.data }) as any,
+			storage: createIndexedDBStorage() as PersistStorage<{ data: GymUnifiedData }>,
+			partialize: (state): { data: GymUnifiedData } => ({ data: state.data }),
 			onRehydrateStorage: () => {
 				return async (state) => {
 					if (typeof window !== "undefined" && state) {
@@ -817,6 +609,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()(
 					}
 				};
 			},
-		},
+		} as import("zustand/middleware").PersistOptions<GymUnifiedState, { data: GymUnifiedData }>,
 	),
 );

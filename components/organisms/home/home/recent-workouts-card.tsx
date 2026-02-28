@@ -74,40 +74,40 @@ function RecentWorkoutsCardSimple({
 			<div className="space-y-2">
 				{recentWorkouts.map((workout, index) => (
 					<DuoCard.Root key={index} variant="default" size="sm" className="p-3">
-						<div className="flex items-center justify-between">
-							<div className="flex-1">
-								<div className="mb-1 font-bold text-duo-text">
-									{workout.workoutName}
-								</div>
-								<div className="flex items-center gap-3 text-xs text-duo-gray-dark">
-									<div className="flex items-center gap-1">
-										<Clock className="h-3 w-3" />
-										{workout.duration} min
-									</div>
-									{workout.totalVolume > 0 && (
-										<div className="flex items-center gap-1">
-											<Trophy className="h-3 w-3" />
-											{workout.totalVolume.toFixed(0)} kg
-										</div>
-									)}
-								</div>
+						{/* Linha do dia + nome do treino */}
+						<div className="flex items-center justify-between gap-2 mb-1.5">
+							<div className="font-bold text-duo-text truncate min-w-0">
+								{workout.workoutName || "Treino"}
 							</div>
-							<div className="text-right">
-								<div className="text-xs font-bold text-duo-gray-dark">
-									{formatDate(workout.date)}
+							<div className="text-xs font-bold text-duo-gray-dark shrink-0">
+								{formatDate(workout.date)}
+							</div>
+						</div>
+						{/* Tempo e kg total */}
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-3 text-xs text-duo-gray-dark">
+								<div className="flex items-center gap-1">
+									<Clock className="h-3 w-3" />
+									{workout.duration} min
 								</div>
-								{workout.overallFeedback && (
-									<div
-										className={cn(
-											"mt-1 text-xs font-bold",
-											getFeedbackColor(workout.overallFeedback),
-										)}
-									>
-										{workout.overallFeedback.charAt(0).toUpperCase() +
-											workout.overallFeedback.slice(1)}
+								{workout.totalVolume > 0 && (
+									<div className="flex items-center gap-1">
+										<Trophy className="h-3 w-3" />
+										{workout.totalVolume.toFixed(0)} kg
 									</div>
 								)}
 							</div>
+							{workout.overallFeedback && (
+								<div
+									className={cn(
+										"text-xs font-bold",
+										getFeedbackColor(workout.overallFeedback),
+									)}
+								>
+									{workout.overallFeedback.charAt(0).toUpperCase() +
+										workout.overallFeedback.slice(1)}
+								</div>
+							)}
 						</div>
 					</DuoCard.Root>
 				))}

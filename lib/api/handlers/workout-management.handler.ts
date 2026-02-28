@@ -1,6 +1,6 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
   calculateReps,
   calculateRest,
@@ -8,6 +8,7 @@ import {
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
+import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   createUnitSchema,
@@ -467,7 +468,7 @@ export async function deleteWorkoutHandler(
     return successResponse({ message: "Treino excluído com sucesso" });
   } catch (error) {
     console.error("Error deleting workout:", error);
-    if ((error as any)?.code === "P2025") {
+    if ((error as { code?: string })?.code === "P2025") {
       return notFoundResponse("Treino não encontrado para exclusão");
     }
     return internalErrorResponse("Erro ao excluir treino");
@@ -477,51 +478,6 @@ export async function deleteWorkoutHandler(
 // ==========================================
 // EXERCISES
 // ==========================================
-
-/**
- * Normaliza dados educacionais para formato do banco (JSON string)
- */
-function normalizeEducationalData(data: any): any {
-  const normalized: any = { ...data };
-
-  // Campos que devem ser convertidos de array para JSON string
-  const arrayFields = [
-    "primaryMuscles",
-    "secondaryMuscles",
-    "equipment",
-    "instructions",
-    "tips",
-    "commonMistakes",
-    "benefits",
-  ];
-
-  for (const field of arrayFields) {
-    if (normalized[field] !== undefined && normalized[field] !== null) {
-      // Se já é string JSON, manter
-      if (typeof normalized[field] === "string") {
-        // Verificar se é JSON válido
-        try {
-          JSON.parse(normalized[field]);
-          // Já é JSON válido, manter
-        } catch {
-          // Não é JSON válido, tratar como string simples
-          normalized[field] = null;
-        }
-      } else if (Array.isArray(normalized[field])) {
-        // Converter array para JSON string
-        normalized[field] =
-          normalized[field].length > 0
-            ? JSON.stringify(normalized[field])
-            : null;
-      } else {
-        // Tipo inválido, remover
-        normalized[field] = null;
-      }
-    }
-  }
-
-  return normalized;
-}
 
 export async function createExerciseHandler(
   request: NextRequest,
@@ -1055,7 +1011,7 @@ export async function createExerciseHandler(
 
     // Transformar dados educacionais de JSON strings para arrays (igual ao generate)
     // Helper para parsear JSON com segurança
-    const safeParse = (value: string | null | undefined): any => {
+    const safeParse = (value: string | null | undefined): string[] | null => {
       if (!value) return null;
       try {
         return JSON.parse(value);
@@ -1193,7 +1149,7 @@ export async function deleteExerciseHandler(
   } catch (error) {
     console.error("Error deleting exercise:", error);
     // Verificar se é erro de Prisma (ex: registro não existe ou constraint)
-    if ((error as any).code === "P2025") {
+    if ((error as { code?: string }).code === "P2025") {
       return notFoundResponse("Exercício não encontrado para exclusão");
     }
     return internalErrorResponse("Erro ao excluir exercício");

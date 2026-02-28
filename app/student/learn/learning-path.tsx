@@ -85,7 +85,10 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     }
   };
 
-  const hasPlan = weeklyPlan && weeklyPlan.slots?.length >= 7;
+  const slots: PlanSlotData[] = Array.isArray(weeklyPlan?.slots)
+    ? (weeklyPlan.slots as unknown as PlanSlotData[])
+    : [];
+  const hasPlan = weeklyPlan && slots.length >= 7;
 
   if (!hasPlan) {
     return (
@@ -124,15 +127,19 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
       <div className="mb-8">
         <UnitSectionCard
           sectionLabel={
-            weeklyPlan!.description?.trim() || "7 dias • Segunda a Domingo"
+            (typeof weeklyPlan!.description === "string"
+              ? weeklyPlan!.description.trim()
+              : "") || "7 dias • Segunda a Domingo"
           }
-          title={weeklyPlan!.title}
+          title={
+            typeof weeklyPlan!.title === "string" ? weeklyPlan!.title : "Plano Semanal"
+          }
           onButtonClick={() => editPlanModal.open()}
         />
       </div>
 
       <StaggerContainer className="relative flex flex-col items-center space-y-6">
-        {weeklyPlan!.slots.map((slot: PlanSlotData, index: number) => {
+        {slots.map((slot: PlanSlotData, index: number) => {
           const position = positions[index % 7];
 
           if (slot.type === "rest" || !slot.workout) {
@@ -145,7 +152,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
           const workout = slot.workout;
           const isFirst = index === 0;
-          const previousSlots = weeklyPlan!.slots.slice(0, index);
+          const previousSlots = slots.slice(0, index);
           const previousWorkouts = previousSlots
             .filter((s: PlanSlotData) => s.type === "workout" && s.workout)
             .map((s: PlanSlotData) => s.workout!);
@@ -192,7 +199,7 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-[var(--duo-fg)]">
+            <h2 className="font-bold text-duo-fg">
               Meu Plano Semanal
             </h2>
           </div>
@@ -204,10 +211,10 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
           className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
         >
           <Dumbbell className="h-12 w-12 text-duo-green" />
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-duo-fg">
             Comece a criar seus treinos!
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-duo-fg-muted">
             Plano de 7 dias (Seg-Dom) com treinos e dias de descanso. Crie
             manualmente ou use o Chat IA.
           </p>

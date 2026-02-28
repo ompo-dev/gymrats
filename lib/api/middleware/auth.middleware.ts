@@ -10,8 +10,8 @@ import { getSession } from "@/lib/utils/session";
 
 export interface AuthResult {
 	userId: string;
-	session: any;
-	user: any;
+	session: Record<string, string | number | boolean | object | null>;
+	user: { id: string; role?: string; student?: { id: string }; gyms?: { id: string }[]; [key: string]: string | number | boolean | object | null | undefined };
 }
 
 export interface AuthError {
@@ -83,7 +83,7 @@ export async function requireAuth(
 								id: betterAuthSession.session?.id || "",
 								userId: user.id,
 								user,
-							} as any),
+							} as Record<string, string | number | boolean | object | null>),
 						user: {
 							...user,
 							student: user.student || undefined,
@@ -140,14 +140,14 @@ export async function requireAuth(
 			session,
 			user: session.user,
 		};
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[requireAuth] Erro:", error);
 		return {
 			response: NextResponse.json(
 				{ error: "Erro ao validar autenticação" },
 				{ status: 500 },
 			),
-			error: error.message || "Erro desconhecido",
+			error: (error as Error).message || "Erro desconhecido",
 		};
 	}
 }

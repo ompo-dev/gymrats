@@ -1,21 +1,24 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
+import { useRouter } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
+import { useUserSession } from "@/hooks/use-user-session";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import type {
 	CheckIn,
+	Coupon,
 	Equipment,
-	Expense, // Added
+	Expense,
 	FinancialSummary,
 	GymProfile,
 	GymStats,
 	MembershipPlan,
-	Payment, // Added
+	Payment,
 	StudentData,
 } from "@/lib/types";
 import { GymDashboardPage } from "@/components/organisms/gym/gym-dashboard";
@@ -26,6 +29,21 @@ import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
 import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 
+interface BalanceWithdraws {
+	balanceReais: number;
+	balanceCents: number;
+	withdraws: {
+		id: string;
+		amount: number;
+		pixKey: string;
+		pixKeyType: string;
+		externalId: string;
+		status: string;
+		createdAt: Date;
+		completedAt: Date | null;
+	}[];
+}
+
 interface GymHomeContentProps {
 	initialProfile: GymProfile | null;
 	initialStats: GymStats | null;
@@ -34,8 +52,16 @@ interface GymHomeContentProps {
 	initialFinancialSummary: FinancialSummary | null;
 	initialRecentCheckIns?: CheckIn[];
 	initialPlans: MembershipPlan[];
-	initialPayments: Payment[]; // Added
-	initialExpenses: Expense[]; // Added
+	initialPayments: Payment[];
+	initialExpenses: Expense[];
+	initialBalanceWithdraws?: BalanceWithdraws;
+	initialCoupons?: Coupon[];
+	initialSubscription?: {
+		id: string;
+		plan: string;
+		status: string;
+		currentPeriodEnd: Date;
+	} | null;
 }
 
 function GymHomeContent({
@@ -46,11 +72,17 @@ function GymHomeContent({
 	initialFinancialSummary,
 	initialRecentCheckIns,
 	initialPlans,
-	initialPayments, // Added
-	initialExpenses, // Added
+	initialPayments,
+	initialExpenses,
+	initialBalanceWithdraws,
+	initialCoupons = [],
+	initialSubscription,
 }: GymHomeContentProps) {
+	const router = useRouter();
 	const { activeGymId } = useGymsList();
 	const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
+	const { isAdmin, role } = useUserSession();
+	const userIsAdmin = isAdmin || role === "ADMIN";
 	useGymInitializer();
 	useLoadPrioritizedGym({ onlyPriorities: true });
 
@@ -90,25 +122,39 @@ function GymHomeContent({
 
 	const store = useGymUnifiedStore((state) => state.data);
 
+	const storeStudents = store.students ?? [];
+	const storeEquipment = store.equipment ?? [];
+	const storeRecentCheckIns = store.recentCheckIns ?? [];
+	const storeMembershipPlans = store.membershipPlans ?? [];
+	const storePayments = store.payments ?? [];
+	const storeExpenses = store.expenses ?? [];
+
 	const profile = store.profile ?? initialProfile;
 	const stats = store.stats ?? initialStats;
-	const students = store.students.length > 0 ? store.students : initialStudents;
-	const equipment = store.equipment.length > 0 ? store.equipment : initialEquipment;
+	const students = storeStudents.length > 0 ? storeStudents : initialStudents;
+	const equipment = storeEquipment.length > 0 ? storeEquipment : initialEquipment;
 	const financialSummary =
 		store.financialSummary ?? initialFinancialSummary;
 	const recentCheckIns =
-		store.recentCheckIns.length > 0
-			? store.recentCheckIns
+		storeRecentCheckIns.length > 0
+			? storeRecentCheckIns
 			: initialRecentCheckIns || [];
 	const plans =
-		store.membershipPlans.length > 0
-			? store.membershipPlans
+		storeMembershipPlans.length > 0
+			? storeMembershipPlans
 			: initialPlans;
-	const payments = store.payments.length > 0 ? store.payments : initialPayments;
-	const expenses = store.expenses.length > 0 ? store.expenses : initialExpenses;
+	const payments = storePayments.length > 0 ? storePayments : initialPayments;
+	const expenses = storeExpenses.length > 0 ? storeExpenses : initialExpenses;
 
 	// Usar valor padrão para evitar problemas de SSR
 	const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
+
+	// Bloquear acesso à gamificação para não-admin (redireciona e não renderiza)
+	useEffect(() => {
+		if (tab === "gamification" && !userIsAdmin) {
+			router.replace("/gym?tab=dashboard");
+		}
+	}, [tab, userIsAdmin, router]);
 
 	// key força remount ao trocar academia, evitando estado desatualizado
 	return (
@@ -120,6 +166,7 @@ function GymHomeContent({
 					students={students}
 					equipment={equipment}
 					recentCheckIns={recentCheckIns}
+					subscription={initialSubscription}
 				/>
 			)}
 			{tab === "students" && <GymStudentsPage students={students ?? []} />}
@@ -128,7 +175,12 @@ function GymHomeContent({
 				<GymFinancialPage
 					financialSummary={financialSummary}
 					payments={payments}
+					coupons={initialCoupons}
 					expenses={expenses}
+					balanceReais={initialBalanceWithdraws?.balanceReais ?? 0}
+					balanceCents={initialBalanceWithdraws?.balanceCents ?? 0}
+					withdraws={initialBalanceWithdraws?.withdraws ?? []}
+					subscription={initialSubscription}
 				/>
 			)}
 			{tab === "stats" && stats && (
@@ -137,7 +189,7 @@ function GymHomeContent({
 			{tab === "settings" && profile && (
 				<GymSettingsPage profile={profile} plans={plans} />
 			)}
-			{tab === "gamification" && profile && (
+			{tab === "gamification" && profile && userIsAdmin && (
 				<GymGamificationPage profile={profile} />
 			)}
 			{tab === "more" && <GymMoreMenu.Simple />}
@@ -153,8 +205,11 @@ export default function GymHome({
 	initialFinancialSummary,
 	initialRecentCheckIns,
 	initialPlans,
-	initialPayments, // Added
-	initialExpenses, // Added
+	initialPayments,
+	initialExpenses,
+	initialBalanceWithdraws,
+	initialCoupons,
+	initialSubscription,
 }: GymHomeContentProps) {
 	return (
 		<Suspense
@@ -172,8 +227,11 @@ export default function GymHome({
 				initialFinancialSummary={initialFinancialSummary}
 				initialRecentCheckIns={initialRecentCheckIns}
 				initialPlans={initialPlans}
-				initialPayments={initialPayments} // Added
-				initialExpenses={initialExpenses} // Added
+				initialPayments={initialPayments}
+				initialExpenses={initialExpenses}
+				initialBalanceWithdraws={initialBalanceWithdraws}
+				initialCoupons={initialCoupons}
+				initialSubscription={initialSubscription}
 			/>
 		</Suspense>
 	);

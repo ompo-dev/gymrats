@@ -225,12 +225,12 @@ export const useWorkoutStore = create<WorkoutState>()(
 									? progressToSave.startTime
 									: progressToSave.startTime
 										? new Date(progressToSave.startTime).toISOString()
-										: undefined,
-						cardioPreference: progressToSave.cardioPreference,
-						cardioDuration: progressToSave.cardioDuration,
-						selectedCardioType: progressToSave.selectedCardioType,
+										: null,
+						cardioPreference: progressToSave.cardioPreference ?? null,
+						cardioDuration: progressToSave.cardioDuration ?? null,
+						selectedCardioType: progressToSave.selectedCardioType ?? null,
 					});
-				} catch (error: unknown) {
+				} catch (error) {
 					const err = error as {
 						response?: {
 							status?: number;
@@ -301,7 +301,7 @@ export const useWorkoutStore = create<WorkoutState>()(
 					.delete(`/api/workouts/${workoutId}/progress`, {
 						timeout: 5000, // Timeout menor para operação de limpeza
 					})
-					.catch((error: unknown) => {
+					.catch((error: Error) => {
 						const err = error as {
 							response?: { status?: number; data?: { code?: string } };
 							code?: string;
@@ -449,10 +449,10 @@ export const useWorkoutStore = create<WorkoutState>()(
 				...state,
 				completedWorkouts: Array.from(state.completedWorkouts),
 			}),
-			merge: (persistedState: unknown, currentState) => {
-				const persisted = persistedState as Record<string, unknown> & {
+			merge: (persistedState: unknown, currentState: WorkoutState) => {
+				const persisted = (persistedState as Record<string, unknown> & {
 					completedWorkouts?: string[];
-				};
+				}) ?? {};
 				return {
 					...currentState,
 					...(typeof persisted === "object" && persisted !== null

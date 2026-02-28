@@ -13,6 +13,7 @@ import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validation.middleware";
 import { createSubscriptionSchema } from "../schemas";
 import {
+	badRequestResponse,
 	internalErrorResponse,
 	notFoundResponse,
 	successResponse,
@@ -34,7 +35,7 @@ export async function getCurrentSubscriptionHandler(
 
 		const subscription = await getStudentSubscription();
 		return successResponse({ subscription });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getCurrentSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar assinatura", error);
 	}
@@ -86,7 +87,7 @@ export async function createSubscriptionHandler(
 			return validation.response;
 		}
 
-		const { plan } = validation.data as any;
+		const { plan } = validation.data;
 
 		// Verificar se existe subscription
 		const existingSubscription = await db.subscription.findUnique({
@@ -101,7 +102,7 @@ export async function createSubscriptionHandler(
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
 		}
 
-		// Se existe subscription, atualizar
+		// Se existe subscription, atualizar (não limpar trialStart/trialEnd: trial só uma vez)
 		if (existingSubscription) {
 			await db.subscription.update({
 				where: { id: existingSubscription.id },
@@ -110,8 +111,6 @@ export async function createSubscriptionHandler(
 					status: "active",
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},
@@ -140,7 +139,7 @@ export async function createSubscriptionHandler(
 			billingUrl: String(billing.url || ""),
 			billingId: String(billing.id || ""),
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[createSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao criar assinatura", error);
 	}
@@ -168,11 +167,20 @@ export async function startTrialHandler(
 			return notFoundResponse("Aluno não encontrado");
 		}
 
-		// Inicializar trial
-		await initializeStudentTrial(studentId!);
+		const result = await initializeStudentTrial(studentId!);
+		if (!result) {
+			return internalErrorResponse("Erro ao iniciar trial", undefined);
+		}
+		if (!result.success) {
+			const message =
+				result.reason === "already_used_trial"
+					? "Você já utilizou o trial anteriormente. Trial só pode ser ativado uma vez."
+					: "Você já possui uma assinatura. Renove ou escolha um plano para continuar.";
+			return badRequestResponse(message);
+		}
 
 		return successResponse({ message: "Trial iniciado com sucesso" });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[startTrialHandler] Erro:", error);
 		return internalErrorResponse("Erro ao iniciar trial", error);
 	}
@@ -225,7 +233,7 @@ export async function cancelSubscriptionHandler(
 			subscription: canceled,
 			message: "Assinatura cancelada com sucesso"
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[cancelSubscriptionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao cancelar assinatura", error);
 	}

@@ -9,7 +9,10 @@ import { CardioFunctionalPage } from "@/app/student/cardio/cardio-functional-pag
 import { DietPage } from "@/app/student/diet/diet-page";
 import { LearningPath } from "@/app/student/learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/more/student-more-menu";
-import { StudentPaymentsPage } from "@/app/student/payments/student-payments-page";
+import {
+	StudentPaymentsPage,
+	type StudentPaymentsPageProps,
+} from "@/app/student/payments/student-payments-page";
 import { ProfilePage } from "@/app/student/profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
@@ -29,7 +32,20 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
-import type { GymLocation, PlanSlotData } from "@/lib/types";
+import type {
+	DailyNutrition,
+	DayPass,
+	GymLocation,
+	PlanSlotData,
+	StudentGymMembership,
+	SubscriptionData,
+	Unit,
+	UserProgress,
+	WeightHistoryItem,
+	WeeklyPlanData,
+	WorkoutHistory,
+} from "@/lib/types";
+import type { StudentProfileData, UserInfo } from "@/lib/types/student-unified";
 
 /**
  * Componente de Conteúdo da Home do Student
@@ -55,9 +71,8 @@ function StudentHomeContent() {
 	const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
-	// Proteger rotas bloqueadas (versão beta)
-	// gyms e payments liberados para todos os alunos
-	const blockedTabs = ["cardio"];
+	// Rotas bloqueadas para não-admin: learn (Aprender), profile (Configurações), cardio
+	const blockedTabs = ["learn", "profile", "cardio"];
 	const isBlockedTab = tab && blockedTabs.includes(tab) && !userIsAdmin;
 
 	// Redirecionar se tentar acessar rota bloqueada
@@ -157,26 +172,28 @@ function StudentHomeContent() {
 	// Todos os dados vêm do store unificado.
 	// Se não houver dados ainda, o useStudentInitializer está carregando.
 
+	const progress = storeProgress as unknown as UserProgress | null;
 	const displayProgress = {
-		currentStreak: storeProgress?.currentStreak || 0,
-		longestStreak: storeProgress?.longestStreak || 0,
-		totalXP: storeProgress?.totalXP || 0,
-		todayXP: storeProgress?.todayXP || 0,
-		currentLevel: storeProgress?.currentLevel || 1,
-		xpToNextLevel: storeProgress?.xpToNextLevel || 100,
-		workoutsCompleted: storeProgress?.workoutsCompleted || 0,
+		currentStreak: progress?.currentStreak ?? 0,
+		longestStreak: progress?.longestStreak ?? 0,
+		totalXP: progress?.totalXP ?? 0,
+		todayXP: progress?.todayXP ?? 0,
+		currentLevel: progress?.currentLevel ?? 1,
+		xpToNextLevel: progress?.xpToNextLevel ?? 100,
+		workoutsCompleted: progress?.workoutsCompleted ?? 0,
 	};
 
-	// Dados do store (sem fallback SSR)
-	const currentGymLocations = storeGymLocations || [];
-	const currentDayPasses = storeDayPasses || [];
-	const currentMemberships = storeMemberships || [];
-	const currentUser = storeUser;
-	const currentWorkoutHistory = storeWorkoutHistory || [];
-	const currentWeightHistory = storeWeightHistory || [];
-	const currentWeightGain = storeWeightGain ?? null;
-	const currentWeight = storeProfile?.weight;
-	const currentSubscription = storeSubscription;
+	// Dados do store (sem fallback SSR) — cast do persist (JsonValue) para tipos do domínio
+	const currentGymLocations = (storeGymLocations ?? []) as unknown as GymLocation[];
+	const currentDayPasses = (storeDayPasses ?? []) as unknown as DayPass[];
+	const currentMemberships = (storeMemberships ?? []) as unknown as StudentGymMembership[];
+	const currentUser = storeUser as unknown as UserInfo | null;
+	const currentWorkoutHistory = (storeWorkoutHistory ?? []) as unknown as WorkoutHistory[];
+	const currentWeightHistory = (storeWeightHistory ?? []) as unknown as WeightHistoryItem[];
+	const currentWeightGain = (storeWeightGain ?? null) as number | null;
+	const profile = storeProfile as unknown as StudentProfileData | null;
+	const currentWeight = profile?.weight;
+	const currentSubscription = storeSubscription as unknown as SubscriptionData | null;
 	const _currentPersonalRecords = storePersonalRecords || [];
 	const _userInfo = {
 		isAdmin: storeIsAdmin || false,
@@ -200,20 +217,36 @@ function StudentHomeContent() {
 		try {
 			const { apiClient } = await import("@/lib/api/client");
 			const res = await apiClient.post<{
-				brCode: string;
-				brCodeBase64: string;
-				amount: number;
-				paymentId: string;
+				brCode?: string;
+				brCodeBase64?: string;
+				amount?: number;
+				paymentId?: string;
 				membershipId?: string;
+				success?: boolean;
 			}>(`/api/students/gyms/${gymId}/join`, { planId });
-			setPixModal({
-				open: true,
-				paymentId: res.data.paymentId,
-				brCode: res.data.brCode,
-				brCodeBase64: res.data.brCodeBase64,
-				amount: res.data.amount,
-			});
-		} catch (err: unknown) {
+			const data = res?.data ?? {};
+			const hasPixData =
+				data.paymentId &&
+				data.brCode != null &&
+				data.brCodeBase64 != null &&
+				typeof data.amount === "number" &&
+				data.amount > 0;
+			if (hasPixData) {
+				setPixModal({
+					open: true,
+					paymentId: data.paymentId!,
+					brCode: data.brCode!,
+					brCodeBase64: data.brCodeBase64!,
+					amount: data.amount!,
+				});
+			} else {
+				toast({
+					title: "Mensalidade criada",
+					description: "Acesse a aba Pagamentos para gerar o PIX e concluir o pagamento.",
+				});
+				await handlePixConfirmed();
+			}
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data
@@ -245,7 +278,7 @@ function StudentHomeContent() {
 				brCodeBase64: res.data.brCodeBase64,
 				amount: res.data.amount,
 			});
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data
@@ -263,6 +296,32 @@ function StudentHomeContent() {
 
 	const handleViewGymProfile = (id: string) => {
 		setGymId(id);
+	};
+
+	const handleCancelMembership = async (membershipId: string) => {
+		try {
+			const { apiClient } = await import("@/lib/api/client");
+			await apiClient.post(`/api/students/memberships/${membershipId}/cancel`, {});
+			toast({
+				title: "Assinatura cancelada",
+				description: "Sua matrícula nesta academia foi cancelada.",
+			});
+			await loadMemberships();
+			setProfileRefreshKey((k) => k + 1);
+		} catch (err) {
+			const msg =
+				err && typeof err === "object" && "response" in err
+					? (err as { response?: { data?: { error?: string } } }).response?.data
+							?.error
+					: err instanceof Error
+						? err.message
+						: "Erro ao cancelar";
+			toast({
+				variant: "destructive",
+				title: "Erro",
+				description: String(msg),
+			});
+		}
 	};
 
 	const handlePixConfirmed = async () => {
@@ -318,12 +377,12 @@ function StudentHomeContent() {
 					</FadeIn>
 
 					{/* Card de Progresso de Nível */}
-					{storeProgress && (
+					{progress && (
 						<WhileInView delay={0.4}>
 							<LevelProgressCard.Simple
-								currentLevel={storeProgress.currentLevel}
-								totalXP={storeProgress.totalXP}
-								xpToNextLevel={storeProgress.xpToNextLevel}
+								currentLevel={progress.currentLevel}
+								totalXP={progress.totalXP}
+								xpToNextLevel={progress.xpToNextLevel}
 							/>
 						</WhileInView>
 					)}
@@ -392,12 +451,12 @@ function StudentHomeContent() {
 					</DuoStatsGrid.Root>
 
 					{/* Card de Evolução de Peso */}
-					{currentWeight && (
+					{currentWeight != null && (
 						<WhileInView delay={0.45}>
 							<WeightProgressCard.Simple
 								currentWeight={currentWeight}
 								weightGain={currentWeightGain}
-								hasWeightLossGoal={storeProfile?.hasWeightLossGoal || false}
+								hasWeightLossGoal={profile?.hasWeightLossGoal ?? false}
 								weightHistory={currentWeightHistory}
 							/>
 						</WhileInView>
@@ -407,13 +466,13 @@ function StudentHomeContent() {
 					<WhileInView delay={0.3}>
 						<ContinueWorkoutCard.Simple
 							units={
-								storeWeeklyPlan?.slots
+								(storeWeeklyPlan as unknown as WeeklyPlanData | null)?.slots
 									? [
 											{
-												id: storeWeeklyPlan.id,
-												title: storeWeeklyPlan.title,
+												id: (storeWeeklyPlan as unknown as WeeklyPlanData).id,
+												title: (storeWeeklyPlan as unknown as WeeklyPlanData).title,
 												description: "",
-												workouts: storeWeeklyPlan.slots
+												workouts: (storeWeeklyPlan as unknown as WeeklyPlanData).slots
 													.filter(
 														(s: PlanSlotData) =>
 															s.type === "workout" &&
@@ -423,8 +482,8 @@ function StudentHomeContent() {
 												color: "#58CC02",
 												icon: "💪",
 											},
-										]
-									: storeUnits || []
+										] as Unit[]
+									: (storeUnits ?? []) as unknown as Unit[]
 							}
 							workoutHistory={currentWorkoutHistory}
 						/>
@@ -432,7 +491,7 @@ function StudentHomeContent() {
 
 					{/* Card: Status de Nutrição */}
 					<WhileInView delay={0.35}>
-						<NutritionStatusCard.Simple dailyNutrition={storeDailyNutrition} />
+						<NutritionStatusCard.Simple dailyNutrition={(storeDailyNutrition ?? null) as unknown as DailyNutrition | null} />
 					</WhileInView>
 
 					{/* Card de Treinos Recentes */}
@@ -444,7 +503,7 @@ function StudentHomeContent() {
 				</div>
 			)}
 
-			{tab === "learn" && (
+			{tab === "learn" && userIsAdmin && (
 				<div className="pb-8" key="learn-tab">
 					<LearningPath
 						key="learning-path"
@@ -459,7 +518,7 @@ function StudentHomeContent() {
 
 			{tab === "payments" && (
 				<StudentPaymentsPage
-					subscription={currentSubscription}
+					subscription={(currentSubscription ?? undefined) as StudentPaymentsPageProps["subscription"]}
 					startTrial={async () => {
 						// Usar axios client (API → syncManager → Store)
 						// syncManager gerencia offline/online automaticamente
@@ -485,6 +544,7 @@ function StudentHomeContent() {
 							onBack={() => setGymId(null)}
 							onJoinPlan={handleJoinGym}
 							onChangePlan={handleChangePlan}
+							onCancelMembership={handleCancelMembership}
 							profileRefreshKey={profileRefreshKey}
 						/>
 					) : (
@@ -513,7 +573,7 @@ function StudentHomeContent() {
 				/>
 			)}
 
-			{(tab === "education" || exerciseId) && (
+			{(tab === "education" || exerciseId) && userIsAdmin && (
 				<>
 					{educationView === "menu" &&
 						!exerciseId &&
@@ -553,7 +613,7 @@ function StudentHomeContent() {
 				</>
 			)}
 
-			{tab === "profile" && <ProfilePage />}
+			{tab === "profile" && userIsAdmin && <ProfilePage />}
 
 			{tab === "more" && <StudentMoreMenu />}
 		</motion.div>

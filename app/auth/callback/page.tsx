@@ -90,7 +90,7 @@ function AuthCallbackPageContent() {
 				}
 
 				processSuccess(sessionResponse);
-			} catch (err: unknown) {
+			} catch (err) {
 				console.error("Erro ao processar callback:", err);
 				const msg =
 					err instanceof Error ? err.message : "Erro ao processar login";
@@ -129,9 +129,7 @@ function AuthCallbackPageContent() {
 			};
 			session?: { token?: string };
 		}) => {
-			const userRole =
-				(sessionResponse.user as { role: "STUDENT" | "GYM" | "ADMIN" }).role ||
-				sessionResponse.user.role;
+			const userRole = (sessionResponse.user as { role?: string }).role;
 
 			// Se está em popup (PWA), comunicar com janela pai
 			if (isInPopup && window.opener) {
@@ -159,8 +157,13 @@ function AuthCallbackPageContent() {
 					window.close();
 				}, 1000);
 			} else {
-				// Navegador normal - redirecionar normalmente
-				const redirectURL = userRole === "GYM" ? "/gym" : "/student";
+				// Navegador normal - redirecionar conforme role
+				const redirectURL =
+					userRole === "PENDING"
+						? "/auth/register/user-type"
+						: userRole === "GYM"
+							? "/gym"
+							: "/student";
 				window.location.href = redirectURL;
 			}
 		};

@@ -98,7 +98,7 @@ export async function getDailyNutritionHandler(
 					},
 				},
 			});
-		} catch (error: any) {
+		} catch (error) {
 			// Se a tabela não existir, retornar dados vazios
 			if (error.code === "P2021" || error.message?.includes("does not exist")) {
 				return successResponse({
@@ -200,7 +200,7 @@ export async function getDailyNutritionHandler(
 			targetFats: profile?.targetFats || 65,
 			targetWater: 3000,
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getDailyNutritionHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar nutrição", error);
 	}
@@ -331,7 +331,7 @@ export async function updateDailyNutritionHandler(
 											servingSize: food.servingSize || "100g",
 										},
 									});
-								} catch (foodError: any) {
+								} catch (foodError) {
 									console.error(
 										"[updateDailyNutritionHandler] Erro ao criar food:",
 										foodError,
@@ -340,7 +340,7 @@ export async function updateDailyNutritionHandler(
 								}
 							}
 						}
-					} catch (mealError: any) {
+					} catch (mealError) {
 						console.error(
 							"[updateDailyNutritionHandler] Erro ao criar meal:",
 							mealError,
@@ -354,7 +354,7 @@ export async function updateDailyNutritionHandler(
 				dailyNutritionId: dailyNutrition.id,
 				date: dateKey,
 			});
-		} catch (error: any) {
+		} catch (error) {
 			// Se a tabela não existir, retornar erro informativo
 			if (error.code === "P2021" || error.message?.includes("does not exist")) {
 				return badRequestResponse(
@@ -376,7 +376,7 @@ export async function updateDailyNutritionHandler(
 
 			throw error;
 		}
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[updateDailyNutritionHandler] Erro geral:", {
 			error: error.message,
 			code: error.code,
@@ -409,7 +409,7 @@ export async function searchFoodsHandler(
 		const offset = queryValidation.data.offset || 0;
 
 		// Construir filtros
-		const where: any = {};
+		const where: Record<string, string | number | boolean | object | null> = {};
 
 		if (query) {
 			where.name = {
@@ -433,7 +433,7 @@ export async function searchFoodsHandler(
 					name: "asc",
 				},
 			});
-		} catch (error: any) {
+		} catch (error) {
 			// Se a tabela não existir, retornar array vazio
 			if (error.code === "P2021" || error.message?.includes("does not exist")) {
 				return successResponse({
@@ -464,7 +464,7 @@ export async function searchFoodsHandler(
 		}));
 
 		return successResponse({ foods: formattedFoods });
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[searchFoodsHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar alimentos", error);
 	}
@@ -514,7 +514,7 @@ export async function getFoodByIdHandler(
 				image: food.image || undefined,
 			},
 		});
-	} catch (error: any) {
+	} catch (error) {
 		console.error("[getFoodByIdHandler] Erro:", error);
 		return internalErrorResponse("Erro ao buscar alimento", error);
 	}

@@ -11,7 +11,8 @@ import { ExerciseList } from "@/components/organisms/education/components/muscle
 import { MuscleDetail } from "@/components/organisms/education/components/muscle/muscle-detail";
 import { MuscleList } from "@/components/organisms/education/components/muscle/muscle-list";
 import { SearchBar } from "@/components/organisms/education/components/muscle/search-bar";
-import { exerciseDatabase, muscleDatabase } from "@/lib/educational-data";
+import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { muscleDatabase } from "@/lib/educational-data/muscles";
 import type { ExerciseInfo, MuscleGroup, MuscleInfo } from "@/lib/types";
 
 interface MuscleExplorerProps {

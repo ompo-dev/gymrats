@@ -6,6 +6,7 @@
 import fs from "node:fs";
 import { parse } from "csv-parse/sync";
 import { db } from "@/lib/db";
+import { log } from "@/lib/observability";
 
 /**
  * Mapeia categorias do CSV TACO para categorias do schema
@@ -86,10 +87,9 @@ export function parseFoodsFromCSV(csvContent: string): Array<{
 
 		// Validar dados obrigatórios
 		if (!name || !categoryCSV) {
-			console.warn(
-				`[parseFoodsFromCSV] Registro ignorado: nome ou categoria ausente`,
+			log.warn("[parseFoodsFromCSV] Registro ignorado: nome ou categoria ausente", {
 				record,
-			);
+			});
 			continue;
 		}
 
@@ -189,11 +189,11 @@ export async function uploadFoodsFromCSV(
 					});
 					created++;
 				}
-			} catch (error: any) {
-				console.error(
-					`[uploadFoodsFromCSV] Erro ao processar alimento "${food.name}":`,
+			} catch (error) {
+				log.error("[uploadFoodsFromCSV] Erro ao processar alimento", {
+					foodName: food.name,
 					error,
-				);
+				});
 				errors++;
 			}
 		}
@@ -280,11 +280,11 @@ export async function uploadFoodsFromCSVContent(
 					});
 					created++;
 				}
-			} catch (error: any) {
-				console.error(
-					`[uploadFoodsFromCSVContent] Erro ao processar alimento "${food.name}":`,
+			} catch (error) {
+				log.error("[uploadFoodsFromCSVContent] Erro ao processar alimento", {
+					foodName: food.name,
 					error,
-				);
+				});
 				errors++;
 			}
 		}

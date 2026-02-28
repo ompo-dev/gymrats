@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 				await initializeStudentTrial(student.id);
 			}
 		} else if (role === "GYM") {
-			const existingGym = await db.gym.findUnique({
+			const existingGym = await db.gym.findFirst({
 				where: { userId },
 			});
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 				role: updatedUser.role,
 			},
 		});
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao atualizar role:", error);
 		const err = error instanceof Error ? error : new Error(String(error));
 		return NextResponse.json(

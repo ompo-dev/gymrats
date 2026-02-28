@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { DuoCard } from "@/components/duo";
+import { cn } from "@/lib/utils";
 
 interface StepCardProps {
 	title: string;
@@ -27,7 +28,10 @@ function StepCardSimple({
 			<DuoCard.Root
 				variant="default"
 				padding="lg"
-				className={`border-2 border-white/30 bg-white/95 shadow-2xl backdrop-blur-md ${className || ""}`}
+				className={cn(
+					"border-2 border-duo-border shadow-2xl backdrop-blur-md",
+					className,
+				)}
 			>
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
@@ -35,9 +39,9 @@ function StepCardSimple({
 					transition={{ delay: 0.2 }}
 					className="mb-6 text-center"
 				>
-					<h2 className="mb-2 text-2xl font-bold text-gray-900">{title}</h2>
+					<h2 className="mb-2 text-2xl font-bold text-duo-fg">{title}</h2>
 					{description && (
-						<p className="text-sm text-gray-600">{description}</p>
+						<p className="text-sm text-duo-fg-muted">{description}</p>
 					)}
 				</motion.div>
 				{children}

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 /**
  * Service to centralize gym domain operations and stat updates
@@ -25,7 +26,7 @@ export class GymDomainService {
   }
 
   /**
-   * Updates student counters when a new membership is created
+   * Updates student counters when a new membership is created (active)
    */
   static async incrementStudentCounters(gymId: string) {
     return db.gymProfile.updateMany({
@@ -34,6 +35,26 @@ export class GymDomainService {
         totalStudents: { increment: 1 },
         activeStudents: { increment: 1 },
       },
+    });
+  }
+
+  /**
+   * Incrementa só totalStudents (ex.: matrícula pendente de pagamento)
+   */
+  static async incrementTotalStudentsOnly(gymId: string) {
+    return db.gymProfile.updateMany({
+      where: { gymId },
+      data: { totalStudents: { increment: 1 } },
+    });
+  }
+
+  /**
+   * Incrementa activeStudents (ex.: webhook ativou matrícula após PIX pago)
+   */
+  static async incrementActiveStudentsOnly(gymId: string) {
+    return db.gymProfile.updateMany({
+      where: { gymId },
+      data: { activeStudents: { increment: 1 } },
     });
   }
 
@@ -56,7 +77,7 @@ export class GymDomainService {
       } | null;
     },
   ) {
-    const updateData: Record<string, unknown> = {};
+    const updateData: Record<string, string | number | boolean | null> = {};
     if (data.address !== undefined) updateData.address = data.address;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;
@@ -78,10 +99,15 @@ export class GymDomainService {
    */
   static async getMembers(gymId: string, filters: { status?: string; search?: string }) {
     const { status, search } = filters;
+    // Listagem padrão: só alunos vinculados (active/pending). Cancelados/suspended não aparecem.
+    const statusFilter =
+      status && status !== "all"
+        ? { status }
+        : { status: { in: ["active", "pending"] } };
     return db.gymMembership.findMany({
       where: {
         gymId,
-        ...(status && status !== "all" ? { status } : {}),
+        ...statusFilter,
         ...(search
           ? {
               student: {
@@ -102,7 +128,11 @@ export class GymDomainService {
   }
 
   /**
-   * Enrolls a student in a gym plan
+   * Enrolls a student in a gym plan.
+   * - Com planId: cria membership "pending" + pagamento pendente; o aluno paga a mensalidade
+   *   em student?tab=payments e a membership ativa no webhook. Em nenhuma hipótese o aluno
+   *   deixa de pagar a academia; enterprise só concede Premium do app quando ativo.
+   * - Sem planId (cortesia manual): cria membership "active" direto, sem pagamento.
    */
   static async enrollStudent(gymId: string, data: {
     studentId: string;
@@ -112,46 +142,57 @@ export class GymDomainService {
   }) {
     const { studentId, planId, amount, autoRenew = true } = data;
 
-    // 1. Check if student exists
     const student = await db.student.findUnique({ where: { id: studentId } });
     if (!student) throw new Error("Aluno não encontrado");
 
-    // 2. Check for existing active membership
     const existing = await db.gymMembership.findFirst({
-      where: {
-        gymId,
-        studentId,
-        status: { in: ["active", "pending"] },
-      },
+      where: { gymId, studentId, status: { in: ["active", "pending"] } },
     });
     if (existing) throw new Error("Aluno já está matriculado");
 
-    // 3. Calculate next billing date
     let nextBillingDate: Date | null = null;
+    let resolvedAmount = amount;
     if (planId) {
-      const plan = await db.membershipPlan.findUnique({ where: { id: planId } });
+      const plan = await db.membershipPlan.findUnique({ where: { id: planId, gymId } });
       if (plan) {
         nextBillingDate = new Date();
         nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
+        if (resolvedAmount <= 0) resolvedAmount = plan.price;
       }
     }
 
-    // 4. Create membership
+    const withPlan = !!planId && resolvedAmount > 0;
+    const membershipActive = !withPlan;
+
     const membership = await db.gymMembership.create({
       data: {
         gymId,
         studentId,
         planId: planId || null,
-        amount,
-        status: "active",
+        amount: resolvedAmount,
+        status: membershipActive ? "active" : "pending",
         autoRenew,
         nextBillingDate,
       },
       include: { student: { include: { user: true } }, plan: true },
     });
 
-    // 5. Update gym stats
-    await this.incrementStudentCounters(gymId);
+    if (withPlan && planId) {
+      const { createPendingMembershipPayment } = await import("@/lib/services/gym/gym-membership-payment.service");
+      await createPendingMembershipPayment(gymId, studentId, planId, resolvedAmount, membership.id);
+      await this.incrementTotalStudentsOnly(gymId);
+    } else {
+      await this.incrementStudentCounters(gymId);
+      const gymSub = await db.gymSubscription.findUnique({
+        where: { gymId },
+        select: { plan: true, status: true },
+      });
+      const isEnterprise = gymSub?.status === "active" && gymSub?.plan?.toLowerCase().includes("enterprise");
+      if (isEnterprise) {
+        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
+      }
+    }
 
     return membership;
   }
@@ -166,7 +207,7 @@ export class GymDomainService {
     limit?: number;
   }) {
     const { startDate, endDate, type, limit } = filters;
-    const whereClause: any = { gymId };
+    const whereClause: Prisma.ExpenseWhereInput = { gymId };
 
     if (type && type !== "all") {
       whereClause.type = type;
@@ -174,8 +215,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) whereClause.date.gte = new Date(startDate);
-      if (endDate) whereClause.date.lte = new Date(endDate);
+      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
     return db.expense.findMany({
@@ -189,7 +230,7 @@ export class GymDomainService {
    * Creates a new expense for the gym
    */
   static async createExpense(gymId: string, data: {
-    type: any;
+    type: string;
     description?: string | null;
     amount: number;
     date?: string | null;
@@ -218,7 +259,7 @@ export class GymDomainService {
     limit?: number;
   }) {
     const { status, studentId, startDate, endDate, limit } = filters;
-    const whereClause: any = { gymId };
+    const whereClause: Prisma.PaymentWhereInput = { gymId };
 
     if (status && status !== "all") {
       whereClause.status = status;
@@ -230,8 +271,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) whereClause.date.gte = new Date(startDate);
-      if (endDate) whereClause.date.lte = new Date(endDate);
+      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
     return db.payment.findMany({
@@ -361,6 +402,8 @@ export class GymDomainService {
           where: { gymId },
           data: { activeStudents: { decrement: 1 } },
         });
+        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(membership.studentId);
       } else if (!wasActive && isNowActive) {
         await db.gymProfile.updateMany({
           where: { gymId },
@@ -375,7 +418,7 @@ export class GymDomainService {
   static async cancelMember(gymId: string, membershipId: string) {
     const current = await db.gymMembership.findFirst({
       where: { id: membershipId, gymId },
-      select: { status: true },
+      select: { status: true, studentId: true },
     });
 
     if (!current) {
@@ -395,6 +438,8 @@ export class GymDomainService {
           totalStudents: { decrement: 1 },
         },
       });
+      const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(current.studentId);
     }
   }
 
@@ -552,7 +597,7 @@ export class GymDomainService {
     const user = await db.user.findFirst({
       where: {
         email: { contains: normalizedEmail, mode: "insensitive" },
-        role: "STUDENT",
+        role: { in: ["STUDENT", "ADMIN"] },
       },
       include: {
         student: {
@@ -560,7 +605,10 @@ export class GymDomainService {
             profile: true,
             progress: true,
             memberships: {
-              where: { gymId },
+              where: {
+                gymId,
+                status: { in: ["active", "pending"] },
+              },
             },
           },
         },

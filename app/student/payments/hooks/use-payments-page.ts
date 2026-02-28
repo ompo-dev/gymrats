@@ -2,37 +2,20 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { createAbacateBilling } from "@/lib/actions/abacate-pay";
+import { createAbacateBilling } from "@/lib/actions/payments/abacate-pay";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import {
-	type SubscriptionData,
-	useSubscription,
-} from "@/hooks/use-subscription";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
-import type {
-	StudentGymMembership,
-	StudentPayment,
-} from "@/lib/types";
+import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
+import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 
 export type PaymentsTab = "memberships" | "payments" | "subscription";
 
 export interface UsePaymentsPageProps {
-	subscription?: {
-		id: string;
-		plan: string;
-		status: string;
-		currentPeriodStart: Date;
-		currentPeriodEnd: Date;
-		cancelAtPeriodEnd: boolean;
-		canceledAt: Date | null;
-		trialStart: Date | null;
-		trialEnd: Date | null;
-		isTrial: boolean;
-		daysRemaining: number | null;
-	} | null;
+	subscription?: StudentSubscriptionData | null;
 	startTrial?: () => Promise<{ error?: string; success?: boolean }>;
 }
 
@@ -93,19 +76,20 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 		}
 	}, [subTab]);
 
-	const hasOptimisticUpdate = storeSubscription?.id === "temp-trial-id";
+	const subFromStore = storeSubscription as StudentSubscriptionData | null | undefined;
+	const hasOptimisticUpdate = subFromStore?.id === "temp-trial-id";
 
-	const subscription: SubscriptionData | null = hasOptimisticUpdate
-		? storeSubscription
-		: storeSubscription !== null && storeSubscription !== undefined
-			? storeSubscription
+	const subscription: StudentSubscriptionData | null = hasOptimisticUpdate
+		? (subFromStore as StudentSubscriptionData)
+		: subFromStore !== null && subFromStore !== undefined
+			? (subFromStore as StudentSubscriptionData)
 			: subscriptionData !== undefined && subscriptionData !== null
 				? subscriptionData
 				: subscriptionData === null && initialSubscription
 					? initialSubscription
 					: subscriptionData === null
 						? null
-						: initialSubscription || null;
+						: initialSubscription ?? null;
 
 	useEffect(() => {
 		if (
@@ -146,11 +130,19 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	}, [subscription?.trialEnd, subscription?.daysRemaining]);
 
 	const loaders = useStudent("loaders");
-	const { loadPaymentMethods, loadMemberships, loadPayments } = loaders;
+	const { loadSubscription, loadPaymentMethods, loadMemberships, loadPayments } = loaders;
 
+	// Ao abrir a aba Assinatura, refetch para ter source/enterpriseGymName atualizados
+	useEffect(() => {
+		if (activeTab === "subscription" && loadSubscription) {
+			loadSubscription();
+		}
+	}, [activeTab, loadSubscription]);
+
+	const membershipsArray = Array.isArray(storeMemberships) ? storeMemberships : [];
 	const membershipsData = useMemo(() => {
-		if (!storeMemberships || storeMemberships.length === 0) return [];
-		return storeMemberships.map((m: StudentGymMembership) => ({
+		if (membershipsArray.length === 0) return [];
+		return (membershipsArray as unknown as StudentGymMembership[]).map((m: StudentGymMembership) => ({
 			...m,
 			startDate: m.startDate
 				? m.startDate instanceof Date
@@ -163,11 +155,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					: new Date(m.nextBillingDate)
 				: undefined,
 		}));
-	}, [storeMemberships]);
+	}, [membershipsArray]);
 
+	const paymentsArray = Array.isArray(storePayments) ? storePayments : [];
 	const paymentsData = useMemo(() => {
-		if (!storePayments || storePayments.length === 0) return [];
-		return storePayments.map((p: StudentPayment) => ({
+		if (paymentsArray.length === 0) return [];
+		return (paymentsArray as unknown as StudentPayment[]).map((p: StudentPayment) => ({
 			...p,
 			date: p.date
 				? p.date instanceof Date ? p.date : new Date(p.date)
@@ -176,7 +169,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				? p.dueDate instanceof Date ? p.dueDate : new Date(p.dueDate)
 				: new Date(),
 		}));
-	}, [storePayments]);
+	}, [paymentsArray]);
 
 	const memberships = membershipsData;
 	const payments = paymentsData;
@@ -197,12 +190,13 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				monthlyPrice: 15,
 				annualPrice: 150.0,
 				features: [
-					"Gerador de treinos com IA",
-					"Gerador de dietas com IA",
-					"Análise de postura avançada",
-					"Coach pessoal virtual",
-					"Consultoria nutricional",
-					"Relatórios avançados",
+					"Treinos personalizados com IA",
+					"Planos de dieta com IA",
+					"Análise de postura",
+					"Acompanhamento de progresso e métricas",
+					"Histórico de treinos e recordes",
+					"Integração com academias parceiras",
+					"Suporte prioritário",
 				],
 			},
 		],
@@ -212,10 +206,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 	const handleCancelMembership = async (membershipId: string) => {
 		try {
 			await apiClient.post(`/api/students/memberships/${membershipId}/cancel`, {});
-			toast({ title: "Plano cancelado", description: "Sua matrícula foi cancelada." });
+			toast({ title: "Plano cancelado", description: "Sua mensalidade na academia foi cancelada." });
 			setExpandedMembershipId(null);
 			await loadMemberships();
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -239,7 +233,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			}
 			setChangePlanPlans(otherPlans);
 			setChangePlanMembershipId(membership.id);
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -266,7 +260,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			setChangePlanPlans([]);
 			setChangePlanMembershipId(null);
 			await Promise.all([loadMemberships(), loadPayments()]);
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -293,7 +287,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 				brCodeBase64: res.data.brCodeBase64,
 				amount: res.data.amount,
 			});
-		} catch (err: unknown) {
+		} catch (err) {
 			const msg =
 				err && typeof err === "object" && "response" in err
 					? (err as { response?: { data?: { error?: string } } }).response?.data?.error
@@ -333,7 +327,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					description: "Seu trial de 14 dias foi iniciado com sucesso!",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error
 					? error.message
@@ -358,7 +352,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 			} else {
 				throw new Error("URL de checkout não recebida do servidor.");
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			console.error("[handleUpgrade] Erro:", error);
 			const err = error as {
 				response?: { data?: { message?: string } };
@@ -391,7 +385,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 					description: "Sua assinatura foi cancelada com sucesso.",
 				});
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error ? error.message : "Erro ao cancelar assinatura";
 			toast({

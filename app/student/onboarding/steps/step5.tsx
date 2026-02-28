@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoCard } from "@/components/duo";
 import {
   calculateMetabolicData,
   type MetabolicCalculation,
@@ -110,18 +110,34 @@ export function Step5({ formData, setFormData }: StepProps) {
 
   if (!calculation) {
     return (
-      <StepCard.Simple
-        title="Calculando seus valores..."
-        description="Aguarde enquanto calculamos seus valores metabólicos"
+      <motion.div
+        initial={{ opacity: 0, x: 50, scale: 0.95 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        exit={{ opacity: 0, x: -50, scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 100, damping: 15 }}
       >
-        <div className="flex items-center justify-center py-8">
+        <DuoCard.Root
+          variant="outlined"
+          padding="lg"
+          className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+        >
+          <div className="mb-6 text-center">
+            <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+              Calculando seus valores...
+            </h2>
+            <p className="text-sm text-duo-fg-muted">
+              Aguarde enquanto calculamos seus valores metabólicos
+            </p>
+          </div>
+          <div className="flex items-center justify-center py-8">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
             className="h-12 w-12 rounded-full border-4 border-duo-green border-t-transparent"
           />
         </div>
-      </StepCard.Simple>
+        </DuoCard.Root>
+      </motion.div>
     );
   }
 
@@ -140,11 +156,26 @@ export function Step5({ formData, setFormData }: StepProps) {
         : "Manutenção";
 
   return (
-    <StepCard.Simple
-      title="Seu Plano Personalizado"
-      description="Valores calculados especialmente para você"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-6">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Seu Plano Personalizado
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Valores calculados especialmente para você
+          </p>
+        </div>
+        <div className="space-y-6">
         {/* Resumo dos Valores Principais */}
         <div className="grid grid-cols-2 gap-4">
           <motion.div
@@ -153,14 +184,14 @@ export function Step5({ formData, setFormData }: StepProps) {
             transition={{ delay: 0.1 }}
             className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
           >
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
+            <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
               <Activity className="h-4 w-4" />
               TMB (Basal)
             </div>
             <div className="mt-2 text-2xl font-bold text-duo-green">
               {calculation.bmr}
             </div>
-            <div className="text-xs text-gray-600">kcal/dia</div>
+            <div className="text-xs text-duo-fg-muted">kcal/dia</div>
           </motion.div>
 
           <motion.div
@@ -169,14 +200,14 @@ export function Step5({ formData, setFormData }: StepProps) {
             transition={{ delay: 0.2 }}
             className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
           >
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
+            <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
               <Zap className="h-4 w-4" />
               TDEE (Total)
             </div>
             <div className="mt-2 text-2xl font-bold text-duo-green">
               {calculation.tdee}
             </div>
-            <div className="text-xs text-gray-600">kcal/dia</div>
+            <div className="text-xs text-duo-fg-muted">kcal/dia</div>
           </motion.div>
         </div>
 
@@ -219,70 +250,70 @@ export function Step5({ formData, setFormData }: StepProps) {
           transition={{ delay: 0.4 }}
           className="space-y-4"
         >
-          <h3 className="text-lg font-bold text-gray-900">Macronutrientes</h3>
+          <h3 className="text-lg font-bold text-duo-fg">Macronutrientes</h3>
 
           {/* Proteína */}
-          <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-red-100 p-2">
-                <Beef className="h-5 w-5 text-red-600" />
+              <div className="rounded-lg bg-duo-danger/20 p-2">
+                <Beef className="h-5 w-5 text-duo-danger" />
               </div>
               <div className="flex-1">
-                <div className="font-bold text-gray-900">Proteína</div>
-                <div className="text-xs text-gray-600">
+                <div className="font-bold text-duo-fg">Proteína</div>
+                <div className="text-xs text-duo-fg-muted">
                   {calculation.macroPercentages.protein}% •{" "}
                   {calculation.macros.protein}g
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-duo-danger">
                   {calculation.macros.protein}
                 </div>
-                <div className="text-xs text-gray-500">gramas</div>
+                <div className="text-xs text-duo-fg-muted">gramas</div>
               </div>
             </div>
           </div>
 
           {/* Carboidratos */}
-          <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-yellow-100 p-2">
-                <Wheat className="h-5 w-5 text-yellow-600" />
+              <div className="rounded-lg bg-duo-warning/20 p-2">
+                <Wheat className="h-5 w-5 text-duo-warning" />
               </div>
               <div className="flex-1">
-                <div className="font-bold text-gray-900">Carboidratos</div>
-                <div className="text-xs text-gray-600">
+                <div className="font-bold text-duo-fg">Carboidratos</div>
+                <div className="text-xs text-duo-fg-muted">
                   {calculation.macroPercentages.carbs}% •{" "}
                   {calculation.macros.carbs}g
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-yellow-600">
+                <div className="text-2xl font-bold text-duo-warning">
                   {calculation.macros.carbs}
                 </div>
-                <div className="text-xs text-gray-500">gramas</div>
+                <div className="text-xs text-duo-fg-muted">gramas</div>
               </div>
             </div>
           </div>
 
           {/* Gorduras */}
-          <div className="rounded-xl border-2 border-gray-200 bg-white p-4">
+          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-orange-100 p-2">
-                <Apple className="h-5 w-5 text-orange-600" />
+              <div className="rounded-lg bg-duo-accent/20 p-2">
+                <Apple className="h-5 w-5 text-duo-accent" />
               </div>
               <div className="flex-1">
-                <div className="font-bold text-gray-900">Gorduras</div>
-                <div className="text-xs text-gray-600">
+                <div className="font-bold text-duo-fg">Gorduras</div>
+                <div className="text-xs text-duo-fg-muted">
                   {calculation.macroPercentages.fats}% •{" "}
                   {calculation.macros.fats}g
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-duo-accent">
                   {calculation.macros.fats}
                 </div>
-                <div className="text-xs text-gray-500">gramas</div>
+                <div className="text-xs text-duo-fg-muted">gramas</div>
               </div>
             </div>
           </div>
@@ -293,9 +324,9 @@ export function Step5({ formData, setFormData }: StepProps) {
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border-2 border-red-500 bg-red-50 p-4"
+            className="rounded-xl border-2 border-duo-danger bg-duo-danger/10 p-4"
           >
-            <p className="text-sm font-bold text-red-600">{validationError}</p>
+            <p className="text-sm font-bold text-duo-danger">{validationError}</p>
           </motion.div>
         )}
 
@@ -304,7 +335,7 @@ export function Step5({ formData, setFormData }: StepProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-4 text-xs text-gray-600"
+          className="rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-4 text-xs text-duo-fg-muted"
         >
           <div className="space-y-1">
             <div>
@@ -332,6 +363,7 @@ export function Step5({ formData, setFormData }: StepProps) {
           </div>
         </motion.div>
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

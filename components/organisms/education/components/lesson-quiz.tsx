@@ -10,7 +10,7 @@ import { useScrollToTop } from "@/hooks/use-scroll-to-top";
 import type { EducationalLesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-interface LessonQuizProps {
+export interface LessonQuizProps {
 	lesson: EducationalLesson;
 	onComplete: (passed: boolean) => void;
 	onRetry: () => void;

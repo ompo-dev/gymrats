@@ -1,74 +1,90 @@
 "use client";
 
-import { DollarSign } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoSelect } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import type { Expense, FinancialSummary, Payment } from "@/lib/types";
+import type { Coupon, Expense, FinancialSummary, Payment } from "@/lib/types";
 import { FinancialCouponsTab } from "./financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "./financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "./financial/financial-overview-tab";
 import { FinancialPaymentsTab } from "./financial/financial-payments-tab";
-import { FinancialReferralsTab } from "./financial/financial-referrals-tab";
 import { FinancialSubscriptionTab } from "./financial/financial-subscription-tab";
+import { DuoCard, DuoSelect } from "@/components/duo";
 
 interface GymFinancialPageProps {
 	financialSummary: FinancialSummary | null;
 	payments?: Payment[];
-	coupons?: never[];
-	referrals?: never[];
+	coupons?: Coupon[];
 	expenses?: Expense[];
+	balanceReais?: number;
+	balanceCents?: number;
+	withdraws?: {
+		id: string;
+		amount: number;
+		pixKey: string;
+		pixKeyType: string;
+		externalId: string;
+		status: string;
+		createdAt: Date;
+		completedAt: Date | null;
+	}[];
+	subscription?: {
+		id: string;
+		plan: string;
+		status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
+		basePrice?: number;
+		pricePerStudent?: number;
+		currentPeriodStart?: Date;
+		currentPeriodEnd: Date;
+		cancelAtPeriodEnd?: boolean;
+		canceledAt?: Date | null;
+		trialStart?: Date | null;
+		trialEnd?: Date | null;
+		isTrial?: boolean;
+		daysRemaining?: number | null;
+		activeStudents?: number;
+		totalAmount?: number;
+	} | null;
 }
+
+type FinancialViewMode =
+	| "overview"
+	| "payments"
+	| "coupons"
+	| "expenses"
+	| "subscription";
 
 export function GymFinancialPage({
 	financialSummary,
 	payments = [],
 	coupons = [],
-	referrals = [],
 	expenses = [],
+	balanceReais = 0,
+	balanceCents = 0,
+	withdraws = [],
+	subscription,
 }: GymFinancialPageProps) {
 	const [subTab, setSubTab] = useQueryState(
 		"subTab",
 		parseAsString.withDefault("overview"),
 	);
-
-	const [viewMode, setViewMode] = useState<
-		| "overview"
-		| "payments"
-		| "coupons"
-		| "referrals"
-		| "expenses"
-		| "subscription"
-	>("overview");
+	const [viewMode, setViewMode] = useState<FinancialViewMode>("overview");
 
 	useEffect(() => {
-		if (subTab) {
-			setViewMode(
-				subTab as
-					| "overview"
-					| "payments"
-					| "coupons"
-					| "referrals"
-					| "expenses"
-					| "subscription",
-			);
+		if (subTab && subTab !== "referrals") {
+			setViewMode(subTab as FinancialViewMode);
 		}
 	}, [subTab]);
 
-	const tabOptions = [
-		{ value: "overview", label: "Resumo" },
-		{ value: "payments", label: "Pagamentos" },
-		{ value: "coupons", label: "Cupons" },
-		{ value: "referrals", label: "Indicações" },
-		{ value: "expenses", label: "Despesas" },
-		{ value: "subscription", label: "Assinatura" },
-	];
+	const handleTabChange = (tab: string) => {
+		const mode = (tab === "referrals" ? "overview" : tab) as FinancialViewMode;
+		setViewMode(mode);
+		setSubTab(mode);
+	};
 
 	return (
-		<div className="mx-auto max-w-4xl space-y-6">
+		<div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
 			<FadeIn>
 				<div className="text-center">
 					<h1 className="mb-2 text-3xl font-bold text-duo-text">
@@ -83,67 +99,70 @@ export function GymFinancialPage({
 			<SlideIn delay={0.1}>
 				<DuoCard.Root variant="default" padding="md">
 					<DuoCard.Header>
-						<div className="flex items-center gap-2">
-							<DollarSign className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Categoria</h2>
-						</div>
+						<h2 className="font-bold text-duo-fg">Categoria</h2>
 					</DuoCard.Header>
 					<DuoSelect.Simple
-						options={tabOptions}
+						options={[
+							{ value: "overview", label: "Resumo" },
+							{ value: "payments", label: "Pagamentos" },
+							{ value: "coupons", label: "Cupons" },
+							{ value: "expenses", label: "Despesas" },
+							{ value: "subscription", label: "Assinatura" },
+						]}
 						value={viewMode}
-						onChange={(value) => {
-							const newViewMode = value as
-								| "overview"
-								| "payments"
-								| "coupons"
-								| "referrals"
-								| "expenses"
-								| "subscription";
-							setViewMode(newViewMode);
-							setSubTab(newViewMode);
-						}}
+						onChange={(value) => handleTabChange(value)}
 						placeholder="Selecione a categoria"
 					/>
 				</DuoCard.Root>
 			</SlideIn>
 
 			{viewMode === "overview" && financialSummary && (
-				<SlideIn delay={0.2}>
-					<FinancialOverviewTab
-						financialSummary={financialSummary}
-						payments={payments}
-					/>
-				</SlideIn>
+				<FinancialOverviewTab
+					financialSummary={financialSummary}
+					payments={payments}
+					subscription={subscription}
+					balanceReais={balanceReais}
+					balanceCents={balanceCents}
+					withdraws={withdraws}
+				/>
 			)}
 
 			{viewMode === "payments" && (
-				<SlideIn delay={0.2}>
-					<FinancialPaymentsTab payments={payments} />
-				</SlideIn>
+				<FinancialPaymentsTab payments={payments} />
 			)}
 
 			{viewMode === "coupons" && (
-				<SlideIn delay={0.2}>
-					<FinancialCouponsTab coupons={coupons} />
-				</SlideIn>
-			)}
-
-			{viewMode === "referrals" && (
-				<SlideIn delay={0.2}>
-					<FinancialReferralsTab referrals={referrals} />
-				</SlideIn>
+				<FinancialCouponsTab coupons={coupons} />
 			)}
 
 			{viewMode === "expenses" && (
-				<SlideIn delay={0.2}>
-					<FinancialExpensesTab expenses={expenses} />
-				</SlideIn>
+				<FinancialExpensesTab expenses={expenses} />
 			)}
 
 			{viewMode === "subscription" && (
-				<SlideIn delay={0.2}>
-					<FinancialSubscriptionTab />
-				</SlideIn>
+				<FinancialSubscriptionTab
+					subscription={
+						subscription
+							? {
+									id: subscription.id,
+									plan: subscription.plan,
+									status: subscription.status,
+									basePrice: subscription.basePrice ?? 0,
+									pricePerStudent: subscription.pricePerStudent ?? 0,
+									currentPeriodStart: subscription.currentPeriodStart ?? subscription.currentPeriodEnd,
+									currentPeriodEnd: subscription.currentPeriodEnd,
+									cancelAtPeriodEnd: subscription.cancelAtPeriodEnd ?? false,
+									canceledAt: subscription.canceledAt ?? null,
+									trialStart: subscription.trialStart ?? null,
+									trialEnd: subscription.trialEnd ?? null,
+									isTrial: subscription.isTrial ?? false,
+									daysRemaining: subscription.daysRemaining ?? null,
+									activeStudents: subscription.activeStudents ?? 0,
+									totalAmount: subscription.totalAmount ?? 0,
+								}
+							: undefined
+					}
+				/>
 			)}
 		</div>
 	);

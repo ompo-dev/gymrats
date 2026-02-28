@@ -45,9 +45,12 @@ export function CheckInModal({ isOpen, onClose, onSuccess }: CheckInModalProps) 
 					`/api/gyms/members?status=active&search=${encodeURIComponent(search)}`,
 				);
 				const data = await res.json();
+				interface MemberItem {
+					student: { id: string; avatar?: string; user?: { name?: string } };
+					studentName?: string;
+				}
 				setMembers(
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
-					(data.members ?? []).map((m: any) => ({
+					((data.members ?? []) as MemberItem[]).map((m) => ({
 						id: m.student.id,
 						name: m.student.user?.name ?? m.studentName ?? "Aluno",
 						avatar: m.student.avatar,

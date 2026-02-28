@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { clearAuthToken } from "@/lib/auth/token-client";
 import type { Unit, WorkoutHistory, WorkoutSession } from "@/lib/types";
 import type { WeightHistoryItem } from "@/lib/types/student-unified";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -249,7 +250,7 @@ export function useProfilePage() {
 			useAuthStore.getState().logout();
 
 			if (typeof window !== "undefined") {
-				localStorage.removeItem("auth_token");
+				clearAuthToken();
 				localStorage.removeItem("isAuthenticated");
 				localStorage.removeItem("userEmail");
 				localStorage.removeItem("userId");

@@ -1,20 +1,22 @@
 import type { Context } from "elysia";
 import { chatCompletion } from "@/lib/ai/client";
+import type { JsonValue } from "@/lib/types/api-error";
+import type {
+	ParsedWorkoutPlan,
+	ParsedWorkoutPlanExercise,
+	ParsedWorkoutPlanItem,
+	WorkoutsAiProfile,
+} from "../types/workouts-ai";
 import { parseWorkoutResponse } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { db } from "@/lib/db";
-import { exerciseDatabase } from "@/lib/educational-data";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
+import { createExercisesInBatch } from "@/lib/services/workout-ai/create-exercises-batch";
 import {
-	calculateReps,
-	calculateRest,
-	calculateSets,
-	generateAlternatives,
 	generatePersonalizedWorkoutPlan,
 	updateExercisesWithAlternatives,
 } from "@/lib/services/personalized-workout-generator";
 import { populateWorkoutExercisesWithEducationalData } from "@/lib/services/populate-workout-exercises-educational-data";
-import type { ExerciseInfo } from "@/lib/types";
 import {
 	badRequestResponse,
 	internalErrorResponse,
@@ -23,7 +25,7 @@ import {
 
 type WorkoutsAiContext = {
 	set: Context["set"];
-	body?: any;
+	body?: Record<string, JsonValue>;
 	studentId: string;
 	user?: { role?: string };
 	request: Request;
@@ -53,7 +55,7 @@ export async function generateWorkoutsHandler({
 			await db.unit.deleteMany({ where: { studentId } });
 		}
 
-		const profile: any = {
+		const profile: WorkoutsAiProfile = {
 			age: student.age,
 			gender: student.gender,
 			fitnessLevel: student.profile.fitnessLevel as
@@ -151,11 +153,12 @@ export async function processWorkoutsCommandHandler({
 	studentId,
 }: WorkoutsAiContext) {
 	try {
-		const { parsedPlan, unitId } = body || {};
+		const { parsedPlan: rawPlan, unitId } = body || {};
 
-		if (!parsedPlan) {
+		if (!rawPlan || typeof rawPlan !== "object" || Array.isArray(rawPlan)) {
 			return badRequestResponse(set, "Comando inválido");
 		}
+		const parsedPlan = rawPlan as ParsedWorkoutPlan;
 
 		if (!unitId || typeof unitId !== "string") {
 			return badRequestResponse(set, "Unit ID é obrigatório");
@@ -202,14 +205,15 @@ export async function processWorkoutsCommandHandler({
 			errors: [] as string[],
 		};
 
+		const workouts = parsedPlan.workouts ?? [];
 		switch (parsedPlan.action) {
 			case "create_workouts": {
-				for (let i = 0; i < parsedPlan.workouts.length; i++) {
-					const workoutPlan = parsedPlan.workouts[i];
+				for (let i = 0; i < workouts.length; i++) {
+					const workoutPlan = workouts[i];
 					try {
 						const lastOrder =
 							unit.workouts.length > 0
-								? Math.max(...unit.workouts.map((w: any) => w.order || 0)) +
+								? Math.max(...unit.workouts.map((w: { order?: number }) => w.order || 0)) +
 									i +
 									1
 								: i;
@@ -217,44 +221,48 @@ export async function processWorkoutsCommandHandler({
 						const workout = await db.workout.create({
 							data: {
 								unitId,
-								title: workoutPlan.title,
-								description: workoutPlan.description || "",
-								type: workoutPlan.type,
-								muscleGroup: workoutPlan.muscleGroup,
-								difficulty: workoutPlan.difficulty,
+								title: workoutPlan.title ?? workoutPlan.name ?? "Treino",
+								description: workoutPlan.description ?? "",
+								type: (workoutPlan.type ?? "strength") as "strength" | "cardio" | "flexibility",
+								muscleGroup: workoutPlan.muscleGroup ?? "full-body",
+								difficulty: (workoutPlan.difficulty ?? "intermediario") as "iniciante" | "intermediario" | "avancado",
 								estimatedTime: 0,
 								order: lastOrder,
 							},
 						});
 
-						results.created.push(`Workout: ${workoutPlan.title}`);
-
+						const planExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							workout.id,
-							workoutPlan.exercises,
+							planExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 						);
 
+						results.created.push(`Workout: ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`);
 						results.created.push(
-							`${exercises.length} exercícios em ${workoutPlan.title}`,
+							`${exercises.length} exercícios em ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`,
 						);
-					} catch (error: any) {
+					} catch (error) {
+						const err = error as Error;
 						results.errors.push(
-							`Erro ao criar workout ${workoutPlan.title}: ${error.message}`,
+							`Erro ao criar workout ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}: ${err.message}`,
 						);
 					}
 				}
 				break;
 			}
 			case "delete_workout": {
-				if (parsedPlan.targetWorkoutId) {
+				const deleteTargetId = parsedPlan.targetWorkoutId;
+				if (deleteTargetId) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === deleteTargetId,
 					);
 					if (workout) {
 						await db.workout.delete({
-							where: { id: parsedPlan.targetWorkoutId },
+							where: { id: deleteTargetId },
 						});
 						results.deleted.push(`Workout: ${workout.title}`);
 					}
@@ -262,20 +270,22 @@ export async function processWorkoutsCommandHandler({
 				break;
 			}
 			case "add_exercise": {
-				if (parsedPlan.targetWorkoutId && parsedPlan.workouts.length > 0) {
-					const workoutPlan = parsedPlan.workouts[0];
+				if (parsedPlan.targetWorkoutId && workouts.length > 0) {
+					const workoutPlan = workouts[0];
 					const targetWorkout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 
 					if (targetWorkout) {
 						const currentExerciseCount = targetWorkout.exercises.length;
-
+						const addExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							parsedPlan.targetWorkoutId,
-							workoutPlan.exercises,
+							addExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 							currentExerciseCount,
 						);
 
@@ -287,17 +297,14 @@ export async function processWorkoutsCommandHandler({
 			case "remove_exercise": {
 				if (parsedPlan.targetWorkoutId && parsedPlan.exerciseToRemove) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 					if (workout) {
+						const toRemove = (parsedPlan.exerciseToRemove ?? "").toLowerCase();
 						const exercise = workout.exercises.find(
-							(e: any) =>
-								e.name
-									.toLowerCase()
-									.includes(parsedPlan.exerciseToRemove?.toLowerCase()) ||
-								parsedPlan.exerciseToRemove
-									?.toLowerCase()
-									.includes(e.name.toLowerCase()),
+							(e: { name: string }) =>
+								e.name.toLowerCase().includes(toRemove) ||
+								toRemove.includes(e.name.toLowerCase()),
 						);
 
 						if (exercise) {
@@ -311,134 +318,141 @@ export async function processWorkoutsCommandHandler({
 				break;
 			}
 			case "replace_exercise": {
-				if (parsedPlan.workouts.length > 1) {
+				if (workouts.length > 1) {
 					await db.workoutExercise.deleteMany({
 						where: { workout: { unitId } },
 					});
 					await db.workout.deleteMany({ where: { unitId } });
 
-					for (let i = 0; i < parsedPlan.workouts.length; i++) {
-						const workoutPlan = parsedPlan.workouts[i];
+					for (let i = 0; i < workouts.length; i++) {
+						const workoutPlan = workouts[i];
 						const newWorkout = await db.workout.create({
 							data: {
 								unitId,
-								title: workoutPlan.title,
-								description: workoutPlan.description || "",
-								type: workoutPlan.type,
-								muscleGroup: workoutPlan.muscleGroup,
-								difficulty: workoutPlan.difficulty,
+								title: workoutPlan.title ?? workoutPlan.name ?? "Treino",
+								description: workoutPlan.description ?? "",
+								type: (workoutPlan.type ?? "strength") as "strength" | "cardio" | "flexibility",
+								muscleGroup: workoutPlan.muscleGroup ?? "full-body",
+								difficulty: (workoutPlan.difficulty ?? "intermediario") as "iniciante" | "intermediario" | "avancado",
 								estimatedTime: 0,
 								order: i,
 							},
 						});
 
+						const repExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							newWorkout.id,
-							workoutPlan.exercises,
+							repExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 							0,
 							db,
 						);
 
-						results.created.push(`Workout: ${workoutPlan.title}`);
+						results.created.push(`Workout: ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`);
 						results.created.push(
-							`${exercises.length} exercícios em ${workoutPlan.title}`,
+							`${exercises.length} exercícios em ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`,
 						);
 					}
 				} else if (
 					parsedPlan.targetWorkoutId &&
 					parsedPlan.exerciseToReplace &&
-					parsedPlan.workouts.length > 0
+					workouts.length > 0
 				) {
 					const workout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 					if (workout) {
+						const toReplaceOld = (parsedPlan.exerciseToReplace?.old ?? "").toLowerCase();
 						const oldExercise = workout.exercises.find(
-							(e: any) =>
-								e.name
-									.toLowerCase()
-									.includes(parsedPlan.exerciseToReplace?.old.toLowerCase()) ||
-								parsedPlan.exerciseToReplace?.old
-									.toLowerCase()
-									.includes(e.name.toLowerCase()),
+							(e: { name: string }) =>
+								e.name.toLowerCase().includes(toReplaceOld) ||
+								toReplaceOld.includes(e.name.toLowerCase()),
 						);
 
-						if (oldExercise && parsedPlan.workouts[0].exercises.length > 0) {
-							const newExercisePlan = parsedPlan.workouts[0].exercises[0];
+						const firstWorkoutExercises = workouts[0]?.exercises ?? [];
+						if (oldExercise && firstWorkoutExercises.length > 0) {
+							const newEx = firstWorkoutExercises[0];
+							const newExercisePlan = newEx?.name ? { name: newEx.name, sets: newEx.sets, reps: newEx.reps, rest: newEx.rest, notes: newEx.notes, alternatives: newEx.alternatives } : null;
 							const order = oldExercise.order || 0;
 
 							await db.workoutExercise.delete({
 								where: { id: oldExercise.id },
 							});
 
-							const _exercises = await createExercisesInBatch(
-								parsedPlan.targetWorkoutId,
-								[newExercisePlan],
-								student.profile,
-								"intermediario",
-								order,
-								db,
-							);
+							const replaceTargetId = parsedPlan.targetWorkoutId;
+							if (newExercisePlan && replaceTargetId) {
+								await createExercisesInBatch(
+									replaceTargetId,
+									[newExercisePlan],
+									student.profile,
+									"intermediario",
+									order,
+									db,
+								);
+							}
 
 							results.deleted.push(`Exercício: ${oldExercise.name}`);
-							results.created.push(`Exercício: ${newExercisePlan.name}`);
+							if (newEx?.name) results.created.push(`Exercício: ${newEx.name}`);
 						}
 					}
 				}
 				break;
 			}
 			case "update_workout": {
-				if (parsedPlan.workouts.length > 1) {
+				if (workouts.length > 1) {
 					await db.workoutExercise.deleteMany({
 						where: { workout: { unitId } },
 					});
 					await db.workout.deleteMany({ where: { unitId } });
 
-					for (let i = 0; i < parsedPlan.workouts.length; i++) {
-						const workoutPlan = parsedPlan.workouts[i];
+					for (let i = 0; i < workouts.length; i++) {
+						const workoutPlan = workouts[i];
 						const newWorkout = await db.workout.create({
 							data: {
 								unitId,
-								title: workoutPlan.title,
-								description: workoutPlan.description || "",
-								type: workoutPlan.type,
-								muscleGroup: workoutPlan.muscleGroup,
-								difficulty: workoutPlan.difficulty,
+								title: workoutPlan.title ?? workoutPlan.name ?? "Treino",
+								description: workoutPlan.description ?? "",
+								type: (workoutPlan.type ?? "strength") as "strength" | "cardio" | "flexibility",
+								muscleGroup: workoutPlan.muscleGroup ?? "full-body",
+								difficulty: (workoutPlan.difficulty ?? "intermediario") as "iniciante" | "intermediario" | "avancado",
 								estimatedTime: 0,
 								order: i,
 							},
 						});
 
+						const updExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							newWorkout.id,
-							workoutPlan.exercises,
+							updExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 							0,
 							db,
 						);
 
-						results.created.push(`Workout: ${workoutPlan.title}`);
+						results.created.push(`Workout: ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`);
 						results.created.push(
-							`${exercises.length} exercícios em ${workoutPlan.title}`,
+							`${exercises.length} exercícios em ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`,
 						);
 					}
 				} else if (
 					parsedPlan.targetWorkoutId &&
-					parsedPlan.workouts.length > 0
+					workouts.length > 0
 				) {
-					const workoutPlan = parsedPlan.workouts[0];
+					const workoutPlan = workouts[0];
 					let targetWorkout = unit.workouts.find(
-						(w: any) => w.id === parsedPlan.targetWorkoutId,
+						(w: { id: string }) => w.id === parsedPlan.targetWorkoutId,
 					);
 
-					if (!targetWorkout) {
-						targetWorkout = unit.workouts.find((w: any) => {
-							const targetTitle = parsedPlan.targetWorkoutId
-								.toLowerCase()
-								.trim();
+					if (!targetWorkout && parsedPlan.targetWorkoutId) {
+						const targetId = parsedPlan.targetWorkoutId;
+						targetWorkout = unit.workouts.find((w: { id: string; title: string }) => {
+							const targetTitle = targetId.toLowerCase().trim();
 							const workoutTitle = w.title.toLowerCase().trim();
 							return (
 								workoutTitle === targetTitle ||
@@ -452,11 +466,11 @@ export async function processWorkoutsCommandHandler({
 						await db.workout.update({
 							where: { id: targetWorkout.id },
 							data: {
-								title: workoutPlan.title,
-								description: workoutPlan.description || "",
-								type: workoutPlan.type,
-								muscleGroup: workoutPlan.muscleGroup,
-								difficulty: workoutPlan.difficulty,
+								title: workoutPlan.title ?? workoutPlan.name ?? "Treino",
+								description: workoutPlan.description ?? "",
+								type: (workoutPlan.type ?? "strength") as "strength" | "cardio" | "flexibility",
+								muscleGroup: workoutPlan.muscleGroup ?? "full-body",
+								difficulty: (workoutPlan.difficulty ?? "intermediario") as "iniciante" | "intermediario" | "avancado",
 							},
 						});
 
@@ -464,46 +478,52 @@ export async function processWorkoutsCommandHandler({
 							where: { workoutId: targetWorkout.id },
 						});
 
+						const updPlanExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							targetWorkout.id,
-							workoutPlan.exercises,
+							updPlanExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 						);
 
-						results.updated.push(`Workout: ${workoutPlan.title}`);
+						results.updated.push(`Workout: ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`);
 						results.created.push(
-							`${exercises.length} exercícios em ${workoutPlan.title}`,
+							`${exercises.length} exercícios em ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`,
 						);
 					} else {
 						const lastOrder =
 							unit.workouts.length > 0
-								? Math.max(...unit.workouts.map((w: any) => w.order || 0)) + 1
+								? Math.max(...unit.workouts.map((w: { order?: number }) => w.order || 0)) + 1
 								: 0;
 
 						const newWorkout = await db.workout.create({
 							data: {
 								unitId,
-								title: workoutPlan.title,
-								description: workoutPlan.description || "",
-								type: workoutPlan.type,
-								muscleGroup: workoutPlan.muscleGroup,
-								difficulty: workoutPlan.difficulty,
+								title: workoutPlan.title ?? workoutPlan.name ?? "Treino",
+								description: workoutPlan.description ?? "",
+								type: (workoutPlan.type ?? "strength") as "strength" | "cardio" | "flexibility",
+								muscleGroup: workoutPlan.muscleGroup ?? "full-body",
+								difficulty: (workoutPlan.difficulty ?? "intermediario") as "iniciante" | "intermediario" | "avancado",
 								estimatedTime: 0,
 								order: lastOrder,
 							},
 						});
 
+						const elseExercises = (workoutPlan.exercises ?? [])
+							.filter((e): e is ParsedWorkoutPlanExercise & { name: string } => !!e?.name)
+							.map((e) => ({ name: e.name!, sets: e.sets, reps: e.reps, rest: e.rest, notes: e.notes, alternatives: e.alternatives }));
 						const exercises = await createExercisesInBatch(
 							newWorkout.id,
-							workoutPlan.exercises,
+							elseExercises,
 							student.profile,
-							workoutPlan.difficulty,
+							workoutPlan.difficulty ?? "intermediario",
 						);
 
-						results.created.push(`Workout: ${workoutPlan.title}`);
+						results.created.push(`Workout: ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`);
 						results.created.push(
-							`${exercises.length} exercícios em ${workoutPlan.title}`,
+							`${exercises.length} exercícios em ${workoutPlan.title ?? workoutPlan.name ?? "Treino"}`,
 						);
 					}
 				}
@@ -613,12 +633,12 @@ export async function chatWorkoutsHandler({
 			return { error: "Você não tem permissão para editar esta unit" };
 		}
 
-		const workoutsInfo = unit.workouts.map((w: any) => ({
+		const workoutsInfo = unit.workouts.map((w: { id: string; title: string; type: string; muscleGroup: string; exercises: Array<{ id: string; name: string; sets: number; reps: string }> }) => ({
 			id: w.id,
 			title: w.title,
 			type: w.type,
 			muscleGroup: w.muscleGroup,
-			exercises: w.exercises.map((e: any) => ({
+			exercises: w.exercises.map((e) => ({
 				id: e.id,
 				name: e.name,
 				sets: e.sets,
@@ -635,7 +655,7 @@ export async function chatWorkoutsHandler({
 		if (workoutsInfo.length > 0) {
 			const workoutsInfoText = workoutsInfo
 				.map(
-					(w: any) =>
+					(w) =>
 						`- ${w.title} (${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
 				)
 				.join("\n");
@@ -695,15 +715,15 @@ export async function chatWorkoutsHandler({
 			}
 		}
 
-		let parsed: any = null;
-		const tryParseImportedWorkout = (raw: any) => {
-			const normalizeExercises = (exercises: any[]): any[] =>
-				(exercises || []).map((ex: any) => ({
+		let parsed: { intent?: string; action?: string; workouts?: Array<{ title?: string; exercises?: Array<Record<string, JsonValue>> }>; message?: string } | null = null;
+		const tryParseImportedWorkout = (raw: Record<string, JsonValue> | JsonValue[]) => {
+			const normalizeExercises = (exercises: Array<Record<string, JsonValue>>): Array<Record<string, JsonValue>> =>
+				(exercises || []).map((ex: Record<string, JsonValue>) => ({
 					name: ex.name,
 					sets: ex.sets ?? 3,
 					reps: ex.reps ?? "8-12",
 					rest: ex.rest ?? 60,
-					notes: ex.notes ?? undefined,
+					notes: ex.notes ?? null,
 					focus: ex.focus ?? null,
 					alternatives:
 						Array.isArray(ex.alternatives) && ex.alternatives.length > 0
@@ -711,22 +731,23 @@ export async function chatWorkoutsHandler({
 							: [],
 				}));
 
-			const normalizeWorkout = (w: any) => ({
-				title: w.title || w.name || "Treino",
-				description: w.description || "",
-				type: w.type || "strength",
-				muscleGroup: w.muscleGroup || "full-body",
-				difficulty: w.difficulty || "intermediario",
-				exercises: normalizeExercises(w.exercises || []),
+			const normalizeWorkout = (w: Record<string, JsonValue>) => ({
+				title: (w.title ?? w.name ?? "Treino") as string,
+				description: (w.description ?? "") as string,
+				type: (w.type ?? "strength") as string,
+				muscleGroup: (w.muscleGroup ?? "full-body") as string,
+				difficulty: (w.difficulty ?? "intermediario") as string,
+				exercises: normalizeExercises(Array.isArray(w.exercises) ? (w.exercises as Array<Record<string, JsonValue>>) : []),
 			});
 
-			let workoutsArr: any[] = [];
-			if (raw?.workouts && Array.isArray(raw.workouts)) {
-				workoutsArr = raw.workouts;
+			let workoutsArr: Array<Record<string, JsonValue>> = [];
+			const rawObj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, JsonValue>) : null;
+			if (rawObj?.workouts && Array.isArray(rawObj.workouts)) {
+				workoutsArr = rawObj.workouts as Array<Record<string, JsonValue>>;
 			} else if (Array.isArray(raw)) {
-				workoutsArr = raw;
-			} else if (raw && typeof raw === "object" && raw.exercises) {
-				workoutsArr = [raw];
+				workoutsArr = raw as Array<Record<string, JsonValue>>;
+			} else if (rawObj?.exercises) {
+				workoutsArr = [rawObj];
 			}
 
 			if (workoutsArr.length === 0) return null;
@@ -741,15 +762,16 @@ export async function chatWorkoutsHandler({
 
 		try {
 			if (message.trim().startsWith("{") || message.trim().startsWith("[")) {
-				const rawJson = JSON.parse(message);
+				const rawJson = JSON.parse(message) as Record<string, JsonValue> | JsonValue[];
 				parsed = tryParseImportedWorkout(rawJson);
 			}
 		} catch {}
 
 		if (!parsed) {
-			const messagesArr = [
-				...conversationHistory,
-				{ role: "user" as const, content: message },
+			const history = Array.isArray(conversationHistory) ? conversationHistory : [];
+			const messagesArr: Array<{ role: "user" | "assistant"; content: string }> = [
+				...(history as Array<{ role: "user" | "assistant"; content: string }>),
+				{ role: "user", content: message },
 			];
 
 			const response = await chatCompletion({
@@ -759,7 +781,7 @@ export async function chatWorkoutsHandler({
 				responseFormat: "json_object",
 			});
 
-			parsed = parseWorkoutResponse(response);
+			parsed = parseWorkoutResponse(response) as NonNullable<typeof parsed>;
 		}
 
 		await db.nutritionChatUsage.update({
@@ -768,7 +790,7 @@ export async function chatWorkoutsHandler({
 		});
 
 		return {
-			...parsed,
+			...(parsed as Record<string, unknown>),
 			remainingMessages: MAX_MESSAGES_PER_DAY - chatUsage.messageCount - 1,
 		};
 	} catch (error) {
@@ -785,7 +807,7 @@ export async function chatStreamWorkoutsHandler({
 }: WorkoutsAiContext) {
 	const stream = new ReadableStream({
 		async start(controller) {
-			const sendSSE = (event: string, data: any) => {
+			const sendSSE = (event: string, data: JsonValue) => {
 				const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
 				controller.enqueue(new TextEncoder().encode(message));
 			};
@@ -892,12 +914,12 @@ export async function chatStreamWorkoutsHandler({
 					return;
 				}
 
-				const workoutsInfo = unit.workouts.map((w: any) => ({
+				const workoutsInfo = unit.workouts.map((w: { id: string; title: string; type: string; muscleGroup: string; exercises: Array<{ id: string; name: string; sets: number; reps: string }> }) => ({
 					id: w.id,
 					title: w.title,
 					type: w.type,
 					muscleGroup: w.muscleGroup,
-					exercises: w.exercises.map((e: any) => ({
+					exercises: w.exercises.map((e) => ({
 						id: e.id,
 						name: e.name,
 						sets: e.sets,
@@ -914,36 +936,38 @@ export async function chatStreamWorkoutsHandler({
 				if (workoutsInfo.length > 0) {
 					const workoutsInfoText = workoutsInfo
 						.map(
-							(w: any) =>
+							(w) =>
 								`- ${w.title} (ID: ${w.id}, ${w.type}, ${w.muscleGroup}): ${w.exercises.length} exercícios`,
 						)
 						.join("\n");
 					enhancedSystemPrompt += `\n\nWORKOUTS JÁ EXISTENTES NA UNIT:\n${workoutsInfoText}\n\nUse essas informações para entender o contexto. Se o usuário pedir para editar ou deletar, use os IDs e nomes corretos.`;
 
-					if (reference && previewWorkouts.length > 0) {
+					const previews = Array.isArray(previewWorkouts) ? (previewWorkouts as Array<Record<string, JsonValue>>) : [];
+					const ref = reference && typeof reference === "object" && !Array.isArray(reference) ? (reference as Record<string, JsonValue>) : null;
+					if (ref && previews.length > 0) {
 						const workoutIdentifier =
-							reference.workoutId || reference.workoutTitle;
-						const previewsText = previewWorkouts
+							(ref.workoutId as string) || (ref.workoutTitle as string);
+						const previewsText = previews
 							.map(
-								(w: any, idx: number) =>
-									`${idx + 1}. ${w.title} (${w.type}, ${w.muscleGroup}): ${
-										w.exercises?.length || 0
+								(w, idx) =>
+									`${idx + 1}. ${(w.title as string) ?? ""} (${(w.type as string) ?? ""}, ${(w.muscleGroup as string) ?? ""}): ${
+										Array.isArray(w.exercises) ? w.exercises.length : 0
 									} exercícios`,
 							)
 							.join("\n");
 
 						enhancedSystemPrompt += `\n\nWORKOUTS EM PREVIEW (AINDA NÃO SALVOS):\n${previewsText}\n\n`;
 
-						if (reference.type === "workout") {
-							const previewsStructure = previewWorkouts
-								.map((w: any, idx: number) => {
-									if (idx === reference.workoutIndex) {
+						if (ref.type === "workout") {
+							const previewsStructure = previews
+								.map((w, idx) => {
+									if (idx === (ref.workoutIndex as number)) {
 										return `  {
     "title": "[MODIFICAR conforme pedido - se pedir mudança de foco, altere o título também]",
-    "description": "${w.description || ""}",
-    "type": "${w.type}",
+    "description": "${(w.description as string) || ""}",
+    "type": "${(w.type as string) ?? "strength"}",
     "muscleGroup": "[MODIFICAR se necessário conforme pedido]",
-    "difficulty": "${w.difficulty}",
+    "difficulty": "${(w.difficulty as string) ?? "intermediario"}",
     "exercises": [/* MODIFICAR exercícios conforme pedido do usuário, mantendo estrutura de alternatives */]
   }`;
 									}
@@ -956,32 +980,32 @@ export async function chatStreamWorkoutsHandler({
 										.map((line, i) => (i === 0 ? line : `    ${line}`))
 										.join("\n");
 									return `  {
-    "title": "${w.title}",
-    "description": "${w.description || ""}",
-    "type": "${w.type}",
-    "muscleGroup": "${w.muscleGroup}",
-    "difficulty": "${w.difficulty}",
+    "title": "${(w.title as string) ?? "Treino"}",
+    "description": "${(w.description as string) || ""}",
+    "type": "${(w.type as string) ?? "strength"}",
+    "muscleGroup": "${(w.muscleGroup as string) ?? "full-body"}",
+    "difficulty": "${(w.difficulty as string) ?? "intermediario"}",
     "exercises": ${exercisesJson}
   }`;
 								})
 								.join(",\n");
 
-							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (posição ${
-								reference.workoutIndex + 1
+							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${ref.workoutTitle}" (posição ${
+								((ref.workoutIndex as number) ?? 0) + 1
 							} na lista acima). 
 
 REGRA ABSOLUTA: Você DEVE retornar TODOS os ${
-								previewWorkouts.length
+								previews.length
 							} workouts no array "workouts", modificando APENAS o referenciado.
 
 - Você DEVE usar action="update_workout" 
-- Você DEVE usar targetWorkoutId="${reference.workoutTitle}"
+- Você DEVE usar targetWorkoutId="${ref.workoutTitle}"
 - Você DEVE atualizar o título se o usuário pedir mudança
 - CRÍTICO: Retorne TODOS os ${
-								previewWorkouts.length
+								previews.length
 							} workouts no array "workouts"
-- O workout na posição ${reference.workoutIndex} (índice ${
-								reference.workoutIndex
+- O workout na posição ${ref.workoutIndex} (índice ${
+								ref.workoutIndex
 							}) DEVE ser o MODIFICADO
 - Todos os outros workouts devem ser COPIADOS EXATAMENTE como estão abaixo
 - Estrutura esperada:
@@ -990,28 +1014,28 @@ ${previewsStructure}
 ]
 - NÃO crie novos workouts, apenas ATUALIZE o referenciado`;
 						} else if (
-							reference.type === "exercise" &&
-							reference.exerciseName
+							ref.type === "exercise" &&
+							ref.exerciseName
 						) {
-							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}".
+							enhancedSystemPrompt += `⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${ref.exerciseName}" do treino "${ref.workoutTitle}".
 - Você DEVE usar action="replace_exercise" ou "remove_exercise"
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}"
-- Você DEVE usar exerciseToReplace com old="${reference.exerciseName}" e new="nome do novo exercício"
-- Você DEVE retornar TODOS os ${previewWorkouts.length} workouts no array workouts
+- Você DEVE usar exerciseToReplace com old="${ref.exerciseName}" e new="nome do novo exercício"
+- Você DEVE retornar TODOS os ${previews.length} workouts no array workouts
 - Apenas MODIFIQUE o exercício referenciado`;
 						}
-					} else if (reference) {
+					} else if (ref) {
 						const workoutIdentifier =
-							reference.workoutId || reference.workoutTitle;
-						if (reference.type === "workout") {
-							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${reference.workoutTitle}" (Identificador: ${workoutIdentifier}).
+							(ref.workoutId as string) || (ref.workoutTitle as string);
+						if (ref.type === "workout") {
+							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o treino "${ref.workoutTitle}" (Identificador: ${workoutIdentifier}).
 - Você DEVE usar action="update_workout"
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}"`;
 						} else if (
-							reference.type === "exercise" &&
-							reference.exerciseName
+							ref.type === "exercise" &&
+							ref.exerciseName
 						) {
-							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${reference.exerciseName}" do treino "${reference.workoutTitle}".
+							enhancedSystemPrompt += `\n\n⚠️ ATENÇÃO CRÍTICA: O usuário está REFERENCIANDO o exercício "${ref.exerciseName}" do treino "${ref.workoutTitle}".
 - Você DEVE usar action="replace_exercise" ou "remove_exercise"
 - Você DEVE usar targetWorkoutId="${workoutIdentifier}"`;
 						}
@@ -1068,15 +1092,15 @@ ${previewsStructure}
 					message: "Gerando treino...",
 				});
 
-				let parsed: any = null;
-				const tryParseImportedWorkout = (raw: any) => {
-					const normalizeExercises = (exercises: any[]): any[] =>
-						(exercises || []).map((ex: any) => ({
+				let parsed: { intent?: string; action?: string; workouts?: Array<{ title?: string; exercises?: Array<Record<string, JsonValue>> }>; message?: string } | null = null;
+				const tryParseImportedWorkout = (raw: Record<string, JsonValue> | JsonValue[]) => {
+					const normalizeExercises = (exercises: Array<Record<string, JsonValue>>): Array<Record<string, JsonValue>> =>
+						(exercises || []).map((ex: Record<string, JsonValue>) => ({
 							name: ex.name,
 							sets: ex.sets ?? 3,
 							reps: ex.reps ?? "8-12",
 							rest: ex.rest ?? 60,
-							notes: ex.notes ?? undefined,
+							notes: ex.notes ?? null,
 							focus: ex.focus ?? null,
 							alternatives:
 								Array.isArray(ex.alternatives) && ex.alternatives.length > 0
@@ -1084,22 +1108,23 @@ ${previewsStructure}
 									: [],
 						}));
 
-					const normalizeWorkout = (w: any) => ({
-						title: w.title || w.name || "Treino",
-						description: w.description || "",
-						type: w.type || "strength",
-						muscleGroup: w.muscleGroup || "full-body",
-						difficulty: w.difficulty || "intermediario",
-						exercises: normalizeExercises(w.exercises || []),
+					const normalizeWorkout = (w: Record<string, JsonValue>) => ({
+						title: (w.title ?? w.name ?? "Treino") as string,
+						description: (w.description ?? "") as string,
+						type: (w.type ?? "strength") as string,
+						muscleGroup: (w.muscleGroup ?? "full-body") as string,
+						difficulty: (w.difficulty ?? "intermediario") as string,
+						exercises: normalizeExercises(Array.isArray(w.exercises) ? (w.exercises as Array<Record<string, JsonValue>>) : []),
 					});
 
-					let workoutsArr: any[] = [];
-					if (raw?.workouts && Array.isArray(raw.workouts)) {
-						workoutsArr = raw.workouts;
+					const rawObj = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, JsonValue>) : null;
+					let workoutsArr: Array<Record<string, JsonValue>> = [];
+					if (rawObj?.workouts && Array.isArray(rawObj.workouts)) {
+						workoutsArr = rawObj.workouts as Array<Record<string, JsonValue>>;
 					} else if (Array.isArray(raw)) {
-						workoutsArr = raw;
-					} else if (raw && typeof raw === "object" && raw.exercises) {
-						workoutsArr = [raw];
+						workoutsArr = raw as Array<Record<string, JsonValue>>;
+					} else if (rawObj?.exercises) {
+						workoutsArr = [rawObj];
 					}
 
 					if (workoutsArr.length === 0) return null;
@@ -1117,7 +1142,7 @@ ${previewsStructure}
 						message.trim().startsWith("{") ||
 						message.trim().startsWith("[")
 					) {
-						const rawJson = JSON.parse(message);
+						const rawJson = JSON.parse(message) as Record<string, JsonValue> | JsonValue[];
 						parsed = tryParseImportedWorkout(rawJson);
 						sendSSE("status", {
 							status: "imported",
@@ -1132,9 +1157,10 @@ ${previewsStructure}
 						message: "Consultando IA...",
 					});
 
-					const messagesArr = [
-						...conversationHistory,
-						{ role: "user" as const, content: message },
+					const streamHistory = Array.isArray(conversationHistory) ? conversationHistory : [];
+					const messagesArr: Array<{ role: "user" | "assistant"; content: string }> = [
+						...(streamHistory as Array<{ role: "user" | "assistant"; content: string }>),
+						{ role: "user", content: message },
 					];
 
 					try {
@@ -1149,44 +1175,52 @@ ${previewsStructure}
 							status: "parsing",
 							message: "Processando resposta...",
 						});
-						parsed = parseWorkoutResponse(response);
-					} catch (error: any) {
+						parsed = parseWorkoutResponse(response) as NonNullable<typeof parsed>;
+					} catch (error) {
+						const err = error as Error;
 						sendSSE("error", {
-							error: error.message || "Erro ao processar mensagem",
+							error: err.message || "Erro ao processar mensagem",
 						});
 						controller.close();
 						return;
 					}
 				}
 
+				const streamRef = reference && typeof reference === "object" && !Array.isArray(reference) ? (reference as Record<string, JsonValue>) : null;
+				const streamPreviews = Array.isArray(previewWorkouts) ? previewWorkouts : [];
 				if (
-					reference &&
-					Array.isArray(previewWorkouts) &&
-					previewWorkouts.length > 0 &&
+					streamRef &&
+					streamPreviews.length > 0 &&
 					parsed?.workouts
 				) {
 					const modifiedIndex =
-						typeof reference.workoutIndex === "number"
-							? reference.workoutIndex
+						typeof streamRef.workoutIndex === "number"
+							? streamRef.workoutIndex
 							: 0;
-					const mergedWorkouts = [...previewWorkouts];
+					const mergedWorkouts = [...streamPreviews] as typeof parsed.workouts;
 
-					if (parsed.workouts.length === previewWorkouts.length) {
+					if (parsed.workouts.length === streamPreviews.length) {
 						mergedWorkouts[modifiedIndex] = parsed.workouts[modifiedIndex];
 					} else if (parsed.workouts.length === 1) {
 						mergedWorkouts[modifiedIndex] = parsed.workouts[0];
 					} else {
+						const refTitle = (streamRef.workoutTitle as string)?.toLowerCase().trim();
 						const byTitle = parsed.workouts.find(
-							(w: any) =>
-								w.title?.toLowerCase().trim() ===
-								reference.workoutTitle?.toLowerCase().trim(),
+							(w) =>
+								(w.title ?? (w as Record<string, JsonValue>).name ?? "").toString().toLowerCase().trim() === refTitle,
 						);
 						mergedWorkouts[modifiedIndex] = byTitle || parsed.workouts[0];
 					}
 
-					parsed.workouts = mergedWorkouts;
-					parsed.action = parsed.action || "update_workout";
-					parsed.targetWorkoutId = reference.workoutTitle;
+					(parsed as Record<string, unknown>).workouts = mergedWorkouts;
+					(parsed as Record<string, unknown>).action = parsed.action || "update_workout";
+					(parsed as Record<string, unknown>).targetWorkoutId = streamRef.workoutTitle;
+				}
+
+				if (!parsed) {
+					sendSSE("error", { error: "Não foi possível processar a mensagem" });
+					controller.close();
+					return;
 				}
 
 				if (!isAdmin && chatUsage) {
@@ -1221,10 +1255,11 @@ ${previewsStructure}
 				});
 
 				controller.close();
-			} catch (error: any) {
-				console.error("[workouts/chat-stream] Erro:", error);
+			} catch (error) {
+				const err = error as Error;
+				console.error("[workouts/chat-stream] Erro:", err);
 				sendSSE("error", {
-					error: error.message || "Erro ao processar mensagem",
+					error: err.message || "Erro ao processar mensagem",
 				});
 				controller.close();
 			}
@@ -1240,300 +1275,3 @@ ${previewsStructure}
 	});
 }
 
-async function createExercisesInBatch(
-	workoutId: string,
-	exercises: Array<{
-		name: string;
-		sets: number;
-		reps: string;
-		rest: number;
-		notes?: string;
-		alternatives?: string[];
-	}>,
-	profile: any,
-	defaultDifficulty: string,
-	startOrder = 0,
-	prismaClient: typeof db = db,
-): Promise<any[]> {
-	const createdExercises = [];
-
-	for (let i = 0; i < exercises.length; i++) {
-		const exercisePlan = exercises[i];
-
-		try {
-			const exerciseInfo = findOrCreateExercise(exercisePlan.name);
-
-			const calculatedSets =
-				exercisePlan.sets ||
-				calculateSets(
-					profile.preferredSets,
-					profile.activityLevel,
-					profile.fitnessLevel,
-				);
-			const calculatedReps =
-				exercisePlan.reps ||
-				calculateReps(
-					profile.preferredRepRange,
-					profile.goals ? JSON.parse(profile.goals) : [],
-				);
-			const calculatedRest =
-				exercisePlan.rest !== undefined
-					? exercisePlan.rest
-					: calculateRest(profile.restTime, profile.preferredRepRange);
-
-			const exercise = await prismaClient.workoutExercise.create({
-				data: {
-					workoutId,
-					name: exerciseInfo.name,
-					sets: calculatedSets,
-					reps: calculatedReps,
-					rest: calculatedRest,
-					notes: exercisePlan.notes || null,
-					educationalId: exerciseInfo.id,
-					order: startOrder + i,
-					primaryMuscles: exerciseInfo.primaryMuscles?.length
-						? JSON.stringify(exerciseInfo.primaryMuscles)
-						: null,
-					secondaryMuscles: exerciseInfo.secondaryMuscles?.length
-						? JSON.stringify(exerciseInfo.secondaryMuscles)
-						: null,
-					difficulty: exerciseInfo.difficulty || defaultDifficulty,
-					equipment: exerciseInfo.equipment?.length
-						? JSON.stringify(exerciseInfo.equipment)
-						: null,
-					instructions: exerciseInfo.instructions?.length
-						? JSON.stringify(exerciseInfo.instructions)
-						: null,
-					tips: exerciseInfo.tips?.length
-						? JSON.stringify(exerciseInfo.tips)
-						: null,
-					commonMistakes: exerciseInfo.commonMistakes?.length
-						? JSON.stringify(exerciseInfo.commonMistakes)
-						: null,
-					benefits: exerciseInfo.benefits?.length
-						? JSON.stringify(exerciseInfo.benefits)
-						: null,
-					scientificEvidence: exerciseInfo.scientificEvidence || null,
-				},
-			});
-
-			try {
-				let alternativesToCreate: Array<{
-					name: string;
-					reason: string;
-					educationalId: string | null;
-				}> = [];
-
-				if (
-					exercisePlan.alternatives &&
-					Array.isArray(exercisePlan.alternatives) &&
-					exercisePlan.alternatives.length > 0
-				) {
-					alternativesToCreate = exercisePlan.alternatives
-						.slice(0, 3)
-						.map((altName: string) => ({
-							name: altName.trim(),
-							reason: "Alternativa sugerida pela IA",
-							educationalId: null,
-						}));
-				} else if (profile && exerciseInfo) {
-					const physicalLimitations = profile.physicalLimitations
-						? JSON.parse(profile.physicalLimitations)
-						: [];
-					const motorLimitations = profile.motorLimitations
-						? JSON.parse(profile.motorLimitations)
-						: [];
-					const medicalConditions = profile.medicalConditions
-						? JSON.parse(profile.medicalConditions)
-						: [];
-					const limitations = [
-						...physicalLimitations,
-						...motorLimitations,
-						...medicalConditions,
-					];
-
-					const generatedAlternatives = generateAlternatives(
-						exerciseInfo,
-						profile.gymType,
-						limitations,
-					);
-
-					alternativesToCreate = generatedAlternatives.map((alt) => ({
-						name: alt.name,
-						reason: alt.reason,
-						educationalId: alt.educationalId || null,
-					}));
-				}
-
-				if (alternativesToCreate.length > 0) {
-					await db.alternativeExercise.createMany({
-						data: alternativesToCreate.map((alt, index) => ({
-							workoutExerciseId: exercise.id,
-							name: alt.name,
-							reason: alt.reason,
-							educationalId: alt.educationalId,
-							order: index,
-						})),
-					});
-				}
-			} catch (altError) {
-				console.error(
-					"[createExercisesInBatch] Erro ao adicionar alternativas:",
-					altError,
-				);
-			}
-
-			createdExercises.push(exercise);
-		} catch (exerciseError) {
-			console.error(
-				`[createExercisesInBatch] Erro ao criar exercício ${exercisePlan.name}:`,
-				exerciseError,
-			);
-		}
-	}
-
-	return createdExercises;
-}
-
-function findOrCreateExercise(exerciseName: string): ExerciseInfo {
-	const normalizedName = exerciseName
-		.toLowerCase()
-		.trim()
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "");
-
-	let exerciseInfo = exerciseDatabase.find((ex) => {
-		const exName = ex.name
-			.toLowerCase()
-			.trim()
-			.normalize("NFD")
-			.replace(/[\u0300-\u036f]/g, "");
-
-		return (
-			exName === normalizedName ||
-			exName.includes(normalizedName) ||
-			normalizedName.includes(exName)
-		);
-	});
-
-	if (!exerciseInfo) {
-		const generatedId = exerciseName
-			.toLowerCase()
-			.normalize("NFD")
-			.replace(/[\u0300-\u036f]/g, "")
-			.replace(/[^a-z0-9]+/g, "-")
-			.replace(/^-+|-+$/g, "");
-
-		const inferMuscleGroup = (name: string): string[] => {
-			const normalized = name
-				.toLowerCase()
-				.normalize("NFD")
-				.replace(/[\u0300-\u036f]/g, "");
-
-			const rules: Array<{ muscles: string[]; keywords: string[] }> = [
-				{ muscles: ["peito"], keywords: ["peito", "supino", "crucifixo"] },
-				{
-					muscles: ["costas"],
-					keywords: ["costas", "remada", "puxada", "barra fixa"],
-				},
-				{
-					muscles: ["pernas"],
-					keywords: [
-						"pernas",
-						"perna",
-						"agachamento",
-						"leg press",
-						"extensora",
-						"flexora",
-						"afundo",
-						"quadriceps",
-						"quadríceps",
-					],
-				},
-				{
-					muscles: ["pernas", "gluteos"],
-					keywords: ["posterior", "stiff", "gluteo", "glúteo"],
-				},
-				{
-					muscles: ["ombros"],
-					keywords: ["ombros", "desenvolvimento", "elevacao", "elevação"],
-				},
-				{
-					muscles: ["bracos"],
-					keywords: [
-						"triceps",
-						"tríceps",
-						"pulley",
-						"biceps",
-						"bíceps",
-						"rosca",
-					],
-				},
-				{
-					muscles: ["core"],
-					keywords: ["abdominal", "abdomen", "core", "prancha"],
-				},
-			];
-
-			for (const rule of rules) {
-				if (rule.keywords.some((kw) => normalized.includes(kw))) {
-					return rule.muscles;
-				}
-			}
-			return ["full-body"];
-		};
-
-		const inferEquipment = (name: string): string[] => {
-			const normalized = name
-				.toLowerCase()
-				.normalize("NFD")
-				.replace(/[\u0300-\u036f]/g, "");
-
-			const rules: Array<{ equipment: string[]; keywords: string[] }> = [
-				{
-					equipment: ["Máquina"],
-					keywords: ["maquina", "máquina", "cadeira", "leg press"],
-				},
-				{ equipment: ["Barra", "Anilhas"], keywords: ["barra", "supino"] },
-				{ equipment: ["Halteres"], keywords: ["halter", "rosca"] },
-				{ equipment: ["Cabo", "Polia"], keywords: ["cabo", "pulley", "polia"] },
-			];
-
-			for (const rule of rules) {
-				if (rule.keywords.some((kw) => normalized.includes(kw))) {
-					return rule.equipment;
-				}
-			}
-
-			return [];
-		};
-
-		exerciseInfo = {
-			id: generatedId,
-			name: exerciseName,
-			primaryMuscles: inferMuscleGroup(exerciseName) as any,
-			secondaryMuscles: [] as any[],
-			difficulty: "intermediario",
-			equipment: inferEquipment(exerciseName),
-			instructions: [
-				`Execute ${exerciseName} com forma correta`,
-				"Mantenha o movimento controlado",
-				"Use peso adequado",
-			],
-			tips: [
-				"Mantenha a forma correta",
-				"Controle o movimento",
-				"Use amplitude completa",
-			],
-			commonMistakes: [
-				"Não usar amplitude completa",
-				"Peso excessivo",
-				"Forma incorreta",
-			],
-			benefits: ["Desenvolvimento muscular", "Aumento de força"],
-			scientificEvidence: undefined,
-		};
-	}
-
-	return exerciseInfo as ExerciseInfo;
-}

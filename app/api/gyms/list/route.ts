@@ -1,18 +1,26 @@
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 
 export const GET = createSafeHandler(
 	async ({ gymContext }) => {
 		const userId = gymContext!.user.id;
+
+		// Sincronizar isActive: com Premium/Enterprise todas as academias ficam ativas
+		await GymSubscriptionService.enforceActiveGymLimit(userId);
+
 		const gyms = await db.gym.findMany({
 			where: { userId },
 			include: { subscription: true },
 			orderBy: { createdAt: "asc" },
 		});
 
-		const hasPaidSubscription = gyms.some(
-			(gym) => gym.subscription?.status === "active",
+		const hasQualifiedSubscription = gyms.some(
+			(gym) =>
+				gym.subscription?.status === "active" &&
+				(gym.subscription.plan.toLowerCase().includes("premium") ||
+					gym.subscription.plan.toLowerCase().includes("enterprise")),
 		);
 
 		const gymsData = gyms.map((gym) => {
@@ -40,7 +48,7 @@ export const GET = createSafeHandler(
 
 		return NextResponse.json({
 			gyms: gymsData,
-			canCreateMultipleGyms: hasPaidSubscription,
+			canCreateMultipleGyms: hasQualifiedSubscription,
 			totalGyms: gyms.length,
 			activeGymId: gymContext!.user.activeGymId ?? null,
 		});

@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import type { MuscleGroup } from "@/lib/types";
-import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import { updateStudentProfileUseCase } from "@/lib/use-cases/students/update-profile";
 import { parseJsonArray, parseJsonSafe } from "../utils/json";
 import {
 	badRequestResponse,
@@ -20,8 +20,8 @@ import { validateBody, validateQuery } from "../utils/validation";
 
 type StudentContext = {
 	set: Context["set"];
-	body?: unknown;
-	query?: Record<string, unknown>;
+	body?: Record<string, string | number | boolean | object | null>;
+	query?: Record<string, import("@/lib/types/api-error").JsonValue>;
 	studentId: string;
 	userId: string;
 };
@@ -94,7 +94,7 @@ export async function getAllStudentDataHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			studentSectionsQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -179,7 +179,6 @@ export async function getStudentProfileHandler({
 export async function updateStudentProfileHandler({
 	set,
 	body,
-	studentId: _studentId,
 	userId,
 }: StudentContext) {
 	try {
@@ -192,171 +191,20 @@ export async function updateStudentProfileHandler({
 			);
 		}
 
-		const data = validation.data as z.infer<typeof updateStudentProfileSchema>;
-		const user = await db.user.findUnique({
-			where: { id: userId },
-			include: { student: true },
+		await updateStudentProfileUseCase({
+			userId,
+			data: validation.data as z.infer<typeof updateStudentProfileSchema>,
 		});
-
-		if (!user) {
-			return badRequestResponse(set, "Usuário não encontrado");
-		}
-
-		if (user.role !== "STUDENT") {
-			return badRequestResponse(set, "Usuário não é um aluno");
-		}
-
-		let student = user.student;
-		if (!student) {
-			student = await db.student.create({
-				data: {
-					userId,
-					age: data.age,
-					gender: data.gender,
-					isTrans: data.isTrans ?? false,
-					usesHormones: data.usesHormones ?? false,
-					hormoneType: data.hormoneType || null,
-				},
-			});
-		} else {
-			student = await db.student.update({
-				where: { id: student.id },
-				data: {
-					age: data.age,
-					gender: data.gender,
-					isTrans: data.isTrans ?? undefined,
-					usesHormones: data.usesHormones ?? undefined,
-					hormoneType: data.hormoneType || null,
-				},
-			});
-		}
-
-		const profileData = {
-			studentId: student.id,
-			height: data.height
-				? typeof data.height === "number"
-					? data.height
-					: parseFloat(String(data.height))
-				: null,
-			weight: data.weight
-				? typeof data.weight === "number"
-					? data.weight
-					: parseFloat(String(data.weight))
-				: null,
-			fitnessLevel: (data.fitnessLevel as string | null) ?? null,
-			weeklyWorkoutFrequency: data.weeklyWorkoutFrequency
-				? parseInt(String(data.weeklyWorkoutFrequency), 10)
-				: null,
-			workoutDuration: data.workoutDuration
-				? parseInt(String(data.workoutDuration), 10)
-				: null,
-			goals:
-				data.goals && Array.isArray(data.goals)
-					? JSON.stringify(data.goals)
-					: null,
-			injuries:
-				data.injuries && Array.isArray(data.injuries)
-					? JSON.stringify(data.injuries)
-					: null,
-			availableEquipment:
-				data.availableEquipment && Array.isArray(data.availableEquipment)
-					? JSON.stringify(data.availableEquipment)
-					: null,
-			gymType: data.gymType || null,
-			preferredWorkoutTime: data.preferredWorkoutTime || null,
-			preferredSets: data.preferredSets
-				? parseInt(String(data.preferredSets), 10)
-				: null,
-			preferredRepRange: data.preferredRepRange || null,
-			restTime: data.restTime || null,
-			dietType: data.dietType || null,
-			allergies:
-				data.allergies && Array.isArray(data.allergies)
-					? JSON.stringify(data.allergies)
-					: null,
-			targetCalories: data.targetCalories
-				? parseInt(String(data.targetCalories), 10)
-				: null,
-			targetProtein: data.targetProtein
-				? typeof data.targetProtein === "number"
-					? data.targetProtein
-					: parseFloat(String(data.targetProtein))
-				: null,
-			targetCarbs: data.targetCarbs
-				? typeof data.targetCarbs === "number"
-					? data.targetCarbs
-					: parseFloat(String(data.targetCarbs))
-				: null,
-			targetFats: data.targetFats
-				? typeof data.targetFats === "number"
-					? data.targetFats
-					: parseFloat(String(data.targetFats))
-				: null,
-			mealsPerDay: data.mealsPerDay
-				? parseInt(String(data.mealsPerDay), 10)
-				: null,
-			bmr: data.bmr
-				? typeof data.bmr === "number"
-					? data.bmr
-					: parseFloat(String(data.bmr))
-				: null,
-			tdee: data.tdee
-				? typeof data.tdee === "number"
-					? data.tdee
-					: parseFloat(String(data.tdee))
-				: null,
-			activityLevel: data.activityLevel
-				? parseInt(String(data.activityLevel), 10)
-				: null,
-			hormoneTreatmentDuration: data.hormoneTreatmentDuration
-				? parseInt(String(data.hormoneTreatmentDuration), 10)
-				: null,
-			physicalLimitations:
-				data.physicalLimitations && Array.isArray(data.physicalLimitations)
-					? JSON.stringify(data.physicalLimitations)
-					: null,
-			motorLimitations:
-				data.motorLimitations && Array.isArray(data.motorLimitations)
-					? JSON.stringify(data.motorLimitations)
-					: null,
-			medicalConditions:
-				data.medicalConditions && Array.isArray(data.medicalConditions)
-					? JSON.stringify(data.medicalConditions)
-					: null,
-			limitationDetails:
-				data.limitationDetails && typeof data.limitationDetails === "object"
-					? JSON.stringify(data.limitationDetails)
-					: null,
-			dailyAvailableHours: data.dailyAvailableHours
-				? typeof data.dailyAvailableHours === "number"
-					? data.dailyAvailableHours
-					: parseFloat(String(data.dailyAvailableHours))
-				: null,
-		};
-
-		await db.studentProfile.upsert({
-			where: { studentId: student.id },
-			create: profileData,
-			update: profileData,
-		});
-
-		const existingProgress = await db.studentProgress.findUnique({
-			where: { studentId: student.id },
-		});
-
-		if (!existingProgress) {
-			await db.studentProgress.create({
-				data: {
-					studentId: student.id,
-				},
-			});
-		}
-
-		await initializeStudentTrial(student.id);
 
 		return successResponse(set, { message: "Perfil salvo com sucesso" });
 	} catch (error) {
 		console.error("[updateStudentProfileHandler] Erro:", error);
+		if (error instanceof Error) {
+			if (error.message === "Usuário não encontrado")
+				return badRequestResponse(set, "Usuário não encontrado");
+			if (error.message === "Usuário não é um aluno")
+				return badRequestResponse(set, "Usuário não é um aluno");
+		}
 		return internalErrorResponse(set, "Erro ao salvar perfil", error);
 	}
 }
@@ -368,7 +216,7 @@ export async function getWeightHistoryHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			weightHistoryQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -464,7 +312,7 @@ export async function getWeightHistoryFilteredHandler({
 }: StudentContext) {
 	try {
 		const queryValidation = validateQuery(
-			(query || {}) as Record<string, unknown>,
+			(query || {}) as Record<string, import("@/lib/types/api-error").JsonValue>,
 			weightHistoryQuerySchema,
 		);
 		if (!queryValidation.success) {
@@ -864,7 +712,7 @@ async function getAllStudentDataForUser({
 		const result: {
 			weightHistory?: Array<{ date: Date; weight: number; notes?: string }>;
 			weightGain?: number;
-			[key: string]: unknown;
+			[key: string]: import("@/lib/types/api-error").JsonValue;
 		} = {};
 
 		if (!requestedSections || requestedSections.includes("user")) {
@@ -1045,7 +893,7 @@ async function getAllStudentDataForUser({
 						result.weightGain = currentWeight - weightOneMonthAgo.weight;
 					}
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				const err = error as { code?: string; message?: string };
 				if (err.code === "P2021" || err.message?.includes("does not exist")) {
 					console.warn("Tabela weight_history não existe:", err.message);
@@ -1422,7 +1270,7 @@ async function getAllStudentDataForUser({
 						targetWater: 2000,
 					};
 				}
-			} catch (error: unknown) {
+			} catch (error) {
 				const err = error as { code?: string; message?: string };
 				if (err.code === "P2021" || err.message?.includes("does not exist")) {
 					result.dailyNutrition = {

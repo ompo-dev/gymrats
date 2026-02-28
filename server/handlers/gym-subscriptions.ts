@@ -12,7 +12,7 @@ import { validateBody } from "../utils/validation";
 
 type GymSubscriptionContext = {
 	set: Context["set"];
-	body?: unknown;
+	body?: Record<string, string | number | boolean | object | null>;
 	userId: string;
 };
 
@@ -129,16 +129,16 @@ export async function createGymSubscriptionHandler({
 			return notFoundResponse(set, "Academia não encontrada");
 		}
 
-		const validation = validateBody(body, createGymSubscriptionSchema);
+		const validation = validateBody(body ?? {}, createGymSubscriptionSchema);
 		if (!validation.success) {
 			return badRequestResponse(
 				set,
 				`Erros de validação: ${validation.errors.join("; ")}`,
-				{ errors: validation.errors },
+				{ errors: validation.errors } as Record<string, string | number | boolean | object | null>,
 			);
 		}
 
-		const { plan, billingPeriod = "monthly" } = validation.data as any;
+		const { plan, billingPeriod = "monthly" } = validation.data;
 		const activeStudents = await db.gymMembership.count({
 			where: { gymId, status: "active" },
 		});
@@ -162,6 +162,7 @@ export async function createGymSubscriptionHandler({
 			periodEnd.setMonth(periodEnd.getMonth() + 1);
 		}
 
+		// Ao assinar, não limpar trialStart/trialEnd: trial só uma vez por academia
 		if (existingSubscription) {
 			await db.gymSubscription.update({
 				where: { id: existingSubscription.id },
@@ -173,8 +174,6 @@ export async function createGymSubscriptionHandler({
 					pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
 					currentPeriodStart: now,
 					currentPeriodEnd: periodEnd,
-					trialStart: null,
-					trialEnd: null,
 					canceledAt: null,
 					cancelAtPeriodEnd: false,
 				},
@@ -227,36 +226,14 @@ export async function startGymTrialHandler({
 
 		const now = new Date();
 		if (existingSubscription) {
-			const trialEndDate = existingSubscription.trialEnd
-				? new Date(existingSubscription.trialEnd)
-				: null;
-			const isTrialActive = trialEndDate ? trialEndDate > now : false;
-
-			if (existingSubscription.status === "canceled" && !isTrialActive) {
-				await db.gymSubscription.delete({
-					where: { id: existingSubscription.id },
-				});
-			} else if (existingSubscription.status === "canceled" && isTrialActive) {
-				const trialEnd = new Date(now);
-				trialEnd.setDate(trialEnd.getDate() + 14);
-
-				const updatedSubscription = await db.gymSubscription.update({
-					where: { id: existingSubscription.id },
-					data: {
-						status: "trialing",
-						canceledAt: null,
-						cancelAtPeriodEnd: false,
-						trialStart: now,
-						trialEnd,
-						currentPeriodStart: now,
-						currentPeriodEnd: trialEnd,
-					},
-				});
-
-				return successResponse(set, { subscription: updatedSubscription });
-			} else {
-				return badRequestResponse(set, "Assinatura já existe");
-			}
+			// Não apagar nem reativar como trial quando já existe assinatura (ativa, trial ou cancelada).
+			// Evita que "cancelar" vire trial e preserva restauração automática (canceledBecausePrincipalCanceled).
+			return badRequestResponse(
+				set,
+				existingSubscription.status === "canceled"
+					? "Esta academia já possui uma assinatura cancelada. Renove o plano em vez de iniciar um novo trial."
+					: "Assinatura já existe",
+			);
 		}
 
 		const _activeStudents = await db.gymMembership.count({

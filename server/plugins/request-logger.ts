@@ -17,8 +17,8 @@ export const requestLoggerPlugin = new Elysia({ name: "request-logger" })
 				_requestStart?: number;
 				userId?: string;
 				studentId?: string;
-				body?: unknown;
-				response?: unknown;
+				body?: Record<string, string | number | boolean | object | null>;
+				response?: Record<string, string | number | boolean | object | null>;
 			};
 			logApiRequest({
 				request: ctx.request,
@@ -29,7 +29,7 @@ export const requestLoggerPlugin = new Elysia({ name: "request-logger" })
 				body: c.body,
 				response:
 					c.response ??
-					(ctx as { responseValue?: unknown }).responseValue ??
+					(ctx as { responseValue?: Record<string, string | number | boolean | object | null> }).responseValue ??
 					undefined,
 				_requestStart: c._requestStart,
 				userId: c.userId,

@@ -3,7 +3,7 @@
 import { RefreshCw, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { usePWAUpdate } from "@/lib/hooks/use-pwa-update";
+import { usePWAUpdate } from "@/hooks/use-pwa-update";
 import { cn } from "@/lib/utils";
 
 function PWAUpdateBannerSimple() {

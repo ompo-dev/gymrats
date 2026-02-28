@@ -9,10 +9,10 @@ import type { ExerciseLog, SetLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Lê propriedade 'notes' sem lançar (getters ou proxies podem acessar null). */
-function getNotesSafe(log: unknown): string {
+function getNotesSafe(log: { notes?: string } | null): string {
 	try {
 		if (log == null || typeof log !== "object") return "";
-		const n = (log as Record<string, unknown>).notes;
+		const n = log.notes;
 		return typeof n === "string" ? n : "";
 	} catch {
 		return "";
@@ -49,7 +49,7 @@ function normalizeExistingLog(
 	}
 }
 
-interface WeightTrackerProps {
+export interface WeightTrackerProps {
 	exerciseName: string;
 	exerciseId: string;
 	defaultSets: number;

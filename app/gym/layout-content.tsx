@@ -31,39 +31,38 @@ export function GymLayoutContent({
 }: GymLayoutContentProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-
-	// ✅ SEGURO: Verificar se é admin validando no servidor
-	// ⚠️ IMPORTANTE: Esta validação no cliente é apenas para UX
-	// A proteção real deve estar no middleware/proxy.ts
-	const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
-	const userIsAdmin = isAdmin || role === "ADMIN";
-
-	// Bloquear acesso se não for admin (apenas para UX - validação real no servidor)
-	useEffect(() => {
-		if (sessionLoading) return; // Aguardar validação do servidor
-
-		if (!userIsAdmin) {
-			console.warn(
-				"[GymLayoutContent] Acesso negado a /gym. Apenas admin pode acessar na versão beta.",
-			);
-			router.push("/student");
-		}
-	}, [userIsAdmin, sessionLoading, router]);
-
 	const isOnboarding =
 		typeof pathname === "string" && pathname.includes("/onboarding");
 
-	// Não renderizar nada se não for admin
-	if (!userIsAdmin) {
+	// ✅ SEGURO: Verificar role no servidor
+	// ⚠️ IMPORTANTE: Esta validação no cliente é apenas para UX
+	// A proteção real deve estar no middleware/proxy.ts
+	const { isAdmin, role, isLoading: sessionLoading } = useUserSession();
+	const canAccessGym = role === "GYM" || role === "ADMIN" || isAdmin;
+
+	// Redirecionar conforme role (PENDING pode acessar onboarding para explorar)
+	useEffect(() => {
+		if (sessionLoading) return;
+
+		if (role === "PENDING" && !isOnboarding) {
+			router.push("/auth/register/user-type");
+			return;
+		}
+		if (!canAccessGym && role && !isOnboarding) {
+			router.push("/student");
+		}
+	}, [canAccessGym, role, sessionLoading, router, isOnboarding]);
+
+	// Não renderizar nada se não pode acessar
+	if (!sessionLoading && !canAccessGym && role && role !== "PENDING") {
 		return (
-			<div className="flex min-h-screen items-center justify-center">
+			<div className="flex min-h-screen items-center justify-center bg-duo-bg">
 				<div className="text-center">
-					<h1 className="mb-2 text-2xl font-bold text-duo-text">
+					<h1 className="mb-2 text-2xl font-bold text-duo-fg">
 						Acesso Negado
 					</h1>
-					<p className="text-duo-gray-dark">
-						Esta área está disponível apenas para administradores durante a
-						versão beta.
+					<p className="text-duo-fg-muted">
+						Esta área está disponível apenas para academias.
 					</p>
 				</div>
 			</div>

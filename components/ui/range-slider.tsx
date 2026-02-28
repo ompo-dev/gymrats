@@ -193,7 +193,7 @@ export function RangeSlider({
 			{label && (
 				<label
 					id={labelId}
-					className="block text-sm font-bold text-gray-900"
+					className="block text-sm font-bold text-duo-fg"
 					htmlFor={sliderId.current}
 				>
 					{label}
@@ -217,7 +217,7 @@ export function RangeSlider({
 					tabIndex={disabled ? -1 : 0}
 					onKeyDown={handleKeyDown}
 					className={cn(
-						"relative w-full rounded-full bg-gray-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
+						"relative w-full rounded-full bg-duo-bg-elevated cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-duo-green focus-visible:ring-offset-2",
 						sizeClasses[size].track,
 						disabled && "opacity-50 cursor-not-allowed",
 					)}
@@ -235,7 +235,7 @@ export function RangeSlider({
 					{/* Thumb */}
 					<motion.div
 						className={cn(
-							"absolute top-1/2 -translate-y-1/2 rounded-full bg-white border-4 border-duo-green shadow-lg cursor-grab active:cursor-grabbing",
+							"absolute top-1/2 -translate-y-1/2 rounded-full bg-duo-bg-card border-4 border-duo-green shadow-lg cursor-grab active:cursor-grabbing",
 							sizeClasses[size].thumb,
 							disabled && "cursor-not-allowed",
 						)}
@@ -266,7 +266,7 @@ export function RangeSlider({
 								return (
 									<div
 										key={i}
-										className="h-full w-0.5 bg-white/30 rounded-full"
+										className="h-full w-0.5 bg-duo-border/50 rounded-full"
 										style={{
 											marginLeft: `${
 												tickPercentage === 0
@@ -302,7 +302,7 @@ export function RangeSlider({
 						{localValue}
 					</span>
 					{unit && (
-						<span className="ml-2 text-lg font-semibold text-gray-600">
+						<span className="ml-2 text-lg font-semibold text-duo-fg-muted">
 							{unit}
 						</span>
 					)}
@@ -310,7 +310,7 @@ export function RangeSlider({
 			)}
 
 			{/* Min/Max Labels */}
-			<div className="flex justify-between text-xs text-gray-500 font-medium">
+			<div className="flex justify-between text-xs text-duo-fg-muted font-medium">
 				<span>{min}</span>
 				<span>{max}</span>
 			</div>

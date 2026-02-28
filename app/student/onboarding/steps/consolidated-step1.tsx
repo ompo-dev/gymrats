@@ -4,8 +4,7 @@ import { Thermometer } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { DuoButton, DuoInput, DuoSelect } from "@/components/duo";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { CustomCheckbox } from "@/components/ui/custom-checkbox";
 import { RangeSlider } from "@/components/ui/range-slider";
 import {
@@ -100,7 +99,9 @@ export function ConsolidatedStep1({
   }, [forceValidation]);
 
   useEffect(() => {
-    if (Object.keys(touched).length > 0) {
+    if (Object.keys(touched).length === 0) return;
+
+    const timeoutId = setTimeout(() => {
       const validation = validateConsolidatedStep1({
         age: typeof formData.age === "number" ? formData.age : undefined,
         gender: formData.gender || undefined,
@@ -132,7 +133,9 @@ export function ConsolidatedStep1({
       } else {
         setErrors({});
       }
-    }
+    }, 400);
+
+    return () => clearTimeout(timeoutId);
   }, [formData, touched]);
 
   const validateField = (
@@ -183,18 +186,33 @@ export function ConsolidatedStep1({
     activityLevelDescriptions[4];
 
   return (
-    <StepCard.Simple
-      title="Quem é você"
-      description="Vamos conhecer você para personalizar sua experiência"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-8">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Quem é você
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Vamos conhecer você para personalizar sua experiência
+          </p>
+        </div>
+        <div className="space-y-8">
         {/* Seção 1: Informações Pessoais */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
             Informações Pessoais
           </h3>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -212,7 +230,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, age: Math.min(120, Math.max(13, n)) });
+                  setFormData({ ...formData, age: n });
                 }
               }}
               onBlur={() => {
@@ -236,7 +254,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, height: Math.min(250, Math.max(100, n)) });
+                  setFormData({ ...formData, height: n });
                 }
               }}
               onBlur={() => {
@@ -260,7 +278,7 @@ export function ConsolidatedStep1({
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, weight: Math.min(300, Math.max(30, n)) });
+                  setFormData({ ...formData, weight: n });
                 }
               }}
               onBlur={() => {
@@ -273,7 +291,7 @@ export function ConsolidatedStep1({
           </div>
 
           <div className="space-y-2">
-            <span className="block text-sm font-bold text-gray-900">
+            <span className="block text-sm font-bold text-duo-fg">
               Gênero
             </span>
             <div className="grid grid-cols-2 gap-3">
@@ -363,7 +381,7 @@ export function ConsolidatedStep1({
                         if (!Number.isNaN(n)) {
                           setFormData({
                             ...formData,
-                            hormoneTreatmentDuration: Math.min(120, Math.max(0, n)),
+                            hormoneTreatmentDuration: n,
                           });
                         }
                       }}
@@ -410,7 +428,7 @@ export function ConsolidatedStep1({
           transition={{ delay: 0.1 }}
           className="space-y-4"
         >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
             Objetivo Principal
           </h3>
           <DuoSelect.Simple
@@ -438,7 +456,7 @@ export function ConsolidatedStep1({
             placeholder="Selecione"
           />
           {touched.goals && errors.goals && (
-            <p className="text-sm font-bold text-red-500">{errors.goals}</p>
+            <p className="text-sm font-bold text-duo-danger">{errors.goals}</p>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -490,7 +508,7 @@ export function ConsolidatedStep1({
           transition={{ delay: 0.2 }}
           className="space-y-4"
         >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
             Equipamentos
           </h3>
           <DuoSelect.Simple
@@ -512,7 +530,7 @@ export function ConsolidatedStep1({
             placeholder="Selecione"
           />
           {touched.gymType && errors.gymType && (
-            <p className="text-sm font-bold text-red-500">{errors.gymType}</p>
+            <p className="text-sm font-bold text-duo-danger">{errors.gymType}</p>
           )}
         </motion.div>
 
@@ -525,7 +543,7 @@ export function ConsolidatedStep1({
         >
           <div className="flex items-center gap-2">
             <Thermometer className="h-5 w-5 text-duo-green" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-600">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
               Nível de Atividade Física (1-10)
             </h3>
           </div>
@@ -554,24 +572,25 @@ export function ConsolidatedStep1({
             className="rounded-xl border-2 border-duo-green bg-duo-green/5 p-4"
           >
             <div className="flex items-center justify-between">
-              <span className="font-bold text-gray-900">
+              <span className="font-bold text-duo-fg">
                 {activityInfo.label}
               </span>
               <span className="text-xl font-black text-duo-green">
                 {currentActivityLevel}/10
               </span>
             </div>
-            <p className="mt-1 text-sm text-gray-700">
+            <p className="mt-1 text-sm text-duo-fg-muted">
               {activityInfo.description}
             </p>
           </motion.div>
           {touched.activityLevel && errors.activityLevel && (
-            <p className="text-sm font-bold text-red-500">
+            <p className="text-sm font-bold text-duo-danger">
               {errors.activityLevel}
             </p>
           )}
         </motion.div>
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

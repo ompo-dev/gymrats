@@ -8,7 +8,8 @@
  */
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
+import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
 import { logCommand } from "@/lib/offline/command-logger";
 import { migrateCommand } from "@/lib/offline/command-migrations";
@@ -28,6 +29,7 @@ import {
 import type {
 	DailyNutrition,
 	DifficultyLevel,
+	Meal,
 	MuscleGroup,
 	PersonalRecord,
 	Unit,
@@ -44,6 +46,22 @@ import type {
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import {
+	calculateWeightGain,
+	deduplicateMeals,
+	loadAllDataIncremental,
+	loadSection,
+	loadSectionsIncremental,
+} from "./student/load-helpers";
+import {
+	createAuthSlice,
+	createFinancialSlice,
+	createNutritionSlice,
+	createProfileSlice,
+	createProgressSlice,
+	createSocialSlice,
+	createSyncSlice,
+} from "./student/slices";
 
 // ============================================
 // INTERFACE DO STORE
@@ -92,7 +110,7 @@ export interface StudentUnifiedState {
 	addPersonalRecord: (record: PersonalRecord) => void;
 	updateNutrition: (nutrition: Partial<DailyNutrition>) => Promise<void>;
 	updateSubscription: (
-		subscription: Partial<StudentData["subscription"]>,
+		subscription: Partial<StudentData["subscription"]> | null,
 	) => Promise<void>;
 	addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
 
@@ -112,10 +130,13 @@ export interface StudentUnifiedState {
 		estimatedTime?: number;
 		type?: string;
 	}) => Promise<string>; // Retorna o ID do workout criado (temporário ou real)
-	updateWorkout: (workoutId: string, data: Partial<any>) => Promise<void>;
+	updateWorkout: (
+		workoutId: string,
+		data: Partial<Pick<WorkoutSession, "title" | "description" | "muscleGroup" | "difficulty">>,
+	) => Promise<void>;
 	deleteWorkout: (workoutId: string) => Promise<void>;
-	addWorkoutExercise: (workoutId: string, data: any) => Promise<void>;
-	updateWorkoutExercise: (exerciseId: string, data: any) => Promise<void>;
+	addWorkoutExercise: (workoutId: string, data: Partial<WorkoutExercise>) => Promise<void>;
+	updateWorkoutExercise: (exerciseId: string, data: Partial<import("@/lib/types").WorkoutExercise>) => Promise<void>;
 	deleteWorkoutExercise: (exerciseId: string) => Promise<void>;
 
 	// === ACTIONS - WORKOUT PROGRESS ===
@@ -136,619 +157,35 @@ export interface StudentUnifiedState {
 }
 
 // ============================================
-// HELPER FUNCTIONS
-// ============================================
-
-/**
- * Formata a data de criação do usuário para memberSince
- */
-function formatMemberSince(date: Date | string | null | undefined): string {
-	if (!date) return "Jan 2025";
-	const d = typeof date === "string" ? new Date(date) : date;
-
-	// Mapeamento de meses em português
-	const months = [
-		"Jan",
-		"Fev",
-		"Mar",
-		"Abr",
-		"Mai",
-		"Jun",
-		"Jul",
-		"Ago",
-		"Set",
-		"Out",
-		"Nov",
-		"Dez",
-	];
-
-	const month = months[d.getMonth()];
-	const year = d.getFullYear();
-
-	return `${month} ${year}`;
-}
-
-/**
- * Carrega uma seção específica dos dados
- */
-/**
- * Mapeamento de seções para rotas específicas
- * Usa rotas dedicadas ao invés de /api/students/all?sections=...
- * Se não tiver rota específica, usa null e será carregado via /api/students/all?sections=...
- */
-const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
-	// TODAS as rotas específicas - NÃO usar mais /api/students/all
-	user: "/api/auth/session", // User vem da sessão
-	student: "/api/students/student", // Informações básicas do student
-	progress: "/api/students/progress", // Progresso (XP, streaks, achievements)
-	profile: "/api/students/profile",
-	weightHistory: "/api/students/weight",
-	units: "/api/workouts/units",
-	weeklyPlan: "/api/workouts/weekly-plan",
-	workoutHistory: "/api/workouts/history",
-	personalRecords: "/api/students/personal-records",
-	subscription: "/api/subscriptions/current",
-	memberships: "/api/memberships",
-	payments: "/api/payments",
-	paymentMethods: "/api/payment-methods",
-	dayPasses: "/api/students/day-passes",
-	friends: "/api/students/friends",
-	gymLocations: "/api/gyms/locations",
-	dailyNutrition: "/api/nutrition/daily",
-
-	// NOTA: Todas as seções agora têm rotas específicas!
-	// O /api/students/all ainda existe para compatibilidade, mas não é mais usado
-};
-
-/**
- * Rastreamento de seções sendo carregadas no momento
- * Evita carregar a mesma seção múltiplas vezes simultaneamente
- */
-const loadingSections = new Set<StudentDataSection>();
-const loadingPromises = new Map<
-	StudentDataSection,
-	Promise<Partial<StudentData>>
->();
-
-/**
- * Carrega uma seção específica dos dados
- * TODAS as seções agora têm rotas específicas - não usa mais /api/students/all
- *
- * IMPORTANTE: Evita carregamentos duplicados - se a seção já está sendo carregada,
- * retorna a promise existente em vez de fazer nova requisição
- *
- * @param forceRefresh - Se true, ignora deduplicação e força nova requisição (ex: após week-reset)
- */
-async function loadSection(
-	section: StudentDataSection,
-	forceRefresh = false,
-): Promise<Partial<StudentData>> {
-	// Se forceRefresh, limpar cache da seção para garantir dados frescos (ex: após week-reset)
-	if (forceRefresh) {
-		loadingSections.delete(section);
-		loadingPromises.delete(section);
-	}
-
-	// Se já está sendo carregada, retornar a promise existente
-	if (loadingSections.has(section) && loadingPromises.has(section)) {
-		const existingPromise = loadingPromises.get(section);
-		if (existingPromise) {
-			console.log(
-				`[loadSection] Seção ${section} já está sendo carregada, reutilizando promise`,
-			);
-			return existingPromise;
-		}
-	}
-
-	// Marcar como carregando e criar promise
-	loadingSections.add(section);
-
-	const loadPromise = (async () => {
-		const route = SECTION_ROUTES[section]; // Declarar route dentro da função assíncrona para estar disponível no catch
-
-		// Wrapper para capturar erros silenciosamente antes que sejam logados pelo navegador
-		try {
-			if (!route) {
-				console.warn(`⚠️ Seção ${section} não tem rota específica mapeada`);
-				return {};
-			}
-
-			// Usar rota específica (mais rápida e eficiente)
-			// Capturar erro diretamente na Promise com .catch() para evitar "unhandled promise rejection"
-			// Isso previne que o erro apareça no console antes de ser tratado
-			const response = await apiClient
-				.get<any>(route, {
-					timeout: 30000, // 30 segundos para rotas específicas
-				})
-				.catch((error: any) => {
-					// Tratar erro imediatamente aqui para evitar log no console
-					const status = error?.response?.status;
-					const _errorMessage =
-						error?.response?.data?.error ||
-						error?.message ||
-						"Erro desconhecido";
-					const _errorCode = error?.response?.data?.code;
-
-					// Se o erro já foi marcado como tratado no interceptor, retornar vazio silenciosamente
-					if (error._isHandled || error._isSilent) {
-						return null; // Retornar null para indicar que houve erro mas foi tratado
-					}
-
-					// Tratamento específico para timeout
-					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
-					) {
-						if (process.env.NODE_ENV === "development") {
-							console.debug(
-								`⏱️ Timeout ao carregar ${section} (rota: ${route})`,
-							);
-						}
-						return null;
-					}
-
-					// Tratamento para erros HTTP (500, 404, etc)
-					if (status === 500 || status === 404) {
-						// Erros esperados - não logar, apenas retornar null
-						return null;
-					}
-
-					// Para outros erros HTTP, também retornar null silenciosamente
-					if (status && status >= 400) {
-						return null;
-					}
-
-					// Para erros não-HTTP (rede, etc), re-lançar para ser logado
-					throw error;
-				});
-
-			// Se response é null, significa que houve erro mas foi tratado silenciosamente
-			if (!response) {
-				return {};
-			}
-
-			// Transformar resposta da rota específica para formato do store
-			return transformSectionResponse(section, response.data);
-		} catch (error: any) {
-			// Este catch só captura erros não-HTTP (erros de rede, etc)
-			// Erros HTTP já foram tratados no .catch() acima
-			console.error(
-				`❌ Erro não-HTTP ao carregar ${section}${route ? ` (rota: ${route})` : ""}:`,
-				error,
-			);
-			return {};
-		} finally {
-			// Remover do tracking quando terminar (sucesso ou erro)
-			loadingSections.delete(section);
-			loadingPromises.delete(section);
-		}
-	})();
-
-	// Armazenar promise para reutilização
-	loadingPromises.set(section, loadPromise);
-
-	return loadPromise;
-}
-
-/**
- * Transforma resposta da rota específica para formato do store
- */
-function transformSectionResponse(
-	section: StudentDataSection,
-	data: any,
-): Partial<StudentData> {
-	switch (section) {
-		case "user": {
-			// User vem de /api/auth/session como { user: {...}, session: {...} }
-			// Extrair apenas os dados do user e transformar
-			const userData = data.user || data;
-
-			// Gerar username do email se não existir
-			const username =
-				userData.username ||
-				(userData.email
-					? `@${userData.email.split("@")[0].toLowerCase()}`
-					: "@usuario");
-
-			return {
-				user: {
-					id: userData.id || "",
-					name: userData.name || "",
-					email: userData.email || "",
-					username,
-					memberSince:
-						userData.memberSince || formatMemberSince(userData.createdAt),
-					avatar: userData.avatar || userData.image,
-					role: userData.role || "STUDENT",
-					isAdmin: userData.role === "ADMIN" || userData.isAdmin || false,
-				},
-			};
-		}
-
-		case "student":
-			// Student vem direto da rota /api/students/student
-			return { student: data };
-
-		case "profile":
-			// Profile vem de /api/students/profile como { success: true, hasProfile: true, profile: {...}, student: {...} }
-			// ou pode vir como objeto direto do /api/students/all
-			if (data.profile) {
-				return { profile: data.profile };
-			}
-			// Se vier direto (sem wrapper)
-			return { profile: data };
-
-		case "progress":
-			// Progress vem direto da rota /api/students/progress
-			return { progress: data };
-
-		case "weightHistory":
-			// Weight history vem de /api/students/weight como { history: [...], total: number }
-			// ou pode vir como array direto
-			if (Array.isArray(data)) {
-				return { weightHistory: data };
-			}
-			if (data.history && Array.isArray(data.history)) {
-				return { weightHistory: data.history };
-			}
-			return { weightHistory: data.weightHistory || [] };
-
-		case "units":
-			// Units vem como array
-			return { units: Array.isArray(data) ? data : data.units || [] };
-
-		case "weeklyPlan":
-			// Weekly plan vem como { weeklyPlan: { id, title, slots }, weekStart }
-			return {
-				weeklyPlan: data?.weeklyPlan ?? null,
-			};
-
-		case "workoutHistory":
-			// Workout history vem de /api/workouts/history como { history: [...], total: number }
-			// ou pode vir como array direto
-			if (Array.isArray(data)) {
-				return { workoutHistory: data };
-			}
-			if (data.history && Array.isArray(data.history)) {
-				return { workoutHistory: data.history };
-			}
-			return { workoutHistory: data.workoutHistory || [] };
-
-		case "personalRecords":
-			// Personal records vem como { records: [...], total: number }
-			return { personalRecords: data.records || data.personalRecords || [] };
-
-		case "subscription":
-			// Se vier no formato { success: true, subscription: ... }
-			if (data && typeof data === "object" && "success" in data) {
-				return { subscription: data.subscription || null };
-			}
-			// Se vier direto (objeto subscription ou null)
-			return { subscription: data || null };
-
-		case "memberships":
-			// Memberships vem como array
-			return {
-				memberships: Array.isArray(data) ? data : data.memberships || [],
-			};
-
-		case "payments":
-			// Payments vem como array
-			return { payments: Array.isArray(data) ? data : data.payments || [] };
-
-		case "paymentMethods":
-			// Payment methods vem como array
-			return {
-				paymentMethods: Array.isArray(data) ? data : data.paymentMethods || [],
-			};
-
-		case "dayPasses":
-			// Day passes vem como { dayPasses: [...], total: number }
-			return { dayPasses: data.dayPasses || [] };
-
-		case "friends":
-			// Friends vem como { count: number, list: [...] }
-			return { friends: data };
-
-		case "gymLocations":
-			// API retorna gyms ou gymLocations
-			return {
-				gymLocations: Array.isArray(data)
-					? data
-					: data.gymLocations || data.gyms || [],
-			};
-
-		default:
-			return { [section]: data };
-	}
-}
-
-/**
- * Remove refeições duplicadas baseado em ID ou combinação de campos únicos
- */
-function deduplicateMeals(meals: any[]): any[] {
-	if (!meals || meals.length === 0) return [];
-
-	const seen = new Set<string>();
-	const uniqueMeals: any[] = [];
-
-	for (const meal of meals) {
-		// Criar chave única baseada em ID ou combinação de campos
-		let key: string;
-		if (meal.id) {
-			key = `id:${meal.id}`;
-		} else {
-			// Se não tem ID, usar combinação de name + type + time como chave
-			const timeStr = meal.time ? new Date(meal.time).toISOString() : "";
-			key = `${meal.name || ""}:${meal.type || ""}:${timeStr}`;
-		}
-
-		if (!seen.has(key)) {
-			seen.add(key);
-			uniqueMeals.push(meal);
-		} else {
-			console.warn("[deduplicateMeals] ⚠️ Refeição duplicada removida:", {
-				name: meal.name,
-				type: meal.type,
-				id: meal.id,
-			});
-		}
-	}
-
-	return uniqueMeals;
-}
-
-/**
- * Calcula weightGain baseado no weightHistory
- * Ganho/perda no último mês
- */
-function calculateWeightGain(
-	weightHistory: WeightHistoryItem[],
-): number | null {
-	if (!weightHistory || weightHistory.length === 0) {
-		return null;
-	}
-
-	const currentWeight = weightHistory[0].weight;
-	const oneMonthAgo = new Date();
-	oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-	// Encontrar peso mais próximo de 1 mês atrás
-	const weightOneMonthAgo = weightHistory.find((wh) => {
-		const whDate = new Date(wh.date);
-		return whDate <= oneMonthAgo;
-	});
-
-	if (weightOneMonthAgo) {
-		return currentWeight - weightOneMonthAgo.weight;
-	}
-
-	return null;
-}
-
-/**
- * Função auxiliar para atualizar o store incrementalmente com uma seção
- * Esta função é chamada pelo loadAll para atualizar o store assim que cada seção carrega
- * sectionData já vem transformado de loadSection (via transformSectionResponse)
- */
-function updateStoreWithSection(
-	set: any,
-	_section: StudentDataSection,
-	sectionData: Partial<StudentData>,
-): void {
-	set((state: StudentUnifiedState) => {
-		const newState = { ...state.data };
-
-		// Mesclar dados da seção no estado atual
-		// sectionData já vem transformado de loadSection
-		if (sectionData.user) {
-			newState.user = { ...newState.user, ...sectionData.user };
-		}
-		if (sectionData.student) {
-			newState.student = { ...newState.student, ...sectionData.student };
-		}
-		if (sectionData.progress) {
-			newState.progress = { ...newState.progress, ...sectionData.progress };
-		}
-		if (sectionData.profile) {
-			newState.profile = { ...newState.profile, ...sectionData.profile };
-		}
-		if (sectionData.weightHistory) {
-			newState.weightHistory = sectionData.weightHistory;
-			// Calcular weightGain
-			if (sectionData.weightHistory.length > 0) {
-				newState.weightGain = calculateWeightGain(sectionData.weightHistory);
-				// Atualizar currentWeight no profile se não existir
-				if (!newState.profile?.weight && sectionData.weightHistory[0]) {
-					newState.profile = {
-						...newState.profile,
-						weight: sectionData.weightHistory[0].weight,
-					};
-				}
-			}
-		}
-		if (sectionData.units !== undefined) {
-			newState.units = sectionData.units;
-		}
-		if (sectionData.weeklyPlan !== undefined) {
-			newState.weeklyPlan = sectionData.weeklyPlan;
-		}
-		if (sectionData.workoutHistory !== undefined) {
-			newState.workoutHistory = sectionData.workoutHistory;
-		}
-		if (sectionData.personalRecords !== undefined) {
-			newState.personalRecords = sectionData.personalRecords;
-		}
-		if (sectionData.subscription !== undefined) {
-			newState.subscription = sectionData.subscription;
-		}
-		if (sectionData.memberships !== undefined) {
-			newState.memberships = sectionData.memberships;
-		}
-		if (sectionData.payments !== undefined) {
-			newState.payments = sectionData.payments;
-		}
-		if (sectionData.paymentMethods !== undefined) {
-			newState.paymentMethods = sectionData.paymentMethods;
-		}
-		if (sectionData.dayPasses !== undefined) {
-			newState.dayPasses = sectionData.dayPasses;
-		}
-		if (sectionData.friends !== undefined) {
-			newState.friends = sectionData.friends;
-		}
-		if (sectionData.gymLocations !== undefined) {
-			newState.gymLocations = sectionData.gymLocations;
-		}
-		if (sectionData.dailyNutrition !== undefined) {
-			newState.dailyNutrition = sectionData.dailyNutrition;
-		}
-
-		return {
-			data: newState,
-		};
-	});
-}
-
-/**
- * Carrega seções específicas e atualiza store incrementalmente
- * Usado por loadAllPrioritized para carregar apenas seções necessárias
- */
-async function loadSectionsIncremental(
-	set: any,
-	sections: StudentDataSection[],
-	skipNutrition: boolean = false,
-): Promise<void> {
-	// Carregar todas as seções em paralelo, mas atualizar store incrementalmente
-	const sectionPromises = sections.map(async (section) => {
-		try {
-			const sectionData = await loadSection(section);
-
-			// Atualizar store imediatamente quando esta seção carregar
-			if (sectionData && Object.keys(sectionData).length > 0) {
-				updateStoreWithSection(set, section, sectionData);
-			}
-
-			return sectionData;
-		} catch (error) {
-			console.warn(
-				`[loadSectionsIncremental] Erro ao carregar seção ${section}:`,
-				error,
-			);
-			return {};
-		}
-	});
-
-	// Aguardar todas as requisições (mas store já foi atualizado incrementalmente)
-	await Promise.all(sectionPromises);
-
-	// Se dailyNutrition está nas seções e não devemos pular, carregar separadamente
-	if (!skipNutrition && sections.includes("dailyNutrition")) {
-		try {
-			const nutritionResponse = await apiClient.get<{
-				date: string;
-				meals: any[];
-				totalCalories: number;
-				totalProtein: number;
-				totalCarbs: number;
-				totalFats: number;
-				waterIntake: number;
-				targetCalories: number;
-				targetProtein: number;
-				targetCarbs: number;
-				targetFats: number;
-				targetWater: number;
-			}>("/api/nutrition/daily", {
-				timeout: 30000,
-			});
-
-			const nutritionResponseData = nutritionResponse.data;
-
-			// Normalizar data para dateKey Brasil (reset às 03:00 BRT)
-			let normalizedDate: string;
-			try {
-				normalizedDate = getBrazilNutritionDateKey(nutritionResponseData.date);
-			} catch {
-				normalizedDate = getBrazilNutritionDateKey();
-			}
-
-			// Remover duplicatas antes de salvar
-			const uniqueMeals = deduplicateMeals(nutritionResponseData.meals || []);
-
-			const nutritionData: Partial<StudentData> = {
-				dailyNutrition: {
-					date: normalizedDate,
-					meals: uniqueMeals,
-					totalCalories: nutritionResponseData.totalCalories ?? 0,
-					totalProtein: nutritionResponseData.totalProtein ?? 0,
-					totalCarbs: nutritionResponseData.totalCarbs ?? 0,
-					totalFats: nutritionResponseData.totalFats ?? 0,
-					waterIntake: nutritionResponseData.waterIntake ?? 0,
-					targetCalories: nutritionResponseData.targetCalories ?? 2000,
-					targetProtein: nutritionResponseData.targetProtein ?? 150,
-					targetCarbs: nutritionResponseData.targetCarbs ?? 250,
-					targetFats: nutritionResponseData.targetFats ?? 65,
-					targetWater: nutritionResponseData.targetWater ?? 3000,
-				},
-			};
-
-			// Atualizar store com nutrição
-			updateStoreWithSection(set, "dailyNutrition", nutritionData);
-		} catch (error) {
-			console.warn(
-				"[loadSectionsIncremental] Erro ao carregar nutrição:",
-				error,
-			);
-		}
-	}
-}
-
-/**
- * Carrega todos os dados fazendo múltiplas requisições separadas
- * ATUALIZA O STORE INCREMENTALMENTE conforme cada seção carrega
- * Isso permite que a UI apareça progressivamente, sem esperar tudo terminar
- */
-async function loadAllDataIncremental(
-	set: any,
-	_get: () => StudentUnifiedState,
-): Promise<void> {
-	// Seções em ordem de prioridade (mais importantes primeiro)
-	// Isso permite que units, progress apareçam primeiro na tela de learn
-	const sections: StudentDataSection[] = [
-		"user",
-		"student",
-		"progress", // Importante para tela de learn
-		"units", // Legado - mantido para compatibilidade
-		"weeklyPlan", // Plano semanal 7 slots - usado em learn e ContinueWorkoutCard
-		"profile",
-		"weightHistory",
-		"workoutHistory",
-		"personalRecords",
-		"subscription",
-		"memberships",
-		"payments",
-		"paymentMethods",
-		"dayPasses",
-		"friends",
-		"gymLocations",
-	];
-
-	// Usar função auxiliar para carregar todas as seções
-	await loadSectionsIncremental(set, sections);
-}
-
-// ============================================
 // STORE
 // ============================================
 
 export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 	persist(
-		(set, get) => ({
-			// === DADOS INICIAIS ===
-			data: initialStudentData,
+		(set, get) => {
+			const authSlice = createAuthSlice(set, get);
+			const profileSlice = createProfileSlice(set, get);
+			const progressSlice = createProgressSlice(set, get);
+			const socialSlice = createSocialSlice(set, get);
+			const financialSlice = createFinancialSlice(set, get);
+			const nutritionSlice = createNutritionSlice(set, get);
+			const syncSlice = createSyncSlice(set, get);
 
-			// === ACTIONS - CARREGAR DADOS ===
-			loadAll: async () => {
+			return {
+				// === DADOS INICIAIS ===
+				data: initialStudentData,
+
+				// === SLICES ===
+				...authSlice,
+				...profileSlice,
+				...progressSlice,
+				...socialSlice,
+				...financialSlice,
+				...nutritionSlice,
+				...syncSlice,
+
+				// === ACTIONS - CARREGAR DADOS (orquestração) ===
+				loadAll: async () => {
 				const currentState = get();
 				if (currentState.data.metadata.isLoading) {
 					return; // Já está carregando
@@ -767,7 +204,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				try {
 					// Carregar dados incrementalmente (atualiza store conforme cada seção carrega)
-					await loadAllDataIncremental(set, get);
+					await loadAllDataIncremental(set);
 
 					// Marcar como concluído após todas as seções carregarem
 					set((state) => ({
@@ -782,13 +219,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						},
 					}));
-				} catch (error: any) {
+				} catch (error) {
 					console.error("[loadAll] Erro ao carregar dados:", error);
-
+					const err = error as { code?: string; message?: string };
 					// Se for timeout, tentar carregamento incremental como fallback
 					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("timeout")
 					) {
 						console.warn(
 							"[loadAll] Timeout detectado, tentando carregamento incremental...",
@@ -844,7 +281,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 								...state.data.metadata,
 								isLoading: false,
 								errors: {
-									loadAll: error.message || "Erro ao carregar dados",
+									loadAll: (error instanceof Error ? error.message : "Erro ao carregar dados"),
 								},
 							},
 						},
@@ -926,7 +363,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							);
 						});
 					}
-				} catch (error: any) {
+				} catch (error) {
 					console.error(
 						"[loadAllPrioritized] Erro ao carregar prioridades:",
 						error,
@@ -1007,72 +444,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 			},
 
-			// === MÉTODOS INDIVIDUAIS (Mantidos para compatibilidade) ===
-			loadUser: async () => {
-				const section = await loadSection("user");
-				set((state) => ({
-					data: {
-						...state.data,
-						user: { ...state.data.user, ...section.user },
-					},
-				}));
-			},
-
-			loadProgress: async () => {
-				const section = await loadSection("progress");
-				set((state) => ({
-					data: {
-						...state.data,
-						progress: { ...state.data.progress, ...section.progress },
-					},
-				}));
-			},
-
-			loadProfile: async () => {
-				const section = await loadSection("profile");
-				set((state) => ({
-					data: {
-						...state.data,
-						profile: { ...state.data.profile, ...section.profile },
-					},
-				}));
-			},
-
-			loadWeightHistory: async () => {
-				const section = await loadSection("weightHistory");
-				const newWeightHistory = section.weightHistory || [];
-
-				set((state) => {
-					// Calcular weightGain
-					const weightGain = calculateWeightGain(
-						newWeightHistory.length > 0
-							? newWeightHistory
-							: state.data.weightHistory,
-					);
-
-					// Atualizar currentWeight no profile se não existir
-					const currentWeight =
-						newWeightHistory.length > 0
-							? newWeightHistory[0].weight
-							: state.data.profile?.weight;
-
-					return {
-						data: {
-							...state.data,
-							weightHistory:
-								newWeightHistory.length > 0
-									? newWeightHistory
-									: state.data.weightHistory,
-							weightGain: weightGain ?? state.data.weightGain,
-							profile: {
-								...state.data.profile,
-								weight: currentWeight ?? state.data.profile?.weight,
-							},
-						},
-					};
-				});
-			},
-
+			// === MÉTODOS INDIVIDUAIS (loadUser, loadProgress, loadProfile, loadWeightHistory em slices) ===
 			loadWorkouts: async (force = false) => {
 				const currentState = get();
 
@@ -1106,185 +478,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}));
 			},
 
-			loadWorkoutHistory: async () => {
-				const section = await loadSection("workoutHistory");
-				set((state) => ({
-					data: {
-						...state.data,
-						workoutHistory: section.workoutHistory || state.data.workoutHistory,
-					},
-				}));
-			},
-
-			loadPersonalRecords: async () => {
-				const section = await loadSection("personalRecords");
-				set((state) => ({
-					data: {
-						...state.data,
-						personalRecords:
-							section.personalRecords || state.data.personalRecords,
-					},
-				}));
-			},
-
-			loadNutrition: async () => {
-				// IMPORTANTE: Usar loadSection para aproveitar sistema de deduplicação
-				// Isso evita requisições duplicadas quando useLoadPrioritized também está carregando
-				const sectionData = await loadSection("dailyNutrition");
-
-				if (sectionData?.dailyNutrition) {
-					// Atualizar store com os dados carregados
-					// loadSection já atualiza o store via updateStoreWithSection em loadSectionsIncremental
-					// Mas garantimos aqui também para manter compatibilidade
-					set((state) => ({
-						data: {
-							...state.data,
-							dailyNutrition: sectionData.dailyNutrition!,
-						},
-					}));
-				}
-			},
-
-			loadSubscription: async () => {
-				const section = await loadSection("subscription");
-				set((state) => ({
-					data: {
-						...state.data,
-						subscription: section.subscription ?? state.data.subscription,
-					},
-				}));
-			},
-
-			loadMemberships: async () => {
-				const section = await loadSection("memberships");
-				set((state) => ({
-					data: {
-						...state.data,
-						memberships: section.memberships || state.data.memberships,
-					},
-				}));
-			},
-
-			loadPayments: async () => {
-				const section = await loadSection("payments");
-				set((state) => ({
-					data: {
-						...state.data,
-						payments: section.payments || state.data.payments,
-					},
-				}));
-			},
-
-			loadPaymentMethods: async () => {
-				const section = await loadSection("paymentMethods");
-				set((state) => ({
-					data: {
-						...state.data,
-						paymentMethods: section.paymentMethods || state.data.paymentMethods,
-					},
-				}));
-			},
-
-			loadDayPasses: async () => {
-				const section = await loadSection("dayPasses");
-				set((state) => ({
-					data: {
-						...state.data,
-						dayPasses: section.dayPasses || state.data.dayPasses,
-					},
-				}));
-			},
-
-			loadFriends: async () => {
-				const section = await loadSection("friends");
-				set((state) => ({
-					data: {
-						...state.data,
-						friends: section.friends || state.data.friends,
-					},
-				}));
-			},
-
-			loadGymLocations: async () => {
-				const section = await loadSection("gymLocations");
-				set((state) => ({
-					data: {
-						...state.data,
-						gymLocations: section.gymLocations || state.data.gymLocations,
-					},
-				}));
-			},
-
-			loadGymLocationsWithPosition: async (lat: number, lng: number) => {
-				try {
-					const response = await apiClient.get<{
-						gyms?: any[];
-						gymLocations?: any[];
-					}>("/api/gyms/locations", {
-						params: { lat: String(lat), lng: String(lng) },
-						timeout: 30000,
-					});
-					const data = response.data;
-					const gymLocations = Array.isArray(data)
-						? data
-						: data.gymLocations || data.gyms || [];
-					set((state) => ({
-						data: { ...state.data, gymLocations },
-					}));
-				} catch (error) {
-					if (process.env.NODE_ENV === "development") {
-						console.warn("[loadGymLocationsWithPosition] Erro:", error);
-					}
-				}
-			},
-
-			loadFoodDatabase: async () => {
-				try {
-					// Buscar todos os alimentos da API (sem query para pegar todos)
-					const response = await apiClient.get<{ foods: any[] }>(
-						"/api/foods/search?limit=1000",
-						{
-							timeout: 30000, // 30 segundos
-						},
-					);
-
-					const foods = response.data.foods || [];
-
-					// Armazenar no store
-					set((state) => ({
-						data: {
-							...state.data,
-							foodDatabase: foods,
-						},
-					}));
-				} catch (error: any) {
-					// Tratamento específico para timeout
-					if (
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("timeout")
-					) {
-						console.warn(
-							"⚠️ Timeout ao carregar alimentos. Continuando com dados existentes.",
-						);
-						return;
-					}
-
-					// Se a tabela não existir, não mostrar erro
-					if (
-						error.response?.status === 500 ||
-						error.message?.includes("does not exist")
-					) {
-						console.log(
-							"⚠️ Tabela de alimentos não existe. Execute: node scripts/apply-nutrition-migration.js",
-						);
-						return;
-					}
-
-					console.error("Erro ao carregar alimentos:", error);
-					// Manter dados atuais do store em caso de erro
-				}
-			},
-
 			// === ACTIONS - ATUALIZAR DADOS ===
 			updateProgress: async (updates) => {
 				// Optimistic update - atualiza UI imediatamente
@@ -1310,7 +503,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -1372,11 +565,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1411,147 +605,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 									errors: {
 										...state.data.metadata.errors,
 										updateProgress:
-											error.message || "Erro ao atualizar progresso",
+											(error instanceof Error ? error.message : "Erro ao atualizar progresso"),
 									},
 								},
-							},
-						}));
-					}
-				}
-			},
-
-			updateProfile: async (updates) => {
-				// Optimistic update
-				const previousProfile = get().data.profile;
-				set((state) => ({
-					data: {
-						...state.data,
-						profile: { ...state.data.profile, ...updates },
-					},
-				}));
-
-				// Sync with backend usando syncManager
-				try {
-					const token =
-						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/students/profile",
-						method: "POST",
-						body: updates,
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "normal",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log("✅ Perfil salvo offline. Sincronizará quando online.");
-						return;
-					}
-				} catch (error: any) {
-					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao atualizar perfil:", error);
-						set((state) => ({
-							data: {
-								...state.data,
-								profile: previousProfile,
-							},
-						}));
-					}
-				}
-			},
-
-			addWeight: async (weight, date = new Date(), notes) => {
-				const newEntry: WeightHistoryItem = {
-					date,
-					weight,
-					notes,
-				};
-
-				// Optimistic update - atualiza UI imediatamente
-				const previousWeightHistory = get().data.weightHistory;
-				const previousProfile = get().data.profile;
-				const newWeightHistory = [newEntry, ...get().data.weightHistory];
-
-				set((state) => {
-					// Recalcular weightGain após adicionar novo peso
-					const newWeightGain = calculateWeightGain(newWeightHistory);
-
-					return {
-						data: {
-							...state.data,
-							weightHistory: newWeightHistory,
-							weightGain: newWeightGain ?? state.data.weightGain,
-							profile: {
-								...state.data.profile,
-								weight,
-							},
-						},
-					};
-				});
-
-				// Sync with backend usando syncManager
-				try {
-					const token =
-						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/students/weight",
-						method: "POST",
-						body: {
-							weight,
-							date: date.toISOString(),
-							notes,
-						},
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "high",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log("✅ Peso salvo offline. Sincronizará quando online.");
-						return;
-					}
-
-					// Se online e sucesso, atualizar weightHistory localmente (já foi feito optimistic update)
-					// Não precisa recarregar do servidor, o optimistic update já está correto
-					// await get().loadWeightHistory(); // Removido para evitar requisições desnecessárias
-				} catch (error: any) {
-					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao adicionar peso:", error);
-						set((state) => ({
-							data: {
-								...state.data,
-								weightHistory: previousWeightHistory,
-								profile: previousProfile,
 							},
 						}));
 					}
@@ -1598,225 +654,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}
 			},
 
-			addPersonalRecord: (record) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						personalRecords: [record, ...state.data.personalRecords],
-					},
-				}));
-			},
-
-			addDayPass: (dayPass) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						dayPasses: [...state.data.dayPasses, dayPass],
-					},
-				}));
-			},
-
-			updateNutrition: async (updates) => {
-				// Optimistic update - atualiza UI imediatamente
-				const previousNutrition = get().data.dailyNutrition;
-				let updatedNutrition: any;
-				set((state) => {
-					const currentNutrition = state.data.dailyNutrition;
-					const updatedMeals =
-						updates.meals !== undefined
-							? updates.meals
-							: currentNutrition.meals;
-
-					// Recalcular totais automaticamente se meals foram atualizados
-					// IMPORTANTE: Calcular apenas refeições completadas (completed: true)
-					let calculatedTotals = {};
-					if (updates.meals !== undefined) {
-						const completedMeals = updatedMeals.filter(
-							(meal: any) => meal.completed === true,
-						);
-						const totalCalories = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.calories || 0),
-							0,
-						);
-						const totalProtein = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.protein || 0),
-							0,
-						);
-						const totalCarbs = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.carbs || 0),
-							0,
-						);
-						const totalFats = completedMeals.reduce(
-							(sum: number, meal: any) => sum + (meal.fats || 0),
-							0,
-						);
-
-						calculatedTotals = {
-							totalCalories,
-							totalProtein,
-							totalCarbs,
-							totalFats,
-						};
-					}
-
-					// Remover duplicatas se meals foram atualizados
-					const finalMeals =
-						updates.meals !== undefined
-							? deduplicateMeals(updatedMeals)
-							: currentNutrition.meals;
-
-					updatedNutrition = {
-						...currentNutrition,
-						...updates,
-						meals: finalMeals, // Usar meals sem duplicatas
-						...calculatedTotals, // Sobrescrever totais calculados se meals foram atualizados
-					};
-
-					return {
-						data: {
-							...state.data,
-							dailyNutrition: updatedNutrition,
-						},
-					};
-				});
-
-				// Sync with backend usando syncManager
-				try {
-					// Formatar dados para API (formato esperado: { date, meals?, waterIntake })
-					// Normalizar data para dateKey Brasil (reset às 03:00 BRT)
-					let normalizedDate: string;
-					try {
-						normalizedDate = getBrazilNutritionDateKey(updatedNutrition.date);
-					} catch {
-						normalizedDate = getBrazilNutritionDateKey();
-					}
-
-					// Determinar o que foi atualizado
-					const hasMealsUpdate = updates.meals !== undefined;
-					const hasWaterIntakeUpdate = updates.waterIntake !== undefined;
-
-					// Construir payload apenas com o que foi atualizado
-					const apiPayload: any = {
-						date: normalizedDate,
-					};
-
-					// Só incluir meals se meals foi explicitamente atualizado
-					// Isso evita deletar todas as refeições quando apenas waterIntake é atualizado
-					if (hasMealsUpdate) {
-						apiPayload.meals = (updatedNutrition.meals || []).map(
-							(meal: any, index: number) => ({
-								name: meal.name || "Refeição",
-								type: meal.type || "snack",
-								calories: meal.calories || 0,
-								protein: meal.protein || 0,
-								carbs: meal.carbs || 0,
-								fats: meal.fats || 0,
-								time: meal.time || null,
-								completed: meal.completed || false,
-								order: index,
-								foods: (meal.foods || []).map((food: any) => ({
-									foodId: food.foodId || null,
-									foodName: food.foodName || "Alimento",
-									servings: food.servings || 1,
-									calories: food.calories || 0,
-									protein: food.protein || 0,
-									carbs: food.carbs || 0,
-									fats: food.fats || 0,
-									servingSize: food.servingSize || "100g",
-								})),
-							}),
-						);
-					}
-
-					// Só incluir waterIntake se foi explicitamente atualizado
-					if (hasWaterIntakeUpdate) {
-						apiPayload.waterIntake = updatedNutrition.waterIntake || 0;
-					}
-
-					const token =
-						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
-							: null;
-
-					// Gerar idempotencyKey explicitamente para evitar avisos
-					const idempotencyKey = generateIdempotencyKey();
-
-					const result = await syncManager({
-						url: "/api/nutrition/daily",
-						method: "POST",
-						body: apiPayload,
-						headers: token ? { Authorization: `Bearer ${token}` } : {},
-						priority: "normal",
-						idempotencyKey,
-					});
-
-					if (!result.success && result.error) {
-						throw result.error;
-					}
-
-					if (result.queued) {
-						console.log(
-							"✅ Nutrição salva offline. Sincronizará quando online.",
-						);
-						return;
-					}
-
-					// Se sincronizado com sucesso, recarregar dados do servidor
-					// para garantir que o store está sincronizado com o backend
-					// (o backend pode ter processado/validado os dados de forma diferente)
-					if (result.success && !result.queued) {
-						try {
-							// Recarregar nutrição do servidor para garantir sincronização
-							await get().loadNutrition();
-							console.log(
-								"[updateNutrition] ✅ Dados recarregados do servidor após atualização",
-							);
-						} catch (reloadError) {
-							console.warn(
-								"[updateNutrition] ⚠️ Erro ao recarregar dados após atualização:",
-								reloadError,
-							);
-							// Não falhar a operação se o reload falhar - optimistic update já foi aplicado
-						}
-					}
-				} catch (error: any) {
-					// Se a migration não foi aplicada, não mostrar erro
-					if (error.response?.data?.code === "MIGRATION_REQUIRED") {
-						console.log(
-							"⚠️ Tabela de nutrição não existe. Execute: node scripts/apply-nutrition-migration.js",
-						);
-						return;
-					}
-
-					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
-						!navigator.onLine;
-
-					if (!isNetworkError) {
-						console.error("Erro ao atualizar nutrição:", error);
-						// Reverter mudança otimista em caso de erro
-						set((state) => ({
-							data: {
-								...state.data,
-								dailyNutrition: previousNutrition,
-							},
-						}));
-					}
-				}
-			},
-
-			updateSubscription: async (updates) => {
-				set((state) => ({
-					data: {
-						...state.data,
-						subscription: updates 
-							? { ...(state.data.subscription || {}), ...updates } as any
-							: null,
-					},
-				}));
-			},
-
 			createUnit: async (data) => {
 				const command = createCommand("CREATE_UNIT", data);
 				await logCommand(command);
@@ -1846,7 +683,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -1891,8 +728,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					}
 
 					// Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
-					if (result.success && !result.queued && result.data?.id) {
-						const realId = result.data.id;
+					const apiData = result.data as { id?: string } | undefined;
+					if (result.success && !result.queued && apiData?.id) {
+						const realId = apiData.id;
 						// Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
 						set((state) => ({
 							data: {
@@ -1918,11 +756,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -1985,7 +824,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2046,11 +885,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2106,7 +946,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2167,11 +1007,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2255,7 +1096,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2304,9 +1145,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Se sincronizado com sucesso, atualizar ID temporário com ID real da resposta
 					// A resposta vem como { success: true, data: { data: workout, message: "..." } }
 					// ou { success: true, data: workout } dependendo da estrutura
-					const workoutData = result.data?.data || result.data;
-					if (result.success && !result.queued && workoutData?.id) {
-						const realId = workoutData.id;
+					const workoutData = (result.data as { data?: { id?: string }; id?: string })?.data ?? (result.data as { id?: string } | undefined);
+					const realId = workoutData?.id;
+					if (result.success && !result.queued && realId) {
 						// Atualizar apenas o ID temporário com o ID real (não recarregar tudo!)
 						set((state) => ({
 							data: {
@@ -2357,11 +1198,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					}
 
 					return command.id; // Retornar ID temporário por padrão
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2429,7 +1271,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2491,11 +1333,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2565,7 +1408,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2627,11 +1470,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -2688,10 +1532,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
 				const newExercise: WorkoutExercise = {
 					id: command.id, // Usar command ID como ID temporário
-					name: data.name || "Novo Exercício",
-					sets: data.sets || 3,
-					reps: data.reps || "12",
-					rest: data.rest || 60,
+					name: data.name ?? "Novo Exercício",
+					sets: data.sets ?? 3,
+					reps: data.reps ?? "12",
+					rest: data.rest ?? 60,
 					notes: data.notes,
 					videoUrl: data.videoUrl,
 					educationalId: data.educationalId,
@@ -2792,7 +1636,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -2841,13 +1685,30 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 					// Se sincronizado com sucesso, atualizar exercício com TODOS os dados da resposta
 					// A resposta vem como { success: true, data: { data: exercise, message: "..." } }
 					// ou { success: true, data: exercise } dependendo da estrutura
-					const exerciseData = result.data?.data || result.data;
-					if (result.success && !result.queued && exerciseData?.id) {
+					const rawExerciseData = result.data?.data ?? result.data;
+					const exerciseData = (typeof rawExerciseData === "object" && rawExerciseData !== null && !Array.isArray(rawExerciseData))
+						? (rawExerciseData as Record<string, unknown>)
+						: undefined;
+					const exerciseId = exerciseData && typeof exerciseData.id === "string" ? exerciseData.id : undefined;
+					if (result.success && !result.queued && exerciseData && exerciseId) {
 						// Atualizar exercício com TODOS os dados retornados pela API
 						// Isso inclui: primaryMuscles, secondaryMuscles, instructions, tips, benefits,
 						// commonMistakes, equipment, difficulty, scientificEvidence, alternatives, etc.
 						// IMPORTANTE: workoutId pode ser temporário ou real - buscar workout por qualquer um
 						// Quando o workout for atualizado com ID real, o exercício já estará lá
+						const safeParse = (value: unknown): string[] | undefined => {
+							if (!value) return undefined;
+							if (Array.isArray(value)) return value.map(String);
+							if (typeof value === "string") {
+								try {
+									const parsed = JSON.parse(value);
+									return Array.isArray(parsed) ? parsed.map(String) : [value];
+								} catch {
+									return [value];
+								}
+							}
+							return undefined;
+						};
 						set((state) => ({
 							data: {
 								...state.data,
@@ -2865,44 +1726,27 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 												...workout,
 												exercises: workout.exercises.map((exercise) =>
 													exercise.id === command.id
-														? (() => {
-																// Função helper para parsear JSON com segurança
-																const safeParse = (value: any) => {
-																	if (!value) return null;
-																	if (Array.isArray(value)) return value;
-																	if (typeof value === "string") {
-																		try {
-																			return JSON.parse(value);
-																		} catch {
-																			return null;
-																		}
-																	}
-																	return value;
-																};
-
-																// Substituir exercício temporário pelo exercício completo da API
-																return {
-																	...exerciseData,
-																	// Garantir que arrays sejam parseados se vierem como JSON strings
-																	primaryMuscles: safeParse(
-																		exerciseData.primaryMuscles,
-																	),
-																	secondaryMuscles: safeParse(
-																		exerciseData.secondaryMuscles,
-																	),
-																	equipment: safeParse(exerciseData.equipment),
-																	instructions: safeParse(
-																		exerciseData.instructions,
-																	),
-																	tips: safeParse(exerciseData.tips),
-																	commonMistakes: safeParse(
-																		exerciseData.commonMistakes,
-																	),
-																	benefits: safeParse(exerciseData.benefits),
-																	// Garantir que alternatives seja um array
-																	alternatives: exerciseData.alternatives || [],
-																};
-															})()
+														? {
+																...exercise,
+																id: exerciseId,
+																name: (exerciseData.name as string) ?? exercise.name,
+																sets: typeof exerciseData.sets === "number" ? exerciseData.sets : exercise.sets,
+																reps: typeof exerciseData.reps === "string" ? exerciseData.reps : exercise.reps,
+																rest: typeof exerciseData.rest === "number" ? exerciseData.rest : exercise.rest,
+																notes: (exerciseData.notes as string | undefined) ?? exercise.notes,
+																videoUrl: (exerciseData.videoUrl as string | undefined) ?? exercise.videoUrl,
+																educationalId: (exerciseData.educationalId as string | undefined) ?? exercise.educationalId,
+																primaryMuscles: safeParse(exerciseData.primaryMuscles) ?? exercise.primaryMuscles,
+																secondaryMuscles: safeParse(exerciseData.secondaryMuscles) ?? exercise.secondaryMuscles,
+																equipment: safeParse(exerciseData.equipment) ?? exercise.equipment,
+																instructions: safeParse(exerciseData.instructions) ?? exercise.instructions,
+																tips: safeParse(exerciseData.tips) ?? exercise.tips,
+																commonMistakes: safeParse(exerciseData.commonMistakes) ?? exercise.commonMistakes,
+																benefits: safeParse(exerciseData.benefits) ?? exercise.benefits,
+																difficulty: (exerciseData.difficulty as WorkoutExercise["difficulty"]) ?? exercise.difficulty,
+																scientificEvidence: (exerciseData.scientificEvidence as string | undefined) ?? exercise.scientificEvidence,
+																alternatives: Array.isArray(exerciseData.alternatives) ? (exerciseData.alternatives as WorkoutExercise["alternatives"]) : (exercise.alternatives ?? []),
+															}
 														: exercise,
 												),
 											};
@@ -2942,11 +1786,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -3025,7 +1870,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -3087,11 +1932,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -3203,7 +2049,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				try {
 					const token =
 						typeof window !== "undefined"
-							? localStorage.getItem("auth_token")
+							? getAuthToken()
 							: null;
 
 					const options = commandToSyncManager(
@@ -3265,11 +2111,12 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 							},
 						}));
 					}
-				} catch (error: any) {
+				} catch (error) {
 					// NÃO reverter UI - marcar como pendente se for erro de rede
+					const err = error as { code?: string; message?: string };
 					const isNetworkError =
-						error.code === "ECONNABORTED" ||
-						error.message?.includes("Network Error") ||
+						err?.code === "ECONNABORTED" ||
+						err?.message?.includes("Network Error") ||
 						!navigator.onLine;
 
 					if (isNetworkError) {
@@ -3413,77 +2260,14 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 				}));
 			},
 
-			// === ACTIONS - SYNC ===
-			syncAll: async () => {
-				await get().loadAll();
-			},
-
-			syncProgress: async () => {
-				await get().loadProgress();
-			},
-
-			syncNutrition: async () => {
-				await get().loadNutrition();
-			},
-
-			syncPendingActions: async () => {
-				// Sincroniza ações pendentes quando volta online
-				const { pendingActions } = get().data.metadata;
-
-				if (pendingActions.length === 0) {
-					return;
-				}
-
-				// Verificar se está online
-				if (typeof navigator !== "undefined" && !navigator.onLine) {
-					console.log(
-						"📡 Ainda offline - ações pendentes serão sincronizadas quando voltar online",
-					);
-					return;
-				}
-
-				console.log(
-					`🔄 Sincronizando ${pendingActions.length} ação(ões) pendente(s)...`,
-				);
-
-				// Tentar sincronizar cada ação pendente
-				// Nota: A sincronização real acontece automaticamente via syncManager
-				// quando a fila offline é processada. Esta função apenas marca como sincronizadas
-				// após verificar que não há mais ações na fila.
-
-				// Por enquanto, apenas limpa ações antigas (mais de 1 hora)
-				const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-				set((state) => ({
-					data: {
-						...state.data,
-						metadata: {
-							...state.data.metadata,
-							pendingActions: state.data.metadata.pendingActions.filter(
-								(action) => action.createdAt > oneHourAgo,
-							),
-						},
-					},
-				}));
-			},
-
-			// === ACTIONS - RESET ===
-			reset: () => {
-				set({ data: initialStudentData });
-			},
-
-			clearCache: () => {
-				// Limpa cache local (localStorage)
-				localStorage.removeItem("student-unified-storage");
-				set({ data: initialStudentData });
-			},
-		}),
+			};
+		},
 		{
 			name: "student-unified-storage",
-			storage: createIndexedDBStorage() as any, // Usa IndexedDB ao invés de localStorage (suporta dados grandes)
-			partialize: (state) =>
-				({
-					data: state.data, // Persistir apenas os dados, não as actions
-				}) as any,
+			storage: createJSONStorage(() => createIndexedDBStorage()),
+			partialize: (state): Pick<StudentUnifiedState, "data"> => ({
+				data: state.data, // Persistir apenas os dados, não as actions
+			}),
 			// Migra dados do localStorage para IndexedDB na primeira vez
 			onRehydrateStorage: () => {
 				return async (state) => {

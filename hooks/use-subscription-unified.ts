@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
+import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
@@ -10,23 +11,28 @@ import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 export interface StudentSubscriptionData {
 	id: string;
 	plan: string;
-	status: string;
-	currentPeriodStart: Date;
-	currentPeriodEnd: Date;
-	cancelAtPeriodEnd: boolean;
-	canceledAt: Date | null;
-	trialStart: Date | null;
-	trialEnd: Date | null;
-	isTrial: boolean;
-	daysRemaining: number | null;
-	billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment";
+	currentPeriodStart?: Date;
+	currentPeriodEnd?: Date;
+	cancelAtPeriodEnd?: boolean;
+	canceledAt?: Date | null;
+	trialStart?: Date | null;
+	trialEnd?: Date | null;
+	isTrial?: boolean;
+	daysRemaining?: number | null;
+	billingPeriod?: "monthly" | "annual";
+	source?: "OWN" | "GYM_ENTERPRISE";
+	gymId?: string;
+	enterpriseGymName?: string;
+	/** Trial só uma vez: false se já usou trial ou já assinou */
+	canStartTrial?: boolean;
 }
 
 // Tipo unificado para subscription de gym
 export interface GymSubscriptionData {
 	id: string;
 	plan: string;
-	status: string;
+	status: "active" | "canceled" | "expired" | "past_due" | "trialing" | "pending_payment" | string;
 	basePrice: number;
 	pricePerStudent: number;
 	currentPeriodStart: Date;
@@ -39,7 +45,9 @@ export interface GymSubscriptionData {
 	daysRemaining: number | null;
 	activeStudents: number;
 	totalAmount: number;
-	billingPeriod?: "monthly" | "annual"; // Período de cobrança atual
+	billingPeriod?: "monthly" | "annual";
+	/** Trial só uma vez: false quando já existe assinatura */
+	canStartTrial?: boolean;
 }
 
 // Tipo unificado
@@ -64,13 +72,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 	const syncStores = (sub: SubscriptionData | null) => {
 		if (userType === "student") {
 			setSubscription(sub as any);
-			if (sub) {
-				studentUnifiedStore.updateSubscription(sub as any);
-			} else {
-				// Se for null, o updateSubscription do unified store pode não aceitar null diretamente
-				// dependendo da tipagem, mas o store costuma ter assinatura como opcional ou nula
-				studentUnifiedStore.updateSubscription(null as any);
-			}
+			studentUnifiedStore.updateSubscription(sub as any);
 		} else {
 			setGymSubscription(sub as any);
 		}
@@ -104,53 +106,32 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					}>(currentEndpoint);
 					const sub = response.data.subscription;
 
-					// Log detalhado para debug - verificar se billingPeriod está presente
-					const billingPeriodValue = (sub as any)?.billingPeriod;
-					const allKeys = sub ? Object.keys(sub) : [];
-
-					console.log(`[${userType}] API Response:`, {
-						hasSubscription: !!sub,
-						subscriptionId: sub?.id,
-						subscriptionStatus: sub?.status,
-						subscriptionPlan: sub?.plan,
-						billingPeriod: billingPeriodValue,
-						billingPeriodType: typeof billingPeriodValue,
-						allKeys: allKeys,
-						hasBillingPeriodKey: allKeys.includes("billingPeriod"),
-					});
-
-					// Log completo do objeto para debug
-					if (sub) {
-						console.log(
-							`[${userType}] Full subscription object:`,
-							JSON.parse(JSON.stringify(sub)),
-						);
-						console.log(
-							`[${userType}] BillingPeriod direto:`,
-							(sub as any).billingPeriod,
-						);
-					}
 
 					if (!sub) {
 						return null;
 					}
 
 					// Extrair billingPeriod antes de criar baseData
-					const billingPeriodFromAPI = (sub as any)?.billingPeriod || "monthly";
+					const billingPeriodFromAPI =
+						("billingPeriod" in sub && sub.billingPeriod) || "monthly";
 
 					// Converter strings de data para Date objects
 					const baseData = {
 						...sub,
-						currentPeriodStart: new Date(sub.currentPeriodStart),
-						currentPeriodEnd: new Date(sub.currentPeriodEnd),
+						currentPeriodStart: sub.currentPeriodStart
+							? new Date(sub.currentPeriodStart)
+							: undefined,
+						currentPeriodEnd: sub.currentPeriodEnd
+							? new Date(sub.currentPeriodEnd)
+							: undefined,
 						trialStart: sub.trialStart ? new Date(sub.trialStart) : null,
 						trialEnd: sub.trialEnd ? new Date(sub.trialEnd) : null,
 						canceledAt: sub.canceledAt ? new Date(sub.canceledAt) : null,
 						isTrial:
-						(sub.status === "trialing" || sub.status === "canceled") &&
-						sub.trialEnd
-							? new Date(sub.trialEnd) > new Date()
-							: false,
+							(sub.status === "trialing" || sub.status === "canceled") &&
+							sub.trialEnd
+								? new Date(sub.trialEnd) > new Date()
+								: false,
 						daysRemaining: sub.trialEnd
 							? Math.max(
 									0,
@@ -171,18 +152,12 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 							billingPeriod: billingPeriodFromAPI as "monthly" | "annual", // Garantir que billingPeriod seja preservado
 						};
 
-						console.log(`[${userType}] Gym subscription data preparada:`, {
-							billingPeriod: gymData.billingPeriod,
-							plan: gymData.plan,
-						});
-
 						return gymData as GymSubscriptionData;
 					}
 
 					const result = baseData as StudentSubscriptionData;
 					return result;
 				} catch (error) {
-					console.error(`[${userType}] Erro ao buscar subscription:`, error);
 					return null;
 				}
 			},
@@ -221,10 +196,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					error?: string;
 				}>(startTrialEndpoint);
 				return response.data;
-			} catch (error: any) {
+			} catch (error) {
+				const err = error as { response?: { data?: { error?: string } }; message?: string };
 				const errorMessage =
-					error.response?.data?.error ||
-					error.message ||
+					err?.response?.data?.error ||
+					(err instanceof Error ? err.message : undefined) ||
 					"Erro ao iniciar trial";
 				return { error: errorMessage };
 			}
@@ -281,9 +257,12 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 
 			return { previousSubscription };
 		},
-		onError: async (err: any, _variables, context) => {
+		onError: async (err, _variables, context) => {
+			const e = err as { response?: { data?: { error?: string } }; message?: string };
 			const errorMessage =
-				err.response?.data?.error || err.message || "Erro ao iniciar trial";
+				e?.response?.data?.error ||
+				(e instanceof Error ? e.message : undefined) ||
+				"Erro ao iniciar trial";
 
 			if (context?.previousSubscription !== undefined) {
 				syncStores(context.previousSubscription);
@@ -293,13 +272,14 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				);
 			}
 
-			if (errorMessage.includes("já existe")) {
-				await queryClient.invalidateQueries({
-					queryKey: [queryKey],
-				});
-				await queryClient.refetchQueries({
-					queryKey: [queryKey],
-				});
+			// Refetch para atualizar canStartTrial quando trial não é mais permitido
+			if (
+				errorMessage.includes("já existe") ||
+				errorMessage.includes("já utilizou") ||
+				errorMessage.includes("já possui")
+			) {
+				await queryClient.invalidateQueries({ queryKey: [queryKey] });
+				await queryClient.refetchQueries({ queryKey: [queryKey] });
 			}
 		},
 		onSuccess: async () => {
@@ -323,6 +303,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 				cachedData.id !== "temp-trial-id"
 			) {
 				syncStores(cachedData);
+			}
+
+			// Gym: atualizar lista de academias após criar assinatura
+			if (userType === "gym") {
+				useGymsDataStore.getState().loadAllGyms();
 			}
 		},
 	});
@@ -365,7 +350,7 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 					status: "canceled",
 					canceledAt: new Date(),
 					cancelAtPeriodEnd: true,
-				};
+				} as SubscriptionData;
 
 				syncStores(canceledSubscription);
 				
@@ -408,6 +393,11 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 			]);
 			if (updatedData !== undefined) {
 				syncStores(updatedData);
+			}
+
+			// Gym: atualizar lista de academias (canCreateMultipleGyms, isActive)
+			if (userType === "gym") {
+				useGymsDataStore.getState().loadAllGyms();
 			}
 		},
 	});

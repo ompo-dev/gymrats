@@ -1,3 +1,4 @@
+import { clearAuthToken, getAuthToken } from "@/lib/auth/token-client";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { UserProfile } from "@/lib/types";
@@ -33,7 +34,7 @@ export const useAuthStore = create<AuthState>()(
 			logout: () => {
 				// Limpar localStorage também
 				if (typeof window !== "undefined") {
-					localStorage.removeItem("auth_token");
+					clearAuthToken();
 					localStorage.removeItem("userId");
 					localStorage.removeItem("userRole");
 					localStorage.removeItem("userEmail");
@@ -72,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
 					localStorage.removeItem("userRole");
 					localStorage.removeItem("isAdmin");
 
-					const token = localStorage.getItem("auth_token");
+					const token = getAuthToken();
 					const storedUserId = localStorage.getItem("userId");
 
 					// Se há token, restaurar estado inicial (apenas para UX)

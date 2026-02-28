@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
-import { muscleDatabase } from "@/lib/educational-data";
+import { muscleDatabase } from "@/lib/educational-data/muscles";
 import type { MuscleInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./empty-state";
@@ -257,13 +257,13 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
 
 	const _defaultSets = profile?.preferredSets || 3;
 	const _defaultReps = (() => {
-		const pref = profile?.preferredRepRange as any;
+		const pref = profile?.preferredRepRange;
 		if (pref === "forca") return "4-6";
 		if (pref === "resistencia") return "15-20";
 		return "8-12";
 	})();
 	const _defaultRest = (() => {
-		const rt = profile?.restTime as any;
+		const rt = profile?.restTime;
 		if (rt === "curto") return 45;
 		if (rt === "longo") return 120;
 		return 90;
@@ -307,12 +307,13 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
 					educationalId: ex.id,
 					name: ex.name, // Obrigatório para validação da API
 				})
-				.catch((e: any) => {
+				.catch((e: Error) => {
 					// Tratar erros em background (não bloqueia UI)
 					console.error("Erro ao adicionar exercício:", e);
+					const err = e as { message?: string; response?: { data?: { message?: string } } };
 					const errorMessage =
-						e?.message ||
-						e?.response?.data?.message ||
+						err?.message ||
+						err?.response?.data?.message ||
 						"Falha ao adicionar exercício";
 
 					// Mensagem específica para workout ainda não criado

@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getStudentContext } from "@/lib/utils/student-context";
+import { getStudentContext } from "@/lib/utils/student/student-context";
+import { getStudentSubscriptionSource } from "@/lib/utils/subscription";
 import { StudentProgressService } from "@/lib/services/student/student-progress.service";
 import { StudentWorkoutService } from "@/lib/services/student/student-workout.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";
@@ -137,17 +138,43 @@ export async function getStudentSubscription() {
 		const { ctx, error } = await getStudentContext();
 		if (error || !ctx) return null;
 
-		const sub = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
-		if (!sub) return null;
+		const subInfo = await getStudentSubscriptionSource(ctx.studentId);
+		if (subInfo.source === null) {
+			return null;
+		}
 
+		const sub = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
 		const now = new Date();
-		const trialEnd = sub.trialEnd ? new Date(sub.trialEnd) : null;
+		const trialEnd = sub?.trialEnd ? new Date(sub.trialEnd) : null;
 		const isTrialActive = trialEnd ? trialEnd > now : false;
 
+		let enterpriseGymName: string | undefined;
+		if (subInfo.source === "GYM_ENTERPRISE" && subInfo.gymId) {
+			const gym = await db.gym.findUnique({ where: { id: subInfo.gymId } });
+			enterpriseGymName = gym?.name;
+		}
+
+		const isVirtualEnterprise = !sub && subInfo.source === "GYM_ENTERPRISE";
+		const virtualPeriodEnd = new Date(now);
+		virtualPeriodEnd.setFullYear(virtualPeriodEnd.getFullYear() + 1);
+
+		// Trial só pode ser ativado uma vez: sem assinatura ou (plan free e nunca usou trial)
+		const canStartTrial = !sub || (sub.plan === "free" && !sub.trialStart);
+
 		return {
-			...sub,
+			id: sub?.id ?? (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
+			...subInfo,
+			abacatePayBillingId: sub?.abacatePayBillingId,
+			currentPeriodEnd:
+				sub?.currentPeriodEnd ?? (isVirtualEnterprise ? virtualPeriodEnd : undefined),
+			currentPeriodStart: sub?.currentPeriodStart ?? (isVirtualEnterprise ? now : undefined),
+			cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
 			isTrial: isTrialActive,
-			daysRemaining: trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24))) : null,
+			daysRemaining: trialEnd
+				? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24)))
+				: null,
+			enterpriseGymName,
+			canStartTrial,
 		};
 	} catch (error) {
 		console.error("[getStudentSubscription] Erro:", error);
@@ -161,29 +188,43 @@ export async function startStudentTrial() {
 		if (error || !ctx) return { error: "Não autenticado" };
 
 		const existing = await db.subscription.findUnique({ where: { studentId: ctx.studentId } });
-		if (existing) {
-			if (existing.status === "canceled") {
-				await db.subscription.delete({ where: { id: existing.id } });
-			} else {
-				return { error: "Assinatura já existe" };
-			}
+		// Trial só uma vez: já usou trial ou já assinou plano pago
+		if (existing?.trialStart) {
+			return { error: "Você já utilizou o trial anteriormente. Trial só pode ser ativado uma vez." };
+		}
+		if (existing && existing.plan !== "free") {
+			return { error: "Você já possui uma assinatura. Renove ou escolha um plano para continuar." };
 		}
 
 		const now = new Date();
 		const trialEnd = new Date(now);
 		trialEnd.setDate(trialEnd.getDate() + 14);
 
-		const subscription = await db.subscription.create({
-			data: {
-				studentId: ctx.studentId,
-				plan: "premium",
-				status: "trialing",
-				currentPeriodStart: now,
-				currentPeriodEnd: trialEnd,
-				trialStart: now,
-				trialEnd: trialEnd,
-			},
-		});
+		const subscription = existing
+			? await db.subscription.update({
+					where: { id: existing.id },
+					data: {
+						plan: "premium",
+						status: "trialing",
+						currentPeriodStart: now,
+						currentPeriodEnd: trialEnd,
+						trialStart: now,
+						trialEnd: trialEnd,
+						canceledAt: null,
+						cancelAtPeriodEnd: false,
+					},
+				})
+			: await db.subscription.create({
+					data: {
+						studentId: ctx.studentId,
+						plan: "premium",
+						status: "trialing",
+						currentPeriodStart: now,
+						currentPeriodEnd: trialEnd,
+						trialStart: now,
+						trialEnd: trialEnd,
+					},
+				});
 
 		return { success: true, subscription };
 	} catch (error) {

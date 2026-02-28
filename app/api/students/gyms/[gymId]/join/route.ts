@@ -40,6 +40,8 @@ export const POST = createSafeHandler(
 			);
 		}
 
+		// Todo aluno paga a mensalidade da academia. Benefício Premium do app é concedido
+		// apenas quando a academia é enterprise (sync no webhook ao ativar a membership).
 		const nextBillingDate = new Date();
 		nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
 

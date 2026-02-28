@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
 import {
 	getBrazilNutritionDateKey,
 	getBrazilNutritionDayRange,
@@ -81,7 +81,7 @@ export async function GET(
 					},
 				},
 			});
-		} catch (error: unknown) {
+		} catch (error) {
 			const err = error as { code?: string; message?: string };
 			if (err.code === "P2021" || err.message?.includes("does not exist")) {
 				return successResponse({

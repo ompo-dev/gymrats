@@ -21,7 +21,7 @@ model User {
   name          String
   emailVerified Boolean? // Better Auth usa boolean, não DateTime
   image         String?
-  role          UserRole  @default(STUDENT)
+  role          UserRole  @default(PENDING)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -38,6 +38,7 @@ model User {
 }
 
 enum UserRole {
+  PENDING // Usuário novo que ainda não escolheu tipo (aluno ou academia)
   STUDENT
   GYM
   ADMIN
@@ -295,6 +296,9 @@ model Gym {
   stats        GymStats?
   subscription GymSubscription?
   withdraws    GymWithdraw[]
+  
+  // Benefícios para alunos (enterprise)
+  assistedSubscriptions Subscription[] @relation("EnterpriseAssisted")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -970,13 +974,21 @@ model Friendship {
 // ASSINATURAS E MONETIZAÇÃO
 // ============================================
 
+enum SubscriptionSource {
+  OWN
+  GYM_ENTERPRISE
+}
+
 // Assinaturas de Alunos (Premium)
 model Subscription {
   id                 String    @id @default(cuid())
   studentId          String    @unique
   student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  plan               String    @default("free") // free, premium
+  plan               String    @default("free") // free, basic, premium
   status             String    @default("active") // active, canceled, expired, past_due, trialing
+  source             SubscriptionSource? @default(OWN)
+  enterpriseGymId    String?
+  enterpriseGym      Gym?      @relation("EnterpriseAssisted", fields: [enterpriseGymId], references: [id])
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)
@@ -987,6 +999,10 @@ model Subscription {
   // Gateway de pagamento (AbacatePay)
   abacatePayBillingId  String? @unique // ID da cobrança na AbacatePay
   abacatePayCustomerId String? // ID do cliente na AbacatePay
+
+  // Backup do fim do período OWN quando o aluno recebe Premium via GYM_ENTERPRISE.
+  // Ao sair da academia Enterprise, restauramos Premium OWN até esta data se ainda for futura.
+  ownPeriodEndBackup   DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1008,6 +1024,8 @@ model GymSubscription {
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)
   canceledAt         DateTime?
+  /** Quando true: foi cancelada porque a academia principal cancelou; pode ser restaurada se a principal voltar e o período não tiver expirado */
+  canceledBecausePrincipalCanceled Boolean?
   trialStart         DateTime?
   trialEnd           DateTime?
 

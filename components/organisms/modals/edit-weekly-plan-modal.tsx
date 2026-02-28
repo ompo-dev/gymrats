@@ -26,7 +26,9 @@ export function EditWeeklyPlanModal({
 	onPlanUpdated,
 	onAddWorkoutToSlot,
 }: EditWeeklyPlanModalProps) {
-	const weeklyPlan = useStudent("weeklyPlan");
+	const weeklyPlan = useStudent("weeklyPlan") as { title?: string; slots?: PlanSlotData[] } | null | undefined;
+	const slotsArray = Array.isArray(weeklyPlan?.slots) ? weeklyPlan.slots : [];
+	const planTitle = typeof weeklyPlan?.title === "string" ? weeklyPlan.title : "Plano semanal";
 	const { loadWeeklyPlan } = useStudent("loaders");
 	const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
 	const [chatSlotId, setChatSlotId] = useState<string | null>(null);
@@ -55,7 +57,7 @@ export function EditWeeklyPlanModal({
 	};
 
 	const handleRemoveWorkout = async (slotId: string) => {
-		const slot = weeklyPlan?.slots.find((s: PlanSlotData) => s.id === slotId);
+		const slot = slotsArray.find((s) => s.id === slotId);
 		if (!slot?.workout) return;
 
 		setLoadingSlotId(slotId);
@@ -117,7 +119,7 @@ export function EditWeeklyPlanModal({
 
 	return (
 		<Modal.Root isOpen={isOpen} onClose={onClose}>
-			<Modal.Header title={weeklyPlan.title} onClose={onClose}>
+			<Modal.Header title={planTitle} onClose={onClose}>
 				<div className="flex flex-col gap-1">
 					<p className="text-sm text-duo-gray">Edite os treinos de cada dia</p>
 					<DuoButton
@@ -138,7 +140,7 @@ export function EditWeeklyPlanModal({
 			</Modal.Header>
 			<Modal.Content>
 				<div className="space-y-4">
-				{weeklyPlan.slots.map((slot: PlanSlotData) => (
+				{slotsArray.map((slot) => (
 					<DuoCard.Root key={slot.id} variant="default" padding="md">
 						<div className="flex items-center justify-between gap-4">
 							<div className="flex items-center gap-3">
@@ -209,7 +211,7 @@ export function EditWeeklyPlanModal({
 			{chatSlotId && (
 				<WorkoutChat
 					planSlotId={chatSlotId}
-					slotContext={DAY_NAMES[weeklyPlan.slots.find((s: PlanSlotData) => s.id === chatSlotId)?.dayOfWeek ?? 0]}
+					slotContext={DAY_NAMES[slotsArray.find((s) => s.id === chatSlotId)?.dayOfWeek ?? 0]}
 					onClose={() => {
 						setChatSlotId(null);
 						loadWeeklyPlan(true);

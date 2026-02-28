@@ -8,6 +8,7 @@ import {
 	Loader2,
 	Sparkles,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,8 +16,16 @@ import { DuoButton } from "@/components/duo";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
 import { Step3 } from "./steps/step3";
-import { Step4 } from "./steps/step4";
 import type { GymOnboardingData } from "./steps/types";
+
+const Step4 = dynamic(() => import("./steps/step4").then((m) => ({ default: m.Step4 })), {
+	ssr: false,
+	loading: () => (
+		<div className="flex min-h-[200px] items-center justify-center">
+			<div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-orange border-t-transparent" />
+		</div>
+	),
+});
 
 function Confetti() {
 	if (typeof window === "undefined") return null;
@@ -124,12 +133,9 @@ export default function GymOnboardingPage() {
 					throw new Error(result.error || "Erro ao criar nova academia");
 				}
 
-				// Sinalizar que precisa refresh das academias
+				sessionStorage.removeItem("gymrats:onboarding-intent");
 				sessionStorage.setItem("refresh-gyms", "true");
-
-				// Forçar revalidação dos dados do servidor
 				router.refresh();
-
 				setTimeout(() => {
 					router.push("/gym?tab=dashboard");
 				}, 1500);
@@ -142,17 +148,14 @@ export default function GymOnboardingPage() {
 					throw new Error(result.error || "Erro ao salvar perfil");
 				}
 
-				// Sinalizar que precisa refresh das academias
+				sessionStorage.removeItem("gymrats:onboarding-intent");
 				sessionStorage.setItem("refresh-gyms", "true");
-
-				// Forçar revalidação dos dados do servidor
 				router.refresh();
-
 				setTimeout(() => {
 					router.push("/gym?tab=dashboard");
 				}, 1500);
 			}
-		} catch (error: unknown) {
+		} catch (error) {
 			const msg =
 				error instanceof Error
 					? error.message
@@ -182,19 +185,23 @@ export default function GymOnboardingPage() {
 	};
 
 	return (
-		<div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-orange scrollbar-hide">
+		<div className="relative flex min-h-screen flex-col overflow-hidden bg-duo-bg scrollbar-hide">
 			{showConfetti && <Confetti />}
 
-			{/* Botão voltar para modo "nova academia" */}
-			{isNewGymMode && (
+			{/* Botão voltar: nova academia → dashboard; onboarding inicial → user-type */}
+			{step === 1 && (
 				<div className="absolute top-4 left-4 z-50">
 					<DuoButton
-						onClick={() => router.push("/gym?tab=dashboard")}
+						onClick={() =>
+							router.push(
+								isNewGymMode ? "/gym?tab=dashboard" : "/auth/register/user-type",
+							)
+						}
 						variant="white"
 						className="gap-2"
 					>
 						<ArrowLeft className="h-4 w-4" />
-						Voltar ao Dashboard
+						{isNewGymMode ? "Voltar ao Dashboard" : "Voltar"}
 					</DuoButton>
 				</div>
 			)}
@@ -204,7 +211,7 @@ export default function GymOnboardingPage() {
 					Array.from({ length: 20 }, (_, i) => `particle-${i}`).map((id) => (
 						<motion.div
 							key={id}
-							className="absolute h-1 w-1 rounded-full bg-white/20"
+							className="absolute h-1 w-1 rounded-full bg-duo-fg/20"
 							style={{
 								left: `${Math.random() * 100}%`,
 								top: `${Math.random() * 100}%`,
@@ -232,10 +239,10 @@ export default function GymOnboardingPage() {
 							animate={{ opacity: 1, y: 0 }}
 							className="mb-6 text-center"
 						>
-							<h1 className="text-3xl font-black text-white">
+							<h1 className="text-3xl font-black text-duo-fg">
 								🏋️ Nova Academia
 							</h1>
-							<p className="text-lg text-white/90 mt-2">
+							<p className="text-lg text-duo-fg-muted mt-2">
 								Configure sua nova unidade
 							</p>
 						</motion.div>
@@ -259,8 +266,7 @@ export default function GymOnboardingPage() {
 			</div>
 
 			<div
-				className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/20 p-4 backdrop-blur-md"
-				style={{ backgroundColor: "#FFE5CC" }}
+				className="fixed bottom-0 left-0 right-0 z-40 border-t border-duo-border p-4 backdrop-blur-md bg-duo-bg-card"
 			>
 				<div className="mx-auto max-w-2xl">
 					<motion.div

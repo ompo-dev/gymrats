@@ -15,7 +15,7 @@ type UseGymSubscriptionReturn = {
 	subscription: GymSubscriptionData | null;
 	isLoading: boolean;
 	error: Error | null;
-	refetch: () => Promise<any>;
+	refetch: () => Promise<unknown>;
 	startTrial: () => Promise<{ success?: boolean; error?: string }>;
 	isStartingTrial: boolean;
 	createSubscription: (

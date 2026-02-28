@@ -1,6 +1,6 @@
 "use client";
 
-import { usePWAUpdate } from "@/lib/hooks/use-pwa-update";
+import { usePWAUpdate } from "@/hooks/use-pwa-update";
 import { AppUpdatingScreen } from "./app-updating-screen";
 
 function AppUpdatingScreenWrapperSimple() {

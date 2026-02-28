@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUserSession } from "@/hooks/use-user-session";
 import {
 	ColorPickerSection,
 	TabsSection,
@@ -12,6 +15,20 @@ import {
 } from "./components";
 
 export default function StudentThemeTestPage() {
+	const router = useRouter();
+	const { isAdmin, role } = useUserSession();
+	const userIsAdmin = isAdmin || role === "ADMIN";
+
+	useEffect(() => {
+		if (!userIsAdmin) {
+			router.replace("/student");
+		}
+	}, [userIsAdmin, router]);
+
+	if (!userIsAdmin) {
+		return null;
+	}
+
 	return (
 		<div className="space-y-8 p-4 pb-24">
 			<div className="flex items-center justify-between gap-4">

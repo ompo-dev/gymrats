@@ -60,7 +60,7 @@ export async function chatCompletion({
 			signal: controller.signal,
 		});
 		clearTimeout(timeoutId);
-	} catch (error: unknown) {
+	} catch (error) {
 		clearTimeout(timeoutId);
 		if (error instanceof Error && error.name === "AbortError") {
 			throw new Error("Timeout ao chamar API DeepSeek. Tente novamente.");

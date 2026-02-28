@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		return NextResponse.json(result.data);
-	} catch (error: unknown) {
+	} catch (error) {
 		console.error("Erro ao verificar código:", error);
 		const message =
 			error instanceof Error

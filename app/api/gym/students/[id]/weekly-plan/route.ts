@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { getGymContext } from "@/lib/utils/gym-context";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
 import { addDays, getWeekStart } from "@/lib/utils/week";
 import {
 	forbiddenResponse,

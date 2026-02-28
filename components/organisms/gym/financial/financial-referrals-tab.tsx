@@ -6,12 +6,13 @@ import type { Referral } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface FinancialReferralsTabProps {
-	referrals: Referral[];
+	referrals?: Referral[];
 }
 
 export function FinancialReferralsTab({
-	referrals,
+	referrals = [],
 }: FinancialReferralsTabProps) {
+	const list = Array.isArray(referrals) ? referrals : [];
 	return (
 		<DuoCard.Root variant="default" padding="md">
 			<DuoCard.Header>
@@ -21,12 +22,12 @@ export function FinancialReferralsTab({
 				</div>
 			</DuoCard.Header>
 			<div className="space-y-3">
-				{referrals.length === 0 && (
+				{list.length === 0 && (
 					<p className="py-8 text-center text-sm text-duo-gray-dark">
 						Nenhuma indicação registrada.
 					</p>
 				)}
-				{referrals.map((referral) => (
+				{list.map((referral) => (
 					<DuoCard.Root
 						key={referral.id}
 						variant="default"

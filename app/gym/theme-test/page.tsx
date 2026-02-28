@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useUserSession } from "@/hooks/use-user-session";
 import {
 	Dumbbell,
 	Flame,
@@ -19,6 +22,20 @@ import {
 } from "@/components/duo";
 
 export default function GymThemeTestPage() {
+	const router = useRouter();
+	const { isAdmin, role } = useUserSession();
+	const userIsAdmin = isAdmin || role === "ADMIN";
+
+	useEffect(() => {
+		if (!userIsAdmin) {
+			router.replace("/gym");
+		}
+	}, [userIsAdmin, router]);
+
+	if (!userIsAdmin) {
+		return null;
+	}
+
 	return (
 		<div className="space-y-8 p-4 pb-24">
 			<div className="flex items-center justify-between gap-4">

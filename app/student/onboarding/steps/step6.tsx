@@ -4,8 +4,7 @@ import { Activity, Thermometer } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
-import { DuoInput } from "@/components/duo";
-import { StepCard } from "@/components/molecules/cards/step-card";
+import { DuoCard, DuoInput } from "@/components/duo";
 import { RangeSlider } from "@/components/ui/range-slider";
 import { type step5Schema_Activity, validateStep5 } from "../schemas";
 import type { StepProps } from "./types";
@@ -114,11 +113,26 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
     activityLevelDescriptions[4];
 
   return (
-    <StepCard.Simple
-      title="Nível de Atividade e Disponibilidade"
-      description="Ajuste fino para cálculos mais precisos"
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
     >
-      <div className="space-y-6">
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+            Nível de Atividade e Disponibilidade
+          </h2>
+          <p className="text-sm text-duo-fg-muted">
+            Ajuste fino para cálculos mais precisos
+          </p>
+        </div>
+        <div className="space-y-6">
         {/* Nível de Atividade - Termômetro 1-10 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -128,7 +142,7 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
         >
           <div className="flex items-center gap-2">
             <Thermometer className="h-5 w-5 text-duo-green" />
-            <span className="block text-sm font-bold text-gray-900">
+            <span className="block text-sm font-bold text-duo-fg">
               Nível de Atividade Física (1-10)
             </span>
           </div>
@@ -163,24 +177,24 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
           >
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-gray-900">
+                <span className="text-lg font-bold text-duo-fg">
                   {activityInfo.label}
                 </span>
                 <span className="text-2xl font-black text-duo-green">
                   {currentActivityLevel}/10
                 </span>
               </div>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-duo-fg-muted">
                 {activityInfo.description}
               </p>
-              <p className="text-xs text-gray-600 italic">
+              <p className="text-xs text-duo-fg-muted italic">
                 Exemplo: {activityInfo.example}
               </p>
             </div>
           </motion.div>
 
           {touched.activityLevel && errors.activityLevel && (
-            <p className="text-sm font-bold text-red-500">
+            <p className="text-sm font-bold text-duo-danger">
               {errors.activityLevel}
             </p>
           )}
@@ -196,11 +210,11 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
           >
             <div className="flex items-center gap-2">
               <Activity className="h-5 w-5 text-duo-green" />
-              <span className="block text-sm font-bold text-gray-900">
+              <span className="block text-sm font-bold text-duo-fg">
                 Tempo de Tratamento Hormonal
               </span>
             </div>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-duo-fg-muted">
               Há quantos meses você faz uso de{" "}
               {formData.hormoneType === "testosterone"
                 ? "testosterona"
@@ -224,10 +238,9 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
                 }
                 const n = parseFloat(v);
                 if (!Number.isNaN(n)) {
-                  const clamped = Math.min(120, Math.max(0, n));
                   setFormData({
                     ...formData,
-                    hormoneTreatmentDuration: clamped,
+                    hormoneTreatmentDuration: n,
                   });
                 }
                 setTouched((prev) => ({
@@ -250,6 +263,7 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
           </motion.div>
         )}
       </div>
-    </StepCard.Simple>
+      </DuoCard.Root>
+    </motion.div>
   );
 }

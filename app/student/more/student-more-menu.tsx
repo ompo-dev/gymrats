@@ -1,12 +1,13 @@
 "use client";
 
 import {
+	BarChart3,
 	BookOpen,
 	Crown,
-	Heart,
 	type LucideIcon,
 	MapPin,
 	Palette,
+	Settings,
 	Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +16,6 @@ import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
-import { useToast } from "@/hooks/use-toast";
 import { useUserSession } from "@/hooks/use-user-session";
 
 interface MoreMenuItem {
@@ -24,23 +24,12 @@ interface MoreMenuItem {
 	label: string;
 	description: string;
 	color: "duo-red" | "duo-green" | "duo-blue" | "duo-purple" | "duo-yellow";
+	adminOnly?: boolean;
 }
 
+// Para não-admin: apenas Academias, Pagamentos e Assinatura Premium.
+// Itens com adminOnly só aparecem para admins.
 const moreMenuItems: MoreMenuItem[] = [
-	{
-		id: "cardio",
-		icon: Heart,
-		label: "Cardio e Funcional",
-		description: "Corrida, natação, exercícios funcionais",
-		color: "duo-red",
-	},
-	{
-		id: "education",
-		icon: BookOpen,
-		label: "Aprender",
-		description: "Anatomia, lições e quizzes",
-		color: "duo-green",
-	},
 	{
 		id: "gyms",
 		icon: MapPin,
@@ -63,11 +52,36 @@ const moreMenuItems: MoreMenuItem[] = [
 		color: "duo-yellow",
 	},
 	{
+		id: "home",
+		icon: BarChart3,
+		label: "Estatísticas",
+		description: "Resumo e evolução",
+		color: "duo-blue",
+		adminOnly: true,
+	},
+	{
+		id: "profile",
+		icon: Settings,
+		label: "Configurações",
+		description: "Perfil e preferências",
+		color: "duo-green",
+		adminOnly: true,
+	},
+	{
+		id: "education",
+		icon: BookOpen,
+		label: "Aprender",
+		description: "Anatomia, lições e quizzes",
+		color: "duo-purple",
+		adminOnly: true,
+	},
+	{
 		id: "theme-test",
 		icon: Palette,
 		label: "Teste de Tema",
 		description: "Tabs, cards, stats e color picker",
 		color: "duo-yellow",
+		adminOnly: true,
 	},
 ];
 
@@ -77,37 +91,26 @@ export function StudentMoreMenu() {
 		"subTab",
 		parseAsString.withDefault("memberships"),
 	);
-	const { toast } = useToast();
-
-	// ✅ SEGURO: Verificar se é admin validando no servidor
 	const { isAdmin, role } = useUserSession();
 	const userIsAdmin = isAdmin || role === "ADMIN";
 
-	// Rotas bloqueadas para não-admin (versão beta)
-	// gyms, payments e subscription liberados para todos os alunos
-	const blockedItems = ["cardio"];
-
-	// Filtrar itens bloqueados se não for admin
-	const visibleMenuItems = userIsAdmin
-		? moreMenuItems
-		: moreMenuItems.filter((item) => !blockedItems.includes(item.id));
+	const visibleMenuItems = moreMenuItems.filter(
+		(item) => !item.adminOnly || userIsAdmin,
+	);
 
 	const handleItemClick = async (itemId: string) => {
-		if (itemId === "theme-test") return; // Link externo
-		// Bloquear acesso se não for admin e item estiver bloqueado
-		if (!userIsAdmin && blockedItems.includes(itemId)) {
-			toast({
-				variant: "destructive",
-				title: "Funcionalidade indisponível",
-				description:
-					"Esta funcionalidade está disponível apenas para administradores durante a versão beta.",
-			});
-			return;
-		}
-
+		if (itemId === "theme-test") return;
 		if (itemId === "subscription") {
 			await setTab("payments");
 			await setSubTab("subscription");
+			return;
+		}
+		if (itemId === "home") {
+			await setTab("home");
+			return;
+		}
+		if (itemId === "payments") {
+			await setTab("payments");
 			return;
 		}
 		setTab(itemId);

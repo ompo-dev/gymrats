@@ -10,14 +10,13 @@ export const POST = createSafeHandler(
 		});
 
 		if (existingSubscription) {
-			if (existingSubscription.status === "canceled") {
-				await db.gymSubscription.delete({ where: { id: existingSubscription.id } });
-			} else {
-				return NextResponse.json(
-					{ error: "Assinatura já existe" },
-					{ status: 400 },
-				);
-			}
+			// Se já existe uma assinatura (ativa, trial ou cancelada), não sobrescrevemos o histórico.
+			// Especialmente importante para casos em que a academia foi cancelada por causa da principal
+			// (canceledBecausePrincipalCanceled) e será restaurada automaticamente.
+			return NextResponse.json(
+				{ error: "Já existe uma assinatura para esta academia. Conclua a renovação ou aguarde a restauração automática." },
+				{ status: 400 },
+			);
 		}
 
 		const now = new Date();
