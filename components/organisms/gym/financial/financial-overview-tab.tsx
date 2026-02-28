@@ -2,18 +2,36 @@
 
 import {
 	AlertCircle,
+	Banknote,
 	CreditCard,
 	DollarSign,
 	TrendingDown,
 	TrendingUp,
+	Wallet,
 } from "lucide-react";
+import { useState } from "react";
 import {
 	DuoAlert,
+	DuoButton,
 	DuoCard,
 	DuoStatCard,
 	DuoStatsGrid,
 } from "@/components/duo";
+import { createGymWithdraw } from "@/app/gym/actions";
+import { useToast } from "@/hooks/use-toast";
 import type { FinancialSummary, Payment } from "@/lib/types";
+import { formatDatePtBr } from "@/lib/utils/date-safe";
+
+interface WithdrawItem {
+	id: string;
+	amount: number;
+	pixKey: string;
+	pixKeyType: string;
+	externalId: string;
+	status: string;
+	createdAt: Date;
+	completedAt: Date | null;
+}
 
 interface FinancialOverviewTabProps {
 	financialSummary: FinancialSummary;
@@ -24,16 +42,62 @@ interface FinancialOverviewTabProps {
 		status: string;
 		currentPeriodEnd: Date;
 	} | null;
+	balanceReais: number;
+	balanceCents: number;
+	withdraws: WithdrawItem[];
+	/** Quando true, saque é simulado (só persiste no DB). Remover para produção. */
+	fakeWithdraw?: boolean;
 }
 
 export function FinancialOverviewTab({
 	financialSummary,
 	payments,
 	subscription,
+	balanceReais,
+	balanceCents,
+	withdraws,
+	fakeWithdraw = true,
 }: FinancialOverviewTabProps) {
+	const { toast } = useToast();
+	const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+	const [withdrawAmount, setWithdrawAmount] = useState("");
+	const [isWithdrawing, setIsWithdrawing] = useState(false);
+
 	const formatCurrency = (value: number | undefined | null) => {
 		if (value == null || Number.isNaN(value)) return "R$ 0,00";
-		return `R$ ${value.toLocaleString("pt-BR")}`;
+		return `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+	};
+
+	const handleWithdraw = async () => {
+		const reais = Number.parseFloat(withdrawAmount.replace(",", "."));
+		if (Number.isNaN(reais) || reais < 3.5) {
+			toast({ variant: "destructive", title: "Valor mínimo: R$ 3,50" });
+			return;
+		}
+		const amountCents = Math.floor(reais * 100);
+		if (amountCents > balanceCents) {
+			toast({ variant: "destructive", title: "Saldo insuficiente" });
+			return;
+		}
+		setIsWithdrawing(true);
+		try {
+			const result = await createGymWithdraw({ amountCents, fake: fakeWithdraw });
+			if (result.success) {
+				toast({
+					title: fakeWithdraw ? "Saque simulado" : "Saque solicitado",
+					description: fakeWithdraw
+						? "Em modo dev o valor foi registrado localmente. Em produção o PIX será processado."
+						: `R$ ${reais.toFixed(2)} enviado para sua chave PIX.`,
+				});
+				setWithdrawModalOpen(false);
+				setWithdrawAmount("");
+				window.location.reload();
+			} else {
+				toast({ variant: "destructive", title: result.error });
+			}
+		} finally {
+			setIsWithdrawing(false);
+		}
 	};
 
 	return (
@@ -60,6 +124,105 @@ export function FinancialOverviewTab({
 					atrasado(s) de alunos, totalizando{" "}
 					{formatCurrency(financialSummary.overduePayments)}.
 				</DuoAlert>
+			)}
+
+			{/* Saldo disponível + Sacar */}
+			<DuoCard.Root variant="default" padding="md">
+				<DuoCard.Header>
+					<div className="flex items-center gap-2">
+						<Wallet className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
+						<h2 className="font-bold text-[var(--duo-fg)]">Saldo disponível</h2>
+					</div>
+					<DuoButton
+						size="sm"
+						onClick={() => setWithdrawModalOpen(true)}
+						disabled={balanceCents < 350}
+					>
+						<Banknote className="h-4 w-4" />
+						Sacar
+					</DuoButton>
+				</DuoCard.Header>
+				<div className="text-2xl font-bold text-duo-green">
+					{formatCurrency(balanceReais)}
+				</div>
+				{balanceCents < 350 && (
+					<p className="text-xs text-duo-gray-dark">Mínimo para saque: R$ 3,50</p>
+				)}
+				{fakeWithdraw && (
+					<p className="mt-2 text-xs text-duo-orange">Modo dev: saques são simulados (sem transferência real).</p>
+				)}
+			</DuoCard.Root>
+
+			{withdrawModalOpen && (
+				<div
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+					onClick={(e) => e.target === e.currentTarget && setWithdrawModalOpen(false)}
+				>
+					<DuoCard.Root className="w-full max-w-sm">
+						<DuoCard.Header>
+							<h3 className="font-bold">Sacar</h3>
+						</DuoCard.Header>
+						<div className="space-y-3">
+							<label className="block text-sm font-medium text-duo-text">
+								Valor (R$)
+							</label>
+							<input
+								type="text"
+								inputMode="decimal"
+								placeholder="0,00"
+								value={withdrawAmount}
+								onChange={(e) => setWithdrawAmount(e.target.value)}
+								className="w-full rounded-lg border border-duo-border px-3 py-2 text-duo-text"
+							/>
+							<p className="text-xs text-duo-gray-dark">
+								Disponível: {formatCurrency(balanceReais)} • Mín. R$ 3,50
+							</p>
+							<div className="flex gap-2">
+								<DuoButton
+									variant="secondary"
+									className="flex-1"
+									onClick={() => setWithdrawModalOpen(false)}
+								>
+									Cancelar
+								</DuoButton>
+								<DuoButton
+									className="flex-1"
+									onClick={handleWithdraw}
+									disabled={isWithdrawing}
+								>
+									{isWithdrawing ? "Processando..." : "Sacar"}
+								</DuoButton>
+							</div>
+						</div>
+					</DuoCard.Root>
+				</div>
+			)}
+
+			{/* Histórico de saques */}
+			{withdraws.length > 0 && (
+				<DuoCard.Root variant="default" padding="md">
+					<DuoCard.Header>
+						<h2 className="font-bold text-[var(--duo-fg)]">Saques</h2>
+					</DuoCard.Header>
+					<div className="space-y-2">
+						{withdraws.map((w) => (
+							<div
+								key={w.id}
+								className="flex items-center justify-between rounded-lg border border-duo-border p-3"
+							>
+								<div>
+									<p className="font-bold text-duo-text">{formatCurrency(w.amount)}</p>
+									<p className="text-xs text-duo-gray-dark">
+										{formatDatePtBr(w.createdAt)} • {w.status === "complete" || w.status === "completed" ? "Concluído" : w.status}
+									</p>
+								</div>
+								<span className="text-xs text-duo-gray-dark">
+									{w.pixKeyType} •••{String(w.pixKey).slice(-4)}
+								</span>
+							</div>
+						))}
+					</div>
+				</DuoCard.Root>
 			)}
 
 			<DuoStatsGrid.Root columns={2} className="gap-3">

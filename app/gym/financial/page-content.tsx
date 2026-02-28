@@ -9,13 +9,11 @@ import type {
 	Expense,
 	FinancialSummary,
 	Payment,
-	Referral,
 } from "@/lib/types";
 import { FinancialCouponsTab } from "@/components/organisms/gym/financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "@/components/organisms/gym/financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
 import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
-import { FinancialReferralsTab } from "@/components/organisms/gym/financial/financial-referrals-tab";
 import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
 import { FinancialTabsNavigation } from "@/components/organisms/gym/financial/financial-tabs-navigation";
 
@@ -23,7 +21,11 @@ interface FinancialPageProps {
 	financialSummary: FinancialSummary;
 	payments: Payment[];
 	coupons: Coupon[];
-	referrals: Referral[];
+	balanceReais: number;
+	balanceCents: number;
+	withdraws: { id: string; amount: number; pixKey: string; pixKeyType: string; externalId: string; status: string; createdAt: Date; completedAt: Date | null }[];
+	/** Quando true, saque só persiste no DB (dev). Remover para usar AbacatePay real. */
+	fakeWithdraw?: boolean;
 	expenses: Expense[];
 	subscription?: {
 		id: string;
@@ -49,7 +51,10 @@ export default function FinancialPage({
 	financialSummary,
 	payments,
 	coupons,
-	referrals,
+	balanceReais,
+	balanceCents,
+	withdraws,
+	fakeWithdraw = true,
 	expenses,
 	subscription: initialSubscription,
 }: FinancialPageProps) {
@@ -65,7 +70,6 @@ export default function FinancialPage({
 		| "overview"
 		| "payments"
 		| "coupons"
-		| "referrals"
 		| "expenses"
 		| "subscription";
 	const [viewMode, setViewMode] = useState<ViewMode>(
@@ -75,35 +79,17 @@ export default function FinancialPage({
 	useEffect(() => {
 		if (subTab) {
 			setViewMode(
-				subTab as
-					| "overview"
-					| "payments"
-					| "coupons"
-					| "referrals"
-					| "expenses"
-					| "subscription",
+				(subTab === "referrals" ? "overview" : subTab) as ViewMode,
 			);
 		} else if (view) {
 			setViewMode(
-				view as
-					| "overview"
-					| "payments"
-					| "coupons"
-					| "referrals"
-					| "expenses"
-					| "subscription",
+				(view === "referrals" ? "overview" : view) as ViewMode,
 			);
 		}
 	}, [subTab, view]);
 
 	const handleTabChange = (tab: string) => {
-		const newViewMode = tab as
-			| "overview"
-			| "payments"
-			| "coupons"
-			| "referrals"
-			| "expenses"
-			| "subscription";
+		const newViewMode = (tab === "referrals" ? "overview" : tab) as ViewMode;
 		setViewMode(newViewMode);
 		setView(newViewMode);
 		setSubTab(newViewMode);
@@ -134,16 +120,16 @@ export default function FinancialPage({
 					financialSummary={financialSummary}
 					payments={payments}
 					subscription={initialSubscription}
+					balanceReais={balanceReais}
+					balanceCents={balanceCents}
+					withdraws={withdraws}
+					fakeWithdraw={fakeWithdraw}
 				/>
 			)}
 
 			{viewMode === "payments" && <FinancialPaymentsTab payments={payments} />}
 
 			{viewMode === "coupons" && <FinancialCouponsTab coupons={coupons} />}
-
-			{viewMode === "referrals" && (
-				<FinancialReferralsTab referrals={referrals} />
-			)}
 
 			{viewMode === "expenses" && <FinancialExpensesTab expenses={expenses} />}
 

@@ -396,6 +396,40 @@ class AbacatePayClient {
 		}
 	}
 
+	/** Lista todos os saques (AbacatePay). */
+	async listWithdraws(): Promise<AbacatePayResponse<WithdrawTransaction[]>> {
+		try {
+			const response = await this.client.get<
+				AbacatePayResponse<WithdrawTransaction[]>
+			>("/withdraw/list");
+			return response.data;
+		} catch (error) {
+			const err = error as ApiError;
+			return {
+				data: null,
+				error: err.response?.data?.error || err.message || null,
+			};
+		}
+	}
+
+	/** Busca um saque pelo externalId (AbacatePay). */
+	async getWithdraw(
+		externalId: string,
+	): Promise<AbacatePayResponse<WithdrawTransaction>> {
+		try {
+			const response = await this.client.get<
+				AbacatePayResponse<WithdrawTransaction>
+			>("/withdraw/get", { params: { externalId } });
+			return response.data;
+		} catch (error) {
+			const err = error as ApiError;
+			return {
+				data: null,
+				error: err.response?.data?.error || err.message || null,
+			};
+		}
+	}
+
 	// ============================================
 	// CUPONS
 	// ============================================
@@ -406,7 +440,14 @@ class AbacatePayClient {
 		try {
 			const response = await this.client.post<AbacatePayResponse<Coupon>>(
 				"/coupon/create",
-				{ data },
+				{
+					code: data.code,
+					notes: data.notes ?? "",
+					maxRedeems: data.maxRedeems ?? -1,
+					discountKind: data.discountKind,
+					discount: data.discount,
+					metadata: data.metadata ?? {},
+				},
 			);
 			return response.data;
 		} catch (error) {
