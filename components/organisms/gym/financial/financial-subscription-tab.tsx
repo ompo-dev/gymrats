@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   GYM_PLANS_CONFIG,
   centsToReais,
@@ -306,14 +306,18 @@ export function FinancialSubscriptionTab({
         onStartTrial={handleStartTrial}
         onSubscribe={handleSubscribe}
         onCancel={handleCancel}
-        plans={Object.values(GYM_PLANS_CONFIG).map((config) => ({
-          id: config.id,
-          name: config.name,
-          monthlyPrice: centsToReais(config.prices.monthly),
-          annualPrice: centsToReais(config.prices.annual),
-          perStudentPrice: centsToReais(config.pricePerStudent),
-          features: config.features,
-        }))}
+        plans={useMemo(
+          () =>
+            Object.values(GYM_PLANS_CONFIG).map((config) => ({
+              id: config.id,
+              name: config.name,
+              monthlyPrice: centsToReais(config.prices.monthly),
+              annualPrice: centsToReais(config.prices.annual),
+              perStudentPrice: centsToReais(config.pricePerStudent),
+              features: config.features,
+            })),
+          [],
+        )}
         showPlansWhen="always"
         trialEndingDays={3}
         texts={{

@@ -9,7 +9,10 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useCallback,
+  useMemo,
 } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -65,8 +68,8 @@ function DuoSelectSimple({
   const listboxId = useId();
   const labelId = useId();
 
-  // Calcula posição do dropdown e direção (cima/baixo) - usa Portal com position fixed
-  function updateDropdownPosition() {
+  // Calcula posição do dropdown e direção (cima/baixo) - usa Portal com position fixed - Memoizado para evitar loops
+  const updateDropdownPosition = React.useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -78,7 +81,7 @@ function DuoSelectSimple({
       width: rect.width,
       top: opensUp ? rect.top - DROPDOWN_MAX_HEIGHT - 4 : rect.bottom + 4,
     });
-  }
+  }, [triggerRef]);
 
   useLayoutEffect(() => {
     if (!isOpen) {

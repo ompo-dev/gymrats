@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   type StudentSubscriptionData,
   useSubscriptionUnified,
@@ -33,10 +34,15 @@ type UseSubscriptionReturn = {
 export function useSubscription(
   options?: UseSubscriptionOptions,
 ): UseSubscriptionReturn {
-  const result = useSubscriptionUnified({
-    userType: "student",
-    ...options,
-  });
+  const memoizedOptions = React.useMemo(
+    () => ({
+      userType: "student" as const,
+      ...options,
+    }),
+    [options?.enabled, options?.includeDaysRemaining, options?.includeTrialInfo],
+  );
+
+  const result = useSubscriptionUnified(memoizedOptions);
 
   return {
     ...result,

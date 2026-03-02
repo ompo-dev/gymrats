@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { apiClient } from "@/lib/api/client";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -78,18 +78,22 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
   const queryClient = useQueryClient();
   const { userType, enabled = true } = options;
 
-  const { setSubscription, setGymSubscription } = useSubscriptionStore();
-  const studentUnifiedStore = useStudentUnifiedStore();
+  const setSubscription = useSubscriptionStore((s) => s.setSubscription);
+  const setGymSubscription = useSubscriptionStore((s) => s.setGymSubscription);
+  const updateSubscription = useStudentUnifiedStore((s) => s.updateSubscription);
 
-  // Helper para atualizar ambos os stores
-  const syncStores = (sub: SubscriptionData | null) => {
-    if (userType === "student") {
-      setSubscription(sub as any);
-      studentUnifiedStore.updateSubscription(sub as any);
-    } else {
-      setGymSubscription(sub as any);
-    }
-  };
+  // Helper para atualizar ambos os stores - Memoizado para evitar loops
+  const syncStores = React.useCallback(
+    (sub: SubscriptionData | null) => {
+      if (userType === "student") {
+        setSubscription(sub as any);
+        updateSubscription(sub as any);
+      } else {
+        setGymSubscription(sub as any);
+      }
+    },
+    [userType, setSubscription, setGymSubscription, updateSubscription],
+  );
 
   const queryKey = userType === "student" ? "subscription" : "gym-subscription";
   const currentEndpoint =

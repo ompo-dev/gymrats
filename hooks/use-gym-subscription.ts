@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { GymSubscriptionData } from "./use-subscription-unified";
 import { useSubscriptionUnified } from "./use-subscription-unified";
 
@@ -9,6 +10,7 @@ interface UseGymSubscriptionOptions {
   includeDaysRemaining?: boolean;
   includeTrialInfo?: boolean;
   includeActiveStudents?: boolean;
+  enabled?: boolean;
 }
 
 type UseGymSubscriptionReturn = {
@@ -30,10 +32,20 @@ type UseGymSubscriptionReturn = {
 export function useGymSubscription(
   options?: UseGymSubscriptionOptions,
 ): UseGymSubscriptionReturn {
-  const result = useSubscriptionUnified({
-    userType: "gym",
-    ...options,
-  });
+  const memoizedOptions = React.useMemo(
+    () => ({
+      userType: "gym" as const,
+      ...options,
+    }),
+    [
+      options?.enabled,
+      options?.includeDaysRemaining,
+      options?.includeTrialInfo,
+      options?.includeActiveStudents,
+    ],
+  );
+
+  const result = useSubscriptionUnified(memoizedOptions);
 
   return {
     ...result,
