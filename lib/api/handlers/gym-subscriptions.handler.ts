@@ -7,6 +7,10 @@
 import type { NextRequest, NextResponse } from "next/server";
 import { getGymSubscription, startGymTrial } from "@/app/gym/actions";
 import { db } from "@/lib/db";
+import {
+  centsToReais,
+  getGymPlanConfig,
+} from "@/lib/access-control/plans-config";
 import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validation.middleware";
@@ -62,7 +66,7 @@ export async function createGymSubscriptionHandler(
     // Se for ADMIN, garantir que tenha perfil de gym
     let gymId: string | null = null;
     if (auth.user.role === "ADMIN") {
-      const existingGym = await db.gym.findUnique({
+      const existingGym = await db.gym.findFirst({
         where: { userId: userId },
       });
 
@@ -70,10 +74,10 @@ export async function createGymSubscriptionHandler(
         const newGym = await db.gym.create({
           data: {
             userId: userId,
-            name: auth.user.name || "",
+            name: String(auth.user.name || ""),
             address: "",
             phone: "",
-            email: auth.user.email || "",
+            email: String(auth.user.email || ""),
             plan: "basic",
           },
         });
@@ -110,12 +114,16 @@ export async function createGymSubscriptionHandler(
     });
 
     const now = new Date();
-    const planPrices = {
-      basic: { base: 150, perStudent: 1.5 },
-      premium: { base: 250, perStudent: 1 },
-      enterprise: { base: 400, perStudent: 0.5 },
-    };
-    const prices = planPrices[plan as keyof typeof planPrices];
+    const config = getGymPlanConfig(plan);
+    if (!config) {
+      return badRequestResponse("Plano inválido");
+    }
+
+    const basePrice = centsToReais(
+      config.prices[billingPeriod as "monthly" | "annual"],
+    );
+    const pricePerStudent =
+      billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
 
     // Calcular período
     const periodEnd = new Date(now);
@@ -133,8 +141,8 @@ export async function createGymSubscriptionHandler(
           plan,
           billingPeriod,
           status: "active",
-          basePrice: prices.base,
-          pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+          basePrice,
+          pricePerStudent,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
           canceledAt: null,
@@ -191,7 +199,7 @@ export async function startGymTrialHandler(
     }
 
     return successResponse({
-      subscription: result.subscription,
+      subscription: (result as { subscription: object }).subscription,
     });
   } catch (error) {
     console.error("[startGymTrialHandler] Erro:", error);
@@ -217,7 +225,7 @@ export async function cancelGymSubscriptionHandler(
     // Se for ADMIN, garantir que tenha perfil de gym
     let gymId: string | null = null;
     if (auth.user.role === "ADMIN") {
-      const existingGym = await db.gym.findUnique({
+      const existingGym = await db.gym.findFirst({
         where: { userId: userId },
       });
 

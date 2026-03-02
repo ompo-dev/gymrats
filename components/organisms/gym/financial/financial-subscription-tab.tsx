@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
@@ -262,28 +266,7 @@ export function FinancialSubscriptionTab({
     }
   };
 
-  // Preços mensais base (em reais)
-  const monthlyBasePrices = {
-    basic: 150,
-    premium: 250,
-    enterprise: 400,
-  };
 
-  // Preços por aluno/mês (em reais)
-  const perStudentPrices = {
-    basic: 1.5,
-    premium: 1,
-    enterprise: 0.5,
-  };
-
-  // Preços anuais com descontos diferenciados (em reais)
-  // No plano anual, não há cobrança por aluno
-  // Basic: 5% desconto, Premium: 10% desconto, Enterprise: 15% desconto
-  const annualPrices = {
-    basic: Math.round(monthlyBasePrices.basic * 12 * 0.95), // 5% desconto
-    premium: Math.round(monthlyBasePrices.premium * 12 * 0.9), // 10% desconto
-    enterprise: Math.round(monthlyBasePrices.enterprise * 12 * 0.85), // 15% desconto
-  };
 
   return (
     <>
@@ -323,50 +306,14 @@ export function FinancialSubscriptionTab({
         onStartTrial={handleStartTrial}
         onSubscribe={handleSubscribe}
         onCancel={handleCancel}
-        plans={[
-          {
-            id: "basic",
-            name: "Básico",
-            monthlyPrice: monthlyBasePrices.basic,
-            annualPrice: annualPrices.basic,
-            perStudentPrice: perStudentPrices.basic,
-            features: [
-              "1 unidade (uma academia)",
-              "Gestão de alunos e check-ins",
-              "Planos de mensalidade e cobrança",
-              "Dashboard e relatórios básicos",
-              "Suporte por email",
-            ],
-          },
-          {
-            id: "premium",
-            name: "Premium",
-            monthlyPrice: monthlyBasePrices.premium,
-            annualPrice: annualPrices.premium,
-            perStudentPrice: perStudentPrices.premium,
-            features: [
-              "Todas as features do Plano Básico",
-              "Múltiplas unidades (academias)",
-              "Relatórios avançados e métricas",
-              "Suporte prioritário",
-              "Integrações (contabilidade, etc.)",
-            ],
-          },
-          {
-            id: "enterprise",
-            name: "Enterprise",
-            monthlyPrice: monthlyBasePrices.enterprise,
-            annualPrice: annualPrices.enterprise,
-            perStudentPrice: perStudentPrices.enterprise,
-            features: [
-              "Todas as features do Plano Premium",
-              "Plano Basic gratuito para todos os seus alunos",
-              "Suporte dedicado",
-              "Relatórios personalizados",
-              "API e integrações ilimitadas",
-            ],
-          },
-        ]}
+        plans={Object.values(GYM_PLANS_CONFIG).map((config) => ({
+          id: config.id,
+          name: config.name,
+          monthlyPrice: centsToReais(config.prices.monthly),
+          annualPrice: centsToReais(config.prices.annual),
+          perStudentPrice: centsToReais(config.pricePerStudent),
+          features: config.features,
+        }))}
         showPlansWhen="always"
         trialEndingDays={3}
         texts={{

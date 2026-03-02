@@ -9,6 +9,10 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { createAbacateBilling } from "@/lib/actions/payments/abacate-pay";
 import { apiClient } from "@/lib/api/client";
+import {
+  STUDENT_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 
@@ -214,23 +218,14 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     .reduce((sum: number, m: StudentGymMembership) => sum + m.amount, 0);
 
   const availablePlans = useMemo(
-    () => [
-      {
-        id: "premium",
-        name: "Premium",
-        monthlyPrice: 15,
-        annualPrice: 150.0,
-        features: [
-          "Treinos personalizados com IA",
-          "Planos de dieta com IA",
-          "Análise de postura",
-          "Acompanhamento de progresso e métricas",
-          "Histórico de treinos e recordes",
-          "Integração com academias parceiras",
-          "Suporte prioritário",
-        ],
-      },
-    ],
+    () =>
+      Object.values(STUDENT_PLANS_CONFIG).map((config) => ({
+        id: config.id,
+        name: config.name,
+        monthlyPrice: centsToReais(config.prices.monthly),
+        annualPrice: centsToReais(config.prices.annual),
+        features: config.features,
+      })),
     [],
   );
 

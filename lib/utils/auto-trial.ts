@@ -1,3 +1,7 @@
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
 
 export type StudentTrialResult =
@@ -99,8 +103,8 @@ export async function initializeGymTrial(gymId: string) {
         plan: "basic",
         billingPeriod: "monthly", // Trial sempre é mensal
         status: "trialing",
-        basePrice: 150,
-        pricePerStudent: 1.5,
+        basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
+        pricePerStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
         currentPeriodStart: now,
         currentPeriodEnd: trialEnd,
         trialStart: now,

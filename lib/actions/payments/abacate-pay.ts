@@ -1,5 +1,6 @@
 "use server";
 
+import { STUDENT_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
@@ -18,20 +19,17 @@ export async function createAbacateBilling(
     const { student, user } = contextResult.ctx;
     const studentId = String(student.id);
 
-    // Preços em centavos
-    const prices: Record<string, Record<string, number>> = {
-      premium: {
-        monthly: 1500, // R$ 15,00
-        annual: 15000, // R$ 150,00
-      },
-    };
+    const config =
+      STUDENT_PLANS_CONFIG[
+        planId.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+      ];
+    const price = config?.prices[billingPeriod as "monthly" | "annual"];
 
-    const price = prices[planId]?.[billingPeriod];
-    if (!price) {
+    if (!price || !config) {
       throw new Error("Plano ou período de cobrança inválido.");
     }
 
-    const planName = planId === "premium" ? "Assinatura Premium" : "Assinatura";
+    const planName = `Assinatura ${config.name}`;
     const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

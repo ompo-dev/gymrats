@@ -1,3 +1,7 @@
+import {
+  getGymPlanConfig,
+  getStudentPlanConfig,
+} from "@/lib/access-control/plans-config";
 import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
@@ -209,7 +213,8 @@ export async function canUseFeature(
 
 export async function createStudentSubscriptionBilling(
   studentId: string,
-  plan: "monthly" | "annual",
+  planType: "premium" | "pro",
+  billingPeriod: "monthly" | "annual",
   customerData?: {
     name: string;
     email: string;
@@ -229,23 +234,27 @@ export async function createStudentSubscriptionBilling(
     throw new Error("Aluno não encontrado");
   }
 
-  const prices = {
-    monthly: 1500, // R$ 15,00 em centavos
-    annual: 15000, // R$ 150,00 em centavos
-  };
+  const config = getStudentPlanConfig(planType);
+  if (!config) {
+    throw new Error(`Plano inválido: ${planType}`);
+  }
+
+  const selectedPrice = config.prices[billingPeriod];
 
   const billingData: CreateBillingRequest = {
-    frequency: plan === "monthly" ? "MULTIPLE_PAYMENTS" : "ONE_TIME",
+    frequency: billingPeriod === "monthly" ? "MULTIPLE_PAYMENTS" : "ONE_TIME",
     methods: ["PIX"], // Abacate Pay: apenas PIX disponível por enquanto
     products: [
       {
-        externalId: `subscription-${plan}-${studentId}`,
-        name: `GymRats Premium - ${plan === "monthly" ? "Mensal" : "Anual"}`,
-        description: `Assinatura Premium do GymRats - ${
-          plan === "monthly" ? "1 mês" : "12 meses"
+        externalId: `subscription-${planType}-${billingPeriod}-${studentId}`,
+        name: `GymRats ${planType.charAt(0).toUpperCase() + planType.slice(1)} - ${
+          billingPeriod === "monthly" ? "Mensal" : "Anual"
+        }`,
+        description: `Assinatura ${planType.charAt(0).toUpperCase() + planType.slice(1)} do GymRats - ${
+          billingPeriod === "monthly" ? "1 mês" : "12 meses"
         } de acesso completo`,
         quantity: 1,
-        price: prices[plan],
+        price: selectedPrice,
       },
     ],
     returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/student/payments?canceled=true`,
@@ -273,7 +282,8 @@ export async function createStudentSubscriptionBilling(
     "[createStudentSubscriptionBilling] Criando billing na AbacatePay:",
     {
       studentId,
-      plan,
+      planType,
+      billingPeriod,
       billingData: {
         ...billingData,
         customer: billingData.customer
@@ -329,43 +339,13 @@ export async function createGymSubscriptionBilling(
     throw new Error("Academia não encontrada");
   }
 
-  const prices = {
-    basic: {
-      base: 15000, // R$ 150,00
-      perStudent: 150, // R$ 1,50
-    },
-    premium: {
-      base: 25000, // R$ 250,00
-      perStudent: 100, // R$ 1,00
-    },
-    enterprise: {
-      base: 40000, // R$ 400,00
-      perStudent: 50, // R$ 0,50
-    },
-  };
-
-  const planPrices = prices[plan];
-
-  // Calcular preço com desconto anual diferenciado por plano
-  // Basic: 5% desconto, Premium: 10% desconto, Enterprise: 15% desconto
-  let basePrice = planPrices.base;
-  let perStudentPrice = planPrices.perStudent;
-
-  if (billingPeriod === "annual") {
-    // Plano anual: preço fixo, sem cobrança por aluno
-    // Aplicar desconto diferenciado no valor anual da base apenas
-    const annualDiscounts = {
-      basic: 0.95, // 5% desconto
-      premium: 0.9, // 10% desconto
-      enterprise: 0.85, // 15% desconto
-    };
-    basePrice = Math.round(planPrices.base * 12 * annualDiscounts[plan]);
-    perStudentPrice = 0; // No plano anual, não há cobrança por aluno
-  } else {
-    // Mensal: manter valores originais
-    basePrice = planPrices.base;
-    perStudentPrice = planPrices.perStudent;
+  const config = getGymPlanConfig(plan);
+  if (!config) {
+    throw new Error(`Plano inválido: ${plan}`);
   }
+
+  const basePrice = config.prices[billingPeriod];
+  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
 
   // No plano anual, o total é apenas o basePrice (sem cobrança por aluno)
   // No plano mensal, soma base + (por aluno × quantidade de alunos)
@@ -473,9 +453,9 @@ export async function createGymSubscriptionPix(
   }
 
   const prices = {
-    basic: { base: 15000, perStudent: 150 },
-    premium: { base: 25000, perStudent: 100 },
-    enterprise: { base: 40000, perStudent: 50 },
+    basic: { base: 30000, perStudent: 150 },
+    premium: { base: 50000, perStudent: 100 },
+    enterprise: { base: 70000, perStudent: 50 },
   };
 
   const planPrices = prices[plan];
@@ -483,8 +463,7 @@ export async function createGymSubscriptionPix(
   let perStudentPrice = planPrices.perStudent;
 
   if (billingPeriod === "annual") {
-    const annualDiscounts = { basic: 0.95, premium: 0.9, enterprise: 0.85 };
-    basePrice = Math.round(planPrices.base * 12 * annualDiscounts[plan]);
+    basePrice = planPrices.base * 10;
     perStudentPrice = 0;
   }
 

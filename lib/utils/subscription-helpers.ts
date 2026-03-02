@@ -14,7 +14,10 @@
 export function isBasicPlan(plan: string): boolean {
   const p = plan.toLowerCase();
   return (
-    p.includes("basic") || p.includes("premium") || p.includes("enterprise")
+    p.includes("basic") ||
+    p.includes("premium") ||
+    p.includes("enterprise") ||
+    p.includes("pro")
   );
 }
 
@@ -22,9 +25,9 @@ export function isBasicPlan(plan: string): boolean {
  * Verifica se o nome do plano corresponde a um plano premium.
  */
 export function isPremiumPlan(plan: string): boolean {
+  const p = plan.toLowerCase();
   return (
-    plan.toLowerCase().includes("premium") ||
-    plan.toLowerCase().includes("enterprise")
+    p.includes("premium") || p.includes("enterprise") || p.includes("pro")
   );
 }
 

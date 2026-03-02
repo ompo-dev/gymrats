@@ -67,17 +67,15 @@ function PlansSelectorSimple({
   }
 
   // Calcular desconto anual baseado no plano
-  const getAnnualDiscount = (planId: string): number => {
-    const discounts: Record<string, number> = {
-      basic: 5,
-      premium: 10,
-      enterprise: 15,
-    };
-    return discounts[planId] || 10;
+  const getAnnualDiscountFromPlan = (plan: SubscriptionPlan): number => {
+    if (!plan.monthlyPrice || !plan.annualPrice) return 17;
+    const fullPrice = plan.monthlyPrice * 12;
+    const discount = (1 - plan.annualPrice / fullPrice) * 100;
+    return Math.round(discount);
   };
 
   const planDiscount = selectedPlanData
-    ? getAnnualDiscount(selectedPlanData.id)
+    ? getAnnualDiscountFromPlan(selectedPlanData)
     : annualDiscount;
 
   return (

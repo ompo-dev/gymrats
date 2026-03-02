@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
@@ -386,8 +390,8 @@ export async function startGymTrial() {
         plan: "basic",
         billingPeriod: "monthly",
         status: "trialing",
-        basePrice: 150,
-        pricePerStudent: 1.5,
+        basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
+        pricePerStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
         currentPeriodStart: now,
         currentPeriodEnd: trialEnd,
         trialStart: now,

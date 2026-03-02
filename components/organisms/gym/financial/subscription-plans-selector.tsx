@@ -4,6 +4,10 @@ import { CheckCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 
 interface SubscriptionPlansSelectorProps {
   onSubscribe: (
@@ -24,11 +28,7 @@ export function SubscriptionPlansSelector({
     "monthly" | "annual"
   >("monthly");
 
-  const prices = {
-    basic: { base: 150, perStudent: 1.5 },
-    premium: { base: 250, perStudent: 1 },
-    enterprise: { base: 400, perStudent: 0.5 },
-  };
+
 
   const handleSubscribe = async () => {
     await onSubscribe(selectedPlanType, selectedBillingPeriod);
@@ -87,21 +87,11 @@ export function SubscriptionPlansSelector({
 
       <div className="mb-4 grid grid-cols-3 gap-3">
         {(["basic", "premium", "enterprise"] as const).map((plan) => {
-          const planPrices = prices[plan];
-          const monthlyBase = planPrices.base;
-          // Descontos diferenciados: Basic 5%, Premium 10%, Enterprise 15%
-          const annualDiscounts = {
-            basic: 0.95, // 5% desconto
-            premium: 0.9, // 10% desconto
-            enterprise: 0.85, // 15% desconto
-          };
-          const annualBase = Math.round(
-            monthlyBase * 12 * annualDiscounts[plan],
-          );
-          const monthlyPerStudent = planPrices.perStudent;
-          const annualPerStudent = Math.round(
-            monthlyPerStudent * 12 * annualDiscounts[plan],
-          );
+          const config = GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+          const monthlyBase = centsToReais(config.prices.monthly);
+          const annualBase = centsToReais(config.prices.annual);
+          const monthlyPerStudent = centsToReais(config.pricePerStudent);
+          const annualPerStudent = 0; // Preço fixo no anual
 
           const displayBase =
             selectedBillingPeriod === "annual" ? annualBase : monthlyBase;
