@@ -23,8 +23,7 @@
     "generate:secret": "node scripts/generate-secret.js",
     "generate:icons": "node scripts/generate-icons.js",
     "version:sync": "node scripts/sync-version.js",
-    "postinstall": "prisma generate",
-    "prepare": "husky"
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@elysiajs/bearer": "^1.4.2",
