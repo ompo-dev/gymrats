@@ -71,20 +71,10 @@ function StudentHomeContent() {
   const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
-  // Rotas bloqueadas para não-admin: learn (Aprender), profile (Configurações), cardio
-  const blockedTabs = ["learn", "profile", "cardio"];
-  const isBlockedTab = tab && blockedTabs.includes(tab) && !userIsAdmin;
-
-  // Redirecionar se tentar acessar rota bloqueada
+  // Redirecionar se a sessão ainda estiver carregando
   useEffect(() => {
-    // Não redirecionar se a sessão ainda estiver carregando
     if (isSessionLoading) return;
-
-    if (isBlockedTab) {
-      // Redirecionar para home se tentar acessar rota bloqueada
-      router.push("/student?tab=home");
-    }
-  }, [isBlockedTab, isSessionLoading, router]);
+  }, [isSessionLoading]);
   const [educationView, setEducationView] = useQueryState(
     "view",
     parseAsString.withDefault("menu"),
@@ -522,7 +512,7 @@ function StudentHomeContent() {
         </div>
       )}
 
-      {tab === "learn" && userIsAdmin && (
+      {tab === "learn" && (
         <div className="pb-8" key="learn-tab">
           <LearningPath
             key="learning-path"
@@ -592,7 +582,7 @@ function StudentHomeContent() {
         />
       )}
 
-      {(tab === "education" || exerciseId) && userIsAdmin && (
+      {(tab === "education" || exerciseId) && (
         <>
           {educationView === "menu" &&
             !exerciseId &&
@@ -632,7 +622,7 @@ function StudentHomeContent() {
         </>
       )}
 
-      {tab === "profile" && userIsAdmin && <ProfilePage />}
+      {tab === "profile" && <ProfilePage />}
 
       {tab === "more" && <StudentMoreMenu />}
     </motion.div>

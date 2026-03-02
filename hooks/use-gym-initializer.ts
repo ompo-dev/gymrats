@@ -44,7 +44,15 @@ export function useGymInitializer(options?: { autoLoad?: boolean }) {
 
     isInitializing.current = true;
     loadAll()
-      .then(() => {
+      .then(async () => {
+        try {
+          const { syncGymSubscriptionPrices } = await import(
+            "@/app/gym/actions"
+          );
+          await syncGymSubscriptionPrices();
+        } catch {
+          // Ignorar erros na sincronização de preços
+        }
         hasInitialized.current = true;
         isInitializing.current = false;
       })

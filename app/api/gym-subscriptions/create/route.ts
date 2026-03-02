@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
@@ -7,7 +11,21 @@ import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 export const POST = createSafeHandler(
   async ({ gymContext, body }) => {
     const gymId = gymContext?.gymId;
-    const { plan = "basic", billingPeriod = "monthly" } = body;
+    if (!gymId) {
+      return NextResponse.json({ error: "Academia não encontrada" }, { status: 401 });
+    }
+
+    const { plan = "basic", billingPeriod = "monthly" } = body as {
+      plan?: string;
+      billingPeriod?: string;
+    };
+    const safePlan = plan as string;
+    const safeBillingPeriod = billingPeriod as "monthly" | "annual";
+
+    const config = GYM_PLANS_CONFIG[safePlan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+    if (!config) {
+      return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
+    }
 
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
@@ -25,19 +43,8 @@ export const POST = createSafeHandler(
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    const planPrices = {
-      basic: { base: 150, perStudent: 1.5 },
-      premium: { base: 250, perStudent: 1 },
-      enterprise: { base: 400, perStudent: 0.5 },
-    };
-    const annualDiscounts = { basic: 0.95, premium: 0.9, enterprise: 0.85 };
-    const prices = planPrices[plan];
-
-    const basePrice =
-      billingPeriod === "annual"
-        ? Math.round(prices.base * 12 * annualDiscounts[plan])
-        : prices.base;
-    const pricePerStudent = billingPeriod === "annual" ? 0 : prices.perStudent;
+    const basePrice = centsToReais(config.prices[safeBillingPeriod]);
+    const pricePerStudent = safeBillingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
 
     let subscriptionId = existingSubscription?.id;
 
@@ -45,8 +52,8 @@ export const POST = createSafeHandler(
       await db.gymSubscription.update({
         where: { id: existingSubscription.id },
         data: {
-          plan,
-          billingPeriod,
+          plan: safePlan,
+          billingPeriod: safeBillingPeriod,
           status: "pending",
           basePrice,
           pricePerStudent,
@@ -60,8 +67,8 @@ export const POST = createSafeHandler(
       const created = await db.gymSubscription.create({
         data: {
           gymId,
-          plan,
-          billingPeriod,
+          plan: safePlan,
+          billingPeriod: safeBillingPeriod,
           status: "pending",
           basePrice,
           pricePerStudent,
@@ -74,9 +81,9 @@ export const POST = createSafeHandler(
 
     const pix = await createGymSubscriptionPix(
       gymId,
-      plan,
+      safePlan as "basic" | "premium" | "enterprise",
       activeStudents,
-      billingPeriod,
+      safeBillingPeriod,
       subscriptionId!,
     );
 

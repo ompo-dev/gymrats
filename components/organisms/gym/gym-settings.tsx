@@ -642,7 +642,7 @@ export function GymSettingsPage({
 
       <SlideIn delay={0.5}>
         <GymSettingsAccountCard
-          isAdmin={isAdmin || userInfo?.role === "ADMIN"}
+          isAdmin={isAdmin || (serverRole as string) === "GYM"}
           onSwitchToStudent={handleSwitchToStudent}
           onLogout={handleLogout}
         />

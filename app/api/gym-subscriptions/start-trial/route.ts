@@ -1,3 +1,7 @@
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { NextResponse } from "next/server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
@@ -5,14 +9,19 @@ import { db } from "@/lib/db";
 export const POST = createSafeHandler(
   async ({ gymContext }) => {
     const gymId = gymContext?.gymId;
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "Academia não encontrada" },
+        { status: 401 },
+      );
+    }
+    const safeGymId = gymId as string;
+
     const existingSubscription = await db.gymSubscription.findUnique({
-      where: { gymId },
+      where: { gymId: safeGymId },
     });
 
     if (existingSubscription) {
-      // Se já existe uma assinatura (ativa, trial ou cancelada), não sobrescrevemos o histórico.
-      // Especialmente importante para casos em que a academia foi cancelada por causa da principal
-      // (canceledBecausePrincipalCanceled) e será restaurada automaticamente.
       return NextResponse.json(
         {
           error:
@@ -28,12 +37,12 @@ export const POST = createSafeHandler(
 
     const subscription = await db.gymSubscription.create({
       data: {
-        gymId,
+        gymId: safeGymId,
         plan: "basic",
         billingPeriod: "monthly",
         status: "trialing",
-        basePrice: 150,
-        pricePerStudent: 1.5,
+        basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
+        pricePerStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
         currentPeriodStart: now,
         currentPeriodEnd: trialEnd,
         trialStart: now,

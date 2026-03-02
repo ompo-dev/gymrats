@@ -367,13 +367,9 @@ export async function startGymTrial() {
     });
 
     if (existingSubscription) {
-      // Não apagamos assinaturas existentes (mesmo canceladas), pois elas podem
-      // ter sido suspensas por causa da academia principal e serão restauradas.
       if (existingSubscription.status !== "canceled") {
         return { error: "Assinatura já existe" };
       }
-
-      // Se estiver cancelada, retornamos erro orientando renovar em vez de recriar trial.
       return {
         error:
           "Esta academia já possui uma assinatura cancelada. Renove o plano em vez de iniciar um novo trial.",
@@ -403,5 +399,47 @@ export async function startGymTrial() {
   } catch (error) {
     console.error("[startGymTrial] Erro:", error);
     return { error: "Erro ao iniciar trial" };
+  }
+}
+
+/**
+ * Sincroniza os preços da assinatura atual da academia com os preços configurados no plans-config.ts.
+ * Útil quando os preços globais mudam e queremos que as academias vejam os valores atualizados.
+ */
+export async function syncGymSubscriptionPrices() {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx) return { error: "Não autenticado" };
+
+    const gymId = ctx.gymId;
+    const subscription = await db.gymSubscription.findUnique({
+      where: { gymId },
+    });
+
+    if (!subscription) return { success: true, message: "Sem assinatura para sincronizar" };
+
+    const planKey = subscription.plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
+    const config = GYM_PLANS_CONFIG[planKey];
+
+    if (!config) return { error: "Plano atual inválido na configuração" };
+
+    const newBasePrice = centsToReais(config.prices[subscription.billingPeriod as "monthly" | "annual"]);
+    const newPerStudentPrice = subscription.billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
+
+    if (subscription.basePrice !== newBasePrice || subscription.pricePerStudent !== newPerStudentPrice) {
+      await db.gymSubscription.update({
+        where: { id: subscription.id },
+        data: {
+          basePrice: newBasePrice,
+          pricePerStudent: newPerStudentPrice,
+        },
+      });
+      return { success: true, updated: true };
+    }
+
+    return { success: true, updated: false };
+  } catch (error) {
+    console.error("[syncGymSubscriptionPrices] Erro:", error);
+    return { error: "Erro ao sincronizar preços" };
   }
 }

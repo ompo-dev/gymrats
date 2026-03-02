@@ -1,4 +1,6 @@
 import {
+  GYM_PLANS_CONFIG,
+  STUDENT_PLANS_CONFIG,
   getGymPlanConfig,
   getStudentPlanConfig,
 } from "@/lib/access-control/plans-config";
@@ -452,20 +454,13 @@ export async function createGymSubscriptionPix(
     throw new Error("Academia não encontrada");
   }
 
-  const prices = {
-    basic: { base: 30000, perStudent: 150 },
-    premium: { base: 50000, perStudent: 100 },
-    enterprise: { base: 70000, perStudent: 50 },
-  };
-
-  const planPrices = prices[plan];
-  let basePrice = planPrices.base;
-  let perStudentPrice = planPrices.perStudent;
-
-  if (billingPeriod === "annual") {
-    basePrice = planPrices.base * 10;
-    perStudentPrice = 0;
+  const config = GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+  if (!config) {
+    throw new Error(`Plano inválido: ${plan}`);
   }
+
+  const basePrice = config.prices[billingPeriod];
+  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
 
   const totalAmount =
     billingPeriod === "annual"

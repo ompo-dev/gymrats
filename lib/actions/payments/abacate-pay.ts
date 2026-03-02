@@ -96,11 +96,15 @@ export async function createAbacateBilling(
     }
 
     // Upsert subscription salvando IDs do Abacate Pay
+    const planType = planId; // Assuming planId is like 'PREMIUM'
+    const planConfig = STUDENT_PLANS_CONFIG[planType.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG];
+    const finalPlanName = `${planConfig.name} ${billingPeriod === "annual" ? "Anual" : "Mensal"}`;
+
     await db.subscription.upsert({
       where: { studentId },
       create: {
         studentId,
-        plan: `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`,
+        plan: finalPlanName,
         status: "pending_payment",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
@@ -108,7 +112,7 @@ export async function createAbacateBilling(
         abacatePayCustomerId: abacatePayData.customer?.id,
       },
       update: {
-        plan: `Premium ${billingPeriod === "annual" ? "Anual" : "Mensal"}`,
+        plan: finalPlanName,
         status: "pending_payment",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
