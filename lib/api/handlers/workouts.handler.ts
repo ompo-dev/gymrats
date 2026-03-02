@@ -4,17 +4,22 @@
  * Centraliza toda a lógica das rotas relacionadas a workouts
  */
 
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
+import type { z } from "zod";
 import { db } from "@/lib/db";
-import { calculateStreak } from "@/lib/use-cases/workouts/streak";
+import { completeWorkoutUseCase } from "@/lib/use-cases/workouts/complete-workout";
+import { deleteWorkoutProgressUseCase } from "@/lib/use-cases/workouts/delete-workout-progress";
 import { getUnitsUseCase } from "@/lib/use-cases/workouts/get-units";
 import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
+import { getWorkoutHistoryUseCase } from "@/lib/use-cases/workouts/get-workout-history";
+import { getWorkoutProgressUseCase } from "@/lib/use-cases/workouts/get-workout-progress";
+import { saveWorkoutProgressUseCase } from "@/lib/use-cases/workouts/save-workout-progress";
+import { updateExerciseLogUseCase } from "@/lib/use-cases/workouts/update-exercise-log";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   validateBody,
   validateQuery,
 } from "../middleware/validation.middleware";
-import type { z } from "zod";
 import {
   completeWorkoutSchema,
   saveWorkoutProgressSchema,
@@ -102,32 +107,14 @@ export async function completeWorkoutHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
+    if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
-    if (!workoutId) {
-      return badRequestResponse("ID do workout não fornecido");
-    }
-
-    // Verificar se o workout existe
-    const workout = await db.workout.findUnique({
-      where: { id: workoutId },
-    });
-
-    if (!workout) {
-      return notFoundResponse("Workout não encontrado");
-    }
-
-    // Validar body com Zod
     const validation = await validateBody<
       z.infer<typeof completeWorkoutSchema>
     >(request, completeWorkoutSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+    if (!validation.success) return validation.response;
 
     const {
       exerciseLogs,
@@ -138,105 +125,28 @@ export async function completeWorkoutHandler(
       startTime,
     } = validation.data;
 
-    // Calcular duração
-    // Se duration for 0 ou não fornecido, calcular a partir do startTime ou usar estimatedTime
-    const workoutDuration =
-      duration !== undefined && duration !== null
-        ? duration
-        : startTime
-          ? Math.round((Date.now() - new Date(startTime).getTime()) / 60000)
-          : workout.estimatedTime;
-
-    // Criar WorkoutHistory
-    const workoutHistory = await db.workoutHistory.create({
-      data: {
-        studentId: studentId,
-        workoutId: workoutId,
-        date: new Date(),
-        duration: workoutDuration,
-        totalVolume: totalVolume || 0,
-        overallFeedback: overallFeedback || "regular",
-        bodyPartsFatigued: bodyPartsFatigued
-          ? JSON.stringify(bodyPartsFatigued)
-          : null,
-      },
-    });
-
-    // Criar ExerciseLogs
-    if (exerciseLogs && Array.isArray(exerciseLogs)) {
-      for (const log of exerciseLogs) {
-        await db.exerciseLog.create({
-          data: {
-            workoutHistoryId: workoutHistory.id,
-            exerciseId: log.exerciseId,
-            exerciseName: log.exerciseName,
-            sets: JSON.stringify(log.sets || []),
-            notes: log.notes || null,
-            formCheckScore: log.formCheckScore || null,
-            difficulty: log.difficulty || null,
-          },
-        });
-      }
-    }
-
-    // Calcular streak baseado em dias consecutivos
-    // Nota: O workoutHistory já foi criado acima, então o calculateStreak
-    // já vai incluir o dia de hoje automaticamente
-    const currentStreak = await calculateStreak(studentId);
-
-    // Atualizar StudentProgress
-    const progress = await db.studentProgress.findUnique({
-      where: { studentId: studentId },
-    });
-
-    if (progress) {
-      const longestStreak = Math.max(
-        currentStreak,
-        progress.longestStreak || 0,
-      );
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      await db.studentProgress.update({
-        where: { studentId: studentId },
-        data: {
-          totalXP: progress.totalXP + (workout.xpReward || 0),
-          currentStreak: currentStreak,
-          longestStreak: longestStreak,
-          workoutsCompleted: progress.workoutsCompleted + 1,
-          lastActivityDate: today,
-        },
-      });
-    }
-
-    // Limpar progresso parcial do workout (já foi salvo como completo)
-    // Fazer de forma não-bloqueante - ignorar erros 404 (progresso pode não existir)
     try {
-      await db.workoutProgress.delete({
-        where: {
-          studentId_workoutId: {
-            studentId: studentId,
-            workoutId: workoutId,
-          },
-        },
+      const result = await completeWorkoutUseCase({
+        studentId: auth.user.student!.id,
+        workoutId,
+        duration,
+        totalVolume,
+        overallFeedback,
+        bodyPartsFatigued,
+        startTime,
+        exerciseLogs:
+          exerciseLogs as unknown as import("@/lib/use-cases/workouts/complete-workout").ExerciseLogInput[],
       });
-    } catch (error) {
-      // Ignorar erro se progresso não existir (P2025 = Record not found)
-      const err = error as { code?: string };
-      if (err.code !== "P2025") {
-        console.error(
-          "[completeWorkoutHandler] Erro ao limpar progresso:",
-          error,
-        );
-        // Não falhar a requisição por causa disso
-      }
-    }
 
-    return successResponse({
-      workoutHistoryId: workoutHistory.id,
-      xpEarned: workout.xpReward || 0,
-    });
+      return successResponse({
+        workoutHistoryId: result.workoutHistoryId,
+        xpEarned: result.xpEarned,
+      });
+    } catch (err) {
+      if ((err as Error).message === "Workout não encontrado")
+        return notFoundResponse("Workout não encontrado");
+      throw err;
+    }
   } catch (error) {
     console.error("[completeWorkoutHandler] Erro:", error);
     return internalErrorResponse("Erro ao completar workout", error);
@@ -253,23 +163,14 @@ export async function saveWorkoutProgressHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
+    if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
-    if (!workoutId) {
-      return badRequestResponse("ID do workout não fornecido");
-    }
-
-    // Validar body com Zod
     const validation = await validateBody<
       z.infer<typeof saveWorkoutProgressSchema>
     >(request, saveWorkoutProgressSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+    if (!validation.success) return validation.response;
 
     const {
       currentExerciseIndex,
@@ -285,93 +186,31 @@ export async function saveWorkoutProgressHandler(
       selectedCardioType,
     } = validation.data;
 
-    // Verificar se o workout existe
-    const workout = await db.workout.findUnique({
-      where: { id: workoutId },
-    });
-
-    if (!workout) {
-      return notFoundResponse("Workout não encontrado");
+    try {
+      await saveWorkoutProgressUseCase({
+        studentId: auth.user.student!.id,
+        workoutId,
+        currentExerciseIndex,
+        exerciseLogs,
+        skippedExercises,
+        selectedAlternatives,
+        xpEarned,
+        totalVolume,
+        completionPercentage,
+        startTime,
+        cardioPreference,
+        cardioDuration,
+        selectedCardioType,
+      });
+    } catch (err) {
+      if ((err as Error).message === "Workout não encontrado")
+        return notFoundResponse("Workout não encontrado");
+      throw err;
     }
-
-    // Upsert progress
-    await db.workoutProgress.upsert({
-      where: {
-        studentId_workoutId: {
-          studentId: studentId,
-          workoutId: workoutId,
-        },
-      },
-      create: {
-        studentId: studentId,
-        workoutId: workoutId,
-        currentExerciseIndex: currentExerciseIndex,
-        exerciseLogs: JSON.stringify(exerciseLogs || []),
-        skippedExercises: skippedExercises
-          ? JSON.stringify(skippedExercises)
-          : null,
-        selectedAlternatives: selectedAlternatives
-          ? JSON.stringify(selectedAlternatives)
-          : null,
-        xpEarned: xpEarned || 0,
-        totalVolume: totalVolume || 0,
-        completionPercentage: completionPercentage || 0,
-        startTime: startTime ? new Date(startTime) : new Date(),
-        cardioPreference: cardioPreference || null,
-        cardioDuration: cardioDuration || null,
-        selectedCardioType: selectedCardioType || null,
-      },
-      update: {
-        currentExerciseIndex: currentExerciseIndex,
-        exerciseLogs: JSON.stringify(exerciseLogs || []),
-        skippedExercises: skippedExercises
-          ? JSON.stringify(skippedExercises)
-          : null,
-        selectedAlternatives: selectedAlternatives
-          ? JSON.stringify(selectedAlternatives)
-          : null,
-        xpEarned: xpEarned || 0,
-        totalVolume: totalVolume || 0,
-        completionPercentage: completionPercentage || 0,
-        cardioPreference: cardioPreference || null,
-        cardioDuration: cardioDuration || null,
-        selectedCardioType: selectedCardioType || null,
-      },
-    });
 
     return successResponse({ message: "Progresso salvo com sucesso" });
   } catch (error) {
     console.error("[saveWorkoutProgressHandler] Erro:", error);
-    const err = error as { message?: string; code?: string };
-
-    // Verificar se a tabela não existe
-    if (
-      err.message?.includes("does not exist") ||
-      err.message?.includes("Unknown table") ||
-      err.code === "P2021"
-    ) {
-      return NextResponse.json(
-        {
-          error: "Tabela workout_progress não existe",
-          code: "MIGRATION_REQUIRED",
-          message:
-            "Execute a migration: node scripts/migration/apply-workout-progress-migration.js",
-        },
-        { status: 503 }, // Service Unavailable
-      );
-    }
-
-    // Verificar se é erro de Prisma (tabela não encontrada)
-    if (err.code === "P2021" || err.code === "P1001") {
-      return NextResponse.json(
-        {
-          error: "Erro de conexão com banco de dados",
-          code: "DATABASE_ERROR",
-        },
-        { status: 503 },
-      );
-    }
-
     return internalErrorResponse("Erro ao salvar progresso", error);
   }
 }
@@ -386,23 +225,13 @@ export async function getWorkoutProgressHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
+    if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
-    if (!workoutId) {
-      return badRequestResponse("ID do workout não fornecido");
-    }
-
-    const progress = await db.workoutProgress.findUnique({
-      where: {
-        studentId_workoutId: {
-          studentId,
-          workoutId,
-        },
-      },
+    const { progress } = await getWorkoutProgressUseCase({
+      studentId: auth.user.student!.id,
+      workoutId,
     });
 
     if (!progress) {
@@ -412,47 +241,9 @@ export async function getWorkoutProgressHandler(
       });
     }
 
-    // Parsear JSON strings
-    const exerciseLogs = JSON.parse(progress.exerciseLogs || "[]");
-    const skippedExercises = progress.skippedExercises
-      ? JSON.parse(progress.skippedExercises)
-      : [];
-    const selectedAlternatives = progress.selectedAlternatives
-      ? JSON.parse(progress.selectedAlternatives)
-      : {};
-
-    return successResponse({
-      progress: {
-        id: progress.id,
-        workoutId: progress.workoutId,
-        currentExerciseIndex: progress.currentExerciseIndex,
-        exerciseLogs,
-        skippedExercises,
-        selectedAlternatives,
-        xpEarned: progress.xpEarned,
-        totalVolume: progress.totalVolume,
-        completionPercentage: progress.completionPercentage,
-        startTime: progress.startTime,
-        cardioPreference: progress.cardioPreference,
-        cardioDuration: progress.cardioDuration,
-        selectedCardioType: progress.selectedCardioType,
-        lastUpdated: progress.updatedAt,
-      },
-    });
+    return successResponse({ progress });
   } catch (error) {
     console.error("[getWorkoutProgressHandler] Erro:", error);
-    const err = error as { message?: string };
-    // Se a tabela não existir, retornar null sem erro
-    if (
-      err.message?.includes("does not exist") ||
-      err.message?.includes("workout_progress")
-    ) {
-      return successResponse({
-        progress: null,
-        message:
-          "Tabela workout_progress não existe. Execute: node scripts/migration/apply-workout-progress-migration.js",
-      });
-    }
     return internalErrorResponse("Erro ao buscar progresso", error);
   }
 }
@@ -468,47 +259,19 @@ export async function deleteWorkoutProgressHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
+    if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
-    if (!workoutId) {
-      return badRequestResponse("ID do workout não fornecido");
-    }
-
-    // Verificar se o progresso existe antes de deletar (idempotência)
-    const existingProgress = await db.workoutProgress.findUnique({
-      where: {
-        studentId_workoutId: {
-          studentId,
-          workoutId,
-        },
-      },
-    });
-
-    // Se não existe, retornar sucesso (operção idempotente)
-    if (!existingProgress) {
-      return successResponse({
-        message: "Progresso não encontrado (já estava deletado)",
-      });
-    }
-
-    await db.workoutProgress.delete({
-      where: {
-        studentId_workoutId: {
-          studentId,
-          workoutId,
-        },
-      },
+    await deleteWorkoutProgressUseCase({
+      studentId: auth.user.student!.id,
+      workoutId,
     });
 
     return successResponse({ message: "Progresso deletado com sucesso" });
   } catch (error) {
     console.error("[deleteWorkoutProgressHandler] Erro:", error);
     const err = error as { code?: string };
-    // Se o erro for P2025 (record not found), tratar como sucesso (idempotência)
     if (err.code === "P2025") {
       return successResponse({
         message: "Progresso não encontrado (já estava deletado)",
@@ -527,131 +290,24 @@ export async function getWorkoutHistoryHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
-
-    // Validar query params com Zod
     const queryValidation = await validateQuery<
       z.infer<typeof workoutHistoryQuerySchema>
     >(request, workoutHistoryQuerySchema);
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
+    if (!queryValidation.success) return queryValidation.response;
 
-    const limit = queryValidation.data.limit || 10;
-    const offset = queryValidation.data.offset || 0;
-
-    // Buscar histórico
-    const workoutHistory = await db.workoutHistory.findMany({
-      where: {
-        studentId: studentId,
-      },
-      include: {
-        workout: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            muscleGroup: true,
-          },
-        },
-        exercises: {
-          orderBy: {
-            id: "asc",
-          },
-        },
-      },
-      orderBy: {
-        date: "desc",
-      },
-      take: limit,
-      skip: offset,
-    });
-
-    // Transformar para formato esperado
-    const formattedHistory = workoutHistory.map((wh) => {
-      // Calcular volume total
-      let calculatedVolume = 0;
-      if (wh.exercises && wh.exercises.length > 0) {
-        calculatedVolume = wh.exercises.reduce((acc, el) => {
-          try {
-            const sets = JSON.parse(el.sets);
-            if (Array.isArray(sets)) {
-              return (
-                acc +
-                sets.reduce((setAcc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
-                  if (set.weight && set.reps && (set.completed ?? true)) {
-                    return setAcc + set.weight * set.reps;
-                  }
-                  return setAcc;
-                }, 0)
-              );
-            }
-          } catch (_e) {
-            // Ignorar erro de parse
-          }
-          return acc;
-        }, 0);
-      }
-
-      // Parse bodyPartsFatigued
-      let bodyPartsFatigued: string[] = [];
-      if (wh.bodyPartsFatigued) {
-        try {
-          bodyPartsFatigued = JSON.parse(wh.bodyPartsFatigued);
-        } catch (_e) {
-          // Ignorar erro de parse
-        }
-      }
-
-      return {
-        date: wh.date,
-        workoutId: wh.workoutId,
-        workoutName: wh.workout?.title ?? "",
-        duration: wh.duration,
-        totalVolume: wh.totalVolume || calculatedVolume,
-        exercises: wh.exercises.map((el) => {
-          let sets: Array<{ weight?: number; reps?: number; completed?: boolean }> = [];
-          try {
-            sets = JSON.parse(el.sets);
-          } catch (_e) {
-            // Ignorar erro de parse
-          }
-
-          return {
-            id: el.id,
-            exerciseId: el.exerciseId,
-            exerciseName: el.exerciseName,
-            workoutId: wh.workoutId,
-            date: wh.date,
-            sets: sets,
-            notes: el.notes || undefined,
-            formCheckScore: el.formCheckScore || undefined,
-            difficulty: el.difficulty || undefined,
-          };
-        }),
-        overallFeedback:
-          (wh.overallFeedback as "excelente" | "bom" | "regular" | "ruim") ||
-          undefined,
-        bodyPartsFatigued: bodyPartsFatigued,
-      };
-    });
-
-    // Contar total
-    const total = await db.workoutHistory.count({
-      where: {
-        studentId: studentId,
-      },
+    const result = await getWorkoutHistoryUseCase({
+      studentId: auth.user.student!.id,
+      limit: queryValidation.data.limit || 10,
+      offset: queryValidation.data.offset || 0,
     });
 
     return successResponse({
-      history: formattedHistory,
-      total: total,
-      limit: limit,
-      offset: offset,
+      history: result.history,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
     });
   } catch (error) {
     console.error("[getWorkoutHistoryHandler] Erro:", error);
@@ -670,144 +326,45 @@ export async function updateExerciseLogHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
-
-    if (!historyId || !exerciseId) {
+    if (!historyId || !exerciseId)
       return badRequestResponse("historyId e exerciseId são obrigatórios");
-    }
 
-    // Verificar se o workout history pertence ao student
-    const workoutHistory = await db.workoutHistory.findUnique({
-      where: { id: historyId },
-      include: {
-        exercises: true,
-      },
-    });
-
-    if (!workoutHistory) {
-      return notFoundResponse("Histórico de workout não encontrado");
-    }
-
-    if (workoutHistory.studentId !== studentId) {
-      return badRequestResponse(
-        "Você não tem permissão para atualizar este workout",
-      );
-    }
-
-    // Verificar se o exercício existe no histórico
-    const exerciseLog = workoutHistory.exercises.find(
-      (ex) => ex.id === exerciseId,
-    );
-
-    if (!exerciseLog) {
-      return notFoundResponse("Exercício não encontrado neste workout");
-    }
-
-    // Validar body com Zod
     const validation = await validateBody<
       z.infer<typeof updateExerciseLogSchema>
     >(request, updateExerciseLogSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+    if (!validation.success) return validation.response;
 
     const { sets, notes, formCheckScore, difficulty } = validation.data;
 
-    // Preparar dados para atualização
-    const updateData: {
-      sets?: string;
-      notes?: string | null;
-      formCheckScore?: number | null;
-      difficulty?: string | null;
-    } = {};
-
-    if (sets !== undefined) {
-      updateData.sets = JSON.stringify(sets);
-    }
-
-    if (notes !== undefined) {
-      updateData.notes = notes || null;
-    }
-
-    if (formCheckScore !== undefined) {
-      updateData.formCheckScore =
-        formCheckScore !== null && formCheckScore !== undefined
-          ? formCheckScore
-          : null;
-    }
-
-    if (difficulty !== undefined) {
-      updateData.difficulty = difficulty || null;
-    }
-
-    // Atualizar o exercício
-    const updatedExerciseLog = await db.exerciseLog.update({
-      where: { id: exerciseId },
-      data: updateData,
-    });
-
-    // Recalcular volume total do workout history
-    const allExercises = await db.exerciseLog.findMany({
-      where: { workoutHistoryId: historyId },
-    });
-
-    let newTotalVolume = 0;
-    for (const ex of allExercises) {
-      try {
-        const exerciseSets = JSON.parse(ex.sets);
-        if (Array.isArray(exerciseSets)) {
-          const exerciseVolume = exerciseSets.reduce(
-            (acc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
-              if (set.weight && set.reps && (set.completed ?? true)) {
-                return acc + set.weight * set.reps;
-              }
-              return acc;
-            },
-            0,
-          );
-          newTotalVolume += exerciseVolume;
-        }
-      } catch (_e) {
-        // Ignorar erro de parse
-      }
-    }
-
-    // Atualizar volume total no workout history
-    await db.workoutHistory.update({
-      where: { id: historyId },
-      data: { totalVolume: newTotalVolume },
-    });
-
-    // Parsear sets para retornar
-    let parsedSets: Array<{ weight?: number; reps?: number; completed?: boolean }> = [];
     try {
-      parsedSets = JSON.parse(updatedExerciseLog.sets);
-    } catch (_e) {
-      // Ignorar erro de parse
-    }
+      const result = await updateExerciseLogUseCase({
+        historyId,
+        exerciseId,
+        studentId: auth.user.student!.id,
+        sets: sets as unknown as import("@/lib/use-cases/workouts/update-exercise-log").UpdateExerciseLogInput["sets"],
+        notes,
+        formCheckScore,
+        difficulty,
+      });
 
-    return successResponse({
-      exerciseLog: {
-        id: updatedExerciseLog.id,
-        exerciseId: updatedExerciseLog.exerciseId,
-        exerciseName: updatedExerciseLog.exerciseName,
-        sets: parsedSets,
-        notes: updatedExerciseLog.notes || undefined,
-        formCheckScore: updatedExerciseLog.formCheckScore || undefined,
-        difficulty: updatedExerciseLog.difficulty || undefined,
-      },
-      totalVolume: newTotalVolume,
-    });
+      return successResponse({ exerciseLog: result.exerciseLog });
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === "Histórico de workout não encontrado")
+        return notFoundResponse(msg);
+      if (msg === "Exercício não encontrado neste workout")
+        return notFoundResponse(msg);
+      if (msg === "Sem permissão para atualizar este workout")
+        return badRequestResponse(msg);
+      throw err;
+    }
   } catch (error) {
     console.error("[updateExerciseLogHandler] Erro:", error);
     const err = error as { code?: string };
-    if (err.code === "P2025") {
+    if (err.code === "P2025")
       return notFoundResponse("Exercício não encontrado");
-    }
     return internalErrorResponse("Erro ao atualizar exercício", error);
   }
 }
@@ -823,41 +380,26 @@ export async function updateWorkoutProgressExerciseHandler(
 ): Promise<NextResponse> {
   try {
     const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
+    if ("error" in auth) return auth.response;
 
-    const studentId = auth.user.student!.id;
-
-    if (!workoutId || !exerciseId) {
+    if (!workoutId || !exerciseId)
       return badRequestResponse("workoutId e exerciseId são obrigatórios");
-    }
 
-    // Buscar progresso atual
-    const progress = await db.workoutProgress.findUnique({
-      where: {
-        studentId_workoutId: {
-          studentId: studentId,
-          workoutId: workoutId,
-        },
-      },
+    const { progress: current } = await getWorkoutProgressUseCase({
+      studentId: auth.user.student!.id,
+      workoutId,
     });
 
-    if (!progress) {
+    if (!current)
       return notFoundResponse("Progresso do workout não encontrado");
-    }
 
-    // Validar body com Zod
     const validation = await validateBody<
       z.infer<typeof updateExerciseLogSchema>
     >(request, updateExerciseLogSchema);
-    if (!validation.success) {
-      return validation.response;
-    }
+    if (!validation.success) return validation.response;
 
     const { sets, notes, formCheckScore, difficulty } = validation.data;
 
-    // Parsear exerciseLogs atual
     type ExerciseLogItem = {
       id?: string;
       exerciseId: string;
@@ -866,72 +408,57 @@ export async function updateWorkoutProgressExerciseHandler(
       formCheckScore?: number | null;
       difficulty?: string | null;
     };
-    let exerciseLogs: ExerciseLogItem[] = [];
-    try {
-      exerciseLogs = JSON.parse(progress.exerciseLogs || "[]");
-    } catch (_e) {
-      exerciseLogs = [];
-    }
 
-    // Encontrar e atualizar o exercício
+    const exerciseLogs = current.exerciseLogs as ExerciseLogItem[];
     const exerciseIndex = exerciseLogs.findIndex(
       (log) => log.exerciseId === exerciseId || log.id === exerciseId,
     );
 
-    if (exerciseIndex === -1) {
+    if (exerciseIndex === -1)
       return notFoundResponse("Exercício não encontrado no progresso");
-    }
 
-    // Atualizar dados do exercício (normalizar null para undefined)
-    if (sets !== undefined) {
+    if (sets !== undefined)
       exerciseLogs[exerciseIndex].sets = sets.map((s) => ({
         weight: s.weight ?? undefined,
         reps: s.reps ?? undefined,
         completed: s.completed,
       }));
-    }
-
-    if (notes !== undefined) {
-      exerciseLogs[exerciseIndex].notes = notes || null;
-    }
-
-    if (formCheckScore !== undefined) {
-      exerciseLogs[exerciseIndex].formCheckScore =
-        formCheckScore !== null && formCheckScore !== undefined
-          ? formCheckScore
-          : null;
-    }
-
-    if (difficulty !== undefined) {
+    if (notes !== undefined) exerciseLogs[exerciseIndex].notes = notes || null;
+    if (formCheckScore !== undefined)
+      exerciseLogs[exerciseIndex].formCheckScore = formCheckScore ?? null;
+    if (difficulty !== undefined)
       exerciseLogs[exerciseIndex].difficulty = difficulty || null;
-    }
 
-    // Recalcular volume total
     let newTotalVolume = 0;
     for (const log of exerciseLogs) {
       if (log.sets && Array.isArray(log.sets)) {
-        const exerciseVolume = log.sets.reduce((acc: number, set: { weight?: number; reps?: number; completed?: boolean }) => {
-          if (set.weight && set.reps && (set.completed ?? true)) {
-            return acc + set.weight * set.reps;
-          }
-          return acc;
-        }, 0);
-        newTotalVolume += exerciseVolume;
+        newTotalVolume += log.sets.reduce(
+          (
+            acc: number,
+            set: { weight?: number; reps?: number; completed?: boolean },
+          ) => {
+            if (set.weight && set.reps && (set.completed ?? true))
+              return acc + set.weight * set.reps;
+            return acc;
+          },
+          0,
+        );
       }
     }
 
-    // Atualizar progresso
-    await db.workoutProgress.update({
-      where: {
-        studentId_workoutId: {
-          studentId: studentId,
-          workoutId: workoutId,
-        },
-      },
-      data: {
-        exerciseLogs: JSON.stringify(exerciseLogs),
-        totalVolume: newTotalVolume,
-      },
+    await saveWorkoutProgressUseCase({
+      studentId: auth.user.student!.id,
+      workoutId,
+      currentExerciseIndex: current.currentExerciseIndex,
+      exerciseLogs,
+      skippedExercises: current.skippedExercises,
+      selectedAlternatives: current.selectedAlternatives,
+      xpEarned: current.xpEarned,
+      totalVolume: newTotalVolume,
+      completionPercentage: current.completionPercentage,
+      cardioPreference: current.cardioPreference,
+      cardioDuration: current.cardioDuration,
+      selectedCardioType: current.selectedCardioType,
     });
 
     return successResponse({
@@ -940,7 +467,12 @@ export async function updateWorkoutProgressExerciseHandler(
     });
   } catch (error) {
     console.error("[updateWorkoutProgressExerciseHandler] Erro:", error);
-    if (error && typeof error === "object" && "code" in error && (error as { code: string }).code === "P2025") {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code: string }).code === "P2025"
+    ) {
       return notFoundResponse("Progresso não encontrado");
     }
     return internalErrorResponse("Erro ao atualizar exercício", error);
