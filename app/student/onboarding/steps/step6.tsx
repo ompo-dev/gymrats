@@ -133,136 +133,138 @@ export function Step6({ formData, setFormData, forceValidation }: StepProps) {
           </p>
         </div>
         <div className="space-y-6">
-        {/* Nível de Atividade - Termômetro 1-10 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5 text-duo-green" />
-            <span className="block text-sm font-bold text-duo-fg">
-              Nível de Atividade Física (1-10)
-            </span>
-          </div>
-
-          <RangeSlider
-            min={1}
-            max={10}
-            step={1}
-            value={currentActivityLevel}
-            onChange={(value) => {
-              setFormData({
-                ...formData,
-                activityLevel: value,
-              });
-              setTouched((prev) => ({ ...prev, activityLevel: true }));
-              // Recalcula valores metabólicos quando activityLevel muda
-              // O Step5 vai detectar a mudança e recalcular
-            }}
-            label=""
-            unit=""
-            showValue={true}
-            size="lg"
-            delay={0.3}
-          />
-
-          {/* Card com informações do nível selecionado */}
-          <motion.div
-            key={currentActivityLevel}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-xl border-2 border-duo-green bg-duo-green/5 p-4"
-          >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-duo-fg">
-                  {activityInfo.label}
-                </span>
-                <span className="text-2xl font-black text-duo-green">
-                  {currentActivityLevel}/10
-                </span>
-              </div>
-              <p className="text-sm text-duo-fg-muted">
-                {activityInfo.description}
-              </p>
-              <p className="text-xs text-duo-fg-muted italic">
-                Exemplo: {activityInfo.example}
-              </p>
-            </div>
-          </motion.div>
-
-          {touched.activityLevel && errors.activityLevel && (
-            <p className="text-sm font-bold text-duo-danger">
-              {errors.activityLevel}
-            </p>
-          )}
-        </motion.div>
-
-        {/* Tempo de Tratamento Hormonal (apenas se usa hormônios) */}
-        {formData.isTrans && formData.usesHormones && formData.hormoneType && (
+          {/* Nível de Atividade - Termômetro 1-10 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
           >
             <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-duo-green" />
+              <Thermometer className="h-5 w-5 text-duo-green" />
               <span className="block text-sm font-bold text-duo-fg">
-                Tempo de Tratamento Hormonal
+                Nível de Atividade Física (1-10)
               </span>
             </div>
-            <p className="text-xs text-duo-fg-muted">
-              Há quantos meses você faz uso de{" "}
-              {formData.hormoneType === "testosterone"
-                ? "testosterona"
-                : "estrogênio"}
-              ?
-            </p>
-            <DuoInput.Simple
-              label="Meses de tratamento"
-              type="text"
-              inputMode="numeric"
-              placeholder="0"
-              value={formData.hormoneTreatmentDuration ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "" || v === "-") {
-                  setFormData({
-                    ...formData,
-                    hormoneTreatmentDuration: undefined,
-                  });
-                  return;
-                }
-                const n = parseFloat(v);
-                if (!Number.isNaN(n)) {
-                  setFormData({
-                    ...formData,
-                    hormoneTreatmentDuration: n,
-                  });
-                }
-                setTouched((prev) => ({
-                  ...prev,
-                  hormoneTreatmentDuration: true,
-                }));
+
+            <RangeSlider
+              min={1}
+              max={10}
+              step={1}
+              value={currentActivityLevel}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  activityLevel: value,
+                });
+                setTouched((prev) => ({ ...prev, activityLevel: true }));
+                // Recalcula valores metabólicos quando activityLevel muda
+                // O Step5 vai detectar a mudança e recalcular
               }}
-              onBlur={() => {
-                setTouched((prev) => ({
-                  ...prev,
-                  hormoneTreatmentDuration: true,
-                }));
-              }}
-              error={
-                touched.hormoneTreatmentDuration
-                  ? errors.hormoneTreatmentDuration
-                  : undefined
-              }
+              label=""
+              unit=""
+              showValue={true}
+              size="lg"
+              delay={0.3}
             />
+
+            {/* Card com informações do nível selecionado */}
+            <motion.div
+              key={currentActivityLevel}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-xl border-2 border-duo-green bg-duo-green/5 p-4"
+            >
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-bold text-duo-fg">
+                    {activityInfo.label}
+                  </span>
+                  <span className="text-2xl font-black text-duo-green">
+                    {currentActivityLevel}/10
+                  </span>
+                </div>
+                <p className="text-sm text-duo-fg-muted">
+                  {activityInfo.description}
+                </p>
+                <p className="text-xs text-duo-fg-muted italic">
+                  Exemplo: {activityInfo.example}
+                </p>
+              </div>
+            </motion.div>
+
+            {touched.activityLevel && errors.activityLevel && (
+              <p className="text-sm font-bold text-duo-danger">
+                {errors.activityLevel}
+              </p>
+            )}
           </motion.div>
-        )}
-      </div>
+
+          {/* Tempo de Tratamento Hormonal (apenas se usa hormônios) */}
+          {formData.isTrans &&
+            formData.usesHormones &&
+            formData.hormoneType && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+              >
+                <div className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-duo-green" />
+                  <span className="block text-sm font-bold text-duo-fg">
+                    Tempo de Tratamento Hormonal
+                  </span>
+                </div>
+                <p className="text-xs text-duo-fg-muted">
+                  Há quantos meses você faz uso de{" "}
+                  {formData.hormoneType === "testosterone"
+                    ? "testosterona"
+                    : "estrogênio"}
+                  ?
+                </p>
+                <DuoInput.Simple
+                  label="Meses de tratamento"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={formData.hormoneTreatmentDuration ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "" || v === "-") {
+                      setFormData({
+                        ...formData,
+                        hormoneTreatmentDuration: undefined,
+                      });
+                      return;
+                    }
+                    const n = parseFloat(v);
+                    if (!Number.isNaN(n)) {
+                      setFormData({
+                        ...formData,
+                        hormoneTreatmentDuration: n,
+                      });
+                    }
+                    setTouched((prev) => ({
+                      ...prev,
+                      hormoneTreatmentDuration: true,
+                    }));
+                  }}
+                  onBlur={() => {
+                    setTouched((prev) => ({
+                      ...prev,
+                      hormoneTreatmentDuration: true,
+                    }));
+                  }}
+                  error={
+                    touched.hormoneTreatmentDuration
+                      ? errors.hormoneTreatmentDuration
+                      : undefined
+                  }
+                />
+              </motion.div>
+            )}
+        </div>
       </DuoCard.Root>
     </motion.div>
   );

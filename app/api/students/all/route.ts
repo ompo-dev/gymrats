@@ -18,9 +18,13 @@ export const GET = createSafeHandler(
     const userId = user.id;
     const sectionsParam = query.sections as string | undefined;
     const sections = sectionsParam ? sectionsParam.split(",") : undefined;
-    
-    const data = await StudentDomainService.getAllData(studentId, userId, sections);
+
+    const data = await StudentDomainService.getAllData(
+      studentId,
+      userId,
+      sections,
+    );
     return NextResponse.json(data);
   },
-  { auth: "student" }
+  { auth: "student" },
 );

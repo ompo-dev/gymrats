@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, Users, Building2 } from "lucide-react";
+import { Building2, Dumbbell, Users } from "lucide-react";
 import Link from "next/link";
 import { DuoButton, DuoColorPicker } from "@/components/duo";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,10 @@ export interface LandingNavbarProps {
   onViewModeChange: (mode: "student" | "gym") => void;
 }
 
-export function LandingNavbar({ viewMode, onViewModeChange }: LandingNavbarProps) {
+export function LandingNavbar({
+  viewMode,
+  onViewModeChange,
+}: LandingNavbarProps) {
   return (
     <nav className="fixed top-0 z-50 w-full border-b border-[var(--duo-border)]/50 bg-[var(--duo-bg)]/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  createGymPlanSchema,
+  gymPlansQuerySchema,
+} from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
-import { gymPlansQuerySchema, createGymPlanSchema } from "@/lib/api/schemas/gyms.schemas";
 
 // GET — listar planos da academia
 export const GET = createSafeHandler(
@@ -13,7 +16,7 @@ export const GET = createSafeHandler(
   {
     auth: "gym",
     schema: { query: gymPlansQuerySchema },
-  }
+  },
 );
 
 // POST — criar novo plano
@@ -26,5 +29,5 @@ export const POST = createSafeHandler(
   {
     auth: "gym",
     schema: { body: createGymPlanSchema },
-  }
+  },
 );

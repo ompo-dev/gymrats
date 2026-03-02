@@ -57,40 +57,50 @@ export function Step4({ formData, setFormData, forceValidation }: StepProps) {
         className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
       >
         <div className="mb-6 text-center">
-          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
-            Equipamentos
-          </h2>
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">Equipamentos</h2>
           <p className="text-sm text-duo-fg-muted">
             Selecione o que você tem acesso
           </p>
         </div>
         <div className="space-y-6">
-        <div>
-          <DuoSelect.Simple
-            options={[
-              { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
-              { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },
-              { value: "home-gym", label: "Home Gym", emoji: "🏡" },
-              { value: "peso-corporal", label: "Só Peso Corporal", emoji: "🤸" },
-            ]}
-            value={formData.gymType || ""}
-            onChange={(value) => {
-              setFormData({
-                ...formData,
-                gymType: value as OnboardingData["gymType"],
-              });
-              setTouched((prev) => ({ ...prev, gymType: true }));
-            }}
-            label="Tipo de academia"
-            placeholder="Selecione"
-          />
-          {touched.gymType && errors.gymType && (
-            <p className="mt-2 text-sm font-bold text-duo-danger">
-              {errors.gymType}
-            </p>
-          )}
+          <div>
+            <DuoSelect.Simple
+              options={[
+                {
+                  value: "academia-completa",
+                  label: "Academia Completa",
+                  emoji: "🏢",
+                },
+                {
+                  value: "academia-basica",
+                  label: "Academia Básica",
+                  emoji: "🏠",
+                },
+                { value: "home-gym", label: "Home Gym", emoji: "🏡" },
+                {
+                  value: "peso-corporal",
+                  label: "Só Peso Corporal",
+                  emoji: "🤸",
+                },
+              ]}
+              value={formData.gymType || ""}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  gymType: value as OnboardingData["gymType"],
+                });
+                setTouched((prev) => ({ ...prev, gymType: true }));
+              }}
+              label="Tipo de academia"
+              placeholder="Selecione"
+            />
+            {touched.gymType && errors.gymType && (
+              <p className="mt-2 text-sm font-bold text-duo-danger">
+                {errors.gymType}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
       </DuoCard.Root>
     </motion.div>
   );

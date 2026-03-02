@@ -1,24 +1,19 @@
 "use client";
 
 import {
-  ArrowRight,
-  Zap,
-  Users,
-  TrendingDown,
   Activity,
+  ArrowRight,
   Flame,
   Target,
+  TrendingDown,
+  Zap,
 } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
-import {
-  DuoButton,
-  DuoCard,
-  DuoStatCard,
-  DuoStatsGrid,
-} from "@/components/duo";
+import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
+import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 import {
   DietTab,
   OverviewTab,
@@ -30,7 +25,6 @@ import {
   WorkoutsTab,
 } from "@/components/organisms/gym/gym-student-detail/components";
 import type { StudentDetailTab } from "@/components/organisms/gym/gym-student-detail/hooks/use-gym-student-detail";
-import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 import type {
   DailyNutrition,
   Equipment,
@@ -248,9 +242,30 @@ const MOCK_WEEKLY_PLAN: WeeklyPlanData = {
         muscleGroup: "peito",
         difficulty: "intermediario",
         exercises: [
-          { id: "ex1", name: "Supino Reto", sets: 4, reps: "8-10", rest: 90, notes: "" },
-          { id: "ex2", name: "Supino Inclinado", sets: 3, reps: "10", rest: 60, notes: "" },
-          { id: "ex3", name: "Tríceps Pulley", sets: 3, reps: "12", rest: 45, notes: "" },
+          {
+            id: "ex1",
+            name: "Supino Reto",
+            sets: 4,
+            reps: "8-10",
+            rest: 90,
+            notes: "",
+          },
+          {
+            id: "ex2",
+            name: "Supino Inclinado",
+            sets: 3,
+            reps: "10",
+            rest: 60,
+            notes: "",
+          },
+          {
+            id: "ex3",
+            name: "Tríceps Pulley",
+            sets: 3,
+            reps: "12",
+            rest: 45,
+            notes: "",
+          },
         ],
         xpReward: 150,
         estimatedTime: 45,
@@ -272,8 +287,22 @@ const MOCK_WEEKLY_PLAN: WeeklyPlanData = {
         muscleGroup: "costas",
         difficulty: "intermediario",
         exercises: [
-          { id: "ex4", name: "Barra Fixa", sets: 4, reps: "8", rest: 90, notes: "" },
-          { id: "ex5", name: "Remada Curvada", sets: 3, reps: "10", rest: 60, notes: "" },
+          {
+            id: "ex4",
+            name: "Barra Fixa",
+            sets: 4,
+            reps: "8",
+            rest: 90,
+            notes: "",
+          },
+          {
+            id: "ex5",
+            name: "Remada Curvada",
+            sets: 3,
+            reps: "10",
+            rest: 60,
+            notes: "",
+          },
         ],
         xpReward: 120,
         estimatedTime: 40,
@@ -302,8 +331,22 @@ const MOCK_WEEKLY_PLAN: WeeklyPlanData = {
         muscleGroup: "pernas",
         difficulty: "intermediario",
         exercises: [
-          { id: "ex6", name: "Agachamento Livre", sets: 4, reps: "8-10", rest: 120, notes: "" },
-          { id: "ex7", name: "Leg Press", sets: 3, reps: "12", rest: 90, notes: "" },
+          {
+            id: "ex6",
+            name: "Agachamento Livre",
+            sets: 4,
+            reps: "8-10",
+            rest: 120,
+            notes: "",
+          },
+          {
+            id: "ex7",
+            name: "Leg Press",
+            sets: 3,
+            reps: "12",
+            rest: 90,
+            notes: "",
+          },
         ],
         xpReward: 180,
         estimatedTime: 50,
@@ -338,9 +381,39 @@ const MOCK_DAILY_NUTRITION: DailyNutrition = {
       fats: 18,
       completed: true,
       foods: [
-        { id: "f1", foodId: "fd1", foodName: "Ovos mexidos", servings: 1, calories: 180, protein: 14, carbs: 2, fats: 12, servingSize: "100g" },
-        { id: "f2", foodId: "fd2", foodName: "Pão integral", servings: 1, calories: 140, protein: 5, carbs: 26, fats: 2, servingSize: "50g" },
-        { id: "f3", foodId: "fd3", foodName: "Banana", servings: 1, calories: 130, protein: 1, carbs: 22, fats: 1, servingSize: "1 un" },
+        {
+          id: "f1",
+          foodId: "fd1",
+          foodName: "Ovos mexidos",
+          servings: 1,
+          calories: 180,
+          protein: 14,
+          carbs: 2,
+          fats: 12,
+          servingSize: "100g",
+        },
+        {
+          id: "f2",
+          foodId: "fd2",
+          foodName: "Pão integral",
+          servings: 1,
+          calories: 140,
+          protein: 5,
+          carbs: 26,
+          fats: 2,
+          servingSize: "50g",
+        },
+        {
+          id: "f3",
+          foodId: "fd3",
+          foodName: "Banana",
+          servings: 1,
+          calories: 130,
+          protein: 1,
+          carbs: 22,
+          fats: 1,
+          servingSize: "1 un",
+        },
       ],
     },
     {
@@ -354,9 +427,39 @@ const MOCK_DAILY_NUTRITION: DailyNutrition = {
       fats: 18,
       completed: true,
       foods: [
-        { id: "f4", foodId: "fd4", foodName: "Frango grelhado", servings: 1, calories: 250, protein: 35, carbs: 0, fats: 10, servingSize: "150g" },
-        { id: "f5", foodId: "fd5", foodName: "Arroz e feijão", servings: 1, calories: 350, protein: 12, carbs: 68, fats: 2, servingSize: "1 porção" },
-        { id: "f6", foodId: "fd6", foodName: "Salada", servings: 1, calories: 80, protein: 3, carbs: 10, fats: 4, servingSize: "porção" },
+        {
+          id: "f4",
+          foodId: "fd4",
+          foodName: "Frango grelhado",
+          servings: 1,
+          calories: 250,
+          protein: 35,
+          carbs: 0,
+          fats: 10,
+          servingSize: "150g",
+        },
+        {
+          id: "f5",
+          foodId: "fd5",
+          foodName: "Arroz e feijão",
+          servings: 1,
+          calories: 350,
+          protein: 12,
+          carbs: 68,
+          fats: 2,
+          servingSize: "1 porção",
+        },
+        {
+          id: "f6",
+          foodId: "fd6",
+          foodName: "Salada",
+          servings: 1,
+          calories: 80,
+          protein: 3,
+          carbs: 10,
+          fats: 4,
+          servingSize: "porção",
+        },
       ],
     },
     {
@@ -370,7 +473,17 @@ const MOCK_DAILY_NUTRITION: DailyNutrition = {
       fats: 12,
       completed: false,
       foods: [
-        { id: "f7", foodId: "fd7", foodName: "Whey + aveia", servings: 1, calories: 350, protein: 18, carbs: 42, fats: 12, servingSize: "1 dose" },
+        {
+          id: "f7",
+          foodId: "fd7",
+          foodName: "Whey + aveia",
+          servings: 1,
+          calories: 350,
+          protein: 18,
+          carbs: 42,
+          fats: 12,
+          servingSize: "1 dose",
+        },
       ],
     },
   ],

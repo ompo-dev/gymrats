@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { UpdateExerciseLog200ExerciseLog } from './updateExerciseLog200ExerciseLog';
+import type { UpdateExerciseLog200ExerciseLog } from "./updateExerciseLog200ExerciseLog";
 
 export type UpdateExerciseLog200 = {
   exerciseLog?: UpdateExerciseLog200ExerciseLog;

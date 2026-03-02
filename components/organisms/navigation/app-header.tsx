@@ -1,11 +1,11 @@
 "use client";
 
-import { Flame, Palette, Trophy } from "lucide-react";
+import { Flame, Palette } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { DuoColorPicker } from "@/components/duo/organisms/duo-color-picker";
 import { DuoModal } from "@/components/duo/molecules/duo-modal";
+import { DuoColorPicker } from "@/components/duo/organisms/duo-color-picker";
+import { cn } from "@/lib/utils";
 import { StreakModal } from "../modals/streak-modal";
 import { GymSelector } from "./gym-selector";
 
@@ -20,11 +20,7 @@ interface AppHeaderProps {
   showLogo?: boolean;
 }
 
-function AppHeaderSimple({
-  userType,
-  stats,
-  showLogo = true,
-}: AppHeaderProps) {
+function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
   const [streakModalOpen, setStreakModalOpen] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const isGym = userType === "gym";

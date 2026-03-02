@@ -4,9 +4,9 @@
  */
 
 export { createAuthSlice } from "./auth-slice";
+export { createFinancialSlice } from "./financial-slice";
+export { createNutritionSlice } from "./nutrition-slice";
 export { createProfileSlice } from "./profile-slice";
 export { createProgressSlice } from "./progress-slice";
 export { createSocialSlice } from "./social-slice";
-export { createFinancialSlice } from "./financial-slice";
-export { createNutritionSlice } from "./nutrition-slice";
 export { createSyncSlice } from "./sync-slice";

@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { Subscription } from './subscription';
+import type { Subscription } from "./subscription";
 
 export type StartTrial200 = {
   success?: boolean;

@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type MembershipStatus = typeof MembershipStatus[keyof typeof MembershipStatus];
-
+export type MembershipStatus =
+  (typeof MembershipStatus)[keyof typeof MembershipStatus];
 
 export const MembershipStatus = {
-  active: 'active',
-  expired: 'expired',
-  canceled: 'canceled',
+  active: "active",
+  expired: "expired",
+  canceled: "canceled",
 } as const;

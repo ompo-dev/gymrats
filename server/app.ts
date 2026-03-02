@@ -21,36 +21,36 @@ import { usersRoutes } from "./routes/users";
 import { workoutsRoutes } from "./routes/workouts";
 
 export const apiApp = new Elysia()
-	.use(corsPlugin)
-	.use(dbPlugin)
-	.use(betterAuthPlugin)
-	.use(authMacro)
-	.use(authRolesMacro)
-	.use(requestLoggerPlugin)
-	.use(
-		swagger({
-			documentation: {
-				info: {
-					title: "GymRats API (Elysia)",
-					version: "1.0.0",
-				},
-			},
-		}),
-	)
-	.group("/api", (app) =>
-		app
-			.group("/auth", (group) => group.use(authRoutes))
-			.group("/users", (group) => group.use(usersRoutes))
-			.group("/students", (group) => group.use(studentsRoutes))
-			.group("/gyms", (group) => group.use(gymsRoutes))
-			.group("/workouts", (group) => group.use(workoutsRoutes))
-			.group("/nutrition", (group) => group.use(nutritionRoutes))
-			.group("/foods", (group) => group.use(foodsRoutes))
-			.group("/exercises", (group) => group.use(exercisesRoutes))
-			.group("/subscriptions", (group) => group.use(subscriptionsRoutes))
-			.group("/gym-subscriptions", (group) => group.use(gymSubscriptionsRoutes))
-			.group("/payments", (group) => group.use(paymentsRoutes))
-			.group("/payment-methods", (group) => group.use(paymentMethodsRoutes))
-			.group("/memberships", (group) => group.use(membershipsRoutes)),
-	)
-	.get("/health", () => ({ status: "ok" }));
+  .use(corsPlugin)
+  .use(dbPlugin)
+  .use(betterAuthPlugin)
+  .use(authMacro)
+  .use(authRolesMacro)
+  .use(requestLoggerPlugin)
+  .use(
+    swagger({
+      documentation: {
+        info: {
+          title: "GymRats API (Elysia)",
+          version: "1.0.0",
+        },
+      },
+    }),
+  )
+  .group("/api", (app) =>
+    app
+      .group("/auth", (group) => group.use(authRoutes))
+      .group("/users", (group) => group.use(usersRoutes))
+      .group("/students", (group) => group.use(studentsRoutes))
+      .group("/gyms", (group) => group.use(gymsRoutes))
+      .group("/workouts", (group) => group.use(workoutsRoutes))
+      .group("/nutrition", (group) => group.use(nutritionRoutes))
+      .group("/foods", (group) => group.use(foodsRoutes))
+      .group("/exercises", (group) => group.use(exercisesRoutes))
+      .group("/subscriptions", (group) => group.use(subscriptionsRoutes))
+      .group("/gym-subscriptions", (group) => group.use(gymSubscriptionsRoutes))
+      .group("/payments", (group) => group.use(paymentsRoutes))
+      .group("/payment-methods", (group) => group.use(paymentMethodsRoutes))
+      .group("/memberships", (group) => group.use(membershipsRoutes)),
+  )
+  .get("/health", () => ({ status: "ok" }));

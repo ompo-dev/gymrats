@@ -1,20 +1,19 @@
 "use client";
 
-import { Dumbbell, Lock, Plus } from "lucide-react";
+import { Dumbbell, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { apiClient } from "@/lib/api/client";
-import type { PlanSlotData, WeeklyPlanData } from "@/lib/types";
-import { useWorkoutStore } from "@/stores/workout-store";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api/client";
+import type { PlanSlotData } from "@/lib/types";
+import { useWorkoutStore } from "@/stores/workout-store";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
 
@@ -62,7 +61,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
   const handleWorkoutClick = (
     workoutId: string,
     isLocked: boolean,
-    workoutType?: string,
+    _workoutType?: string,
     exerciseIndex?: number,
   ) => {
     if (isLocked) return;
@@ -92,23 +91,21 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
   if (!hasPlan) {
     return (
-      <>
-        <EmptyWorkoutState
-          onCreatePlan={async () => {
-            try {
-              await apiClient.post("/api/workouts/weekly-plan", {});
-              await loadWeeklyPlan(true);
-              editPlanModal.open();
-            } catch (error) {
-              toast({
-                title: "Erro",
-                description: "Não foi possível criar o plano.",
-                variant: "destructive",
-              });
-            }
-          }}
-        />
-      </>
+      <EmptyWorkoutState
+        onCreatePlan={async () => {
+          try {
+            await apiClient.post("/api/workouts/weekly-plan", {});
+            await loadWeeklyPlan(true);
+            editPlanModal.open();
+          } catch (_error) {
+            toast({
+              title: "Erro",
+              description: "Não foi possível criar o plano.",
+              variant: "destructive",
+            });
+          }
+        }}
+      />
     );
   }
 
@@ -127,12 +124,14 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
       <div className="mb-8">
         <UnitSectionCard
           sectionLabel={
-            (typeof weeklyPlan!.description === "string"
-              ? weeklyPlan!.description.trim()
+            (typeof weeklyPlan?.description === "string"
+              ? weeklyPlan?.description.trim()
               : "") || "7 dias • Segunda a Domingo"
           }
           title={
-            typeof weeklyPlan!.title === "string" ? weeklyPlan!.title : "Plano Semanal"
+            typeof weeklyPlan?.title === "string"
+              ? weeklyPlan?.title
+              : "Plano Semanal"
           }
           onButtonClick={() => editPlanModal.open()}
         />
@@ -199,9 +198,7 @@ function EmptyWorkoutState({ onCreatePlan }: { onCreatePlan: () => void }) {
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-duo-fg">
-              Meu Plano Semanal
-            </h2>
+            <h2 className="font-bold text-duo-fg">Meu Plano Semanal</h2>
           </div>
         </DuoCard.Header>
         <motion.div

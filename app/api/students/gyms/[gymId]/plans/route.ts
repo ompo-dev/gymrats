@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { z } from "zod";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { db } from "@/lib/db";
 
 const paramsSchema = z.object({
   gymId: z.string().min(1),

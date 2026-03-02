@@ -4,7 +4,9 @@ import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {
-    const summary = await GymFinancialService.getFinancialSummary(gymContext!.gymId);
+    const summary = await GymFinancialService.getFinancialSummary(
+      gymContext?.gymId,
+    );
     return NextResponse.json({ summary });
   },
   {

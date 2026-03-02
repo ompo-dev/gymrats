@@ -3,23 +3,23 @@
 import { motion } from "motion/react";
 
 interface EndOfListStateProps {
-	total: number;
-	itemName?: string;
+  total: number;
+  itemName?: string;
 }
 
 function EndOfListStateSimple({
-	total,
-	itemName = "itens",
+  total,
+  itemName = "itens",
 }: EndOfListStateProps) {
-	return (
-		<motion.div
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
-			className="py-4 text-center text-xs text-gray-500"
-		>
-			Todos os {itemName} foram carregados ({total} total)
-		</motion.div>
-	);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="py-4 text-center text-xs text-gray-500"
+    >
+      Todos os {itemName} foram carregados ({total} total)
+    </motion.div>
+  );
 }
 
 export const EndOfListState = { Simple: EndOfListStateSimple };

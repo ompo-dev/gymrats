@@ -45,7 +45,7 @@ export async function getUnitsHandler(
     if ("error" in auth) return auth.response;
 
     const { units } = await getUnitsUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return successResponse({ units });
@@ -67,12 +67,12 @@ export async function getWeeklyPlanHandler(
     if ("error" in auth) return auth.response;
 
     const student = await db.student.findUnique({
-      where: { id: auth.user.student!.id },
+      where: { id: auth.user.student?.id },
       select: { weekOverride: true },
     });
 
     const result = await getWeeklyPlanUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       weekOverride: student?.weekOverride ?? null,
     });
 
@@ -127,7 +127,7 @@ export async function completeWorkoutHandler(
 
     try {
       const result = await completeWorkoutUseCase({
-        studentId: auth.user.student!.id,
+        studentId: auth.user.student?.id,
         workoutId,
         duration,
         totalVolume,
@@ -188,7 +188,7 @@ export async function saveWorkoutProgressHandler(
 
     try {
       await saveWorkoutProgressUseCase({
-        studentId: auth.user.student!.id,
+        studentId: auth.user.student?.id,
         workoutId,
         currentExerciseIndex,
         exerciseLogs,
@@ -230,7 +230,7 @@ export async function getWorkoutProgressHandler(
     if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
     const { progress } = await getWorkoutProgressUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       workoutId,
     });
 
@@ -264,7 +264,7 @@ export async function deleteWorkoutProgressHandler(
     if (!workoutId) return badRequestResponse("ID do workout não fornecido");
 
     await deleteWorkoutProgressUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       workoutId,
     });
 
@@ -298,7 +298,7 @@ export async function getWorkoutHistoryHandler(
     if (!queryValidation.success) return queryValidation.response;
 
     const result = await getWorkoutHistoryUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       limit: queryValidation.data.limit || 10,
       offset: queryValidation.data.offset || 0,
     });
@@ -342,7 +342,7 @@ export async function updateExerciseLogHandler(
       const result = await updateExerciseLogUseCase({
         historyId,
         exerciseId,
-        studentId: auth.user.student!.id,
+        studentId: auth.user.student?.id,
         sets: sets as unknown as import("@/lib/use-cases/workouts/update-exercise-log").UpdateExerciseLogInput["sets"],
         notes,
         formCheckScore,
@@ -386,7 +386,7 @@ export async function updateWorkoutProgressExerciseHandler(
       return badRequestResponse("workoutId e exerciseId são obrigatórios");
 
     const { progress: current } = await getWorkoutProgressUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       workoutId,
     });
 
@@ -447,7 +447,7 @@ export async function updateWorkoutProgressExerciseHandler(
     }
 
     await saveWorkoutProgressUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       workoutId,
       currentExerciseIndex: current.currentExerciseIndex,
       exerciseLogs,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { z } from "zod";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { db } from "@/lib/db";
 
 const paramsSchema = z.object({
   gymId: z.string().min(1),
@@ -16,7 +16,9 @@ export const GET = createSafeHandler(
       where: { id: gymId, isActive: true },
       include: {
         profile: true,
-        equipment: { select: { id: true, name: true, type: true, status: true } },
+        equipment: {
+          select: { id: true, name: true, type: true, status: true },
+        },
         plans: {
           where: { isActive: true },
           orderBy: { price: "asc" },
@@ -39,10 +41,16 @@ export const GET = createSafeHandler(
       );
     }
 
-    let openingHours: { open?: string; close?: string; days?: string[] } | undefined;
+    let openingHours:
+      | { open?: string; close?: string; days?: string[] }
+      | undefined;
     if (gym.openingHours) {
       try {
-        openingHours = JSON.parse(gym.openingHours) as { open?: string; close?: string; days?: string[] };
+        openingHours = JSON.parse(gym.openingHours) as {
+          open?: string;
+          close?: string;
+          days?: string[];
+        };
       } catch {}
     }
 

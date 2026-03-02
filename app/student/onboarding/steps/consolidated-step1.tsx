@@ -198,398 +198,414 @@ export function ConsolidatedStep1({
         className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
       >
         <div className="mb-6 text-center">
-          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
-            Quem é você
-          </h2>
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">Quem é você</h2>
           <p className="text-sm text-duo-fg-muted">
             Vamos conhecer você para personalizar sua experiência
           </p>
         </div>
         <div className="space-y-8">
-        {/* Seção 1: Informações Pessoais */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
-            Informações Pessoais
-          </h3>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <DuoInput.Simple
-              label="Idade *"
-              type="text"
-              inputMode="numeric"
-              placeholder="25"
-              value={formData.age === "" ? "" : formData.age}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "" || v === "-") {
-                  setFormData({ ...formData, age: "" });
-                  return;
-                }
-                const n = parseFloat(v);
-                if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, age: n });
-                }
-              }}
-              onBlur={() => {
-                setTouched((prev) => ({ ...prev, age: true }));
-                validateField("age");
-              }}
-              required
-              error={touched.age ? errors.age : undefined}
-            />
-            <DuoInput.Simple
-              label="Altura (cm) *"
-              type="text"
-              inputMode="numeric"
-              placeholder="170"
-              value={formData.height === "" ? "" : formData.height}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "" || v === "-") {
-                  setFormData({ ...formData, height: "" });
-                  return;
-                }
-                const n = parseFloat(v);
-                if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, height: n });
-                }
-              }}
-              onBlur={() => {
-                setTouched((prev) => ({ ...prev, height: true }));
-                validateField("height");
-              }}
-              required
-              error={touched.height ? errors.height : undefined}
-            />
-            <DuoInput.Simple
-              label="Peso (kg) *"
-              type="text"
-              inputMode="numeric"
-              placeholder="70"
-              value={formData.weight === "" ? "" : formData.weight}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "" || v === "-") {
-                  setFormData({ ...formData, weight: "" });
-                  return;
-                }
-                const n = parseFloat(v);
-                if (!Number.isNaN(n)) {
-                  setFormData({ ...formData, weight: n });
-                }
-              }}
-              onBlur={() => {
-                setTouched((prev) => ({ ...prev, weight: true }));
-                validateField("weight");
-              }}
-              required
-              error={touched.weight ? errors.weight : undefined}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <span className="block text-sm font-bold text-duo-fg">
-              Gênero
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: "male", label: "Masculino" },
-                { value: "trans-male", label: "Trans Masculino" },
-                { value: "female", label: "Feminino" },
-                { value: "trans-female", label: "Trans Feminino" },
-              ].map((option) => (
-                <DuoButton
-                  key={option.value}
-                  type="button"
-                  variant={formData.gender === option.value ? "primary" : "outline"}
-                  onClick={() => {
-                    const isTrans = option.value.includes("trans");
-                    setFormData({
-                      ...formData,
-                      gender: option.value as OnboardingData["gender"],
-                      isTrans,
-                      usesHormones: isTrans ? formData.usesHormones : false,
-                      hormoneType: isTrans ? formData.hormoneType : "",
-                    });
-                    setTouched((prev) => ({ ...prev, gender: true }));
-                  }}
-                  className={`rounded-2xl py-3 ${
-                    formData.gender !== option.value
-                      ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
-                      : ""
-                  }`}
-                >
-                  {option.label}
-                </DuoButton>
-              ))}
-            </div>
-            {(formData.gender === "trans-male" ||
-              formData.gender === "trans-female") && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="mt-4 space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
-              >
-                <CustomCheckbox
-                  checked={formData.usesHormones}
-                  onChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      usesHormones: checked,
-                      hormoneType: checked ? formData.hormoneType : "",
-                    })
+          {/* Seção 1: Informações Pessoais */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
+              Informações Pessoais
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <DuoInput.Simple
+                label="Idade *"
+                type="text"
+                inputMode="numeric"
+                placeholder="25"
+                value={formData.age === "" ? "" : formData.age}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || v === "-") {
+                    setFormData({ ...formData, age: "" });
+                    return;
                   }
-                  label="Faço uso de terapia hormonal"
-                  delay={0}
-                />
-                {formData.usesHormones && (
-                  <>
-                    <DuoSelect.Simple
-                      options={[
-                        { value: "testosterone", label: "Testosterona" },
-                        { value: "estrogen", label: "Estrogênio" },
-                      ]}
-                      value={formData.hormoneType}
-                      onChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          hormoneType: value as OnboardingData["hormoneType"],
-                        })
-                      }
-                      label="Tipo de hormônio"
-                      placeholder="Selecione"
-                    />
-                    <DuoInput.Simple
-                      label="Meses de tratamento"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={formData.hormoneTreatmentDuration ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === "" || v === "-") {
+                  const n = parseFloat(v);
+                  if (!Number.isNaN(n)) {
+                    setFormData({ ...formData, age: n });
+                  }
+                }}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, age: true }));
+                  validateField("age");
+                }}
+                required
+                error={touched.age ? errors.age : undefined}
+              />
+              <DuoInput.Simple
+                label="Altura (cm) *"
+                type="text"
+                inputMode="numeric"
+                placeholder="170"
+                value={formData.height === "" ? "" : formData.height}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || v === "-") {
+                    setFormData({ ...formData, height: "" });
+                    return;
+                  }
+                  const n = parseFloat(v);
+                  if (!Number.isNaN(n)) {
+                    setFormData({ ...formData, height: n });
+                  }
+                }}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, height: true }));
+                  validateField("height");
+                }}
+                required
+                error={touched.height ? errors.height : undefined}
+              />
+              <DuoInput.Simple
+                label="Peso (kg) *"
+                type="text"
+                inputMode="numeric"
+                placeholder="70"
+                value={formData.weight === "" ? "" : formData.weight}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "" || v === "-") {
+                    setFormData({ ...formData, weight: "" });
+                    return;
+                  }
+                  const n = parseFloat(v);
+                  if (!Number.isNaN(n)) {
+                    setFormData({ ...formData, weight: n });
+                  }
+                }}
+                onBlur={() => {
+                  setTouched((prev) => ({ ...prev, weight: true }));
+                  validateField("weight");
+                }}
+                required
+                error={touched.weight ? errors.weight : undefined}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <span className="block text-sm font-bold text-duo-fg">
+                Gênero
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: "male", label: "Masculino" },
+                  { value: "trans-male", label: "Trans Masculino" },
+                  { value: "female", label: "Feminino" },
+                  { value: "trans-female", label: "Trans Feminino" },
+                ].map((option) => (
+                  <DuoButton
+                    key={option.value}
+                    type="button"
+                    variant={
+                      formData.gender === option.value ? "primary" : "outline"
+                    }
+                    onClick={() => {
+                      const isTrans = option.value.includes("trans");
+                      setFormData({
+                        ...formData,
+                        gender: option.value as OnboardingData["gender"],
+                        isTrans,
+                        usesHormones: isTrans ? formData.usesHormones : false,
+                        hormoneType: isTrans ? formData.hormoneType : "",
+                      });
+                      setTouched((prev) => ({ ...prev, gender: true }));
+                    }}
+                    className={`rounded-2xl py-3 ${
+                      formData.gender !== option.value
+                        ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+                        : ""
+                    }`}
+                  >
+                    {option.label}
+                  </DuoButton>
+                ))}
+              </div>
+              {(formData.gender === "trans-male" ||
+                formData.gender === "trans-female") && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mt-4 space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+                >
+                  <CustomCheckbox
+                    checked={formData.usesHormones}
+                    onChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        usesHormones: checked,
+                        hormoneType: checked ? formData.hormoneType : "",
+                      })
+                    }
+                    label="Faço uso de terapia hormonal"
+                    delay={0}
+                  />
+                  {formData.usesHormones && (
+                    <>
+                      <DuoSelect.Simple
+                        options={[
+                          { value: "testosterone", label: "Testosterona" },
+                          { value: "estrogen", label: "Estrogênio" },
+                        ]}
+                        value={formData.hormoneType}
+                        onChange={(value) =>
                           setFormData({
                             ...formData,
-                            hormoneTreatmentDuration: undefined,
-                          });
-                          return;
+                            hormoneType: value as OnboardingData["hormoneType"],
+                          })
                         }
-                        const n = parseFloat(v);
-                        if (!Number.isNaN(n)) {
-                          setFormData({
-                            ...formData,
-                            hormoneTreatmentDuration: n,
-                          });
+                        label="Tipo de hormônio"
+                        placeholder="Selecione"
+                      />
+                      <DuoInput.Simple
+                        label="Meses de tratamento"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={formData.hormoneTreatmentDuration ?? ""}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "" || v === "-") {
+                            setFormData({
+                              ...formData,
+                              hormoneTreatmentDuration: undefined,
+                            });
+                            return;
+                          }
+                          const n = parseFloat(v);
+                          if (!Number.isNaN(n)) {
+                            setFormData({
+                              ...formData,
+                              hormoneTreatmentDuration: n,
+                            });
+                          }
+                        }}
+                        onBlur={() =>
+                          setTouched((prev) => ({
+                            ...prev,
+                            hormoneTreatmentDuration: true,
+                          }))
                         }
-                      }}
-                      onBlur={() =>
-                        setTouched((prev) => ({
-                          ...prev,
-                          hormoneTreatmentDuration: true,
-                        }))
-                      }
-                      error={
-                        touched.hormoneTreatmentDuration
-                          ? errors.hormoneTreatmentDuration
-                          : undefined
-                      }
-                    />
-                  </>
-                )}
-              </motion.div>
-            )}
-          </div>
+                        error={
+                          touched.hormoneTreatmentDuration
+                            ? errors.hormoneTreatmentDuration
+                            : undefined
+                        }
+                      />
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </div>
 
-          <DuoSelect.Simple
-            options={[
-              { value: "iniciante", label: "Iniciante" },
-              { value: "intermediario", label: "Intermediário" },
-              { value: "avancado", label: "Avançado" },
-            ]}
-            value={formData.fitnessLevel}
-            onChange={(value) =>
-              setFormData({
-                ...formData,
-                fitnessLevel: value as DifficultyLevel,
-              })
-            }
-            label="Nível de Experiência"
-            placeholder="Selecione"
-          />
-        </motion.div>
-
-        {/* Seção 2: Objetivo principal */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-4"
-        >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
-            Objetivo Principal
-          </h3>
-          <DuoSelect.Simple
-            options={[
-              { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
-              { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
-              { value: "definir", label: "Definir / Manter", emoji: "✨" },
-            ]}
-            value={formData.goals.length > 0 ? formData.goals[0] : ""}
-            onChange={(value) => {
-              const goal = value as
-                | "perder-peso"
-                | "ganhar-massa"
-                | "definir"
-                | "saude"
-                | "forca"
-                | "resistencia";
-              setFormData({
-                ...formData,
-                goals: goal ? [goal] : [],
-              });
-              setTouched((prev) => ({ ...prev, goals: true }));
-            }}
-            label="O que você quer alcançar?"
-            placeholder="Selecione"
-          />
-          {touched.goals && errors.goals && (
-            <p className="text-sm font-bold text-duo-danger">{errors.goals}</p>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2">
             <DuoSelect.Simple
-              options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
-                value: String(num),
-                label: String(num),
-              }))}
-              value={String(formData.weeklyWorkoutFrequency)}
-              onChange={(value) => {
+              options={[
+                { value: "iniciante", label: "Iniciante" },
+                { value: "intermediario", label: "Intermediário" },
+                { value: "avancado", label: "Avançado" },
+              ]}
+              value={formData.fitnessLevel}
+              onChange={(value) =>
                 setFormData({
                   ...formData,
-                  weeklyWorkoutFrequency: parseInt(value, 10),
-                });
-                setTouched((prev) => ({
-                  ...prev,
-                  weeklyWorkoutFrequency: true,
-                }));
-              }}
-              label="Treinos por semana"
+                  fitnessLevel: value as DifficultyLevel,
+                })
+              }
+              label="Nível de Experiência"
               placeholder="Selecione"
             />
-            <div>
-              <RangeSlider
-                min={20}
-                max={120}
-                step={10}
-                value={formData.workoutDuration}
+          </motion.div>
+
+          {/* Seção 2: Objetivo principal */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-4"
+          >
+            <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
+              Objetivo Principal
+            </h3>
+            <DuoSelect.Simple
+              options={[
+                { value: "perder-peso", label: "Perder Peso", emoji: "⚖️" },
+                { value: "ganhar-massa", label: "Ganhar Massa", emoji: "💪" },
+                { value: "definir", label: "Definir / Manter", emoji: "✨" },
+              ]}
+              value={formData.goals.length > 0 ? formData.goals[0] : ""}
+              onChange={(value) => {
+                const goal = value as
+                  | "perder-peso"
+                  | "ganhar-massa"
+                  | "definir"
+                  | "saude"
+                  | "forca"
+                  | "resistencia";
+                setFormData({
+                  ...formData,
+                  goals: goal ? [goal] : [],
+                });
+                setTouched((prev) => ({ ...prev, goals: true }));
+              }}
+              label="O que você quer alcançar?"
+              placeholder="Selecione"
+            />
+            {touched.goals && errors.goals && (
+              <p className="text-sm font-bold text-duo-danger">
+                {errors.goals}
+              </p>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <DuoSelect.Simple
+                options={[1, 2, 3, 4, 5, 6, 7].map((num) => ({
+                  value: String(num),
+                  label: String(num),
+                }))}
+                value={String(formData.weeklyWorkoutFrequency)}
                 onChange={(value) => {
                   setFormData({
                     ...formData,
-                    workoutDuration: value,
+                    weeklyWorkoutFrequency: parseInt(value, 10),
                   });
-                  setTouched((prev) => ({ ...prev, workoutDuration: true }));
+                  setTouched((prev) => ({
+                    ...prev,
+                    weeklyWorkoutFrequency: true,
+                  }));
                 }}
-                label="Duração por treino"
-                unit="min"
-                size="lg"
-                delay={0}
+                label="Treinos por semana"
+                placeholder="Selecione"
               />
+              <div>
+                <RangeSlider
+                  min={20}
+                  max={120}
+                  step={10}
+                  value={formData.workoutDuration}
+                  onChange={(value) => {
+                    setFormData({
+                      ...formData,
+                      workoutDuration: value,
+                    });
+                    setTouched((prev) => ({ ...prev, workoutDuration: true }));
+                  }}
+                  label="Duração por treino"
+                  unit="min"
+                  size="lg"
+                  delay={0}
+                />
+              </div>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Seção 3: Equipamentos */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
-            Equipamentos
-          </h3>
-          <DuoSelect.Simple
-            options={[
-              { value: "academia-completa", label: "Academia Completa", emoji: "🏢" },
-              { value: "academia-basica", label: "Academia Básica", emoji: "🏠" },
-              { value: "home-gym", label: "Home Gym", emoji: "🏡" },
-              { value: "peso-corporal", label: "Só Peso Corporal", emoji: "🤸" },
-            ]}
-            value={formData.gymType || ""}
-            onChange={(value) => {
-              setFormData({
-                ...formData,
-                gymType: value as OnboardingData["gymType"],
-              });
-              setTouched((prev) => ({ ...prev, gymType: true }));
-            }}
-            label="O que você tem acesso?"
-            placeholder="Selecione"
-          />
-          {touched.gymType && errors.gymType && (
-            <p className="text-sm font-bold text-duo-danger">{errors.gymType}</p>
-          )}
-        </motion.div>
-
-        {/* Seção 4: Nível de Atividade */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5 text-duo-green" />
-            <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
-              Nível de Atividade Física (1-10)
-            </h3>
-          </div>
-          <RangeSlider
-            min={1}
-            max={10}
-            step={1}
-            value={currentActivityLevel}
-            onChange={(value) => {
-              setFormData({
-                ...formData,
-                activityLevel: value,
-              });
-              setTouched((prev) => ({ ...prev, activityLevel: true }));
-            }}
-            label=""
-            unit=""
-            showValue={true}
-            size="lg"
-            delay={0}
-          />
-          <motion.div
-            key={currentActivityLevel}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="rounded-xl border-2 border-duo-green bg-duo-green/5 p-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-duo-fg">
-                {activityInfo.label}
-              </span>
-              <span className="text-xl font-black text-duo-green">
-                {currentActivityLevel}/10
-              </span>
-            </div>
-            <p className="mt-1 text-sm text-duo-fg-muted">
-              {activityInfo.description}
-            </p>
           </motion.div>
-          {touched.activityLevel && errors.activityLevel && (
-            <p className="text-sm font-bold text-duo-danger">
-              {errors.activityLevel}
-            </p>
-          )}
-        </motion.div>
-      </div>
+
+          {/* Seção 3: Equipamentos */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
+          >
+            <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
+              Equipamentos
+            </h3>
+            <DuoSelect.Simple
+              options={[
+                {
+                  value: "academia-completa",
+                  label: "Academia Completa",
+                  emoji: "🏢",
+                },
+                {
+                  value: "academia-basica",
+                  label: "Academia Básica",
+                  emoji: "🏠",
+                },
+                { value: "home-gym", label: "Home Gym", emoji: "🏡" },
+                {
+                  value: "peso-corporal",
+                  label: "Só Peso Corporal",
+                  emoji: "🤸",
+                },
+              ]}
+              value={formData.gymType || ""}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  gymType: value as OnboardingData["gymType"],
+                });
+                setTouched((prev) => ({ ...prev, gymType: true }));
+              }}
+              label="O que você tem acesso?"
+              placeholder="Selecione"
+            />
+            {touched.gymType && errors.gymType && (
+              <p className="text-sm font-bold text-duo-danger">
+                {errors.gymType}
+              </p>
+            )}
+          </motion.div>
+
+          {/* Seção 4: Nível de Atividade */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-4"
+          >
+            <div className="flex items-center gap-2">
+              <Thermometer className="h-5 w-5 text-duo-green" />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-duo-fg-muted">
+                Nível de Atividade Física (1-10)
+              </h3>
+            </div>
+            <RangeSlider
+              min={1}
+              max={10}
+              step={1}
+              value={currentActivityLevel}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  activityLevel: value,
+                });
+                setTouched((prev) => ({ ...prev, activityLevel: true }));
+              }}
+              label=""
+              unit=""
+              showValue={true}
+              size="lg"
+              delay={0}
+            />
+            <motion.div
+              key={currentActivityLevel}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-xl border-2 border-duo-green bg-duo-green/5 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-duo-fg">
+                  {activityInfo.label}
+                </span>
+                <span className="text-xl font-black text-duo-green">
+                  {currentActivityLevel}/10
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-duo-fg-muted">
+                {activityInfo.description}
+              </p>
+            </motion.div>
+            {touched.activityLevel && errors.activityLevel && (
+              <p className="text-sm font-bold text-duo-danger">
+                {errors.activityLevel}
+              </p>
+            )}
+          </motion.div>
+        </div>
       </DuoCard.Root>
     </motion.div>
   );

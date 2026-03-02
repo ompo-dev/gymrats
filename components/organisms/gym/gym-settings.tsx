@@ -14,16 +14,14 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard } from "@/components/duo";
-import { DuoInput } from "@/components/duo";
-import { DuoSelect } from "@/components/duo";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
-	GymSettingsAccountCard,
-	GymSettingsHeader,
-	GymSettingsOtherCard,
+  GymSettingsAccountCard,
+  GymSettingsHeader,
+  GymSettingsOtherCard,
 } from "./gym-settings/index";
 import { MembershipPlansPage } from "./membership-plans-page";
 
@@ -103,7 +101,16 @@ export function GymSettingsPage({
     setPixKeyType(initialProfile.pixKeyType ?? "");
     setPixKey(initialProfile.pixKey ?? "");
     setDaySchedules(parseInitialSchedules());
-  }, [initialProfile?.id]);
+  }, [
+    initialProfile?.id,
+    initialProfile.address,
+    initialProfile.cnpj,
+    initialProfile.phone,
+    initialProfile.pixKey,
+    initialProfile.pixKeyType,
+    initialProfile,
+    parseInitialSchedules,
+  ]);
 
   const {
     isAdmin: serverIsAdmin,
@@ -127,7 +134,8 @@ export function GymSettingsPage({
   const buildPayload = (
     section: "info" | "schedules",
   ): Record<string, import("@/lib/types/api-error").JsonValue> => {
-    const payload: Record<string, import("@/lib/types/api-error").JsonValue> = {};
+    const payload: Record<string, import("@/lib/types/api-error").JsonValue> =
+      {};
     if (section === "info") {
       if (address !== (profile.address ?? "")) {
         payload.address = address.trim() || null;
@@ -196,12 +204,29 @@ export function GymSettingsPage({
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
-              ?.data
+          ? (
+              err as {
+                response?: {
+                  data?: {
+                    details?: Record<
+                      string,
+                      string | number | boolean | object | null
+                    >;
+                  };
+                };
+              }
+            ).response?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
+          ? (
+              msg as {
+                details?: Record<
+                  string,
+                  string | number | boolean | object | null
+                >;
+              }
+            ).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0
@@ -233,12 +258,29 @@ export function GymSettingsPage({
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { details?: Record<string, string | number | boolean | object | null> } } }).response
-              ?.data
+          ? (
+              err as {
+                response?: {
+                  data?: {
+                    details?: Record<
+                      string,
+                      string | number | boolean | object | null
+                    >;
+                  };
+                };
+              }
+            ).response?.data
           : null;
       const details =
         msg && typeof msg === "object" && "details" in msg
-          ? (msg as { details?: Record<string, string | number | boolean | object | null> }).details
+          ? (
+              msg as {
+                details?: Record<
+                  string,
+                  string | number | boolean | object | null
+                >;
+              }
+            ).details
           : null;
       const errMsg =
         Array.isArray(details) && details.length > 0
@@ -439,7 +481,9 @@ export function GymSettingsPage({
                           field.iconBg,
                         )}
                       >
-                        <field.Icon className={cn("h-5 w-5", field.iconClass)} />
+                        <field.Icon
+                          className={cn("h-5 w-5", field.iconClass)}
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-bold text-duo-fg">

@@ -5,8 +5,8 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { SubscriptionPlan } from './subscriptionPlan';
-import type { SubscriptionStatus } from './subscriptionStatus';
+import type { SubscriptionPlan } from "./subscriptionPlan";
+import type { SubscriptionStatus } from "./subscriptionStatus";
 
 export interface Subscription {
   id?: string;

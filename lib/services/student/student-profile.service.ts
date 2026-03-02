@@ -46,7 +46,7 @@ export class StudentProfileService {
 
     return {
       history: data,
-      weightGain
+      weightGain,
     };
   }
 
@@ -57,13 +57,15 @@ export class StudentProfileService {
     const dateStr = new Date().toISOString().split("T")[0];
     const daily = await db.dailyNutrition.findFirst({
       where: { studentId, date: { gte: new Date(dateStr) } },
-      include: { meals: { include: { foods: true } } }
+      include: { meals: { include: { foods: true } } },
     });
 
-    return daily ? {
-      totalCalories: daily.meals.reduce((sum, m) => sum + m.calories, 0),
-      waterIntake: daily.waterIntake,
-    } : null;
+    return daily
+      ? {
+          totalCalories: daily.meals.reduce((sum, m) => sum + m.calories, 0),
+          waterIntake: daily.waterIntake,
+        }
+      : null;
   }
 
   /**
@@ -71,7 +73,16 @@ export class StudentProfileService {
    */
   static async saveOnboardingData(
     studentId: string,
-    data: Record<string, string | number | boolean | string[] | Record<string, string | string[]> | null | undefined>,
+    data: Record<
+      string,
+      | string
+      | number
+      | boolean
+      | string[]
+      | Record<string, string | string[]>
+      | null
+      | undefined
+    >,
   ) {
     const profileData = {
       studentId,
@@ -90,9 +101,15 @@ export class StudentProfileService {
       targetCarbs: data.targetCarbs || null,
       targetFats: data.targetFats || null,
       activityLevel: data.activityLevel || null,
-      physicalLimitations: data.physicalLimitations?.length ? JSON.stringify(data.physicalLimitations) : null,
-      motorLimitations: data.motorLimitations?.length ? JSON.stringify(data.motorLimitations) : null,
-      medicalConditions: data.medicalConditions?.length ? JSON.stringify(data.medicalConditions) : null,
+      physicalLimitations: data.physicalLimitations?.length
+        ? JSON.stringify(data.physicalLimitations)
+        : null,
+      motorLimitations: data.motorLimitations?.length
+        ? JSON.stringify(data.motorLimitations)
+        : null,
+      medicalConditions: data.medicalConditions?.length
+        ? JSON.stringify(data.medicalConditions)
+        : null,
     };
 
     return db.studentProfile.upsert({

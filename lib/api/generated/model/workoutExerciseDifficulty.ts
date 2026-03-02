@@ -10,11 +10,12 @@
  * Nível de dificuldade
  * @nullable
  */
-export type WorkoutExerciseDifficulty = typeof WorkoutExerciseDifficulty[keyof typeof WorkoutExerciseDifficulty] | null;
-
+export type WorkoutExerciseDifficulty =
+  | (typeof WorkoutExerciseDifficulty)[keyof typeof WorkoutExerciseDifficulty]
+  | null;
 
 export const WorkoutExerciseDifficulty = {
-  iniciante: 'iniciante',
-  intermediario: 'intermediario',
-  avancado: 'avancado',
+  iniciante: "iniciante",
+  intermediario: "intermediario",
+  avancado: "avancado",
 } as const;

@@ -10,11 +10,12 @@
  * Tipo de hormônio usado
  * @nullable
  */
-export type StudentHormoneType = typeof StudentHormoneType[keyof typeof StudentHormoneType] | null;
-
+export type StudentHormoneType =
+  | (typeof StudentHormoneType)[keyof typeof StudentHormoneType]
+  | null;
 
 export const StudentHormoneType = {
-  testosterone: 'testosterone',
-  estrogen: 'estrogen',
-  none: 'none',
+  testosterone: "testosterone",
+  estrogen: "estrogen",
+  none: "none",
 } as const;

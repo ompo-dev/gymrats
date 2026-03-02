@@ -10,16 +10,16 @@ import { create } from "zustand";
 import type { DailyNutrition } from "@/lib/types";
 
 interface NutritionState {
-	dailyNutrition: DailyNutrition | null;
-	setDailyNutrition: (nutrition: DailyNutrition | null) => void;
+  dailyNutrition: DailyNutrition | null;
+  setDailyNutrition: (nutrition: DailyNutrition | null) => void;
 }
 
 // Stub vazio apenas para limpar cache do HMR
 export const useNutritionStore = create<NutritionState>(() => ({
-	dailyNutrition: null,
-	setDailyNutrition: () => {
-		console.warn(
-			"useNutritionStore is deprecated. Use useStudent('dailyNutrition') instead.",
-		);
-	},
+  dailyNutrition: null,
+  setDailyNutrition: () => {
+    console.warn(
+      "useNutritionStore is deprecated. Use useStudent('dailyNutrition') instead.",
+    );
+  },
 }));

@@ -14,22 +14,22 @@ const AUTH_TOKEN_KEY = "auth_token";
  * Obtém o token de autenticação do localStorage
  */
 export function getAuthToken(): string | null {
-	if (typeof window === "undefined") return null;
-	return localStorage.getItem(AUTH_TOKEN_KEY);
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
 /**
  * Define o token de autenticação no localStorage
  */
 export function setAuthToken(token: string): void {
-	if (typeof window === "undefined") return;
-	localStorage.setItem(AUTH_TOKEN_KEY, token);
+  if (typeof window === "undefined") return;
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
 /**
  * Remove o token de autenticação do localStorage
  */
 export function clearAuthToken(): void {
-	if (typeof window === "undefined") return;
-	localStorage.removeItem(AUTH_TOKEN_KEY);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(AUTH_TOKEN_KEY);
 }

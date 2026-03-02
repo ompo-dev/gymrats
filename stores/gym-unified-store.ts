@@ -1,10 +1,6 @@
 import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
-import type {
-  GymDataSection,
-  GymPendingAction,
-  GymUnifiedData,
-} from "@/lib/types/gym-unified";
+import type { GymDataSection, GymUnifiedData } from "@/lib/types/gym-unified";
 import { initialGymData } from "@/lib/types/gym-unified";
 import { normalizeGymDates } from "@/lib/utils/date-safe";
 import {

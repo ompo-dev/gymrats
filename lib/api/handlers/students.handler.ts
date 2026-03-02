@@ -157,7 +157,7 @@ export async function getWeightHistoryHandler(
     if (!queryValidation.success) return queryValidation.response;
 
     const result = await getWeightHistoryUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       limit: queryValidation.data.limit || 30,
       offset: queryValidation.data.offset || 0,
     });
@@ -185,7 +185,7 @@ export async function addWeightHandler(
 
     const { weight, date, notes } = validation.data;
     const result = await addWeightUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       weight,
       date,
       notes,
@@ -216,7 +216,7 @@ export async function getWeightHistoryFilteredHandler(
     if (!queryValidation.success) return queryValidation.response;
 
     const result = await getWeightHistoryUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
       limit: queryValidation.data.limit || 30,
       offset: queryValidation.data.offset || 0,
       startDate: queryValidation.data.startDate,
@@ -244,7 +244,7 @@ export async function getStudentProgressHandler(
     }
 
     const result = await getStudentProgressUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return successResponse(
@@ -272,7 +272,7 @@ export async function updateStudentProgressHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student!.id;
+    const studentId = auth.user.student?.id;
 
     // Validar body com Zod
     const validation = await validateBody(request, updateStudentProgressSchema);
@@ -304,7 +304,7 @@ export async function getStudentInfoHandler(
     if ("error" in auth) return auth.response;
 
     const result = await getStudentInfoUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return NextResponse.json(result);
@@ -329,7 +329,7 @@ export async function getPersonalRecordsHandler(
     if ("error" in auth) return auth.response;
 
     const result = await getPersonalRecordsUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return NextResponse.json(result);
@@ -351,7 +351,7 @@ export async function getDayPassesHandler(
     if ("error" in auth) return auth.response;
 
     const result = await getDayPassesUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return NextResponse.json(result);
@@ -373,7 +373,7 @@ export async function getFriendsHandler(
     if ("error" in auth) return auth.response;
 
     const result = await getFriendsUseCase({
-      studentId: auth.user.student!.id,
+      studentId: auth.user.student?.id,
     });
 
     return NextResponse.json(result);
@@ -396,7 +396,7 @@ export async function weekResetHandler(
       return auth.response;
     }
 
-    const studentId = auth.user.student!.id;
+    const studentId = auth.user.student?.id;
     const nextMonday = getNextMonday();
 
     await db.student.update({

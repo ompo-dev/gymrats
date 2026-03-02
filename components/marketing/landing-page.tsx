@@ -2,9 +2,9 @@
 
 import { AnimatePresence } from "motion/react";
 import { useState } from "react";
+import { GymLandingPage } from "@/components/marketing/gym-landing-page";
 import { LandingFooter } from "@/components/marketing/landing-footer";
 import { LandingNavbar } from "@/components/marketing/landing-navbar";
-import { GymLandingPage } from "@/components/marketing/gym-landing-page";
 import { StudentLandingPage } from "@/components/marketing/student-landing-page";
 
 /**

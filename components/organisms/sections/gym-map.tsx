@@ -14,9 +14,7 @@ import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { DuoSelect } from "@/components/duo";
+import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import type { DayPass, GymLocation, StudentGymMembership } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -190,9 +188,7 @@ function GymMapSimple({
                       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
                         <img
                           src={
-                            gym.logo ||
-                            (gym.photos && gym.photos[0]) ||
-                            "/placeholder.svg"
+                            gym.logo || gym.photos?.[0] || "/placeholder.svg"
                           }
                           alt={gym.name}
                           className="h-full w-full object-cover"
@@ -318,7 +314,7 @@ function GymMapSimple({
                                           onJoinPlan?.(gym.id, plan.id);
                                         if (canChangePlan)
                                           onChangePlan?.(
-                                            myMembership!.id,
+                                            myMembership?.id,
                                             plan.id,
                                           );
                                       } else {
@@ -409,7 +405,7 @@ function GymMapSimple({
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 onChangePlan?.(
-                                                  myMembership!.id,
+                                                  myMembership?.id,
                                                   plan.id,
                                                 );
                                                 setExpandedPlanKey(null);
@@ -527,7 +523,7 @@ function GymMapSimple({
                                 e.stopPropagation();
                                 onJoinPlan?.(
                                   gym.id,
-                                  gym.membershipPlans![0].id,
+                                  gym.membershipPlans?.[0].id,
                                 );
                               }}
                               className="col-span-2 flex items-center justify-center gap-2"

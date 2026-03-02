@@ -12,98 +12,98 @@ import type { Subscription } from "@prisma/client";
 import type { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import {
-	internalErrorResponse,
-	notFoundResponse,
-	successResponse,
+  internalErrorResponse,
+  notFoundResponse,
+  successResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
-	try {
-		const auth = await requireAuth(request);
-		if ("error" in auth) {
-			return auth.response;
-		}
+  try {
+    const auth = await requireAuth(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
 
-		const userId = auth.userId;
+    const userId = auth.userId;
 
-		// Se for ADMIN, garantir que tenha perfil de student
-		let studentId: string | null = null;
-		if (auth.user.role === "ADMIN") {
-			const existingStudent = await db.student.findUnique({
-				where: { userId: userId },
-			});
+    // Se for ADMIN, garantir que tenha perfil de student
+    let studentId: string | null = null;
+    if (auth.user.role === "ADMIN") {
+      const existingStudent = await db.student.findUnique({
+        where: { userId: userId },
+      });
 
-			if (!existingStudent) {
-				const newStudent = await db.student.create({
-					data: {
-						userId: userId,
-					},
-				});
-				studentId = newStudent.id;
-			} else {
-				studentId = existingStudent.id;
-			}
-		} else if (auth.user.student?.id) {
-			studentId = auth.user.student.id;
-		}
+      if (!existingStudent) {
+        const newStudent = await db.student.create({
+          data: {
+            userId: userId,
+          },
+        });
+        studentId = newStudent.id;
+      } else {
+        studentId = existingStudent.id;
+      }
+    } else if (auth.user.student?.id) {
+      studentId = auth.user.student.id;
+    }
 
-		if (!studentId) {
-			return notFoundResponse("Aluno não encontrado");
-		}
+    if (!studentId) {
+      return notFoundResponse("Aluno não encontrado");
+    }
 
-		// Buscar body para pegar billingPeriod (monthly ou annual)
-		const body = await request.json().catch(() => ({}));
-		const billingPeriod = body.billingPeriod || "monthly";
+    // Buscar body para pegar billingPeriod (monthly ou annual)
+    const body = await request.json().catch(() => ({}));
+    const billingPeriod = body.billingPeriod || "monthly";
 
-		// Verificar se existe subscription
-		const existingSubscription = await db.subscription.findUnique({
-			where: { studentId },
-		});
+    // Verificar se existe subscription
+    const existingSubscription = await db.subscription.findUnique({
+      where: { studentId },
+    });
 
-		const now = new Date();
-		const periodEnd = new Date(now);
-		if (billingPeriod === "annual") {
-			periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-		} else {
-			periodEnd.setMonth(periodEnd.getMonth() + 1);
-		}
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (billingPeriod === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
 
-		let subscription: Subscription;
+    let subscription: Subscription;
 
-		// Ao ativar premium, não limpar trialStart/trialEnd: trial só uma vez por usuário
-		if (existingSubscription) {
-			subscription = await db.subscription.update({
-				where: { id: existingSubscription.id },
-				data: {
-					plan: "premium",
-					status: "active",
-					currentPeriodStart: now,
-					currentPeriodEnd: periodEnd,
-					canceledAt: null,
-					cancelAtPeriodEnd: false,
-				},
-			});
-		} else {
-			subscription = await db.subscription.create({
-				data: {
-					studentId,
-					plan: "premium",
-					status: "active",
-					currentPeriodStart: now,
-					currentPeriodEnd: periodEnd,
-					canceledAt: null,
-					cancelAtPeriodEnd: false,
-				},
-			});
-		}
+    // Ao ativar premium, não limpar trialStart/trialEnd: trial só uma vez por usuário
+    if (existingSubscription) {
+      subscription = await db.subscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          plan: "premium",
+          status: "active",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+    } else {
+      subscription = await db.subscription.create({
+        data: {
+          studentId,
+          plan: "premium",
+          status: "active",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+    }
 
-		return successResponse({
-			subscription,
-			message: "Premium ativado com sucesso",
-		});
-	} catch (error) {
-		console.error("[activatePremiumHandler] Erro:", error);
-		return internalErrorResponse("Erro ao ativar premium", error);
-	}
+    return successResponse({
+      subscription,
+      message: "Premium ativado com sucesso",
+    });
+  } catch (error) {
+    console.error("[activatePremiumHandler] Erro:", error);
+    return internalErrorResponse("Erro ao ativar premium", error);
+  }
 }

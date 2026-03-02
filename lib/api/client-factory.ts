@@ -84,7 +84,7 @@ function createAxiosClient(): AxiosInstance {
 
       if (status === 401 && typeof window !== "undefined") {
         // Prevent automatic redirect for session validation
-        if (url && url.includes("/api/auth/session")) {
+        if (url?.includes("/api/auth/session")) {
           return Promise.reject(error);
         }
         clearAuthToken();

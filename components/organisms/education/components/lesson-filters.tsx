@@ -2,69 +2,72 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/duo";
-import { DuoSelect } from "@/components/duo";
+import { DuoCard, DuoSelect } from "@/components/duo";
 
 export interface LessonFiltersProps {
-	searchQuery: string;
-	selectedCategory: string;
-	categoryOptions: { value: string; label: string; emoji: string }[];
-	onSearchChange: (query: string) => void;
-	onCategoryChange: (category: string) => void;
+  searchQuery: string;
+  selectedCategory: string;
+  categoryOptions: { value: string; label: string; emoji: string }[];
+  onSearchChange: (query: string) => void;
+  onCategoryChange: (category: string) => void;
 }
 
 function LessonFiltersSimple({
-	searchQuery,
-	selectedCategory,
-	categoryOptions,
-	onSearchChange,
-	onCategoryChange,
+  searchQuery,
+  selectedCategory,
+  categoryOptions,
+  onSearchChange,
+  onCategoryChange,
 }: LessonFiltersProps) {
-	return (
-		<SlideIn delay={0.1}>
-			<DuoCard.Root variant="default" padding="md">
-				<DuoCard.Header>
-					<div className="flex items-center gap-2">
-						<Filter className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-						<h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
-					</div>
-				</DuoCard.Header>
-				<div className="space-y-4">
-					<div className="relative">
-						<Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
-						<input
-							type="text"
-							value={searchQuery}
-							onChange={(e) => onSearchChange(e.target.value)}
-							placeholder="Buscar lições..."
-							className="w-full rounded-xl border-2 border-gray-300 bg-white py-3 pl-12 pr-10 font-semibold text-duo-text placeholder:text-duo-gray-dark focus:border-duo-blue focus:outline-none focus:ring-2 focus:ring-duo-blue/20"
-						/>
-						{searchQuery && (
-							<button
-								onClick={() => onSearchChange("")}
-								className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-duo-gray-dark transition-colors hover:bg-gray-100 hover:text-duo-text"
-							>
-								<X className="h-4 w-4" />
-							</button>
-						)}
-					</div>
+  return (
+    <SlideIn delay={0.1}>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
+          <div className="flex items-center gap-2">
+            <Filter
+              className="h-5 w-5 shrink-0"
+              style={{ color: "var(--duo-secondary)" }}
+              aria-hidden
+            />
+            <h2 className="font-bold text-[var(--duo-fg)]">Buscar e Filtrar</h2>
+          </div>
+        </DuoCard.Header>
+        <div className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-duo-gray-dark" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Buscar lições..."
+              className="w-full rounded-xl border-2 border-gray-300 bg-white py-3 pl-12 pr-10 font-semibold text-duo-text placeholder:text-duo-gray-dark focus:border-duo-blue focus:outline-none focus:ring-2 focus:ring-duo-blue/20"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => onSearchChange("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-duo-gray-dark transition-colors hover:bg-gray-100 hover:text-duo-text"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
-					<div>
-						<div className="mb-2 text-xs font-bold text-duo-gray-dark">
-							CATEGORIA
-						</div>
-						<DuoSelect.Simple
-							options={categoryOptions}
-							value={selectedCategory}
-							onChange={onCategoryChange}
-							label="Categoria"
-							placeholder="Selecione a categoria"
-						/>
-					</div>
-				</div>
-			</DuoCard.Root>
-		</SlideIn>
-	);
+          <div>
+            <div className="mb-2 text-xs font-bold text-duo-gray-dark">
+              CATEGORIA
+            </div>
+            <DuoSelect.Simple
+              options={categoryOptions}
+              value={selectedCategory}
+              onChange={onCategoryChange}
+              label="Categoria"
+              placeholder="Selecione a categoria"
+            />
+          </div>
+        </div>
+      </DuoCard.Root>
+    </SlideIn>
+  );
 }
 
 export const LessonFilters = { Simple: LessonFiltersSimple };

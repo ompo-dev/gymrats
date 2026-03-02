@@ -1,17 +1,17 @@
 "use client";
 
-import { ArrowRight, Flame, Zap, Layout, Activity } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { Activity, ArrowRight, Layout, Zap } from "lucide-react";
+import { motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { DuoButton, DuoCard, DuoStatsGrid } from "@/components/duo";
-import type { DailyNutrition } from "@/lib/types";
-import { WeeklyPlanSlotRow } from "@/components/organisms/modals/edit-unit-modal/weekly-plan-slot-row";
-import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
-import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
-import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { StaggerContainer } from "@/components/animations/stagger-container";
 import { StaggerItem } from "@/components/animations/stagger-item";
+import { DuoButton } from "@/components/duo";
+import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
+import { WeeklyPlanSlotRow } from "@/components/organisms/modals/edit-unit-modal/weekly-plan-slot-row";
+import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
+import { WorkoutNode } from "@/components/organisms/workout/workout-node";
+import type { DailyNutrition } from "@/lib/types";
 
 const MOCK_STUDENT_DATA = {
   id: "std-1",

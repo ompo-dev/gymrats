@@ -10,25 +10,30 @@ export class GymSubscriptionService {
   static async enforceActiveGymLimit(userId: string) {
     const gyms = await db.gym.findMany({
       where: { userId },
-      orderBy: { createdAt: "asc" }
+      orderBy: { createdAt: "asc" },
     });
 
     if (gyms.length === 0) return;
 
     // Só a academia PRINCIPAL (mais antiga) pode desbloquear as outras: ela precisa ter Premium/Enterprise ativo
     const principalGymId = gyms[0].id;
-    const principalHasQualified = await this.hasQualifiedSubscription([principalGymId]);
+    const principalHasQualified =
+      await GymSubscriptionService.hasQualifiedSubscription([principalGymId]);
 
     // Se a principal tem Premium/Enterprise, restaurar assinaturas suspensas das outras e reativar todas
     if (principalHasQualified) {
-      await this.restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId);
-      const previouslyInactive = gyms.filter(g => !g.isActive).map(g => g.id);
+      await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancelOnly(
+        userId,
+      );
+      const previouslyInactive = gyms
+        .filter((g) => !g.isActive)
+        .map((g) => g.id);
       await db.gym.updateMany({
         where: { userId },
-        data: { isActive: true }
+        data: { isActive: true },
       });
       for (const gymId of previouslyInactive) {
-        await this.syncAllStudentsEnterpriseBenefit(gymId);
+        await GymSubscriptionService.syncAllStudentsEnterpriseBenefit(gymId);
       }
       return;
     }
@@ -36,7 +41,7 @@ export class GymSubscriptionService {
     // Principal não tem Premium/Enterprise (cancelou, sem plano ou Basic): suspender as outras
     // (cancelar com flag para poder restaurar quando a principal voltar a assinar)
     if (gyms.length > 1) {
-      const otherGymIds = gyms.slice(1).map(g => g.id);
+      const otherGymIds = gyms.slice(1).map((g) => g.id);
       await db.gymSubscription.updateMany({
         where: {
           gymId: { in: otherGymIds },
@@ -55,56 +60,61 @@ export class GymSubscriptionService {
 
     const user = await db.user.findUnique({
       where: { id: userId },
-      select: { activeGymId: true }
+      select: { activeGymId: true },
     });
 
     // Se chegou aqui, o usuário está no plano Basic/Free e tem > 1 gym.
     // Critério: manter a activeGymId ou a mais antiga.
     let gymToKeepId = user?.activeGymId || gyms[0].id;
-    
+
     // Se a activeGymId não estiver na lista (improvável), usa a primeira.
-    if (!gyms.some(g => g.id === gymToKeepId)) {
-        gymToKeepId = gyms[0].id;
+    if (!gyms.some((g) => g.id === gymToKeepId)) {
+      gymToKeepId = gyms[0].id;
     }
 
-    const gymIdsToInactivate = gyms.filter(g => g.id !== gymToKeepId).map(g => g.id);
+    const gymIdsToInactivate = gyms
+      .filter((g) => g.id !== gymToKeepId)
+      .map((g) => g.id);
 
     // Inativar todas as outras
     await db.gym.updateMany({
       where: {
         userId,
         id: { not: gymToKeepId },
-        isActive: true
+        isActive: true,
       },
-      data: { isActive: false }
+      data: { isActive: false },
     });
 
     // Alunos das academias inativadas perdem Premium dessa academia; se tiverem outra Enterprise ativa, mantêm
     for (const gymId of gymIdsToInactivate) {
-      await this.syncAllStudentsEnterpriseBenefit(gymId);
+      await GymSubscriptionService.syncAllStudentsEnterpriseBenefit(gymId);
     }
 
     // Garantir que a escolhida está ativa
     await db.gym.update({
-        where: { id: gymToKeepId },
-        data: { isActive: true }
+      where: { id: gymToKeepId },
+      data: { isActive: true },
     });
   }
 
   /**
    * Verifica se o conjunto de academias possui alguma assinatura Premium ou Enterprise ativa.
    */
-  private static async hasQualifiedSubscription(gymIds: string[]): Promise<boolean> {
+  private static async hasQualifiedSubscription(
+    gymIds: string[],
+  ): Promise<boolean> {
     const subs = await db.gymSubscription.findMany({
       where: {
         gymId: { in: gymIds },
-        status: "active"
-      }
+        status: "active",
+      },
     });
 
-    return subs.some(s => 
-      s.plan.toLowerCase().includes("premium") || 
-      s.plan.toLowerCase().includes("enterprise")
+    return subs.some(
+      (s) =>
+        s.plan.toLowerCase().includes("premium") ||
+        s.plan.toLowerCase().includes("enterprise"),
     );
   }
 
@@ -114,15 +124,15 @@ export class GymSubscriptionService {
   static async handleGymDowngrade(gymId: string) {
     const gym = await db.gym.findUnique({
       where: { id: gymId },
-      select: { userId: true }
+      select: { userId: true },
     });
 
     if (!gym) return;
 
-    await this.enforceActiveGymLimit(gym.userId);
-    
+    await GymSubscriptionService.enforceActiveGymLimit(gym.userId);
+
     // Se a academia deixou de ser enterprise, atualizar alunos
-    await this.syncAllStudentsEnterpriseBenefit(gymId);
+    await GymSubscriptionService.syncAllStudentsEnterpriseBenefit(gymId);
   }
 
   /**
@@ -142,7 +152,9 @@ export class GymSubscriptionService {
     const oldestId = allGyms[0]?.id;
     if (oldestId !== principalGymId) return; // quem pagou não é a principal
 
-    const otherGymIds = allGyms.filter((g) => g.id !== principalGymId).map((g) => g.id);
+    const otherGymIds = allGyms
+      .filter((g) => g.id !== principalGymId)
+      .map((g) => g.id);
     if (otherGymIds.length === 0) return;
 
     await db.gymSubscription.updateMany({
@@ -155,14 +167,16 @@ export class GymSubscriptionService {
       },
     });
 
-    await this.enforceActiveGymLimit(userId);
+    await GymSubscriptionService.enforceActiveGymLimit(userId);
   }
 
   /**
    * Apenas restaura as assinaturas suspensas (sem chamar enforceActiveGymLimit).
    * Usado internamente por enforceActiveGymLimit para evitar recursão.
    */
-  static async restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId: string) {
+  static async restoreSubscriptionsSuspendedByPrincipalCancelOnly(
+    userId: string,
+  ) {
     const now = new Date();
     const subsToRestore = await db.gymSubscription.findMany({
       where: {
@@ -195,8 +209,10 @@ export class GymSubscriptionService {
    * original (currentPeriodEnd) não tenha expirado. Em seguida reaplica limites de gyms ativas.
    */
   static async restoreSubscriptionsSuspendedByPrincipalCancel(userId: string) {
-    await this.restoreSubscriptionsSuspendedByPrincipalCancelOnly(userId);
-    await this.enforceActiveGymLimit(userId);
+    await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancelOnly(
+      userId,
+    );
+    await GymSubscriptionService.enforceActiveGymLimit(userId);
   }
 
   /**
@@ -214,16 +230,16 @@ export class GymSubscriptionService {
           isActive: true,
           subscription: {
             plan: "enterprise",
-            status: "active"
-          }
-        }
+            status: "active",
+          },
+        },
       },
-      include: { gym: { include: { subscription: true } } }
+      include: { gym: { include: { subscription: true } } },
     });
 
     const hasEnterpriseBenefit = enterpriseMemberships.length > 0;
     const currentSub = await db.subscription.findUnique({
-      where: { studentId }
+      where: { studentId },
     });
 
     const now = new Date();
@@ -237,7 +253,9 @@ export class GymSubscriptionService {
         currentSub?.source === "OWN" &&
         currentSub.plan.toLowerCase().includes("premium") &&
         new Date(currentSub.currentPeriodEnd) > now;
-      const ownPeriodEndBackup = hadOwnPremium ? currentSub!.currentPeriodEnd : undefined;
+      const ownPeriodEndBackup = hadOwnPremium
+        ? currentSub?.currentPeriodEnd
+        : undefined;
 
       await db.subscription.upsert({
         where: { studentId },
@@ -249,20 +267,26 @@ export class GymSubscriptionService {
           enterpriseGymId: mainGymId,
           currentPeriodStart: now,
           currentPeriodEnd: oneYearFromNow,
-          ...(ownPeriodEndBackup && { ownPeriodEndBackup: ownPeriodEndBackup })
+          ...(ownPeriodEndBackup && { ownPeriodEndBackup: ownPeriodEndBackup }),
         },
         update: {
           plan: "premium",
           status: "active",
           source: "GYM_ENTERPRISE",
           enterpriseGymId: mainGymId,
-          ...(ownPeriodEndBackup != null && { ownPeriodEndBackup: ownPeriodEndBackup })
-        }
+          ...(ownPeriodEndBackup != null && {
+            ownPeriodEndBackup: ownPeriodEndBackup,
+          }),
+        },
       });
     } else {
       if (currentSub?.source === "GYM_ENTERPRISE") {
-        const sub = currentSub as typeof currentSub & { ownPeriodEndBackup?: Date | null };
-        const backupEnd = sub.ownPeriodEndBackup ? new Date(sub.ownPeriodEndBackup) : null;
+        const sub = currentSub as typeof currentSub & {
+          ownPeriodEndBackup?: Date | null;
+        };
+        const backupEnd = sub.ownPeriodEndBackup
+          ? new Date(sub.ownPeriodEndBackup)
+          : null;
         const hasValidOwnBackup = backupEnd && backupEnd > now;
 
         if (hasValidOwnBackup) {
@@ -275,8 +299,8 @@ export class GymSubscriptionService {
               enterpriseGymId: null,
               currentPeriodStart: now,
               currentPeriodEnd: backupEnd,
-              ownPeriodEndBackup: null
-            }
+              ownPeriodEndBackup: null,
+            },
           });
         } else {
           await db.subscription.update({
@@ -288,8 +312,8 @@ export class GymSubscriptionService {
               enterpriseGymId: null,
               currentPeriodStart: now,
               currentPeriodEnd: now,
-              ownPeriodEndBackup: null
-            }
+              ownPeriodEndBackup: null,
+            },
           });
         }
       }
@@ -301,13 +325,13 @@ export class GymSubscriptionService {
    * Chamado quando a assinatura da academia muda.
    */
   static async syncAllStudentsEnterpriseBenefit(gymId: string) {
-     const memberships = await db.gymMembership.findMany({
-       where: { gymId, status: "active" },
-       select: { studentId: true }
-     });
+    const memberships = await db.gymMembership.findMany({
+      where: { gymId, status: "active" },
+      select: { studentId: true },
+    });
 
-     for (const m of memberships) {
-       await this.syncStudentEnterpriseBenefit(m.studentId);
-     }
+    for (const m of memberships) {
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(m.studentId);
+    }
   }
 }

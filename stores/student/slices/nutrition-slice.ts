@@ -106,7 +106,7 @@ export function createNutritionSlice(
       try {
         let resolvedDate: string;
         try {
-          resolvedDate = getBrazilNutritionDateKey(updatedNutrition!.date);
+          resolvedDate = getBrazilNutritionDateKey(updatedNutrition?.date);
         } catch {
           resolvedDate = getBrazilNutritionDateKey();
         }
@@ -137,7 +137,7 @@ export function createNutritionSlice(
           waterIntake?: number;
         } = { date: resolvedDate };
         if (hasMealsUpdate) {
-          apiPayload.meals = (updatedNutrition!.meals || []).map(
+          apiPayload.meals = (updatedNutrition?.meals || []).map(
             (meal: Meal, index: number) => ({
               name: meal.name || "Refeição",
               type: meal.type || "snack",
@@ -164,7 +164,7 @@ export function createNutritionSlice(
           );
         }
         if (hasWaterIntakeUpdate) {
-          apiPayload.waterIntake = updatedNutrition!.waterIntake || 0;
+          apiPayload.waterIntake = updatedNutrition?.waterIntake || 0;
         }
 
         await apiClient.post("/api/nutrition/daily", apiPayload as any);

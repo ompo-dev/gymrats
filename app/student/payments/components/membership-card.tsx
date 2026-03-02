@@ -1,9 +1,9 @@
 "use client";
 
-import { Building2, CreditCard, RefreshCw, Trash2 } from "lucide-react";
+import { CreditCard, RefreshCw, Trash2 } from "lucide-react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { cn } from "@/lib/utils";
 import type { StudentGymMembership } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export interface MembershipCardProps {
   membership: StudentGymMembership;

@@ -1,11 +1,11 @@
-import type { EducationalLesson, ExerciseInfo, MuscleInfo } from "../types";
+import type { EducationalLesson } from "../types";
 
 export const educationalLessons: EducationalLesson[] = [
-	{
-		id: "lesson-hypertrophy",
-		title: "Ciência da Hipertrofia Muscular",
-		category: "training-science",
-		content: `
+  {
+    id: "lesson-hypertrophy",
+    title: "Ciência da Hipertrofia Muscular",
+    category: "training-science",
+    content: `
 A hipertrofia muscular é o aumento do tamanho das células musculares através de três mecanismos principais:
 
 1. **Tensão Mecânica**: O estímulo mais importante. Ocorre quando o músculo gera força contra resistência progressiva. Cargas de 60-85% de 1RM são ideais.
@@ -23,49 +23,49 @@ A hipertrofia muscular é o aumento do tamanho das células musculares através 
 **Evidências Científicas:**
 Estudos recentes (Schoenfeld, 2021) mostram que o volume total de treino é o fator mais correlacionado com ganhos musculares, seguido por frequência e progressão de carga.
     `,
-		keyPoints: [
-			"Tensão mecânica é o driver primário de hipertrofia",
-			"10-20 séries semanais por grupo muscular",
-			"Progressão de carga é essencial",
-			"Recuperação adequada é fundamental",
-		],
-		duration: 8,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual é o mecanismo mais importante para hipertrofia?",
-					options: [
-						"Estresse metabólico",
-						"Tensão mecânica",
-						"Dano muscular",
-						"Tempo sob tensão",
-					],
-					correctAnswer: 1,
-					explanation:
-						"A tensão mecânica é considerada o principal mecanismo de hipertrofia. Estudos mostram que é necessário aplicar sobrecarga progressiva (aumentar carga, séries ou repetições) para criar estímulo suficiente para crescimento muscular.",
-				},
-				{
-					question: "Qual volume semanal é recomendado por grupo muscular?",
-					options: [
-						"5-10 séries",
-						"10-20 séries",
-						"20-30 séries",
-						"30-40 séries",
-					],
-					correctAnswer: 1,
-					explanation:
-						"Para a maioria dos praticantes, 10-20 séries semanais por grupo muscular é o volume ideal. Menos de 10 séries pode ser insuficiente para hipertrofia, enquanto mais de 30 séries pode levar a overreaching e reduzir recuperação.",
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-protein",
-		title: "Proteína e Síntese Muscular",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "Tensão mecânica é o driver primário de hipertrofia",
+      "10-20 séries semanais por grupo muscular",
+      "Progressão de carga é essencial",
+      "Recuperação adequada é fundamental",
+    ],
+    duration: 8,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual é o mecanismo mais importante para hipertrofia?",
+          options: [
+            "Estresse metabólico",
+            "Tensão mecânica",
+            "Dano muscular",
+            "Tempo sob tensão",
+          ],
+          correctAnswer: 1,
+          explanation:
+            "A tensão mecânica é considerada o principal mecanismo de hipertrofia. Estudos mostram que é necessário aplicar sobrecarga progressiva (aumentar carga, séries ou repetições) para criar estímulo suficiente para crescimento muscular.",
+        },
+        {
+          question: "Qual volume semanal é recomendado por grupo muscular?",
+          options: [
+            "5-10 séries",
+            "10-20 séries",
+            "20-30 séries",
+            "30-40 séries",
+          ],
+          correctAnswer: 1,
+          explanation:
+            "Para a maioria dos praticantes, 10-20 séries semanais por grupo muscular é o volume ideal. Menos de 10 séries pode ser insuficiente para hipertrofia, enquanto mais de 30 séries pode levar a overreaching e reduzir recuperação.",
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-protein",
+    title: "Proteína e Síntese Muscular",
+    category: "nutrition",
+    content: `
 A proteína é essencial para construção e reparo muscular. Entenda como otimizar:
 
 **Quantidade Diária:**
@@ -86,30 +86,30 @@ A proteína é essencial para construção e reparo muscular. Entenda como otimi
 **Síntese Proteica Muscular (MPS):**
 Maximizada com 25-40g de proteína de qualidade. Mais que isso não aumenta MPS proporcionalmente.
     `,
-		keyPoints: [
-			"1.6-2.2g de proteína por kg de peso corporal",
-			"Distribuir em múltiplas refeições",
-			"Leucina é crucial para MPS",
-			"Janela anabólica dura 24-48h",
-		],
-		duration: 6,
-		xpReward: 20,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Quanto de proteína por kg é recomendado para hipertrofia?",
-					options: ["1.0-1.2g/kg", "1.6-2.2g/kg", "3.0-4.0g/kg", "0.8g/kg"],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-recovery",
-		title: "Recuperação e Crescimento Muscular",
-		category: "recovery",
-		content: `
+    keyPoints: [
+      "1.6-2.2g de proteína por kg de peso corporal",
+      "Distribuir em múltiplas refeições",
+      "Leucina é crucial para MPS",
+      "Janela anabólica dura 24-48h",
+    ],
+    duration: 6,
+    xpReward: 20,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Quanto de proteína por kg é recomendado para hipertrofia?",
+          options: ["1.0-1.2g/kg", "1.6-2.2g/kg", "3.0-4.0g/kg", "0.8g/kg"],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-recovery",
+    title: "Recuperação e Crescimento Muscular",
+    category: "recovery",
+    content: `
 O crescimento muscular ocorre durante o descanso, não durante o treino. Otimize sua recuperação:
 
 **Sono:**
@@ -131,21 +131,21 @@ O crescimento muscular ocorre durante o descanso, não durante o treino. Otimize
 **Overtraining:**
 Sinais: fadiga persistente, insônia, queda de performance, aumento de cortisol. Respeite os dias de descanso.
     `,
-		keyPoints: [
-			"7-9 horas de sono são essenciais",
-			"Nutrição pós-treino dentro de 24h",
-			"Recuperação ativa ajuda",
-			"Overtraining prejudica ganhos",
-		],
-		duration: 7,
-		xpReward: 20,
-		completed: false,
-	},
-	{
-		id: "lesson-periodization",
-		title: "Periodização do Treinamento",
-		category: "training-science",
-		content: `
+    keyPoints: [
+      "7-9 horas de sono são essenciais",
+      "Nutrição pós-treino dentro de 24h",
+      "Recuperação ativa ajuda",
+      "Overtraining prejudica ganhos",
+    ],
+    duration: 7,
+    xpReward: 20,
+    completed: false,
+  },
+  {
+    id: "lesson-periodization",
+    title: "Periodização do Treinamento",
+    category: "training-science",
+    content: `
 A periodização é a organização sistemática do treinamento ao longo do tempo para maximizar adaptações e prevenir estagnação.
 
 **Tipos de Periodização:**
@@ -174,51 +174,51 @@ A periodização é a organização sistemática do treinamento ao longo do temp
 **Evidências:**
 Meta-análises mostram 13-20% maiores ganhos com periodização comparado a treino não-periodizado (Rhea et al., 2003).
     `,
-		keyPoints: [
-			"Variação sistemática de volume e intensidade",
-			"Previne estagnação e overtraining",
-			"3 tipos principais: linear, não-linear e blocos",
-			"Pode aumentar ganhos em 13-20%",
-		],
-		duration: 10,
-		xpReward: 30,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual é o principal benefício da periodização?",
-					options: [
-						"Aumentar volume sempre",
-						"Prevenir estagnação e maximizar adaptações",
-						"Treinar mais vezes por semana",
-						"Reduzir tempo de treino",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Na periodização linear, o que acontece com a intensidade ao longo do tempo?",
-					options: [
-						"Permanecer constante",
-						"Aumentar progressivamente",
-						"Diminuir",
-						"Variar aleatoriamente",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Quantos tipos principais de periodização existem?",
-					options: ["1", "2", "3", "4"],
-					correctAnswer: 2,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-carbs",
-		title: "Carboidratos e Performance",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "Variação sistemática de volume e intensidade",
+      "Previne estagnação e overtraining",
+      "3 tipos principais: linear, não-linear e blocos",
+      "Pode aumentar ganhos em 13-20%",
+    ],
+    duration: 10,
+    xpReward: 30,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual é o principal benefício da periodização?",
+          options: [
+            "Aumentar volume sempre",
+            "Prevenir estagnação e maximizar adaptações",
+            "Treinar mais vezes por semana",
+            "Reduzir tempo de treino",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Na periodização linear, o que acontece com a intensidade ao longo do tempo?",
+          options: [
+            "Permanecer constante",
+            "Aumentar progressivamente",
+            "Diminuir",
+            "Variar aleatoriamente",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Quantos tipos principais de periodização existem?",
+          options: ["1", "2", "3", "4"],
+          correctAnswer: 2,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-carbs",
+    title: "Carboidratos e Performance",
+    category: "nutrition",
+    content: `
 Os carboidratos são a principal fonte de energia para exercícios de alta intensidade e fundamentais para recuperação.
 
 **Funções Principais:**
@@ -255,53 +255,53 @@ Os carboidratos são a principal fonte de energia para exercícios de alta inten
 **Evidências:**
 Consumo de carboidratos após treino aumenta síntese de glicogênio em 300% comparado a jejum (Ivy et al., 2002).
     `,
-		keyPoints: [
-			"4-6g/kg para treino de força",
-			"Glicogênio é energia primária para exercícios",
-			"Timing pós-treino maximiza reposição",
-			"Preserva proteína muscular",
-		],
-		duration: 8,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question:
-						"Quantos gramas de carboidrato por kg são recomendados para treino de força?",
-					options: ["2-3g/kg", "4-6g/kg", "8-10g/kg", "1-2g/kg"],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual é a função principal dos carboidratos no exercício?",
-					options: [
-						"Aumentar massa muscular",
-						"Fornecer energia e repor glicogênio",
-						"Queimar gordura",
-						"Aumentar testosterona",
-					],
-					correctAnswer: 1,
-					explanation:
-						"Os carboidratos são a principal fonte de energia durante exercícios de alta intensidade. Eles são convertidos em glicose e armazenados como glicogênio nos músculos e fígado, fornecendo combustível rápido para contrações musculares e repondo os estoques após o treino.",
-				},
-				{
-					question: "Qual tipo de carboidrato é melhor pós-treino?",
-					options: [
-						"Carboidratos de baixo índice glicêmico",
-						"Carboidratos de alto índice glicêmico",
-						"Apenas fibra",
-						"Não importa",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-fats",
-		title: "Gorduras e Saúde Hormonal",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "4-6g/kg para treino de força",
+      "Glicogênio é energia primária para exercícios",
+      "Timing pós-treino maximiza reposição",
+      "Preserva proteína muscular",
+    ],
+    duration: 8,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question:
+            "Quantos gramas de carboidrato por kg são recomendados para treino de força?",
+          options: ["2-3g/kg", "4-6g/kg", "8-10g/kg", "1-2g/kg"],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual é a função principal dos carboidratos no exercício?",
+          options: [
+            "Aumentar massa muscular",
+            "Fornecer energia e repor glicogênio",
+            "Queimar gordura",
+            "Aumentar testosterona",
+          ],
+          correctAnswer: 1,
+          explanation:
+            "Os carboidratos são a principal fonte de energia durante exercícios de alta intensidade. Eles são convertidos em glicose e armazenados como glicogênio nos músculos e fígado, fornecendo combustível rápido para contrações musculares e repondo os estoques após o treino.",
+        },
+        {
+          question: "Qual tipo de carboidrato é melhor pós-treino?",
+          options: [
+            "Carboidratos de baixo índice glicêmico",
+            "Carboidratos de alto índice glicêmico",
+            "Apenas fibra",
+            "Não importa",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-fats",
+    title: "Gorduras e Saúde Hormonal",
+    category: "nutrition",
+    content: `
 As gorduras são essenciais para produção hormonal, absorção de vitaminas e saúde geral.
 
 **Funções Críticas:**
@@ -342,52 +342,52 @@ Dietas muito baixas em gordura (<15% calorias) podem reduzir testosterona em 10-
 **Timing:**
 Distribuir ao longo do dia. Não há necessidade de timing específico pós-treino para gorduras.
     `,
-		keyPoints: [
-			"0.8-1.2g/kg de gordura diária",
-			"Essencial para produção hormonal",
-			"30-40% saturadas, 40-50% monoinsaturadas",
-			"Dietas muito baixas em gordura reduzem testosterona",
-		],
-		duration: 7,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question:
-						"Qual é a função mais importante das gorduras para atletas?",
-					options: [
-						"Fornecer energia rápida",
-						"Produção hormonal e saúde celular",
-						"Aumentar massa muscular diretamente",
-						"Queimar gordura",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Quantos gramas de gordura por kg são ideais para atletas?",
-					options: ["0.2-0.4g/kg", "0.8-1.2g/kg", "2-3g/kg", "0.1g/kg"],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Qual tipo de gordura é especialmente importante para testosterona?",
-					options: [
-						"Gorduras trans",
-						"Gorduras saturadas e monoinsaturadas",
-						"Apenas ômega-3",
-						"Não importa",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-hiit-vs-steady",
-		title: "HIIT vs Cardio Steady-State",
-		category: "training-science",
-		content: `
+    keyPoints: [
+      "0.8-1.2g/kg de gordura diária",
+      "Essencial para produção hormonal",
+      "30-40% saturadas, 40-50% monoinsaturadas",
+      "Dietas muito baixas em gordura reduzem testosterona",
+    ],
+    duration: 7,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question:
+            "Qual é a função mais importante das gorduras para atletas?",
+          options: [
+            "Fornecer energia rápida",
+            "Produção hormonal e saúde celular",
+            "Aumentar massa muscular diretamente",
+            "Queimar gordura",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Quantos gramas de gordura por kg são ideais para atletas?",
+          options: ["0.2-0.4g/kg", "0.8-1.2g/kg", "2-3g/kg", "0.1g/kg"],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Qual tipo de gordura é especialmente importante para testosterona?",
+          options: [
+            "Gorduras trans",
+            "Gorduras saturadas e monoinsaturadas",
+            "Apenas ômega-3",
+            "Não importa",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-hiit-vs-steady",
+    title: "HIIT vs Cardio Steady-State",
+    category: "training-science",
+    content: `
 Entenda as diferenças entre treinos de alta intensidade (HIIT) e cardio contínuo de baixa intensidade.
 
 **HIIT (High-Intensity Interval Training):**
@@ -440,56 +440,56 @@ Entenda as diferenças entre treinos de alta intensidade (HIIT) e cardio contín
 **Evidências:**
 HIIT pode queimar 25-30% mais calorias no mesmo tempo e melhorar condicionamento aeróbico em 3x menos tempo (Boutcher, 2011).
     `,
-		keyPoints: [
-			"HIIT: mais eficiente em tempo, maior EPOC",
-			"LISS: melhor para recuperação e iniciantes",
-			"HIIT preserva mais massa muscular no cutting",
-			"Combinação de ambos é ideal",
-		],
-		duration: 9,
-		xpReward: 30,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question:
-						"Qual é a principal vantagem do HIIT comparado ao cardio contínuo?",
-					options: [
-						"Mais tempo de treino",
-						"Maior EPOC e economia de tempo",
-						"Mais fácil de executar",
-						"Melhor para iniciantes",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual é a frequência cardíaca ideal para HIIT?",
-					options: [
-						"50-60% FCmax",
-						"60-70% FCmax",
-						"85-95% FCmax",
-						"40-50% FCmax",
-					],
-					correctAnswer: 2,
-				},
-				{
-					question: "Para cutting, qual tipo de cardio é mais recomendado?",
-					options: [
-						"Apenas LISS",
-						"Apenas HIIT",
-						"HIIT 2-3x por semana",
-						"Não fazer cardio",
-					],
-					correctAnswer: 2,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-bulk-cut",
-		title: "Bulk e Cut: Estratégias de Composição Corporal",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "HIIT: mais eficiente em tempo, maior EPOC",
+      "LISS: melhor para recuperação e iniciantes",
+      "HIIT preserva mais massa muscular no cutting",
+      "Combinação de ambos é ideal",
+    ],
+    duration: 9,
+    xpReward: 30,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question:
+            "Qual é a principal vantagem do HIIT comparado ao cardio contínuo?",
+          options: [
+            "Mais tempo de treino",
+            "Maior EPOC e economia de tempo",
+            "Mais fácil de executar",
+            "Melhor para iniciantes",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual é a frequência cardíaca ideal para HIIT?",
+          options: [
+            "50-60% FCmax",
+            "60-70% FCmax",
+            "85-95% FCmax",
+            "40-50% FCmax",
+          ],
+          correctAnswer: 2,
+        },
+        {
+          question: "Para cutting, qual tipo de cardio é mais recomendado?",
+          options: [
+            "Apenas LISS",
+            "Apenas HIIT",
+            "HIIT 2-3x por semana",
+            "Não fazer cardio",
+          ],
+          correctAnswer: 2,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-bulk-cut",
+    title: "Bulk e Cut: Estratégias de Composição Corporal",
+    category: "nutrition",
+    content: `
 Bulk e Cut são fases estratégicas para maximizar ganhos musculares e depois reduzir gordura corporal.
 
 **Fase de Bulk (Volume):**
@@ -546,51 +546,51 @@ Para iniciantes/intermediários: manter calorias em manutenção com treino e nu
 - Bulk infinito sem fase de cut
 - Não ajustar macros durante cut
     `,
-		keyPoints: [
-			"Bulk: +300-500 calorias, 0.25-0.5kg/semana",
-			"Cut: -300-750 calorias, 0.5-1% peso/semana",
-			"Aumentar proteína no cut para preservar músculo",
-			"Recomposição possível para iniciantes",
-		],
-		duration: 10,
-		xpReward: 30,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual superávit calórico é ideal para um bulk eficiente?",
-					options: [
-						"+100-200 calorias",
-						"+300-500 calorias",
-						"+800-1000 calorias",
-						"+1500 calorias",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Quanto de proteína por kg deve-se consumir durante um cut?",
-					options: ["1.6g/kg", "2.0g/kg", "2.4-2.8g/kg", "3.5g/kg"],
-					correctAnswer: 2,
-				},
-				{
-					question: "Qual é a perda de peso semanal ideal durante um cut?",
-					options: [
-						"2-3% do peso corporal",
-						"0.5-1% do peso corporal",
-						"5% do peso corporal",
-						"Não importa",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-supplements",
-		title: "Suplementação Baseada em Evidências",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "Bulk: +300-500 calorias, 0.25-0.5kg/semana",
+      "Cut: -300-750 calorias, 0.5-1% peso/semana",
+      "Aumentar proteína no cut para preservar músculo",
+      "Recomposição possível para iniciantes",
+    ],
+    duration: 10,
+    xpReward: 30,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual superávit calórico é ideal para um bulk eficiente?",
+          options: [
+            "+100-200 calorias",
+            "+300-500 calorias",
+            "+800-1000 calorias",
+            "+1500 calorias",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Quanto de proteína por kg deve-se consumir durante um cut?",
+          options: ["1.6g/kg", "2.0g/kg", "2.4-2.8g/kg", "3.5g/kg"],
+          correctAnswer: 2,
+        },
+        {
+          question: "Qual é a perda de peso semanal ideal durante um cut?",
+          options: [
+            "2-3% do peso corporal",
+            "0.5-1% do peso corporal",
+            "5% do peso corporal",
+            "Não importa",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-supplements",
+    title: "Suplementação Baseada em Evidências",
+    category: "nutrition",
+    content: `
 Nem todos os suplementos são necessários, mas alguns têm evidências científicas sólidas.
 
 **Suplementos Essenciais (Tier 1):**
@@ -643,51 +643,51 @@ Nem todos os suplementos são necessários, mas alguns têm evidências científ
 **Evidências:**
 Creatina é o suplemento mais estudado e eficaz para ganhos de força (Kreider et al., 2017). Café/cafeína tem evidência nível A para performance (Guest et al., 2021).
     `,
-		keyPoints: [
-			"Tier 1: Whey, Creatina, Vitamina D",
-			"Tier 2: Cafeína, Beta-Alanina, Ômega-3",
-			"Creatina: suplemento mais estudado e eficaz",
-			"Muitos suplementos são desnecessários com dieta adequada",
-		],
-		duration: 9,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual suplemento tem a evidência científica mais forte?",
-					options: [
-						"BCAA",
-						"Creatina Monohidratada",
-						"Testosterona booster",
-						"Glutamina",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Qual é a dose diária recomendada de creatina para manutenção?",
-					options: ["1g/dia", "3-5g/dia", "20g/dia", "50g/dia"],
-					correctAnswer: 1,
-				},
-				{
-					question: "Quanto de cafeína é recomendado antes do treino?",
-					options: [
-						"50-100mg",
-						"200-400mg (3-6mg/kg)",
-						"500-800mg",
-						"Não há recomendação",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-injury-prevention",
-		title: "Prevenção de Lesões no Treino",
-		category: "training-science",
-		content: `
+    keyPoints: [
+      "Tier 1: Whey, Creatina, Vitamina D",
+      "Tier 2: Cafeína, Beta-Alanina, Ômega-3",
+      "Creatina: suplemento mais estudado e eficaz",
+      "Muitos suplementos são desnecessários com dieta adequada",
+    ],
+    duration: 9,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual suplemento tem a evidência científica mais forte?",
+          options: [
+            "BCAA",
+            "Creatina Monohidratada",
+            "Testosterona booster",
+            "Glutamina",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Qual é a dose diária recomendada de creatina para manutenção?",
+          options: ["1g/dia", "3-5g/dia", "20g/dia", "50g/dia"],
+          correctAnswer: 1,
+        },
+        {
+          question: "Quanto de cafeína é recomendado antes do treino?",
+          options: [
+            "50-100mg",
+            "200-400mg (3-6mg/kg)",
+            "500-800mg",
+            "Não há recomendação",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-injury-prevention",
+    title: "Prevenção de Lesões no Treino",
+    category: "training-science",
+    content: `
 Prevenir lesões é mais importante que tratar. Entenda como manter-se seguro no treino.
 
 **Princípios Fundamentais:**
@@ -749,46 +749,46 @@ Prevenir lesões é mais importante que tratar. Entenda como manter-se seguro no
 **Evidências:**
 Programas de prevenção de lesões podem reduzir lesões em 30-50% (Lauersen et al., 2014). Aquecimento adequado reduz risco de lesão em 32% (Fradkin et al., 2010).
     `,
-		keyPoints: [
-			"Progressão gradual: 2.5-5% carga por semana",
-			"Aquecimento reduz lesões em 32%",
-			"Técnica sempre antes de carga",
-			"Balanceamento muscular previne desequilíbrios",
-		],
-		duration: 10,
-		xpReward: 30,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual é o aumento de carga semanal máximo recomendado?",
-					options: ["10-15%", "2.5-5%", "20-30%", "Não importa"],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual tipo de alongamento é recomendado ANTES do treino?",
-					options: [
-						"Alongamento estático",
-						"Mobilidade dinâmica",
-						"Alongamento passivo",
-						"Não fazer alongamento",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Quanto tempo de descanso é recomendado entre treinos do mesmo grupo muscular?",
-					options: ["12 horas", "24 horas", "48-72 horas", "1 semana"],
-					correctAnswer: 2,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-form-technique",
-		title: "Técnica e Forma dos Exercícios",
-		category: "form",
-		content: `
+    keyPoints: [
+      "Progressão gradual: 2.5-5% carga por semana",
+      "Aquecimento reduz lesões em 32%",
+      "Técnica sempre antes de carga",
+      "Balanceamento muscular previne desequilíbrios",
+    ],
+    duration: 10,
+    xpReward: 30,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual é o aumento de carga semanal máximo recomendado?",
+          options: ["10-15%", "2.5-5%", "20-30%", "Não importa"],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual tipo de alongamento é recomendado ANTES do treino?",
+          options: [
+            "Alongamento estático",
+            "Mobilidade dinâmica",
+            "Alongamento passivo",
+            "Não fazer alongamento",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Quanto tempo de descanso é recomendado entre treinos do mesmo grupo muscular?",
+          options: ["12 horas", "24 horas", "48-72 horas", "1 semana"],
+          correctAnswer: 2,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-form-technique",
+    title: "Técnica e Forma dos Exercícios",
+    category: "form",
+    content: `
 A técnica correta é fundamental para resultados e segurança. Entenda os princípios universais.
 
 **Princípios Universais de Técnica:**
@@ -849,55 +849,55 @@ A técnica correta é fundamental para resultados e segurança. Entenda os princ
 **Evidências:**
 ROM completo ativa 20-40% mais fibras musculares (Bloomquist et al., 2013). Controle excêntrico é crucial para hipertrofia (Roig et al., 2009).
     `,
-		keyPoints: [
-			"Controle excêntrico: 2-3 segundos",
-			"ROM completo ativa 20-40% mais fibras",
-			"Respirar corretamente aumenta força",
-			"Técnica sempre antes de carga",
-		],
-		duration: 9,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Quanto tempo deve durar a fase excêntrica (negativa)?",
-					options: [
-						"0.5 segundos",
-						"2-3 segundos",
-						"5-6 segundos",
-						"Não importa",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual é a posição dos cotovelos ideal no supino?",
-					options: [
-						"90 graus (completamente aberto)",
-						"45-60 graus",
-						"0 graus (fechado)",
-						"Não importa",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "O que fazer primeiro em uma barra fixa?",
-					options: [
-						"Puxar com os braços",
-						"Retrair as escápulas",
-						"Usar impulso",
-						"Não importa a ordem",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-sleep-performance",
-		title: "Sono e Performance no Treino",
-		category: "recovery",
-		content: `
+    keyPoints: [
+      "Controle excêntrico: 2-3 segundos",
+      "ROM completo ativa 20-40% mais fibras",
+      "Respirar corretamente aumenta força",
+      "Técnica sempre antes de carga",
+    ],
+    duration: 9,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Quanto tempo deve durar a fase excêntrica (negativa)?",
+          options: [
+            "0.5 segundos",
+            "2-3 segundos",
+            "5-6 segundos",
+            "Não importa",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual é a posição dos cotovelos ideal no supino?",
+          options: [
+            "90 graus (completamente aberto)",
+            "45-60 graus",
+            "0 graus (fechado)",
+            "Não importa",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "O que fazer primeiro em uma barra fixa?",
+          options: [
+            "Puxar com os braços",
+            "Retrair as escápulas",
+            "Usar impulso",
+            "Não importa a ordem",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-sleep-performance",
+    title: "Sono e Performance no Treino",
+    category: "recovery",
+    content: `
 O sono é um dos pilares mais importantes para recuperação e ganhos musculares.
 
 **Por que o Sono é Fundamental:**
@@ -960,41 +960,41 @@ O sono é um dos pilares mais importantes para recuperação e ganhos musculares
 **Evidências:**
 Estudos mostram que dormir <6h reduz ganhos musculares em 60% comparado a 8h+ (Dattilo et al., 2011). Uma noite de privação aumenta cortisol em 37% e reduz testosterona em 15% (Leproult & Van Cauter, 2011).
     `,
-		keyPoints: [
-			"7-9 horas de sono ideal para atletas",
-			"70% do GH secretado durante sono profundo",
-			"Privação reduz síntese proteica em 18%",
-			"Uma noite ruim = 2 dias de recuperação comprometida",
-		],
-		duration: 8,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Quantas horas de sono são ideais para atletas?",
-					options: ["5-6 horas", "7-9 horas", "10-12 horas", "Não importa"],
-					correctAnswer: 1,
-				},
-				{
-					question:
-						"Quanto do Hormônio do Crescimento é secretado durante o sono?",
-					options: ["30%", "50%", "70%", "90%"],
-					correctAnswer: 2,
-				},
-				{
-					question: "Quanto a privação de sono reduz a síntese proteica?",
-					options: ["5%", "10%", "18%", "30%"],
-					correctAnswer: 2,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-hydration",
-		title: "Hidratação e Performance",
-		category: "nutrition",
-		content: `
+    keyPoints: [
+      "7-9 horas de sono ideal para atletas",
+      "70% do GH secretado durante sono profundo",
+      "Privação reduz síntese proteica em 18%",
+      "Uma noite ruim = 2 dias de recuperação comprometida",
+    ],
+    duration: 8,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Quantas horas de sono são ideais para atletas?",
+          options: ["5-6 horas", "7-9 horas", "10-12 horas", "Não importa"],
+          correctAnswer: 1,
+        },
+        {
+          question:
+            "Quanto do Hormônio do Crescimento é secretado durante o sono?",
+          options: ["30%", "50%", "70%", "90%"],
+          correctAnswer: 2,
+        },
+        {
+          question: "Quanto a privação de sono reduz a síntese proteica?",
+          options: ["5%", "10%", "18%", "30%"],
+          correctAnswer: 2,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-hydration",
+    title: "Hidratação e Performance",
+    category: "nutrition",
+    content: `
 A hidratação adequada é crucial para performance, recuperação e saúde geral.
 
 **Importância da Água:**
@@ -1064,46 +1064,46 @@ A hidratação adequada é crucial para performance, recuperação e saúde gera
 **Evidências:**
 Perda de apenas 2% do peso corporal em água reduz força em 6-8% e aumenta percepção de esforço (Cheuvront et al., 2010). Hidratação adequada melhora recuperação pós-treino significativamente.
     `,
-		keyPoints: [
-			"35-40ml/kg de peso corporal diário",
-			"2% de desidratação reduz performance 10-15%",
-			"Repor 150% do peso perdido pós-treino",
-			"Eletrólitos necessários para treinos >1h",
-		],
-		duration: 7,
-		xpReward: 20,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question:
-						"Quantos ml de água por kg de peso são recomendados diariamente?",
-					options: ["20-25ml/kg", "35-40ml/kg", "50-60ml/kg", "Não importa"],
-					correctAnswer: 1,
-				},
-				{
-					question: "Quanto de desidratação reduz performance em 10-15%?",
-					options: ["1%", "2%", "5%", "10%"],
-					correctAnswer: 1,
-				},
-				{
-					question: "Quando usar bebidas esportivas ao invés de água?",
-					options: [
-						"Sempre",
-						"Treinos >60-90 minutos",
-						"Nunca",
-						"Apenas pela manhã",
-					],
-					correctAnswer: 1,
-				},
-			],
-		},
-	},
-	{
-		id: "lesson-cardio-heart-rate",
-		title: "Zonas de Frequência Cardíaca",
-		category: "training-science",
-		content: `
+    keyPoints: [
+      "35-40ml/kg de peso corporal diário",
+      "2% de desidratação reduz performance 10-15%",
+      "Repor 150% do peso perdido pós-treino",
+      "Eletrólitos necessários para treinos >1h",
+    ],
+    duration: 7,
+    xpReward: 20,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question:
+            "Quantos ml de água por kg de peso são recomendados diariamente?",
+          options: ["20-25ml/kg", "35-40ml/kg", "50-60ml/kg", "Não importa"],
+          correctAnswer: 1,
+        },
+        {
+          question: "Quanto de desidratação reduz performance em 10-15%?",
+          options: ["1%", "2%", "5%", "10%"],
+          correctAnswer: 1,
+        },
+        {
+          question: "Quando usar bebidas esportivas ao invés de água?",
+          options: [
+            "Sempre",
+            "Treinos >60-90 minutos",
+            "Nunca",
+            "Apenas pela manhã",
+          ],
+          correctAnswer: 1,
+        },
+      ],
+    },
+  },
+  {
+    id: "lesson-cardio-heart-rate",
+    title: "Zonas de Frequência Cardíaca",
+    category: "training-science",
+    content: `
 Entender zonas de frequência cardíaca permite treinar na intensidade correta para seus objetivos.
 
 **Cálculo da Frequência Cardíaca Máxima (FCmax):**
@@ -1168,48 +1168,48 @@ Entender zonas de frequência cardíaca permite treinar na intensidade correta p
 **Evidências:**
 Treinar na zona correta melhora eficiência do treino em 40-60% (Seiler & Kjerland, 2006). Zona 2 é ideal para queima de gordura (60-70% da energia vem de gordura nessa zona).
     `,
-		keyPoints: [
-			"FCmax = 208 - (0.7 × idade)",
-			"Zona 2 (60-70%): ideal para queima de gordura",
-			"Zona 4 (80-90%): ideal para HIIT",
-			"Treinar na zona correta aumenta eficiência 40-60%",
-		],
-		duration: 8,
-		xpReward: 25,
-		completed: false,
-		quiz: {
-			questions: [
-				{
-					question: "Qual é a fórmula mais precisa para calcular FCmax?",
-					options: [
-						"220 - idade",
-						"208 - (0.7 × idade)",
-						"200 - idade",
-						"210 - idade",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual zona é ideal para queima de gordura?",
-					options: [
-						"Zona 1 (50-60%)",
-						"Zona 2 (60-70%)",
-						"Zona 4 (80-90%)",
-						"Zona 5 (90-100%)",
-					],
-					correctAnswer: 1,
-				},
-				{
-					question: "Qual zona é ideal para HIIT?",
-					options: [
-						"Zona 2 (60-70%)",
-						"Zona 3 (70-80%)",
-						"Zona 4 (80-90%)",
-						"Zona 1 (50-60%)",
-					],
-					correctAnswer: 2,
-				},
-			],
-		},
-	},
+    keyPoints: [
+      "FCmax = 208 - (0.7 × idade)",
+      "Zona 2 (60-70%): ideal para queima de gordura",
+      "Zona 4 (80-90%): ideal para HIIT",
+      "Treinar na zona correta aumenta eficiência 40-60%",
+    ],
+    duration: 8,
+    xpReward: 25,
+    completed: false,
+    quiz: {
+      questions: [
+        {
+          question: "Qual é a fórmula mais precisa para calcular FCmax?",
+          options: [
+            "220 - idade",
+            "208 - (0.7 × idade)",
+            "200 - idade",
+            "210 - idade",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual zona é ideal para queima de gordura?",
+          options: [
+            "Zona 1 (50-60%)",
+            "Zona 2 (60-70%)",
+            "Zona 4 (80-90%)",
+            "Zona 5 (90-100%)",
+          ],
+          correctAnswer: 1,
+        },
+        {
+          question: "Qual zona é ideal para HIIT?",
+          options: [
+            "Zona 2 (60-70%)",
+            "Zona 3 (70-80%)",
+            "Zona 4 (80-90%)",
+            "Zona 1 (50-60%)",
+          ],
+          correctAnswer: 2,
+        },
+      ],
+    },
+  },
 ];

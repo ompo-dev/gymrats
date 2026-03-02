@@ -17,7 +17,7 @@ export interface EducationalDataInput {
  * Normaliza dados educacionais para formato do banco (JSON string)
  */
 export function normalizeEducationalData(
-  data: EducationalDataInput
+  data: EducationalDataInput,
 ): Record<string, string | null> {
   const normalized: Record<string, string | string[] | null | undefined> = {
     ...data,

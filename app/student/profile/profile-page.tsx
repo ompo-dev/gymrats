@@ -13,13 +13,13 @@
 import { ProfilePageContent } from "./profile-content";
 
 export function ProfilePage() {
-	// Não recebe mais props SSR!
-	// Todos os dados são carregados automaticamente pelo useStudentInitializer
-	// no layout e ficam disponíveis no store unificado.
-	// Isso permite:
-	// - Offline-first (dados em cache)
-	// - Performance (dados já carregados)
-	// - Sincronização automática
+  // Não recebe mais props SSR!
+  // Todos os dados são carregados automaticamente pelo useStudentInitializer
+  // no layout e ficam disponíveis no store unificado.
+  // Isso permite:
+  // - Offline-first (dados em cache)
+  // - Performance (dados já carregados)
+  // - Sincronização automática
 
-	return <ProfilePageContent />;
+  return <ProfilePageContent />;
 }

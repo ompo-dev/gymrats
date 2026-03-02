@@ -2,21 +2,21 @@ import { db } from "@/lib/db";
 import type { Equipment, GymProfile, GymStats } from "@/lib/types";
 
 interface CreateGymInput {
-	name: string;
-	address?: string;
-	phone?: string;
-	email?: string;
-	cnpj?: string;
-	equipment?: Array<{ name: string; type: string }>;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  cnpj?: string;
+  equipment?: Array<{ name: string; type: string }>;
 }
 
 interface UpdateOnboardingInput {
-	name: string;
-	address?: string;
-	phone?: string;
-	email?: string;
-	cnpj?: string;
-	equipment?: Array<{ name: string; type: string }>;
+  name: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  cnpj?: string;
+  equipment?: Array<{ name: string; type: string }>;
 }
 
 export class GymInventoryService {
@@ -33,7 +33,9 @@ export class GymInventoryService {
 
     if (!gym || !gym.profile) return null;
 
-    let openingHours: { open: string; close: string; days?: string[] } | undefined;
+    let openingHours:
+      | { open: string; close: string; days?: string[] }
+      | undefined;
     if (gym.openingHours) {
       try {
         openingHours = JSON.parse(gym.openingHours) as {
@@ -87,30 +89,36 @@ export class GymInventoryService {
       orderBy: { name: "asc" },
     });
 
-    return equipment.map((eq) => ({
-      id: eq.id,
-      name: eq.name,
-      type: eq.type,
-      status: eq.status as Equipment["status"],
-      lastMaintenance: eq.lastMaintenance || undefined,
-      brand: eq.brand || undefined,
-      model: eq.model || undefined,
-      currentUser: eq.currentUserId
-        ? {
-            studentId: eq.currentUserId,
-            studentName: eq.currentUserName ?? "Aluno",
-            startTime: eq.currentStartTime ?? new Date(),
-          }
-        : undefined,
-      usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
-      maintenanceHistory: [],
-    } as Equipment));
+    return equipment.map(
+      (eq) =>
+        ({
+          id: eq.id,
+          name: eq.name,
+          type: eq.type,
+          status: eq.status as Equipment["status"],
+          lastMaintenance: eq.lastMaintenance || undefined,
+          brand: eq.brand || undefined,
+          model: eq.model || undefined,
+          currentUser: eq.currentUserId
+            ? {
+                studentId: eq.currentUserId,
+                studentName: eq.currentUserName ?? "Aluno",
+                startTime: eq.currentStartTime ?? new Date(),
+              }
+            : undefined,
+          usageStats: { totalUses: 0, avgUsageTime: 0, popularTimes: [] },
+          maintenanceHistory: [],
+        }) as Equipment,
+    );
   }
 
   /**
    * Busca um equipamento específico por ID
    */
-  static async getEquipmentById(gymId: string, equipmentId: string): Promise<Equipment | null> {
+  static async getEquipmentById(
+    gymId: string,
+    equipmentId: string,
+  ): Promise<Equipment | null> {
     const equipment = await db.equipment.findUnique({
       where: { id: equipmentId, gymId },
     });
@@ -149,7 +157,12 @@ export class GymInventoryService {
     return plans.map((plan) => ({
       id: plan.id,
       name: plan.name,
-      type: plan.type as "monthly" | "quarterly" | "semi-annual" | "annual" | "trial",
+      type: plan.type as
+        | "monthly"
+        | "quarterly"
+        | "semi-annual"
+        | "annual"
+        | "trial",
       price: plan.price,
       duration: plan.duration,
       benefits: plan.benefits ? JSON.parse(plan.benefits) : [],
@@ -165,7 +178,11 @@ export class GymInventoryService {
     startOfToday.setHours(0, 0, 0, 0);
 
     const startOfWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
+    const startOfMonth = new Date(
+      startOfToday.getFullYear(),
+      startOfToday.getMonth(),
+      1,
+    );
 
     const [
       todayCheckIns,
@@ -174,17 +191,26 @@ export class GymInventoryService {
       newMembers,
       canceledMembers,
       weekRevenueAgg,
-      activeStudents,
+      _activeStudents,
       monthCheckIns,
       monthTopStudentsRaw,
       weekCheckInsRaw,
     ] = await Promise.all([
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday } } }),
-      db.checkIn.count({ where: { gymId, timestamp: { gte: startOfToday }, checkOut: null } }),
+      db.checkIn.count({
+        where: { gymId, timestamp: { gte: startOfToday }, checkOut: null },
+      }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfWeek } } }),
-      db.gymMembership.count({ where: { gymId, createdAt: { gte: startOfWeek } } }),
-      db.gymMembership.count({ where: { gymId, status: "canceled", updatedAt: { gte: startOfWeek } } }),
-      db.payment.aggregate({ where: { gymId, status: "paid", date: { gte: startOfWeek } }, _sum: { amount: true } }),
+      db.gymMembership.count({
+        where: { gymId, createdAt: { gte: startOfWeek } },
+      }),
+      db.gymMembership.count({
+        where: { gymId, status: "canceled", updatedAt: { gte: startOfWeek } },
+      }),
+      db.payment.aggregate({
+        where: { gymId, status: "paid", date: { gte: startOfWeek } },
+        _sum: { amount: true },
+      }),
       db.gymMembership.count({ where: { gymId, status: "active" } }),
       db.checkIn.count({ where: { gymId, timestamp: { gte: startOfMonth } } }),
       db.checkIn.groupBy({
@@ -225,8 +251,24 @@ export class GymInventoryService {
     );
 
     const DAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-    const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-    const byDay: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+    const DAY_KEYS = [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+      "sunday",
+    ];
+    const byDay: Record<number, number> = {
+      0: 0,
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+      6: 0,
+    };
     const byHour: Record<number, number> = {};
     for (let h = 6; h <= 22; h++) byHour[h] = 0;
 

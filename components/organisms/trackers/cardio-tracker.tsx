@@ -1,330 +1,350 @@
 "use client";
 
 import {
-	Flame,
-	Heart,
-	Pause,
-	Play,
-	Square,
-	Timer,
-	TrendingUp,
+  Flame,
+  Heart,
+  Pause,
+  Play,
+  Square,
+  Timer,
+  TrendingUp,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton } from "@/components/duo";
-import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
-import { DuoSelect } from "@/components/duo";
 import {
-	calculateCardioCalories,
-	calculateTargetHeartRateZone,
+  DuoButton,
+  DuoCard,
+  DuoSelect,
+  DuoStatCard,
+  DuoStatsGrid,
+} from "@/components/duo";
+import {
+  calculateCardioCalories,
+  calculateTargetHeartRateZone,
 } from "@/lib/calorie-calculator";
 import type { CardioType, UserProfile } from "@/lib/types";
 
 const mockUserProfile: UserProfile = {
-	id: "1",
-	name: "User",
-	age: 28,
-	gender: "male",
-	weight: 75,
-	height: 175,
-	fitnessLevel: "intermediario",
-	weeklyWorkoutFrequency: 4,
-	workoutDuration: 60,
-	goals: ["ganhar-massa"],
-	availableEquipment: [],
-	gymType: "academia-completa",
-	preferredWorkoutTime: "manha",
-	preferredSets: 3,
-	preferredRepRange: "hipertrofia",
-	restTime: "medio",
+  id: "1",
+  name: "User",
+  age: 28,
+  gender: "male",
+  weight: 75,
+  height: 175,
+  fitnessLevel: "intermediario",
+  weeklyWorkoutFrequency: 4,
+  workoutDuration: 60,
+  goals: ["ganhar-massa"],
+  availableEquipment: [],
+  gymType: "academia-completa",
+  preferredWorkoutTime: "manha",
+  preferredSets: 3,
+  preferredRepRange: "hipertrofia",
+  restTime: "medio",
 };
 
 const cardioTypes: {
-	type: CardioType;
-	label: string;
-	emoji: string;
-	avgCaloriesPerMin: number;
+  type: CardioType;
+  label: string;
+  emoji: string;
+  avgCaloriesPerMin: number;
 }[] = [
-	{ type: "corrida", label: "Corrida", emoji: "🏃", avgCaloriesPerMin: 10 },
-	{
-		type: "bicicleta",
-		label: "Bicicleta",
-		emoji: "🚴",
-		avgCaloriesPerMin: 8,
-	},
-	{ type: "natacao", label: "Natação", emoji: "🏊", avgCaloriesPerMin: 11 },
-	{ type: "remo", label: "Remo", emoji: "🚣", avgCaloriesPerMin: 9 },
-	{
-		type: "eliptico",
-		label: "Elíptico",
-		emoji: "⚡",
-		avgCaloriesPerMin: 7,
-	},
-	{
-		type: "pular-corda",
-		label: "Pular Corda",
-		emoji: "🪢",
-		avgCaloriesPerMin: 12,
-	},
-	{
-		type: "caminhada",
-		label: "Caminhada",
-		emoji: "🚶",
-		avgCaloriesPerMin: 4,
-	},
-	{ type: "hiit", label: "HIIT", emoji: "💥", avgCaloriesPerMin: 14 },
+  { type: "corrida", label: "Corrida", emoji: "🏃", avgCaloriesPerMin: 10 },
+  {
+    type: "bicicleta",
+    label: "Bicicleta",
+    emoji: "🚴",
+    avgCaloriesPerMin: 8,
+  },
+  { type: "natacao", label: "Natação", emoji: "🏊", avgCaloriesPerMin: 11 },
+  { type: "remo", label: "Remo", emoji: "🚣", avgCaloriesPerMin: 9 },
+  {
+    type: "eliptico",
+    label: "Elíptico",
+    emoji: "⚡",
+    avgCaloriesPerMin: 7,
+  },
+  {
+    type: "pular-corda",
+    label: "Pular Corda",
+    emoji: "🪢",
+    avgCaloriesPerMin: 12,
+  },
+  {
+    type: "caminhada",
+    label: "Caminhada",
+    emoji: "🚶",
+    avgCaloriesPerMin: 4,
+  },
+  { type: "hiit", label: "HIIT", emoji: "💥", avgCaloriesPerMin: 14 },
 ];
 
 const intensityOptions = [
-	{ value: "baixa", label: "Baixa", emoji: "🐢" },
-	{ value: "moderada", label: "Moderada", emoji: "🚶" },
-	{ value: "alta", label: "Alta", emoji: "🏃" },
-	{ value: "muito-alta", label: "Muito Alta", emoji: "💥" },
+  { value: "baixa", label: "Baixa", emoji: "🐢" },
+  { value: "moderada", label: "Moderada", emoji: "🚶" },
+  { value: "alta", label: "Alta", emoji: "🏃" },
+  { value: "muito-alta", label: "Muito Alta", emoji: "💥" },
 ];
 
 function CardioTrackerSimple() {
-	const [selectedType, setSelectedType] = useState<CardioType>("corrida");
-	const [isRunning, setIsRunning] = useState(false);
-	const [duration, setDuration] = useState(0);
-	const [intensity, setIntensity] = useState<
-		"baixa" | "moderada" | "alta" | "muito-alta"
-	>("moderada");
-	const [heartRate, setHeartRate] = useState(0);
-	const [distance, setDistance] = useState(0);
+  const [selectedType, setSelectedType] = useState<CardioType>("corrida");
+  const [isRunning, setIsRunning] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [intensity, setIntensity] = useState<
+    "baixa" | "moderada" | "alta" | "muito-alta"
+  >("moderada");
+  const [heartRate, setHeartRate] = useState(0);
+  const [distance, setDistance] = useState(0);
 
-	const _selected = cardioTypes.find((c) => c.type === selectedType)!;
-	const targetHRZone = calculateTargetHeartRateZone(
-		mockUserProfile.age,
-		"cardio",
-	);
-	const estimatedCalories =
-		duration > 0
-			? calculateCardioCalories(
-					selectedType,
-					duration,
-					intensity,
-					mockUserProfile,
-				)
-			: 0;
+  const _selected = cardioTypes.find((c) => c.type === selectedType)!;
+  const targetHRZone = calculateTargetHeartRateZone(
+    mockUserProfile.age,
+    "cardio",
+  );
+  const estimatedCalories =
+    duration > 0
+      ? calculateCardioCalories(
+          selectedType,
+          duration,
+          intensity,
+          mockUserProfile,
+        )
+      : 0;
 
-	useEffect(() => {
-		let interval: NodeJS.Timeout;
-		if (isRunning) {
-			interval = setInterval(() => {
-				setDuration((prev) => prev + 1);
-				setDistance((prev) => prev + 0.01);
-				setHeartRate(() => {
-					const baseHR = 60 + mockUserProfile.age;
-					const intensityMultiplier = {
-						baixa: 1.2,
-						moderada: 1.4,
-						alta: 1.6,
-						"muito-alta": 1.8,
-					}[intensity];
-					return Math.round(baseHR * intensityMultiplier);
-				});
-			}, 1000);
-		}
-		return () => clearInterval(interval);
-	}, [isRunning, intensity]);
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning) {
+      interval = setInterval(() => {
+        setDuration((prev) => prev + 1);
+        setDistance((prev) => prev + 0.01);
+        setHeartRate(() => {
+          const baseHR = 60 + mockUserProfile.age;
+          const intensityMultiplier = {
+            baixa: 1.2,
+            moderada: 1.4,
+            alta: 1.6,
+            "muito-alta": 1.8,
+          }[intensity];
+          return Math.round(baseHR * intensityMultiplier);
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRunning, intensity]);
 
-	const cardioOptions = cardioTypes.map((cardio) => ({
-		value: cardio.type,
-		label: cardio.label,
-		emoji: cardio.emoji,
-	}));
+  const cardioOptions = cardioTypes.map((cardio) => ({
+    value: cardio.type,
+    label: cardio.label,
+    emoji: cardio.emoji,
+  }));
 
-	const formatTime = (seconds: number) => {
-		const mins = Math.floor(seconds / 60);
-		const secs = seconds % 60;
-		return `${mins}:${secs.toString().padStart(2, "0")}`;
-	};
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
-	return (
-		<div className="mx-auto max-w-4xl space-y-6">
-			<FadeIn>
-				<div className="text-center">
-					<h1 className="mb-2 text-3xl font-bold text-duo-text">
-						Treino Cardio
-					</h1>
-					<p className="text-sm text-duo-gray-dark">
-						Acompanhe seu treino em tempo real
-					</p>
-				</div>
-			</FadeIn>
+  return (
+    <div className="mx-auto max-w-4xl space-y-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+            Treino Cardio
+          </h1>
+          <p className="text-sm text-duo-gray-dark">
+            Acompanhe seu treino em tempo real
+          </p>
+        </div>
+      </FadeIn>
 
-			<SlideIn delay={0.1}>
-				<DuoCard.Root variant="default" padding="md">
-					<DuoCard.Header>
-						<div className="flex items-center gap-2">
-							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Selecione a Modalidade</h2>
-						</div>
-					</DuoCard.Header>
-					<DuoSelect.Simple
-						options={cardioOptions}
-						value={selectedType}
-						onChange={(value) => setSelectedType(value as CardioType)}
-						placeholder="Modalidade"
-					/>
-				</DuoCard.Root>
-			</SlideIn>
+      <SlideIn delay={0.1}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <Heart
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-[var(--duo-fg)]">
+                Selecione a Modalidade
+              </h2>
+            </div>
+          </DuoCard.Header>
+          <DuoSelect.Simple
+            options={cardioOptions}
+            value={selectedType}
+            onChange={(value) => setSelectedType(value as CardioType)}
+            placeholder="Modalidade"
+          />
+        </DuoCard.Root>
+      </SlideIn>
 
-			<DuoStatsGrid.Root columns={4} className="gap-4">
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.2, duration: 0.4 }}
-				>
-					<DuoStatCard.Simple
-						icon={Timer}
-						value={formatTime(duration)}
-						label="Duração"
-						iconColor="var(--duo-accent)"
-					/>
-				</motion.div>
+      <DuoStatsGrid.Root columns={4} className="gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+        >
+          <DuoStatCard.Simple
+            icon={Timer}
+            value={formatTime(duration)}
+            label="Duração"
+            iconColor="var(--duo-accent)"
+          />
+        </motion.div>
 
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.25, duration: 0.4 }}
-				>
-					<DuoStatCard.Simple
-						icon={Flame}
-						value={estimatedCalories}
-						label="Calorias"
-						iconColor="var(--duo-danger)"
-					/>
-				</motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+        >
+          <DuoStatCard.Simple
+            icon={Flame}
+            value={estimatedCalories}
+            label="Calorias"
+            iconColor="var(--duo-danger)"
+          />
+        </motion.div>
 
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.3, duration: 0.4 }}
-				>
-					<DuoStatCard.Simple
-						icon={TrendingUp}
-						value={distance.toFixed(2)}
-						label="Distância (km)"
-						iconColor="var(--duo-primary)"
-					/>
-				</motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+        >
+          <DuoStatCard.Simple
+            icon={TrendingUp}
+            value={distance.toFixed(2)}
+            label="Distância (km)"
+            iconColor="var(--duo-primary)"
+          />
+        </motion.div>
 
-				<motion.div
-					initial={{ opacity: 0, y: 20 }}
-					animate={{ opacity: 1, y: 0 }}
-					transition={{ delay: 0.35, duration: 0.4 }}
-				>
-					<DuoStatCard.Simple
-						icon={Heart}
-						value={heartRate}
-						label="FC (bpm)"
-						iconColor="var(--duo-danger)"
-					/>
-				</motion.div>
-			</DuoStatsGrid.Root>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          <DuoStatCard.Simple
+            icon={Heart}
+            value={heartRate}
+            label="FC (bpm)"
+            iconColor="var(--duo-danger)"
+          />
+        </motion.div>
+      </DuoStatsGrid.Root>
 
-			<SlideIn delay={0.4}>
-				<DuoCard.Root variant="default" padding="md">
-					<DuoCard.Header>
-						<div className="flex items-center gap-2">
-							<Heart className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Zona de FC Alvo (Cardio)</h2>
-						</div>
-					</DuoCard.Header>
-					<div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
-						<span>{targetHRZone.min} bpm</span>
-						<span>{targetHRZone.max} bpm</span>
-					</div>
-					<div className="h-3 overflow-hidden rounded-full bg-duo-border">
-						<div
-							className="h-full bg-linear-to-r from-pink-400 to-pink-600 transition-all"
-							style={{
-								width:
-									heartRate > 0
-										? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%`
-										: "0%",
-						}}
-					/>
-					</div>
-				</DuoCard.Root>
-			</SlideIn>
+      <SlideIn delay={0.4}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <Heart
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-[var(--duo-fg)]">
+                Zona de FC Alvo (Cardio)
+              </h2>
+            </div>
+          </DuoCard.Header>
+          <div className="mb-2 flex items-center justify-between text-xs text-duo-gray-dark">
+            <span>{targetHRZone.min} bpm</span>
+            <span>{targetHRZone.max} bpm</span>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-duo-border">
+            <div
+              className="h-full bg-linear-to-r from-pink-400 to-pink-600 transition-all"
+              style={{
+                width:
+                  heartRate > 0
+                    ? `${Math.min((heartRate / targetHRZone.max) * 100, 100)}%`
+                    : "0%",
+              }}
+            />
+          </div>
+        </DuoCard.Root>
+      </SlideIn>
 
-			<SlideIn delay={0.5}>
-				<DuoCard.Root variant="default" padding="md">
-					<DuoCard.Header>
-						<div className="flex items-center gap-2">
-							<Flame className="h-5 w-5 shrink-0" style={{ color: "var(--duo-secondary)" }} aria-hidden />
-							<h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
-						</div>
-					</DuoCard.Header>
-					<DuoSelect.Simple
-						options={intensityOptions}
-						value={intensity}
-						onChange={(value) =>
-							setIntensity(
-								value as "baixa" | "moderada" | "alta" | "muito-alta",
-							)
-						}
-						placeholder="Intensidade"
-					/>
-				</DuoCard.Root>
-			</SlideIn>
+      <SlideIn delay={0.5}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <Flame
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-[var(--duo-fg)]">Intensidade</h2>
+            </div>
+          </DuoCard.Header>
+          <DuoSelect.Simple
+            options={intensityOptions}
+            value={intensity}
+            onChange={(value) =>
+              setIntensity(
+                value as "baixa" | "moderada" | "alta" | "muito-alta",
+              )
+            }
+            placeholder="Intensidade"
+          />
+        </DuoCard.Root>
+      </SlideIn>
 
-			<SlideIn delay={0.6}>
-				<div className="flex gap-3">
-					<DuoButton
-						onClick={() => setIsRunning(!isRunning)}
-						className="flex-1"
-						variant="primary"
-					>
-						{isRunning ? (
-							<>
-								<Pause className="h-5 w-5" />
-								PAUSAR
-							</>
-						) : (
-							<>
-								<Play className="h-5 w-5" />
-								INICIAR
-							</>
-						)}
-					</DuoButton>
-					<DuoButton
-						onClick={() => {
-							setIsRunning(false);
-							setDuration(0);
-							setDistance(0);
-							setHeartRate(0);
-						}}
-						variant="white"
-						size="icon-lg"
-					>
-						<Square className="h-5 w-5" />
-					</DuoButton>
-				</div>
-			</SlideIn>
+      <SlideIn delay={0.6}>
+        <div className="flex gap-3">
+          <DuoButton
+            onClick={() => setIsRunning(!isRunning)}
+            className="flex-1"
+            variant="primary"
+          >
+            {isRunning ? (
+              <>
+                <Pause className="h-5 w-5" />
+                PAUSAR
+              </>
+            ) : (
+              <>
+                <Play className="h-5 w-5" />
+                INICIAR
+              </>
+            )}
+          </DuoButton>
+          <DuoButton
+            onClick={() => {
+              setIsRunning(false);
+              setDuration(0);
+              setDistance(0);
+              setHeartRate(0);
+            }}
+            variant="white"
+            size="icon-lg"
+          >
+            <Square className="h-5 w-5" />
+          </DuoButton>
+        </div>
+      </SlideIn>
 
-			<SlideIn delay={0.7}>
-				<DuoCard.Root variant="blue" size="md">
-					<div className="flex items-start gap-3">
-						<div className="text-2xl">💡</div>
-						<div>
-							<div className="mb-1 text-sm font-bold text-duo-blue">Dica</div>
-							<p className="text-xs text-duo-gray-dark">
-								O cálculo de calorias considera seu peso, idade, gênero e perfil
-								hormonal para maior precisão!
-							</p>
-						</div>
-					</div>
-				</DuoCard.Root>
-			</SlideIn>
-		</div>
-	);
+      <SlideIn delay={0.7}>
+        <DuoCard.Root variant="blue" size="md">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">💡</div>
+            <div>
+              <div className="mb-1 text-sm font-bold text-duo-blue">Dica</div>
+              <p className="text-xs text-duo-gray-dark">
+                O cálculo de calorias considera seu peso, idade, gênero e perfil
+                hormonal para maior precisão!
+              </p>
+            </div>
+          </div>
+        </DuoCard.Root>
+      </SlideIn>
+    </div>
+  );
 }
 
 export const CardioTracker = {
-	Simple: CardioTrackerSimple,
+  Simple: CardioTrackerSimple,
 };

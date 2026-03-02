@@ -9,11 +9,10 @@
 /**
  * Role do usuário (fonte da verdade)
  */
-export type UserRole = typeof UserRole[keyof typeof UserRole];
-
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export const UserRole = {
-  STUDENT: 'STUDENT',
-  GYM: 'GYM',
-  ADMIN: 'ADMIN',
+  STUDENT: "STUDENT",
+  GYM: "GYM",
+  ADMIN: "ADMIN",
 } as const;

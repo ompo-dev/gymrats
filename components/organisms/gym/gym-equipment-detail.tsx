@@ -10,22 +10,24 @@ import {
   Clock,
   Dumbbell,
   Edit,
-  QrCode,
   Wrench,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { DuoSelect } from "@/components/duo";
-import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import {
+  DuoButton,
+  DuoCard,
+  DuoSelect,
+  DuoStatCard,
+  DuoStatsGrid,
+} from "@/components/duo";
 import type { Equipment } from "@/lib/types";
-import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { cn } from "@/lib/utils";
-import { MaintenanceModal } from "./maintenance-modal"; // Import
+import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { AddEquipmentModal } from "./add-equipment-modal";
+import { MaintenanceModal } from "./maintenance-modal"; // Import
 
 interface GymEquipmentDetailProps {
   equipment: Equipment | null;
@@ -129,9 +131,7 @@ export function GymEquipmentDetail({
                 style={{ color: "var(--duo-secondary)" }}
                 aria-hidden
               />
-              <h2 className="font-bold text-duo-fg">
-                {equipment.name}
-              </h2>
+              <h2 className="font-bold text-duo-fg">{equipment.name}</h2>
             </div>
           </DuoCard.Header>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
@@ -196,7 +196,7 @@ export function GymEquipmentDetail({
         equipmentId={equipment.id}
         onSuccess={(record) => {
           // Update local equipment state to include new record and update date
-          const updatedRecords = [
+          const _updatedRecords = [
             {
               ...record,
               date: new Date(record.date),
@@ -222,7 +222,7 @@ export function GymEquipmentDetail({
       <AddEquipmentModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onSuccess={(updatedEquipment) => {
+        onSuccess={(_updatedEquipment) => {
           // Aqui idealmente atualizaríamos o estado local ou chamaríamos onUpdate
           // Como equipment vem de props, vamos confiar no refresh da página ou implementar refresh
           setIsEditModalOpen(false);
@@ -282,13 +282,21 @@ export function GymEquipmentDetail({
           />
           <DuoStatCard.Simple
             icon={Calendar}
-            value={(equipment.lastMaintenance != null ? formatDatePtBr(equipment.lastMaintenance) : null) || "N/A"}
+            value={
+              (equipment.lastMaintenance != null
+                ? formatDatePtBr(equipment.lastMaintenance)
+                : null) || "N/A"
+            }
             label="Última Manutenção"
             iconColor="var(--duo-primary)"
           />
           <DuoStatCard.Simple
             icon={Calendar}
-            value={(equipment.nextMaintenance != null ? formatDatePtBr(equipment.nextMaintenance) : null) || "N/A"}
+            value={
+              (equipment.nextMaintenance != null
+                ? formatDatePtBr(equipment.nextMaintenance)
+                : null) || "N/A"
+            }
             label="Próxima Manutenção"
             iconColor="var(--duo-accent)"
           />
@@ -304,9 +312,7 @@ export function GymEquipmentDetail({
                 style={{ color: "var(--duo-secondary)" }}
                 aria-hidden
               />
-              <h2 className="font-bold text-duo-fg">
-                Selecione a Categoria
-              </h2>
+              <h2 className="font-bold text-duo-fg">Selecione a Categoria</h2>
             </div>
           </DuoCard.Header>
           <DuoSelect.Simple
@@ -503,7 +509,10 @@ export function GymEquipmentDetail({
               {[
                 {
                   label: "Data de Compra",
-                  value: (equipment.purchaseDate != null ? formatDatePtBr(equipment.purchaseDate) : null) || "N/A",
+                  value:
+                    (equipment.purchaseDate != null
+                      ? formatDatePtBr(equipment.purchaseDate)
+                      : null) || "N/A",
                 },
                 { label: "Marca", value: equipment.brand },
                 { label: "Modelo", value: equipment.model },

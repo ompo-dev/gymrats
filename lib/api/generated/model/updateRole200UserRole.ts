@@ -9,11 +9,11 @@
 /**
  * Role do usuário (STUDENT, GYM ou ADMIN)
  */
-export type UpdateRole200UserRole = typeof UpdateRole200UserRole[keyof typeof UpdateRole200UserRole];
-
+export type UpdateRole200UserRole =
+  (typeof UpdateRole200UserRole)[keyof typeof UpdateRole200UserRole];
 
 export const UpdateRole200UserRole = {
-  STUDENT: 'STUDENT',
-  GYM: 'GYM',
-  ADMIN: 'ADMIN',
+  STUDENT: "STUDENT",
+  GYM: "GYM",
+  ADMIN: "ADMIN",
 } as const;

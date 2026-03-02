@@ -10,11 +10,12 @@
  * Dificuldade percebida
  * @nullable
  */
-export type UpdateWorkoutProgressExerciseBodyDifficulty = typeof UpdateWorkoutProgressExerciseBodyDifficulty[keyof typeof UpdateWorkoutProgressExerciseBodyDifficulty] | null;
-
+export type UpdateWorkoutProgressExerciseBodyDifficulty =
+  | (typeof UpdateWorkoutProgressExerciseBodyDifficulty)[keyof typeof UpdateWorkoutProgressExerciseBodyDifficulty]
+  | null;
 
 export const UpdateWorkoutProgressExerciseBodyDifficulty = {
-  fácil: 'fácil',
-  médio: 'médio',
-  difícil: 'difícil',
+  fácil: "fácil",
+  médio: "médio",
+  difícil: "difícil",
 } as const;

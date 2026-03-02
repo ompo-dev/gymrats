@@ -21,31 +21,31 @@ import { useCallback, useEffect } from "react";
  * ```
  */
 export function useModalState(modalName: string) {
-	const [modal, setModal] = useQueryState("modal", parseAsString);
-	const isOpen = modal === modalName;
+  const [modal, setModal] = useQueryState("modal", parseAsString);
+  const isOpen = modal === modalName;
 
-	const open = useCallback(() => {
-		setModal(modalName);
-	}, [modalName, setModal]);
+  const open = useCallback(() => {
+    setModal(modalName);
+  }, [modalName, setModal]);
 
-	const close = useCallback(() => {
-		setModal(null);
-	}, [setModal]);
+  const close = useCallback(() => {
+    setModal(null);
+  }, [setModal]);
 
-	const toggle = useCallback(() => {
-		if (isOpen) {
-			close();
-		} else {
-			open();
-		}
-	}, [isOpen, open, close]);
+  const toggle = useCallback(() => {
+    if (isOpen) {
+      close();
+    } else {
+      open();
+    }
+  }, [isOpen, open, close]);
 
-	return {
-		isOpen,
-		open,
-		close,
-		toggle,
-	};
+  return {
+    isOpen,
+    open,
+    close,
+    toggle,
+  };
 }
 
 /**
@@ -68,52 +68,52 @@ export function useModalState(modalName: string) {
  * ```
  */
 export function useModalStateWithParam(modalName: string, paramName: string) {
-	const [modal, setModal] = useQueryState("modal", parseAsString);
-	const [paramValue, setParamValue] = useQueryState(paramName, parseAsString);
-	// Modal está aberto se modal === modalName OU se há paramValue (para abrir automaticamente quando há parâmetro na URL)
-	const isOpen = modal === modalName || !!paramValue;
+  const [modal, setModal] = useQueryState("modal", parseAsString);
+  const [paramValue, setParamValue] = useQueryState(paramName, parseAsString);
+  // Modal está aberto se modal === modalName OU se há paramValue (para abrir automaticamente quando há parâmetro na URL)
+  const isOpen = modal === modalName || !!paramValue;
 
-	// Se há paramValue na URL mas modal não está marcado como aberto, abrir automaticamente
-	useEffect(() => {
-		if (paramValue && modal !== modalName) {
-			setModal(modalName);
-		}
-	}, [paramValue, modal, modalName, setModal]);
+  // Se há paramValue na URL mas modal não está marcado como aberto, abrir automaticamente
+  useEffect(() => {
+    if (paramValue && modal !== modalName) {
+      setModal(modalName);
+    }
+  }, [paramValue, modal, modalName, setModal]);
 
-	const open = useCallback(
-		(value?: string | null) => {
-			setModal(modalName);
-			if (value !== undefined) {
-				setParamValue(value);
-			}
-		},
-		[modalName, setModal, setParamValue],
-	);
+  const open = useCallback(
+    (value?: string | null) => {
+      setModal(modalName);
+      if (value !== undefined) {
+        setParamValue(value);
+      }
+    },
+    [modalName, setModal, setParamValue],
+  );
 
-	const close = useCallback(() => {
-		setModal(null);
-		setParamValue(null);
-	}, [setModal, setParamValue]);
+  const close = useCallback(() => {
+    setModal(null);
+    setParamValue(null);
+  }, [setModal, setParamValue]);
 
-	const toggle = useCallback(
-		(value?: string | null) => {
-			if (isOpen) {
-				close();
-			} else {
-				open(value);
-			}
-		},
-		[isOpen, open, close],
-	);
+  const toggle = useCallback(
+    (value?: string | null) => {
+      if (isOpen) {
+        close();
+      } else {
+        open(value);
+      }
+    },
+    [isOpen, open, close],
+  );
 
-	return {
-		isOpen,
-		open,
-		close,
-		toggle,
-		paramValue,
-		setParamValue,
-	};
+  return {
+    isOpen,
+    open,
+    close,
+    toggle,
+    paramValue,
+    setParamValue,
+  };
 }
 
 /**
@@ -135,29 +135,29 @@ export function useModalStateWithParam(modalName: string, paramName: string) {
  * ```
  */
 export function useSubModalState(subModalName: string) {
-	const [subModal, setSubModal] = useQueryState("subModal", parseAsString);
-	const isOpen = subModal === subModalName;
+  const [subModal, setSubModal] = useQueryState("subModal", parseAsString);
+  const isOpen = subModal === subModalName;
 
-	const open = useCallback(() => {
-		setSubModal(subModalName);
-	}, [subModalName, setSubModal]);
+  const open = useCallback(() => {
+    setSubModal(subModalName);
+  }, [subModalName, setSubModal]);
 
-	const close = useCallback(() => {
-		setSubModal(null);
-	}, [setSubModal]);
+  const close = useCallback(() => {
+    setSubModal(null);
+  }, [setSubModal]);
 
-	const toggle = useCallback(() => {
-		if (isOpen) {
-			close();
-		} else {
-			open();
-		}
-	}, [isOpen, open, close]);
+  const toggle = useCallback(() => {
+    if (isOpen) {
+      close();
+    } else {
+      open();
+    }
+  }, [isOpen, open, close]);
 
-	return {
-		isOpen,
-		open,
-		close,
-		toggle,
-	};
+  return {
+    isOpen,
+    open,
+    close,
+    toggle,
+  };
 }

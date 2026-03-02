@@ -132,150 +132,154 @@ export function Step7({ formData, setFormData, forceValidation }: StepProps) {
           </p>
         </div>
         <div className="space-y-6">
-        {/* Limitações Físicas */}
-        <LimitationSelector.Simple
-          title="Você possui limitações físicas?"
-          icon={Heart}
-          iconColor="text-duo-danger"
-          borderColor="border-duo-danger/30"
-          bgColor="bg-duo-danger/10"
-          options={physicalLimitations}
-          selectedValues={formData.physicalLimitations || []}
-          onChange={(values) =>
-            handleLimitationChange("physicalLimitations", values)
-          }
-          limitationDetails={formData.limitationDetails}
-          onDetailChange={handleDetailChange}
-          detailConfig={{
-            pernas: {
-              type: "selector",
-              label: "Qual parte das pernas?",
-              options: [
-                { value: "joelhos", label: "Joelhos" },
-                { value: "quadris", label: "Quadris" },
-                { value: "tornozelos", label: "Tornozelos" },
-                { value: "geral", label: "Geral" },
-              ],
-            },
-            bracos: {
-              type: "selector",
-              label: "Qual parte dos braços?",
-              options: [
-                { value: "ombros", label: "Ombros" },
-                { value: "cotovelos", label: "Cotovelos" },
-                { value: "pulsos", label: "Pulsos" },
-                { value: "geral", label: "Geral" },
-              ],
-            },
-            "outras-fisicas": {
-              type: "text",
-              label: "Descreva suas outras limitações físicas",
-              placeholder: "Ex: Problemas específicos...",
-            },
-          }}
-          delay={0.2}
-          error={
-            touched.physicalLimitations ? errors.physicalLimitations : undefined
-          }
-        />
+          {/* Limitações Físicas */}
+          <LimitationSelector.Simple
+            title="Você possui limitações físicas?"
+            icon={Heart}
+            iconColor="text-duo-danger"
+            borderColor="border-duo-danger/30"
+            bgColor="bg-duo-danger/10"
+            options={physicalLimitations}
+            selectedValues={formData.physicalLimitations || []}
+            onChange={(values) =>
+              handleLimitationChange("physicalLimitations", values)
+            }
+            limitationDetails={formData.limitationDetails}
+            onDetailChange={handleDetailChange}
+            detailConfig={{
+              pernas: {
+                type: "selector",
+                label: "Qual parte das pernas?",
+                options: [
+                  { value: "joelhos", label: "Joelhos" },
+                  { value: "quadris", label: "Quadris" },
+                  { value: "tornozelos", label: "Tornozelos" },
+                  { value: "geral", label: "Geral" },
+                ],
+              },
+              bracos: {
+                type: "selector",
+                label: "Qual parte dos braços?",
+                options: [
+                  { value: "ombros", label: "Ombros" },
+                  { value: "cotovelos", label: "Cotovelos" },
+                  { value: "pulsos", label: "Pulsos" },
+                  { value: "geral", label: "Geral" },
+                ],
+              },
+              "outras-fisicas": {
+                type: "text",
+                label: "Descreva suas outras limitações físicas",
+                placeholder: "Ex: Problemas específicos...",
+              },
+            }}
+            delay={0.2}
+            error={
+              touched.physicalLimitations
+                ? errors.physicalLimitations
+                : undefined
+            }
+          />
 
-        {/* Limitações Motoras */}
-        <LimitationSelector.Simple
-          title="Você possui limitações motoras?"
-          icon={Activity}
-          iconColor="text-duo-secondary"
-          borderColor="border-duo-secondary/30"
-          bgColor="bg-duo-secondary/10"
-          options={motorLimitations}
-          selectedValues={formData.motorLimitations || []}
-          onChange={(values) =>
-            handleLimitationChange("motorLimitations", values)
-          }
-          limitationDetails={formData.limitationDetails}
-          onDetailChange={handleDetailChange}
-          detailConfig={{
-            "outras-motoras": {
-              type: "text",
-              label: "Descreva suas outras limitações motoras",
-              placeholder: "Ex: Dificuldades específicas...",
-            },
-          }}
-          delay={0.4}
-          error={touched.motorLimitations ? errors.motorLimitations : undefined}
-        />
+          {/* Limitações Motoras */}
+          <LimitationSelector.Simple
+            title="Você possui limitações motoras?"
+            icon={Activity}
+            iconColor="text-duo-secondary"
+            borderColor="border-duo-secondary/30"
+            bgColor="bg-duo-secondary/10"
+            options={motorLimitations}
+            selectedValues={formData.motorLimitations || []}
+            onChange={(values) =>
+              handleLimitationChange("motorLimitations", values)
+            }
+            limitationDetails={formData.limitationDetails}
+            onDetailChange={handleDetailChange}
+            detailConfig={{
+              "outras-motoras": {
+                type: "text",
+                label: "Descreva suas outras limitações motoras",
+                placeholder: "Ex: Dificuldades específicas...",
+              },
+            }}
+            delay={0.4}
+            error={
+              touched.motorLimitations ? errors.motorLimitations : undefined
+            }
+          />
 
-        {/* Condições Médicas */}
-        <LimitationSelector.Simple
-          title="Você possui condições médicas?"
-          icon={Stethoscope}
-          iconColor="text-duo-accent"
-          borderColor="border-duo-accent/30"
-          bgColor="bg-duo-accent/10"
-          options={medicalConditions}
-          selectedValues={formData.medicalConditions || []}
-          onChange={(values) =>
-            handleLimitationChange("medicalConditions", values)
-          }
-          limitationDetails={formData.limitationDetails}
-          onDetailChange={handleDetailChange}
-          detailConfig={{
-            diabetes: {
-              type: "selector",
-              label: "Tipo de diabetes",
-              options: [
-                { value: "tipo-1", label: "Tipo 1" },
-                { value: "tipo-2", label: "Tipo 2" },
-                { value: "gestacional", label: "Gestacional" },
-                { value: "pre-diabetes", label: "Pré-diabetes" },
-              ],
-            },
-            "problemas-cardiacos": {
-              type: "selector",
-              label: "Tipo de problema cardíaco",
-              options: [
-                { value: "arritmia", label: "Arritmia" },
-                { value: "hipertensao", label: "Hipertensão" },
-                { value: "insuficiencia", label: "Insuficiência Cardíaca" },
-                { value: "outros-cardiacos", label: "Outros" },
-              ],
-            },
-            "outras-medicas": {
-              type: "text",
-              label: "Descreva suas outras condições médicas",
-              placeholder: "Ex: Condição específica, medicação em uso...",
-            },
-          }}
-          delay={0.6}
-          error={
-            touched.medicalConditions ? errors.medicalConditions : undefined
-          }
-        />
+          {/* Condições Médicas */}
+          <LimitationSelector.Simple
+            title="Você possui condições médicas?"
+            icon={Stethoscope}
+            iconColor="text-duo-accent"
+            borderColor="border-duo-accent/30"
+            bgColor="bg-duo-accent/10"
+            options={medicalConditions}
+            selectedValues={formData.medicalConditions || []}
+            onChange={(values) =>
+              handleLimitationChange("medicalConditions", values)
+            }
+            limitationDetails={formData.limitationDetails}
+            onDetailChange={handleDetailChange}
+            detailConfig={{
+              diabetes: {
+                type: "selector",
+                label: "Tipo de diabetes",
+                options: [
+                  { value: "tipo-1", label: "Tipo 1" },
+                  { value: "tipo-2", label: "Tipo 2" },
+                  { value: "gestacional", label: "Gestacional" },
+                  { value: "pre-diabetes", label: "Pré-diabetes" },
+                ],
+              },
+              "problemas-cardiacos": {
+                type: "selector",
+                label: "Tipo de problema cardíaco",
+                options: [
+                  { value: "arritmia", label: "Arritmia" },
+                  { value: "hipertensao", label: "Hipertensão" },
+                  { value: "insuficiencia", label: "Insuficiência Cardíaca" },
+                  { value: "outros-cardiacos", label: "Outros" },
+                ],
+              },
+              "outras-medicas": {
+                type: "text",
+                label: "Descreva suas outras condições médicas",
+                placeholder: "Ex: Condição específica, medicação em uso...",
+              },
+            }}
+            delay={0.6}
+            error={
+              touched.medicalConditions ? errors.medicalConditions : undefined
+            }
+          />
 
-        {/* Mensagem informativa */}
-        {(formData.physicalLimitations?.length ||
-          formData.motorLimitations?.length ||
-          formData.medicalConditions?.length) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="rounded-xl border-2 border-duo-secondary/30 bg-duo-secondary/10 p-4"
-          >
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-duo-secondary mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-duo-fg">
-                  Informações Importantes
-                </p>
-                <p className="text-xs text-duo-fg-muted mt-1">
-                  Com base nas suas limitações, criaremos um treino
-                  personalizado e seguro. Sempre consulte um profissional de
-                  saúde antes de iniciar qualquer programa de exercícios.
-                </p>
+          {/* Mensagem informativa */}
+          {(formData.physicalLimitations?.length ||
+            formData.motorLimitations?.length ||
+            formData.medicalConditions?.length) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-xl border-2 border-duo-secondary/30 bg-duo-secondary/10 p-4"
+            >
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-duo-secondary mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-duo-fg">
+                    Informações Importantes
+                  </p>
+                  <p className="text-xs text-duo-fg-muted mt-1">
+                    Com base nas suas limitações, criaremos um treino
+                    personalizado e seguro. Sempre consulte um profissional de
+                    saúde antes de iniciar qualquer programa de exercícios.
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
+            </motion.div>
+          )}
+        </div>
       </DuoCard.Root>
     </motion.div>
   );

@@ -2,8 +2,8 @@
  * Caso de uso: buscar WeeklyPlan com slots formatados
  */
 
-import { addDays, getWeekStart } from "@/lib/utils/week";
 import { db } from "@/lib/db";
+import { addDays, getWeekStart } from "@/lib/utils/week";
 
 export interface GetWeeklyPlanInput {
   studentId: string;
@@ -59,7 +59,7 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
     completionsThisWeek.map((c) => [
       c.workoutId!,
       { feedback: c.overallFeedback, date: c.date },
-    ])
+    ]),
   );
 
   const formattedSlots = weeklyPlan.slots.map((slot, index) => {

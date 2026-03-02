@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateWorkoutProgressExercisePartialBodySetsItem = { [key: string]: unknown };
+export type UpdateWorkoutProgressExercisePartialBodySetsItem = {
+  [key: string]: unknown;
+};

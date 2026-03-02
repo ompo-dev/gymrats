@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 
 /**
  * Service to centralize gym domain operations and stat updates
@@ -97,7 +97,10 @@ export class GymDomainService {
   /**
    * Lists gym members with optional status and search filters
    */
-  static async getMembers(gymId: string, filters: { status?: string; search?: string }) {
+  static async getMembers(
+    gymId: string,
+    filters: { status?: string; search?: string },
+  ) {
     const { status, search } = filters;
     // Listagem padrão: só alunos vinculados (active/pending). Cancelados/suspended não aparecem.
     const statusFilter =
@@ -134,12 +137,15 @@ export class GymDomainService {
    *   deixa de pagar a academia; enterprise só concede Premium do app quando ativo.
    * - Sem planId (cortesia manual): cria membership "active" direto, sem pagamento.
    */
-  static async enrollStudent(gymId: string, data: {
-    studentId: string;
-    planId?: string | null;
-    amount: number;
-    autoRenew?: boolean;
-  }) {
+  static async enrollStudent(
+    gymId: string,
+    data: {
+      studentId: string;
+      planId?: string | null;
+      amount: number;
+      autoRenew?: boolean;
+    },
+  ) {
     const { studentId, planId, amount, autoRenew = true } = data;
 
     const student = await db.student.findUnique({ where: { id: studentId } });
@@ -153,7 +159,9 @@ export class GymDomainService {
     let nextBillingDate: Date | null = null;
     let resolvedAmount = amount;
     if (planId) {
-      const plan = await db.membershipPlan.findUnique({ where: { id: planId, gymId } });
+      const plan = await db.membershipPlan.findUnique({
+        where: { id: planId, gymId },
+      });
       if (plan) {
         nextBillingDate = new Date();
         nextBillingDate.setDate(nextBillingDate.getDate() + plan.duration);
@@ -178,18 +186,30 @@ export class GymDomainService {
     });
 
     if (withPlan && planId) {
-      const { createPendingMembershipPayment } = await import("@/lib/services/gym/gym-membership-payment.service");
-      await createPendingMembershipPayment(gymId, studentId, planId, resolvedAmount, membership.id);
-      await this.incrementTotalStudentsOnly(gymId);
+      const { createPendingMembershipPayment } = await import(
+        "@/lib/services/gym/gym-membership-payment.service"
+      );
+      await createPendingMembershipPayment(
+        gymId,
+        studentId,
+        planId,
+        resolvedAmount,
+        membership.id,
+      );
+      await GymDomainService.incrementTotalStudentsOnly(gymId);
     } else {
-      await this.incrementStudentCounters(gymId);
+      await GymDomainService.incrementStudentCounters(gymId);
       const gymSub = await db.gymSubscription.findUnique({
         where: { gymId },
         select: { plan: true, status: true },
       });
-      const isEnterprise = gymSub?.status === "active" && gymSub?.plan?.toLowerCase().includes("enterprise");
+      const isEnterprise =
+        gymSub?.status === "active" &&
+        gymSub?.plan?.toLowerCase().includes("enterprise");
       if (isEnterprise) {
-        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+        const { GymSubscriptionService } = await import(
+          "@/lib/services/gym/gym-subscription.service"
+        );
         await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
       }
     }
@@ -200,12 +220,15 @@ export class GymDomainService {
   /**
    * Lists gym expenses with filters
    */
-  static async getExpenses(gymId: string, filters: {
-    startDate?: string;
-    endDate?: string;
-    type?: string;
-    limit?: number;
-  }) {
+  static async getExpenses(
+    gymId: string,
+    filters: {
+      startDate?: string;
+      endDate?: string;
+      type?: string;
+      limit?: number;
+    },
+  ) {
     const { startDate, endDate, type, limit } = filters;
     const whereClause: Prisma.ExpenseWhereInput = { gymId };
 
@@ -215,7 +238,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (startDate)
+        (whereClause.date as { gte?: Date }).gte = new Date(startDate);
       if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
@@ -229,13 +253,16 @@ export class GymDomainService {
   /**
    * Creates a new expense for the gym
    */
-  static async createExpense(gymId: string, data: {
-    type: string;
-    description?: string | null;
-    amount: number;
-    date?: string | null;
-    category?: string | null;
-  }) {
+  static async createExpense(
+    gymId: string,
+    data: {
+      type: string;
+      description?: string | null;
+      amount: number;
+      date?: string | null;
+      category?: string | null;
+    },
+  ) {
     return db.expense.create({
       data: {
         gymId,
@@ -251,13 +278,16 @@ export class GymDomainService {
   /**
    * Lists gym payments with filters
    */
-  static async getPayments(gymId: string, filters: {
-    status?: string;
-    studentId?: string;
-    startDate?: string;
-    endDate?: string;
-    limit?: number;
-  }) {
+  static async getPayments(
+    gymId: string,
+    filters: {
+      status?: string;
+      studentId?: string;
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+    },
+  ) {
     const { status, studentId, startDate, endDate, limit } = filters;
     const whereClause: Prisma.PaymentWhereInput = { gymId };
 
@@ -271,7 +301,8 @@ export class GymDomainService {
 
     if (startDate || endDate) {
       whereClause.date = {};
-      if (startDate) (whereClause.date as { gte?: Date }).gte = new Date(startDate);
+      if (startDate)
+        (whereClause.date as { gte?: Date }).gte = new Date(startDate);
       if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
@@ -288,15 +319,18 @@ export class GymDomainService {
   /**
    * Creates a new payment for the gym
    */
-  static async createPayment(gymId: string, data: {
-    studentId: string;
-    studentName?: string;
-    planId?: string | null;
-    amount: number;
-    dueDate: string;
-    paymentMethod?: string;
-    reference?: string | null;
-  }) {
+  static async createPayment(
+    gymId: string,
+    data: {
+      studentId: string;
+      studentName?: string;
+      planId?: string | null;
+      amount: number;
+      dueDate: string;
+      paymentMethod?: string;
+      reference?: string | null;
+    },
+  ) {
     return db.payment.create({
       data: {
         gymId,
@@ -342,13 +376,16 @@ export class GymDomainService {
   /**
    * Creates a new membership plan
    */
-  static async createPlan(gymId: string, data: {
-    name: string;
-    type: string;
-    price: number;
-    duration: number;
-    benefits: string[];
-  }) {
+  static async createPlan(
+    gymId: string,
+    data: {
+      name: string;
+      type: string;
+      price: number;
+      duration: number;
+      benefits: string[];
+    },
+  ) {
     const plan = await db.membershipPlan.create({
       data: {
         gymId,
@@ -402,8 +439,12 @@ export class GymDomainService {
           where: { gymId },
           data: { activeStudents: { decrement: 1 } },
         });
-        const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
-        await GymSubscriptionService.syncStudentEnterpriseBenefit(membership.studentId);
+        const { GymSubscriptionService } = await import(
+          "@/lib/services/gym/gym-subscription.service"
+        );
+        await GymSubscriptionService.syncStudentEnterpriseBenefit(
+          membership.studentId,
+        );
       } else if (!wasActive && isNowActive) {
         await db.gymProfile.updateMany({
           where: { gymId },
@@ -438,8 +479,12 @@ export class GymDomainService {
           totalStudents: { decrement: 1 },
         },
       });
-      const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
-      await GymSubscriptionService.syncStudentEnterpriseBenefit(current.studentId);
+      const { GymSubscriptionService } = await import(
+        "@/lib/services/gym/gym-subscription.service"
+      );
+      await GymSubscriptionService.syncStudentEnterpriseBenefit(
+        current.studentId,
+      );
     }
   }
 
@@ -483,7 +528,9 @@ export class GymDomainService {
         ...(data.status !== undefined ? { status: data.status } : {}),
         ...(data.brand !== undefined ? { brand: data.brand } : {}),
         ...(data.model !== undefined ? { model: data.model } : {}),
-        ...(data.serialNumber !== undefined ? { serialNumber: data.serialNumber } : {}),
+        ...(data.serialNumber !== undefined
+          ? { serialNumber: data.serialNumber }
+          : {}),
         ...(data.nextMaintenance
           ? { nextMaintenance: new Date(data.nextMaintenance) }
           : {}),
@@ -538,7 +585,9 @@ export class GymDomainService {
       where: { id: equipId },
       data: {
         lastMaintenance: new Date(),
-        ...(data.nextScheduled ? { nextMaintenance: new Date(data.nextScheduled) } : {}),
+        ...(data.nextScheduled
+          ? { nextMaintenance: new Date(data.nextScheduled) }
+          : {}),
         status: "available",
       },
     });
@@ -571,8 +620,12 @@ export class GymDomainService {
         ...(data.name !== undefined ? { name: data.name } : {}),
         ...(data.type !== undefined ? { type: data.type } : {}),
         ...(data.price !== undefined ? { price: Number(data.price) } : {}),
-        ...(data.duration !== undefined ? { duration: Number(data.duration) } : {}),
-        ...(data.benefits !== undefined ? { benefits: JSON.stringify(data.benefits) } : {}),
+        ...(data.duration !== undefined
+          ? { duration: Number(data.duration) }
+          : {}),
+        ...(data.benefits !== undefined
+          ? { benefits: JSON.stringify(data.benefits) }
+          : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
     });
@@ -636,7 +689,7 @@ export class GymDomainService {
         goals: user.student.profile?.goals
           ? (() => {
               try {
-                return JSON.parse(user.student!.profile!.goals!);
+                return JSON.parse(user.student?.profile?.goals!);
               } catch {
                 return [];
               }

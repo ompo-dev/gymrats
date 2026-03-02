@@ -1,29 +1,31 @@
 import { db } from "@/lib/db";
-import { FinancialSummary, Expense, Payment } from "@/lib/types";
+import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 
 /** Taxa AbacatePay por transação (recebimento de pagamento e saque). */
 const ABACATEPAY_FEE_REAIS = 0.8;
 
 export interface GymBalanceWithdraws {
-	balanceReais: number;
-	balanceCents: number;
-	withdraws: {
-		id: string;
-		amount: number;
-		pixKey: string;
-		pixKeyType: string;
-		externalId: string;
-		status: string;
-		createdAt: Date;
-		completedAt: Date | null;
-	}[];
+  balanceReais: number;
+  balanceCents: number;
+  withdraws: {
+    id: string;
+    amount: number;
+    pixKey: string;
+    pixKeyType: string;
+    externalId: string;
+    status: string;
+    createdAt: Date;
+    completedAt: Date | null;
+  }[];
 }
 
 export class GymFinancialService {
   /**
    * Gera o resumo financeiro do mês atual
    */
-  static async getFinancialSummary(gymId: string): Promise<FinancialSummary | null> {
+  static async getFinancialSummary(
+    gymId: string,
+  ): Promise<FinancialSummary | null> {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -103,11 +105,14 @@ export class GymFinancialService {
   /**
    * Lista pagamentos de um aluno ou gerais
    */
-  static async getPayments(gymId: string, studentId?: string): Promise<Payment[]> {
+  static async getPayments(
+    gymId: string,
+    studentId?: string,
+  ): Promise<Payment[]> {
     const payments = await db.payment.findMany({
-      where: { 
+      where: {
         gymId,
-        ...(studentId ? { studentId } : {})
+        ...(studentId ? { studentId } : {}),
       },
       orderBy: { dueDate: "desc" },
       include: {
@@ -124,10 +129,14 @@ export class GymFinancialService {
       amount: payment.amount,
       date: payment.date,
       dueDate: payment.dueDate,
-      status: (payment.withdrawnAt
-        ? "withdrawn"
-        : payment.status) as "paid" | "pending" | "overdue" | "canceled" | "withdrawn",
-      paymentMethod: (payment.paymentMethod as Payment["paymentMethod"]) || "pix",
+      status: (payment.withdrawnAt ? "withdrawn" : payment.status) as
+        | "paid"
+        | "pending"
+        | "overdue"
+        | "canceled"
+        | "withdrawn",
+      paymentMethod:
+        (payment.paymentMethod as Payment["paymentMethod"]) || "pix",
       reference: payment.reference ?? undefined,
       abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
       withdrawnAt: payment.withdrawnAt ?? undefined,
@@ -139,7 +148,9 @@ export class GymFinancialService {
    * Saldo disponível: (soma dos pagamentos pagos - taxa AbacatePay por pagamento)
    * menos (soma dos saques concluídos + taxa AbacatePay por saque).
    */
-  static async getBalanceAndWithdraws(gymId: string): Promise<GymBalanceWithdraws> {
+  static async getBalanceAndWithdraws(
+    gymId: string,
+  ): Promise<GymBalanceWithdraws> {
     const [paidAgg, withdraws] = await Promise.all([
       db.payment.aggregate({
         where: { gymId, status: "paid" },
@@ -158,8 +169,12 @@ export class GymFinancialService {
     const completedWithdraws = withdraws.filter(
       (w) => w.status === "complete" || w.status === "completed",
     );
-    const totalWithdrawnGross = completedWithdraws.reduce((s, w) => s + w.amount, 0);
-    const totalWithdrawn = totalWithdrawnGross + completedWithdraws.length * ABACATEPAY_FEE_REAIS;
+    const totalWithdrawnGross = completedWithdraws.reduce(
+      (s, w) => s + w.amount,
+      0,
+    );
+    const totalWithdrawn =
+      totalWithdrawnGross + completedWithdraws.length * ABACATEPAY_FEE_REAIS;
 
     const balanceReais = Math.max(0, totalReceived - totalWithdrawn);
     const balanceCents = Math.floor(balanceReais * 100);
@@ -189,20 +204,28 @@ export class GymFinancialService {
       amountCents: number;
       fake?: boolean;
     },
-  ): Promise<{ ok: true; withdraw: GymBalanceWithdraws["withdraws"][0] } | { ok: false; error: string }> {
+  ): Promise<
+    | { ok: true; withdraw: GymBalanceWithdraws["withdraws"][0] }
+    | { ok: false; error: string }
+  > {
     const gym = await db.gym.findUnique({
       where: { id: gymId },
       select: { pixKey: true, pixKeyType: true },
     });
     if (!gym?.pixKey || !gym.pixKeyType) {
-      return { ok: false, error: "Cadastre sua chave PIX nas configurações da academia para sacar." };
+      return {
+        ok: false,
+        error:
+          "Cadastre sua chave PIX nas configurações da academia para sacar.",
+      };
     }
     const amountReais = data.amountCents / 100;
     if (data.amountCents < 350) {
       return { ok: false, error: "Valor mínimo para saque é R$ 3,50." };
     }
 
-    const { balanceCents } = await this.getBalanceAndWithdraws(gymId);
+    const { balanceCents } =
+      await GymFinancialService.getBalanceAndWithdraws(gymId);
     if (data.amountCents > balanceCents) {
       return { ok: false, error: "Saldo insuficiente." };
     }
@@ -237,7 +260,13 @@ export class GymFinancialService {
     }
 
     const { abacatePay } = await import("@/lib/api/abacatepay");
-    const pixType = gym.pixKeyType.toUpperCase() as "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "RANDOM" | "BR_CODE";
+    const pixType = gym.pixKeyType.toUpperCase() as
+      | "CPF"
+      | "CNPJ"
+      | "PHONE"
+      | "EMAIL"
+      | "RANDOM"
+      | "BR_CODE";
     const res = await abacatePay.createWithdraw({
       externalId,
       amount: data.amountCents,
@@ -245,7 +274,10 @@ export class GymFinancialService {
       description: `Saque academia ${gymId}`,
     });
     if (res.error || !res.data) {
-      return { ok: false, error: res.error ?? "Falha ao criar saque na AbacatePay." };
+      return {
+        ok: false,
+        error: res.error ?? "Falha ao criar saque na AbacatePay.",
+      };
     }
 
     const w = await db.gymWithdraw.create({

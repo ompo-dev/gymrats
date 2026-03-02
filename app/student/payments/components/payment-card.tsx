@@ -2,8 +2,8 @@
 
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { cn } from "@/lib/utils";
 import type { StudentPayment } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export interface PaymentCardProps {
   payment: StudentPayment;

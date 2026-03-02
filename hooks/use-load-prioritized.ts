@@ -28,55 +28,62 @@ import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 // ============================================
 
 export interface UseLoadPrioritizedOptions {
-	/**
-	 * Contexto pré-definido (learn, diet, profile, payments, home, default)
-	 * Se não fornecido, será detectado automaticamente da rota
-	 */
-	context?: ContextType;
+  /**
+   * Contexto pré-definido (learn, diet, profile, payments, home, default)
+   * Se não fornecido, será detectado automaticamente da rota
+   */
+  context?: ContextType;
 
-	/**
-	 * Seções específicas para priorizar
-	 * Se fornecido, será usado em vez do contexto
-	 */
-	sections?: StudentDataSection[];
+  /**
+   * Seções específicas para priorizar
+   * Se fornecido, será usado em vez do contexto
+   */
+  sections?: StudentDataSection[];
 
-	/**
-	 * Se true, combina seções fornecidas com prioridades do contexto
-	 * Se false, usa apenas as seções fornecidas
-	 */
-	combineWithContext?: boolean;
+  /**
+   * Se true, combina seções fornecidas com prioridades do contexto
+   * Se false, usa apenas as seções fornecidas
+   */
+  combineWithContext?: boolean;
 
-	/**
-	 * Se true (padrão), carrega apenas prioridades (não carrega resto em background)
-	 * Se false, carrega prioridades primeiro e depois o resto
-	 *
-	 * IMPORTANTE: Por padrão é true para evitar recarregar tudo ao navegar entre páginas.
-	 * O Zustand já tem os dados, só precisamos atualizar as prioridades.
-	 */
-	onlyPriorities?: boolean;
+  /**
+   * Se true (padrão), carrega apenas prioridades (não carrega resto em background)
+   * Se false, carrega prioridades primeiro e depois o resto
+   *
+   * IMPORTANTE: Por padrão é true para evitar recarregar tudo ao navegar entre páginas.
+   * O Zustand já tem os dados, só precisamos atualizar as prioridades.
+   */
+  onlyPriorities?: boolean;
 }
 
 type ContextType =
-	| "learn"
-	| "diet"
-	| "profile"
-	| "payments"
-	| "gyms"
-	| "home"
-	| "default";
+  | "learn"
+  | "diet"
+  | "profile"
+  | "payments"
+  | "gyms"
+  | "home"
+  | "default";
 
 // ============================================
 // MAPEAMENTO DE CONTEXTOS E PRIORIDADES
 // ============================================
 
 const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
-	learn: ["weeklyPlan", "progress", "workoutHistory"],
-	diet: ["dailyNutrition", "progress"],
-	profile: ["profile", "weightHistory", "progress", "personalRecords"],
-	payments: ["subscription", "payments", "paymentMethods", "memberships"],
-	gyms: ["gymLocations"],
-	home: ["progress", "workoutHistory", "profile", "weeklyPlan", "units", "dailyNutrition"],
-	default: ["progress", "weeklyPlan", "units", "profile"],
+  learn: ["weeklyPlan", "progress", "workoutHistory"],
+  diet: ["dailyNutrition", "progress"],
+  profile: ["profile", "weightHistory", "progress", "personalRecords"],
+  payments: ["subscription", "payments", "paymentMethods", "memberships"],
+  gyms: ["gymLocations"],
+  home: [
+    "progress",
+    "workoutHistory",
+    "profile",
+    "weeklyPlan",
+    "units",
+    "dailyNutrition",
+  ],
+  default: ["progress", "weeklyPlan", "units", "profile"],
 };
 
 // ============================================
@@ -87,24 +94,24 @@ const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
  * Detecta contexto baseado na rota e tab param
  */
 function detectContextFromPath(
-	pathname: string,
-	tab: string | null,
+  pathname: string,
+  tab: string | null,
 ): ContextType {
-	// Se tab está definido, usar ele
-	if (tab && tab !== "home") {
-		if (["learn", "diet", "profile", "payments", "gyms"].includes(tab)) {
-			return tab as ContextType;
-		}
-	}
+  // Se tab está definido, usar ele
+  if (tab && tab !== "home") {
+    if (["learn", "diet", "profile", "payments", "gyms"].includes(tab)) {
+      return tab as ContextType;
+    }
+  }
 
-	// Se está na rota /student sem tab ou tab=home
-	if (pathname.includes("/student")) {
-		if (!tab || tab === "home") {
-			return "home";
-		}
-	}
+  // Se está na rota /student sem tab ou tab=home
+  if (pathname.includes("/student")) {
+    if (!tab || tab === "home") {
+      return "home";
+    }
+  }
 
-	return "default";
+  return "default";
 }
 
 // ============================================
@@ -114,56 +121,59 @@ function detectContextFromPath(
 /**
  * Verifica se uma seção já existe no store (não está vazia/initial)
  */
-function hasSectionData(section: StudentDataSection, storeData: Record<string, string | number | boolean | object | null>): boolean {
-	switch (section) {
-		case "user":
-			return !!storeData.user?.id;
-		case "student":
-			return !!storeData.student?.id;
-		case "progress":
-			return !!(storeData.progress?.totalXP !== undefined);
-		case "profile":
-			return !!(
-				storeData.profile?.height !== undefined ||
-				storeData.profile?.weight !== undefined
-			);
-		case "weightHistory":
-			return !!(storeData.weightHistory && storeData.weightHistory.length > 0);
-		case "units":
-			return !!(storeData.units && storeData.units.length > 0);
-		case "weeklyPlan":
-			return !!storeData.weeklyPlan;
-		case "workoutHistory":
-			return !!(
-				storeData.workoutHistory && storeData.workoutHistory.length >= 0
-			); // Array vazio é válido
-		case "personalRecords":
-			return !!(
-				storeData.personalRecords && storeData.personalRecords.length >= 0
-			);
-		case "dailyNutrition":
-			return !!storeData.dailyNutrition?.date;
-		case "subscription":
-			return (
-				storeData.subscription !== null && storeData.subscription !== undefined
-			);
-		case "memberships":
-			return !!(storeData.memberships && storeData.memberships.length >= 0);
-		case "payments":
-			return !!(storeData.payments && storeData.payments.length >= 0);
-		case "paymentMethods":
-			return !!(
-				storeData.paymentMethods && storeData.paymentMethods.length >= 0
-			);
-		case "dayPasses":
-			return !!(storeData.dayPasses && storeData.dayPasses.length >= 0);
-		case "friends":
-			return !!storeData.friends;
-		case "gymLocations":
-			return !!(storeData.gymLocations && storeData.gymLocations.length >= 0);
-		default:
-			return false;
-	}
+function hasSectionData(
+  section: StudentDataSection,
+  storeData: Record<string, string | number | boolean | object | null>,
+): boolean {
+  switch (section) {
+    case "user":
+      return !!storeData.user?.id;
+    case "student":
+      return !!storeData.student?.id;
+    case "progress":
+      return !!(storeData.progress?.totalXP !== undefined);
+    case "profile":
+      return !!(
+        storeData.profile?.height !== undefined ||
+        storeData.profile?.weight !== undefined
+      );
+    case "weightHistory":
+      return !!(storeData.weightHistory && storeData.weightHistory.length > 0);
+    case "units":
+      return !!(storeData.units && storeData.units.length > 0);
+    case "weeklyPlan":
+      return !!storeData.weeklyPlan;
+    case "workoutHistory":
+      return !!(
+        storeData.workoutHistory && storeData.workoutHistory.length >= 0
+      ); // Array vazio é válido
+    case "personalRecords":
+      return !!(
+        storeData.personalRecords && storeData.personalRecords.length >= 0
+      );
+    case "dailyNutrition":
+      return !!storeData.dailyNutrition?.date;
+    case "subscription":
+      return (
+        storeData.subscription !== null && storeData.subscription !== undefined
+      );
+    case "memberships":
+      return !!(storeData.memberships && storeData.memberships.length >= 0);
+    case "payments":
+      return !!(storeData.payments && storeData.payments.length >= 0);
+    case "paymentMethods":
+      return !!(
+        storeData.paymentMethods && storeData.paymentMethods.length >= 0
+      );
+    case "dayPasses":
+      return !!(storeData.dayPasses && storeData.dayPasses.length >= 0);
+    case "friends":
+      return !!storeData.friends;
+    case "gymLocations":
+      return !!(storeData.gymLocations && storeData.gymLocations.length >= 0);
+    default:
+      return false;
+  }
 }
 
 /**
@@ -173,10 +183,10 @@ function hasSectionData(section: StudentDataSection, storeData: Record<string, s
  * Mantida para uso futuro em outros contextos se necessário.
  */
 function _filterMissingSections(
-	sections: StudentDataSection[],
-	storeData: Record<string, string | number | boolean | object | null>,
+  sections: StudentDataSection[],
+  storeData: Record<string, string | number | boolean | object | null>,
 ): StudentDataSection[] {
-	return sections.filter((section) => !hasSectionData(section, storeData));
+  return sections.filter((section) => !hasSectionData(section, storeData));
 }
 
 // ============================================
@@ -203,205 +213,207 @@ function _filterMissingSections(
  * useLoadPrioritized({ sections: ["units"], onlyPriorities: true });
  */
 export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
-	const pathname = usePathname();
-	const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
-	const loadAllPrioritized = useStudentUnifiedStore(
-		(state) => state.loadAllPrioritized,
-	);
+  const pathname = usePathname();
+  const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
+  const loadAllPrioritized = useStudentUnifiedStore(
+    (state) => state.loadAllPrioritized,
+  );
 
-	// Usar seletores específicos para evitar re-renders desnecessários
-	// Verificar apenas as seções que precisamos, não todo o store
-	const getUser = useStudentUnifiedStore((state) => state.data.user);
-	const getStudent = useStudentUnifiedStore((state) => state.data.student);
-	const getProgress = useStudentUnifiedStore((state) => state.data.progress);
-	const getProfile = useStudentUnifiedStore((state) => state.data.profile);
-	const getWeightHistory = useStudentUnifiedStore(
-		(state) => state.data.weightHistory,
-	);
-	const getUnits = useStudentUnifiedStore((state) => state.data.units);
-	const getWeeklyPlan = useStudentUnifiedStore((state) => state.data.weeklyPlan);
-	const getWorkoutHistory = useStudentUnifiedStore(
-		(state) => state.data.workoutHistory,
-	);
-	const getPersonalRecords = useStudentUnifiedStore(
-		(state) => state.data.personalRecords,
-	);
-	const getDailyNutrition = useStudentUnifiedStore(
-		(state) => state.data.dailyNutrition,
-	);
-	const getSubscription = useStudentUnifiedStore(
-		(state) => state.data.subscription,
-	);
-	const getMemberships = useStudentUnifiedStore(
-		(state) => state.data.memberships,
-	);
-	const getPayments = useStudentUnifiedStore((state) => state.data.payments);
-	const getPaymentMethods = useStudentUnifiedStore(
-		(state) => state.data.paymentMethods,
-	);
-	const getDayPasses = useStudentUnifiedStore((state) => state.data.dayPasses);
-	const getFriends = useStudentUnifiedStore((state) => state.data.friends);
-	const getGymLocations = useStudentUnifiedStore(
-		(state) => state.data.gymLocations,
-	);
+  // Usar seletores específicos para evitar re-renders desnecessários
+  // Verificar apenas as seções que precisamos, não todo o store
+  const getUser = useStudentUnifiedStore((state) => state.data.user);
+  const getStudent = useStudentUnifiedStore((state) => state.data.student);
+  const getProgress = useStudentUnifiedStore((state) => state.data.progress);
+  const getProfile = useStudentUnifiedStore((state) => state.data.profile);
+  const getWeightHistory = useStudentUnifiedStore(
+    (state) => state.data.weightHistory,
+  );
+  const getUnits = useStudentUnifiedStore((state) => state.data.units);
+  const getWeeklyPlan = useStudentUnifiedStore(
+    (state) => state.data.weeklyPlan,
+  );
+  const getWorkoutHistory = useStudentUnifiedStore(
+    (state) => state.data.workoutHistory,
+  );
+  const getPersonalRecords = useStudentUnifiedStore(
+    (state) => state.data.personalRecords,
+  );
+  const getDailyNutrition = useStudentUnifiedStore(
+    (state) => state.data.dailyNutrition,
+  );
+  const getSubscription = useStudentUnifiedStore(
+    (state) => state.data.subscription,
+  );
+  const getMemberships = useStudentUnifiedStore(
+    (state) => state.data.memberships,
+  );
+  const getPayments = useStudentUnifiedStore((state) => state.data.payments);
+  const getPaymentMethods = useStudentUnifiedStore(
+    (state) => state.data.paymentMethods,
+  );
+  const getDayPasses = useStudentUnifiedStore((state) => state.data.dayPasses);
+  const getFriends = useStudentUnifiedStore((state) => state.data.friends);
+  const getGymLocations = useStudentUnifiedStore(
+    (state) => state.data.gymLocations,
+  );
 
-	// Criar objeto storeData apenas quando necessário (dentro do useEffect)
-	const storeDataRef = useRef({
-		user: getUser,
-		student: getStudent,
-		progress: getProgress,
-		profile: getProfile,
-		weightHistory: getWeightHistory,
-		units: getUnits,
-		weeklyPlan: getWeeklyPlan,
-		workoutHistory: getWorkoutHistory,
-		personalRecords: getPersonalRecords,
-		dailyNutrition: getDailyNutrition,
-		subscription: getSubscription,
-		memberships: getMemberships,
-		payments: getPayments,
-		paymentMethods: getPaymentMethods,
-		dayPasses: getDayPasses,
-		friends: getFriends,
-		gymLocations: getGymLocations,
-	});
+  // Criar objeto storeData apenas quando necessário (dentro do useEffect)
+  const storeDataRef = useRef({
+    user: getUser,
+    student: getStudent,
+    progress: getProgress,
+    profile: getProfile,
+    weightHistory: getWeightHistory,
+    units: getUnits,
+    weeklyPlan: getWeeklyPlan,
+    workoutHistory: getWorkoutHistory,
+    personalRecords: getPersonalRecords,
+    dailyNutrition: getDailyNutrition,
+    subscription: getSubscription,
+    memberships: getMemberships,
+    payments: getPayments,
+    paymentMethods: getPaymentMethods,
+    dayPasses: getDayPasses,
+    friends: getFriends,
+    gymLocations: getGymLocations,
+  });
 
-	// Atualizar ref quando dados mudarem
-	storeDataRef.current = {
-		user: getUser,
-		student: getStudent,
-		progress: getProgress,
-		profile: getProfile,
-		weightHistory: getWeightHistory,
-		units: getUnits,
-		weeklyPlan: getWeeklyPlan,
-		workoutHistory: getWorkoutHistory,
-		personalRecords: getPersonalRecords,
-		dailyNutrition: getDailyNutrition,
-		subscription: getSubscription,
-		memberships: getMemberships,
-		payments: getPayments,
-		paymentMethods: getPaymentMethods,
-		dayPasses: getDayPasses,
-		friends: getFriends,
-		gymLocations: getGymLocations,
-	};
+  // Atualizar ref quando dados mudarem
+  storeDataRef.current = {
+    user: getUser,
+    student: getStudent,
+    progress: getProgress,
+    profile: getProfile,
+    weightHistory: getWeightHistory,
+    units: getUnits,
+    weeklyPlan: getWeeklyPlan,
+    workoutHistory: getWorkoutHistory,
+    personalRecords: getPersonalRecords,
+    dailyNutrition: getDailyNutrition,
+    subscription: getSubscription,
+    memberships: getMemberships,
+    payments: getPayments,
+    paymentMethods: getPaymentMethods,
+    dayPasses: getDayPasses,
+    friends: getFriends,
+    gymLocations: getGymLocations,
+  };
 
-	// Ref para evitar múltiplas chamadas durante re-renders
-	const hasCalledRef = useRef(false);
-	const lastTabRef = useRef<string | null>(null);
-	const lastPrioritiesRef = useRef<string>("");
-	const lastLoadTimeRef = useRef<number>(0);
-	const isLoadingRef = useRef(false);
+  // Ref para evitar múltiplas chamadas durante re-renders
+  const hasCalledRef = useRef(false);
+  const lastTabRef = useRef<string | null>(null);
+  const lastPrioritiesRef = useRef<string>("");
+  const lastLoadTimeRef = useRef<number>(0);
+  const isLoadingRef = useRef(false);
 
-	useEffect(() => {
-		// Reset ref se tab mudou
-		if (lastTabRef.current !== tab) {
-			hasCalledRef.current = false;
-			lastTabRef.current = tab;
-			lastPrioritiesRef.current = "";
-			lastLoadTimeRef.current = 0;
-			isLoadingRef.current = false;
-		}
+  useEffect(() => {
+    // Reset ref se tab mudou
+    if (lastTabRef.current !== tab) {
+      hasCalledRef.current = false;
+      lastTabRef.current = tab;
+      lastPrioritiesRef.current = "";
+      lastLoadTimeRef.current = 0;
+      isLoadingRef.current = false;
+    }
 
-		// Detectar contexto se não fornecido
-		const detectedContext = options.context
-			? options.context
-			: detectContextFromPath(pathname, tab);
+    // Detectar contexto se não fornecido
+    const detectedContext = options.context
+      ? options.context
+      : detectContextFromPath(pathname, tab);
 
-		// Determinar prioridades
-		let priorities: StudentDataSection[];
+    // Determinar prioridades
+    let priorities: StudentDataSection[];
 
-		if (options.sections) {
-			if (options.combineWithContext && !options.context) {
-				// Combinar seções fornecidas com prioridades do contexto detectado
-				const contextPriorities = CONTEXT_PRIORITIES[detectedContext];
-				priorities = [...new Set([...options.sections, ...contextPriorities])];
-			} else if (options.context) {
-				// Combinar com contexto específico fornecido
-				const contextPriorities = CONTEXT_PRIORITIES[options.context];
-				priorities = [...new Set([...options.sections, ...contextPriorities])];
-			} else {
-				// Usar apenas seções fornecidas
-				priorities = options.sections;
-			}
-		} else {
-			// Usar prioridades do contexto
-			priorities = CONTEXT_PRIORITIES[detectedContext];
-		}
+    if (options.sections) {
+      if (options.combineWithContext && !options.context) {
+        // Combinar seções fornecidas com prioridades do contexto detectado
+        const contextPriorities = CONTEXT_PRIORITIES[detectedContext];
+        priorities = [...new Set([...options.sections, ...contextPriorities])];
+      } else if (options.context) {
+        // Combinar com contexto específico fornecido
+        const contextPriorities = CONTEXT_PRIORITIES[options.context];
+        priorities = [...new Set([...options.sections, ...contextPriorities])];
+      } else {
+        // Usar apenas seções fornecidas
+        priorities = options.sections;
+      }
+    } else {
+      // Usar prioridades do contexto
+      priorities = CONTEXT_PRIORITIES[detectedContext];
+    }
 
-		// Verificar se as prioridades mudaram
-		const prioritiesKey = priorities.sort().join(",");
-		const now = Date.now();
-		const timeSinceLastLoad = now - lastLoadTimeRef.current;
-		const MIN_TIME_BETWEEN_LOADS = 5000; // 5 segundos mínimo entre carregamentos
+    // Verificar se as prioridades mudaram
+    const prioritiesKey = priorities.sort().join(",");
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadTimeRef.current;
+    const MIN_TIME_BETWEEN_LOADS = 5000; // 5 segundos mínimo entre carregamentos
 
-		// Se já está carregando, não iniciar novo carregamento
-		if (isLoadingRef.current) {
-			return;
-		}
+    // Se já está carregando, não iniciar novo carregamento
+    if (isLoadingRef.current) {
+      return;
+    }
 
-		// Se são as mesmas prioridades e já carregou recentemente, não carregar novamente
-		if (
-			lastPrioritiesRef.current === prioritiesKey &&
-			hasCalledRef.current &&
-			timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS
-		) {
-			return; // Mesmas prioridades, já chamou recentemente
-		}
+    // Se são as mesmas prioridades e já carregou recentemente, não carregar novamente
+    if (
+      lastPrioritiesRef.current === prioritiesKey &&
+      hasCalledRef.current &&
+      timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS
+    ) {
+      return; // Mesmas prioridades, já chamou recentemente
+    }
 
-		// Verificar se dados já existem no store antes de fazer refetch
-		const storeData = storeDataRef.current;
-		const allSectionsHaveData = priorities.every((section) =>
-			hasSectionData(section, storeData),
-		);
+    // Verificar se dados já existem no store antes de fazer refetch
+    const storeData = storeDataRef.current;
+    const allSectionsHaveData = priorities.every((section) =>
+      hasSectionData(section, storeData),
+    );
 
-		// Se todas as seções já têm dados e carregou recentemente, não refetch
-		if (allSectionsHaveData && timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS) {
-			return;
-		}
+    // Se todas as seções já têm dados e carregou recentemente, não refetch
+    if (allSectionsHaveData && timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS) {
+      return;
+    }
 
-		lastPrioritiesRef.current = prioritiesKey;
-		lastLoadTimeRef.current = now;
-		isLoadingRef.current = true;
+    lastPrioritiesRef.current = prioritiesKey;
+    lastLoadTimeRef.current = now;
+    isLoadingRef.current = true;
 
-		console.log(
-			`[useLoadPrioritized] Carregando prioridades: ${priorities.join(", ")} (context: ${detectedContext})`,
-		);
+    console.log(
+      `[useLoadPrioritized] Carregando prioridades: ${priorities.join(", ")} (context: ${detectedContext})`,
+    );
 
-		hasCalledRef.current = true;
-		// IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
-		// Isso evita recarregar tudo quando navegar entre páginas
-		// O Zustand já tem os dados, só precisamos atualizar as prioridades
-		loadAllPrioritized(priorities, options.onlyPriorities ?? true)
-			.then(() => {
-				isLoadingRef.current = false;
-				// Sucesso - não resetar hasCalledRef aqui para evitar loops
-			})
-			.catch((error) => {
-				console.error(
-					"[useLoadPrioritized] Erro ao carregar prioridades:",
-					error,
-				);
-				isLoadingRef.current = false;
-				// Resetar apenas após um delay para permitir retry em caso de erro real
-				setTimeout(() => {
-					hasCalledRef.current = false;
-				}, 10000); // Reset após 10 segundos
-			});
-	}, [
-		pathname,
-		tab,
-		options.context,
-		options.combineWithContext,
-		options.onlyPriorities, // IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
-		// Isso evita recarregar tudo quando navegar entre páginas
-		// O Zustand já tem os dados, só precisamos atualizar as prioridades
-		loadAllPrioritized,
-		options.sections,
-		// Remover loadAllPrioritized das dependências para evitar loops
-		// loadAllPrioritized é estável e não deve causar re-execução
-	]);
+    hasCalledRef.current = true;
+    // IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
+    // Isso evita recarregar tudo quando navegar entre páginas
+    // O Zustand já tem os dados, só precisamos atualizar as prioridades
+    loadAllPrioritized(priorities, options.onlyPriorities ?? true)
+      .then(() => {
+        isLoadingRef.current = false;
+        // Sucesso - não resetar hasCalledRef aqui para evitar loops
+      })
+      .catch((error) => {
+        console.error(
+          "[useLoadPrioritized] Erro ao carregar prioridades:",
+          error,
+        );
+        isLoadingRef.current = false;
+        // Resetar apenas após um delay para permitir retry em caso de erro real
+        setTimeout(() => {
+          hasCalledRef.current = false;
+        }, 10000); // Reset após 10 segundos
+      });
+  }, [
+    pathname,
+    tab,
+    options.context,
+    options.combineWithContext,
+    options.onlyPriorities, // IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
+    // Isso evita recarregar tudo quando navegar entre páginas
+    // O Zustand já tem os dados, só precisamos atualizar as prioridades
+    loadAllPrioritized,
+    options.sections,
+    // Remover loadAllPrioritized das dependências para evitar loops
+    // loadAllPrioritized é estável e não deve causar re-execução
+  ]);
 }
 
 // ============================================
@@ -412,15 +424,15 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
  * Hook simplificado para carregar prioridades de um contexto específico
  */
 export function useLoadPrioritizedForContext(context: ContextType) {
-	useLoadPrioritized({ context });
+  useLoadPrioritized({ context });
 }
 
 /**
  * Hook simplificado para carregar seções específicas
  */
 export function useLoadPrioritizedSections(
-	sections: StudentDataSection[],
-	onlyPriorities = false,
+  sections: StudentDataSection[],
+  onlyPriorities = false,
 ) {
-	useLoadPrioritized({ sections, onlyPriorities });
+  useLoadPrioritized({ sections, onlyPriorities });
 }

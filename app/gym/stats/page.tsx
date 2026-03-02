@@ -1,13 +1,13 @@
-import { getGymEquipment, getGymStats } from "../actions";
 import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
+import { getGymEquipment, getGymStats } from "../actions";
 
 export default async function StatsPageWrapper() {
-	const [stats, equipment] = await Promise.all([
-		getGymStats(),
-		getGymEquipment(),
-	]);
+  const [stats, equipment] = await Promise.all([
+    getGymStats(),
+    getGymEquipment(),
+  ]);
 
-	if (!stats) return null;
+  if (!stats) return null;
 
-	return <GymStatsPage stats={stats} equipment={equipment} />;
+  return <GymStatsPage stats={stats} equipment={equipment} />;
 }

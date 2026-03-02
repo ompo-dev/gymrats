@@ -1,11 +1,11 @@
 "use server";
 
+import { getUserContext } from "@/lib/context/auth-context-factory";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
-import { getUserContext } from "@/lib/context/auth-context-factory";
 import { getStudentContext } from "@/lib/utils/student/student-context";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
@@ -97,11 +97,14 @@ export async function submitOnboarding(formData: OnboardingData) {
       }
       ctx = (await getStudentContext()).ctx;
       if (!ctx) {
-        return { success: false, error: "Erro ao obter contexto após cadastro" };
+        return {
+          success: false,
+          error: "Erro ao obter contexto após cadastro",
+        };
       }
     }
 
-    const userId = ctx.user.id;
+    const _userId = ctx.user.id;
     const user = ctx.user;
 
     if (user.role !== "STUDENT") {
@@ -126,28 +129,32 @@ export async function submitOnboarding(formData: OnboardingData) {
     // Salvar perfil via serviço
     await StudentProfileService.saveOnboardingData(
       student.id,
-      normalizedData as Parameters<typeof StudentProfileService.saveOnboardingData>[1],
+      normalizedData as Parameters<
+        typeof StudentProfileService.saveOnboardingData
+      >[1],
     );
 
     // Se houver peso, registrar no histórico (lógica do serviço poderia ser usada aqui também)
     if (normalizedData.weight) {
-      await db.weightHistory.create({
-        data: {
-          studentId: student.id,
-          weight: normalizedData.weight,
-          notes: "Peso inicial do onboarding",
-        },
-      }).catch(() => {}); // Ignorar erros silenciosamente
+      await db.weightHistory
+        .create({
+          data: {
+            studentId: student.id,
+            weight: normalizedData.weight,
+            notes: "Peso inicial do onboarding",
+          },
+        })
+        .catch(() => {}); // Ignorar erros silenciosamente
     }
 
     // Inicializar trial e progress via utilitários existentes
     await initializeStudentTrial(student.id);
-    
+
     // Garantir que StudentProgress existe
     await db.studentProgress.upsert({
-        where: { studentId: student.id },
-        update: {},
-        create: { studentId: student.id }
+      where: { studentId: student.id },
+      update: {},
+      create: { studentId: student.id },
     });
 
     // Enviar email em background
@@ -159,7 +166,8 @@ export async function submitOnboarding(formData: OnboardingData) {
     return { success: true };
   } catch (error) {
     console.error("Erro no onboarding:", error);
-    const message = error instanceof Error ? error.message : "Erro ao salvar perfil";
+    const message =
+      error instanceof Error ? error.message : "Erro ao salvar perfil";
     return { success: false, error: message };
   }
 }

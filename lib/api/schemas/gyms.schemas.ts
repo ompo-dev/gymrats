@@ -5,84 +5,84 @@ import { z } from "zod";
  */
 
 export const createGymSchema = z.object({
-	name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
-	address: z.string().min(1, "Endereço é obrigatório"),
-	phone: z.string().min(1, "Telefone é obrigatório"),
-	email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
-	cnpj: z.string().optional().nullable(),
+  name: z.string().min(1, "Nome é obrigatório").max(255, "Nome muito longo"),
+  address: z.string().min(1, "Endereço é obrigatório"),
+  phone: z.string().min(1, "Telefone é obrigatório"),
+  email: z.string().email("Email inválido").min(1, "Email é obrigatório"),
+  cnpj: z.string().optional().nullable(),
 });
 
 export const setActiveGymSchema = z.object({
-	gymId: z.string().min(1, "gymId é obrigatório"),
+  gymId: z.string().min(1, "gymId é obrigatório"),
 });
 
-export const updateGymProfileSchema = z.object({
-	// Campos opcionais: string vazia = não atualizar (permite salvar só horários)
-	address: z
-		.preprocess(
-			(val) =>
-				typeof val === "string" && val.trim() === "" ? undefined : val,
-			z.string().min(1, "Endereço é obrigatório").optional(),
-		),
-	phone: z
-		.preprocess(
-			(val) =>
-				typeof val === "string" && val.trim() === "" ? undefined : val,
-			z.string().min(1, "Telefone é obrigatório").optional(),
-		),
-	cnpj: z.string().optional().nullable(),
-	pixKey: z.string().optional().nullable(),
-	pixKeyType: z
-		.enum(["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"])
-		.optional()
-		.nullable(),
-	openingHours: z
-		.object({
-			open: z.string().optional(),
-			close: z.string().optional(),
-			days: z.array(z.string()).optional(),
-			byDay: z
-				.record(
-					z.string(),
-					z.object({
-						open: z.string(),
-						close: z.string(),
-					}),
-				)
-				.optional(),
-		})
-		.optional()
-		.nullable(),
-})
-.refine(
-	(data) => {
-		const hasPixKey = data.pixKey != null && data.pixKey.trim() !== "";
-		const hasPixKeyType = data.pixKeyType != null && data.pixKeyType !== "";
-		return (hasPixKey && hasPixKeyType) || (!hasPixKey && !hasPixKeyType);
-	},
-	{
-		message: "Chave PIX e tipo devem ser informados juntos ou ambos vazios",
-		path: ["pixKey"],
-	},
-);
+export const updateGymProfileSchema = z
+  .object({
+    // Campos opcionais: string vazia = não atualizar (permite salvar só horários)
+    address: z.preprocess(
+      (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+      z.string().min(1, "Endereço é obrigatório").optional(),
+    ),
+    phone: z.preprocess(
+      (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
+      z.string().min(1, "Telefone é obrigatório").optional(),
+    ),
+    cnpj: z.string().optional().nullable(),
+    pixKey: z.string().optional().nullable(),
+    pixKeyType: z
+      .enum(["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"])
+      .optional()
+      .nullable(),
+    openingHours: z
+      .object({
+        open: z.string().optional(),
+        close: z.string().optional(),
+        days: z.array(z.string()).optional(),
+        byDay: z
+          .record(
+            z.string(),
+            z.object({
+              open: z.string(),
+              close: z.string(),
+            }),
+          )
+          .optional(),
+      })
+      .optional()
+      .nullable(),
+  })
+  .refine(
+    (data) => {
+      const hasPixKey = data.pixKey != null && data.pixKey.trim() !== "";
+      const hasPixKeyType = data.pixKeyType != null && data.pixKeyType !== "";
+      return (hasPixKey && hasPixKeyType) || (!hasPixKey && !hasPixKeyType);
+    },
+    {
+      message: "Chave PIX e tipo devem ser informados juntos ou ambos vazios",
+      path: ["pixKey"],
+    },
+  );
 
 export const gymLocationsQuerySchema = z.object({
-	lat: z
-		.string()
-		.regex(/^-?\d+\.?\d*$/)
-		.optional(),
-	lng: z
-		.string()
-		.regex(/^-?\d+\.?\d*$/)
-		.optional(),
-	isPartner: z
-		.string()
-		.transform((val) => val === "true")
-		.optional(),
+  lat: z
+    .string()
+    .regex(/^-?\d+\.?\d*$/)
+    .optional(),
+  lng: z
+    .string()
+    .regex(/^-?\d+\.?\d*$/)
+    .optional(),
+  isPartner: z
+    .string()
+    .transform((val) => val === "true")
+    .optional(),
 });
 
 export const gymMembersQuerySchema = z.object({
-  status: z.enum(["active", "suspended", "canceled", "pending", "all"]).optional().default("all"),
+  status: z
+    .enum(["active", "suspended", "canceled", "pending", "all"])
+    .optional()
+    .default("all"),
   search: z.string().optional(),
 });
 
@@ -94,8 +94,18 @@ export const createGymMemberSchema = z.object({
 });
 
 export const gymExpensesQuerySchema = z.object({
-  startDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-  endDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  startDate: z
+    .string()
+    .datetime()
+    .optional()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
+  endDate: z
+    .string()
+    .datetime()
+    .optional()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
   type: z.string().optional().default("all"),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
@@ -113,15 +123,30 @@ export const createGymExpenseSchema = z.object({
   ]),
   description: z.string().optional().nullable(),
   amount: z.number().positive("Valor deve ser maior que zero"),
-  date: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  date: z
+    .string()
+    .datetime()
+    .optional()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
   category: z.string().optional().nullable(),
 });
 
 export const gymPaymentsQuerySchema = z.object({
   status: z.string().optional(),
   studentId: z.string().optional(),
-  startDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
-  endDate: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional(),
+  startDate: z
+    .string()
+    .datetime()
+    .optional()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
+  endDate: z
+    .string()
+    .datetime()
+    .optional()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/))
+    .optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
 });
 
@@ -130,7 +155,10 @@ export const createGymPaymentSchema = z.object({
   studentName: z.string().optional().default("Aluno"),
   planId: z.string().optional().nullable(),
   amount: z.number().positive("Valor deve ser maior que zero"),
-  dueDate: z.string().datetime().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  dueDate: z
+    .string()
+    .datetime()
+    .or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   paymentMethod: z.string().optional().default("pix"),
   reference: z.string().optional().nullable(),
 });
@@ -152,68 +180,78 @@ export const createGymPlanSchema = z.object({
 });
 
 export const gymMembershipIdParamsSchema = z.object({
-	membershipId: z.string().min(1, "membershipId é obrigatório"),
+  membershipId: z.string().min(1, "membershipId é obrigatório"),
 });
 
 export const updateGymMemberSchema = z.object({
-	status: z.enum(["active", "suspended", "canceled"]).optional(),
-	planId: z.string().optional().nullable(),
-	amount: z.number().positive().optional(),
+  status: z.enum(["active", "suspended", "canceled"]).optional(),
+  planId: z.string().optional().nullable(),
+  amount: z.number().positive().optional(),
 });
 
 export const gymPaymentIdParamsSchema = z.object({
-	paymentId: z.string().min(1, "paymentId é obrigatório"),
+  paymentId: z.string().min(1, "paymentId é obrigatório"),
 });
 
 export const updateGymPaymentStatusSchema = z.object({
-	status: z.enum(["paid", "pending", "overdue", "canceled"]),
+  status: z.enum(["paid", "pending", "overdue", "canceled"]),
 });
 
 export const gymEquipmentIdParamsSchema = z.object({
-	equipId: z.string().min(1, "equipId é obrigatório"),
+  equipId: z.string().min(1, "equipId é obrigatório"),
 });
 
 export const updateGymEquipmentSchema = z.object({
-	name: z.string().min(1).optional(),
-	status: z.enum(["available", "in-use", "maintenance", "broken"]).optional(),
-	brand: z.string().optional().nullable(),
-	model: z.string().optional().nullable(),
-	serialNumber: z.string().optional().nullable(),
-	nextMaintenance: z
-		.string()
-		.datetime()
-		.optional()
-		.or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+  name: z.string().min(1).optional(),
+  status: z.enum(["available", "in-use", "maintenance", "broken"]).optional(),
+  brand: z.string().optional().nullable(),
+  model: z.string().optional().nullable(),
+  serialNumber: z.string().optional().nullable(),
+  nextMaintenance: z
+    .string()
+    .datetime()
+    .optional()
+    .or(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+    ),
 });
 
 export const createGymMaintenanceSchema = z.object({
-	type: z.enum(["preventive", "corrective", "inspection"]),
-	description: z.string().min(1, "Descrição é obrigatória"),
-	performedBy: z.string().min(1, "Responsável é obrigatório"),
-	cost: z.number().positive().optional().nullable(),
-	nextScheduled: z
-		.string()
-		.datetime()
-		.optional()
-		.or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional())
-		.nullable(),
+  type: z.enum(["preventive", "corrective", "inspection"]),
+  description: z.string().min(1, "Descrição é obrigatória"),
+  performedBy: z.string().min(1, "Responsável é obrigatório"),
+  cost: z.number().positive().optional().nullable(),
+  nextScheduled: z
+    .string()
+    .datetime()
+    .optional()
+    .or(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional(),
+    )
+    .nullable(),
 });
 
 export const gymPlanIdParamsSchema = z.object({
-	planId: z.string().min(1, "planId é obrigatório"),
+  planId: z.string().min(1, "planId é obrigatório"),
 });
 
 export const updateGymPlanSchema = z.object({
-	name: z.string().min(1).optional(),
-	type: z
-		.enum(["monthly", "quarterly", "semi-annual", "annual", "trial"])
-		.optional(),
-	price: z.number().positive().optional(),
-	duration: z.number().int().positive().optional(),
-	benefits: z.array(z.string()).optional(),
-	isActive: z.boolean().optional(),
+  name: z.string().min(1).optional(),
+  type: z
+    .enum(["monthly", "quarterly", "semi-annual", "annual", "trial"])
+    .optional(),
+  price: z.number().positive().optional(),
+  duration: z.number().int().positive().optional(),
+  benefits: z.array(z.string()).optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const gymStudentsSearchQuerySchema = z.object({
-	email: z.string().email("Email inválido").min(3, "Email muito curto"),
+  email: z.string().email("Email inválido").min(3, "Email muito curto"),
 });

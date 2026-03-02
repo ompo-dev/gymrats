@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetStudentInfo200HormoneType } from './getStudentInfo200HormoneType';
+import type { GetStudentInfo200HormoneType } from "./getStudentInfo200HormoneType";
 
 export type GetStudentInfo200 = {
   id?: string;

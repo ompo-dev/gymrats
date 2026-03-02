@@ -7,21 +7,21 @@
  */
 
 export type SearchExercisesParams = {
-/**
- * Termo de busca (nome do exercício)
- */
-q?: string;
-/**
- * Filtrar por grupo muscular
- */
-muscle?: string;
-/**
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
-/**
- * @minimum 0
- */
-offset?: number;
+  /**
+   * Termo de busca (nome do exercício)
+   */
+  q?: string;
+  /**
+   * Filtrar por grupo muscular
+   */
+  muscle?: string;
+  /**
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
+  /**
+   * @minimum 0
+   */
+  offset?: number;
 };

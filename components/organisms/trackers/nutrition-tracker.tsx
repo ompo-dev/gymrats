@@ -10,9 +10,9 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { DuoButton } from "@/components/duo";
 import {
   DuoAchievementCard,
+  DuoButton,
   DuoCard,
   DuoStatsGrid,
 } from "@/components/duo";
@@ -130,7 +130,9 @@ function NutritionTrackerSimple({
             className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
           >
             <Droplets className="h-12 w-12 text-duo-blue" />
-            <p className="text-lg font-bold text-[var(--duo-fg)]">Hidrate-se!</p>
+            <p className="text-lg font-bold text-[var(--duo-fg)]">
+              Hidrate-se!
+            </p>
             <p className="text-sm text-[var(--duo-fg-muted)]">
               A água é essencial para seu desempenho e recuperação. Comece
               registrando seu primeiro copo de água.
@@ -188,7 +190,11 @@ function NutritionTrackerSimple({
               Adicione sua primeira refeição e veja sua evolução.
             </p>
             {!readOnly && (
-              <DuoButton onClick={onAddMeal} variant="primary" className="w-fit">
+              <DuoButton
+                onClick={onAddMeal}
+                variant="primary"
+                className="w-fit"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Adicionar Refeição
               </DuoButton>

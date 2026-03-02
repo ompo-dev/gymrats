@@ -11,13 +11,13 @@ import type { NextRequest } from "next/server";
 export const maxDuration = 60; // 60 segundos (máximo para Vercel Pro)
 export const runtime = "nodejs"; // Garantir runtime Node.js para operações assíncronas
 
+import type { Prisma } from "@prisma/client";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import {
   badRequestResponse,
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
-import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
@@ -102,7 +102,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (unit.studentId !== studentId) {
-        return badRequestResponse("Você não tem permissão para editar esta unit");
+        return badRequestResponse(
+          "Você não tem permissão para editar esta unit",
+        );
       }
     }
 
@@ -130,7 +132,11 @@ export async function POST(request: NextRequest) {
         const workoutsToCreate = parsedPlan.workouts || [];
 
         // Plano semanal com múltiplos workouts: buscar todos os slots para distribuir
-        let weeklyPlanSlots: { id: string; dayOfWeek: number; workoutId: string | null }[] = [];
+        let weeklyPlanSlots: {
+          id: string;
+          dayOfWeek: number;
+          workoutId: string | null;
+        }[] = [];
         if (planSlotId && planSlot && workoutsToCreate.length > 1) {
           weeklyPlanSlots = await db.planSlot.findMany({
             where: { weeklyPlanId: planSlot.weeklyPlanId },
@@ -242,7 +248,7 @@ export async function POST(request: NextRequest) {
         if (parsedPlan.targetWorkoutId) {
           const workouts = planSlot?.workout
             ? [planSlot.workout]
-            : unit?.workouts ?? [];
+            : (unit?.workouts ?? []);
           const workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
@@ -268,7 +274,7 @@ export async function POST(request: NextRequest) {
           const exercisesToAdd = workoutPlan.exercises || [];
           const workouts = planSlot?.workout
             ? [planSlot.workout]
-            : unit?.workouts ?? [];
+            : (unit?.workouts ?? []);
           const targetWorkout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
@@ -294,7 +300,7 @@ export async function POST(request: NextRequest) {
         if (parsedPlan.targetWorkoutId && parsedPlan.exerciseToRemove) {
           const workouts = planSlot?.workout
             ? [planSlot.workout]
-            : unit?.workouts ?? [];
+            : (unit?.workouts ?? []);
           const workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
@@ -364,7 +370,7 @@ export async function POST(request: NextRequest) {
         ) {
           const workouts = planSlot?.workout
             ? [planSlot.workout]
-            : unit?.workouts ?? [];
+            : (unit?.workouts ?? []);
           let workout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
           );
@@ -460,7 +466,7 @@ export async function POST(request: NextRequest) {
           const workoutPlan = parsedPlan.workouts[0];
           const workouts = planSlot?.workout
             ? [planSlot.workout]
-            : unit?.workouts ?? [];
+            : (unit?.workouts ?? []);
 
           let targetWorkout = workouts.find(
             (w) => w.id === parsedPlan.targetWorkoutId,
@@ -982,9 +988,7 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
     exerciseInfo = {
       id: generatedId,
       name: exerciseName,
-      primaryMuscles: inferMuscleGroup(
-        exerciseName,
-      ) as MuscleGroup[],
+      primaryMuscles: inferMuscleGroup(exerciseName) as MuscleGroup[],
       secondaryMuscles: [] as MuscleGroup[],
       difficulty: "intermediario",
       equipment: inferEquipment(exerciseName),

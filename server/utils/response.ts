@@ -3,79 +3,81 @@ import type { Context } from "elysia";
 type ResponseHeaders = Record<string, string>;
 
 export function successResponse<T>(
-	set: Context["set"],
-	data: T,
-	status = 200,
-	headers?: ResponseHeaders,
+  set: Context["set"],
+  data: T,
+  status = 200,
+  headers?: ResponseHeaders,
 ) {
-	set.status = status;
-	if (headers) {
-		Object.entries(headers).forEach(([key, value]) => {
-			set.headers[key] = value;
-		});
-	}
+  set.status = status;
+  if (headers) {
+    Object.entries(headers).forEach(([key, value]) => {
+      set.headers[key] = value;
+    });
+  }
 
-	return { success: true, ...data } as const;
+  return { success: true, ...data } as const;
 }
 
 export function errorResponse(
-	set: Context["set"],
-	message: string,
-	status = 500,
-	details?: Record<string, string | number | boolean | object | null>,
+  set: Context["set"],
+  message: string,
+  status = 500,
+  details?: Record<string, string | number | boolean | object | null>,
 ) {
-	set.status = status;
-	const response: Record<string, string | number | boolean | object | null> = { error: message };
+  set.status = status;
+  const response: Record<string, string | number | boolean | object | null> = {
+    error: message,
+  };
 
-	if (details && process.env.NODE_ENV === "development") {
-		response.details = details;
-	}
+  if (details && process.env.NODE_ENV === "development") {
+    response.details = details;
+  }
 
-	return response;
+  return response;
 }
 
 export function badRequestResponse(
-	set: Context["set"],
-	message = "Dados inválidos",
-	details?: Record<string, string | number | boolean | object | null>,
+  set: Context["set"],
+  message = "Dados inválidos",
+  details?: Record<string, string | number | boolean | object | null>,
 ) {
-	return errorResponse(set, message, 400, details);
+  return errorResponse(set, message, 400, details);
 }
 
 export function unauthorizedResponse(
-	set: Context["set"],
-	message = "Não autenticado",
+  set: Context["set"],
+  message = "Não autenticado",
 ) {
-	return errorResponse(set, message, 401);
+  return errorResponse(set, message, 401);
 }
 
 export function forbiddenResponse(
-	set: Context["set"],
-	message = "Acesso negado",
+  set: Context["set"],
+  message = "Acesso negado",
 ) {
-	return errorResponse(set, message, 403);
+  return errorResponse(set, message, 403);
 }
 
 export function notFoundResponse(
-	set: Context["set"],
-	message = "Recurso não encontrado",
+  set: Context["set"],
+  message = "Recurso não encontrado",
 ) {
-	return errorResponse(set, message, 404);
+  return errorResponse(set, message, 404);
 }
 
 export function internalErrorResponse(
-	set: Context["set"],
-	message = "Erro interno do servidor",
-	error?: unknown,
+  set: Context["set"],
+  message = "Erro interno do servidor",
+  error?: unknown,
 ) {
-	console.error("[API Error]:", error);
-	const details: Record<string, string> | undefined =
-		error instanceof Error
-			? { message: error.message }
-			: error && typeof error === "object" && "message" in error
-				? { message: String((error as { message?: unknown }).message ?? "") }
-				: error != null
-					? { message: String(error) }
-					: undefined;
-	return errorResponse(set, message, 500, details);
+  console.error("[API Error]:", error);
+  const details: Record<string, string> | undefined =
+    error instanceof Error
+      ? { message: error.message }
+      : error && typeof error === "object" && "message" in error
+        ? { message: String((error as { message?: unknown }).message ?? "") }
+        : error != null
+          ? { message: String(error) }
+          : undefined;
+  return errorResponse(set, message, 500, details);
 }

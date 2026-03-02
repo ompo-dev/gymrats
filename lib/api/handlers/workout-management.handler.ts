@@ -247,12 +247,19 @@ export async function updateWeeklyPlanHandler(
       });
     }
 
-    if (validation.data.title !== undefined || validation.data.description !== undefined) {
+    if (
+      validation.data.title !== undefined ||
+      validation.data.description !== undefined
+    ) {
       weeklyPlan = await db.weeklyPlan.update({
         where: { id: weeklyPlan.id },
         data: {
-          ...(validation.data.title !== undefined && { title: validation.data.title }),
-          ...(validation.data.description !== undefined && { description: validation.data.description }),
+          ...(validation.data.title !== undefined && {
+            title: validation.data.title,
+          }),
+          ...(validation.data.description !== undefined && {
+            description: validation.data.description,
+          }),
         },
         include: { slots: { orderBy: { dayOfWeek: "asc" } } },
       });

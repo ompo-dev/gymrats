@@ -4,7 +4,7 @@ import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {
-    const stats = await GymInventoryService.getStats(gymContext!.gymId);
+    const stats = await GymInventoryService.getStats(gymContext?.gymId);
     return NextResponse.json({ stats });
   },
   {

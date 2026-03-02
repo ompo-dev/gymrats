@@ -9,11 +9,12 @@
 /**
  * @nullable
  */
-export type StudentProfileFitnessLevel = typeof StudentProfileFitnessLevel[keyof typeof StudentProfileFitnessLevel] | null;
-
+export type StudentProfileFitnessLevel =
+  | (typeof StudentProfileFitnessLevel)[keyof typeof StudentProfileFitnessLevel]
+  | null;
 
 export const StudentProfileFitnessLevel = {
-  iniciante: 'iniciante',
-  intermediario: 'intermediario',
-  avancado: 'avancado',
+  iniciante: "iniciante",
+  intermediario: "intermediario",
+  avancado: "avancado",
 } as const;

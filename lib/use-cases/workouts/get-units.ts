@@ -64,7 +64,9 @@ export async function getUnitsUseCase(input: GetUnitsInput) {
     select: { workoutId: true },
     distinct: ["workoutId"],
   });
-  const completedIdsSet = new Set(completedWorkoutIds.map((wh) => wh.workoutId));
+  const completedIdsSet = new Set(
+    completedWorkoutIds.map((wh) => wh.workoutId),
+  );
 
   const formattedUnits = units.map((unit) => ({
     id: unit.id,
@@ -136,7 +138,9 @@ export async function getUnitsUseCase(input: GetUnitsInput) {
             ? JSON.parse(exercise.secondaryMuscles)
             : undefined,
           difficulty: exercise.difficulty || undefined,
-          equipment: exercise.equipment ? JSON.parse(exercise.equipment) : undefined,
+          equipment: exercise.equipment
+            ? JSON.parse(exercise.equipment)
+            : undefined,
           instructions: exercise.instructions
             ? JSON.parse(exercise.instructions)
             : undefined,
@@ -144,7 +148,9 @@ export async function getUnitsUseCase(input: GetUnitsInput) {
           commonMistakes: exercise.commonMistakes
             ? JSON.parse(exercise.commonMistakes)
             : undefined,
-          benefits: exercise.benefits ? JSON.parse(exercise.benefits) : undefined,
+          benefits: exercise.benefits
+            ? JSON.parse(exercise.benefits)
+            : undefined,
           scientificEvidence: exercise.scientificEvidence || undefined,
           alternatives:
             exercise.alternatives.length > 0

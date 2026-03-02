@@ -5,14 +5,14 @@ import { z } from "zod";
  */
 
 export const createSubscriptionSchema = z.object({
-	plan: z.enum(["monthly", "annual"], {
-		errorMap: () => ({ message: "Plano deve ser monthly ou annual" }),
-	}),
+  plan: z.enum(["monthly", "annual"], {
+    errorMap: () => ({ message: "Plano deve ser monthly ou annual" }),
+  }),
 });
 
 export const createGymSubscriptionSchema = z.object({
-	plan: z.enum(["basic", "premium", "enterprise"]).optional().default("basic"),
-	billingPeriod: z.enum(["monthly", "annual"]).optional().default("monthly"),
+  plan: z.enum(["basic", "premium", "enterprise"]).optional().default("basic"),
+  billingPeriod: z.enum(["monthly", "annual"]).optional().default("monthly"),
 });
 
 export const startTrialSchema = z.object({}).passthrough();

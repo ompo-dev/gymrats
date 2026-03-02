@@ -5,21 +5,21 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { SearchFoodsCategory } from './searchFoodsCategory';
+import type { SearchFoodsCategory } from "./searchFoodsCategory";
 
 export type SearchFoodsParams = {
-/**
- * Termo de busca (nome do alimento)
- */
-q?: string;
-/**
- * Categoria do alimento
- */
-category?: SearchFoodsCategory;
-/**
- * Número máximo de resultados
- * @minimum 1
- * @maximum 100
- */
-limit?: number;
+  /**
+   * Termo de busca (nome do alimento)
+   */
+  q?: string;
+  /**
+   * Categoria do alimento
+   */
+  category?: SearchFoodsCategory;
+  /**
+   * Número máximo de resultados
+   * @minimum 1
+   * @maximum 100
+   */
+  limit?: number;
 };

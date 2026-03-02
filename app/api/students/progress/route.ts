@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
+import { updateStudentProgressSchema } from "@/lib/api/schemas/students.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
-import { updateStudentProgressSchema } from "@/lib/api/schemas/students.schemas";
 
 export const GET = createSafeHandler(
   async ({ studentContext }) => {
@@ -9,7 +9,7 @@ export const GET = createSafeHandler(
     const progress = await StudentDomainService.getProgress(studentId);
     return NextResponse.json(progress);
   },
-  { auth: "student" }
+  { auth: "student" },
 );
 
 export const PUT = createSafeHandler(
@@ -21,5 +21,5 @@ export const PUT = createSafeHandler(
   {
     auth: "student",
     schema: { body: updateStudentProgressSchema },
-  }
+  },
 );

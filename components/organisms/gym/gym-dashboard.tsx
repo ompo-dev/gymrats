@@ -2,20 +2,19 @@
 
 import { Dumbbell, LogIn, Users } from "lucide-react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { RelativeTime } from "@/components/molecules/relative-time";
 import {
-	DuoAlert,
-	DuoButton,
-	DuoCard,
-	DuoStatCard,
-	DuoStatsGrid,
+  DuoAlert,
+  DuoButton,
+  DuoCard,
+  DuoStatCard,
+  DuoStatsGrid,
 } from "@/components/duo";
-import { CheckInModal } from "./checkin-modal";
+import { RelativeTime } from "@/components/molecules/relative-time";
 import type {
   CheckIn,
   Equipment,
@@ -23,6 +22,7 @@ import type {
   GymStats,
   StudentData,
 } from "@/lib/types";
+import { CheckInModal } from "./checkin-modal";
 
 interface GymDashboardPageProps {
   profile: GymProfile;
@@ -68,7 +68,9 @@ export function GymDashboardPage({
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <div className="text-center sm:text-left">
-              <h1 className="mb-1 text-3xl font-bold text-duo-text">Dashboard</h1>
+              <h1 className="mb-1 text-3xl font-bold text-duo-text">
+                Dashboard
+              </h1>
               <p className="text-sm text-duo-gray-dark">
                 Visão geral da sua academia em tempo real
               </p>

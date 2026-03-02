@@ -4,6 +4,6 @@
  */
 export * from "./api-error";
 export * from "./core";
-export * from "./student-unified";
 export * from "./gym-unified";
 export * from "./reminder-notifications";
+export * from "./student-unified";

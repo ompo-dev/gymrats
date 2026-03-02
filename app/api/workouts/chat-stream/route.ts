@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
         if (!isPremium) {
           sendSSE(controller, "error", {
             error: "Recurso Premium",
-            message: "Esta funcionalidade requer assinatura Premium ou benefício da sua academia.",
+            message:
+              "Esta funcionalidade requer assinatura Premium ou benefício da sua academia.",
           });
           controller.close();
           return;
@@ -133,7 +134,12 @@ export async function POST(request: NextRequest) {
           title: string;
           type: string;
           muscleGroup: string;
-          exercises: Array<{ id: string; name: string; sets: number; reps: string }>;
+          exercises: Array<{
+            id: string;
+            name: string;
+            sets: number;
+            reps: string;
+          }>;
         }> = [];
 
         if (planSlotId) {
@@ -156,18 +162,20 @@ export async function POST(request: NextRequest) {
           }
 
           if (planSlot.workout) {
-            workoutsInfo = [{
-              id: planSlot.workout.id,
-              title: planSlot.workout.title,
-              type: planSlot.workout.type,
-              muscleGroup: planSlot.workout.muscleGroup,
-              exercises: planSlot.workout.exercises.map((e) => ({
-                id: e.id,
-                name: e.name,
-                sets: e.sets,
-                reps: e.reps,
-              })),
-            }];
+            workoutsInfo = [
+              {
+                id: planSlot.workout.id,
+                title: planSlot.workout.title,
+                type: planSlot.workout.type,
+                muscleGroup: planSlot.workout.muscleGroup,
+                exercises: planSlot.workout.exercises.map((e) => ({
+                  id: e.id,
+                  name: e.name,
+                  sets: e.sets,
+                  reps: e.reps,
+                })),
+              },
+            ];
           }
         } else if (unitId) {
           const unit = await db.unit.findUnique({
@@ -251,7 +259,11 @@ export async function POST(request: NextRequest) {
                     title?: string;
                     type?: string;
                     muscleGroup?: string;
-                    exercises?: Array<{ name?: string; sets?: number; reps?: string }>;
+                    exercises?: Array<{
+                      name?: string;
+                      sets?: number;
+                      reps?: string;
+                    }>;
                   },
                   idx: number,
                 ) =>
@@ -269,7 +281,11 @@ export async function POST(request: NextRequest) {
                 type?: string;
                 muscleGroup?: string;
                 difficulty?: string;
-                exercises?: Array<{ name?: string; sets?: number; reps?: string }>;
+                exercises?: Array<{
+                  name?: string;
+                  sets?: number;
+                  reps?: string;
+                }>;
               };
               const previewsStructure = (previewWorkouts as PreviewW[])
                 .map((w, idx: number) => {
@@ -437,7 +453,15 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         type ParsedRes = {
           intent?: string;
           action?: string;
-          workouts?: Array<{ title?: string; exercises?: Array<{ name?: string; alternatives?: string[] | Array<{ name?: string; reason?: string }> }> }>;
+          workouts?: Array<{
+            title?: string;
+            exercises?: Array<{
+              name?: string;
+              alternatives?:
+                | string[]
+                | Array<{ name?: string; reason?: string }>;
+            }>;
+          }>;
           message?: string;
           targetWorkoutId?: string;
         } | null;
@@ -445,8 +469,13 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         let parsed: ParsedRes = null;
         let lastEmittedWorkoutCount = 0;
         let lastEmittedPartialExerciseCount = -1;
-        const tryParseImportedWorkout = (raw: import("@/lib/types/api-error").JsonValue): ParsedRes => {
-          const rawObj = raw as { workouts?: ImportedW[]; exercises?: ImportedEx[] };
+        const tryParseImportedWorkout = (
+          raw: import("@/lib/types/api-error").JsonValue,
+        ): ParsedRes => {
+          const rawObj = raw as {
+            workouts?: ImportedW[];
+            exercises?: ImportedEx[];
+          };
           const normalizeExercises = (exercises: ImportedEx[]): ImportedEx[] =>
             (exercises || []).map((ex: ImportedEx) => ({
               name: ex.name,
@@ -648,17 +677,24 @@ O frontend exibe componente visual de descanso (ícone lua). Ex: 5 treinos + des
         ) {
           const restDaysSet = new Set(
             parsedWithRest.restDays.filter(
-              (d: import("@/lib/types/api-error").JsonValue) => typeof d === "number" && d >= 0 && d <= 6,
+              (d: import("@/lib/types/api-error").JsonValue) =>
+                typeof d === "number" && d >= 0 && d <= 6,
             ),
           );
-          const trainingWorkouts = (parsed.workouts as Array<Record<string, import("@/lib/types/api-error").JsonValue>>).filter(
+          const trainingWorkouts = (
+            parsed.workouts as Array<
+              Record<string, import("@/lib/types/api-error").JsonValue>
+            >
+          ).filter(
             (w) =>
               !w.title?.toString().toLowerCase().includes("descanso") &&
               Array.isArray(w.exercises) &&
               (w.exercises as ImportedEx[]).length > 0,
           );
           let trainingIndex = 0;
-          const expanded: Array<Record<string, import("@/lib/types/api-error").JsonValue>> = [];
+          const expanded: Array<
+            Record<string, import("@/lib/types/api-error").JsonValue>
+          > = [];
           for (let day = 0; day < 7; day++) {
             if (restDaysSet.has(day)) {
               expanded.push({

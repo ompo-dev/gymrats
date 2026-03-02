@@ -126,9 +126,9 @@ export const createWeeklyPlanSchema = z.object({
 });
 
 export const updateWeeklyPlanSchema = z.object({
-	title: z.string().min(1).optional(),
-	description: z.string().optional().nullable(),
-	slots: z.array(planSlotSchema).length(7).optional(),
+  title: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  slots: z.array(planSlotSchema).length(7).optional(),
 });
 
 export const completeWorkoutSchema = z.object({

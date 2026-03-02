@@ -3,13 +3,11 @@
 import { ArrowRight, Droplets, Plus, UtensilsCrossed } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
-import { useStudent } from "@/hooks/use-student";
-import { cn } from "@/lib/utils";
+import { DuoButton, DuoCard } from "@/components/duo";
+import { useAbility } from "@/hooks/use-ability";
+import { Features } from "@/lib/access-control/features";
 import type { DailyNutrition } from "@/lib/types";
-import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
+import { cn } from "@/lib/utils";
 
 interface NutritionStatusCardProps {
   dailyNutrition: DailyNutrition | null | undefined;
@@ -20,19 +18,8 @@ function NutritionStatusCardSimple({
 }: NutritionStatusCardProps) {
   const router = useRouter();
 
-  // Verificar se é premium/trial
-  const subscription = useStudent("subscription");
-  const isPremium = useMemo(() => {
-    if (!subscription || !subscription.plan || !subscription.status)
-      return false;
-    return hasActivePremiumStatus(
-      subscription as {
-        plan: string;
-        status: string;
-        trialEnd?: Date | string | null;
-      },
-    );
-  }, [subscription]);
+  const { can } = useAbility();
+  const isPremium = can(Features.USE_AI_NUTRITION);
 
   // Handler para navegação: se premium, abre chat; senão, redireciona para dieta
   const handleNavigate = () => {

@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetPaymentMethods200PaymentMethodsItem } from './getPaymentMethods200PaymentMethodsItem';
+import type { GetPaymentMethods200PaymentMethodsItem } from "./getPaymentMethods200PaymentMethodsItem";
 
 export type GetPaymentMethods200 = {
   paymentMethods?: GetPaymentMethods200PaymentMethodsItem[];

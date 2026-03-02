@@ -68,12 +68,15 @@ export function useEditUnitModal({
   const [workoutMuscleGroup, setWorkoutMuscleGroup] = useState<string>("");
   const [workoutItems, setWorkoutItems] = useState<WorkoutSession[]>([]);
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
-  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
-  const [deleteWorkoutConfirmationId, setDeleteWorkoutConfirmationId] = useState<string | null>(null);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<
+    string | null
+  >(null);
+  const [deleteWorkoutConfirmationId, setDeleteWorkoutConfirmationId] =
+    useState<string | null>(null);
   const [weeklyPlanSlotsKey, setWeeklyPlanSlotsKey] = useState(0);
 
-  const unit = useStudentUnifiedStore((state) =>
-    state.data.units.find((u) => u.id === unitId) || null
+  const unit = useStudentUnifiedStore(
+    (state) => state.data.units.find((u) => u.id === unitId) || null,
   );
 
   const sortedWorkouts = useMemo(() => {
@@ -84,7 +87,10 @@ export function useEditUnitModal({
   useEffect(() => {
     const currentIds = workoutItems.map((w) => w.id).join(",");
     const newIds = sortedWorkouts.map((w) => w.id).join(",");
-    if (currentIds !== newIds || workoutItems.length !== sortedWorkouts.length) {
+    if (
+      currentIds !== newIds ||
+      workoutItems.length !== sortedWorkouts.length
+    ) {
       setWorkoutItems(sortedWorkouts);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,7 +100,9 @@ export function useEditUnitModal({
     if (!editingWorkoutId || !unitId) return null;
     const foundUnit = state.data.units.find((u) => u.id === unitId);
     if (!foundUnit) return null;
-    const foundWorkout = foundUnit.workouts.find((w) => w.id === editingWorkoutId);
+    const foundWorkout = foundUnit.workouts.find(
+      (w) => w.id === editingWorkoutId,
+    );
     if (!foundWorkout) return null;
     return foundWorkout.exercises || null;
   });
@@ -105,7 +113,9 @@ export function useEditUnitModal({
     return slot?.workout?.exercises ?? null;
   }, [isWeeklyPlanMode, weeklyPlan, editingWorkoutId, planSlots]);
 
-  const exercisesRaw = isWeeklyPlanMode ? exercisesRawFromWeeklyPlan : exercisesRawFromStore;
+  const exercisesRaw = isWeeklyPlanMode
+    ? exercisesRawFromWeeklyPlan
+    : exercisesRawFromStore;
   const exercises = useMemo(() => exercisesRaw || [], [exercisesRaw]);
 
   const activeWorkout = useMemo(() => {
@@ -114,7 +124,13 @@ export function useEditUnitModal({
       return slot?.workout ?? null;
     }
     return sortedWorkouts.find((w) => w.id === editingWorkoutId) ?? null;
-  }, [isWeeklyPlanMode, weeklyPlan, planSlots, sortedWorkouts, editingWorkoutId]);
+  }, [
+    isWeeklyPlanMode,
+    weeklyPlan,
+    planSlots,
+    sortedWorkouts,
+    editingWorkoutId,
+  ]);
 
   const sortedExercises = useMemo(() => {
     if (!exercises || exercises.length === 0) return [];
@@ -124,7 +140,10 @@ export function useEditUnitModal({
   useEffect(() => {
     const currentIds = exerciseItems.map((e) => e.id).join(",");
     const newIds = sortedExercises.map((e) => e.id).join(",");
-    if (currentIds !== newIds || exerciseItems.length !== sortedExercises.length) {
+    if (
+      currentIds !== newIds ||
+      exerciseItems.length !== sortedExercises.length
+    ) {
       setExerciseItems(sortedExercises);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,25 +152,28 @@ export function useEditUnitModal({
   const calculatedEstimatedTime = useMemo(() => {
     if (!exercises || exercises.length === 0) return 0;
     const TIME_PER_REP = 2;
-    const totalSeconds = exercises.reduce((total: number, ex: WorkoutExercise) => {
-      const sets = ex.sets || 0;
-      if (sets === 0) return total;
-      const repsStr = ex.reps || "10";
-      let avgReps = 10;
-      const rangeMatch = repsStr.match(/(\d+)\s*-\s*(\d+)/);
-      if (rangeMatch) {
-        const min = parseInt(rangeMatch[1], 10);
-        const max = parseInt(rangeMatch[2], 10);
-        avgReps = Math.round((min + max) / 2);
-      } else {
-        const singleMatch = repsStr.match(/(\d+)/);
-        if (singleMatch) avgReps = parseInt(singleMatch[1], 10);
-      }
-      const timePerSet = avgReps * TIME_PER_REP;
-      const restBetweenSets = ex.rest || 60;
-      const numberOfRests = sets > 0 ? sets - 1 : 0;
-      return total + sets * timePerSet + numberOfRests * restBetweenSets;
-    }, 0);
+    const totalSeconds = exercises.reduce(
+      (total: number, ex: WorkoutExercise) => {
+        const sets = ex.sets || 0;
+        if (sets === 0) return total;
+        const repsStr = ex.reps || "10";
+        let avgReps = 10;
+        const rangeMatch = repsStr.match(/(\d+)\s*-\s*(\d+)/);
+        if (rangeMatch) {
+          const min = parseInt(rangeMatch[1], 10);
+          const max = parseInt(rangeMatch[2], 10);
+          avgReps = Math.round((min + max) / 2);
+        } else {
+          const singleMatch = repsStr.match(/(\d+)/);
+          if (singleMatch) avgReps = parseInt(singleMatch[1], 10);
+        }
+        const timePerSet = avgReps * TIME_PER_REP;
+        const restBetweenSets = ex.rest || 60;
+        const numberOfRests = sets > 0 ? sets - 1 : 0;
+        return total + sets * timePerSet + numberOfRests * restBetweenSets;
+      },
+      0,
+    );
     return Math.ceil(totalSeconds / 60) + 10;
   }, [exercises]);
 
@@ -160,26 +182,38 @@ export function useEditUnitModal({
   const handleUpdateWorkout = useCallback(
     async (
       workoutId: string,
-      data: { title?: string; muscleGroup?: string; estimatedTime?: number; order?: number }
+      data: {
+        title?: string;
+        muscleGroup?: string;
+        estimatedTime?: number;
+        order?: number;
+      },
     ) => {
       const { muscleGroup: mg, ...rest } = data;
-      const payload = { ...rest, ...(mg !== undefined && { muscleGroup: mg as MuscleGroup }) };
+      const payload = {
+        ...rest,
+        ...(mg !== undefined && { muscleGroup: mg as MuscleGroup }),
+      };
       actions.updateWorkout(workoutId, payload).catch((err) => {
         console.error(err);
         toast.error("Erro ao atualizar treino");
       });
     },
-    [actions]
+    [actions],
   );
 
   useEffect(() => {
     if (!activeWorkout || calculatedEstimatedTime <= 0) return;
     const currentTime = activeWorkout.estimatedTime || 0;
-    const hasSignificantChange = Math.abs(currentTime - calculatedEstimatedTime) >= 1;
-    const hasChangedSinceLastUpdate = lastCalculatedTimeRef.current !== calculatedEstimatedTime;
+    const hasSignificantChange =
+      Math.abs(currentTime - calculatedEstimatedTime) >= 1;
+    const hasChangedSinceLastUpdate =
+      lastCalculatedTimeRef.current !== calculatedEstimatedTime;
     if (hasSignificantChange && hasChangedSinceLastUpdate) {
       lastCalculatedTimeRef.current = calculatedEstimatedTime;
-      handleUpdateWorkout(activeWorkout.id, { estimatedTime: calculatedEstimatedTime });
+      handleUpdateWorkout(activeWorkout.id, {
+        estimatedTime: calculatedEstimatedTime,
+      });
     }
   }, [calculatedEstimatedTime, activeWorkout, handleUpdateWorkout]);
 
@@ -206,7 +240,17 @@ export function useEditUnitModal({
       setWorkoutItems([]);
       setExerciseItems([]);
     }
-  }, [isOpen, unitId, unit?.id, isWeeklyPlanMode, weeklyPlan, isEditingUnitInputs, title, unit, description]);
+  }, [
+    isOpen,
+    unitId,
+    unit?.id,
+    isWeeklyPlanMode,
+    weeklyPlan,
+    isEditingUnitInputs,
+    title,
+    unit,
+    description,
+  ]);
 
   useEffect(() => {
     if (activeWorkout) {
@@ -216,12 +260,20 @@ export function useEditUnitModal({
       setWorkoutTitle("");
       setWorkoutMuscleGroup("");
     }
-  }, [activeWorkout?.id, activeWorkout?.title, activeWorkout?.muscleGroup, activeWorkout]);
+  }, [
+    activeWorkout?.id,
+    activeWorkout?.title,
+    activeWorkout?.muscleGroup,
+    activeWorkout,
+  ]);
 
   const handleSaveUnit = useCallback(async () => {
     if (isWeeklyPlanMode) {
       try {
-        await apiClient.patch("/api/workouts/weekly-plan", { title, description });
+        await apiClient.patch("/api/workouts/weekly-plan", {
+          title,
+          description,
+        });
         await loadWeeklyPlan(true);
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");
@@ -239,7 +291,15 @@ export function useEditUnitModal({
       console.error(err);
       toast.error("Erro ao atualizar treino");
     }
-  }, [isWeeklyPlanMode, title, description, unitId, actions, loadWeeklyPlan, onPlanUpdated]);
+  }, [
+    isWeeklyPlanMode,
+    title,
+    description,
+    unitId,
+    actions,
+    loadWeeklyPlan,
+    onPlanUpdated,
+  ]);
 
   const handleCreateWorkout = useCallback(async () => {
     if (!unitId) return;
@@ -271,12 +331,17 @@ export function useEditUnitModal({
       toast.success("Dia de treino removido!");
     } catch (err) {
       console.error(err);
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Falha ao remover treino";
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Falha ao remover treino";
       toast.error(message);
     }
   }, [deleteWorkoutConfirmationId, editingWorkoutId, actions]);
 
-  const cancelDeleteWorkout = useCallback(() => setDeleteWorkoutConfirmationId(null), []);
+  const cancelDeleteWorkout = useCallback(
+    () => setDeleteWorkoutConfirmationId(null),
+    [],
+  );
 
   const handleResetWeek = useCallback(async () => {
     setResetting(true);
@@ -293,43 +358,51 @@ export function useEditUnitModal({
     }
   }, [loadWeeklyPlan, onPlanUpdated]);
 
-  const handleRemoveWorkoutFromSlot = useCallback(async (slotId: string) => {
-    const slot = planSlots.find((s) => s.id === slotId);
-    if (!slot?.workout) return;
-    setLoadingSlotId(slotId);
-    try {
-      await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
-      await loadWeeklyPlan(true);
-      onPlanUpdated?.();
-      toast.success("Treino removido. O dia foi marcado como descanso.");
-    } catch {
-      toast.error("Não foi possível remover o treino.");
-    } finally {
-      setLoadingSlotId(null);
-    }
-  }, [planSlots, loadWeeklyPlan, onPlanUpdated]);
+  const handleRemoveWorkoutFromSlot = useCallback(
+    async (slotId: string) => {
+      const slot = planSlots.find((s) => s.id === slotId);
+      if (!slot?.workout) return;
+      setLoadingSlotId(slotId);
+      try {
+        await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
+        await loadWeeklyPlan(true);
+        onPlanUpdated?.();
+        toast.success("Treino removido. O dia foi marcado como descanso.");
+      } catch {
+        toast.error("Não foi possível remover o treino.");
+      } finally {
+        setLoadingSlotId(null);
+      }
+    },
+    [planSlots, loadWeeklyPlan, onPlanUpdated],
+  );
 
-  const handleAddWorkoutToSlot = useCallback(async (slotId: string, dayName: string) => {
-    setLoadingSlotId(slotId);
-    try {
-      await apiClient.post("/api/workouts/manage", {
-        planSlotId: slotId,
-        title: `Treino ${dayName}`,
-        description: "",
-        type: "strength",
-        muscleGroup: "full-body",
-        difficulty: "iniciante",
-        estimatedTime: 0,
-      });
-      await loadWeeklyPlan(true);
-      onPlanUpdated?.();
-      toast.success("Treino adicionado. Adicione exercícios ou use o Chat IA.");
-    } catch {
-      toast.error("Não foi possível adicionar o treino.");
-    } finally {
-      setLoadingSlotId(null);
-    }
-  }, [loadWeeklyPlan, onPlanUpdated]);
+  const handleAddWorkoutToSlot = useCallback(
+    async (slotId: string, dayName: string) => {
+      setLoadingSlotId(slotId);
+      try {
+        await apiClient.post("/api/workouts/manage", {
+          planSlotId: slotId,
+          title: `Treino ${dayName}`,
+          description: "",
+          type: "strength",
+          muscleGroup: "full-body",
+          difficulty: "iniciante",
+          estimatedTime: 0,
+        });
+        await loadWeeklyPlan(true);
+        onPlanUpdated?.();
+        toast.success(
+          "Treino adicionado. Adicione exercícios ou use o Chat IA.",
+        );
+      } catch {
+        toast.error("Não foi possível adicionar o treino.");
+      } finally {
+        setLoadingSlotId(null);
+      }
+    },
+    [loadWeeklyPlan, onPlanUpdated],
+  );
 
   const handleReorderWorkouts = useCallback(
     (newOrder: WorkoutSession[]) => {
@@ -340,7 +413,7 @@ export function useEditUnitModal({
         }
       });
     },
-    [handleUpdateWorkout]
+    [handleUpdateWorkout],
   );
 
   const handleAddExercise = useCallback(() => {
@@ -354,7 +427,7 @@ export function useEditUnitModal({
         toast.error("Erro ao salvar exercício");
       });
     },
-    [actions]
+    [actions],
   );
 
   const handleReorderExercises = useCallback(
@@ -366,7 +439,7 @@ export function useEditUnitModal({
         }
       });
     },
-    [handleUpdateExercise]
+    [handleUpdateExercise],
   );
 
   const handleDeleteExercise = useCallback((exerciseId: string) => {
@@ -386,7 +459,9 @@ export function useEditUnitModal({
       toast.success("Exercício removido!");
     } catch (err) {
       console.error(err);
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erro ao remover exercício. Tente novamente.";
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Erro ao remover exercício. Tente novamente.";
       toast.error(message);
     }
   }, [deleteConfirmationId, actions]);

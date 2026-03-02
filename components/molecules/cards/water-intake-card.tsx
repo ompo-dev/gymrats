@@ -1,9 +1,10 @@
 import { Droplets } from "lucide-react";
 import type * as React from "react";
-import { cn } from "@/lib/utils";
 import { DuoCard } from "@/components/duo";
+import { cn } from "@/lib/utils";
 
-export interface WaterIntakeCardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface WaterIntakeCardProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   current: number;
   target: number;
   glasses: number;

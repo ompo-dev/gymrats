@@ -18,7 +18,9 @@ export class StudentMembershipService {
     });
 
     if (!membership) {
-      throw new Error("Matrícula não encontrada ou você não tem permissão para cancelá-la");
+      throw new Error(
+        "Matrícula não encontrada ou você não tem permissão para cancelá-la",
+      );
     }
 
     await db.gymMembership.update({
@@ -34,7 +36,9 @@ export class StudentMembershipService {
           totalStudents: { decrement: 1 },
         },
       });
-      const { GymSubscriptionService } = await import("@/lib/services/gym/gym-subscription.service");
+      const { GymSubscriptionService } = await import(
+        "@/lib/services/gym/gym-subscription.service"
+      );
       await GymSubscriptionService.syncStudentEnterpriseBenefit(studentId);
     }
   }

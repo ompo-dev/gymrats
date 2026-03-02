@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import {
-  createChangePlanPaymentPix,
-} from "@/lib/services/gym/gym-membership-payment.service";
 import { z } from "zod";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { createChangePlanPaymentPix } from "@/lib/services/gym/gym-membership-payment.service";
 
 const paramsSchema = z.object({
   membershipId: z.string().min(1),
@@ -17,7 +15,7 @@ export const POST = createSafeHandler(
   async ({ studentContext, params, body }) => {
     const { membershipId } = paramsSchema.parse(params);
     const { planId } = bodySchema.parse(body);
-    const studentId = studentContext!.studentId;
+    const studentId = studentContext?.studentId;
 
     // Validar que o membership pertence ao student
     const { db } = await import("@/lib/db");

@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetDayPasses200DayPassesItem } from './getDayPasses200DayPassesItem';
+import type { GetDayPasses200DayPassesItem } from "./getDayPasses200DayPassesItem";
 
 export type GetDayPasses200 = {
   dayPasses?: GetDayPasses200DayPassesItem[];

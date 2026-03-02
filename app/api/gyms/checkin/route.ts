@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { z } from "zod";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { db } from "@/lib/db";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 const checkInSchema = z.object({
   studentId: z.string().min(1, "studentId é obrigatório"),
@@ -17,7 +17,7 @@ export const POST = createSafeHandler(
     const membership = await db.gymMembership.findFirst({
       where: { gymId, studentId, status: "active" },
     });
-    
+
     if (!membership) {
       return NextResponse.json(
         { error: "Aluno não é membro ativo desta academia" },
@@ -36,7 +36,7 @@ export const POST = createSafeHandler(
         checkOut: null,
       },
     });
-    
+
     if (existingOpen) {
       return NextResponse.json(
         {
@@ -69,5 +69,5 @@ export const POST = createSafeHandler(
   {
     auth: "gym",
     schema: { body: checkInSchema },
-  }
+  },
 );

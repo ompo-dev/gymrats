@@ -5,9 +5,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
-import { getAuthToken } from "@/lib/auth/token-client";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
+import { getAuthToken } from "@/lib/auth/token-client";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 

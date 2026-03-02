@@ -7,8 +7,8 @@
  */
 
 export type GetAllStudentDataParams = {
-/**
- * Seções específicas para buscar (ex: progress,profile,workouts)
- */
-sections?: string;
+  /**
+   * Seções específicas para buscar (ex: progress,profile,workouts)
+   */
+  sections?: string;
 };

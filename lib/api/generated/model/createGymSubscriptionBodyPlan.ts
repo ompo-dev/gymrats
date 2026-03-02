@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CreateGymSubscriptionBodyPlan = typeof CreateGymSubscriptionBodyPlan[keyof typeof CreateGymSubscriptionBodyPlan];
-
+export type CreateGymSubscriptionBodyPlan =
+  (typeof CreateGymSubscriptionBodyPlan)[keyof typeof CreateGymSubscriptionBodyPlan];
 
 export const CreateGymSubscriptionBodyPlan = {
-  basic: 'basic',
-  premium: 'premium',
-  enterprise: 'enterprise',
+  basic: "basic",
+  premium: "premium",
+  enterprise: "enterprise",
 } as const;

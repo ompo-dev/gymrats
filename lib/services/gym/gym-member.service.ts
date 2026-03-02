@@ -41,19 +41,23 @@ export class GymMemberService {
         joinDate: m.createdAt,
         currentStreak: progress?.currentStreak || 0,
         currentWeight: profile?.weight ?? 0,
-        profile: profile ? {
-          id: student.id,
-          name: user.name,
-          height: profile.height ?? 0,
-          weight: profile.weight ?? 0,
-          fitnessLevel: profile.fitnessLevel ?? "iniciante",
-          goals: profile.goals ? JSON.parse(profile.goals) : [],
-        } : undefined,
-        progress: progress ? {
-          currentStreak: progress.currentStreak,
-          totalXP: progress.totalXP,
-          currentLevel: progress.currentLevel,
-        } : undefined,
+        profile: profile
+          ? {
+              id: student.id,
+              name: user.name,
+              height: profile.height ?? 0,
+              weight: profile.weight ?? 0,
+              fitnessLevel: profile.fitnessLevel ?? "iniciante",
+              goals: profile.goals ? JSON.parse(profile.goals) : [],
+            }
+          : undefined,
+        progress: progress
+          ? {
+              currentStreak: progress.currentStreak,
+              totalXP: progress.totalXP,
+              currentLevel: progress.currentLevel,
+            }
+          : undefined,
       };
     });
   }
@@ -211,10 +215,12 @@ export class GymMemberService {
         })),
       })),
       workoutHistory,
-      weightHistory: weightHistoryList.map((wh: { date: Date; weight: number }) => ({
-        date: wh.date,
-        weight: wh.weight,
-      })),
+      weightHistory: weightHistoryList.map(
+        (wh: { date: Date; weight: number }) => ({
+          date: wh.date,
+          weight: wh.weight,
+        }),
+      ),
       weightGain,
       hasWeightLossGoal,
       totalVisits,

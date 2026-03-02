@@ -3,8 +3,7 @@
 import { ArrowRight, Dumbbell, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import type { Unit, WorkoutHistory } from "@/lib/types";
 
 interface ContinueWorkoutCardProps {

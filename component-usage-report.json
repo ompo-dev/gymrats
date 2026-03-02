@@ -8,7 +8,12 @@
     {
       "componente": "LoadingScreen",
       "arquivo": "components/organisms/loading-screen.tsx",
-      "usado_em": ["app/gym/layout.tsx", "app/student/layout.tsx", "app/student/layout-content.tsx", "components/organisms/index.ts"]
+      "usado_em": [
+        "app/gym/layout.tsx",
+        "app/student/layout.tsx",
+        "app/student/layout-content.tsx",
+        "components/organisms/index.ts"
+      ]
     },
     {
       "componente": "PerformanceOptimizer",
@@ -18,17 +23,77 @@
     {
       "componente": "DuoColorPicker",
       "arquivo": "components/duo/organisms/duo-color-picker.tsx",
-      "usado_em": ["app/student/theme-test/page.tsx", "app/gym/theme-test/page.tsx", "components/organisms/navigation/app-header.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/student/theme-test/page.tsx",
+        "app/gym/theme-test/page.tsx",
+        "components/organisms/navigation/app-header.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoStatsGrid",
       "arquivo": "components/duo/organisms/duo-stats-grid.tsx",
-      "usado_em": ["app/student/theme-test/page.tsx", "app/gym/theme-test/page.tsx", "app/student/page-content.tsx", "app/student/diet/diet-page.tsx", "app/student/profile/profile-content.tsx", "app/student/payments/student-payments-page.tsx", "app/student/cardio/cardio-functional-page.tsx", "app/gym/components/gym-dashboard.tsx", "app/gym/components/gym-equipment.tsx", "app/gym/components/gym-equipment-detail.tsx", "app/gym/components/gym-gamification.tsx", "app/gym/components/gym-stats.tsx", "app/gym/components/gym-student-detail.tsx", "app/gym/components/financial/financial-overview-tab.tsx", "app/gym/equipment/[id]/page-content.tsx", "components/organisms/trackers/nutrition-tracker.tsx", "components/organisms/trackers/cardio-tracker.tsx", "components/organisms/navigation/app-header.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/student/theme-test/page.tsx",
+        "app/gym/theme-test/page.tsx",
+        "app/student/page-content.tsx",
+        "app/student/diet/diet-page.tsx",
+        "app/student/profile/profile-content.tsx",
+        "app/student/payments/student-payments-page.tsx",
+        "app/student/cardio/cardio-functional-page.tsx",
+        "app/gym/components/gym-dashboard.tsx",
+        "app/gym/components/gym-equipment.tsx",
+        "app/gym/components/gym-equipment-detail.tsx",
+        "app/gym/components/gym-gamification.tsx",
+        "app/gym/components/gym-stats.tsx",
+        "app/gym/components/gym-student-detail.tsx",
+        "app/gym/components/financial/financial-overview-tab.tsx",
+        "app/gym/equipment/[id]/page-content.tsx",
+        "components/organisms/trackers/nutrition-tracker.tsx",
+        "components/organisms/trackers/cardio-tracker.tsx",
+        "components/organisms/navigation/app-header.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoCard",
       "arquivo": "components/duo/molecules/duo-card.tsx",
-      "usado_em": ["app/gym/components/membership-plans-page.tsx", "app/gym/components/maintenance-modal.tsx", "app/gym/components/financial/financial-overview-tab.tsx", "app/gym/components/financial/financial-coupons-tab.tsx", "app/gym/components/financial/financial-referrals-tab.tsx", "app/gym/components/financial/subscription-plans-selector.tsx", "app/student/education/components/muscle/muscle-list.tsx", "app/student/education/components/muscle/muscle-detail.tsx", "app/student/education/components/muscle/exercise-detail.tsx", "app/student/education/components/muscle/exercise-list.tsx", "app/student/education/components/lesson-filters.tsx", "app/student/education/components/lesson-list.tsx", "app/student/cardio/cardio-functional-page.tsx", "app/student/theme-test/page.tsx", "app/gym/theme-test/page.tsx", "app/welcome/page.tsx", "components/organisms/sections/shop-card.tsx", "components/organisms/sections/subscription/billing-period-selector.tsx", "components/organisms/sections/subscription/plan-card.tsx", "components/organisms/sections/subscription/subscription-status.tsx", "components/organisms/sections/subscription-section.tsx", "components/organisms/modals/edit-unit-modal.tsx", "components/organisms/modals/create-unit-modal.tsx", "components/organisms/modals/exercise-alternative-selector.tsx", "components/organisms/education/components/lesson-detail.tsx", "components/organisms/education/components/lesson-quiz.tsx", "components/organisms/education/components/muscle/exercise-detail.tsx", "components/organisms/workout/functional-workout.tsx", "components/organisms/home/home/level-progress-card.tsx", "components/ui/navigation-button-card.tsx", "components/ui/history-card.tsx", "components/molecules/cards/history-card.tsx", "components/molecules/cards/record-card.tsx", "app/gym/components/gym-student-detail.tsx"]
+      "usado_em": [
+        "app/gym/components/membership-plans-page.tsx",
+        "app/gym/components/maintenance-modal.tsx",
+        "app/gym/components/financial/financial-overview-tab.tsx",
+        "app/gym/components/financial/financial-coupons-tab.tsx",
+        "app/gym/components/financial/financial-referrals-tab.tsx",
+        "app/gym/components/financial/subscription-plans-selector.tsx",
+        "app/student/education/components/muscle/muscle-list.tsx",
+        "app/student/education/components/muscle/muscle-detail.tsx",
+        "app/student/education/components/muscle/exercise-detail.tsx",
+        "app/student/education/components/muscle/exercise-list.tsx",
+        "app/student/education/components/lesson-filters.tsx",
+        "app/student/education/components/lesson-list.tsx",
+        "app/student/cardio/cardio-functional-page.tsx",
+        "app/student/theme-test/page.tsx",
+        "app/gym/theme-test/page.tsx",
+        "app/welcome/page.tsx",
+        "components/organisms/sections/shop-card.tsx",
+        "components/organisms/sections/subscription/billing-period-selector.tsx",
+        "components/organisms/sections/subscription/plan-card.tsx",
+        "components/organisms/sections/subscription/subscription-status.tsx",
+        "components/organisms/sections/subscription-section.tsx",
+        "components/organisms/modals/edit-unit-modal.tsx",
+        "components/organisms/modals/create-unit-modal.tsx",
+        "components/organisms/modals/exercise-alternative-selector.tsx",
+        "components/organisms/education/components/lesson-detail.tsx",
+        "components/organisms/education/components/lesson-quiz.tsx",
+        "components/organisms/education/components/muscle/exercise-detail.tsx",
+        "components/organisms/workout/functional-workout.tsx",
+        "components/organisms/home/home/level-progress-card.tsx",
+        "components/ui/navigation-button-card.tsx",
+        "components/ui/history-card.tsx",
+        "components/molecules/cards/history-card.tsx",
+        "components/molecules/cards/record-card.tsx",
+        "app/gym/components/gym-student-detail.tsx"
+      ]
     },
     {
       "componente": "DuoModal",
@@ -38,82 +103,160 @@
     {
       "componente": "DuoStatCard",
       "arquivo": "components/duo/molecules/duo-stat-card.tsx",
-      "usado_em": ["app/student/page-content.tsx", "app/student/cardio/cardio-functional-page.tsx", "app/student/profile/profile-content.tsx", "app/student/payments/student-payments-page.tsx", "app/gym/components/gym-dashboard.tsx", "app/gym/components/gym-equipment.tsx", "app/gym/components/gym-equipment-detail.tsx", "app/gym/components/gym-gamification.tsx", "app/gym/components/gym-stats.tsx", "app/gym/components/gym-student-detail.tsx", "app/gym/components/financial/financial-overview-tab.tsx", "app/gym/equipment/[id]/page-content.tsx", "components/organisms/trackers/cardio-tracker.tsx", "components/organisms/trackers/weight-tracker.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "app/student/cardio/cardio-functional-page.tsx",
+        "app/student/profile/profile-content.tsx",
+        "app/student/payments/student-payments-page.tsx",
+        "app/gym/components/gym-dashboard.tsx",
+        "app/gym/components/gym-equipment.tsx",
+        "app/gym/components/gym-equipment-detail.tsx",
+        "app/gym/components/gym-gamification.tsx",
+        "app/gym/components/gym-stats.tsx",
+        "app/gym/components/gym-student-detail.tsx",
+        "app/gym/components/financial/financial-overview-tab.tsx",
+        "app/gym/equipment/[id]/page-content.tsx",
+        "components/organisms/trackers/cardio-tracker.tsx",
+        "components/organisms/trackers/weight-tracker.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoTabs",
       "arquivo": "components/duo/molecules/duo-tabs.tsx",
-      "usado_em": ["app/student/theme-test/page.tsx", "app/gym/theme-test/page.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/student/theme-test/page.tsx",
+        "app/gym/theme-test/page.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoInput",
       "arquivo": "components/duo/molecules/duo-input.tsx",
-      "usado_em": ["app/gym/components/membership-plans-page.tsx", "app/gym/components/maintenance-modal.tsx", "components/atoms/inputs/input.tsx", "components/molecules/forms/form-input.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/gym/components/membership-plans-page.tsx",
+        "app/gym/components/maintenance-modal.tsx",
+        "components/atoms/inputs/input.tsx",
+        "components/molecules/forms/form-input.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoSelect",
       "arquivo": "components/duo/molecules/duo-select.tsx",
-      "usado_em": ["app/gym/components/membership-plans-page.tsx", "app/gym/components/maintenance-modal.tsx", "app/student/education/components/lesson-filters.tsx", "components/atoms/inputs/select.tsx", "components/organisms/workout/functional-workout.tsx", "app/gym/components/gym-student-detail.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/gym/components/membership-plans-page.tsx",
+        "app/gym/components/maintenance-modal.tsx",
+        "app/student/education/components/lesson-filters.tsx",
+        "components/atoms/inputs/select.tsx",
+        "components/organisms/workout/functional-workout.tsx",
+        "app/gym/components/gym-student-detail.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "DuoAchievementCard",
       "arquivo": "components/duo/molecules/duo-achievement-card.tsx",
-      "usado_em": ["app/student/theme-test/page.tsx", "app/gym/theme-test/page.tsx", "components/organisms/trackers/nutrition-tracker.tsx", "components/duo/index.ts"]
+      "usado_em": [
+        "app/student/theme-test/page.tsx",
+        "app/gym/theme-test/page.tsx",
+        "components/organisms/trackers/nutrition-tracker.tsx",
+        "components/duo/index.ts"
+      ]
     },
     {
       "componente": "EducationPage",
       "arquivo": "components/organisms/education/education-page.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/education/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/education/index.ts"
+      ]
     },
     {
       "componente": "EducationalLessons",
       "arquivo": "components/organisms/education/educational-lessons.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/education/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/education/index.ts"
+      ]
     },
     {
       "componente": "MuscleExplorer",
       "arquivo": "components/organisms/education/muscle-explorer.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/education/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/education/index.ts"
+      ]
     },
     {
       "componente": "LessonDetail",
       "arquivo": "components/organisms/education/components/lesson-detail.tsx",
-      "usado_em": ["components/organisms/education/educational-lessons.tsx", "app/student/education/educational-lessons.tsx", "components/organisms/education/components/index.ts"]
+      "usado_em": [
+        "components/organisms/education/educational-lessons.tsx",
+        "app/student/education/educational-lessons.tsx",
+        "components/organisms/education/components/index.ts"
+      ]
     },
     {
       "componente": "LessonFilters",
       "arquivo": "components/organisms/education/components/lesson-filters.tsx",
-      "usado_em": ["components/organisms/education/educational-lessons.tsx", "app/student/education/educational-lessons.tsx", "components/organisms/education/components/index.ts"]
+      "usado_em": [
+        "components/organisms/education/educational-lessons.tsx",
+        "app/student/education/educational-lessons.tsx",
+        "components/organisms/education/components/index.ts"
+      ]
     },
     {
       "componente": "LessonList",
       "arquivo": "components/organisms/education/components/lesson-list.tsx",
-      "usado_em": ["components/organisms/education/educational-lessons.tsx", "app/student/education/educational-lessons.tsx", "components/organisms/education/components/index.ts"]
+      "usado_em": [
+        "components/organisms/education/educational-lessons.tsx",
+        "app/student/education/educational-lessons.tsx",
+        "components/organisms/education/components/index.ts"
+      ]
     },
     {
       "componente": "LessonQuiz",
       "arquivo": "components/organisms/education/components/lesson-quiz.tsx",
-      "usado_em": ["components/organisms/education/educational-lessons.tsx", "app/student/education/educational-lessons.tsx", "components/organisms/education/components/index.ts"]
+      "usado_em": [
+        "components/organisms/education/educational-lessons.tsx",
+        "app/student/education/educational-lessons.tsx",
+        "components/organisms/education/components/index.ts"
+      ]
     },
     {
       "componente": "MarkdownRenderer",
       "arquivo": "components/organisms/education/components/markdown-renderer.tsx",
-      "usado_em": ["components/organisms/education/components/lesson-detail.tsx", "app/student/education/components/lesson-detail.tsx", "components/organisms/education/components/index.ts"]
+      "usado_em": [
+        "components/organisms/education/components/lesson-detail.tsx",
+        "app/student/education/components/lesson-detail.tsx",
+        "components/organisms/education/components/index.ts"
+      ]
     },
     {
       "componente": "LevelProgressCard",
       "arquivo": "components/organisms/home/home/level-progress-card.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/home/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/home/index.ts"
+      ]
     },
     {
       "componente": "RecentWorkoutsCard",
       "arquivo": "components/organisms/home/home/recent-workouts-card.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/home/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/home/index.ts"
+      ]
     },
     {
       "componente": "WeightProgressCard",
       "arquivo": "components/organisms/home/home/weight-progress-card.tsx",
-      "usado_em": ["app/student/page-content.tsx", "app/gym/components/gym-student-detail.tsx", "components/organisms/home/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "app/gym/components/gym-student-detail.tsx",
+        "components/organisms/home/index.ts"
+      ]
     },
     {
       "componente": "ContinueWorkoutCard",
@@ -128,7 +271,10 @@
     {
       "componente": "AddMealModal",
       "arquivo": "components/organisms/modals/add-meal-modal.tsx",
-      "usado_em": ["app/student/diet/diet-page.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "app/student/diet/diet-page.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "CreateUnitModal",
@@ -143,7 +289,10 @@
     {
       "componente": "EditUnitModal",
       "arquivo": "components/organisms/modals/edit-unit-modal.tsx",
-      "usado_em": ["app/student/layout-content.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "app/student/layout-content.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "EditWeeklyPlanModal",
@@ -163,22 +312,34 @@
     {
       "componente": "EquipmentSearch",
       "arquivo": "components/organisms/modals/equipment-search.tsx",
-      "usado_em": ["app/gym/onboarding/steps/step4.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "app/gym/onboarding/steps/step4.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "ExerciseAlternativeSelector",
       "arquivo": "components/organisms/modals/exercise-alternative-selector.tsx",
-      "usado_em": ["components/organisms/workout/workout-modal.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "components/organisms/workout/workout-modal.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "ExerciseSearch",
       "arquivo": "components/organisms/modals/exercise-search.tsx",
-      "usado_em": ["components/organisms/modals/edit-unit-modal.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "components/organisms/modals/edit-unit-modal.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "FoodSearch",
       "arquivo": "components/organisms/modals/food-search.tsx",
-      "usado_em": ["app/student/diet/diet-page.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "app/student/diet/diet-page.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "FoodSearchChat",
@@ -198,12 +359,24 @@
     {
       "componente": "ModalContainer",
       "arquivo": "components/organisms/modals/modal-container.tsx",
-      "usado_em": ["components/organisms/modals/exercise-search.tsx", "components/organisms/modals/edit-unit-modal.tsx", "components/organisms/modals/edit-weekly-plan-modal.tsx", "app/student/components/student-membership-pix-modal.tsx", "app/gym/components/financial/pix-payment-modal.tsx"]
+      "usado_em": [
+        "components/organisms/modals/exercise-search.tsx",
+        "components/organisms/modals/edit-unit-modal.tsx",
+        "components/organisms/modals/edit-weekly-plan-modal.tsx",
+        "app/student/components/student-membership-pix-modal.tsx",
+        "app/gym/components/financial/pix-payment-modal.tsx"
+      ]
     },
     {
       "componente": "ModalHeader",
       "arquivo": "components/organisms/modals/modal-header.tsx",
-      "usado_em": ["components/organisms/modals/exercise-search.tsx", "components/organisms/modals/edit-unit-modal.tsx", "components/organisms/modals/edit-weekly-plan-modal.tsx", "app/student/components/student-membership-pix-modal.tsx", "app/gym/components/financial/pix-payment-modal.tsx"]
+      "usado_em": [
+        "components/organisms/modals/exercise-search.tsx",
+        "components/organisms/modals/edit-unit-modal.tsx",
+        "components/organisms/modals/edit-weekly-plan-modal.tsx",
+        "app/student/components/student-membership-pix-modal.tsx",
+        "app/gym/components/financial/pix-payment-modal.tsx"
+      ]
     },
     {
       "componente": "SearchInput",
@@ -213,17 +386,26 @@
     {
       "componente": "StreakModal",
       "arquivo": "components/organisms/modals/streak-modal.tsx",
-      "usado_em": ["components/organisms/navigation/app-header.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "components/organisms/navigation/app-header.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "SubscriptionCancelDialog",
       "arquivo": "components/organisms/modals/subscription-cancel-dialog.tsx",
-      "usado_em": ["app/student/payments/student-payments-page.tsx", "components/organisms/modals/index.ts"]
+      "usado_em": [
+        "app/student/payments/student-payments-page.tsx",
+        "components/organisms/modals/index.ts"
+      ]
     },
     {
       "componente": "WorkoutChat",
       "arquivo": "components/organisms/modals/workout-chat.tsx",
-      "usado_em": ["components/organisms/modals/edit-unit-modal.tsx", "components/organisms/modals/edit-weekly-plan-modal.tsx"]
+      "usado_em": [
+        "components/organisms/modals/edit-unit-modal.tsx",
+        "components/organisms/modals/edit-weekly-plan-modal.tsx"
+      ]
     },
     {
       "componente": "WorkoutPreviewCard",
@@ -233,32 +415,50 @@
     {
       "componente": "AppBottomNav",
       "arquivo": "components/organisms/navigation/app-bottom-nav.tsx",
-      "usado_em": ["components/templates/layouts/app-layout.tsx", "components/organisms/navigation/index.ts"]
+      "usado_em": [
+        "components/templates/layouts/app-layout.tsx",
+        "components/organisms/navigation/index.ts"
+      ]
     },
     {
       "componente": "AppHeader",
       "arquivo": "components/organisms/navigation/app-header.tsx",
-      "usado_em": ["components/templates/layouts/app-layout.tsx", "components/organisms/navigation/index.ts"]
+      "usado_em": [
+        "components/templates/layouts/app-layout.tsx",
+        "components/organisms/navigation/index.ts"
+      ]
     },
     {
       "componente": "BackButton",
       "arquivo": "components/organisms/navigation/back-button.tsx",
-      "usado_em": ["app/student/cardio/cardio-functional-page.tsx", "components/organisms/navigation/index.ts"]
+      "usado_em": [
+        "app/student/cardio/cardio-functional-page.tsx",
+        "components/organisms/navigation/index.ts"
+      ]
     },
     {
       "componente": "GymMoreMenu",
       "arquivo": "components/organisms/navigation/gym-more-menu.tsx",
-      "usado_em": ["app/gym/page-content.tsx", "components/organisms/navigation/index.ts"]
+      "usado_em": [
+        "app/gym/page-content.tsx",
+        "components/organisms/navigation/index.ts"
+      ]
     },
     {
       "componente": "GymSelector",
       "arquivo": "components/organisms/navigation/gym-selector.tsx",
-      "usado_em": ["components/organisms/navigation/app-header.tsx", "components/organisms/navigation/index.ts"]
+      "usado_em": [
+        "components/organisms/navigation/app-header.tsx",
+        "components/organisms/navigation/index.ts"
+      ]
     },
     {
       "componente": "AppUpdatingScreen",
       "arquivo": "components/organisms/pwa/app-updating-screen.tsx",
-      "usado_em": ["components/organisms/pwa/app-updating-screen-wrapper.tsx", "components/organisms/pwa/index.ts"]
+      "usado_em": [
+        "components/organisms/pwa/app-updating-screen-wrapper.tsx",
+        "components/organisms/pwa/index.ts"
+      ]
     },
     {
       "componente": "AppUpdatingScreenWrapper",
@@ -273,7 +473,10 @@
     {
       "componente": "GymMap",
       "arquivo": "components/organisms/sections/gym-map.tsx",
-      "usado_em": ["app/student/page-content.tsx", "components/organisms/sections/index.ts"]
+      "usado_em": [
+        "app/student/page-content.tsx",
+        "components/organisms/sections/index.ts"
+      ]
     },
     {
       "componente": "ShopCard",
@@ -283,22 +486,32 @@
     {
       "componente": "SubscriptionSection",
       "arquivo": "components/organisms/sections/subscription-section.tsx",
-      "usado_em": ["app/gym/components/financial/financial-subscription-tab.tsx", "app/student/payments/student-payments-page.tsx", "components/organisms/sections/index.ts"]
+      "usado_em": [
+        "app/gym/components/financial/financial-subscription-tab.tsx",
+        "app/student/payments/student-payments-page.tsx",
+        "components/organisms/sections/index.ts"
+      ]
     },
     {
       "componente": "BillingPeriodSelector",
       "arquivo": "components/organisms/sections/subscription/billing-period-selector.tsx",
-      "usado_em": ["components/organisms/sections/subscription/plans-selector.tsx"]
+      "usado_em": [
+        "components/organisms/sections/subscription/plans-selector.tsx"
+      ]
     },
     {
       "componente": "PlanCard",
       "arquivo": "components/organisms/sections/subscription/plan-card.tsx",
-      "usado_em": ["components/organisms/sections/subscription/plans-selector.tsx"]
+      "usado_em": [
+        "components/organisms/sections/subscription/plans-selector.tsx"
+      ]
     },
     {
       "componente": "PlanFeatures",
       "arquivo": "components/organisms/sections/subscription/plan-features.tsx",
-      "usado_em": ["components/organisms/sections/subscription/plans-selector.tsx"]
+      "usado_em": [
+        "components/organisms/sections/subscription/plans-selector.tsx"
+      ]
     },
     {
       "componente": "PlansSelector",
@@ -318,32 +531,51 @@
     {
       "componente": "CardioTracker",
       "arquivo": "components/organisms/trackers/cardio-tracker.tsx",
-      "usado_em": ["app/student/cardio/cardio-functional-page.tsx", "components/organisms/trackers/index.ts"]
+      "usado_em": [
+        "app/student/cardio/cardio-functional-page.tsx",
+        "components/organisms/trackers/index.ts"
+      ]
     },
     {
       "componente": "NutritionTracker",
       "arquivo": "components/organisms/trackers/nutrition-tracker.tsx",
-      "usado_em": ["app/student/diet/diet-page.tsx", "app/gym/components/gym-student-detail.tsx", "components/organisms/trackers/index.ts"]
+      "usado_em": [
+        "app/student/diet/diet-page.tsx",
+        "app/gym/components/gym-student-detail.tsx",
+        "components/organisms/trackers/index.ts"
+      ]
     },
     {
       "componente": "WeightTracker",
       "arquivo": "components/organisms/trackers/weight-tracker.tsx",
-      "usado_em": ["components/organisms/workout/workout/weight-tracker-overlay.tsx", "components/organisms/trackers/index.ts"]
+      "usado_em": [
+        "components/organisms/workout/workout/weight-tracker-overlay.tsx",
+        "components/organisms/trackers/index.ts"
+      ]
     },
     {
       "componente": "FunctionalWorkout",
       "arquivo": "components/organisms/workout/functional-workout.tsx",
-      "usado_em": ["app/student/cardio/cardio-functional-page.tsx", "components/organisms/workout/index.ts"]
+      "usado_em": [
+        "app/student/cardio/cardio-functional-page.tsx",
+        "components/organisms/workout/index.ts"
+      ]
     },
     {
       "componente": "WorkoutModal",
       "arquivo": "components/organisms/workout/workout-modal.tsx",
-      "usado_em": ["app/student/layout-content.tsx", "components/organisms/workout/index.ts"]
+      "usado_em": [
+        "app/student/layout-content.tsx",
+        "components/organisms/workout/index.ts"
+      ]
     },
     {
       "componente": "WorkoutNode",
       "arquivo": "components/organisms/workout/workout-node.tsx",
-      "usado_em": ["app/student/learn/learning-path.tsx", "components/organisms/workout/index.ts"]
+      "usado_em": [
+        "app/student/learn/learning-path.tsx",
+        "components/organisms/workout/index.ts"
+      ]
     },
     {
       "componente": "CardioConfigModal",
@@ -383,7 +615,11 @@
     {
       "componente": "AppLayout",
       "arquivo": "components/templates/layouts/app-layout.tsx",
-      "usado_em": ["app/gym/layout-content.tsx", "app/student/layout-content.tsx", "components/templates/layouts/index.ts"]
+      "usado_em": [
+        "app/gym/layout-content.tsx",
+        "app/student/layout-content.tsx",
+        "components/templates/layouts/index.ts"
+      ]
     },
     {
       "componente": "Badge",
@@ -393,27 +629,44 @@
     {
       "componente": "StatusBadge",
       "arquivo": "components/molecules/badges/status-badge.tsx",
-      "usado_em": ["components/molecules/cards/history-card.tsx", "components/ui/history-card.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "components/molecules/cards/history-card.tsx",
+        "components/ui/history-card.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "SubscriptionBadge",
       "arquivo": "components/molecules/badges/subscription-badge.tsx",
-      "usado_em": ["components/ui/_compat.ts", "components/molecules/badges/index.ts"]
+      "usado_em": [
+        "components/ui/_compat.ts",
+        "components/molecules/badges/index.ts"
+      ]
     },
     {
       "componente": "HistoryCard",
       "arquivo": "components/molecules/cards/history-card.tsx",
-      "usado_em": ["app/student/profile/profile-content.tsx", "components/ui/history-card.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "app/student/profile/profile-content.tsx",
+        "components/ui/history-card.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "MealCard",
       "arquivo": "components/molecules/cards/meal-card.tsx",
-      "usado_em": ["components/organisms/trackers/nutrition-tracker.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "components/organisms/trackers/nutrition-tracker.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "RecordCard",
       "arquivo": "components/molecules/cards/record-card.tsx",
-      "usado_em": ["app/student/profile/profile-content.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "app/student/profile/profile-content.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "StatCard",
@@ -423,17 +676,44 @@
     {
       "componente": "StepCard",
       "arquivo": "components/molecules/cards/step-card.tsx",
-      "usado_em": ["app/gym/onboarding/steps/step1.tsx", "app/gym/onboarding/steps/step2.tsx", "app/gym/onboarding/steps/step3.tsx", "app/gym/onboarding/steps/step4.tsx", "app/student/onboarding/steps/step1.tsx", "app/student/onboarding/steps/step2.tsx", "app/student/onboarding/steps/step3.tsx", "app/student/onboarding/steps/step4.tsx", "app/student/onboarding/steps/step5.tsx", "app/student/onboarding/steps/step6.tsx", "app/student/onboarding/steps/step7.tsx", "app/student/onboarding/steps/consolidated-step1.tsx", "app/student/onboarding/steps/consolidated-step3.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "app/gym/onboarding/steps/step1.tsx",
+        "app/gym/onboarding/steps/step2.tsx",
+        "app/gym/onboarding/steps/step3.tsx",
+        "app/gym/onboarding/steps/step4.tsx",
+        "app/student/onboarding/steps/step1.tsx",
+        "app/student/onboarding/steps/step2.tsx",
+        "app/student/onboarding/steps/step3.tsx",
+        "app/student/onboarding/steps/step4.tsx",
+        "app/student/onboarding/steps/step5.tsx",
+        "app/student/onboarding/steps/step6.tsx",
+        "app/student/onboarding/steps/step7.tsx",
+        "app/student/onboarding/steps/consolidated-step1.tsx",
+        "app/student/onboarding/steps/consolidated-step3.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "WaterIntakeCard",
       "arquivo": "components/molecules/cards/water-intake-card.tsx",
-      "usado_em": ["components/organisms/trackers/nutrition-tracker.tsx", "components/ui/_compat.ts"]
+      "usado_em": [
+        "components/organisms/trackers/nutrition-tracker.tsx",
+        "components/ui/_compat.ts"
+      ]
     },
     {
       "componente": "FormInput",
       "arquivo": "components/molecules/forms/form-input.tsx",
-      "usado_em": ["app/gym/onboarding/steps/step1.tsx", "app/gym/onboarding/steps/step2.tsx", "app/gym/onboarding/steps/step3.tsx", "app/student/onboarding/steps/step1.tsx", "app/student/onboarding/steps/step6.tsx", "app/student/onboarding/steps/consolidated-step1.tsx", "components/molecules/limitation-selector.tsx", "components/molecules/forms/form-input.tsx"]
+      "usado_em": [
+        "app/gym/onboarding/steps/step1.tsx",
+        "app/gym/onboarding/steps/step2.tsx",
+        "app/gym/onboarding/steps/step3.tsx",
+        "app/student/onboarding/steps/step1.tsx",
+        "app/student/onboarding/steps/step6.tsx",
+        "app/student/onboarding/steps/consolidated-step1.tsx",
+        "components/molecules/limitation-selector.tsx",
+        "components/molecules/forms/form-input.tsx"
+      ]
     },
     {
       "componente": "Field",
@@ -453,17 +733,32 @@
     {
       "componente": "Label",
       "arquivo": "components/molecules/forms/label.tsx",
-      "usado_em": ["components/molecules/forms/form.tsx", "components/molecules/forms/field.tsx", "app/gym/components/add-equipment-modal.tsx", "app/gym/academias/page-content.tsx", "app/gym/components/gym-settings.tsx", "app/gym/components/financial/add-expense-modal.tsx", "components/ui/form.tsx", "components/ui/field.tsx"]
+      "usado_em": [
+        "components/molecules/forms/form.tsx",
+        "components/molecules/forms/field.tsx",
+        "app/gym/components/add-equipment-modal.tsx",
+        "app/gym/academias/page-content.tsx",
+        "app/gym/components/gym-settings.tsx",
+        "app/gym/components/financial/add-expense-modal.tsx",
+        "components/ui/form.tsx",
+        "components/ui/field.tsx"
+      ]
     },
     {
       "componente": "LimitationSelector",
       "arquivo": "components/molecules/limitation-selector.tsx",
-      "usado_em": ["app/student/onboarding/steps/step7.tsx", "app/student/onboarding/steps/consolidated-step3.tsx"]
+      "usado_em": [
+        "app/student/onboarding/steps/step7.tsx",
+        "app/student/onboarding/steps/consolidated-step3.tsx"
+      ]
     },
     {
       "componente": "RelativeTime",
       "arquivo": "components/molecules/relative-time.tsx",
-      "usado_em": ["app/gym/equipment/[id]/page-content.tsx", "app/gym/components/gym-dashboard.tsx"]
+      "usado_em": [
+        "app/gym/equipment/[id]/page-content.tsx",
+        "app/gym/components/gym-dashboard.tsx"
+      ]
     },
     {
       "componente": "selectors (DuoSelect re-export)",

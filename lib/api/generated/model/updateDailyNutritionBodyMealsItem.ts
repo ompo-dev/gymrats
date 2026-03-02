@@ -5,8 +5,8 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { UpdateDailyNutritionBodyMealsItemFoodsItem } from './updateDailyNutritionBodyMealsItemFoodsItem';
-import type { UpdateDailyNutritionBodyMealsItemType } from './updateDailyNutritionBodyMealsItemType';
+import type { UpdateDailyNutritionBodyMealsItemFoodsItem } from "./updateDailyNutritionBodyMealsItemFoodsItem";
+import type { UpdateDailyNutritionBodyMealsItemType } from "./updateDailyNutritionBodyMealsItemType";
 
 export type UpdateDailyNutritionBodyMealsItem = {
   name?: string;

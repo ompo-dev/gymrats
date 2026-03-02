@@ -12,12 +12,12 @@ import { use } from "react";
  * Use isso em componentes client-side que recebem params como Promise
  */
 export function useParams<T extends Record<string, string>>(
-	params: Promise<T> | T,
+  params: Promise<T> | T,
 ): T {
-	if (params instanceof Promise) {
-		return use(params);
-	}
-	return params;
+  if (params instanceof Promise) {
+    return use(params);
+  }
+  return params;
 }
 
 /**
@@ -25,12 +25,12 @@ export function useParams<T extends Record<string, string>>(
  * Use isso em componentes client-side que recebem searchParams como Promise
  */
 export function useSearchParams(
-	searchParams: Promise<URLSearchParams> | URLSearchParams,
+  searchParams: Promise<URLSearchParams> | URLSearchParams,
 ): URLSearchParams {
-	if (searchParams instanceof Promise) {
-		return use(searchParams);
-	}
-	return searchParams;
+  if (searchParams instanceof Promise) {
+    return use(searchParams);
+  }
+  return searchParams;
 }
 
 /**
@@ -38,12 +38,12 @@ export function useSearchParams(
  * Use await em vez de use() em server components
  */
 export async function awaitParams<T extends Record<string, string>>(
-	params: Promise<T> | T,
+  params: Promise<T> | T,
 ): Promise<T> {
-	if (params instanceof Promise) {
-		return await params;
-	}
-	return params;
+  if (params instanceof Promise) {
+    return await params;
+  }
+  return params;
 }
 
 /**
@@ -51,10 +51,10 @@ export async function awaitParams<T extends Record<string, string>>(
  * Use await em vez de use() em server components
  */
 export async function awaitSearchParams(
-	searchParams: Promise<URLSearchParams> | URLSearchParams,
+  searchParams: Promise<URLSearchParams> | URLSearchParams,
 ): Promise<URLSearchParams> {
-	if (searchParams instanceof Promise) {
-		return await searchParams;
-	}
-	return searchParams;
+  if (searchParams instanceof Promise) {
+    return await searchParams;
+  }
+  return searchParams;
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { Crown, Gift } from "lucide-react";
-import { DuoButton } from "@/components/duo";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface SubscriptionStatusProps {
@@ -303,18 +302,19 @@ function SubscriptionStatusSimple({
                       {subscription.activeStudents}
                     </p>
                   </div>
-				{subscription.totalAmount !== undefined && subscription.totalAmount > 0 && (
-					<div>
-						<p className="text-xs text-duo-gray-dark">
-							{subscription.billingPeriod === "annual"
-								? "Valor anual"
-								: "Valor mensal"}
-						</p>
-						<p className="text-lg font-bold text-duo-green">
-							R$ {subscription.totalAmount.toFixed(2)}
-						</p>
-					</div>
-				)}
+                  {subscription.totalAmount !== undefined &&
+                    subscription.totalAmount > 0 && (
+                      <div>
+                        <p className="text-xs text-duo-gray-dark">
+                          {subscription.billingPeriod === "annual"
+                            ? "Valor anual"
+                            : "Valor mensal"}
+                        </p>
+                        <p className="text-lg font-bold text-duo-green">
+                          R$ {subscription.totalAmount.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
                 </div>
               )}
             <div className="flex items-center justify-between text-sm">
@@ -327,7 +327,9 @@ function SubscriptionStatusSimple({
                 {subscription.source === "GYM_ENTERPRISE"
                   ? "Vitalício via academia"
                   : subscription.currentPeriodEnd != null
-                    ? new Date(subscription.currentPeriodEnd).toLocaleDateString("pt-BR")
+                    ? new Date(
+                        subscription.currentPeriodEnd,
+                      ).toLocaleDateString("pt-BR")
                     : "—"}
               </span>
             </div>

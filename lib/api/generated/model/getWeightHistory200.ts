@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { WeightHistory } from './weightHistory';
+import type { WeightHistory } from "./weightHistory";
 
 export type GetWeightHistory200 = {
   history?: WeightHistory[];

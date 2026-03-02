@@ -33,7 +33,7 @@ export class StudentProgressService {
       if (!workoutDays.has(todayStr)) {
         checkDate.setDate(checkDate.getDate() - 1);
       }
-      
+
       while (true) {
         const dateStr = checkDate.toISOString().split("T")[0];
         if (workoutDays.has(dateStr)) {
@@ -68,8 +68,8 @@ export class StudentProgressService {
       });
     }
 
-    let newTotalXP = (progress.totalXP || 0) + amount;
-    let newTodayXP = (progress.todayXP || 0) + amount;
+    const newTotalXP = (progress.totalXP || 0) + amount;
+    const newTodayXP = (progress.todayXP || 0) + amount;
     let newLevel = progress.currentLevel || 1;
     let newXPToNextLevel = progress.xpToNextLevel || 100;
 
@@ -98,17 +98,21 @@ export class StudentProgressService {
       where: { studentId },
     });
 
-    const calculatedStreak = await this.calculateStreak(studentId);
-    
+    const calculatedStreak =
+      await StudentProgressService.calculateStreak(studentId);
+
     // Sincronizar streak no banco se necessário
     if (progress && calculatedStreak !== (progress.currentStreak || 0)) {
-        await db.studentProgress.update({
-            where: { studentId },
-            data: { 
-                currentStreak: calculatedStreak,
-                longestStreak: Math.max(calculatedStreak, progress.longestStreak || 0)
-            },
-        });
+      await db.studentProgress.update({
+        where: { studentId },
+        data: {
+          currentStreak: calculatedStreak,
+          longestStreak: Math.max(
+            calculatedStreak,
+            progress.longestStreak || 0,
+          ),
+        },
+      });
     }
 
     // Buscar achievements desbloqueados
@@ -145,7 +149,9 @@ export class StudentProgressService {
 
     return {
       currentStreak: calculatedStreak,
-      longestStreak: progress ? Math.max(calculatedStreak, progress.longestStreak || 0) : 0,
+      longestStreak: progress
+        ? Math.max(calculatedStreak, progress.longestStreak || 0)
+        : 0,
       totalXP: progress?.totalXP || 0,
       currentLevel: progress?.currentLevel || 1,
       xpToNextLevel: progress?.xpToNextLevel || 100,
@@ -154,14 +160,15 @@ export class StudentProgressService {
       achievements,
       weeklyXP,
       dailyGoalXP: progress?.dailyGoalXP || 50,
-      lastActivityDate: progress?.lastActivityDate?.toISOString() || new Date().toISOString(),
+      lastActivityDate:
+        progress?.lastActivityDate?.toISOString() || new Date().toISOString(),
     };
   }
 
   /**
    * Calcula o ranking do aluno baseado no XP total
    */
-  static async getRanking(studentId: string, totalXP: number) {
+  static async getRanking(_studentId: string, totalXP: number) {
     try {
       const studentsWithMoreXP = await db.studentProgress.count({
         where: { totalXP: { gt: totalXP } },
@@ -172,7 +179,7 @@ export class StudentProgressService {
       if (totalStudents > 0) {
         return Math.round((studentsWithMoreXP / totalStudents) * 100);
       }
-    } catch (e) {}
+    } catch (_e) {}
     return null;
   }
 }

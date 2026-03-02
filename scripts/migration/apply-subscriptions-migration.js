@@ -8,12 +8,12 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function applyMigration() {
-	try {
-		console.log("📦 Aplicando migration de assinaturas...\n");
+  try {
+    console.log("📦 Aplicando migration de assinaturas...\n");
 
-		const commands = [
-			// Criar tabela de assinaturas de alunos
-			`CREATE TABLE IF NOT EXISTS "subscriptions" (
+    const commands = [
+      // Criar tabela de assinaturas de alunos
+      `CREATE TABLE IF NOT EXISTS "subscriptions" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "studentId" TEXT NOT NULL UNIQUE,
         "plan" TEXT NOT NULL DEFAULT 'free',
@@ -31,8 +31,8 @@ async function applyMigration() {
         CONSTRAINT "subscriptions_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "students" ("id") ON DELETE CASCADE ON UPDATE CASCADE
       )`,
 
-			// Criar tabela de assinaturas de academias
-			`CREATE TABLE IF NOT EXISTS "gym_subscriptions" (
+      // Criar tabela de assinaturas de academias
+      `CREATE TABLE IF NOT EXISTS "gym_subscriptions" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "gymId" TEXT NOT NULL UNIQUE,
         "plan" TEXT NOT NULL,
@@ -53,8 +53,8 @@ async function applyMigration() {
         CONSTRAINT "gym_subscriptions_gymId_fkey" FOREIGN KEY ("gymId") REFERENCES "gyms" ("id") ON DELETE CASCADE ON UPDATE CASCADE
       )`,
 
-			// Criar tabela de features premium
-			`CREATE TABLE IF NOT EXISTS "subscription_features" (
+      // Criar tabela de features premium
+      `CREATE TABLE IF NOT EXISTS "subscription_features" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "featureKey" TEXT NOT NULL UNIQUE,
         "name" TEXT NOT NULL,
@@ -65,8 +65,8 @@ async function applyMigration() {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`,
 
-			// Criar tabela de pagamentos
-			`CREATE TABLE IF NOT EXISTS "subscription_payments" (
+      // Criar tabela de pagamentos
+      `CREATE TABLE IF NOT EXISTS "subscription_payments" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "subscriptionId" TEXT,
         "gymSubscriptionId" TEXT,
@@ -81,11 +81,11 @@ async function applyMigration() {
         "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
       )`,
 
-			// Adicionar coluna billingPeriod se não existir (para tabelas já criadas)
-			`ALTER TABLE "gym_subscriptions" ADD COLUMN IF NOT EXISTS "billingPeriod" TEXT DEFAULT 'monthly'`,
+      // Adicionar coluna billingPeriod se não existir (para tabelas já criadas)
+      `ALTER TABLE "gym_subscriptions" ADD COLUMN IF NOT EXISTS "billingPeriod" TEXT DEFAULT 'monthly'`,
 
-			// Inserir features premium padrão
-			`INSERT INTO "subscription_features" ("id", "featureKey", "name", "description", "category", "icon") VALUES
+      // Inserir features premium padrão
+      `INSERT INTO "subscription_features" ("id", "featureKey", "name", "description", "category", "icon") VALUES
         ('feat_ai_workout', 'ai_workout', 'Gerador de Treinos com IA', 'Crie treinos personalizados usando inteligência artificial', 'ai', 'sparkles'),
         ('feat_ai_diet', 'ai_diet', 'Gerador de Dietas com IA', 'Crie planos alimentares personalizados usando IA', 'ai', 'utensils'),
         ('feat_posture_analysis', 'posture_analysis', 'Análise de Postura', 'Análise avançada de forma e postura com IA', 'ai', 'scan'),
@@ -93,42 +93,42 @@ async function applyMigration() {
         ('feat_nutrition', 'nutrition', 'Consultoria Nutricional', 'Planos alimentares ilimitados e ajustes nutricionais', 'nutrition', 'apple'),
         ('feat_advanced_reports', 'advanced_reports', 'Relatórios Avançados', 'Análise detalhada de progresso com insights de IA', 'reports', 'bar-chart')
       ON CONFLICT ("id") DO NOTHING`,
-		];
+    ];
 
-		console.log(`Executando ${commands.length} comandos SQL...\n`);
+    console.log(`Executando ${commands.length} comandos SQL...\n`);
 
-		for (let i = 0; i < commands.length; i++) {
-			try {
-				await prisma.$executeRawUnsafe(commands[i]);
-				console.log(
-					`✅ Comando ${i + 1}/${commands.length} executado com sucesso`,
-				);
-			} catch (error) {
-				if (
-					error.message.includes("already exists") ||
-					error.message.includes("duplicate") ||
-					error.message.includes("UNIQUE constraint") ||
-					(error.message.includes("relation") &&
-						error.message.includes("already exists"))
-				) {
-					console.log(
-						`⚠️  Comando ${i + 1}/${commands.length} ignorado (já existe)`,
-					);
-				} else {
-					console.error(`❌ Erro no comando ${i + 1}:`, error.message);
-					throw error;
-				}
-			}
-		}
+    for (let i = 0; i < commands.length; i++) {
+      try {
+        await prisma.$executeRawUnsafe(commands[i]);
+        console.log(
+          `✅ Comando ${i + 1}/${commands.length} executado com sucesso`,
+        );
+      } catch (error) {
+        if (
+          error.message.includes("already exists") ||
+          error.message.includes("duplicate") ||
+          error.message.includes("UNIQUE constraint") ||
+          (error.message.includes("relation") &&
+            error.message.includes("already exists"))
+        ) {
+          console.log(
+            `⚠️  Comando ${i + 1}/${commands.length} ignorado (já existe)`,
+          );
+        } else {
+          console.error(`❌ Erro no comando ${i + 1}:`, error.message);
+          throw error;
+        }
+      }
+    }
 
-		console.log("\n✅ Migration aplicada com sucesso!");
-		console.log("📝 Execute: npx prisma generate");
-	} catch (error) {
-		console.error("❌ Erro ao aplicar migration:", error.message);
-		process.exit(1);
-	} finally {
-		await prisma.$disconnect();
-	}
+    console.log("\n✅ Migration aplicada com sucesso!");
+    console.log("📝 Execute: npx prisma generate");
+  } catch (error) {
+    console.error("❌ Erro ao aplicar migration:", error.message);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 applyMigration();

@@ -6,4 +6,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateWorkoutProgressExercisePartial200ExerciseLog = { [key: string]: unknown };
+export type UpdateWorkoutProgressExercisePartial200ExerciseLog = {
+  [key: string]: unknown;
+};

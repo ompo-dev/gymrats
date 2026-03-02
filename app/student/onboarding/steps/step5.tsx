@@ -130,12 +130,12 @@ export function Step5({ formData, setFormData }: StepProps) {
             </p>
           </div>
           <div className="flex items-center justify-center py-8">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="h-12 w-12 rounded-full border-4 border-duo-green border-t-transparent"
-          />
-        </div>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              className="h-12 w-12 rounded-full border-4 border-duo-green border-t-transparent"
+            />
+          </div>
         </DuoCard.Root>
       </motion.div>
     );
@@ -176,193 +176,195 @@ export function Step5({ formData, setFormData }: StepProps) {
           </p>
         </div>
         <div className="space-y-6">
-        {/* Resumo dos Valores Principais */}
-        <div className="grid grid-cols-2 gap-4">
+          {/* Resumo dos Valores Principais */}
+          <div className="grid grid-cols-2 gap-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+              className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+            >
+              <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
+                <Activity className="h-4 w-4" />
+                TMB (Basal)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-duo-green">
+                {calculation.bmr}
+              </div>
+              <div className="text-xs text-duo-fg-muted">kcal/dia</div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+            >
+              <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
+                <Zap className="h-4 w-4" />
+                TDEE (Total)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-duo-green">
+                {calculation.tdee}
+              </div>
+              <div className="text-xs text-duo-fg-muted">kcal/dia</div>
+            </motion.div>
+          </div>
+
+          {/* Objetivo Calórico */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-2xl border-2 border-duo-green bg-duo-green p-4 text-white"
           >
-            <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
-              <Activity className="h-4 w-4" />
-              TMB (Basal)
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <Target className="h-4 w-4" />
+                  Meta Calórica Diária
+                </div>
+                <div className="mt-1 text-3xl font-bold">
+                  {calculation.targetCalories} kcal
+                </div>
+                <div className="text-xs opacity-90">
+                  {goalLabel} {goalEmoji}
+                </div>
+              </div>
+              {calculation.metadata.goal === "cut" && (
+                <TrendingDown className="h-8 w-8" />
+              )}
+              {calculation.metadata.goal === "bulk" && (
+                <TrendingUp className="h-8 w-8" />
+              )}
+              {calculation.metadata.goal === "maintain" && (
+                <Activity className="h-8 w-8" />
+              )}
             </div>
-            <div className="mt-2 text-2xl font-bold text-duo-green">
-              {calculation.bmr}
-            </div>
-            <div className="text-xs text-duo-fg-muted">kcal/dia</div>
           </motion.div>
 
+          {/* Macronutrientes */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-2xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-4"
           >
-            <div className="flex items-center gap-2 text-sm font-bold text-duo-fg-muted">
-              <Zap className="h-4 w-4" />
-              TDEE (Total)
+            <h3 className="text-lg font-bold text-duo-fg">Macronutrientes</h3>
+
+            {/* Proteína */}
+            <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-duo-danger/20 p-2">
+                  <Beef className="h-5 w-5 text-duo-danger" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-duo-fg">Proteína</div>
+                  <div className="text-xs text-duo-fg-muted">
+                    {calculation.macroPercentages.protein}% •{" "}
+                    {calculation.macros.protein}g
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-duo-danger">
+                    {calculation.macros.protein}
+                  </div>
+                  <div className="text-xs text-duo-fg-muted">gramas</div>
+                </div>
+              </div>
             </div>
-            <div className="mt-2 text-2xl font-bold text-duo-green">
-              {calculation.tdee}
+
+            {/* Carboidratos */}
+            <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-duo-warning/20 p-2">
+                  <Wheat className="h-5 w-5 text-duo-warning" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-duo-fg">Carboidratos</div>
+                  <div className="text-xs text-duo-fg-muted">
+                    {calculation.macroPercentages.carbs}% •{" "}
+                    {calculation.macros.carbs}g
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-duo-warning">
+                    {calculation.macros.carbs}
+                  </div>
+                  <div className="text-xs text-duo-fg-muted">gramas</div>
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-duo-fg-muted">kcal/dia</div>
+
+            {/* Gorduras */}
+            <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-duo-accent/20 p-2">
+                  <Apple className="h-5 w-5 text-duo-accent" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-bold text-duo-fg">Gorduras</div>
+                  <div className="text-xs text-duo-fg-muted">
+                    {calculation.macroPercentages.fats}% •{" "}
+                    {calculation.macros.fats}g
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-duo-accent">
+                    {calculation.macros.fats}
+                  </div>
+                  <div className="text-xs text-duo-fg-muted">gramas</div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Erro de Validação */}
+          {validationError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border-2 border-duo-danger bg-duo-danger/10 p-4"
+            >
+              <p className="text-sm font-bold text-duo-danger">
+                {validationError}
+              </p>
+            </motion.div>
+          )}
+
+          {/* Informações Adicionais */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-4 text-xs text-duo-fg-muted"
+          >
+            <div className="space-y-1">
+              <div>
+                <strong>Nível de Atividade:</strong>{" "}
+                {calculation.metadata.activityLevel === "sedentary"
+                  ? "Sedentário"
+                  : calculation.metadata.activityLevel === "light"
+                    ? "Leve"
+                    : calculation.metadata.activityLevel === "moderate"
+                      ? "Moderado"
+                      : calculation.metadata.activityLevel === "active"
+                        ? "Ativo"
+                        : "Muito Ativo"}
+              </div>
+              <div>
+                <strong>Fórmula:</strong>{" "}
+                {calculation.metadata.formula === "mifflin-st-jeor"
+                  ? "Mifflin-St Jeor"
+                  : "Harris-Benedict"}
+              </div>
+              <div>
+                <strong>Fator de Atividade:</strong>{" "}
+                {calculation.activityFactor.toFixed(2)}x
+              </div>
+            </div>
           </motion.div>
         </div>
-
-        {/* Objetivo Calórico */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-2xl border-2 border-duo-green bg-duo-green p-4 text-white"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <Target className="h-4 w-4" />
-                Meta Calórica Diária
-              </div>
-              <div className="mt-1 text-3xl font-bold">
-                {calculation.targetCalories} kcal
-              </div>
-              <div className="text-xs opacity-90">
-                {goalLabel} {goalEmoji}
-              </div>
-            </div>
-            {calculation.metadata.goal === "cut" && (
-              <TrendingDown className="h-8 w-8" />
-            )}
-            {calculation.metadata.goal === "bulk" && (
-              <TrendingUp className="h-8 w-8" />
-            )}
-            {calculation.metadata.goal === "maintain" && (
-              <Activity className="h-8 w-8" />
-            )}
-          </div>
-        </motion.div>
-
-        {/* Macronutrientes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="space-y-4"
-        >
-          <h3 className="text-lg font-bold text-duo-fg">Macronutrientes</h3>
-
-          {/* Proteína */}
-          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-duo-danger/20 p-2">
-                <Beef className="h-5 w-5 text-duo-danger" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-duo-fg">Proteína</div>
-                <div className="text-xs text-duo-fg-muted">
-                  {calculation.macroPercentages.protein}% •{" "}
-                  {calculation.macros.protein}g
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-duo-danger">
-                  {calculation.macros.protein}
-                </div>
-                <div className="text-xs text-duo-fg-muted">gramas</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Carboidratos */}
-          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-duo-warning/20 p-2">
-                <Wheat className="h-5 w-5 text-duo-warning" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-duo-fg">Carboidratos</div>
-                <div className="text-xs text-duo-fg-muted">
-                  {calculation.macroPercentages.carbs}% •{" "}
-                  {calculation.macros.carbs}g
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-duo-warning">
-                  {calculation.macros.carbs}
-                </div>
-                <div className="text-xs text-duo-fg-muted">gramas</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Gorduras */}
-          <div className="rounded-xl border-2 border-duo-border bg-duo-bg-card p-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-duo-accent/20 p-2">
-                <Apple className="h-5 w-5 text-duo-accent" />
-              </div>
-              <div className="flex-1">
-                <div className="font-bold text-duo-fg">Gorduras</div>
-                <div className="text-xs text-duo-fg-muted">
-                  {calculation.macroPercentages.fats}% •{" "}
-                  {calculation.macros.fats}g
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-duo-accent">
-                  {calculation.macros.fats}
-                </div>
-                <div className="text-xs text-duo-fg-muted">gramas</div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Erro de Validação */}
-        {validationError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border-2 border-duo-danger bg-duo-danger/10 p-4"
-          >
-            <p className="text-sm font-bold text-duo-danger">{validationError}</p>
-          </motion.div>
-        )}
-
-        {/* Informações Adicionais */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="rounded-xl border-2 border-duo-border bg-duo-bg-elevated p-4 text-xs text-duo-fg-muted"
-        >
-          <div className="space-y-1">
-            <div>
-              <strong>Nível de Atividade:</strong>{" "}
-              {calculation.metadata.activityLevel === "sedentary"
-                ? "Sedentário"
-                : calculation.metadata.activityLevel === "light"
-                  ? "Leve"
-                  : calculation.metadata.activityLevel === "moderate"
-                    ? "Moderado"
-                    : calculation.metadata.activityLevel === "active"
-                      ? "Ativo"
-                      : "Muito Ativo"}
-            </div>
-            <div>
-              <strong>Fórmula:</strong>{" "}
-              {calculation.metadata.formula === "mifflin-st-jeor"
-                ? "Mifflin-St Jeor"
-                : "Harris-Benedict"}
-            </div>
-            <div>
-              <strong>Fator de Atividade:</strong>{" "}
-              {calculation.activityFactor.toFixed(2)}x
-            </div>
-          </div>
-        </motion.div>
-      </div>
       </DuoCard.Root>
     </motion.div>
   );

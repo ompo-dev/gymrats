@@ -1,17 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { ZodType } from "zod";
+import { type NextRequest, NextResponse } from "next/server";
+import type { ZodType } from "zod";
 import { log, recordApiRequest } from "@/lib/observability";
 import { requireGym, requireStudent } from "../middleware/auth.middleware";
 import {
-	completeIdempotencyKey,
-	failIdempotencyKey,
-	getReplayRecord,
-	reserveIdempotencyKey,
+  completeIdempotencyKey,
+  failIdempotencyKey,
+  getReplayRecord,
+  reserveIdempotencyKey,
 } from "./idempotency-store";
 
 type AuthStrategy = "gym" | "student" | "none";
 
-interface HandlerOptions<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>> {
+interface HandlerOptions<
+  TBody = Record<string, string | number | boolean | object | null>,
+  TQuery = Record<string, string | number | boolean | object | null>,
+> {
   auth?: AuthStrategy;
   schema?: {
     body?: ZodType<TBody, object, object>;
@@ -28,7 +31,10 @@ interface AuthUser {
   [key: string]: string | number | boolean | object | null | undefined;
 }
 
-type SafeHandlerContext<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>> = {
+type SafeHandlerContext<
+  TBody = Record<string, string | number | boolean | object | null>,
+  TQuery = Record<string, string | number | boolean | object | null>,
+> = {
   req: NextRequest;
   body: TBody;
   query: TQuery;
@@ -49,11 +55,19 @@ type SafeHandlerContext<TBody = Record<string, string | number | boolean | objec
 /**
  * Creates a safe API handler with built-in auth, validation, and error handling
  */
-export function createSafeHandler<TBody = Record<string, string | number | boolean | object | null>, TQuery = Record<string, string | number | boolean | object | null>>(
+export function createSafeHandler<
+  TBody = Record<string, string | number | boolean | object | null>,
+  TQuery = Record<string, string | number | boolean | object | null>,
+>(
   handler: (ctx: SafeHandlerContext<TBody, TQuery>) => Promise<NextResponse>,
-  options: HandlerOptions<TBody, TQuery> = {}
+  options: HandlerOptions<TBody, TQuery> = {},
 ) {
-  return async (req: NextRequest, routeContext?: { params?: Promise<Record<string, string>> | Record<string, string> }) => {
+  return async (
+    req: NextRequest,
+    routeContext?: {
+      params?: Promise<Record<string, string>> | Record<string, string>;
+    },
+  ) => {
     const startedAt = Date.now();
     const pathname = req.nextUrl.pathname;
     const method = req.method.toUpperCase();
@@ -90,7 +104,7 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
           studentId: result.user.studentId,
           session: result.session,
           user: result.user,
-          student: result.user.student
+          student: result.user.student,
         };
       }
 
@@ -124,7 +138,14 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
         !!req.headers.get("x-idempotency-key");
 
       if (!shouldUseIdempotency) {
-        const response = await handler({ req, body, query, gymContext, studentContext, params });
+        const response = await handler({
+          req,
+          body,
+          query,
+          gymContext,
+          studentContext,
+          params,
+        });
         const latencyMs = Date.now() - startedAt;
         response.headers.set("X-Response-Time-Ms", String(latencyMs));
         recordApiRequest({
@@ -143,12 +164,17 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
       const replay = await getReplayRecord(idemKey);
       if (replay && replay.status === "completed" && replay.response_status) {
         try {
-          const parsedBody = replay.response_body ? JSON.parse(replay.response_body) : null;
+          const parsedBody = replay.response_body
+            ? JSON.parse(replay.response_body)
+            : null;
           const replayResponse = NextResponse.json(parsedBody, {
             status: replay.response_status,
           });
           replayResponse.headers.set("X-Idempotency-Replay", "true");
-          replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
+          replayResponse.headers.set(
+            "X-Response-Time-Ms",
+            String(Date.now() - startedAt),
+          );
           recordApiRequest({
             method: logMetaBase.method,
             path: logMetaBase.route,
@@ -162,7 +188,10 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
             { status: replay.response_status },
           );
           replayResponse.headers.set("X-Idempotency-Replay", "true");
-          replayResponse.headers.set("X-Response-Time-Ms", String(Date.now() - startedAt));
+          replayResponse.headers.set(
+            "X-Response-Time-Ms",
+            String(Date.now() - startedAt),
+          );
           recordApiRequest({
             method: logMetaBase.method,
             path: logMetaBase.route,
@@ -188,7 +217,14 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
       });
 
       try {
-        const response = await handler({ req, body, query, gymContext, studentContext, params });
+        const response = await handler({
+          req,
+          body,
+          query,
+          gymContext,
+          studentContext,
+          params,
+        });
         const responseClone = response.clone();
         const responseText = await responseClone.text();
         await completeIdempotencyKey({
@@ -213,7 +249,11 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
         throw innerError;
       }
     } catch (error) {
-      const err = error as { name?: string; message?: string; errors?: Array<{ path?: string[]; message?: string }> };
+      const err = error as {
+        name?: string;
+        message?: string;
+        errors?: Array<{ path?: string[]; message?: string }>;
+      };
       const status = err?.name === "ZodError" ? 400 : 500;
       const latencyMs = Date.now() - startedAt;
       log.error("[SafeHandler] Error", { error: err?.message, ...logMetaBase });
@@ -224,17 +264,17 @@ export function createSafeHandler<TBody = Record<string, string | number | boole
         latencyMs,
         error: err?.message || "unknown",
       });
-      
+
       if (err?.name === "ZodError") {
         return NextResponse.json(
           { error: "Erro de validação", details: err.errors },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
       return NextResponse.json(
         { error: err?.message || "Erro interno do servidor" },
-        { status: 500 }
+        { status: 500 },
       );
     }
   };

@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type SubscriptionPlan = typeof SubscriptionPlan[keyof typeof SubscriptionPlan];
-
+export type SubscriptionPlan =
+  (typeof SubscriptionPlan)[keyof typeof SubscriptionPlan];
 
 export const SubscriptionPlan = {
-  premium: 'premium',
-  monthly: 'monthly',
-  annual: 'annual',
+  premium: "premium",
+  monthly: "monthly",
+  annual: "annual",
 } as const;

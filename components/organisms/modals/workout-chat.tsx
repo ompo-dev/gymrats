@@ -12,13 +12,19 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
+import { useAbility } from "@/hooks/use-ability";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
+import { Features } from "@/lib/access-control/features";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
-import { getAuthToken } from "@/lib/auth/token-client";
 import { apiClient } from "@/lib/api/client";
-import type { PlanSlotData, Unit, WorkoutExercise, WorkoutSession } from "@/lib/types";
-import { hasActivePremiumStatus } from "@/lib/utils/subscription-helpers";
+import { getAuthToken } from "@/lib/auth/token-client";
+import type {
+  PlanSlotData,
+  Unit,
+  WorkoutExercise,
+  WorkoutSession,
+} from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
@@ -107,11 +113,12 @@ export function WorkoutChat({
 
   const unit = unitId ? unitsArray.find((u: Unit) => u.id === unitId) : null;
   const planSlot = planSlotId
-    ? slotsArray.find((s: PlanSlotData) => s.id === planSlotId) ?? null
+    ? (slotsArray.find((s: PlanSlotData) => s.id === planSlotId) ?? null)
     : null;
 
   const storeWorkouts = unit?.workouts || [];
-  const slotWorkout = planSlot?.type === "workout" && planSlot?.workout ? [planSlot.workout] : [];
+  const slotWorkout =
+    planSlot?.type === "workout" && planSlot?.workout ? [planSlot.workout] : [];
   const workouts =
     storeWorkouts.length > 0
       ? storeWorkouts
@@ -122,6 +129,7 @@ export function WorkoutChat({
   // Actions e loaders do store
   const _actions = useStudent("actions");
   const loaders = useStudent("loaders");
+  const { can } = useAbility();
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -345,9 +353,10 @@ export function WorkoutChat({
           const updatedSlot = planSlotId
             ? updatedWeeklyPlan?.slots.find((s) => s.id === planSlotId)
             : null;
-          const updatedWorkouts = updatedUnit?.workouts ?? updatedSlot?.workout
-            ? [updatedSlot!.workout!]
-            : [];
+          const updatedWorkouts =
+            (updatedUnit?.workouts ?? updatedSlot?.workout)
+              ? [updatedSlot?.workout!]
+              : [];
 
           // Atualizar targetWorkoutId se necessário após criar os novos
           if (
@@ -420,7 +429,11 @@ export function WorkoutChat({
         unitId,
       );
 
-      const processPayload: { parsedPlan: typeof parsedPlan; unitId?: string; planSlotId?: string } = {
+      const processPayload: {
+        parsedPlan: typeof parsedPlan;
+        unitId?: string;
+        planSlotId?: string;
+      } = {
         parsedPlan,
       };
       if (planSlotId) {
@@ -529,14 +542,20 @@ export function WorkoutChat({
             type: "strength" as const,
             muscleGroup: "full-body",
             difficulty: "intermediario" as const,
-            exercises: [] as Array<{ name: string; sets: number; reps: string; rest: number; notes?: string; alternatives?: string[] }>,
+            exercises: [] as Array<{
+              name: string;
+              sets: number;
+              reps: string;
+              rest: number;
+              notes?: string;
+              alternatives?: string[];
+            }>,
           } as PreviewWorkout;
         });
     }
 
     if (sourceWorkouts.length === 0) {
-      sourceWorkouts =
-        previewWorkouts.length > 0 ? previewWorkouts : workouts;
+      sourceWorkouts = previewWorkouts.length > 0 ? previewWorkouts : workouts;
     }
 
     const payload = {
@@ -549,17 +568,26 @@ export function WorkoutChat({
           muscleGroup: w.muscleGroup,
           difficulty:
             (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
-          exercises: exercises.map((e: { name: string; sets: number; reps: string; rest?: number; notes?: string; alternatives?: (string | { name?: string })[] }) => ({
-            name: e.name,
-            sets: e.sets,
-            reps: e.reps,
-            rest: e.rest ?? 60,
-            notes: e.notes || undefined,
-            alternatives:
-              e.alternatives?.map((alt) =>
-                typeof alt === "string" ? alt : (alt?.name ?? ""),
-              ) || [],
-          })),
+          exercises: exercises.map(
+            (e: {
+              name: string;
+              sets: number;
+              reps: string;
+              rest?: number;
+              notes?: string;
+              alternatives?: (string | { name?: string })[];
+            }) => ({
+              name: e.name,
+              sets: e.sets,
+              reps: e.reps,
+              rest: e.rest ?? 60,
+              notes: e.notes || undefined,
+              alternatives:
+                e.alternatives?.map((alt) =>
+                  typeof alt === "string" ? alt : (alt?.name ?? ""),
+                ) || [],
+            }),
+          ),
         };
       }),
     };
@@ -605,7 +633,8 @@ export function WorkoutChat({
         description: w.description ?? "",
         type: (w.type as PreviewWorkout["type"]) || "strength",
         muscleGroup: w.muscleGroup || "full-body",
-        difficulty: (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
+        difficulty:
+          (w.difficulty as PreviewWorkout["difficulty"]) || "intermediario",
         exercises: (w.exercises || []).map((e) => ({
           name: e.name,
           sets: e.sets,
@@ -613,13 +642,17 @@ export function WorkoutChat({
           rest: e.rest ?? 60,
           notes: e.notes ?? undefined,
           alternatives: e.alternatives?.map((a) =>
-            typeof a === "string" ? a : a.name ?? "",
+            typeof a === "string" ? a : (a.name ?? ""),
           ),
         })),
       };
       setPreviewWorkouts([preview]);
       setMessages((prev) => {
-        if (prev.length === 1 && prev[0].role === "assistant" && !prev[0].workoutPreview) {
+        if (
+          prev.length === 1 &&
+          prev[0].role === "assistant" &&
+          !prev[0].workoutPreview
+        ) {
           return [
             ...prev,
             {
@@ -687,17 +720,13 @@ export function WorkoutChat({
     setIsProcessing(true);
 
     // Verificar Premium antes de enviar à API — não chamar IA se não for premium
-    const subscription = useStudentUnifiedStore.getState().data.subscription;
-    if (!subscription || !hasActivePremiumStatus({
-      plan: subscription.plan ?? "",
-      status: subscription.status ?? "",
-      trialEnd: subscription.trialEnd ?? null,
-    })) {
+    if (!can(Features.USE_AI_WORKOUT)) {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: "Recurso Premium. Assine o plano Premium ou tenha acesso via sua academia para usar o chat de treinos com IA.",
+          content:
+            "Recurso Premium. Assine o plano Premium ou tenha acesso via sua academia para usar o chat de treinos com IA.",
           timestamp: new Date(),
         },
       ]);
@@ -909,10 +938,13 @@ export function WorkoutChat({
       if (parsedData) {
         // add_exercise: mesclar novos exercícios no workout existente (não substituir)
         // O workout_progress pode ter substituído o preview com só os novos - usar workouts do store como base
-        if (parsedData.action === "add_exercise" && parsedData.workouts.length > 0) {
+        if (
+          parsedData.action === "add_exercise" &&
+          parsedData.workouts.length > 0
+        ) {
           const newExercises = parsedData.workouts[0].exercises || [];
           const targetId = parsedData.targetWorkoutId;
-          const mergedPreviews = previewWorkouts.map((w, idx) => {
+          const mergedPreviews = previewWorkouts.map((w, _idx) => {
             // Base: workouts do store (original) ou preview atual (workout_progress pode ter sobrescrito)
             let existingExercises = w.exercises || [];
             if (workouts.length > 0) {
@@ -921,7 +953,8 @@ export function WorkoutChat({
                   ? workouts[0]
                   : workouts.find(
                       (sw: WorkoutSession) =>
-                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                        sw.title === w.title ||
+                        sw.id === (w as { id?: string }).id,
                     );
               if (storeWorkout?.exercises?.length) {
                 existingExercises = storeWorkout.exercises.map(
@@ -990,7 +1023,8 @@ export function WorkoutChat({
                   ? workouts[0]
                   : workouts.find(
                       (sw: WorkoutSession) =>
-                        sw.title === w.title || sw.id === (w as { id?: string }).id,
+                        sw.title === w.title ||
+                        sw.id === (w as { id?: string }).id,
                     );
               if (storeWorkout?.exercises?.length) {
                 existingExercises = storeWorkout.exercises.map(
@@ -1043,10 +1077,7 @@ export function WorkoutChat({
             }),
           );
           // parsedData.workouts mantém o original da IA (apenas novo exercício) para o approve/process
-        } else if (
-          reference &&
-          parsedData.action === "update_workout"
-        ) {
+        } else if (reference && parsedData.action === "update_workout") {
           // A IA DEVE retornar TODOS os workouts atualizados
           if (parsedData.workouts.length === previewWorkouts.length) {
             // A IA retornou todos os workouts corretamente, substituir completamente os previews
@@ -1195,7 +1226,7 @@ export function WorkoutChat({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 dark:bg-black/70 sm:items-center"
+        className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 dark:bg-black/70 sm:items-center"
         onClick={onClose}
       >
         <motion.div
@@ -1396,9 +1427,7 @@ export function WorkoutChat({
                         </div>
                         <div
                           className={`text-xs ${
-                            msg.role === "user"
-                              ? "text-white"
-                              : "text-duo-fg"
+                            msg.role === "user" ? "text-white" : "text-duo-fg"
                           }`}
                         >
                           {msg.reference.type === "workout"

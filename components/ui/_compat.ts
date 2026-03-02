@@ -10,22 +10,23 @@
  * Atualize seus imports para usar os novos caminhos.
  */
 
-// Re-exportar atoms (Duo é canônico)
-export {
-	DuoButton as Button,
-	duoButtonVariants as buttonVariants,
-	type DuoButtonProps,
-} from "../duo/atoms/duo-button";
-export { DuoButton, duoButtonVariants } from "../duo/atoms/duo-button";
-export { DuoSelect, type DuoSelectOption } from "../duo/molecules/duo-select";
+// Re-exportar molecules
+export { DuoCard } from "@/components/duo";
 export { Textarea } from "../atoms/inputs/textarea";
 export { Progress } from "../atoms/progress/progress";
 export { ProgressRing } from "../atoms/progress/progress-ring";
 export { DuoBadge } from "../duo/atoms/duo-badge";
+// Re-exportar atoms (Duo é canônico)
+export {
+  DuoButton as Button,
+  DuoButton,
+  type DuoButtonProps,
+  duoButtonVariants as buttonVariants,
+  duoButtonVariants,
+} from "../duo/atoms/duo-button";
+export { DuoSelect, type DuoSelectOption } from "../duo/molecules/duo-select";
 export type { SubscriptionBadgeProps } from "../molecules/badges/subscription-badge";
 export { SubscriptionBadge } from "../molecules/badges/subscription-badge";
-// Re-exportar molecules
-export { DuoCard } from "@/components/duo";
 export type { HistoryCardProps } from "../molecules/cards/history-card";
 export { HistoryCard } from "../molecules/cards/history-card";
 export type { MealCardProps } from "../molecules/cards/meal-card";

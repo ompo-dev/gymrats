@@ -1,5 +1,5 @@
 export {
-	DuoButton,
-	duoButtonVariants,
-	type DuoButtonProps,
+  DuoButton,
+  type DuoButtonProps,
+  duoButtonVariants,
 } from "@/components/duo/atoms/duo-button";

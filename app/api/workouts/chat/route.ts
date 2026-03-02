@@ -4,54 +4,52 @@ import { NextResponse } from "next/server";
 export const maxDuration = 60; // 60 segundos (máximo para Vercel Pro)
 export const runtime = "nodejs"; // Garantir runtime Node.js para operações assíncronas
 
+import { z } from "zod";
 import { chatCompletion } from "@/lib/ai/client";
 import {
-	type ParsedWorkoutResponse,
-	parseWorkoutResponse,
+  type ParsedWorkoutResponse,
+  parseWorkoutResponse,
 } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
-import { z } from "zod";
 
 const conversationMessageSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
   content: z.string(),
 });
 
-const jsonValueSchema: z.ZodType<import("@/lib/types/api-error").JsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(jsonValueSchema),
-    z.record(jsonValueSchema),
-  ]),
-);
+const jsonValueSchema: z.ZodType<import("@/lib/types/api-error").JsonValue> =
+  z.lazy(() =>
+    z.union([
+      z.string(),
+      z.number(),
+      z.boolean(),
+      z.null(),
+      z.array(jsonValueSchema),
+      z.record(jsonValueSchema),
+    ]),
+  );
 
-const workoutChatSchema = z.object({
-  message: z.string().min(1, "Mensagem é obrigatória"),
-  conversationHistory: z.array(conversationMessageSchema).optional(),
-  unitId: z.string().optional(),
-  planSlotId: z.string().optional(),
-  existingWorkouts: z.array(z.record(jsonValueSchema)).optional(),
-  profile: z.record(jsonValueSchema).optional(),
-}).refine((data) => data.unitId || data.planSlotId, {
-  message: "unitId ou planSlotId é obrigatório",
-  path: ["unitId"],
-});
+const workoutChatSchema = z
+  .object({
+    message: z.string().min(1, "Mensagem é obrigatória"),
+    conversationHistory: z.array(conversationMessageSchema).optional(),
+    unitId: z.string().optional(),
+    planSlotId: z.string().optional(),
+    existingWorkouts: z.array(z.record(jsonValueSchema)).optional(),
+    profile: z.record(jsonValueSchema).optional(),
+  })
+  .refine((data) => data.unitId || data.planSlotId, {
+    message: "unitId ou planSlotId é obrigatório",
+    path: ["unitId"],
+  });
 
 export const POST = createSafeHandler(
   async ({ body, studentContext }) => {
     const { studentId } = studentContext!;
-    const {
-      message,
-      conversationHistory = [],
-      unitId,
-      planSlotId,
-    } = body;
+    const { message, conversationHistory = [], unitId, planSlotId } = body;
 
     // 2. Verificar Premium/Trial
     const subscription = await db.subscription.findUnique({
@@ -62,7 +60,8 @@ export const POST = createSafeHandler(
       return NextResponse.json(
         {
           error: "Recurso premium",
-          message: "Esta funcionalidade requer assinatura premium ou trial ativo",
+          message:
+            "Esta funcionalidade requer assinatura premium ou trial ativo",
         },
         { status: 403 },
       );
@@ -109,7 +108,12 @@ export const POST = createSafeHandler(
       title: string;
       type: string;
       muscleGroup: string;
-      exercises: Array<{ id: string; name: string; sets: number; reps: string }>;
+      exercises: Array<{
+        id: string;
+        name: string;
+        sets: number;
+        reps: string;
+      }>;
     }> = [];
 
     if (planSlotId) {
@@ -133,18 +137,20 @@ export const POST = createSafeHandler(
       }
 
       if (planSlot.workout) {
-        workoutsInfo = [{
-          id: planSlot.workout.id,
-          title: planSlot.workout.title,
-          type: planSlot.workout.type,
-          muscleGroup: planSlot.workout.muscleGroup,
-          exercises: planSlot.workout.exercises.map((e) => ({
-            id: e.id,
-            name: e.name,
-            sets: e.sets,
-            reps: e.reps,
-          })),
-        }];
+        workoutsInfo = [
+          {
+            id: planSlot.workout.id,
+            title: planSlot.workout.title,
+            type: planSlot.workout.type,
+            muscleGroup: planSlot.workout.muscleGroup,
+            exercises: planSlot.workout.exercises.map((e) => ({
+              id: e.id,
+              name: e.name,
+              sets: e.sets,
+              reps: e.reps,
+            })),
+          },
+        ];
       }
     } else if (unitId) {
       const unit = await db.unit.findUnique({
@@ -198,19 +204,19 @@ export const POST = createSafeHandler(
 
     // 9. Processamento
     let parsed: ParsedWorkoutResponse | null = null;
-    
+
     // Suporte a importação simplificada (estilizado conforme original)
     if (message.trim().startsWith("{") || message.trim().startsWith("[")) {
-       try {
-         const rawJson = JSON.parse(message);
-         // Simplified normalization for brevity in this refactor
-         parsed = {
-           intent: "create",
-           action: "create_workouts",
-           workouts: Array.isArray(rawJson) ? rawJson : [rawJson],
-           message: "Treino importado com sucesso.",
-         };
-       } catch (e) {}
+      try {
+        const rawJson = JSON.parse(message);
+        // Simplified normalization for brevity in this refactor
+        parsed = {
+          intent: "create",
+          action: "create_workouts",
+          workouts: Array.isArray(rawJson) ? rawJson : [rawJson],
+          message: "Treino importado com sucesso.",
+        };
+      } catch (_e) {}
     }
 
     if (!parsed) {
@@ -243,5 +249,5 @@ export const POST = createSafeHandler(
   {
     auth: "student",
     schema: { body: workoutChatSchema },
-  }
+  },
 );

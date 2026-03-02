@@ -10,20 +10,20 @@ import { useEffect } from "react";
  * Redireciona automaticamente para /welcome
  */
 export default function LoginRedirectPage() {
-	const router = useRouter();
+  const router = useRouter();
 
-	useEffect(() => {
-		// Redirecionar imediatamente para /welcome
-		router.replace("/welcome");
-	}, [router]);
+  useEffect(() => {
+    // Redirecionar imediatamente para /welcome
+    router.replace("/welcome");
+  }, [router]);
 
-	// Mostrar loading enquanto redireciona
-	return (
-		<div className="min-h-screen bg-white flex items-center justify-center">
-			<div className="text-center">
-				<div className="w-20 h-20 border-4 border-[#58CC02] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-				<p className="text-gray-600">Redirecionando...</p>
-			</div>
-		</div>
-	);
+  // Mostrar loading enquanto redireciona
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-20 h-20 border-4 border-[#58CC02] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Redirecionando...</p>
+      </div>
+    </div>
+  );
 }

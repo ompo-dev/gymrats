@@ -68,79 +68,77 @@ export function Step3({ formData, setFormData, forceValidation }: StepProps) {
         className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
       >
         <div className="mb-6 text-center">
-          <h2 className="mb-2 text-2xl font-bold text-duo-fg">
-            Preferências
-          </h2>
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">Preferências</h2>
           <p className="text-sm text-duo-fg-muted">
             Como você gosta de treinar?
           </p>
         </div>
         <div className="space-y-6">
-        <DuoSelect.Simple
-          options={[2, 3, 4, 5].map((num) => ({
-            value: String(num),
-            label: `${num}x`,
-          }))}
-          value={String(formData.preferredSets)}
-          onChange={(value) => {
-            setFormData({
-              ...formData,
-              preferredSets: parseInt(value, 10),
-            });
-            setTouched((prev) => ({ ...prev, preferredSets: true }));
-          }}
-          label="Número de séries por exercício"
-          placeholder="Selecione"
-        />
+          <DuoSelect.Simple
+            options={[2, 3, 4, 5].map((num) => ({
+              value: String(num),
+              label: `${num}x`,
+            }))}
+            value={String(formData.preferredSets)}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                preferredSets: parseInt(value, 10),
+              });
+              setTouched((prev) => ({ ...prev, preferredSets: true }));
+            }}
+            label="Número de séries por exercício"
+            placeholder="Selecione"
+          />
 
-        <DuoSelect.Simple
-          options={[
-            {
-              value: "forca",
-              label: "Força (1-5 reps)",
-              description: "Peso muito alto",
-            },
-            {
-              value: "hipertrofia",
-              label: "Hipertrofia (8-12 reps)",
-              description: "Crescimento muscular",
-            },
-            {
-              value: "resistencia",
-              label: "Resistência (15+ reps)",
-              description: "Definição e tônus",
-            },
-          ]}
-          value={formData.preferredRepRange}
-          onChange={(value) => {
-            setFormData({
-              ...formData,
-              preferredRepRange: value as OnboardingData["preferredRepRange"],
-            });
-            setTouched((prev) => ({ ...prev, preferredRepRange: true }));
-          }}
-          label="Faixa de repetições"
-          placeholder="Selecione"
-        />
+          <DuoSelect.Simple
+            options={[
+              {
+                value: "forca",
+                label: "Força (1-5 reps)",
+                description: "Peso muito alto",
+              },
+              {
+                value: "hipertrofia",
+                label: "Hipertrofia (8-12 reps)",
+                description: "Crescimento muscular",
+              },
+              {
+                value: "resistencia",
+                label: "Resistência (15+ reps)",
+                description: "Definição e tônus",
+              },
+            ]}
+            value={formData.preferredRepRange}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                preferredRepRange: value as OnboardingData["preferredRepRange"],
+              });
+              setTouched((prev) => ({ ...prev, preferredRepRange: true }));
+            }}
+            label="Faixa de repetições"
+            placeholder="Selecione"
+          />
 
-        <DuoSelect.Simple
-          options={[
-            { value: "curto", label: "Curto", description: "30-45s" },
-            { value: "medio", label: "Médio", description: "60-90s" },
-            { value: "longo", label: "Longo", description: "2-3min" },
-          ]}
-          value={formData.restTime}
-          onChange={(value) => {
-            setFormData({
-              ...formData,
-              restTime: value as OnboardingData["restTime"],
-            });
-            setTouched((prev) => ({ ...prev, restTime: true }));
-          }}
-          label="Tempo de descanso entre séries"
-          placeholder="Selecione"
-        />
-      </div>
+          <DuoSelect.Simple
+            options={[
+              { value: "curto", label: "Curto", description: "30-45s" },
+              { value: "medio", label: "Médio", description: "60-90s" },
+              { value: "longo", label: "Longo", description: "2-3min" },
+            ]}
+            value={formData.restTime}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                restTime: value as OnboardingData["restTime"],
+              });
+              setTouched((prev) => ({ ...prev, restTime: true }));
+            }}
+            label="Tempo de descanso entre séries"
+            placeholder="Selecione"
+          />
+        </div>
       </DuoCard.Root>
     </motion.div>
   );

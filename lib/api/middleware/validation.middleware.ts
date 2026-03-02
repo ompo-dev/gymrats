@@ -9,9 +9,9 @@ import { badRequestResponse } from "../utils/response.utils";
  */
 
 export interface ValidationOptions {
-	body?: ZodSchema;
-	query?: ZodSchema;
-	params?: ZodSchema;
+  body?: ZodSchema;
+  query?: ZodSchema;
+  params?: ZodSchema;
 }
 
 /**
@@ -21,84 +21,86 @@ export interface ValidationOptions {
  * @param options - Opções de validação (body, query, params)
  * @returns Objeto com dados validados ou resposta de erro
  */
-export async function validateRequest<T = Record<string, string | number | boolean | object>>(
-	request: NextRequest,
-	options: ValidationOptions,
+export async function validateRequest<
+  T = Record<string, string | number | boolean | object>,
+>(
+  request: NextRequest,
+  options: ValidationOptions,
 ): Promise<
-	{ success: true; data: T } | { success: false; response: NextResponse }
+  { success: true; data: T } | { success: false; response: NextResponse }
 > {
-	const errors: string[] = [];
-	const validatedData: Record<string, string | number | boolean | object> = {};
+  const errors: string[] = [];
+  const validatedData: Record<string, string | number | boolean | object> = {};
 
-	// Validar body se fornecido
-	if (options.body) {
-		try {
-			const body = await request.json();
-			const validatedBody = options.body.parse(body);
-			validatedData.body = validatedBody;
-		} catch (error) {
-			if (error instanceof ZodError) {
-				const formattedErrors = error.errors.map(
-					(err) => `${err.path.join(".")}: ${err.message}`,
-				);
-				errors.push(...formattedErrors);
-			} else {
-				errors.push("Erro ao validar body da requisição");
-			}
-		}
-	}
+  // Validar body se fornecido
+  if (options.body) {
+    try {
+      const body = await request.json();
+      const validatedBody = options.body.parse(body);
+      validatedData.body = validatedBody;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const formattedErrors = error.errors.map(
+          (err) => `${err.path.join(".")}: ${err.message}`,
+        );
+        errors.push(...formattedErrors);
+      } else {
+        errors.push("Erro ao validar body da requisição");
+      }
+    }
+  }
 
-	// Validar query params se fornecido
-	if (options.query) {
-		try {
-			const { searchParams } = new URL(request.url);
-			const queryObject: Record<string, string> = {};
-			searchParams.forEach((value, key) => {
-				queryObject[key] = value;
-			});
-			const validatedQuery = options.query.parse(queryObject);
-			validatedData.query = validatedQuery;
-		} catch (error) {
-			if (error instanceof ZodError) {
-				const formattedErrors = error.errors.map(
-					(err) => `query.${err.path.join(".")}: ${err.message}`,
-				);
-				errors.push(...formattedErrors);
-			} else {
-				errors.push("Erro ao validar query params");
-			}
-		}
-	}
+  // Validar query params se fornecido
+  if (options.query) {
+    try {
+      const { searchParams } = new URL(request.url);
+      const queryObject: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        queryObject[key] = value;
+      });
+      const validatedQuery = options.query.parse(queryObject);
+      validatedData.query = validatedQuery;
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const formattedErrors = error.errors.map(
+          (err) => `query.${err.path.join(".")}: ${err.message}`,
+        );
+        errors.push(...formattedErrors);
+      } else {
+        errors.push("Erro ao validar query params");
+      }
+    }
+  }
 
-	// Validar path params se fornecido
-	if (options.params) {
-		try {
-			// Path params precisam ser passados separadamente
-			// Por enquanto, assumimos que serão validados no handler
-			// Isso pode ser melhorado no futuro
-		} catch (error) {
-			if (error instanceof ZodError) {
-				const formattedErrors = error.errors.map(
-					(err) => `params.${err.path.join(".")}: ${err.message}`,
-				);
-				errors.push(...formattedErrors);
-			}
-		}
-	}
+  // Validar path params se fornecido
+  if (options.params) {
+    try {
+      // Path params precisam ser passados separadamente
+      // Por enquanto, assumimos que serão validados no handler
+      // Isso pode ser melhorado no futuro
+    } catch (error) {
+      if (error instanceof ZodError) {
+        const formattedErrors = error.errors.map(
+          (err) => `params.${err.path.join(".")}: ${err.message}`,
+        );
+        errors.push(...formattedErrors);
+      }
+    }
+  }
 
-	if (errors.length > 0) {
-		return {
-			success: false,
-			response: badRequestResponse(`Erros de validação: ${errors.join("; ")}`, {
-				errors,
-			}),
-		};
-	}
+  if (errors.length > 0) {
+    return {
+      success: false,
+      response: badRequestResponse(`Erros de validação: ${errors.join("; ")}`, {
+        errors,
+      }),
+    };
+  }
 
-	return {
-		success: true,
-		data: validatedData as T,
-	};
+  return {
+    success: true,
+    data: validatedData as T,
+  };
 }
 
 /**
@@ -107,16 +109,16 @@ export async function validateRequest<T = Record<string, string | number | boole
  * Usa ZodType<T, ZodTypeDef, unknown> para aceitar schemas com transform (input diferente do output)
  */
 export async function validateBody<T>(
-	request: NextRequest,
-	schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
+  request: NextRequest,
+  schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
 ): Promise<
-	{ success: true; data: T } | { success: false; response: NextResponse }
+  { success: true; data: T } | { success: false; response: NextResponse }
 > {
-	const result = await validateRequest<{ body: T }>(request, { body: schema });
-	if (!result.success) {
-		return result;
-	}
-	return { success: true, data: result.data.body };
+  const result = await validateRequest<{ body: T }>(request, { body: schema });
+  if (!result.success) {
+    return result;
+  }
+  return { success: true, data: result.data.body };
 }
 
 /**
@@ -124,33 +126,33 @@ export async function validateBody<T>(
  * Usa ZodType<T, ZodTypeDef, unknown> para aceitar schemas com transform (query vem como string)
  */
 export async function validateQuery<T>(
-	request: NextRequest,
-	schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
+  request: NextRequest,
+  schema: ZodType<T, import("zod").ZodTypeDef, unknown>,
 ): Promise<
-	{ success: true; data: T } | { success: false; response: NextResponse }
+  { success: true; data: T } | { success: false; response: NextResponse }
 > {
-	const result = await validateRequest<{ query: T }>(request, {
-		query: schema,
-	});
-	if (!result.success) {
-		return result;
-	}
-	return { success: true, data: result.data.query };
+  const result = await validateRequest<{ query: T }>(request, {
+    query: schema,
+  });
+  if (!result.success) {
+    return result;
+  }
+  return { success: true, data: result.data.query };
 }
 
 /**
  * Helper para validar body e query params
  */
 export async function validateBodyAndQuery<TBody, TQuery>(
-	request: NextRequest,
-	bodySchema: ZodSchema,
-	querySchema: ZodSchema,
+  request: NextRequest,
+  bodySchema: ZodSchema,
+  querySchema: ZodSchema,
 ): Promise<
-	| { success: true; data: { body: TBody; query: TQuery } }
-	| { success: false; response: NextResponse }
+  | { success: true; data: { body: TBody; query: TQuery } }
+  | { success: false; response: NextResponse }
 > {
-	return validateRequest<{ body: TBody; query: TQuery }>(request, {
-		body: bodySchema,
-		query: querySchema,
-	});
+  return validateRequest<{ body: TBody; query: TQuery }>(request, {
+    body: bodySchema,
+    query: querySchema,
+  });
 }

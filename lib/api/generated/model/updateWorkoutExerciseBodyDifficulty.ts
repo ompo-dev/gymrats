@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateWorkoutExerciseBodyDifficulty = typeof UpdateWorkoutExerciseBodyDifficulty[keyof typeof UpdateWorkoutExerciseBodyDifficulty];
-
+export type UpdateWorkoutExerciseBodyDifficulty =
+  (typeof UpdateWorkoutExerciseBodyDifficulty)[keyof typeof UpdateWorkoutExerciseBodyDifficulty];
 
 export const UpdateWorkoutExerciseBodyDifficulty = {
-  iniciante: 'iniciante',
-  intermediario: 'intermediario',
-  avancado: 'avancado',
+  iniciante: "iniciante",
+  intermediario: "intermediario",
+  avancado: "avancado",
 } as const;

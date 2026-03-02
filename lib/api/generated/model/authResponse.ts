@@ -5,8 +5,8 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { Session } from './session';
-import type { User } from './user';
+import type { Session } from "./session";
+import type { User } from "./user";
 
 export interface AuthResponse {
   user?: User;

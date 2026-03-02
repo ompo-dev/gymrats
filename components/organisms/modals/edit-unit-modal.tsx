@@ -6,8 +6,8 @@ import {
   DAY_NAMES,
   UnitDetailsForm,
   useEditUnitModal,
-  WorkoutsListSection,
   WorkoutDetailView,
+  WorkoutsListSection,
 } from "./edit-unit-modal/index";
 import { ExerciseSearch } from "./exercise-search";
 import { Modal } from "./modal";
@@ -112,7 +112,9 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 resetting={resetting}
               />
               <WorkoutsListSection
-                key={isWeeklyPlanMode ? `weekly-${weeklyPlanSlotsKey}` : undefined}
+                key={
+                  isWeeklyPlanMode ? `weekly-${weeklyPlanSlotsKey}` : undefined
+                }
                 isWeeklyPlanMode={isWeeklyPlanMode}
                 weeklyPlan={weeklyPlan ? { id: String(weeklyPlan.id) } : null}
                 planSlots={planSlots}
@@ -139,7 +141,9 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                   e.target.value !== activeWorkout.title &&
                   e.target.value.trim() !== ""
                 ) {
-                  handleUpdateWorkout(activeWorkout.id, { title: e.target.value });
+                  handleUpdateWorkout(activeWorkout.id, {
+                    title: e.target.value,
+                  });
                 } else if (e.target.value.trim() === "") {
                   setWorkoutTitle(activeWorkout?.title ?? "");
                 }
@@ -187,7 +191,8 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
           planSlotId={chatSlotId}
           slotContext={
             DAY_NAMES[
-              planSlots.find((s: PlanSlotData) => s.id === chatSlotId)?.dayOfWeek ?? 0
+              planSlots.find((s: PlanSlotData) => s.id === chatSlotId)
+                ?.dayOfWeek ?? 0
             ]
           }
           onClose={closeWorkoutChatWithRefresh}

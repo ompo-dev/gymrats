@@ -7,6 +7,6 @@
  */
 
 export type GetWeightHistoryParams = {
-limit?: number;
-offset?: number;
+  limit?: number;
+  offset?: number;
 };

@@ -12,15 +12,20 @@
  * Verifica se o nome do plano corresponde a um plano basic ou superior.
  */
 export function isBasicPlan(plan: string): boolean {
-	const p = plan.toLowerCase();
-	return p.includes("basic") || p.includes("premium") || p.includes("enterprise");
+  const p = plan.toLowerCase();
+  return (
+    p.includes("basic") || p.includes("premium") || p.includes("enterprise")
+  );
 }
 
 /**
  * Verifica se o nome do plano corresponde a um plano premium.
  */
 export function isPremiumPlan(plan: string): boolean {
-	return plan.toLowerCase().includes("premium") || plan.toLowerCase().includes("enterprise");
+  return (
+    plan.toLowerCase().includes("premium") ||
+    plan.toLowerCase().includes("enterprise")
+  );
 }
 
 /**
@@ -30,26 +35,26 @@ export function isPremiumPlan(plan: string): boolean {
  * IMPORTANTE: status "canceled" NUNCA retorna true — cancelamento revoga acesso imediato.
  */
 export function hasActivePremiumStatus(subscription: {
-	plan: string;
-	status: string;
-	trialEnd?: Date | string | null;
+  plan: string;
+  status: string;
+  trialEnd?: Date | string | null;
 }): boolean {
-	if (!isPremiumPlan(subscription.plan)) return false;
+  if (!isPremiumPlan(subscription.plan)) return false;
 
-	// Cancelamento revoga acesso imediatamente, independentemente do trial restante
-	if (subscription.status === "canceled" || subscription.status === "expired") {
-		return false;
-	}
+  // Cancelamento revoga acesso imediatamente, independentemente do trial restante
+  if (subscription.status === "canceled" || subscription.status === "expired") {
+    return false;
+  }
 
-	const now = new Date();
-	const isTrialActive =
-		subscription.trialEnd && new Date(subscription.trialEnd) > now;
+  const now = new Date();
+  const isTrialActive =
+    subscription.trialEnd && new Date(subscription.trialEnd) > now;
 
-	return (
-		subscription.status === "active" ||
-		subscription.status === "trialing" ||
-		!!isTrialActive
-	);
+  return (
+    subscription.status === "active" ||
+    subscription.status === "trialing" ||
+    !!isTrialActive
+  );
 }
 
 /**
@@ -57,5 +62,5 @@ export function hasActivePremiumStatus(subscription: {
  * Retorna "annual" se contém "Anual", senão "monthly".
  */
 export function getBillingPeriodFromPlan(plan: string): "monthly" | "annual" {
-	return plan.toLowerCase().includes("anual") ? "annual" : "monthly";
+  return plan.toLowerCase().includes("anual") ? "annual" : "monthly";
 }

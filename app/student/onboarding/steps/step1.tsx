@@ -116,171 +116,173 @@ export function Step1({ formData, setFormData, forceValidation }: StepProps) {
           </p>
         </div>
         <div className="space-y-5">
-        <DuoInput.Simple
-          label="Idade *"
-          type="text"
-          inputMode="numeric"
-          placeholder="25"
-          value={formData.age === undefined ? "" : formData.age}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v === "" || v === "-") {
-              setFormData({ ...formData, age: "" });
-              return;
-            }
-            const n = parseFloat(v);
-            if (!Number.isNaN(n)) {
-              setFormData({ ...formData, age: n });
-            }
-          }}
-          onBlur={() => {
-            setTouched((prev) => ({ ...prev, age: true }));
-            validateField("age");
-          }}
-          required
-          error={touched.age ? errors.age : undefined}
-        />
-        <DuoInput.Simple
-          label="Altura (cm) *"
-          type="text"
-          inputMode="numeric"
-          placeholder="170"
-          value={formData.height === undefined ? "" : formData.height}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v === "" || v === "-") {
-              setFormData({ ...formData, height: "" });
-              return;
-            }
-            const n = parseFloat(v);
-            if (!Number.isNaN(n)) {
-              setFormData({ ...formData, height: n });
-            }
-          }}
-          onBlur={() => {
-            setTouched((prev) => ({ ...prev, height: true }));
-            validateField("height");
-          }}
-          required
-          error={touched.height ? errors.height : undefined}
-        />
-        <DuoInput.Simple
-          label="Peso (kg) *"
-          type="text"
-          inputMode="numeric"
-          placeholder="70"
-          value={formData.weight === undefined ? "" : formData.weight}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v === "" || v === "-") {
-              setFormData({ ...formData, weight: "" });
-              return;
-            }
-            const n = parseFloat(v);
-            if (!Number.isNaN(n)) {
-              setFormData({ ...formData, weight: n });
-            }
-          }}
-          onBlur={() => {
-            setTouched((prev) => ({ ...prev, weight: true }));
-            validateField("weight");
-          }}
-          required
-          error={touched.weight ? errors.weight : undefined}
-        />
+          <DuoInput.Simple
+            label="Idade *"
+            type="text"
+            inputMode="numeric"
+            placeholder="25"
+            value={formData.age === undefined ? "" : formData.age}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "" || v === "-") {
+                setFormData({ ...formData, age: "" });
+                return;
+              }
+              const n = parseFloat(v);
+              if (!Number.isNaN(n)) {
+                setFormData({ ...formData, age: n });
+              }
+            }}
+            onBlur={() => {
+              setTouched((prev) => ({ ...prev, age: true }));
+              validateField("age");
+            }}
+            required
+            error={touched.age ? errors.age : undefined}
+          />
+          <DuoInput.Simple
+            label="Altura (cm) *"
+            type="text"
+            inputMode="numeric"
+            placeholder="170"
+            value={formData.height === undefined ? "" : formData.height}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "" || v === "-") {
+                setFormData({ ...formData, height: "" });
+                return;
+              }
+              const n = parseFloat(v);
+              if (!Number.isNaN(n)) {
+                setFormData({ ...formData, height: n });
+              }
+            }}
+            onBlur={() => {
+              setTouched((prev) => ({ ...prev, height: true }));
+              validateField("height");
+            }}
+            required
+            error={touched.height ? errors.height : undefined}
+          />
+          <DuoInput.Simple
+            label="Peso (kg) *"
+            type="text"
+            inputMode="numeric"
+            placeholder="70"
+            value={formData.weight === undefined ? "" : formData.weight}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "" || v === "-") {
+                setFormData({ ...formData, weight: "" });
+                return;
+              }
+              const n = parseFloat(v);
+              if (!Number.isNaN(n)) {
+                setFormData({ ...formData, weight: n });
+              }
+            }}
+            onBlur={() => {
+              setTouched((prev) => ({ ...prev, weight: true }));
+              validateField("weight");
+            }}
+            required
+            error={touched.weight ? errors.weight : undefined}
+          />
 
-        <div className="space-y-4">
-          <span className="block text-sm font-bold text-duo-fg">Gênero</span>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { value: "male", label: "Masculino" },
-              { value: "trans-male", label: "Trans Masculino" },
-              { value: "female", label: "Feminino" },
-              { value: "trans-female", label: "Trans Feminino" },
-            ].map((option, index) => (
-              <DuoButton
-                key={option.value}
-                type="button"
-                variant={formData.gender === option.value ? "primary" : "outline"}
-                onClick={() => {
-                  const isTrans = option.value.includes("trans");
-                  setFormData({
-                    ...formData,
-                    gender: option.value as OnboardingData["gender"],
-                    isTrans,
-                    usesHormones: isTrans ? formData.usesHormones : false,
-                    hormoneType: isTrans ? formData.hormoneType : "",
-                  });
-                }}
-                className={`rounded-2xl py-3 ${
-                  formData.gender !== option.value
-                    ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
-                    : ""
-                }`}
-              >
-                {option.label}
-              </DuoButton>
-            ))}
-          </div>
-          {(formData.gender === "trans-male" ||
-            formData.gender === "trans-female") && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
-            >
-              <CustomCheckbox
-                checked={formData.usesHormones}
-                onChange={(checked) =>
-                  setFormData({
-                    ...formData,
-                    usesHormones: checked,
-                    hormoneType: checked ? formData.hormoneType : "",
-                  })
-                }
-                label="Faço uso de terapia hormonal"
-                delay={0.1}
-              />
-              {formData.usesHormones && (
-                <DuoSelect.Simple
-                  options={[
-                    { value: "testosterone", label: "Testosterona" },
-                    { value: "estrogen", label: "Estrogênio" },
-                  ]}
-                  value={formData.hormoneType}
-                  onChange={(value) =>
+          <div className="space-y-4">
+            <span className="block text-sm font-bold text-duo-fg">Gênero</span>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { value: "male", label: "Masculino" },
+                { value: "trans-male", label: "Trans Masculino" },
+                { value: "female", label: "Feminino" },
+                { value: "trans-female", label: "Trans Feminino" },
+              ].map((option, _index) => (
+                <DuoButton
+                  key={option.value}
+                  type="button"
+                  variant={
+                    formData.gender === option.value ? "primary" : "outline"
+                  }
+                  onClick={() => {
+                    const isTrans = option.value.includes("trans");
                     setFormData({
                       ...formData,
-                      hormoneType: value as OnboardingData["hormoneType"],
+                      gender: option.value as OnboardingData["gender"],
+                      isTrans,
+                      usesHormones: isTrans ? formData.usesHormones : false,
+                      hormoneType: isTrans ? formData.hormoneType : "",
+                    });
+                  }}
+                  className={`rounded-2xl py-3 ${
+                    formData.gender !== option.value
+                      ? "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50"
+                      : ""
+                  }`}
+                >
+                  {option.label}
+                </DuoButton>
+              ))}
+            </div>
+            {(formData.gender === "trans-male" ||
+              formData.gender === "trans-female") && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4 rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-4"
+              >
+                <CustomCheckbox
+                  checked={formData.usesHormones}
+                  onChange={(checked) =>
+                    setFormData({
+                      ...formData,
+                      usesHormones: checked,
+                      hormoneType: checked ? formData.hormoneType : "",
                     })
                   }
-                  label="Tipo de hormônio"
-                  placeholder="Selecione"
+                  label="Faço uso de terapia hormonal"
+                  delay={0.1}
                 />
-              )}
-            </motion.div>
-          )}
-        </div>
+                {formData.usesHormones && (
+                  <DuoSelect.Simple
+                    options={[
+                      { value: "testosterone", label: "Testosterona" },
+                      { value: "estrogen", label: "Estrogênio" },
+                    ]}
+                    value={formData.hormoneType}
+                    onChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        hormoneType: value as OnboardingData["hormoneType"],
+                      })
+                    }
+                    label="Tipo de hormônio"
+                    placeholder="Selecione"
+                  />
+                )}
+              </motion.div>
+            )}
+          </div>
 
-        <DuoSelect.Simple
-          options={[
-            { value: "iniciante", label: "Iniciante" },
-            { value: "intermediario", label: "Intermediário" },
-            { value: "avancado", label: "Avançado" },
-          ]}
-          value={formData.fitnessLevel}
-          onChange={(value) =>
-            setFormData({
-              ...formData,
-              fitnessLevel: value as DifficultyLevel,
-            })
-          }
-          label="Nível de Experiência"
-          placeholder="Selecione"
-        />
-      </div>
+          <DuoSelect.Simple
+            options={[
+              { value: "iniciante", label: "Iniciante" },
+              { value: "intermediario", label: "Intermediário" },
+              { value: "avancado", label: "Avançado" },
+            ]}
+            value={formData.fitnessLevel}
+            onChange={(value) =>
+              setFormData({
+                ...formData,
+                fitnessLevel: value as DifficultyLevel,
+              })
+            }
+            label="Nível de Experiência"
+            placeholder="Selecione"
+          />
+        </div>
       </DuoCard.Root>
     </motion.div>
   );

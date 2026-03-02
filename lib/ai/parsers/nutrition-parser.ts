@@ -227,11 +227,17 @@ export function parseNutritionResponse(
     let parsed: Record<string, import("@/lib/types/api-error").JsonValue>;
 
     try {
-      parsed = JSON.parse(jsonStr) as Record<string, import("@/lib/types/api-error").JsonValue>;
+      parsed = JSON.parse(jsonStr) as Record<
+        string,
+        import("@/lib/types/api-error").JsonValue
+      >;
     } catch (firstError) {
       const repaired = tryRepairTruncatedJson(jsonStr);
       try {
-        parsed = JSON.parse(repaired) as Record<string, import("@/lib/types/api-error").JsonValue>;
+        parsed = JSON.parse(repaired) as Record<
+          string,
+          import("@/lib/types/api-error").JsonValue
+        >;
       } catch {
         throw new Error(
           `JSON inválido ou truncado. Tente novamente. Detalhe: ${

@@ -7,11 +7,11 @@ import type { AxiosError, AxiosRequestConfig } from "axios";
 import { getAxiosInstance } from "@/lib/api/client-factory";
 
 export const customInstance = <T>(
-	config: AxiosRequestConfig,
-	options?: AxiosRequestConfig,
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
 ): Promise<T> => {
-	const instance = getAxiosInstance();
-	return instance({ ...config, ...options }).then(({ data }) => data);
+  const instance = getAxiosInstance();
+  return instance({ ...config, ...options }).then(({ data }) => data);
 };
 
 export type ErrorType<Error> = AxiosError<Error>;

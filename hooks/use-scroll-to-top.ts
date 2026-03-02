@@ -2,10 +2,12 @@
 
 import { useLayoutEffect } from "react";
 
-export function useScrollToTop(deps: (string | number | boolean | object | null)[]) {
-	useLayoutEffect(() => {
-		window.scrollTo(0, 0);
-		document.documentElement.scrollTop = 0;
-		document.body.scrollTop = 0;
-	}, deps);
+export function useScrollToTop(
+  deps: (string | number | boolean | object | null)[],
+) {
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, deps);
 }

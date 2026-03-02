@@ -6,39 +6,39 @@ import type { NextRequest } from "next/server";
  * Verifica cookies (auth_token, better-auth.session_token) e o header Authorization
  */
 export async function getSessionToken(): Promise<string | null> {
-	const cookieStore = await cookies();
-	const headerList = await headers();
+  const cookieStore = await cookies();
+  const headerList = await headers();
 
-	const cookieToken =
-		cookieStore.get("auth_token")?.value ||
-		cookieStore.get("better-auth.session_token")?.value;
+  const cookieToken =
+    cookieStore.get("auth_token")?.value ||
+    cookieStore.get("better-auth.session_token")?.value;
 
-	if (cookieToken) return cookieToken;
+  if (cookieToken) return cookieToken;
 
-	const authHeader = headerList.get("authorization");
-	if (authHeader?.startsWith("Bearer ")) {
-		return authHeader.replace("Bearer ", "").trim();
-	}
+  const authHeader = headerList.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
 
-	return null;
+  return null;
 }
 
 /**
  * Helper para obter o token de sessão do request (para uso em middleware/API routes)
  */
 export function getSessionTokenFromRequest(
-	request: NextRequest,
+  request: NextRequest,
 ): string | null {
-	const cookieToken =
-		request.cookies.get("auth_token")?.value ||
-		request.cookies.get("better-auth.session_token")?.value;
+  const cookieToken =
+    request.cookies.get("auth_token")?.value ||
+    request.cookies.get("better-auth.session_token")?.value;
 
-	if (cookieToken) return cookieToken;
+  if (cookieToken) return cookieToken;
 
-	const authHeader = request.headers.get("authorization");
-	if (authHeader?.startsWith("Bearer ")) {
-		return authHeader.replace("Bearer ", "").trim();
-	}
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
 
-	return null;
+  return null;
 }

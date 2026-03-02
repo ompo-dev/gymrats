@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { z } from "zod";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { db } from "@/lib/db";
 
 const checkOutSchema = z.object({
   checkInId: z.string().min(1, "checkInId é obrigatório"),
@@ -13,14 +13,14 @@ export const POST = createSafeHandler(
     const { checkInId } = body;
 
     const checkIn = await db.checkIn.findUnique({ where: { id: checkInId } });
-    
+
     if (!checkIn || checkIn.gymId !== gymId) {
       return NextResponse.json(
         { error: "Check-in não encontrado" },
         { status: 404 },
       );
     }
-    
+
     if (checkIn.checkOut) {
       return NextResponse.json(
         { error: "Checkout já realizado" },
@@ -43,5 +43,5 @@ export const POST = createSafeHandler(
   {
     auth: "gym",
     schema: { body: checkOutSchema },
-  }
+  },
 );

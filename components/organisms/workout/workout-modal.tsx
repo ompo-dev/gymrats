@@ -3,8 +3,8 @@
 import { Dumbbell } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { DuoButton } from "@/components/duo";
-import { useWorkoutExecution } from "@/hooks/use-workout-execution";
 import { useModalState } from "@/hooks/use-modal-state";
+import { useWorkoutExecution } from "@/hooks/use-workout-execution";
 import { useWorkoutStore } from "@/stores";
 import { ExerciseAlternativeSelector } from "../modals/exercise-alternative-selector";
 import { CardioConfigModal } from "./workout/cardio-config-modal";
@@ -35,11 +35,17 @@ function WorkoutModalSimple() {
     modals,
     handlers,
     methods,
-    actions
+    actions,
   } = useWorkoutExecution();
 
-  const { isRunning, elapsedTime, calories, heartRate, setIsRunning } = cardioState;
-  const { workoutModal, weightTrackerModal, alternativeSelectorModal, cardioConfigModal } = modals;
+  const { isRunning, elapsedTime, calories, heartRate, setIsRunning } =
+    cardioState;
+  const {
+    workoutModal,
+    weightTrackerModal,
+    alternativeSelectorModal,
+    cardioConfigModal,
+  } = modals;
   const editPlanModal = useModalState("edit-plan");
 
   // View logic for Completion screen
@@ -53,8 +59,12 @@ function WorkoutModalSimple() {
     const totalVolume = workoutData.exerciseLogs.reduce(
       (acc, log) =>
         acc +
-        (log.sets?.filter((set) => (set.weight || 0) > 0 && (set.reps || 0) > 0)
-          .reduce((setAcc, set) => setAcc + (set.weight || 0) * (set.reps || 0), 0) || 0),
+        (log.sets
+          ?.filter((set) => (set.weight || 0) > 0 && (set.reps || 0) > 0)
+          .reduce(
+            (setAcc, set) => setAcc + (set.weight || 0) * (set.reps || 0),
+            0,
+          ) || 0),
       0,
     );
 
@@ -89,7 +99,8 @@ function WorkoutModalSimple() {
                 Este dia ainda não tem exercícios
               </h3>
               <p className="text-sm text-duo-fg-muted">
-                Adicione exercícios para começar a treinar. Você pode editar o plano e adicionar os exercícios aqui.
+                Adicione exercícios para começar a treinar. Você pode editar o
+                plano e adicionar os exercícios aqui.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
@@ -120,16 +131,16 @@ function WorkoutModalSimple() {
   // Loading / Null states
   if (!activeWorkout || !currentExercise || !workout) {
     if (workoutModal.isOpen && !workout) {
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="rounded-xl bg-duo-bg-card p-8">
-                  <div className="flex flex-col items-center gap-4">
-                      <div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-blue border-t-transparent" />
-                      <p className="text-sm text-duo-gray-dark">Carregando treino...</p>
-                  </div>
-              </div>
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="rounded-xl bg-duo-bg-card p-8">
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-duo-blue border-t-transparent" />
+              <p className="text-sm text-duo-gray-dark">Carregando treino...</p>
+            </div>
           </div>
-        );
+        </div>
+      );
     }
     return null;
   }
@@ -155,7 +166,9 @@ function WorkoutModalSimple() {
             currentExercise={currentIndex + 1}
             totalExercises={totalExercises}
             exerciseIds={workout.exercises.map((ex) => ex.id)}
-            completedExerciseIds={activeWorkout.exerciseLogs.map((log) => log.exerciseId)}
+            completedExerciseIds={activeWorkout.exerciseLogs.map(
+              (log) => log.exerciseId,
+            )}
             skippedExerciseIds={skippedExercises}
             skippedIndices={skippedExerciseIndices}
             currentExerciseId={currentExercise.id}
@@ -178,7 +191,9 @@ function WorkoutModalSimple() {
             totalExercises={totalExercises}
             progress={workoutProgress}
             exerciseIds={workout.exercises.map((ex) => ex.id)}
-            completedExerciseIds={activeWorkout.exerciseLogs.map((log) => log.exerciseId)}
+            completedExerciseIds={activeWorkout.exerciseLogs.map(
+              (log) => log.exerciseId,
+            )}
             skippedExerciseIds={skippedExercises}
             skippedIndices={skippedExerciseIndices}
           />
@@ -191,13 +206,17 @@ function WorkoutModalSimple() {
                   key={currentIndex}
                   exercise={currentExercise}
                   exerciseName={methods.getCurrentExerciseName()}
-                  hasAlternative={!!activeWorkout.selectedAlternatives?.[currentExercise.id]}
+                  hasAlternative={
+                    !!activeWorkout.selectedAlternatives?.[currentExercise.id]
+                  }
                   isCardio={!!methods.isCurrentExerciseCardio()}
                   elapsedTime={elapsedTime}
                   xpPerExercise={Math.round(workout.xpReward / totalExercises)}
                   onViewEducation={() => handlers.handleViewEducation()}
                   isCompleted={!!methods.getCurrentExerciseLog()}
-                  completedSetsCount={methods.getCurrentExerciseLog()?.sets?.length || 0}
+                  completedSetsCount={
+                    methods.getCurrentExerciseLog()?.sets?.length || 0
+                  }
                 />
               </AnimatePresence>
             </div>
@@ -213,26 +232,33 @@ function WorkoutModalSimple() {
             onOpenWeightTracker={weightTrackerModal.open}
             onOpenAlternatives={alternativeSelectorModal.open}
             onCompleteCardio={() => {
-                const existingLog = methods.getCurrentExerciseLog();
-                if (existingLog) {
-                    handlers.handleExerciseComplete(existingLog);
-                } else {
-                    // Create minimal log for cardio if it doesn't exist
-                    handlers.handleExerciseComplete({
-                        id: `cardio-${Date.now()}`,
-                        workoutId: workout.id,
-                        exerciseId: currentExercise.id,
-                        exerciseName: methods.getCurrentExerciseName(),
-                        sets: [{ setNumber: 1, reps: parseInt(currentExercise.reps || "0", 10), weight: 0, completed: true }],
-                        date: new Date(),
-                        difficulty: "ideal"
-                    });
-                }
+              const existingLog = methods.getCurrentExerciseLog();
+              if (existingLog) {
+                handlers.handleExerciseComplete(existingLog);
+              } else {
+                // Create minimal log for cardio if it doesn't exist
+                handlers.handleExerciseComplete({
+                  id: `cardio-${Date.now()}`,
+                  workoutId: workout.id,
+                  exerciseId: currentExercise.id,
+                  exerciseName: methods.getCurrentExerciseName(),
+                  sets: [
+                    {
+                      setNumber: 1,
+                      reps: parseInt(currentExercise.reps || "0", 10),
+                      weight: 0,
+                      completed: true,
+                    },
+                  ],
+                  date: new Date(),
+                  difficulty: "ideal",
+                });
+              }
             }}
             onGoBack={() => {
-                const newIndex = currentIndex - 1;
-                actions.setCurrentExerciseIndex(newIndex);
-                actions.setExerciseIndexParam(newIndex);
+              const newIndex = currentIndex - 1;
+              actions.setCurrentExerciseIndex(newIndex);
+              actions.setExerciseIndexParam(newIndex);
             }}
             onFinish={handlers.handleFinish}
             onSkip={handlers.handleSkip}

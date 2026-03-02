@@ -13,7 +13,6 @@ import { apiClient } from "@/lib/api/client";
 import type {
   DailyNutrition,
   DifficultyLevel,
-  Meal,
   MuscleGroup,
   PersonalRecord,
   Unit,
@@ -25,14 +24,10 @@ import type {
 import type {
   StudentData,
   StudentDataSection,
-  WeightHistoryItem,
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import {
-  calculateWeightGain,
-  deduplicateMeals,
   loadAllDataIncremental,
   loadSection,
   loadSectionsIncremental,

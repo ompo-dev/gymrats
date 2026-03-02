@@ -4,7 +4,6 @@ import {
   updateExerciseLogSchema,
   updateWorkoutProgressExerciseSchema,
 } from "@/lib/api/schemas/workouts.schemas";
-import type { MuscleGroup } from "@/lib/types";
 import { completeWorkoutUseCase } from "@/lib/use-cases/workouts/complete-workout";
 import { deleteWorkoutProgressUseCase } from "@/lib/use-cases/workouts/delete-workout-progress";
 import { getUnitsUseCase } from "@/lib/use-cases/workouts/get-units";
@@ -12,7 +11,6 @@ import { getWorkoutHistoryUseCase } from "@/lib/use-cases/workouts/get-workout-h
 import { getWorkoutProgressUseCase } from "@/lib/use-cases/workouts/get-workout-progress";
 import { saveWorkoutProgressUseCase } from "@/lib/use-cases/workouts/save-workout-progress";
 import { updateExerciseLogUseCase } from "@/lib/use-cases/workouts/update-exercise-log";
-import { parseJsonArray, parseJsonSafe } from "../utils/json";
 import {
   badRequestResponse,
   internalErrorResponse,
