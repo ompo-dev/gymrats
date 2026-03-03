@@ -14,6 +14,9 @@ interface StudentMembershipPixModalProps {
   brCode: string;
   brCodeBase64: string;
   amount: number; // centavos
+  planName?: string;
+  originalPrice?: number; // centavos
+  appliedCoupon?: { code: string; discountString: string };
   onPaymentConfirmed?: () => void;
 }
 
@@ -24,6 +27,9 @@ export function StudentMembershipPixModal({
   brCode,
   brCodeBase64,
   amount,
+  planName,
+  originalPrice,
+  appliedCoupon,
   onPaymentConfirmed,
 }: StudentMembershipPixModalProps) {
   const { toast } = useToast();
@@ -164,9 +170,24 @@ export function StudentMembershipPixModal({
             )}
           </div>
 
-          <div className="text-center">
-            <p className="text-xs text-duo-gray-dark">Valor a pagar</p>
+          <div className="w-full bg-duo-bg rounded-xl border-2 border-duo-border p-3 text-center space-y-1">
+            <p className="text-sm font-bold text-duo-text">
+              {planName ? `Assinatura: ${planName}` : "Valor da Assinatura"}
+            </p>
+            {originalPrice && originalPrice > amount && (
+              <p className="text-xs text-duo-gray-dark font-semibold line-through">
+                De R$ {(originalPrice / 100).toFixed(2)}
+              </p>
+            )}
             <p className="text-2xl font-bold text-duo-green">R$ {valueReais}</p>
+
+            {appliedCoupon && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border-2 border-duo-green bg-duo-green/10 px-2.5 py-1 text-xs font-bold text-duo-green">
+                <span>Cupom: {appliedCoupon.code}</span>
+                <span className="opacity-60">•</span>
+                <span>-{appliedCoupon.discountString}</span>
+              </div>
+            )}
           </div>
 
           <DuoButton

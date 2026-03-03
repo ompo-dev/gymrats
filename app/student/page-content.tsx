@@ -207,6 +207,9 @@ function StudentHomeContent() {
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    planName?: string;
+    originalPrice?: number;
+    appliedCoupon?: { code: string; discountString: string };
   } | null>(null);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
@@ -224,6 +227,9 @@ function StudentHomeContent() {
         paymentId?: string;
         membershipId?: string;
         success?: boolean;
+        planName?: string;
+        originalPrice?: number;
+        appliedCoupon?: { code: string; discountString: string };
       }>(`/api/students/gyms/${gymId}/join`, {
         planId,
         couponId: couponId || null,
@@ -242,6 +248,9 @@ function StudentHomeContent() {
           brCode: data.brCode!,
           brCodeBase64: data.brCodeBase64!,
           amount: data.amount!,
+          planName: data.planName,
+          originalPrice: data.originalPrice,
+          appliedCoupon: data.appliedCoupon,
         });
       } else {
         toast({
@@ -616,6 +625,9 @@ function StudentHomeContent() {
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          planName={pixModal.planName}
+          originalPrice={pixModal.originalPrice}
+          appliedCoupon={pixModal.appliedCoupon}
           onPaymentConfirmed={handlePixConfirmed}
         />
       )}

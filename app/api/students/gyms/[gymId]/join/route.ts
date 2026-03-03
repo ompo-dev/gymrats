@@ -48,6 +48,7 @@ export const POST = createSafeHandler(
     }
 
     let finalPrice = plan.price;
+    let appliedCouponInfo: { code: string; discountString: string } | undefined;
 
     // Cupons são salvos no banco (GymCoupon) — busca direto do DB
     if (couponId) {
@@ -57,8 +58,10 @@ export const POST = createSafeHandler(
       if (coupon) {
         if (coupon.discountType === "percentage") {
           finalPrice = finalPrice * (1 - coupon.discountValue / 100);
+          appliedCouponInfo = { code: coupon.code, discountString: `${coupon.discountValue}%` };
         } else {
           finalPrice = finalPrice - coupon.discountValue;
+          appliedCouponInfo = { code: coupon.code, discountString: `R$ ${coupon.discountValue.toFixed(2)}` };
         }
         if (finalPrice < 3.5) finalPrice = 3.5;
         // Incrementa uso do cupom
@@ -97,6 +100,9 @@ export const POST = createSafeHandler(
     return NextResponse.json({
       ...result,
       membershipId: membership.id,
+      planName: plan.name,
+      originalPrice: plan.price,
+      appliedCoupon: appliedCouponInfo,
     });
   },
   {
