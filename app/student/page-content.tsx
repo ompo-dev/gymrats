@@ -65,7 +65,7 @@ function StudentHomeContent() {
 
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
-  const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
+  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
 
   // ✅ SEGURO: Verificar se é admin validando no servidor
@@ -313,9 +313,10 @@ function StudentHomeContent() {
     planId?: string,
     couponId?: string,
   ) => {
+    setTab("gyms");
     setGymId(id);
-    if (planId) setPreSelectedPlan(planId);
-    if (couponId) setPreSelectedCoupon(couponId);
+    setPreSelectedPlan(planId || null);
+    setPreSelectedCoupon(couponId || null);
   };
 
   const handleCancelMembership = async (membershipId: string) => {

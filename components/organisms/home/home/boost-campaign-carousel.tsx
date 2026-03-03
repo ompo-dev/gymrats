@@ -38,11 +38,6 @@ export function BoostCampaignCarousel({
 
   return (
     <div className="mb-6 space-y-4">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-5 w-5 text-duo-yellow" />
-        <h2 className="text-xl font-bold text-duo-text">Academias em Destaque</h2>
-      </div>
-
       <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
         {campaigns.map((campaign) => {
           const gym = gyms.find((g) => g.id === campaign.gymId);
