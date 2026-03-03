@@ -324,6 +324,12 @@ export async function createBoostCampaign(data: {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+    // Busca dados completos da academia para o customer do AbacatePay
+    const gym = await db.gym.findUnique({
+      where: { id: ctx.gymId },
+      select: { name: true, email: true, phone: true, cnpj: true },
+    });
+
     const campaign = await db.boostCampaign.create({
       data: {
         gymId: ctx.gymId,
@@ -340,6 +346,12 @@ export async function createBoostCampaign(data: {
 
     const { abacatePay } = await import("@/lib/api/abacatepay");
 
+    // Normaliza o telefone para conter apenas dígitos (AbacatePay exige)
+    const rawPhone = (gym?.phone ?? "").replace(/\D/g, "");
+    const cellphone = rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`;
+    // AbacatePay exige taxId (CPF 11d ou CNPJ 14d sem pontuao)
+    const taxId = (gym?.cnpj ?? ctx.user.email ?? "").replace(/\D/g, "");
+
     const billing = await abacatePay.createBilling({
       frequency: "ONE_TIME",
       methods: ["PIX"],
@@ -354,6 +366,12 @@ export async function createBoostCampaign(data: {
       ],
       returnUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
       completionUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
+      customer: {
+        name: gym?.name ?? ctx.user.name ?? "Academia",
+        email: gym?.email ?? (typeof ctx.user.email === "string" ? ctx.user.email : ""),
+        cellphone: cellphone || "5511999999999",
+        taxId: taxId || "00000000000000",
+      },
     });
 
     if (billing?.data) {
