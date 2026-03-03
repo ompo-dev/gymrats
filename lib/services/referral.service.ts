@@ -124,7 +124,7 @@ export class ReferralService {
     // 50% commission mapped in cents
     const commissionCents = Math.floor(amountCents * 0.5);
 
-    return await db.referral.update({
+    const updatedReferral = await db.referral.update({
       where: { id: referral.id },
       data: {
         status: "CONVERTED",
@@ -133,6 +133,28 @@ export class ReferralService {
         abacatePayPaymentId: paymentId,
       },
     });
+
+    // Tentar fazer auto-withdraw se o aluno tiver PIX cadastrado
+    const referrer = await db.student.findUnique({
+      where: { id: referral.referrerStudentId },
+      select: { id: true, pixKey: true, pixKeyType: true }
+    });
+
+    if (referrer && referrer.pixKey && referrer.pixKeyType) {
+      try {
+        console.log(`[ReferralService] Iniciando auto-withdraw da comissão para o referrer ${referrer.id}...`);
+        await ReferralService.createWithdraw(referrer.id, {
+          amountCents: commissionCents,
+          // usa modo fake no DEV
+          fake: process.env.NODE_ENV !== "production"
+        });
+        console.log(`[ReferralService] Auto-withdraw concluído com sucesso para o referrer ${referrer.id}.`);
+      } catch (err) {
+        console.error(`[ReferralService] Falha no auto-withdraw para ${referrer.id}:`, err);
+      }
+    }
+
+    return updatedReferral;
   }
 
   /**
@@ -193,8 +215,9 @@ export class ReferralService {
 
   /**
    * Creates a withdrawal for the student
+   * Se fake=true (ex.: test mode), apenas persiste no DB com status complete
    */
-  static async createWithdraw(studentId: string, data: { amountCents: number }) {
+  static async createWithdraw(studentId: string, data: { amountCents: number; fake?: boolean }) {
     const student = await db.student.findUnique({
       where: { id: studentId },
       select: { pixKey: true, pixKeyType: true },
@@ -213,9 +236,34 @@ export class ReferralService {
     }
 
     const externalId = `student-withdraw-${studentId}-${Date.now()}`;
-    const { abacatePay } = await import("@/lib/api/abacatepay");
     const pixType = student.pixKeyType.toUpperCase() as "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "RANDOM" | "BR_CODE";
     
+    // Test mode: apenas persists DB e conclui
+    if (data.fake) {
+      const w = await db.studentWithdraw.create({
+        data: {
+          studentId,
+          amount: amountReais,
+          pixKey: student.pixKey,
+          pixKeyType: student.pixKeyType,
+          externalId,
+          status: "complete",
+          completedAt: new Date(),
+        },
+      });
+
+      return {
+        ok: true,
+        withdraw: {
+          id: w.id,
+          amount: w.amount,
+          status: w.status,
+          createdAt: w.createdAt,
+        },
+      };
+    }
+
+    const { abacatePay } = await import("@/lib/api/abacatepay");
     const res = await abacatePay.createWithdraw({
       externalId,
       amount: data.amountCents,

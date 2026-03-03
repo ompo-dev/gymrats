@@ -340,16 +340,25 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
   const createSubscriptionMutation = useMutation({
     mutationFn: async (
       params:
-        | { plan: "monthly" | "annual" }
+        | { plan: "monthly" | "annual"; referralCode?: string }
         | {
             plan: "basic" | "premium" | "enterprise";
             billingPeriod: "monthly" | "annual";
+            referralCode?: string;
           },
     ) => {
+      // Adicionar referralCode da URL se não estiver presente nos params
+      const finalParams = { ...params };
+      if (!finalParams.referralCode && typeof window !== "undefined") {
+        const urlParams = new URL(window.location.href).searchParams;
+        const ref = urlParams.get("ref");
+        if (ref) finalParams.referralCode = ref;
+      }
+
       const response = await apiClient.post<{
         billingUrl?: string;
         error?: string;
-      }>(createEndpoint, params);
+      }>(createEndpoint, finalParams);
       return response.data;
     },
   });

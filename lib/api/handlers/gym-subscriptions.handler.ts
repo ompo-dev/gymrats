@@ -13,7 +13,7 @@ import {
   centsToReais,
   getGymPlanConfig,
 } from "@/lib/access-control/plans-config";
-import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
+import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validation.middleware";
 import { createGymSubscriptionSchema } from "../schemas";
@@ -101,7 +101,7 @@ export async function createGymSubscriptionHandler(
       return validation.response;
     }
 
-    const { plan, billingPeriod = "monthly" } = validation.data;
+    const { plan, billingPeriod = "monthly", referralCode } = validation.data;
 
     const activeStudents = await db.gymMembership.count({
       where: {
@@ -137,18 +137,21 @@ export async function createGymSubscriptionHandler(
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
+    
+    const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
 
-    // Criar billing AbacatePay primeiro
-    const billing = await createGymSubscriptionBilling(
+    // Criar billing PIX AbacatePay primeiro
+    const pix = await createGymSubscriptionPix(
       gymId,
-      plan,
+      plan as "basic" | "premium" | "enterprise",
       activeStudents,
       billingPeriod,
+      subscriptionToUseId
     );
 
-    if (!billing || !billing.id) {
+    if (!pix || !pix.id) {
       throw new Error(
-        "Erro ao criar cobrança: resposta inválida da AbacatePay",
+        "Erro ao criar cobrança PIX: resposta inválida da AbacatePay",
       );
     }
 
@@ -166,7 +169,7 @@ export async function createGymSubscriptionHandler(
           pricePerPersonal,
           canceledAt: null,
           cancelAtPeriodEnd: false,
-          abacatePayBillingId: billing.id,
+          abacatePayBillingId: pix.id,
         },
       });
     } else {
@@ -182,25 +185,24 @@ export async function createGymSubscriptionHandler(
           pricePerPersonal,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
-          abacatePayBillingId: billing.id,
+          abacatePayBillingId: pix.id,
         },
       });
     }
 
     // Resolver referral de academia (se veio por link de indicação)
-    // Chamado aqui pois o cookie só existe enquanto o usuário está na sessão ativa
-    try {
-      const cookieStore = await cookies();
-      const refCookie = cookieStore.get("gymrats_referral")?.value;
-      if (refCookie) {
-        const normalized = refCookie.startsWith("@") ? refCookie : `@${refCookie}`;
+    if (referralCode) {
+      try {
+        const normalized = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
         await ReferralService.resolveReferral(normalized, "GYM", gymId);
-      }
-    } catch { /* silencioso — não bloqueia a assinatura */ }
+      } catch { /* silencioso — não bloqueia a assinatura */ }
+    }
 
     return successResponse({
-      billingUrl: String(billing.url || ""),
-      billingId: String(billing.id || ""),
+      pixId: pix.id,
+      brCode: pix.brCode,
+      brCodeBase64: pix.brCodeBase64,
+      amount: pix.amount,
     });
   } catch (error) {
     console.error("[createGymSubscriptionHandler] Erro:", error);

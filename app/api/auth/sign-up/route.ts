@@ -34,10 +34,6 @@ export async function POST(request: NextRequest) {
         },
         createStudent: async (userId) => {
           const student = await db.student.create({ data: { userId } });
-          const refCode = request.cookies.get("gymrats_referral")?.value;
-          if (refCode) {
-            await ReferralService.resolveReferral(refCode, "STUDENT", student.id).catch(err => console.error("Referral link falhou:", err));
-          }
           return undefined;
         },
         createSession,

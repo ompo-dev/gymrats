@@ -318,6 +318,70 @@ export async function createStudentSubscriptionBilling(
   return billingResponse.data;
 }
 
+/**
+ * Cria cobrança PIX para assinatura de estudante via pixQrCode.
+ * Não cria produtos na AbacatePay - valor dinâmico.
+ */
+export async function createStudentSubscriptionPix(
+  studentId: string,
+  planType: "premium" | "pro",
+  billingPeriod: "monthly" | "annual",
+  subscriptionId: string
+): Promise<GymSubscriptionPixResponse | null> {
+  const student = await db.student.findUnique({
+    where: { id: studentId },
+    include: { user: true, profile: true },
+  });
+
+  if (!student) {
+    throw new Error("Aluno não encontrado");
+  }
+
+  const config = getStudentPlanConfig(planType);
+  if (!config) {
+    throw new Error(`Plano inválido: ${planType}`);
+  }
+
+  const selectedPrice = config.prices[billingPeriod];
+  const planName = planType.charAt(0).toUpperCase() + planType.slice(1);
+  const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
+  const description = `GymRats ${planName} ${periodLabel}`.slice(0, 37);
+
+  const pixResponse = await abacatePay.createPixQrCode({
+    amount: selectedPrice,
+    expiresIn: 3600, // 1 hora
+    description,
+    metadata: {
+      studentId,
+      plan: planType,
+      billingPeriod,
+      subscriptionId,
+      kind: "student-subscription",
+    },
+    customer: student.user.email
+      ? {
+          name: student.user.name,
+          email: student.user.email,
+          cellphone: student.phone || "(00) 0000-0000",
+          taxId: "",
+        }
+      : undefined,
+  });
+
+  if (pixResponse.error || !pixResponse.data) {
+    console.error("[createStudentSubscriptionPix] Erro:", pixResponse.error);
+    throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
+  }
+
+  const pix = pixResponse.data;
+  return {
+    id: pix.id,
+    brCode: pix.brCode,
+    brCodeBase64: pix.brCodeBase64,
+    amount: pix.amount,
+  };
+}
+
 export async function createGymSubscriptionBilling(
   gymId: string,
   plan: "basic" | "premium" | "enterprise",

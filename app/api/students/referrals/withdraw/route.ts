@@ -15,7 +15,11 @@ export const POST = createSafeHandler(
     const { studentId } = studentContext!;
     const { amountCents } = body as z.infer<typeof withdrawSchema>;
 
-    const result = await ReferralService.createWithdraw(studentId, { amountCents });
+    const isDev = process.env.NODE_ENV !== "production";
+    const result = await ReferralService.createWithdraw(studentId, { 
+      amountCents, 
+      fake: isDev 
+    });
 
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });

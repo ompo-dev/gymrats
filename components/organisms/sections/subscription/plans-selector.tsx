@@ -78,6 +78,83 @@ function PlansSelectorSimple({
     ? getAnnualDiscountFromPlan(selectedPlanData)
     : annualDiscount;
 
+  const visiblePlans = plans.filter((plan) => {
+    // Para student com subscription ativa
+    if (userType === "student" && isPremiumActive) {
+      const currentPlan = String(currentSubscriptionPlan || "").trim().toLowerCase();
+      const isCurrentPro = currentPlan.includes("pro");
+      const isPlanPro = plan.id === "pro";
+      
+      // Se for mudança de período no mesmo plano
+      if ((isCurrentPro && isPlanPro) || (!isCurrentPro && !isPlanPro)) {
+        // Só mostra se for para upgrade de mensal pra anual
+        if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
+          return true;
+        }
+        return false;
+      }
+
+      // Upgrade de Premium para Pro
+      if (!isCurrentPro && isPlanPro) {
+        return true;
+      }
+
+      // Downgrade de Pro para Premium: não mostrar
+      if (isCurrentPro && !isPlanPro) {
+        return false;
+      }
+      
+      return true;
+    }
+
+    // Para gym com subscription ativa: filtrar baseado na hierarquia e período
+    if (
+      userType === "gym" &&
+      isPremiumActive &&
+      currentSubscriptionPlan
+    ) {
+      const planId = String(plan.id || "")
+        .trim()
+        .toLowerCase();
+      const currentPlan = String(currentSubscriptionPlan || "")
+        .trim()
+        .toLowerCase();
+      const isSamePlan = planId === currentPlan;
+      const isSamePeriod =
+        selectedBillingPeriod === currentSubscriptionBillingPeriod;
+
+      // Mesmo plano + mesmo período = não mostrar
+      if (isSamePlan && isSamePeriod) {
+        return false;
+      }
+
+      // Sem downgrade na hierarquia
+      const planHierarchy = ["basic", "premium", "enterprise"];
+      const currentPlanIndex = planHierarchy.indexOf(currentPlan);
+      const selectedPlanIndex = planHierarchy.indexOf(planId);
+
+      if (selectedPlanIndex < currentPlanIndex) {
+        return false;
+      }
+
+      // Se for no mesmo plano, permitir apenas upgrade de período
+      if (isSamePlan) {
+        if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
+          return true;
+        }
+        return false; // Bloqueia annual -> monthly
+      }
+
+      // Upgrades de plano permitidos
+      return true;
+    }
+
+    return true;
+  });
+
+  // Se o usuário já está no plano máximo anual, não há upgrades
+  const hasNoUpgrades = isPremiumActive && visiblePlans.length === 0 && selectedBillingPeriod === "annual";
+
   return (
     <DuoCard.Root variant="default" padding="md">
       <DuoCard.Header>
@@ -108,118 +185,56 @@ function PlansSelectorSimple({
           </div>
         )}
 
-        {/* Billing Period Selector - Mostrar sempre, exceto se a única opção for anual */}
-        <BillingPeriodSelector.Simple
-          selectedPeriod={selectedBillingPeriod}
-          onSelect={onSelectBillingPeriod}
-          monthlyLabel={texts.monthlyLabel}
-          annualLabel={texts.annualLabel}
-          perMonth={texts.perMonth}
-          perYear={texts.perYear}
-          annualDiscount={planDiscount}
-        />
+        {/* Mostrar sempre, exceto se for plano máximo e não tiver opções */}
+        {!hasNoUpgrades && (
+          <BillingPeriodSelector.Simple
+            selectedPeriod={selectedBillingPeriod}
+            onSelect={onSelectBillingPeriod}
+            monthlyLabel={texts.monthlyLabel}
+            annualLabel={texts.annualLabel}
+            perMonth={texts.perMonth}
+            perYear={texts.perYear}
+            annualDiscount={planDiscount}
+          />
+        )}
 
         {/* Plan Cards */}
-        {plans.length > 0 && (
+        {visiblePlans.length > 0 ? (
           <div
             className={cn(
               "grid gap-3",
               userType === "student" && isPremiumActive
                 ? "grid-cols-1"
-                : userType === "gym" && plans.length === 3
+                : userType === "gym" && visiblePlans.length === 3
                   ? "grid-cols-2"
-                  : plans.length === 1
+                  : visiblePlans.length === 1
                     ? "grid-cols-1"
                     : "grid-cols-3",
             )}
           >
-            {plans
-              .filter((plan) => {
-                // Para student com subscription ativa
-                if (userType === "student" && isPremiumActive) {
-                  const currentPlan = String(currentSubscriptionPlan || "").trim().toLowerCase();
-                  const isCurrentPro = currentPlan.includes("pro");
-                  const isPlanPro = plan.id === "pro";
-                  
-                  // Se for mudança de período no mesmo plano
-                  if ((isCurrentPro && isPlanPro) || (!isCurrentPro && !isPlanPro)) {
-                    // Só mostra se for para upgrade de mensal pra anual
-                    if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
-                      return true;
-                    }
-                    return false;
-                  }
-
-                  // Upgrade de Premium para Pro
-                  if (!isCurrentPro && isPlanPro) {
-                    return true;
-                  }
-
-                  // Downgrade de Pro para Premium: não mostrar
-                  if (isCurrentPro && !isPlanPro) {
-                    return false;
-                  }
-                  
-                  return true;
-                }
-
-                // Para gym com subscription ativa: filtrar baseado na hierarquia e período
-                if (
-                  userType === "gym" &&
-                  isPremiumActive &&
-                  currentSubscriptionPlan
-                ) {
-                  const planId = String(plan.id || "")
-                    .trim()
-                    .toLowerCase();
-                  const currentPlan = String(currentSubscriptionPlan || "")
-                    .trim()
-                    .toLowerCase();
-                  const isSamePlan = planId === currentPlan;
-                  const isSamePeriod =
-                    selectedBillingPeriod === currentSubscriptionBillingPeriod;
-
-                  // Mesmo plano + mesmo período = não mostrar
-                  if (isSamePlan && isSamePeriod) {
-                    return false;
-                  }
-
-                  // Sem downgrade na hierarquia
-                  const planHierarchy = ["basic", "premium", "enterprise"];
-                  const currentPlanIndex = planHierarchy.indexOf(currentPlan);
-                  const selectedPlanIndex = planHierarchy.indexOf(planId);
-
-                  if (selectedPlanIndex < currentPlanIndex) {
-                    return false;
-                  }
-
-                  // Mesmo plano mudando período: permitir upgrade de período
-                  if (isSamePlan && !isSamePeriod) {
-                    return true;
-                  }
-
-                  return true;
-                }
-
-                return true;
-              })
-              .map((plan) => (
-                <PlanCard.Simple
-                  key={plan.id}
-                  plan={plan}
-                  isSelected={selectedPlan === plan.id}
-                  onSelect={() => onSelectPlan(plan.id)}
-                  billingPeriod={selectedBillingPeriod}
-                  userType={userType}
-                  plansCount={plans.length}
-                  texts={{ perMonth: texts.perMonth }}
-                />
-              ))}
+            {visiblePlans.map((plan) => (
+              <PlanCard.Simple
+                key={plan.id}
+                plan={plan}
+                isSelected={selectedPlan === plan.id}
+                onSelect={() => onSelectPlan(plan.id)}
+                billingPeriod={selectedBillingPeriod}
+                userType={userType}
+                plansCount={visiblePlans.length}
+                texts={{ perMonth: texts.perMonth }}
+              />
+            ))}
           </div>
+        ) : (
+          isPremiumActive && (
+            <div className="text-center py-6 text-duo-gray-dark border-2 border-dashed border-duo-border rounded-xl">
+              Você já possui o melhor plano disponível!
+            </div>
+          )
         )}
 
         {/* Features List */}
-        {selectedPlanData && (
+        {selectedPlanData && visiblePlans.length > 0 && (
           <>
             <PlanFeatures features={selectedPlanData.features} />
 

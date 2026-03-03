@@ -7,7 +7,6 @@ import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
-import { createAbacateBilling } from "@/lib/actions/payments/abacate-pay";
 import { apiClient } from "@/lib/api/client";
 import {
   STUDENT_PLANS_CONFIG,
@@ -412,15 +411,28 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleUpgrade = async (
     planId: string,
-    billingPeriod: "monthly" | "annual",
+    billingPeriod: "monthly" | "annual"
   ) => {
     try {
-      const result = await createAbacateBilling(planId, billingPeriod);
+      // Usa o 'plan' como o billingPeriod da assinatura atual, pq os estudantes assinam sempre Premium
+      const result = await _createSubscription(billingPeriod);
+      
+      const pix = result as {
+        pixId?: string;
+        brCode?: string;
+        brCodeBase64?: string;
+        amount?: number;
+      };
 
-      if (result?.url) {
-        window.location.href = result.url;
+      if (pix.pixId && pix.brCode) {
+        setPixModal({
+          paymentId: pix.pixId,
+          brCode: pix.brCode,
+          brCodeBase64: pix.brCodeBase64 ?? "",
+          amount: pix.amount ?? 0,
+        });
       } else {
-        throw new Error("URL de checkout não recebida do servidor.");
+        throw new Error("Resposta de PIX inválida do servidor.");
       }
     } catch (error) {
       console.error("[handleUpgrade] Erro:", error);
@@ -430,11 +442,11 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       };
       toast({
         variant: "destructive",
-        title: "Erro ao ativar premium",
+        title: "Erro ao criar PIX de assinatura",
         description:
           err.response?.data?.message ||
           (err instanceof Error ? err.message : undefined) ||
-          "Erro ao ativar premium. Tente novamente.",
+          "Ocorreu um erro. Tente novamente.",
       });
     }
   };
