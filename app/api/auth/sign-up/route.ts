@@ -6,6 +6,7 @@ import { signUpSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import { type SignUpInput, signUpUseCase } from "@/lib/use-cases/auth";
 import { createSession } from "@/lib/utils/session";
+import { ReferralService } from "@/lib/services/referral.service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,17 +18,28 @@ export async function POST(request: NextRequest) {
 
     const result = await signUpUseCase(
       {
-        findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+        findUserByEmail: async (email) => {
+          const u = await db.user.findUnique({ where: { email } });
+          return u as any;
+        },
         hashPassword: (plain) => bcrypt.hash(plain, 10),
-        createUser: (data) =>
-          db.user.create({
+        createUser: async (data) => {
+          const u = await db.user.create({
             data: {
               ...data,
               role: data.role as UserRole,
             },
-          }),
-        createStudent: (userId) =>
-          db.student.create({ data: { userId } }).then(() => undefined),
+          });
+          return u as any;
+        },
+        createStudent: async (userId) => {
+          const student = await db.student.create({ data: { userId } });
+          const refCode = request.cookies.get("gymrats_referral")?.value;
+          if (refCode) {
+            await ReferralService.resolveReferral(refCode, "STUDENT", student.id).catch(err => console.error("Referral link falhou:", err));
+          }
+          return undefined;
+        },
         createSession,
       },
       validation.data as SignUpInput,

@@ -245,7 +245,7 @@ export const authRoutes = new Elysia()
             db.user.findUnique({
               where: { id: userId },
               include: { student: true, gyms: true },
-            }),
+            }) as unknown as Promise<import("@/lib/use-cases/auth").UserSummary | null>,
           updateUserRole: (userId, role) =>
             db.user.update({ where: { id: userId }, data: { role } }),
           findStudentByUserId: (userId) =>

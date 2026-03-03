@@ -74,8 +74,8 @@ async function getAuthSession(): Promise<AuthSession | null> {
 
       if (user) {
         return {
-          session: betterAuthSession.session,
-          user,
+          session: betterAuthSession.session as AuthSession["session"],
+          user: user as unknown as AuthSession["user"],
         };
       }
     }

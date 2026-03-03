@@ -6,8 +6,14 @@ export interface UserSummary {
   name: string;
   role: AuthRole;
   createdAt?: Date;
-  student?: { id: string } | null;
-  gyms?: { id: string }[] | null;
+  student?: {
+    id: string;
+    pixKey?: string | null;
+    pixKeyType?: string | null;
+    referralCode?: string | null;
+    [key: string]: unknown;
+  } | null;
+  gyms?: { id: string; [key: string]: unknown }[] | null;
   password?: string | null;
 }
 

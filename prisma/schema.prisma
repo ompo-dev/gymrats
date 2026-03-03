@@ -169,6 +169,13 @@ model Student {
   // Acessos GymPass/Pro
   proGymAccesses ProGymAccess[]
 
+  // Indicações
+  pixKey         String?
+  pixKeyType     String? @default("CPF")
+  referralCode   String? @unique
+  referralsMade  Referral[] @relation("ReferrerStudent")
+  withdraws      StudentWithdraw[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1098,4 +1105,48 @@ model ProGymAccess {
   @@index([studentId])
   @@index([gymId])
   @@map("pro_gym_access")
+}
+
+// ============================================
+// INDICAÇÕES E SAQUES DE ESTUDANTES
+// ============================================
+
+model StudentWithdraw {
+  id          String   @id @default(cuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount      Float // Valor em reais
+  pixKey      String
+  pixKeyType  String
+  externalId  String   @unique // ID enviado à AbacatePay
+  abacateId   String?  // ID retornado pela AbacatePay
+  status      String   @default("pending") // pending | complete | failed
+  referralIds String?  // JSON array de IDs de Referrals adicionados ao saque
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([studentId])
+  @@index([status])
+  @@map("student_withdraws")
+}
+
+model Referral {
+  id                      String    @id @default(cuid())
+  referrerStudentId       String    // student who generated the code
+  referrerStudent         Student   @relation("ReferrerStudent", fields: [referrerStudentId], references: [id], onDelete: Cascade)
+  referralCode            String    // Handle: e.g. "@maicon"
+  referredType            String    // "STUDENT", "GYM", "PERSONAL"
+  referredId              String?   // User/Gym/Student ID of who signed up
+  status                  String    @default("PENDING") // PENDING, CONVERTED, PAID
+  firstPaymentAmountCents Int?
+  commissionAmountCents   Int?
+  paidAt                  DateTime?
+  abacatePayPaymentId     String?
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  @@index([referrerStudentId])
+  @@index([referralCode])
+  @@map("referrals")
 }

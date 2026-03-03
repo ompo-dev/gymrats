@@ -8,6 +8,7 @@ import {
 import { db } from "@/lib/db";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { ReferralService } from "@/lib/services/referral.service";
 
 export async function POST(request: NextRequest) {
   try {
@@ -190,6 +191,9 @@ export async function POST(request: NextRequest) {
         // Ajustar isActive das academias e benefícios dos alunos
         await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
+        // Lógica de Comissão por Indicação de Academia (50% Referrals)
+        await ReferralService.onFirstPaymentConfirmed("GYM", gymSub.gymId, amount, paymentId);
+
         console.log(
           `[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`,
         );
@@ -266,6 +270,9 @@ export async function POST(request: NextRequest) {
       console.log(
         `[Webhook] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName.toUpperCase()}.`,
       );
+
+      // Lógica de Comissão por Indicação de Aluno (50% Referrals)
+      await ReferralService.onFirstPaymentConfirmed("STUDENT", subscription.studentId, amount, paymentId);
     }
 
     return successResponse({ received: true });

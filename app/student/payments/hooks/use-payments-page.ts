@@ -16,7 +16,7 @@ import {
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 
-export type PaymentsTab = "memberships" | "payments" | "subscription";
+export type PaymentsTab = "memberships" | "payments" | "subscription" | "referrals";
 
 export interface UsePaymentsPageProps {
   subscription?: StudentSubscriptionData | null;

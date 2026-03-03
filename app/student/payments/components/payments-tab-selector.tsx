@@ -8,6 +8,7 @@ const TAB_OPTIONS = [
   { value: "memberships", label: "Academias", emoji: "🏢" },
   { value: "payments", label: "Histórico", emoji: "📅" },
   { value: "subscription", label: "Assinatura", emoji: "👑" },
+  { value: "referrals", label: "Indicações", emoji: "🤝" },
 ];
 
 export interface PaymentsTabSelectorProps {
