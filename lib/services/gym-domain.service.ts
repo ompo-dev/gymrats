@@ -64,6 +64,7 @@ export class GymDomainService {
   static async updateGymProfile(
     gymId: string,
     data: {
+      name?: string;
       address?: string;
       phone?: string;
       cnpj?: string | null;
@@ -78,6 +79,7 @@ export class GymDomainService {
     },
   ) {
     const updateData: Record<string, string | number | boolean | null> = {};
+    if (data.name !== undefined) updateData.name = data.name;
     if (data.address !== undefined) updateData.address = data.address;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;

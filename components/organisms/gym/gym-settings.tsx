@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
@@ -62,7 +62,10 @@ export function GymSettingsPage({
   const [pixKey, setPixKey] = useState(initialProfile.pixKey ?? "");
 
   // Horários por dia (ex: sexta 18h, outros 22h)
-  const parseInitialSchedules = (): Record<string, DaySchedule> => {
+  const parseInitialSchedules = useCallback((): Record<
+    string,
+    DaySchedule
+  > => {
     const oh = initialProfile.openingHours;
     const days = oh?.days ?? [
       "monday",
@@ -85,14 +88,14 @@ export function GymSettingsPage({
       };
     }
     return result;
-  };
+  }, [initialProfile.openingHours]);
   const [daySchedules, setDaySchedules] = useState<Record<string, DaySchedule>>(
     parseInitialSchedules,
   );
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
-  // Sincroniza quando troca de academia (profile vem de outra gym)
+  // Sincroniza quando troca de academia (profile vem de outra gym) ou após refresh
   useEffect(() => {
     setProfile(initialProfile);
     setAddress(initialProfile.address ?? "");
@@ -101,16 +104,7 @@ export function GymSettingsPage({
     setPixKeyType(initialProfile.pixKeyType ?? "");
     setPixKey(initialProfile.pixKey ?? "");
     setDaySchedules(parseInitialSchedules());
-  }, [
-    initialProfile?.id,
-    initialProfile.address,
-    initialProfile.cnpj,
-    initialProfile.phone,
-    initialProfile.pixKey,
-    initialProfile.pixKeyType,
-    initialProfile,
-    parseInitialSchedules,
-  ]);
+  }, [initialProfile.id, parseInitialSchedules]);
 
   const {
     isAdmin: serverIsAdmin,
@@ -119,6 +113,7 @@ export function GymSettingsPage({
   } = useUserSession();
 
   const isAdmin = serverIsAdmin || serverRole === "ADMIN";
+  const canSwitchToStudent = isAdmin || serverRole === "GYM";
 
   const updateDaySchedule = (
     dayId: string,

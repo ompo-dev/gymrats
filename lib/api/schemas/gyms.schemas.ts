@@ -18,14 +18,15 @@ export const setActiveGymSchema = z.object({
 
 export const updateGymProfileSchema = z
   .object({
+    name: z.string().min(1, "Nome é obrigatório").optional(),
     // Campos opcionais: string vazia = não atualizar (permite salvar só horários)
     address: z.preprocess(
       (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
-      z.string().min(1, "Endereço é obrigatório").optional(),
+      z.string().min(1, "Endereço é obrigatório").optional().nullable(),
     ),
     phone: z.preprocess(
       (val) => (typeof val === "string" && val.trim() === "" ? undefined : val),
-      z.string().min(1, "Telefone é obrigatório").optional(),
+      z.string().min(1, "Telefone é obrigatório").optional().nullable(),
     ),
     cnpj: z.string().optional().nullable(),
     pixKey: z.string().optional().nullable(),
@@ -46,7 +47,8 @@ export const updateGymProfileSchema = z
               close: z.string(),
             }),
           )
-          .optional(),
+          .optional()
+          .nullable(),
       })
       .optional()
       .nullable(),
@@ -54,7 +56,7 @@ export const updateGymProfileSchema = z
   .refine(
     (data) => {
       const hasPixKey = data.pixKey != null && data.pixKey.trim() !== "";
-      const hasPixKeyType = data.pixKeyType != null && data.pixKeyType !== "";
+      const hasPixKeyType = data.pixKeyType != null;
       return (hasPixKey && hasPixKeyType) || (!hasPixKey && !hasPixKeyType);
     },
     {

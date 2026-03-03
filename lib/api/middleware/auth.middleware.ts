@@ -14,8 +14,8 @@ export interface AuthResult {
   user: {
     id: string;
     role?: string;
-    student?: { id: string };
-    gyms?: { id: string }[];
+    student?: { id: string } | null;
+    gyms?: { id: string }[] | null;
     [key: string]: string | number | boolean | object | null | undefined;
   };
 }
@@ -171,24 +171,25 @@ export async function requireStudent(
     return auth;
   }
 
-  // ADMIN tem acesso completo a tudo
+  // ADMIN e GYM têm acesso completo para alternar
   const isAdmin = auth.user?.role === "ADMIN";
+  const isGym = auth.user?.role === "GYM";
 
-  if (!isAdmin && !auth.user?.student) {
+  if (!isAdmin && !isGym && !auth.user?.student) {
     return {
       response: NextResponse.json(
         { error: "Usuário não é um aluno" },
         { status: 403 },
       ),
-      error: "Acesso negado: requer role STUDENT ou ADMIN",
+      error: "Acesso negado: requer role STUDENT, GYM ou ADMIN",
     };
   }
 
-  // Para ADMIN, garantir que student existe (criar se não existir)
+  // Para ADMIN e GYM, garantir que student existe (criar se não existir)
   let studentId = auth.user?.student?.id;
   let student = auth.user?.student;
 
-  if (isAdmin && !studentId) {
+  if ((isAdmin || isGym) && !studentId) {
     const { db } = await import("@/lib/db");
     const existingStudent = await db.student.findUnique({
       where: { userId: auth.userId },

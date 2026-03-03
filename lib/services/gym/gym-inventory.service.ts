@@ -3,18 +3,18 @@ import type { Equipment, GymProfile, GymStats } from "@/lib/types";
 
 interface CreateGymInput {
   name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
+  address: string;
+  phone: string;
+  email: string;
   cnpj?: string;
   equipment?: Array<{ name: string; type: string }>;
 }
 
 interface UpdateOnboardingInput {
   name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
+  address: string;
+  phone: string;
+  email: string;
   cnpj?: string;
   equipment?: Array<{ name: string; type: string }>;
 }
@@ -34,14 +34,20 @@ export class GymInventoryService {
     if (!gym || !gym.profile) return null;
 
     let openingHours:
-      | { open: string; close: string; days?: string[] }
+      | {
+          open: string;
+          close: string;
+          days: string[];
+          byDay?: Record<string, { open: string; close: string }>;
+        }
       | undefined;
     if (gym.openingHours) {
       try {
         openingHours = JSON.parse(gym.openingHours) as {
           open: string;
           close: string;
-          days?: string[];
+          days: string[];
+          byDay?: Record<string, { open: string; close: string }>;
         };
       } catch {
         openingHours = undefined;
@@ -351,7 +357,7 @@ export class GymInventoryService {
       data: { gymId: gym.id },
     });
 
-    if (data.equipment?.length > 0) {
+    if (data.equipment && data.equipment.length > 0) {
       await db.equipment.createMany({
         data: data.equipment.map((eq) => ({
           gymId: gym.id,
@@ -387,7 +393,7 @@ export class GymInventoryService {
       update: { equipmentCount: data.equipment?.length || 0 },
     });
 
-    if (data.equipment?.length > 0) {
+    if (data.equipment && data.equipment.length > 0) {
       await db.equipment.createMany({
         data: data.equipment.map((eq) => ({
           gymId,

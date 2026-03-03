@@ -31,24 +31,10 @@ export const GET = createSafeHandler(
         ? Math.max(0, Math.ceil((trialEndMs - Date.now()) / (1000 * 3600 * 24)))
         : null;
 
-    // totalAmount: anual usa valor anual (base mensal × 12 × desconto), mensal usa base + por aluno
-    const planMonthlyBases: Record<string, number> = {
-      basic: 150,
-      premium: 250,
-      enterprise: 400,
-    };
-    const annualDiscounts: Record<string, number> = {
-      basic: 0.95,
-      premium: 0.9,
-      enterprise: 0.85,
-    };
-    const monthlyBase =
-      planMonthlyBases[subscription.plan] ?? subscription.basePrice;
+    // totalAmount: anual usa o preço base (já anualizado), mensal usa base + por aluno
     const totalAmount =
       subscription.billingPeriod === "annual"
-        ? Math.round(
-            monthlyBase * 12 * (annualDiscounts[subscription.plan] ?? 0.9),
-          )
+        ? subscription.basePrice
         : subscription.basePrice +
           subscription.pricePerStudent * activeStudents;
 

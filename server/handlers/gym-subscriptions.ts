@@ -1,5 +1,9 @@
 import type { Context } from "elysia";
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
+import {
+  GYM_PLANS_CONFIG,
+  centsToReais,
+} from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
 import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
 import {
@@ -151,12 +155,18 @@ export async function createGymSubscriptionHandler({
     });
 
     const now = new Date();
-    const planPrices = {
-      basic: { base: 150, perStudent: 1.5 },
-      premium: { base: 250, perStudent: 1 },
-      enterprise: { base: 400, perStudent: 0.5 },
-    };
-    const prices = planPrices[plan as keyof typeof planPrices];
+    const planKey = plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
+    const config = GYM_PLANS_CONFIG[planKey];
+
+    if (!config) {
+      return badRequestResponse(set, "Plano inválido");
+    }
+
+    const basePrice = centsToReais(
+      config.prices[billingPeriod as "monthly" | "annual"],
+    );
+    const pricePerStudent =
+      billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
 
     const periodEnd = new Date(now);
     if (billingPeriod === "annual") {
@@ -173,8 +183,8 @@ export async function createGymSubscriptionHandler({
           plan,
           billingPeriod,
           status: "active",
-          basePrice: prices.base,
-          pricePerStudent: billingPeriod === "annual" ? 0 : prices.perStudent,
+          basePrice,
+          pricePerStudent,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
           canceledAt: null,
@@ -246,7 +256,10 @@ export async function startGymTrialHandler({
     const trialEnd = new Date(now);
     trialEnd.setDate(trialEnd.getDate() + 14);
 
-    const prices = { base: 150, perStudent: 1.5 };
+    const prices = {
+      base: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
+      perStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
+    };
 
     const subscription = await db.gymSubscription.create({
       data: {
