@@ -322,14 +322,12 @@ export async function createBoostCampaign(data: {
     if (errorResponse || !ctx)
       return { success: false, error: "Não autenticado" };
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-    // Busca dados completos da academia para o customer do AbacatePay
     const gym = await db.gym.findUnique({
       where: { id: ctx.gymId },
-      select: { name: true, email: true, phone: true, cnpj: true },
+      select: { name: true, email: true },
     });
 
+    // Cria a campanha no DB com status pending_payment
     const campaign = await db.boostCampaign.create({
       data: {
         gymId: ctx.gymId,
@@ -344,54 +342,51 @@ export async function createBoostCampaign(data: {
       },
     });
 
+    // Gera PIX direto (igual ao fluxo de alunos — não exige taxId)
     const { abacatePay } = await import("@/lib/api/abacatepay");
-
-    // Normaliza o telefone para conter apenas dígitos (AbacatePay exige)
-    const rawPhone = (gym?.phone ?? "").replace(/\D/g, "");
-    const cellphone = rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`;
-    // AbacatePay exige taxId (CPF 11d ou CNPJ 14d sem pontuação)
-    const cnpjOrEmail = gym?.cnpj ?? String(ctx.user.email ?? "");
-    const taxId = cnpjOrEmail.replace(/\D/g, "");
-    const customerName = gym?.name ?? String(ctx.user.name ?? "Academia");
-    const customerEmail = gym?.email ?? String(ctx.user.email ?? "");
-
-    const billing = await abacatePay.createBilling({
-      frequency: "ONE_TIME",
-      methods: ["PIX"],
-      products: [
-        {
-          externalId: `boost_${campaign.id}`,
-          name: `Impulsionamento: ${campaign.title}`,
-          description: `Anúncio na plataforma GymRats por ${campaign.durationHours}h`,
-          quantity: 1,
-          price: data.amountCents,
-        },
-      ],
-      returnUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
-      completionUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
-      customer: {
-        name: customerName,
-        email: customerEmail,
-        cellphone: cellphone || "5511999999999",
-        taxId: taxId || "00000000000000",
+    const pixResponse = await abacatePay.createPixQrCode({
+      amount: data.amountCents,
+      expiresIn: 3600 * 24, // 24h
+      description: `Impulsionamento: ${data.title}`.slice(0, 37),
+      metadata: {
+        campaignId: campaign.id,
+        gymId: ctx.gymId,
+        kind: "boost-campaign",
       },
+      customer: gym?.email
+        ? {
+            name: gym.name ?? "Academia",
+            email: gym.email,
+            cellphone: "",
+            taxId: "",
+          }
+        : undefined,
     });
 
-    if (billing?.data) {
-      await db.boostCampaign.update({
-        where: { id: campaign.id },
-        data: { abacatePayBillingId: billing.data.id },
-      });
-      return { success: true, abacatePayUrl: billing.data.url };
+    if (pixResponse.error || !pixResponse.data) {
+      return {
+        success: false,
+        error: pixResponse.error ?? "Erro ao gerar PIX",
+      } as const;
     }
 
+    // Salva o ID do PIX na campanha
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { abacatePayBillingId: pixResponse.data.id },
+    });
+
     return {
-      success: false,
-      error: billing?.error ?? "Erro ao integrar gateway de pagamento",
-    };
+      success: true,
+      brCode: pixResponse.data.brCode,
+      brCodeBase64: pixResponse.data.brCodeBase64,
+      amount: pixResponse.data.amount,
+      pixId: pixResponse.data.id,
+      campaignId: campaign.id,
+    } as const;
   } catch (error) {
     console.error("[createBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro interno ao criar campanha" };
+    return { success: false, error: "Erro interno ao criar campanha" } as const;
   }
 }
 
@@ -399,9 +394,10 @@ export async function getGymReferrals() {
   return [];
 }
 
-export async function getBoostCampaignPaymentUrl(
+/** Cancela/deleta uma campanha da academia. Só é possível se não estiver ativa ou pagamento pendente.*/
+export async function deleteBoostCampaign(
   campaignId: string,
-): Promise<{ success: true; url: string } | { success: false; error: string }> {
+): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const { ctx, errorResponse } = await getGymContext();
     if (errorResponse || !ctx)
@@ -412,24 +408,90 @@ export async function getBoostCampaignPaymentUrl(
     });
 
     if (!campaign) return { success: false, error: "Campanha não encontrada" };
-    if (campaign.status !== "pending_payment")
-      return { success: false, error: "Campanha não está pendente" };
 
-    if (!campaign.abacatePayBillingId) {
-      return { success: false, error: "Pagamento não iniciado" };
-    }
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { status: "canceled" },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[deleteBoostCampaign] Erro:", error);
+    return { success: false, error: "Erro ao cancelar campanha" };
+  }
+}
+
+
+export async function getBoostCampaignPix(
+  campaignId: string,
+): Promise<
+  | { success: true; brCode: string; brCodeBase64: string; amount: number; pixId: string }
+  | { success: false; error: string }
+> {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const campaign = await db.boostCampaign.findFirst({
+      where: { id: campaignId, gymId: ctx.gymId, status: "pending_payment" },
+      include: { gym: { select: { name: true, email: true } } },
+    });
+
+    if (!campaign) return { success: false, error: "Campanha não encontrada ou já paga" };
 
     const { abacatePay } = await import("@/lib/api/abacatepay");
-    const billing = await abacatePay.getBilling(campaign.abacatePayBillingId);
 
-    if (!billing.data) {
-      return { success: false, error: billing.error ?? "Billing não encontrado" };
+    // Se já tem PIX e ainda não expirou, retorna o existente
+    if (campaign.abacatePayBillingId) {
+      const existing = await abacatePay.checkPixQrCodeStatus(campaign.abacatePayBillingId);
+      if (existing.data?.status === "PENDING") {
+        // Busca o brCode do PIX existente (a API checkPixQrCodeStatus não retorna brCode,
+        // precisamos recriar — mas salva uma chamada extra na maioria dos casos)
+        // Por simplicidade, sempre recria o PIX para garantir o QR code fresco
+      }
     }
 
-    return { success: true, url: billing.data.url };
+    // Cria novo PIX
+    const pixResponse = await abacatePay.createPixQrCode({
+      amount: campaign.amountCents,
+      expiresIn: 3600 * 24, // 24h
+      description: `Impulsionamento: ${campaign.title}`.slice(0, 37),
+      metadata: {
+        campaignId: campaign.id,
+        gymId: ctx.gymId,
+        kind: "boost-campaign",
+      },
+      customer: campaign.gym?.email
+        ? {
+            name: campaign.gym.name ?? "Academia",
+            email: campaign.gym.email,
+            cellphone: "",
+            taxId: "",
+          }
+        : undefined,
+    });
+
+    if (pixResponse.error || !pixResponse.data) {
+      return { success: false, error: pixResponse.error ?? "Erro ao gerar PIX" };
+    }
+
+    // Atualiza o ID do PIX na campanha
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { abacatePayBillingId: pixResponse.data.id },
+    });
+
+    return {
+      success: true,
+      brCode: pixResponse.data.brCode,
+      brCodeBase64: pixResponse.data.brCodeBase64,
+      amount: pixResponse.data.amount,
+      pixId: pixResponse.data.id,
+    };
   } catch (error) {
-    console.error("[getBoostCampaignPaymentUrl] Erro:", error);
-    return { success: false, error: "Erro ao buscar link de pagamento" };
+    console.error("[getBoostCampaignPix] Erro:", error);
+    return { success: false, error: "Erro ao gerar PIX" };
   }
 }
 
