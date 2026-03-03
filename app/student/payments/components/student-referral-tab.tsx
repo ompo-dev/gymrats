@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ReferralData {
   referralCode: string;
+  pixKey: string | null;
+  pixKeyType: string | null;
   balanceReais: number;
   balanceCents: number;
   totalEarnedCents: number;
@@ -30,12 +32,16 @@ export function StudentReferralTab() {
   const [isUpdatingPix, setIsUpdatingPix] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   const loadData = async () => {
     try {
       setIsLoading(true);
       const res = await apiClient.get<ReferralData>("/api/students/referrals");
       setData(res.data);
+      // Pre-preenche PIX com os valores já salvos
+      if (res.data.pixKey) setPixKey(res.data.pixKey);
+      if (res.data.pixKeyType) setPixKeyType(res.data.pixKeyType);
     } catch (err) {
       toast({
         variant: "destructive",
@@ -51,15 +57,14 @@ export function StudentReferralTab() {
     loadData();
   }, []);
 
-  const handleCopyLink = () => {
-    if (!data?.referralCode) return;
-    const url = new URL(window.location.origin);
-    url.searchParams.set("ref", data.referralCode.replace("@", ""));
-    navigator.clipboard.writeText(url.toString());
-    toast({
-      title: "Link copiado!",
-      description: "Compartilhe com seus amigos para ganhar comissões.",
-    });
+  // Link único inteligente — /r/CODIGO detecta role e redireciona
+  const refSlug = data?.referralCode?.replace("@", "") ?? "";
+  const getReferralLink = () => `${window.location.origin}/r/${refSlug}`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(getReferralLink());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleUpdatePix = async () => {
@@ -114,19 +119,6 @@ export function StudentReferralTab() {
     }
   };
 
-  // Link único inteligente — /r/CODIGO detecta role e redireciona
-  const refSlug = data?.referralCode?.replace("@", "") ?? "";
-  const getReferralLink = () =>
-    `${window.location.origin}/r/${refSlug}`;
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(getReferralLink());
-    toast({
-      title: "Link copiado!",
-      description: "Compartilhe com seus contatos para ganhar 50% de comissão.",
-    });
-  };
-
   if (isLoading && !data) {
     return (
       <div className="flex justify-center p-8 text-duo-gray-dark">
@@ -147,18 +139,24 @@ export function StudentReferralTab() {
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
           <div className="flex-1 min-w-0">
-            <div className="text-xs text-duo-gray-dark truncate font-mono">
-              {refSlug ? getReferralLink() : "Carregando..."}
+            <div className="text-sm font-semibold text-duo-fg">
+              {refSlug ? `@${refSlug}` : "Carregando..."}
+            </div>
+            <div className="text-xs text-duo-gray-dark font-mono mt-0.5">
+              {refSlug ? getReferralLink() : ""}
             </div>
           </div>
           <DuoButton
             onClick={copyLink}
-            variant="primary"
-            className="shrink-0 gap-1.5"
+            variant={copied ? "secondary" : "primary"}
+            className="shrink-0 gap-1.5 transition-all"
             disabled={!refSlug}
           >
-            <Copy className="h-4 w-4" />
-            Copiar Link
+            {copied ? (
+              <><CheckCircle className="h-4 w-4" /> Copiado!</>
+            ) : (
+              <><Copy className="h-4 w-4" /> Copiar Link</>
+            )}
           </DuoButton>
         </div>
       </DuoCard.Root>
