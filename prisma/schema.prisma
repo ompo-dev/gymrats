@@ -998,6 +998,7 @@ model Subscription {
   studentId          String    @unique
   student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   plan               String    @default("free") // free, basic, premium
+  billingPeriod      String    @default("monthly") // monthly, annual
   status             String    @default("active") // active, canceled, expired, past_due, trialing
   source             SubscriptionSource? @default(OWN)
   enterpriseGymId    String?

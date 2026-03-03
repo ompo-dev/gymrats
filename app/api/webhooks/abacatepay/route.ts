@@ -243,6 +243,7 @@ export async function POST(request: NextRequest) {
         where: { id: subscription.id },
         data: {
           plan: updatedPlanName,
+          billingPeriod: metadata.billingPeriod, // Salva o período do metadata do AbacatePay
           status: "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,

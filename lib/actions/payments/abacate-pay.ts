@@ -118,6 +118,7 @@ export async function createAbacateBilling(
       create: {
         studentId,
         plan: finalPlanName,
+        billingPeriod,
         status: "pending_payment",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
@@ -126,6 +127,7 @@ export async function createAbacateBilling(
       },
       update: {
         plan: finalPlanName,
+        billingPeriod,
         status: "pending_payment",
         currentPeriodStart: periodStart,
         currentPeriodEnd: periodEnd,
