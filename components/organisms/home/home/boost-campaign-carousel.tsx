@@ -48,12 +48,15 @@ export function BoostCampaignCarousel({
             <motion.div
               key={campaign.id}
               className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0 cursor-pointer"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
             >
               <DuoCard.Root
-                className="relative overflow-hidden h-full flex flex-col border-2 transition-transform hover:scale-[1.02]"
-                style={{ borderColor: primaryColor }}
+                variant="default"
+                padding="none"
+                className="h-full flex flex-col overflow-hidden ring-1 ring-black/5"
                 onClick={() =>
                   onViewGymProfile(
                     campaign.gymId,
@@ -62,52 +65,58 @@ export function BoostCampaignCarousel({
                   )
                 }
               >
-                {/* Linha colorida no topo */}
-                <div
-                  className="absolute top-0 left-0 w-full h-1.5"
-                  style={{ backgroundColor: primaryColor }}
-                />
-
-                <div className="p-4 flex-1 flex flex-col">
-                  {/* Badge de Patrocinado */}
-                  <div className="flex justify-between items-start mb-3">
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border text-duo-gray-dark border-duo-border bg-duo-bg-card">
-                      Patrocinado
-                    </span>
+                <div className="p-5 flex-1 flex flex-col gap-4">
+                  {/* Header: Logo + Gym Name + Sponsored Badge */}
+                  <div className="flex items-center gap-3">
                     {gym?.logo ? (
                       <img
                         src={gym.logo}
                         alt="Logo"
-                        className="w-8 h-8 rounded-lg object-cover border border-duo-border"
+                        className="w-12 h-12 rounded-full object-cover border border-duo-border ring-2 ring-transparent transition-all"
+                        style={{ outlineColor: primaryColor }}
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-duo-bg flex items-center justify-center border border-duo-border">
-                        <Dumbbell className="w-4 h-4 text-duo-gray-dark" />
+                      <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
+                        <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
                       </div>
                     )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-duo-text truncate">
+                        {gym?.name || "Academias Parceiras"}
+                      </p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Sparkles
+                          className="w-3 h-3"
+                          style={{ color: primaryColor }}
+                        />
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
+                          Patrocinado
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3
-                    className="font-bold text-lg mb-1 line-clamp-2"
-                    style={{ color: primaryColor }}
-                  >
-                    {campaign.title}
-                  </h3>
-                  
-                  <p className="text-sm text-duo-text line-clamp-2 mb-3 flex-1">
-                    {campaign.description}
-                  </p>
+                  {/* Body: Offer Text */}
+                  <div className="flex-1">
+                    <h3
+                      className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
+                      style={{ color: primaryColor }}
+                    >
+                      {campaign.title}
+                    </h3>
+                    <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
+                      {campaign.description}
+                    </p>
+                  </div>
 
-                  <div className="mt-auto pt-3 border-t border-duo-border flex items-center justify-between">
-                    <span className="text-xs font-bold text-duo-gray-dark line-clamp-1 flex-1 mr-2">
-                      {gym?.name || "Ver Academia"}
-                    </span>
-                    <button
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shrink-0"
+                  {/* Footer: Single bold Call to Action */}
+                  <div className="mt-4 pt-4 border-t border-duo-border/60">
+                    <div
+                      className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
                       style={{ backgroundColor: primaryColor }}
                     >
-                      Ver Oferta
-                    </button>
+                      Aproveitar Oferta
+                    </div>
                   </div>
                 </div>
               </DuoCard.Root>
