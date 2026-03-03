@@ -64,14 +64,16 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
   canCreateMultipleGyms: false,
   isLoading: true,
 
-  // Mudar academia ativa (INSTANTÂNEO - só muda o ID)
+  // Mudar academia ativa
   setActiveGymId: async (gymId: string) => {
-    set({ activeGymId: gymId });
-
     // Atualizar no backend em background usando axios (API → Zustand → Component)
+    // PRIMEIRO: Aguardar o backend atualizar o cookie para não causar race conditions
     try {
       const { apiClient } = await import("@/lib/api/client");
       await apiClient.post("/api/gyms/set-active", { gymId });
+      
+      // SEGUNDO: Atualizar a UI via estado local apenas após o backend ter validado
+      set({ activeGymId: gymId });
     } catch (error) {
       console.error("Erro ao salvar academia ativa:", error);
     }

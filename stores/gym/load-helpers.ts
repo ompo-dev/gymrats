@@ -28,6 +28,7 @@ const loadingPromises = new Map<
   GymDataSection,
   Promise<Partial<GymUnifiedData>>
 >();
+let currentFetchGeneration = 0;
 
 interface MemberWithStudent {
   student: {
@@ -235,10 +236,21 @@ export async function loadSection(
     return loadingPromises.get(section)!;
   }
   loadingSections.add(section);
+  
+  // Guardar geração atual para evitar que requisições antigas sobrescrevam a store 
+  // caso o usuário mude de academia enquanto a request está em andamento.
+  const expectedGeneration = currentFetchGeneration;
+  
   const route = SECTION_ROUTES[section];
   const promise = (async () => {
     try {
       const response = await apiClient.get(route, { timeout: 30000 });
+      
+      // Abortar se a geração mudou entre o inicio e o fim do fetch!
+      if (currentFetchGeneration !== expectedGeneration) {
+        return {};
+      }
+      
       return transformSectionResponse(
         section,
         response.data as Record<
@@ -255,8 +267,11 @@ export async function loadSection(
       }
       return {};
     } finally {
-      loadingSections.delete(section);
-      loadingPromises.delete(section);
+      // Limpar os mapas desde que não tenham sido limpos por clearLoadingState
+      if (currentFetchGeneration === expectedGeneration) {
+        loadingSections.delete(section);
+        loadingPromises.delete(section);
+      }
     }
   })();
   loadingPromises.set(section, promise);
@@ -317,6 +332,7 @@ export function addPendingAction(
 }
 
 export function clearLoadingState() {
+  currentFetchGeneration++; // Invalida qualquer request em andamento
   loadingSections.clear();
   loadingPromises.clear();
 }

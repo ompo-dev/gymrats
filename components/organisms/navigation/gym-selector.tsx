@@ -21,6 +21,7 @@ function GymSelectorSimple() {
   } = useGymsList();
 
   const [mounted, setMounted] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   // Evitar hydration mismatch
   useEffect(() => {
@@ -59,19 +60,26 @@ function GymSelectorSimple() {
       router.push(subscriptionTabUrl);
       return;
     }
-    // 1. Limpar stores e cache para evitar dados da academia anterior
-    const { useGymUnifiedStore } = await import("@/stores/gym-unified-store");
-    const { useSubscriptionStore } = await import(
-      "@/stores/subscription-store"
-    );
-    useGymUnifiedStore.getState().resetForGymChange();
-    useSubscriptionStore.getState().resetForGymChange();
-    // 2. Atualizar academia ativa
-    await setActiveGymId(gymId);
-    // 3. Invalidar e refetch subscription e dados da página para a nova academia
-    await queryClient.invalidateQueries({ queryKey: ["gym-subscription"] });
-    await queryClient.refetchQueries({ queryKey: ["gym-subscription"] });
-    router.refresh();
+
+    if (gymId === activeGymId) return;
+
+    try {
+      setIsSwitching(true);
+      // 1. Limpar stores e cache para evitar dados da academia anterior
+      const { useGymUnifiedStore } = await import("@/stores/gym-unified-store");
+      const { useSubscriptionStore } = await import(
+        "@/stores/subscription-store"
+      );
+      useGymUnifiedStore.getState().resetForGymChange();
+      useSubscriptionStore.getState().resetForGymChange();
+      // 2. Atualizar academia ativa (aguarda backend)
+      await setActiveGymId(gymId);
+      // 3. Limpar cache react-query
+      await queryClient.invalidateQueries();
+      router.refresh();
+    } finally {
+      setIsSwitching(false);
+    }
   };
 
   // Preparar opções para o DuoSelect
@@ -139,10 +147,10 @@ function GymSelectorSimple() {
   ];
 
   // Renderizar skeleton até montar no cliente (evitar hydration mismatch)
-  if (!mounted || isLoading || gyms.length === 0) {
+  if (!mounted || isLoading || isSwitching || gyms.length === 0) {
     return (
       <div
-        className="h-[50px] w-fit min-w-[180px] rounded-2xl bg-gray-50 border-2 border-gray-200 dark:bg-duo-bg-elevated dark:border-duo-border"
+        className="h-[50px] w-fit min-w-[180px] rounded-2xl bg-gray-50 border-2 border-gray-200 dark:bg-duo-bg-elevated dark:border-duo-border animate-pulse"
         suppressHydrationWarning
       />
     );
