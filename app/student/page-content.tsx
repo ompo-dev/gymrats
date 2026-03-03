@@ -7,15 +7,15 @@ import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
 import { StudentMembershipPixModal } from "@/app/student/_components/student-membership-pix-modal";
-import { DietPage } from "@/app/student/diet/diet-page";
-import { GymProfileView } from "@/app/student/gyms/gym-profile-view";
-import { LearningPath } from "@/app/student/learn/learning-path";
-import { StudentMoreMenu } from "@/app/student/more/student-more-menu";
+import { DietPage } from "@/app/student/_diet/diet-page";
+import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
+import { LearningPath } from "@/app/student/_learn/learning-path";
+import { StudentMoreMenu } from "@/app/student/_more/student-more-menu";
 import {
   StudentPaymentsPage,
   type StudentPaymentsPageProps,
-} from "@/app/student/payments/student-payments-page";
-import { ProfilePage } from "@/app/student/profile/profile-page";
+} from "@/app/student/_payments/student-payments-page";
+import { ProfilePage } from "@/app/student/_profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
