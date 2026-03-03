@@ -202,18 +202,23 @@ export async function getGymStats(): Promise<GymStats | null> {
 
 export async function getGymCoupons(): Promise<import("@/lib/types").Coupon[]> {
   try {
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-    const res = await abacatePay.listCoupons();
-    if (res.error || !res.data) return [];
-    return res.data.map((c) => ({
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx) return [];
+
+    const dbCoupons = await db.gymCoupon.findMany({
+      where: { gymId: ctx.gymId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return dbCoupons.map((c) => ({
       id: c.id,
-      code: c.id,
-      type: c.discountKind === "PERCENTAGE" ? "percentage" : "fixed",
-      value: c.discount,
-      maxUses: c.maxRedeems === -1 ? 999999 : c.maxRedeems,
-      currentUses: c.redeemsCount ?? 0,
-      expiryDate: new Date(c.updatedAt),
-      isActive: c.status === "ACTIVE",
+      code: c.code,
+      type: c.discountType as "percentage" | "fixed",
+      value: c.discountValue,
+      maxUses: c.maxUses === -1 ? 999999 : c.maxUses,
+      currentUses: c.currentUses,
+      expiryDate: c.expiresAt ?? new Date(9999, 11, 31),
+      isActive: c.isActive,
     }));
   } catch (error) {
     console.error("[getGymCoupons] Erro:", error);
@@ -232,16 +237,48 @@ export async function createGymCoupon(data: {
     const { ctx, errorResponse } = await getGymContext();
     if (errorResponse || !ctx)
       return { success: false, error: "Não autenticado" };
-    const { abacatePay } = await import("@/lib/api/abacatepay");
-    const res = await abacatePay.createCoupon({
-      code: data.code.trim().toUpperCase(),
-      notes: data.notes || data.code,
-      discountKind: data.discountKind,
-      discount: data.discount,
-      maxRedeems: data.maxRedeems ?? -1,
+
+    const code = data.code.trim().toUpperCase();
+    const discountType = data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
+
+    // Verifica duplicação no DB
+    const existing = await db.gymCoupon.findFirst({
+      where: { gymId: ctx.gymId, code },
     });
-    if (res.error || !res.data)
-      return { success: false, error: res.error ?? "Falha ao criar cupom" };
+    if (existing) return { success: false, error: "Cupom com esse código já existe" };
+
+    // Tenta sincronizar com AbacatePay (opcional — não bloqueia se falhar)
+    let abacatePayId: string | undefined;
+    try {
+      const { abacatePay } = await import("@/lib/api/abacatepay");
+      const res = await abacatePay.createCoupon({
+        code,
+        notes: data.notes || code,
+        discountKind: data.discountKind,
+        discount: data.discount,
+        maxRedeems: data.maxRedeems ?? -1,
+      });
+      if (res.data) {
+        abacatePayId = res.data.id;
+      }
+    } catch {
+      // ignora erro do AbacatePay — salva no DB mesmo assim
+    }
+
+    // Salva no banco de dados
+    await db.gymCoupon.create({
+      data: {
+        gymId: ctx.gymId,
+        code,
+        notes: data.notes || code,
+        discountType,
+        discountValue: data.discount,
+        maxUses: data.maxRedeems ?? -1,
+        isActive: true,
+        abacatePayId,
+      },
+    });
+
     return { success: true };
   } catch (error) {
     console.error("[createGymCoupon] Erro:", error);
@@ -285,7 +322,7 @@ export async function createBoostCampaign(data: {
     if (errorResponse || !ctx)
       return { success: false, error: "Não autenticado" };
 
-    const { env } = await import("@/lib/env");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const campaign = await db.boostCampaign.create({
       data: {
@@ -308,16 +345,15 @@ export async function createBoostCampaign(data: {
       methods: ["PIX"],
       products: [
         {
-          productId: `boost_${campaign.id}`,
+          externalId: `boost_${campaign.id}`,
           name: `Impulsionamento: ${campaign.title}`,
           description: `Anúncio na plataforma GymRats por ${campaign.durationHours}h`,
           quantity: 1,
           price: data.amountCents,
         },
       ],
-      returnUrl: `${env.NEXT_PUBLIC_APP_URL}/gym/financial?view=ads&success=true`,
-      cancelUrl: `${env.NEXT_PUBLIC_APP_URL}/gym/financial?view=ads&canceled=true`,
-      customerId: ctx.gymId, // Using generic externalId as fallback if no AbacateCustomer mapping exists yet
+      returnUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
+      completionUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
     });
 
     if (billing?.data) {

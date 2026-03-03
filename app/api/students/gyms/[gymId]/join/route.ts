@@ -18,6 +18,12 @@ export const POST = createSafeHandler(
     const { gymId } = paramsSchema.parse(params);
     const { planId, couponId } = bodySchema.parse(body);
     const studentId = studentContext?.studentId;
+    if (!studentId) {
+      return NextResponse.json(
+        { error: "Estudante não autenticado" },
+        { status: 401 }
+      );
+    }
 
     const existingMembership = await db.gymMembership.findFirst({
       where: { gymId, studentId, status: { in: ["active", "pending"] } },
@@ -42,32 +48,24 @@ export const POST = createSafeHandler(
     }
 
     let finalPrice = plan.price;
+
+    // Cupons são salvos no banco (GymCoupon) — busca direto do DB
     if (couponId) {
-      const coupon = await db.coupon.findFirst({
-        where: {
-          id: couponId,
-          gymId,
-          isActive: true,
-          expiresAt: { gt: new Date() },
-        },
+      const coupon = await db.gymCoupon.findFirst({
+        where: { id: couponId, gymId, isActive: true },
       });
-      // se n expirou, isActive e é do gym
       if (coupon) {
-        if (
-          coupon.usageLimit === null ||
-          coupon.usageCount < coupon.usageLimit
-        ) {
-          if (coupon.discountType === "percentage") {
-            finalPrice = finalPrice * (1 - coupon.discountValue / 100);
-          } else {
-            finalPrice = finalPrice - coupon.discountValue;
-          }
-          if (finalPrice < 3.5) finalPrice = 3.5;
-          await db.coupon.update({
-            where: { id: coupon.id },
-            data: { usageCount: { increment: 1 } },
-          });
+        if (coupon.discountType === "percentage") {
+          finalPrice = finalPrice * (1 - coupon.discountValue / 100);
+        } else {
+          finalPrice = finalPrice - coupon.discountValue;
         }
+        if (finalPrice < 3.5) finalPrice = 3.5;
+        // Incrementa uso do cupom
+        await db.gymCoupon.update({
+          where: { id: coupon.id },
+          data: { currentUses: { increment: 1 } },
+        });
       }
     }
 

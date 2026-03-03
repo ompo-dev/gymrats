@@ -316,6 +316,9 @@ model Gym {
   // Ads/Impulsionamento
   boostCampaigns BoostCampaign[]
 
+  // Cupons de desconto
+  coupons GymCoupon[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -790,6 +793,28 @@ model GymMembership {
   updatedAt DateTime @updatedAt
 
   @@map("gym_memberships")
+}
+
+model GymCoupon {
+  id              String   @id @default(cuid())
+  gymId           String
+  gym             Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  code            String   // Código do cupom (ex: WELCOME10)
+  notes           String?  // Descrição interna
+  discountType    String   // "percentage" | "fixed"
+  discountValue   Float    // Valor: se percentage = 10 (10%), se fixed = valor em reais
+  maxUses         Int      @default(-1) // -1 = ilimitado
+  currentUses     Int      @default(0)
+  isActive        Boolean  @default(true)
+  expiresAt       DateTime?
+  abacatePayId    String?  // ID retornado pelo AbacatePay ao criar o cupom lá
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([gymId])
+  @@index([code])
+  @@map("gym_coupons")
 }
 
 model MembershipPlan {

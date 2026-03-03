@@ -9,7 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { StudentMembershipPixModal } from "@/app/student/components/student-membership-pix-modal";
+import { StudentMembershipPixModal } from "@/app/student/_components/student-membership-pix-modal";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
