@@ -114,20 +114,16 @@ export function StudentReferralTab() {
     }
   };
 
-  // Extrai o código sem o @ para usar na URL
+  // Link único inteligente — /r/CODIGO detecta role e redireciona
   const refSlug = data?.referralCode?.replace("@", "") ?? "";
+  const getReferralLink = () =>
+    `${window.location.origin}/r/${refSlug}`;
 
-  const getStudentLink = () =>
-    `${window.location.origin}/student?tab=payments&subTab=subscription&ref=${refSlug}`;
-
-  const getGymLink = () =>
-    `${window.location.origin}/gym?tab=financial&subTab=subscription&ref=${refSlug}`;
-
-  const copyLink = (link: string, label: string) => {
-    navigator.clipboard.writeText(link);
+  const copyLink = () => {
+    navigator.clipboard.writeText(getReferralLink());
     toast({
-      title: `Link de ${label} copiado!`,
-      description: "Compartilhe com seu contato para ganhar 50% de comissão.",
+      title: "Link copiado!",
+      description: "Compartilhe com seus contatos para ganhar 50% de comissão.",
     });
   };
 
@@ -141,52 +137,29 @@ export function StudentReferralTab() {
 
   return (
     <div className="space-y-6">
-      {/* Links de Indicação */}
+      {/* Link de Indicação */}
       <DuoCard.Root variant="default" padding="md">
-        <h2 className="text-xl font-bold text-[var(--duo-fg)] mb-1">Seus Links de Indicação</h2>
+        <h2 className="text-xl font-bold text-[var(--duo-fg)] mb-1">Seu Link de Indicação</h2>
         <p className="text-sm text-duo-gray-dark mb-4">
-          Envie o link certo para cada contato. Você ganha{" "}
-          <strong className="text-duo-accent">50% de comissão</strong> na primeira assinatura do indicado.
+          Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia e redireciona automaticamente.
+          Você ganha <strong className="text-duo-accent">50% de comissão</strong> na primeira assinatura.
         </p>
 
-        <div className="space-y-3">
-          {/* Link para Aluno */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-duo-gray-dark mb-0.5">🎓 Para Alunos</div>
-              <div className="text-xs text-duo-gray-dark truncate font-mono">
-                /student?tab=payments&subTab=subscription&ref={refSlug}
-              </div>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-duo-gray-dark truncate font-mono">
+              {refSlug ? getReferralLink() : "Carregando..."}
             </div>
-            <DuoButton
-              onClick={() => copyLink(getStudentLink(), "aluno")}
-              variant="outline"
-              className="shrink-0 gap-1.5 text-sm"
-              disabled={!refSlug}
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Copiar
-            </DuoButton>
           </div>
-
-          {/* Link para Academia */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-duo-gray-dark mb-0.5">🏢 Para Academias</div>
-              <div className="text-xs text-duo-gray-dark truncate font-mono">
-                /gym?tab=financial&subTab=subscription&ref={refSlug}
-              </div>
-            </div>
-            <DuoButton
-              onClick={() => copyLink(getGymLink(), "academia")}
-              variant="outline"
-              className="shrink-0 gap-1.5 text-sm"
-              disabled={!refSlug}
-            >
-              <Copy className="h-3.5 w-3.5" />
-              Copiar
-            </DuoButton>
-          </div>
+          <DuoButton
+            onClick={copyLink}
+            variant="primary"
+            className="shrink-0 gap-1.5"
+            disabled={!refSlug}
+          >
+            <Copy className="h-4 w-4" />
+            Copiar Link
+          </DuoButton>
         </div>
       </DuoCard.Root>
 

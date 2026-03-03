@@ -81,7 +81,10 @@ function WelcomePageContent() {
             setIsLoading(false);
             return;
           }
-          // Carregar dados do student se for STUDENT ou ADMIN
+
+          // Verificar se há indicação pendente para redirecionar para assinatura
+          const hasReferral = document.cookie.includes("gymrats_referral");
+
           if (user.role === "STUDENT" || user.role === "ADMIN") {
             loadAll().catch((err) => {
               console.error(
@@ -89,9 +92,15 @@ function WelcomePageContent() {
                 err,
               );
             });
-            router.push("/student");
+            router.push(hasReferral
+              ? "/student?tab=payments&subTab=subscription"
+              : "/student"
+            );
           } else if (user.role === "GYM") {
-            router.push("/gym");
+            router.push(hasReferral
+              ? "/gym?tab=financial&subTab=subscription"
+              : "/gym"
+            );
           } else {
             router.push("/welcome");
           }
@@ -197,11 +206,14 @@ function WelcomePageContent() {
               });
 
               // PENDING: novo usuário precisa escolher tipo (aluno ou academia)
-              if (userRole === "PENDING") {
+              if ((userRole as string) === "PENDING") {
                 router.push("/auth/register/user-type");
                 return;
               }
-              // Carregar dados do student se for STUDENT ou ADMIN
+
+              // Verificar se há indicação pendente para redirecionar para assinatura
+              const hasReferral = document.cookie.includes("gymrats_referral");
+
               if (userRole === "STUDENT" || userRole === "ADMIN") {
                 loadAll().catch((err) => {
                   console.error(
@@ -209,9 +221,15 @@ function WelcomePageContent() {
                     err,
                   );
                 });
-                router.push("/student");
+                router.push(hasReferral
+                  ? "/student?tab=payments&subTab=subscription"
+                  : "/student"
+                );
               } else if (userRole === "GYM") {
-                router.push("/gym");
+                router.push(hasReferral
+                  ? "/gym?tab=financial&subTab=subscription"
+                  : "/gym"
+                );
               } else {
                 router.push("/welcome");
               }
