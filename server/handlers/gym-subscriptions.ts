@@ -167,7 +167,9 @@ export async function createGymSubscriptionHandler({
     );
     const pricePerStudent =
       billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
-    const pricePerPersonal = config.pricePerPersonal ? centsToReais(config.pricePerPersonal) : null;
+    const pricePerPersonal = config.pricePerPersonal
+      ? centsToReais(config.pricePerPersonal)
+      : null;
 
     const periodEnd = new Date(now);
     if (billingPeriod === "annual") {

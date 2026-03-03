@@ -28,8 +28,6 @@ export function SubscriptionPlansSelector({
     "monthly" | "annual"
   >("monthly");
 
-
-
   const handleSubscribe = async () => {
     await onSubscribe(selectedPlanType, selectedBillingPeriod);
   };
@@ -87,7 +85,10 @@ export function SubscriptionPlansSelector({
 
       <div className="mb-4 grid grid-cols-3 gap-3">
         {(["basic", "premium", "enterprise"] as const).map((plan) => {
-          const config = GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+          const config =
+            GYM_PLANS_CONFIG[
+              plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
+            ];
           const monthlyBase = centsToReais(config.prices.monthly);
           const annualBase = centsToReais(config.prices.annual);
           const monthlyPerStudent = centsToReais(config.pricePerStudent);

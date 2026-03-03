@@ -42,7 +42,11 @@ export async function GET(
         });
         if (student) {
           // Cria PENDING imediatamente — cookie pode expirar antes do pagamento
-          await ReferralService.resolveReferral(refValue, "STUDENT", student.id).catch(() => null);
+          await ReferralService.resolveReferral(
+            refValue,
+            "STUDENT",
+            student.id,
+          ).catch(() => null);
           destination = "/student?tab=payments&subTab=subscription";
         }
       } else if (role === "GYM") {
@@ -52,7 +56,9 @@ export async function GET(
         });
         if (gym) {
           // Cria PENDING imediatamente para gym
-          await ReferralService.resolveReferral(refValue, "GYM", gym.id).catch(() => null);
+          await ReferralService.resolveReferral(refValue, "GYM", gym.id).catch(
+            () => null,
+          );
           destination = "/gym?tab=financial&subTab=subscription";
         }
       }
@@ -73,4 +79,3 @@ export async function GET(
 
   return response;
 }
-

@@ -50,7 +50,11 @@ export async function createAbacateBilling(
     if (refCode) {
       // Normaliza: cookie pode ter @ ou não
       const normalized = refCode.startsWith("@") ? refCode : `@${refCode}`;
-      await ReferralService.resolveReferral(normalized, "STUDENT", studentId).catch(() => null);
+      await ReferralService.resolveReferral(
+        normalized,
+        "STUDENT",
+        studentId,
+      ).catch(() => null);
     }
 
     // Criar billing no Abacate Pay
@@ -110,7 +114,10 @@ export async function createAbacateBilling(
 
     // Upsert subscription salvando IDs do Abacate Pay
     const planType = planId; // Assuming planId is like 'PREMIUM'
-    const planConfig = STUDENT_PLANS_CONFIG[planType.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG];
+    const planConfig =
+      STUDENT_PLANS_CONFIG[
+        planType.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+      ];
     const finalPlanName = `${planConfig.name} ${billingPeriod === "annual" ? "Anual" : "Mensal"}`;
 
     await db.subscription.upsert({

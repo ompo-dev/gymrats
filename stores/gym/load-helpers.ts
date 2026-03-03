@@ -236,21 +236,21 @@ export async function loadSection(
     return loadingPromises.get(section)!;
   }
   loadingSections.add(section);
-  
-  // Guardar geração atual para evitar que requisições antigas sobrescrevam a store 
+
+  // Guardar geração atual para evitar que requisições antigas sobrescrevam a store
   // caso o usuário mude de academia enquanto a request está em andamento.
   const expectedGeneration = currentFetchGeneration;
-  
+
   const route = SECTION_ROUTES[section];
   const promise = (async () => {
     try {
       const response = await apiClient.get(route, { timeout: 30000 });
-      
+
       // Abortar se a geração mudou entre o inicio e o fim do fetch!
       if (currentFetchGeneration !== expectedGeneration) {
         return {};
       }
-      
+
       return transformSectionResponse(
         section,
         response.data as Record<

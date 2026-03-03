@@ -186,7 +186,7 @@ export default function StudentOnboardingPage() {
       // A geração de treinos continuará em background
       // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
       const hasReferral = document.cookie.includes("gymrats_referral");
-      window.location.href = hasReferral 
+      window.location.href = hasReferral
         ? "/student?tab=payments&subTab=subscription"
         : "/student";
     } catch (error) {

@@ -15,15 +15,15 @@ datasource db {
 // ============================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
   password      String? // Opcional: usuários Google não têm senha
   name          String
   emailVerified Boolean? // Better Auth usa boolean, não DateTime
   image         String?
-  role          UserRole  @default(PENDING)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          UserRole @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relacionamentos
   student        Student?
@@ -45,11 +45,11 @@ enum UserRole {
 }
 
 model Account {
-  id                String   @id @default(cuid())
+  id                String  @id @default(cuid())
   userId            String
   type              String?
-  provider          String?  // Temporariamente opcional para compatibilidade com Better Auth
-  providerAccountId String?  // Temporariamente opcional para compatibilidade com Better Auth
+  provider          String? // Temporariamente opcional para compatibilidade com Better Auth
+  providerAccountId String? // Temporariamente opcional para compatibilidade com Better Auth
   refresh_token     String?
   access_token      String?
   expires_at        Int?
@@ -57,15 +57,15 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  
+
   // Campos Better Auth (adicionados para compatibilidade)
-  accountId         String?  // Mapeado de providerAccountId
-  providerId         String?  // Mapeado de provider
-  accessToken        String?  // Mapeado de access_token
-  refreshToken       String?  // Mapeado de refresh_token
+  accountId            String? // Mapeado de providerAccountId
+  providerId           String? // Mapeado de provider
+  accessToken          String? // Mapeado de access_token
+  refreshToken         String? // Mapeado de refresh_token
   accessTokenExpiresAt DateTime? // Calculado de expires_at
-  idToken           String?  // Mapeado de id_token
-  
+  idToken              String? // Mapeado de id_token
+
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 
@@ -76,15 +76,15 @@ model Account {
 }
 
 model Session {
-  id        String    @id @default(cuid())
-  token     String    @unique // Better Auth usa 'token', não 'sessionToken'
+  id        String   @id @default(cuid())
+  token     String   @unique // Better Auth usa 'token', não 'sessionToken'
   userId    String
-  expiresAt DateTime  // Better Auth usa 'expiresAt', não 'expires'
-  ipAddress String?   // Opcional: IP do usuário
-  userAgent String?   // Opcional: User agent do navegador
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime // Better Auth usa 'expiresAt', não 'expires'
+  ipAddress String? // Opcional: IP do usuário
+  userAgent String? // Opcional: User agent do navegador
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Campos legacy (mantidos para compatibilidade durante transição)
   sessionToken String? // Mantido para compatibilidade, mapeado de token
@@ -139,13 +139,13 @@ model Student {
   profile StudentProfile?
 
   // Histórico
-  workouts        WorkoutHistory[]
-  workoutProgress WorkoutProgress[] // Progresso parcial de workouts
-  records         PersonalRecord[]
-  diets           DietPlanCompletion[]
-  achievements    AchievementUnlock[]
-  weightHistory   WeightHistory[]
-  dailyNutrition  DailyNutrition[]
+  workouts           WorkoutHistory[]
+  workoutProgress    WorkoutProgress[] // Progresso parcial de workouts
+  records            PersonalRecord[]
+  diets              DietPlanCompletion[]
+  achievements       AchievementUnlock[]
+  weightHistory      WeightHistory[]
+  dailyNutrition     DailyNutrition[]
   nutritionChatUsage NutritionChatUsage[]
 
   // Treinos personalizados (legado - migrar para weeklyPlan)
@@ -170,11 +170,11 @@ model Student {
   proGymAccesses ProGymAccess[]
 
   // Indicações
-  pixKey         String?
-  pixKeyType     String? @default("CPF")
-  referralCode   String? @unique
-  referralsMade  Referral[] @relation("ReferrerStudent")
-  withdraws      StudentWithdraw[]
+  pixKey        String?
+  pixKeyType    String?           @default("CPF")
+  referralCode  String?           @unique
+  referralsMade Referral[]        @relation("ReferrerStudent")
+  withdraws     StudentWithdraw[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -306,12 +306,15 @@ model Gym {
   stats        GymStats?
   subscription GymSubscription?
   withdraws    GymWithdraw[]
-  
+
   // Benefícios para alunos (enterprise)
   assistedSubscriptions Subscription[] @relation("EnterpriseAssisted")
-  
+
   // Acessos de Alunos PRO da rede (quando academia for Enterprise)
   proGymAccesses ProGymAccess[]
+
+  // Ads/Impulsionamento
+  boostCampaigns BoostCampaign[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -371,11 +374,11 @@ model GymStats {
 // ============================================
 
 model WeeklyPlan {
-  id          String   @id @default(cuid())
-  studentId   String   @unique
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  title       String   @default("Meu Plano Semanal")
-  description String?  // Subtítulo editável (ex: "7 dias • Segunda a Domingo")
+  id          String  @id @default(cuid())
+  studentId   String  @unique
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  title       String  @default("Meu Plano Semanal")
+  description String? // Subtítulo editável (ex: "7 dias • Segunda a Domingo")
 
   slots PlanSlot[]
 
@@ -386,14 +389,14 @@ model WeeklyPlan {
 }
 
 model PlanSlot {
-  id           String      @id @default(cuid())
+  id           String     @id @default(cuid())
   weeklyPlanId String
-  weeklyPlan   WeeklyPlan  @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+  weeklyPlan   WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
   dayOfWeek    Int // 0=Seg, 1=Ter, ..., 6=Dom
   type         String // "workout" | "rest"
-  workoutId    String?     @unique // 1 workout = 1 slot (one-to-one)
-  workout      Workout?    @relation(fields: [workoutId], references: [id], onDelete: SetNull)
-  order        Int         @default(0)
+  workoutId    String?    @unique // 1 workout = 1 slot (one-to-one)
+  workout      Workout?   @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  order        Int        @default(0)
 
   @@unique([weeklyPlanId, dayOfWeek])
   @@index([weeklyPlanId])
@@ -685,11 +688,11 @@ model NutritionFoodItem {
 }
 
 model NutritionChatUsage {
-  id        String   @id @default(cuid())
-  studentId String
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  date      DateTime @default(now())
-  messageCount Int    @default(0)
+  id           String   @id @default(cuid())
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date         DateTime @default(now())
+  messageCount Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -903,7 +906,7 @@ model Payment {
   // AbacatePay: PIX para pagamento de plano (membership)
   abacatePayBillingId String?   @unique // ID do pixQrCode na AbacatePay
   withdrawnAt         DateTime? // Quando foi sacado para a academia
-  withdrawId          String?   // externalId do withdraw na AbacatePay
+  withdrawId          String? // externalId do withdraw na AbacatePay
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -912,17 +915,17 @@ model Payment {
 }
 
 model GymWithdraw {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   gymId       String
-  gym         Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gym         Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
   amount      Float // Valor em reais
   pixKey      String
   pixKeyType  String
-  externalId  String   @unique // ID enviado à AbacatePay
-  abacateId   String?  // ID retornado pela AbacatePay
-  status      String   @default("pending") // pending | complete | failed
-  paymentIds  String?  // JSON array de IDs dos payments incluídos
-  createdAt   DateTime @default(now())
+  externalId  String    @unique // ID enviado à AbacatePay
+  abacateId   String? // ID retornado pela AbacatePay
+  status      String    @default("pending") // pending | complete | failed
+  paymentIds  String? // JSON array de IDs dos payments incluídos
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
 
   @@index([gymId])
@@ -994,18 +997,18 @@ enum SubscriptionSource {
 
 // Assinaturas de Alunos (Premium)
 model Subscription {
-  id                 String    @id @default(cuid())
-  studentId          String    @unique
-  student            Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  plan               String    @default("free") // free, basic, premium
-  billingPeriod      String    @default("monthly") // monthly, annual
-  status             String    @default("active") // active, canceled, expired, past_due, trialing
+  id                 String              @id @default(cuid())
+  studentId          String              @unique
+  student            Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  plan               String              @default("free") // free, basic, premium
+  billingPeriod      String              @default("monthly") // monthly, annual
+  status             String              @default("active") // active, canceled, expired, past_due, trialing
   source             SubscriptionSource? @default(OWN)
   enterpriseGymId    String?
-  enterpriseGym      Gym?      @relation("EnterpriseAssisted", fields: [enterpriseGymId], references: [id])
+  enterpriseGym      Gym?                @relation("EnterpriseAssisted", fields: [enterpriseGymId], references: [id])
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean   @default(false)
+  cancelAtPeriodEnd  Boolean             @default(false)
   canceledAt         DateTime?
   trialStart         DateTime?
   trialEnd           DateTime?
@@ -1016,7 +1019,7 @@ model Subscription {
 
   // Backup do fim do período OWN quando o aluno recebe Premium via GYM_ENTERPRISE.
   // Ao sair da academia Enterprise, restauramos Premium OWN até esta data se ainda for futura.
-  ownPeriodEndBackup   DateTime?
+  ownPeriodEndBackup DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1026,23 +1029,25 @@ model Subscription {
 
 // Assinaturas de Academias
 model GymSubscription {
-  id                 String    @id @default(cuid())
-  gymId              String    @unique
-  gym                Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
-  plan               String // basic, premium, enterprise
-  billingPeriod      String    @default("monthly") // monthly, annual
-  status             String    @default("active") // active, canceled, expired, past_due, trialing
-  basePrice          Float // Preço fixo mensal ou anual
-  pricePerStudent    Float // Preço por aluno/mês (apenas para plano mensal, 0 para anual)
-  pricePerPersonal   Float? // Preço por personal filiado/mês (apenas Enterprise, Ex: 100 reais)
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime
-  cancelAtPeriodEnd  Boolean   @default(false)
-  canceledAt         DateTime?
-  /** Quando true: foi cancelada porque a academia principal cancelou; pode ser restaurada se a principal voltar e o período não tiver expirado */
+  id                               String    @id @default(cuid())
+  gymId                            String    @unique
+  gym                              Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  plan                             String // basic, premium, enterprise
+  billingPeriod                    String    @default("monthly") // monthly, annual
+  status                           String    @default("active") // active, canceled, expired, past_due, trialing
+  basePrice                        Float // Preço fixo mensal ou anual
+  pricePerStudent                  Float // Preço por aluno/mês (apenas para plano mensal, 0 para anual)
+  pricePerPersonal                 Float? // Preço por personal filiado/mês (apenas Enterprise, Ex: 100 reais)
+  currentPeriodStart               DateTime
+  currentPeriodEnd                 DateTime
+  cancelAtPeriodEnd                Boolean   @default(false)
+  canceledAt                       DateTime?
+  /**
+   * Quando true: foi cancelada porque a academia principal cancelou; pode ser restaurada se a principal voltar e o período não tiver expirado
+   */
   canceledBecausePrincipalCanceled Boolean?
-  trialStart         DateTime?
-  trialEnd           DateTime?
+  trialStart                       DateTime?
+  trialEnd                         DateTime?
 
   // Gateway de pagamento (AbacatePay)
   abacatePayBillingId  String? @unique // ID da cobrança na AbacatePay
@@ -1102,7 +1107,7 @@ model ProGymAccess {
   type      String   @default("check_in") // check_in, day_use
 
   createdAt DateTime @default(now())
-  
+
   @@index([studentId])
   @@index([gymId])
   @@map("pro_gym_access")
@@ -1113,17 +1118,17 @@ model ProGymAccess {
 // ============================================
 
 model StudentWithdraw {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   studentId   String
-  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   amount      Float // Valor em reais
   pixKey      String
   pixKeyType  String
-  externalId  String   @unique // ID enviado à AbacatePay
-  abacateId   String?  // ID retornado pela AbacatePay
-  status      String   @default("pending") // pending | complete | failed
-  referralIds String?  // JSON array de IDs de Referrals adicionados ao saque
-  createdAt   DateTime @default(now())
+  externalId  String    @unique // ID enviado à AbacatePay
+  abacateId   String? // ID retornado pela AbacatePay
+  status      String    @default("pending") // pending | complete | failed
+  referralIds String? // JSON array de IDs de Referrals adicionados ao saque
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
 
   @@index([studentId])
@@ -1133,21 +1138,58 @@ model StudentWithdraw {
 
 model Referral {
   id                      String    @id @default(cuid())
-  referrerStudentId       String    // student who generated the code
+  referrerStudentId       String // student who generated the code
   referrerStudent         Student   @relation("ReferrerStudent", fields: [referrerStudentId], references: [id], onDelete: Cascade)
-  referralCode            String    // Handle: e.g. "@maicon"
-  referredType            String    // "STUDENT", "GYM", "PERSONAL"
-  referredId              String?   // User/Gym/Student ID of who signed up
+  referralCode            String // Handle: e.g. "@maicon"
+  referredType            String // "STUDENT", "GYM", "PERSONAL"
+  referredId              String? // User/Gym/Student ID of who signed up
   status                  String    @default("PENDING") // PENDING, CONVERTED, PAID
   firstPaymentAmountCents Int?
   commissionAmountCents   Int?
   paidAt                  DateTime?
   abacatePayPaymentId     String?
-  
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([referrerStudentId])
   @@index([referralCode])
   @@map("referrals")
+}
+
+// ============================================
+// ADS E IMPULSIONAMENTO (BOOST)
+// ============================================
+
+model BoostCampaign {
+  id              String    @id @default(cuid())
+  gymId           String
+  gym             Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  title           String
+  description     String
+  primaryColor    String    @default("#E2FF38") // Duo Yellow default
+  durationHours   Int
+  amountCents     Int
+  status          String    @default("pending_payment") // pending_payment, active, expired, canceled
+  
+  // Analytics
+  clicks          Int       @default(0)
+  impressions     Int       @default(0)
+  
+  // Vínculos
+  linkedCouponId  String?   // ID do cupom na abacate pay
+  linkedPlanId    String?   // ID do MembershipPlan vinculado, opcional
+  
+  // Payment integration
+  abacatePayBillingId String? @unique
+  
+  startsAt        DateTime?
+  endsAt          DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([gymId])
+  @@index([status])
+  @@map("boost_campaigns")
 }

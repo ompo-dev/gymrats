@@ -92,14 +92,14 @@ function WelcomePageContent() {
                 err,
               );
             });
-            router.push(hasReferral
-              ? "/student?tab=payments&subTab=subscription"
-              : "/student"
+            router.push(
+              hasReferral
+                ? "/student?tab=payments&subTab=subscription"
+                : "/student",
             );
           } else if (user.role === "GYM") {
-            router.push(hasReferral
-              ? "/gym?tab=financial&subTab=subscription"
-              : "/gym"
+            router.push(
+              hasReferral ? "/gym?tab=financial&subTab=subscription" : "/gym",
             );
           } else {
             router.push("/welcome");
@@ -221,14 +221,16 @@ function WelcomePageContent() {
                     err,
                   );
                 });
-                router.push(hasReferral
-                  ? "/student?tab=payments&subTab=subscription"
-                  : "/student"
+                router.push(
+                  hasReferral
+                    ? "/student?tab=payments&subTab=subscription"
+                    : "/student",
                 );
               } else if (userRole === "GYM") {
-                router.push(hasReferral
-                  ? "/gym?tab=financial&subTab=subscription"
-                  : "/gym"
+                router.push(
+                  hasReferral
+                    ? "/gym?tab=financial&subTab=subscription"
+                    : "/gym",
                 );
               } else {
                 router.push("/welcome");

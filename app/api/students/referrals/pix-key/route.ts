@@ -24,5 +24,3 @@ export const POST = createSafeHandler(
     schema: { body: pixKeySchema },
   },
 );
-
-

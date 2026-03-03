@@ -23,11 +23,13 @@ export async function POST(request: NextRequest) {
 
     const isSignatureValid = abacatePay.verifyWebhookSignature(
       rawBody,
-      signature
+      signature,
     );
 
     if (!isSignatureValid) {
-      console.warn("[Webhook] Falha na verificação criptográfica de assinatura (HMAC).");
+      console.warn(
+        "[Webhook] Falha na verificação criptográfica de assinatura (HMAC).",
+      );
       return badRequestResponse("Invalid cryptographic signature");
     }
 
@@ -192,8 +194,15 @@ export async function POST(request: NextRequest) {
         await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
         // Lógica de Comissão por Indicação de Academia (50% Referrals)
-        console.log(`[Webhook] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`);
-        await ReferralService.onFirstPaymentConfirmed("GYM", gymSub.gymId, amount, paymentId);
+        console.log(
+          `[Webhook] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`,
+        );
+        await ReferralService.onFirstPaymentConfirmed(
+          "GYM",
+          gymSub.gymId,
+          amount,
+          paymentId,
+        );
 
         console.log(
           `[Webhook] GymSubscription ${gymSub.id} (gym ${gymSub.gymId}) ativada: ${gymSub.plan} ${gymSub.billingPeriod}`,
@@ -215,12 +224,39 @@ export async function POST(request: NextRequest) {
       }
 
       if (!subscription) {
+        // 3. Tentar BoostCampaign
+        const boostCampaign = await db.boostCampaign.findUnique({
+          where: { abacatePayBillingId: paymentId },
+        });
+
+        if (boostCampaign && boostCampaign.status === "pending_payment") {
+          const now = new Date();
+          const endsAt = new Date(
+            now.getTime() + boostCampaign.durationHours * 60 * 60 * 1000,
+          );
+
+          await db.boostCampaign.update({
+            where: { id: boostCampaign.id },
+            data: {
+              status: "active",
+              startsAt: now,
+              endsAt: endsAt,
+              updatedAt: now,
+            },
+          });
+
+          console.log(
+            `[Webhook] BoostCampaign ${boostCampaign.id} ativada via PIX`,
+          );
+          return successResponse({ received: true, type: "boost-campaign" });
+        }
+
         console.error(
-          `[Webhook] Subscription não encontrada para paymentId: ${paymentId} ou studentId: ${metadata.studentId}`,
+          `[Webhook] Registro não encontrado para paymentId: ${paymentId} ou metadata id`,
         );
         return successResponse({
           processed: false,
-          error: "Subscription not found",
+          error: "Record not found",
         });
       }
 
@@ -228,7 +264,11 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       const periodEnd = new Date(now);
       const isAnnual = metadata.billingPeriod === "annual";
-      const planType = typeof metadata.planId === "string" && metadata.planId.toLowerCase() === "pro" ? "Pro" : "Premium";
+      const planType =
+        typeof metadata.planId === "string" &&
+        metadata.planId.toLowerCase() === "pro"
+          ? "Pro"
+          : "Premium";
 
       if (isAnnual) {
         periodEnd.setFullYear(periodEnd.getFullYear() + 1);
@@ -272,8 +312,16 @@ export async function POST(request: NextRequest) {
       );
 
       // Lógica de Comissão por Indicação de Aluno (50% Referrals)
-      console.log(`[Webhook] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`);
-      await ReferralService.onFirstPaymentConfirmed("STUDENT", subscription.studentId, amount, paymentId);
+      console.log(
+        `[Webhook] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`,
+      );
+      await ReferralService.onFirstPaymentConfirmed(
+        "STUDENT",
+        subscription.studentId,
+        amount,
+        paymentId,
+      );
+      return successResponse({ received: true, type: "student-subscription" });
     }
 
     return successResponse({ received: true });

@@ -15,7 +15,11 @@ import {
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 
-export type PaymentsTab = "memberships" | "payments" | "subscription" | "referrals";
+export type PaymentsTab =
+  | "memberships"
+  | "payments"
+  | "subscription"
+  | "referrals";
 
 export interface UsePaymentsPageProps {
   subscription?: StudentSubscriptionData | null;
@@ -411,12 +415,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleUpgrade = async (
     planId: string,
-    billingPeriod: "monthly" | "annual"
+    billingPeriod: "monthly" | "annual",
   ) => {
     try {
       // Usa o 'plan' como o billingPeriod da assinatura atual, pq os estudantes assinam sempre Premium
       const result = await _createSubscription(billingPeriod);
-      
+
       const pix = result as {
         pixId?: string;
         brCode?: string;

@@ -6,7 +6,9 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function applyMigration() {
-  console.log("🔄 Aplicando migration: Tabela student_withdraws e pixKeyType...\n");
+  console.log(
+    "🔄 Aplicando migration: Tabela student_withdraws e pixKeyType...\n",
+  );
 
   try {
     const columnExistsResult = await prisma.$queryRawUnsafe(`

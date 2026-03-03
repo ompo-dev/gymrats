@@ -26,9 +26,7 @@ export function isBasicPlan(plan: string): boolean {
  */
 export function isPremiumPlan(plan: string): boolean {
   const p = plan.toLowerCase();
-  return (
-    p.includes("premium") || p.includes("enterprise") || p.includes("pro")
-  );
+  return p.includes("premium") || p.includes("enterprise") || p.includes("pro");
 }
 
 /**

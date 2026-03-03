@@ -11,7 +11,9 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function applyProGymAccessMigration() {
-  console.log("🔄 Aplicando migration: Tabela pro_gym_access e coluna pricePerPersonal...\n");
+  console.log(
+    "🔄 Aplicando migration: Tabela pro_gym_access e coluna pricePerPersonal...\n",
+  );
 
   try {
     // 1. Adicionar `pricePerPersonal` (nullable) em `gym_subscriptions`
@@ -27,7 +29,9 @@ async function applyProGymAccessMigration() {
     const colExists = columnExistsResult[0]?.exists || false;
 
     if (colExists) {
-      console.log("⚠️  Coluna 'pricePerPersonal' já existe em gym_subscriptions.");
+      console.log(
+        "⚠️  Coluna 'pricePerPersonal' já existe em gym_subscriptions.",
+      );
     } else {
       await prisma.$executeRawUnsafe(`
 			  ALTER TABLE "gym_subscriptions"

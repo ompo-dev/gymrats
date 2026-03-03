@@ -51,12 +51,14 @@ export class ReferralService {
   static async resolveReferral(
     referralCode: string,
     referredType: "STUDENT" | "GYM" | "PERSONAL",
-    referredId: string
+    referredId: string,
   ): Promise<Referral | null> {
     if (!referralCode) return null;
-    
+
     // Normalize format
-    const normalizedCode = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
+    const normalizedCode = referralCode.startsWith("@")
+      ? referralCode
+      : `@${referralCode}`;
 
     const referrer = await db.student.findUnique({
       where: { referralCode: normalizedCode },
@@ -73,14 +75,14 @@ export class ReferralService {
 
     // Prevent multiple referral objects for the same indicated person/entity
     const existingReferral = await db.referral.findFirst({
-        where: {
-            referredType,
-            referredId,
-        }
+      where: {
+        referredType,
+        referredId,
+      },
     });
 
     if (existingReferral) {
-        return null;
+      return null;
     }
 
     return await db.referral.create({
@@ -102,10 +104,12 @@ export class ReferralService {
     referredType: "STUDENT" | "GYM" | "PERSONAL",
     referredId: string,
     amountCents: number,
-    paymentId: string
+    paymentId: string,
   ): Promise<Referral | null> {
-    console.log(`[ReferralService] Tentando converter: ${referredType} | ID: ${referredId} | Payment: ${paymentId}`);
-    
+    console.log(
+      `[ReferralService] Tentando converter: ${referredType} | ID: ${referredId} | Payment: ${paymentId}`,
+    );
+
     const referral = await db.referral.findFirst({
       where: {
         referredType,
@@ -115,11 +119,15 @@ export class ReferralService {
     });
 
     if (!referral) {
-        console.warn(`[ReferralService] Registro PENDING NÃO ENCONTRADO para ${referredType} ID ${referredId}`);
-        return null;
+      console.warn(
+        `[ReferralService] Registro PENDING NÃO ENCONTRADO para ${referredType} ID ${referredId}`,
+      );
+      return null;
     }
 
-    console.log(`[ReferralService] ✅ Registro PENDING encontrado! ID: ${referral.id}. Calculando comissão...`);
+    console.log(
+      `[ReferralService] ✅ Registro PENDING encontrado! ID: ${referral.id}. Calculando comissão...`,
+    );
 
     // 50% commission mapped in cents
     const commissionCents = Math.floor(amountCents * 0.5);
@@ -137,20 +145,27 @@ export class ReferralService {
     // Tentar fazer auto-withdraw se o aluno tiver PIX cadastrado
     const referrer = await db.student.findUnique({
       where: { id: referral.referrerStudentId },
-      select: { id: true, pixKey: true, pixKeyType: true }
+      select: { id: true, pixKey: true, pixKeyType: true },
     });
 
     if (referrer && referrer.pixKey && referrer.pixKeyType) {
       try {
-        console.log(`[ReferralService] Iniciando auto-withdraw da comissão para o referrer ${referrer.id}...`);
+        console.log(
+          `[ReferralService] Iniciando auto-withdraw da comissão para o referrer ${referrer.id}...`,
+        );
         await ReferralService.createWithdraw(referrer.id, {
           amountCents: commissionCents,
           // usa modo fake no DEV
-          fake: process.env.NODE_ENV !== "production"
+          fake: process.env.NODE_ENV !== "production",
         });
-        console.log(`[ReferralService] Auto-withdraw concluído com sucesso para o referrer ${referrer.id}.`);
+        console.log(
+          `[ReferralService] Auto-withdraw concluído com sucesso para o referrer ${referrer.id}.`,
+        );
       } catch (err) {
-        console.error(`[ReferralService] Falha no auto-withdraw para ${referrer.id}:`, err);
+        console.error(
+          `[ReferralService] Falha no auto-withdraw para ${referrer.id}:`,
+          err,
+        );
       }
     }
 
@@ -160,11 +175,15 @@ export class ReferralService {
   /**
    * Allows student to update their PIX key.
    */
-  static async updatePixKey(studentId: string, pixKey: string, pixKeyType: string) {
-      return await db.student.update({
-          where: { id: studentId },
-          data: { pixKey, pixKeyType }
-      });
+  static async updatePixKey(
+    studentId: string,
+    pixKey: string,
+    pixKeyType: string,
+  ) {
+    return await db.student.update({
+      where: { id: studentId },
+      data: { pixKey, pixKeyType },
+    });
   }
 
   /**
@@ -179,20 +198,23 @@ export class ReferralService {
       db.studentWithdraw.findMany({
         where: { studentId },
         orderBy: { createdAt: "desc" },
-      })
+      }),
     ]);
 
     // O status do Withdraw que subtrai é 'complete' ou 'pending' (como na Gym)?
     // Usaremos complete ou pending como redutores, falhas retornam ao saldo.
-    const activeWithdraws = withdrawsList.filter(w => w.status !== "failed");
-    
+    const activeWithdraws = withdrawsList.filter((w) => w.status !== "failed");
+
     // taxa AbacatePay é cobrada do withdraw? Pro aluno talvez assumiremos R$0.80 tbm
     const ABACATEPAY_FEE_CENTS = 80;
 
     const totalEarnedCents = referralsAggr._sum.commissionAmountCents || 0;
-    
+
     // Withdraws subtraem o saldo (inclui taxa)
-    const withdrawalsSum = activeWithdraws.reduce((acc, w) => acc + Math.floor(w.amount * 100) + ABACATEPAY_FEE_CENTS, 0);
+    const withdrawalsSum = activeWithdraws.reduce(
+      (acc, w) => acc + Math.floor(w.amount * 100) + ABACATEPAY_FEE_CENTS,
+      0,
+    );
 
     const balanceCents = Math.max(0, totalEarnedCents - withdrawalsSum);
     const balanceReais = balanceCents / 100;
@@ -201,7 +223,7 @@ export class ReferralService {
       balanceReais,
       balanceCents,
       totalEarnedCents,
-      withdraws: withdrawsList.map(w => ({
+      withdraws: withdrawsList.map((w) => ({
         id: w.id,
         amount: w.amount,
         pixKey: w.pixKey,
@@ -209,7 +231,7 @@ export class ReferralService {
         status: w.status,
         createdAt: w.createdAt,
         completedAt: w.completedAt,
-      }))
+      })),
     };
   }
 
@@ -217,7 +239,10 @@ export class ReferralService {
    * Creates a withdrawal for the student
    * Se fake=true (ex.: test mode), apenas persiste no DB com status complete
    */
-  static async createWithdraw(studentId: string, data: { amountCents: number; fake?: boolean }) {
+  static async createWithdraw(
+    studentId: string,
+    data: { amountCents: number; fake?: boolean },
+  ) {
     const student = await db.student.findUnique({
       where: { id: studentId },
       select: { pixKey: true, pixKeyType: true },
@@ -230,14 +255,21 @@ export class ReferralService {
       return { ok: false, error: "Valor mínimo para saque é R$ 3,50." };
     }
 
-    const { balanceCents } = await ReferralService.getBalanceAndWithdraws(studentId);
+    const { balanceCents } =
+      await ReferralService.getBalanceAndWithdraws(studentId);
     if (data.amountCents > balanceCents) {
       return { ok: false, error: "Saldo insuficiente." };
     }
 
     const externalId = `student-withdraw-${studentId}-${Date.now()}`;
-    const pixType = student.pixKeyType.toUpperCase() as "CPF" | "CNPJ" | "PHONE" | "EMAIL" | "RANDOM" | "BR_CODE";
-    
+    const pixType = student.pixKeyType.toUpperCase() as
+      | "CPF"
+      | "CNPJ"
+      | "PHONE"
+      | "EMAIL"
+      | "RANDOM"
+      | "BR_CODE";
+
     // Test mode: apenas persists DB e conclui
     if (data.fake) {
       const w = await db.studentWithdraw.create({

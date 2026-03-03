@@ -141,9 +141,10 @@ export default function GymOnboardingPage() {
         router.refresh();
         const hasReferral = document.cookie.includes("gymrats_referral");
         setTimeout(() => {
-          router.push(hasReferral 
-            ? "/gym?tab=financial&subTab=subscription" 
-            : "/gym?tab=dashboard"
+          router.push(
+            hasReferral
+              ? "/gym?tab=financial&subTab=subscription"
+              : "/gym?tab=dashboard",
           );
         }, 1500);
       } else {
@@ -160,9 +161,10 @@ export default function GymOnboardingPage() {
         router.refresh();
         const hasReferral = document.cookie.includes("gymrats_referral");
         setTimeout(() => {
-          router.push(hasReferral 
-            ? "/gym?tab=financial&subTab=subscription" 
-            : "/gym?tab=dashboard"
+          router.push(
+            hasReferral
+              ? "/gym?tab=financial&subTab=subscription"
+              : "/gym?tab=dashboard",
           );
         }, 1500);
       }

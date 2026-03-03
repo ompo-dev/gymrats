@@ -80,7 +80,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
 
   const setSubscription = useSubscriptionStore((s) => s.setSubscription);
   const setGymSubscription = useSubscriptionStore((s) => s.setGymSubscription);
-  const updateSubscription = useStudentUnifiedStore((s) => s.updateSubscription);
+  const updateSubscription = useStudentUnifiedStore(
+    (s) => s.updateSubscription,
+  );
 
   // Helper para atualizar ambos os stores - Memoizado para evitar loops
   const syncStores = React.useCallback(

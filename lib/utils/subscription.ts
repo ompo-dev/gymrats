@@ -326,7 +326,7 @@ export async function createStudentSubscriptionPix(
   studentId: string,
   planType: "premium" | "pro",
   billingPeriod: "monthly" | "annual",
-  subscriptionId: string
+  subscriptionId: string,
 ): Promise<GymSubscriptionPixResponse | null> {
   const student = await db.student.findUnique({
     where: { id: studentId },
@@ -411,7 +411,8 @@ export async function createGymSubscriptionBilling(
   }
 
   const basePrice = config.prices[billingPeriod];
-  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
+  const perStudentPrice =
+    billingPeriod === "annual" ? 0 : config.pricePerStudent;
 
   // No plano anual, o total é apenas o basePrice (sem cobrança por aluno)
   // No plano mensal, soma base + (por aluno × quantidade de alunos)
@@ -518,13 +519,15 @@ export async function createGymSubscriptionPix(
     throw new Error("Academia não encontrada");
   }
 
-  const config = GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+  const config =
+    GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
   if (!config) {
     throw new Error(`Plano inválido: ${plan}`);
   }
 
   const basePrice = config.prices[billingPeriod];
-  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
+  const perStudentPrice =
+    billingPeriod === "annual" ? 0 : config.pricePerStudent;
 
   const totalAmount =
     billingPeriod === "annual"

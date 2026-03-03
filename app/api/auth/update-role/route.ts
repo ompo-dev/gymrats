@@ -18,7 +18,9 @@ export async function POST(request: NextRequest) {
           db.user.findUnique({
             where: { id },
             include: { student: true, gyms: true },
-          }) as unknown as Promise<import("@/lib/use-cases/auth").UserSummary | null>,
+          }) as unknown as Promise<
+            import("@/lib/use-cases/auth").UserSummary | null
+          >,
         updateUserRole: (id, role) =>
           db.user.update({ where: { id }, data: { role } }),
         findStudentByUserId: (id) =>

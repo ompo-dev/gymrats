@@ -71,7 +71,7 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
     try {
       const { apiClient } = await import("@/lib/api/client");
       await apiClient.post("/api/gyms/set-active", { gymId });
-      
+
       // SEGUNDO: Atualizar a UI via estado local apenas após o backend ter validado
       set({ activeGymId: gymId });
     } catch (error) {

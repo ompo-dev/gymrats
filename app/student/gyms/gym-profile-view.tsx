@@ -52,11 +52,12 @@ interface GymProfileData {
 interface GymProfileViewProps {
   gymId: string;
   onBack: () => void;
-  onJoinPlan: (gymId: string, planId: string) => void;
+  onJoinPlan: (gymId: string, planId: string, couponId?: string) => void;
   onChangePlan?: (membershipId: string, planId: string) => void;
   onCancelMembership?: (membershipId: string) => void | Promise<void>;
-  /** Quando mudar, refaz o fetch do perfil (ex: após PIX confirmado) */
   profileRefreshKey?: number;
+  preSelectedPlan?: string | null;
+  preSelectedCoupon?: string | null;
 }
 
 export function GymProfileView({
@@ -66,10 +67,13 @@ export function GymProfileView({
   onChangePlan,
   onCancelMembership,
   profileRefreshKey,
+  preSelectedPlan,
+  preSelectedCoupon,
 }: GymProfileViewProps) {
   const [profile, setProfile] = useState<GymProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [autoStarted, setAutoStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +97,25 @@ export function GymProfileView({
     return () => {
       cancelled = true;
     };
-  }, [gymId]);
+  }, [gymId, profileRefreshKey]);
+
+  useEffect(() => {
+    if (profile && preSelectedPlan && !autoStarted) {
+      const plan = profile.plans.find((p) => p.id === preSelectedPlan);
+      const hasMembership = !!profile.myMembership;
+      if (plan && !hasMembership) {
+        setAutoStarted(true);
+        onJoinPlan(gymId, plan.id, preSelectedCoupon || undefined);
+      }
+    }
+  }, [
+    profile,
+    preSelectedPlan,
+    preSelectedCoupon,
+    autoStarted,
+    gymId,
+    onJoinPlan,
+  ]);
 
   if (loading) {
     return (
@@ -300,7 +322,10 @@ export function GymProfileView({
               <DuoButton
                 variant="outline"
                 size="sm"
-                onClick={() => onCancelMembership(profile.myMembership?.id)}
+                onClick={() => {
+                  if (profile.myMembership)
+                    onCancelMembership(profile.myMembership.id);
+                }}
                 className="gap-2 border-duo-red text-duo-red hover:bg-duo-red/10"
               >
                 <UserMinus className="h-4 w-4" />
@@ -343,9 +368,15 @@ export function GymProfileView({
                   className={cn(
                     (canContract || canChangePlan) &&
                       "cursor-pointer transition-all hover:border-duo-blue",
+                    preSelectedPlan === plan.id && "ring-2 ring-duo-accent",
                   )}
                   onClick={() => {
-                    if (canContract) onJoinPlan(profile.id, plan.id);
+                    if (canContract)
+                      onJoinPlan(
+                        profile.id,
+                        plan.id,
+                        preSelectedCoupon || undefined,
+                      );
                     if (canChangePlan && profile.myMembership)
                       onChangePlan?.(profile.myMembership.id, plan.id);
                   }}

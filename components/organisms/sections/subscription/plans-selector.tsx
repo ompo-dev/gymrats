@@ -81,14 +81,19 @@ function PlansSelectorSimple({
   const visiblePlans = plans.filter((plan) => {
     // Para student com subscription ativa
     if (userType === "student" && isPremiumActive) {
-      const currentPlan = String(currentSubscriptionPlan || "").trim().toLowerCase();
+      const currentPlan = String(currentSubscriptionPlan || "")
+        .trim()
+        .toLowerCase();
       const isCurrentPro = currentPlan.includes("pro");
       const isPlanPro = plan.id === "pro";
-      
+
       // Se for mudança de período no mesmo plano
       if ((isCurrentPro && isPlanPro) || (!isCurrentPro && !isPlanPro)) {
         // Só mostra se for para upgrade de mensal pra anual
-        if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
+        if (
+          currentSubscriptionBillingPeriod === "monthly" &&
+          selectedBillingPeriod === "annual"
+        ) {
           return true;
         }
         return false;
@@ -103,16 +108,12 @@ function PlansSelectorSimple({
       if (isCurrentPro && !isPlanPro) {
         return false;
       }
-      
+
       return true;
     }
 
     // Para gym com subscription ativa: filtrar baseado na hierarquia e período
-    if (
-      userType === "gym" &&
-      isPremiumActive &&
-      currentSubscriptionPlan
-    ) {
+    if (userType === "gym" && isPremiumActive && currentSubscriptionPlan) {
       const planId = String(plan.id || "")
         .trim()
         .toLowerCase();
@@ -139,7 +140,10 @@ function PlansSelectorSimple({
 
       // Se for no mesmo plano, permitir apenas upgrade de período
       if (isSamePlan) {
-        if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
+        if (
+          currentSubscriptionBillingPeriod === "monthly" &&
+          selectedBillingPeriod === "annual"
+        ) {
           return true;
         }
         return false; // Bloqueia annual -> monthly
@@ -153,7 +157,10 @@ function PlansSelectorSimple({
   });
 
   // Se o usuário já está no plano máximo anual, não há upgrades
-  const hasNoUpgrades = isPremiumActive && visiblePlans.length === 0 && selectedBillingPeriod === "annual";
+  const hasNoUpgrades =
+    isPremiumActive &&
+    visiblePlans.length === 0 &&
+    selectedBillingPeriod === "annual";
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -177,13 +184,16 @@ function PlansSelectorSimple({
       </DuoCard.Header>
       <div className="space-y-4">
         {/* Banner para dar dica de upgrade, mas mais genérico */}
-        {userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly" && (
-          <div className="mb-4 p-4 bg-duo-blue/10 rounded-xl border-2 border-duo-blue/20">
-            <p className="text-sm text-duo-text mb-2">
-              Você está em um plano mensal. Faça upgrade ou mude para o plano anual e economize!
-            </p>
-          </div>
-        )}
+        {userType === "student" &&
+          isPremiumActive &&
+          currentSubscriptionBillingPeriod === "monthly" && (
+            <div className="mb-4 p-4 bg-duo-blue/10 rounded-xl border-2 border-duo-blue/20">
+              <p className="text-sm text-duo-text mb-2">
+                Você está em um plano mensal. Faça upgrade ou mude para o plano
+                anual e economize!
+              </p>
+            </div>
+          )}
 
         {/* Mostrar sempre, exceto se for plano máximo e não tiver opções */}
         {!hasNoUpgrades && (
@@ -249,7 +259,11 @@ function PlansSelectorSimple({
               {isLoading
                 ? "Processando..."
                 : userType === "student" && isPremiumActive
-                  ? (selectedPlan === "pro" && String(currentSubscriptionPlan || "").trim().toLowerCase().includes("premium"))
+                  ? selectedPlan === "pro" &&
+                    String(currentSubscriptionPlan || "")
+                      .trim()
+                      .toLowerCase()
+                      .includes("premium")
                     ? "Fazer upgrade para Pro"
                     : "Mudar Período do Plano"
                   : texts.subscribeButton}

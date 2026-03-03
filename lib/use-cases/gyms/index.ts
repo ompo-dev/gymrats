@@ -239,6 +239,10 @@ export async function getGymLocationsUseCase(input: GetGymLocationsInput) {
     where: { isActive: true },
     include: {
       plans: { where: { isActive: true }, orderBy: { price: "asc" } },
+      boostCampaigns: {
+        where: { status: "active", endsAt: { gt: new Date() } },
+        orderBy: { endsAt: "asc" },
+      },
     },
     orderBy: { rating: "desc" },
   });
@@ -285,6 +289,15 @@ export async function getGymLocationsUseCase(input: GetGymLocationsInput) {
       openingHours: openingHours ?? undefined,
       photos: photos.length > 0 ? photos : undefined,
       isPartner: (gym as { isPartner?: boolean }).isPartner ?? false,
+      activeCampaigns:
+        gym.boostCampaigns?.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description,
+          primaryColor: c.primaryColor,
+          linkedCouponId: c.linkedCouponId,
+          linkedPlanId: c.linkedPlanId,
+        })) || [],
     };
   });
 

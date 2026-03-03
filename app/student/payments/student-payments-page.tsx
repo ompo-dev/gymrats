@@ -14,7 +14,12 @@ import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
-import { MembershipCard, PaymentCard, PaymentsTabSelector, StudentReferralTab } from "./components";
+import {
+  MembershipCard,
+  PaymentCard,
+  PaymentsTabSelector,
+  StudentReferralTab,
+} from "./components";
 import {
   type UsePaymentsPageProps,
   usePaymentsPage,
@@ -348,9 +353,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
         />
       )}
 
-      {activeTab === "referrals" && (
-        <StudentReferralTab />
-      )}
+      {activeTab === "referrals" && <StudentReferralTab />}
 
       <SubscriptionCancelDialog.Simple
         open={cancelDialogModal.isOpen}

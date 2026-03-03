@@ -12,7 +12,10 @@ export const POST = createSafeHandler(
   async ({ gymContext, body }) => {
     const gymId = gymContext?.gymId;
     if (!gymId) {
-      return NextResponse.json({ error: "Academia não encontrada" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Academia não encontrada" },
+        { status: 401 },
+      );
     }
 
     const { plan = "basic", billingPeriod = "monthly" } = body as {
@@ -22,7 +25,8 @@ export const POST = createSafeHandler(
     const safePlan = plan as string;
     const safeBillingPeriod = billingPeriod as "monthly" | "annual";
 
-    const config = GYM_PLANS_CONFIG[safePlan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
+    const config =
+      GYM_PLANS_CONFIG[safePlan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
     if (!config) {
       return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
     }
@@ -44,7 +48,8 @@ export const POST = createSafeHandler(
     }
 
     const basePrice = centsToReais(config.prices[safeBillingPeriod]);
-    const pricePerStudent = safeBillingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
+    const pricePerStudent =
+      safeBillingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
 
     let subscriptionId = existingSubscription?.id;
 

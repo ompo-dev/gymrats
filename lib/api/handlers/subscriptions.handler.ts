@@ -134,7 +134,12 @@ export async function createSubscriptionHandler(
     }
 
     const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
-    const pix = await createStudentSubscriptionPix(studentId, "premium", plan as "monthly" | "annual", subscriptionToUseId);
+    const pix = await createStudentSubscriptionPix(
+      studentId,
+      "premium",
+      plan as "monthly" | "annual",
+      subscriptionToUseId,
+    );
 
     if (!pix || !pix.brCode) {
       throw new Error(

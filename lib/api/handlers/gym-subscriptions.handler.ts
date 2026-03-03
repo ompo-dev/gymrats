@@ -137,7 +137,7 @@ export async function createGymSubscriptionHandler(
     } else {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
-    
+
     const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
 
     // Criar billing PIX AbacatePay primeiro
@@ -146,7 +146,7 @@ export async function createGymSubscriptionHandler(
       plan as "basic" | "premium" | "enterprise",
       activeStudents,
       billingPeriod,
-      subscriptionToUseId
+      subscriptionToUseId,
     );
 
     if (!pix || !pix.id) {
@@ -193,9 +193,13 @@ export async function createGymSubscriptionHandler(
     // Resolver referral de academia (se veio por link de indicação)
     if (referralCode) {
       try {
-        const normalized = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
+        const normalized = referralCode.startsWith("@")
+          ? referralCode
+          : `@${referralCode}`;
         await ReferralService.resolveReferral(normalized, "GYM", gymId);
-      } catch { /* silencioso — não bloqueia a assinatura */ }
+      } catch {
+        /* silencioso — não bloqueia a assinatura */
+      }
     }
 
     return successResponse({

@@ -1,8 +1,20 @@
 "use client";
 
-import { Copy, DollarSign, Wallet, RefreshCw, Send, CheckCircle } from "lucide-react";
+import {
+  Copy,
+  DollarSign,
+  Wallet,
+  RefreshCw,
+  Send,
+  CheckCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { DuoCard, DuoStatCard, DuoStatsGrid, DuoButton } from "@/components/duo";
+import {
+  DuoCard,
+  DuoStatCard,
+  DuoStatsGrid,
+  DuoButton,
+} from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -26,7 +38,7 @@ export function StudentReferralTab() {
   const { toast } = useToast();
   const [data, setData] = useState<ReferralData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [pixKey, setPixKey] = useState("");
   const [pixKeyType, setPixKeyType] = useState("CPF");
   const [isUpdatingPix, setIsUpdatingPix] = useState(false);
@@ -70,7 +82,10 @@ export function StudentReferralTab() {
   const handleUpdatePix = async () => {
     try {
       setIsUpdatingPix(true);
-      await apiClient.post("/api/students/referrals/pix-key", { pixKey, pixKeyType });
+      await apiClient.post("/api/students/referrals/pix-key", {
+        pixKey,
+        pixKeyType,
+      });
       toast({
         title: "Chave PIX atualizada!",
         description: "Agora você pode realizar saques de suas comissões.",
@@ -96,11 +111,11 @@ export function StudentReferralTab() {
       });
       return;
     }
-    
+
     try {
       setIsWithdrawing(true);
-      await apiClient.post("/api/students/referrals/withdraw", { 
-        amountCents: Math.floor(amount * 100) 
+      await apiClient.post("/api/students/referrals/withdraw", {
+        amountCents: Math.floor(amount * 100),
       });
       toast({
         title: "Saque solicitado!",
@@ -112,7 +127,8 @@ export function StudentReferralTab() {
       toast({
         variant: "destructive",
         title: "Erro ao sacar",
-        description: err.response?.data?.error || "Verifique sua chave PIX ou saldo.",
+        description:
+          err.response?.data?.error || "Verifique sua chave PIX ou saldo.",
       });
     } finally {
       setIsWithdrawing(false);
@@ -131,10 +147,14 @@ export function StudentReferralTab() {
     <div className="space-y-6">
       {/* Link de Indicação */}
       <DuoCard.Root variant="default" padding="md">
-        <h2 className="text-xl font-bold text-[var(--duo-fg)] mb-1">Seu Link de Indicação</h2>
+        <h2 className="text-xl font-bold text-[var(--duo-fg)] mb-1">
+          Seu Link de Indicação
+        </h2>
         <p className="text-sm text-duo-gray-dark mb-4">
-          Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia e redireciona automaticamente.
-          Você ganha <strong className="text-duo-accent">50% de comissão</strong> na primeira assinatura.
+          Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia
+          e redireciona automaticamente. Você ganha{" "}
+          <strong className="text-duo-accent">50% de comissão</strong> na
+          primeira assinatura.
         </p>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
@@ -153,9 +173,13 @@ export function StudentReferralTab() {
             disabled={!refSlug}
           >
             {copied ? (
-              <><CheckCircle className="h-4 w-4" /> Copiado!</>
+              <>
+                <CheckCircle className="h-4 w-4" /> Copiado!
+              </>
             ) : (
-              <><Copy className="h-4 w-4" /> Copiar Link</>
+              <>
+                <Copy className="h-4 w-4" /> Copiar Link
+              </>
             )}
           </DuoButton>
         </div>
@@ -178,117 +202,142 @@ export function StudentReferralTab() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DuoCard.Root variant="default" padding="md">
-            <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-              Configurar Recebimento (PIX)
-            </h3>
-            <div className="space-y-3">
-              <label className="block">
-                <span className="text-sm font-medium text-duo-gray-dark">Tipo de Chave PIX</span>
-                <select 
-                  className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                  value={pixKeyType}
-                  onChange={(e) => setPixKeyType(e.target.value)}
-                >
-                  <option value="CPF">CPF</option>
-                  <option value="EMAIL">E-mail</option>
-                  <option value="PHONE">Celular</option>
-                  <option value="RANDOM">Chave Aleatória</option>
-                  <option value="CNPJ">CNPJ</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="text-sm font-medium text-duo-gray-dark">Sua Chave PIX</span>
-                <input 
-                  type="text"
-                  className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                  value={pixKey}
-                  placeholder="Ex: 123.456.789-00"
-                  onChange={(e) => setPixKey(e.target.value)}
-                />
-              </label>
-
-              <DuoButton 
-                onClick={handleUpdatePix} 
-                disabled={isUpdatingPix || !pixKey} 
-                className="w-full mt-2"
-                variant="primary"
+          <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
+            Configurar Recebimento (PIX)
+          </h3>
+          <div className="space-y-3">
+            <label className="block">
+              <span className="text-sm font-medium text-duo-gray-dark">
+                Tipo de Chave PIX
+              </span>
+              <select
+                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
+                value={pixKeyType}
+                onChange={(e) => setPixKeyType(e.target.value)}
               >
-                Salvar PIX
-              </DuoButton>
-            </div>
+                <option value="CPF">CPF</option>
+                <option value="EMAIL">E-mail</option>
+                <option value="PHONE">Celular</option>
+                <option value="RANDOM">Chave Aleatória</option>
+                <option value="CNPJ">CNPJ</option>
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-sm font-medium text-duo-gray-dark">
+                Sua Chave PIX
+              </span>
+              <input
+                type="text"
+                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
+                value={pixKey}
+                placeholder="Ex: 123.456.789-00"
+                onChange={(e) => setPixKey(e.target.value)}
+              />
+            </label>
+
+            <DuoButton
+              onClick={handleUpdatePix}
+              disabled={isUpdatingPix || !pixKey}
+              className="w-full mt-2"
+              variant="primary"
+            >
+              Salvar PIX
+            </DuoButton>
+          </div>
         </DuoCard.Root>
 
         <DuoCard.Root variant="default" padding="md">
-            <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-              Solicitar Saque
-            </h3>
-            <div className="space-y-4">
-              <p className="text-sm text-duo-gray-dark">
-               As transferências PIX são processadas imediatamente via AbacatePay (Taxa fixa de R$ 0,80 descontada).
-              </p>
+          <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
+            Solicitar Saque
+          </h3>
+          <div className="space-y-4">
+            <p className="text-sm text-duo-gray-dark">
+              As transferências PIX são processadas imediatamente via AbacatePay
+              (Taxa fixa de R$ 0,80 descontada).
+            </p>
 
-              <label className="block">
-                <span className="text-sm font-medium text-duo-gray-dark">Valor do Saque (R$)</span>
-                <input 
-                  type="number"
-                  step="0.01"
-                  min="3.50"
-                  className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                  value={withdrawAmount}
-                  placeholder="Mín. 3.50"
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                />
-              </label>
+            <label className="block">
+              <span className="text-sm font-medium text-duo-gray-dark">
+                Valor do Saque (R$)
+              </span>
+              <input
+                type="number"
+                step="0.01"
+                min="3.50"
+                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
+                value={withdrawAmount}
+                placeholder="Mín. 3.50"
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+              />
+            </label>
 
-              <DuoButton 
-                onClick={handleWithdraw} 
-                disabled={isWithdrawing || !withdrawAmount || parseFloat(withdrawAmount) < 3.5 || parseFloat(withdrawAmount) > (data?.balanceReais || 0)} 
-                className="w-full gap-2"
-                variant="secondary"
-              >
-                <Send className="w-4 h-4" />
-                {isWithdrawing ? "Processando..." : "Sacar agora"}
-              </DuoButton>
-            </div>
+            <DuoButton
+              onClick={handleWithdraw}
+              disabled={
+                isWithdrawing ||
+                !withdrawAmount ||
+                parseFloat(withdrawAmount) < 3.5 ||
+                parseFloat(withdrawAmount) > (data?.balanceReais || 0)
+              }
+              className="w-full gap-2"
+              variant="secondary"
+            >
+              <Send className="w-4 h-4" />
+              {isWithdrawing ? "Processando..." : "Sacar agora"}
+            </DuoButton>
+          </div>
         </DuoCard.Root>
       </div>
 
       <DuoCard.Root variant="default" padding="md">
-          <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-            Histórico de Saques
-          </h3>
-          {(data?.withdraws?.length || 0) === 0 ? (
-            <div className="text-center py-6 text-duo-gray-dark text-sm">
-              Você ainda não realizou nenhum saque.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {data!.withdraws.map(w => (
-                <div key={w.id} className="flex justify-between items-center bg-duo-bg-dark rounded-xl p-3 border border-duo-border">
-                  <div>
-                    <div className="font-bold text-sm text-[var(--duo-fg)]">Saque R$ {w.amount.toFixed(2)}</div>
-                    <div className="text-xs text-duo-gray-dark mt-0.5">
-                      {new Date(w.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute:'2-digit' })}
-                    </div>
+        <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
+          Histórico de Saques
+        </h3>
+        {(data?.withdraws?.length || 0) === 0 ? (
+          <div className="text-center py-6 text-duo-gray-dark text-sm">
+            Você ainda não realizou nenhum saque.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {data!.withdraws.map((w) => (
+              <div
+                key={w.id}
+                className="flex justify-between items-center bg-duo-bg-dark rounded-xl p-3 border border-duo-border"
+              >
+                <div>
+                  <div className="font-bold text-sm text-[var(--duo-fg)]">
+                    Saque R$ {w.amount.toFixed(2)}
                   </div>
-                  <div className="flex items-center gap-2">
-                    {w.status === "complete" ? (
-                      <span className="flex items-center gap-1 text-xs font-medium text-duo-success">
-                        <CheckCircle className="w-3 h-3" /> Pago
-                      </span>
-                    ) : w.status === "failed" ? (
-                      <span className="text-xs font-medium text-duo-destructive">Falhou</span>
-                    ) : (
-                      <span className="text-xs font-medium text-duo-accent">Processando</span>
-                    )}
+                  <div className="text-xs text-duo-gray-dark mt-0.5">
+                    {new Date(w.createdAt).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  {w.status === "complete" ? (
+                    <span className="flex items-center gap-1 text-xs font-medium text-duo-success">
+                      <CheckCircle className="w-3 h-3" /> Pago
+                    </span>
+                  ) : w.status === "failed" ? (
+                    <span className="text-xs font-medium text-duo-destructive">
+                      Falhou
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-duo-accent">
+                      Processando
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </DuoCard.Root>
-
     </div>
   );
 }

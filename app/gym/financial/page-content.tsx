@@ -10,13 +10,23 @@ import { FinancialExpensesTab } from "@/components/organisms/gym/financial/finan
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
 import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
 import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
-import type { Coupon, Expense, FinancialSummary, Payment } from "@/lib/types";
+import { FinancialAdsTab } from "@/components/organisms/gym/financial/financial-ads-tab";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  MembershipPlan,
+  Payment,
+} from "@/lib/types";
 import { useReferralTracker } from "@/hooks/use-referral-tracker";
 
 interface FinancialPageProps {
   financialSummary: FinancialSummary;
   payments: Payment[];
   coupons: Coupon[];
+  campaigns?: BoostCampaign[];
+  plans?: MembershipPlan[];
   balanceReais: number;
   balanceCents: number;
   withdraws: {
@@ -62,6 +72,8 @@ export default function FinancialPage({
   fakeWithdraw = true,
   expenses,
   subscription: initialSubscription,
+  campaigns = [],
+  plans = [],
 }: FinancialPageProps) {
   // Captura ?ref= da URL (links de indicação de academia)
   useReferralTracker();
@@ -79,7 +91,8 @@ export default function FinancialPage({
     | "payments"
     | "coupons"
     | "expenses"
-    | "subscription";
+    | "subscription"
+    | "ads";
   const [viewMode, setViewMode] = useState<ViewMode>(
     (subTab || view || "overview") as ViewMode,
   );
@@ -124,6 +137,7 @@ export default function FinancialPage({
               { value: "coupons", label: "Cupons" },
               { value: "expenses", label: "Despesas" },
               { value: "subscription", label: "Assinatura" },
+              { value: "ads", label: "Impulsionamento" },
             ]}
             value={viewMode}
             onChange={(value) => handleTabChange(value)}
@@ -153,6 +167,14 @@ export default function FinancialPage({
       {viewMode === "subscription" && (
         <FinancialSubscriptionTab
           subscription={initialSubscription || undefined}
+        />
+      )}
+
+      {viewMode === "ads" && (
+        <FinancialAdsTab
+          campaigns={campaigns}
+          coupons={coupons}
+          plans={plans}
         />
       )}
     </div>

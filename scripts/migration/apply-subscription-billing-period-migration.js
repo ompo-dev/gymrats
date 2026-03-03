@@ -1,6 +1,6 @@
 /**
  * Migration: Adicionar coluna billingPeriod na tabela subscriptions (Student)
- * 
+ *
  * Execute: node scripts/migration/apply-subscription-billing-period-migration.js
  */
 
@@ -8,7 +8,9 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function applyMigration() {
-  console.log("🔄 Aplicando migration: Coluna billingPeriod na tabela subscriptions...\n");
+  console.log(
+    "🔄 Aplicando migration: Coluna billingPeriod na tabela subscriptions...\n",
+  );
 
   try {
     const columnExistsResult = await prisma.$queryRawUnsafe(`

@@ -6,6 +6,8 @@ import {
   getGymPayments,
   getGymSubscription,
   startGymTrial,
+  getGymBoostCampaigns,
+  getGymMembershipPlans,
 } from "../actions";
 import FinancialPage from "./page-content";
 
@@ -20,6 +22,8 @@ export default async function FinancialPageWrapper() {
     expenses,
     subscription,
     balanceWithdraws,
+    campaigns,
+    plans,
   ] = await Promise.all([
     getGymFinancialSummary(),
     getGymPayments(),
@@ -27,6 +31,8 @@ export default async function FinancialPageWrapper() {
     getGymExpenses(),
     getGymSubscription(),
     getGymBalanceWithdraws(),
+    getGymBoostCampaigns(),
+    getGymMembershipPlans(),
   ]);
 
   if (!financialSummary) return null;
@@ -43,6 +49,8 @@ export default async function FinancialPageWrapper() {
       expenses={expenses}
       subscription={subscription}
       startTrial={startGymTrial}
+      campaigns={campaigns}
+      plans={plans}
     />
   );
 }

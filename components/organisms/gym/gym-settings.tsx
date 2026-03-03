@@ -62,10 +62,7 @@ export function GymSettingsPage({
   const [pixKey, setPixKey] = useState(initialProfile.pixKey ?? "");
 
   // Horários por dia (ex: sexta 18h, outros 22h)
-  const parseInitialSchedules = useCallback((): Record<
-    string,
-    DaySchedule
-  > => {
+  const parseInitialSchedules = useCallback((): Record<string, DaySchedule> => {
     const oh = initialProfile.openingHours;
     const days = oh?.days ?? [
       "monday",

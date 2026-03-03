@@ -209,7 +209,11 @@ function StudentHomeContent() {
   } | null>(null);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
-  const handleJoinGym = async (gymId: string, planId: string) => {
+  const handleJoinGym = async (
+    gymId: string,
+    planId: string,
+    couponId?: string,
+  ) => {
     try {
       const { apiClient } = await import("@/lib/api/client");
       const res = await apiClient.post<{
@@ -219,7 +223,10 @@ function StudentHomeContent() {
         paymentId?: string;
         membershipId?: string;
         success?: boolean;
-      }>(`/api/students/gyms/${gymId}/join`, { planId });
+      }>(`/api/students/gyms/${gymId}/join`, {
+        planId,
+        couponId: couponId || null,
+      });
       const data = res?.data ?? {};
       const hasPixData =
         data.paymentId &&
@@ -291,8 +298,23 @@ function StudentHomeContent() {
     }
   };
 
-  const handleViewGymProfile = (id: string) => {
+  const [preSelectedPlan, setPreSelectedPlan] = useQueryState(
+    "planId",
+    parseAsString,
+  );
+  const [preSelectedCoupon, setPreSelectedCoupon] = useQueryState(
+    "couponId",
+    parseAsString,
+  );
+
+  const handleViewGymProfile = (
+    id: string,
+    planId?: string,
+    couponId?: string,
+  ) => {
     setGymId(id);
+    if (planId) setPreSelectedPlan(planId);
+    if (couponId) setPreSelectedCoupon(couponId);
   };
 
   const handleCancelMembership = async (membershipId: string) => {
@@ -552,11 +574,17 @@ function StudentHomeContent() {
         (gymId ? (
           <GymProfileView
             gymId={gymId}
-            onBack={() => setGymId(null)}
+            onBack={() => {
+              setGymId(null);
+              setPreSelectedPlan(null);
+              setPreSelectedCoupon(null);
+            }}
             onJoinPlan={handleJoinGym}
             onChangePlan={handleChangePlan}
             onCancelMembership={handleCancelMembership}
             profileRefreshKey={profileRefreshKey}
+            preSelectedPlan={preSelectedPlan}
+            preSelectedCoupon={preSelectedCoupon}
           />
         ) : (
           <GymMap.Simple

@@ -42,7 +42,10 @@ export const POST = createSafeHandler(
         usedProAccess = true;
       } else {
         return NextResponse.json(
-          { error: "Aluno não é membro ativo e não possui acesso de rede válido nesta academia" },
+          {
+            error:
+              "Aluno não é membro ativo e não possui acesso de rede válido nesta academia",
+          },
           { status: 403 },
         );
       }

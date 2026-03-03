@@ -252,6 +252,92 @@ export async function createGymCoupon(data: {
   }
 }
 
+// ============================================
+// ADS / BOOST CAMPAIGNS
+// ============================================
+
+export async function getGymBoostCampaigns() {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx) return [];
+
+    return await db.boostCampaign.findMany({
+      where: { gymId: ctx.gymId },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("[getGymBoostCampaigns] Erro:", error);
+    return [];
+  }
+}
+
+export async function createBoostCampaign(data: {
+  title: string;
+  description: string;
+  primaryColor: string;
+  linkedCouponId: string | null;
+  linkedPlanId: string | null;
+  durationHours: number;
+  amountCents: number;
+}) {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const { env } = await import("@/lib/env");
+
+    const campaign = await db.boostCampaign.create({
+      data: {
+        gymId: ctx.gymId,
+        title: data.title,
+        description: data.description,
+        primaryColor: data.primaryColor,
+        linkedCouponId: data.linkedCouponId,
+        linkedPlanId: data.linkedPlanId,
+        durationHours: data.durationHours,
+        amountCents: data.amountCents,
+        status: "pending_payment",
+      },
+    });
+
+    const { abacatePay } = await import("@/lib/api/abacatepay");
+
+    const billing = await abacatePay.createBilling({
+      frequency: "ONE_TIME",
+      methods: ["PIX"],
+      products: [
+        {
+          productId: `boost_${campaign.id}`,
+          name: `Impulsionamento: ${campaign.title}`,
+          description: `Anúncio na plataforma GymRats por ${campaign.durationHours}h`,
+          quantity: 1,
+          price: data.amountCents,
+        },
+      ],
+      returnUrl: `${env.NEXT_PUBLIC_APP_URL}/gym/financial?view=ads&success=true`,
+      cancelUrl: `${env.NEXT_PUBLIC_APP_URL}/gym/financial?view=ads&canceled=true`,
+      customerId: ctx.gymId, // Using generic externalId as fallback if no AbacateCustomer mapping exists yet
+    });
+
+    if (billing?.data) {
+      await db.boostCampaign.update({
+        where: { id: campaign.id },
+        data: { abacatePayBillingId: billing.data.id },
+      });
+      return { success: true, abacatePayUrl: billing.data.url };
+    }
+
+    return {
+      success: false,
+      error: billing?.error ?? "Erro ao integrar gateway de pagamento",
+    };
+  } catch (error) {
+    console.error("[createBoostCampaign] Erro:", error);
+    return { success: false, error: "Erro interno ao criar campanha" };
+  }
+}
+
 export async function getGymReferrals() {
   return [];
 }
@@ -416,17 +502,27 @@ export async function syncGymSubscriptionPrices() {
       where: { gymId },
     });
 
-    if (!subscription) return { success: true, message: "Sem assinatura para sincronizar" };
+    if (!subscription)
+      return { success: true, message: "Sem assinatura para sincronizar" };
 
-    const planKey = subscription.plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
+    const planKey =
+      subscription.plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
     const config = GYM_PLANS_CONFIG[planKey];
 
     if (!config) return { error: "Plano atual inválido na configuração" };
 
-    const newBasePrice = centsToReais(config.prices[subscription.billingPeriod as "monthly" | "annual"]);
-    const newPerStudentPrice = subscription.billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
+    const newBasePrice = centsToReais(
+      config.prices[subscription.billingPeriod as "monthly" | "annual"],
+    );
+    const newPerStudentPrice =
+      subscription.billingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerStudent);
 
-    if (subscription.basePrice !== newBasePrice || subscription.pricePerStudent !== newPerStudentPrice) {
+    if (
+      subscription.basePrice !== newBasePrice ||
+      subscription.pricePerStudent !== newPerStudentPrice
+    ) {
       await db.gymSubscription.update({
         where: { id: subscription.id },
         data: {

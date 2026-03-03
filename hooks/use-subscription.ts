@@ -39,7 +39,11 @@ export function useSubscription(
       userType: "student" as const,
       ...options,
     }),
-    [options?.enabled, options?.includeDaysRemaining, options?.includeTrialInfo],
+    [
+      options?.enabled,
+      options?.includeDaysRemaining,
+      options?.includeTrialInfo,
+    ],
   );
 
   const result = useSubscriptionUnified(memoizedOptions);

@@ -266,8 +266,6 @@ export function FinancialSubscriptionTab({
     }
   };
 
-
-
   return (
     <>
       <SubscriptionSection.Simple

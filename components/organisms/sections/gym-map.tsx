@@ -24,9 +24,13 @@ interface GymMapProps {
   dayPasses: DayPass[];
   memberships?: StudentGymMembership[];
   onPurchaseDayPass: (gymId: string) => void;
-  onJoinPlan?: (gymId: string, planId: string) => void;
+  onJoinPlan?: (gymId: string, planId: string, couponId?: string) => void;
   onChangePlan?: (membershipId: string, planId: string) => void;
-  onViewGymProfile?: (gymId: string) => void;
+  onViewGymProfile?: (
+    gymId: string,
+    planId?: string,
+    couponId?: string,
+  ) => void;
 }
 
 function GymMapSimple({
@@ -164,6 +168,75 @@ function GymMapSimple({
             </div>
           </DuoCard.Header>
           <div className="space-y-3">
+            {/* CAMPANHAS PATROCINADAS (ADS) */}
+            {sortedGyms.map((gym) => {
+              if (!gym.activeCampaigns || gym.activeCampaigns.length === 0)
+                return null;
+              // Renderizar a primeira campanha ativa da academia
+              const activeAd = gym.activeCampaigns[0];
+              return (
+                <motion.div
+                  key={`ad-${activeAd.id}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                >
+                  <div
+                    className="border-2 rounded-2xl p-4 overflow-hidden relative group bg-duo-bg shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                    style={{ borderColor: activeAd.primaryColor }}
+                    onClick={() => {
+                      if (activeAd.linkedPlanId && onJoinPlan) {
+                        onJoinPlan(
+                          gym.id,
+                          activeAd.linkedPlanId,
+                          activeAd.linkedCouponId || undefined,
+                        );
+                      } else if (onViewGymProfile) {
+                        onViewGymProfile(
+                          gym.id,
+                          activeAd.linkedPlanId || undefined,
+                          activeAd.linkedCouponId || undefined,
+                        );
+                      }
+                    }}
+                  >
+                    <div
+                      className="absolute top-0 left-0 w-full h-1"
+                      style={{ backgroundColor: activeAd.primaryColor }}
+                    />
+
+                    <div className="flex justify-between mt-1 mb-2 items-center">
+                      <span className="text-[10px] uppercase font-bold text-duo-text bg-duo-gray/20 px-2 py-0.5 rounded-md border border-duo-border flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-duo-text" /> Patrocinado
+                      </span>
+                      <span className="text-xs font-bold text-duo-gray-dark flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {gym.name}
+                      </span>
+                    </div>
+
+                    <h5
+                      className="font-bold text-lg"
+                      style={{ color: activeAd.primaryColor }}
+                    >
+                      {activeAd.title}
+                    </h5>
+                    <p className="text-sm text-duo-text mt-1">
+                      {activeAd.description}
+                    </p>
+
+                    <div className="mt-4 pt-3 border-t border-duo-border flex justify-end">
+                      <button
+                        className="px-4 py-2 flex items-center gap-2 rounded-xl text-xs font-bold text-duo-bg transition-transform group-hover:scale-105 shadow-md"
+                        style={{ backgroundColor: activeAd.primaryColor }}
+                      >
+                        Assinar Agora <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+            {/* LISTA NORMAL */}
             {sortedGyms.map((gym, index) => {
               const hasActivePass = dayPasses.some(
                 (pass) => pass.gymId === gym.id && pass.status === "active",
@@ -523,7 +596,7 @@ function GymMapSimple({
                                 e.stopPropagation();
                                 onJoinPlan?.(
                                   gym.id,
-                                  gym.membershipPlans?.[0].id,
+                                  gym.membershipPlans?.[0].id ?? "",
                                 );
                               }}
                               className="col-span-2 flex items-center justify-center gap-2"

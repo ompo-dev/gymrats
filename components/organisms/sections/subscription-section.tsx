@@ -283,7 +283,7 @@ function SubscriptionSectionSimple({
       if (userType === "student") {
         const planName = String(subscription.plan).toLowerCase();
         const currentBillingPeriod = subscription.billingPeriod || "monthly";
-        
+
         // Se for PRO anual, não há upgrade
         if (planName.includes("pro") && currentBillingPeriod === "annual") {
           return false;

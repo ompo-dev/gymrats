@@ -14,24 +14,28 @@ export interface PlanConfig {
   features: string[];
   prices: {
     monthly: number; // centavos
-    annual: number;  // centavos
+    annual: number; // centavos
   };
 }
 
 export interface GymPlanConfig extends PlanConfig {
   prices: {
     monthly: number; // base centavos
-    annual: number;  // base centavos
+    annual: number; // base centavos
   };
   pricePerStudent: number; // centavos
   pricePerPersonal?: number; // centavos (apenas Enterprise)
 }
 
-export const STUDENT_PLANS_CONFIG: Record<Exclude<StudentPlan, "FREE">, PlanConfig> = {
+export const STUDENT_PLANS_CONFIG: Record<
+  Exclude<StudentPlan, "FREE">,
+  PlanConfig
+> = {
   PREMIUM: {
     id: "premium",
     name: "Premium",
-    description: "Treinos e dieta com IA, análise de postura e suporte prioritário.",
+    description:
+      "Treinos e dieta com IA, análise de postura e suporte prioritário.",
     features: [
       "Treinos personalizados com IA",
       "Planos de dieta com IA",
@@ -47,7 +51,8 @@ export const STUDENT_PLANS_CONFIG: Record<Exclude<StudentPlan, "FREE">, PlanConf
   PRO: {
     id: "pro",
     name: "Pro",
-    description: "Acesso livre a toda rede parceira, check-ins ilimitados e suporte ultra-prioritário.",
+    description:
+      "Acesso livre a toda rede parceira, check-ins ilimitados e suporte ultra-prioritário.",
     features: [
       "Tudo do Premium",
       "Acesso livre a toda rede parceira (Gym Pass style)",
@@ -63,7 +68,8 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
   BASIC: {
     id: "basic",
     name: "Básico",
-    description: "Ideal para academias individuais que buscam gestão eficiente.",
+    description:
+      "Ideal para academias individuais que buscam gestão eficiente.",
     features: [
       "1 unidade (uma academia)",
       "Gestão de alunos e check-ins",
@@ -116,7 +122,10 @@ export const reaisToCents = (reais: number) => Math.round(reais * 100);
 /**
  * Formata um valor (em centavos ou reais) para a moeda brasileira.
  */
-export const formatPlanCurrency = (value: number, unit: "cents" | "reais" = "reais") => {
+export const formatPlanCurrency = (
+  value: number,
+  unit: "cents" | "reais" = "reais",
+) => {
   const amount = unit === "cents" ? centsToReais(value) : value;
   return amount.toLocaleString("pt-BR", {
     style: "currency",

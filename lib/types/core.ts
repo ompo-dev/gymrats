@@ -871,6 +871,14 @@ export interface GymLocation {
   openingHours: { open: string; close: string };
   photos?: string[];
   isPartner: boolean;
+  activeCampaigns?: {
+    id: string;
+    title: string;
+    description: string;
+    primaryColor: string;
+    linkedCouponId: string | null;
+    linkedPlanId: string | null;
+  }[];
 }
 
 export interface DayPass {
@@ -882,4 +890,24 @@ export interface DayPass {
   price: number;
   status: "active" | "used" | "expired";
   qrCode?: string;
+}
+
+export interface BoostCampaign {
+  id: string;
+  gymId: string;
+  title: string;
+  description: string;
+  primaryColor: string;
+  durationHours: number;
+  amountCents: number;
+  status: string; // "pending_payment", "active", "expired", "canceled"
+  clicks: number;
+  impressions: number;
+  linkedCouponId: string | null;
+  linkedPlanId: string | null;
+  abacatePayBillingId: string | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
 }
