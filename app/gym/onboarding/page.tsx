@@ -139,8 +139,12 @@ export default function GymOnboardingPage() {
         sessionStorage.removeItem("gymrats:onboarding-intent");
         sessionStorage.setItem("refresh-gyms", "true");
         router.refresh();
+        const hasReferral = document.cookie.includes("gymrats_referral");
         setTimeout(() => {
-          router.push("/gym?tab=dashboard");
+          router.push(hasReferral 
+            ? "/gym?tab=financial&subTab=subscription" 
+            : "/gym?tab=dashboard"
+          );
         }, 1500);
       } else {
         // Onboarding original (primeira academia)
@@ -154,8 +158,12 @@ export default function GymOnboardingPage() {
         sessionStorage.removeItem("gymrats:onboarding-intent");
         sessionStorage.setItem("refresh-gyms", "true");
         router.refresh();
+        const hasReferral = document.cookie.includes("gymrats_referral");
         setTimeout(() => {
-          router.push("/gym?tab=dashboard");
+          router.push(hasReferral 
+            ? "/gym?tab=financial&subTab=subscription" 
+            : "/gym?tab=dashboard"
+          );
         }, 1500);
       }
     } catch (error) {

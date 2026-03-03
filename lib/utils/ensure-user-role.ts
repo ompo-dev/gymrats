@@ -4,10 +4,8 @@
  */
 
 import { db } from "@/lib/db";
-import {
-  initializeGymTrial,
-  initializeStudentTrial,
-} from "@/lib/utils/auto-trial";
+import { ReferralService } from "@/lib/services/referral.service";
+import { cookies } from "next/headers";
 
 export type EnsureRoleResult =
   | { ok: true; studentId?: string; gymId?: string }
@@ -32,7 +30,16 @@ export async function ensureStudentRole(
       });
     }
 
-    await initializeStudentTrial(student.id);
+    // Tenta resolver indicação se houver cookie
+    try {
+      const cookieStore = await cookies();
+      const refCode = cookieStore.get("gymrats_referral")?.value;
+      if (refCode) {
+        await ReferralService.resolveReferral(refCode, "STUDENT", student.id);
+      }
+    } catch {
+      // Ignora erro de cookie/referral
+    }
 
     return { ok: true, studentId: student.id };
   } catch (error) {
@@ -71,7 +78,16 @@ export async function ensureGymRole(
       });
     }
 
-    await initializeGymTrial(gym.id);
+    // Tenta resolver indicação se houver cookie
+    try {
+      const cookieStore = await cookies();
+      const refCode = cookieStore.get("gymrats_referral")?.value;
+      if (refCode) {
+        await ReferralService.resolveReferral(refCode, "GYM", gym.id);
+      }
+    } catch {
+      // Ignora erro de cookie/referral
+    }
 
     return { ok: true, gymId: gym.id };
   } catch (error) {

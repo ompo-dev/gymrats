@@ -29,8 +29,6 @@ export async function submitNewGym(formData: GymOnboardingData) {
       address: fullAddress,
     });
 
-    await initializeGymTrial(newGym.id);
-
     return { success: true, gymId: newGym.id };
   } catch (error) {
     console.error("Erro ao criar nova academia:", error);
@@ -83,13 +81,11 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
         ...formData,
         address: fullAddress,
       });
-      await initializeGymTrial(gymId);
     } else {
       const newGym = await GymInventoryService.createGym(ctx.user.id, {
         ...formData,
         address: fullAddress,
       });
-      await initializeGymTrial(newGym.id);
     }
 
     return { success: true };

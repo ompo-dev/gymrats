@@ -147,10 +147,7 @@ export async function submitOnboarding(formData: OnboardingData) {
         .catch(() => {}); // Ignorar erros silenciosamente
     }
 
-    // Inicializar trial e progress via utilitários existentes
-    await initializeStudentTrial(student.id);
-
-    // Garantir que StudentProgress existe
+    // Apenas garante que StudentProgress existe
     await db.studentProgress.upsert({
       where: { studentId: student.id },
       update: {},

@@ -185,8 +185,10 @@ export default function StudentOnboardingPage() {
       // Redirecionar imediatamente após salvar o perfil
       // A geração de treinos continuará em background
       // Usar window.location.href para forçar navegação completa e revalidar hasProfile no layout
-      // Não usar setTimeout - redirecionar imediatamente
-      window.location.href = "/student";
+      const hasReferral = document.cookie.includes("gymrats_referral");
+      window.location.href = hasReferral 
+        ? "/student?tab=payments&subTab=subscription"
+        : "/student";
     } catch (error) {
       const msg =
         error instanceof Error
