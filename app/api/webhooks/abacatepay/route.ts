@@ -11,30 +11,23 @@ import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Validar Assinatura HMAC (Mais Seguro)
+    // 1. Validar Assinatura HMAC (Obrigatório e Seguro)
     const signature = request.headers.get("x-webhook-signature");
     const rawBody = await request.text();
 
+    if (!signature) {
+      console.warn("[Webhook] Tentativa de acesso sem HMAC Signature");
+      return badRequestResponse("Missing webhook signature");
+    }
+
     const isSignatureValid = abacatePay.verifyWebhookSignature(
       rawBody,
-      signature || "",
+      signature
     );
 
-    // 2. Validar Secret via Query Param (Conforme exemplo inicial do user)
-    const { searchParams } = new URL(request.url);
-    const webhookSecret = searchParams.get("webhookSecret");
-    const expectedSecret = process.env.ABACATEPAY_WEBHOOK_SECRET || "1234";
-    const isSecretValid = webhookSecret === expectedSecret;
-
-    // Se nenhum dos dois for válido, rejeitar
-    if (!isSignatureValid && !isSecretValid) {
-      console.warn(
-        "[Webhook] Falha na verificação de segurança. Signature:",
-        !!signature,
-        "Secret:",
-        !!webhookSecret,
-      );
-      return badRequestResponse("Invalid webhook security check");
+    if (!isSignatureValid) {
+      console.warn("[Webhook] Falha na verificação criptográfica de assinatura (HMAC).");
+      return badRequestResponse("Invalid cryptographic signature");
     }
 
     const body = JSON.parse(rawBody);
