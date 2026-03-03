@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
 
 // Actions
-import { createBoostCampaign } from "@/app/gym/actions";
+import { createBoostCampaign, getBoostCampaignPaymentUrl } from "@/app/gym/actions";
 
 interface FinancialAdsTabProps {
   campaigns?: BoostCampaign[];
@@ -38,6 +38,7 @@ export function FinancialAdsTab({
   const [linkedCouponId, setLinkedCouponId] = useState("");
   const [linkedPlanId, setLinkedPlanId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const PRICE_PER_12H = 30; // R$ 30,00 por 12 horas
 
@@ -73,6 +74,22 @@ export function FinancialAdsTab({
     } catch (e) {
       toast({ variant: "destructive", title: "Erro ao criar campanha." });
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePayCampaign = async (campaign: BoostCampaign) => {
+    setPayingId(campaign.id);
+    try {
+      const result = await getBoostCampaignPaymentUrl(campaign.id);
+      if (result.success) {
+        window.location.href = result.url;
+      } else {
+        toast({ variant: "destructive", title: result.error });
+        setPayingId(null);
+      }
+    } catch {
+      toast({ variant: "destructive", title: "Erro ao buscar link de pagamento." });
+      setPayingId(null);
     }
   };
 
@@ -122,7 +139,7 @@ export function FinancialAdsTab({
               key={campaign.id}
               className="border-2 border-duo-border"
             >
-              <div className="flex justify-between items-start mb-4">
+              <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-bold text-lg text-duo-text flex items-center gap-2">
                     <div
@@ -152,6 +169,17 @@ export function FinancialAdsTab({
                   </span>
                 )}
               </div>
+
+              {campaign.status === "pending_payment" && (
+                <DuoButton
+                  size="sm"
+                  className="w-full mt-1"
+                  disabled={payingId === campaign.id}
+                  onClick={() => handlePayCampaign(campaign)}
+                >
+                  {payingId === campaign.id ? "Buscando link..." : "Pagar agora"}
+                </DuoButton>
+              )}
             </DuoCard.Root>
           ))}
         </div>

@@ -349,8 +349,11 @@ export async function createBoostCampaign(data: {
     // Normaliza o telefone para conter apenas dígitos (AbacatePay exige)
     const rawPhone = (gym?.phone ?? "").replace(/\D/g, "");
     const cellphone = rawPhone.startsWith("55") ? rawPhone : `55${rawPhone}`;
-    // AbacatePay exige taxId (CPF 11d ou CNPJ 14d sem pontuao)
-    const taxId = (gym?.cnpj ?? ctx.user.email ?? "").replace(/\D/g, "");
+    // AbacatePay exige taxId (CPF 11d ou CNPJ 14d sem pontuação)
+    const cnpjOrEmail = gym?.cnpj ?? String(ctx.user.email ?? "");
+    const taxId = cnpjOrEmail.replace(/\D/g, "");
+    const customerName = gym?.name ?? String(ctx.user.name ?? "Academia");
+    const customerEmail = gym?.email ?? String(ctx.user.email ?? "");
 
     const billing = await abacatePay.createBilling({
       frequency: "ONE_TIME",
@@ -367,8 +370,8 @@ export async function createBoostCampaign(data: {
       returnUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
       completionUrl: `${appUrl}/gym?tab=financial&subTab=ads&success=true`,
       customer: {
-        name: gym?.name ?? ctx.user.name ?? "Academia",
-        email: gym?.email ?? (typeof ctx.user.email === "string" ? ctx.user.email : ""),
+        name: customerName,
+        email: customerEmail,
         cellphone: cellphone || "5511999999999",
         taxId: taxId || "00000000000000",
       },
@@ -395,6 +398,41 @@ export async function createBoostCampaign(data: {
 export async function getGymReferrals() {
   return [];
 }
+
+export async function getBoostCampaignPaymentUrl(
+  campaignId: string,
+): Promise<{ success: true; url: string } | { success: false; error: string }> {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const campaign = await db.boostCampaign.findFirst({
+      where: { id: campaignId, gymId: ctx.gymId },
+    });
+
+    if (!campaign) return { success: false, error: "Campanha não encontrada" };
+    if (campaign.status !== "pending_payment")
+      return { success: false, error: "Campanha não está pendente" };
+
+    if (!campaign.abacatePayBillingId) {
+      return { success: false, error: "Pagamento não iniciado" };
+    }
+
+    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const billing = await abacatePay.getBilling(campaign.abacatePayBillingId);
+
+    if (!billing.data) {
+      return { success: false, error: billing.error ?? "Billing não encontrado" };
+    }
+
+    return { success: true, url: billing.data.url };
+  } catch (error) {
+    console.error("[getBoostCampaignPaymentUrl] Erro:", error);
+    return { success: false, error: "Erro ao buscar link de pagamento" };
+  }
+}
+
 
 export async function getGymBalanceWithdraws(): Promise<{
   balanceReais: number;
