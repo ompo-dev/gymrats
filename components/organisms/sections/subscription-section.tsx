@@ -279,10 +279,13 @@ function SubscriptionSectionSimple({
         return false;
       }
 
-      // Para student: apenas mostrar se estiver no plano mensal OWN (para mudar para anual)
+      // Para student: mostrar planos para upgrade
       if (userType === "student") {
+        const planName = String(subscription.plan).toLowerCase();
         const currentBillingPeriod = subscription.billingPeriod || "monthly";
-        if (currentBillingPeriod === "annual") {
+        
+        // Se for PRO anual, não há upgrade
+        if (planName.includes("pro") && currentBillingPeriod === "annual") {
           return false;
         }
         return true;

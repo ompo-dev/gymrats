@@ -99,27 +99,25 @@ function PlansSelectorSimple({
         </div>
       </DuoCard.Header>
       <div className="space-y-4">
-        {/* Para student com subscription ativa mensal: mostrar apenas opção anual */}
-        {userType === "student" && isPremiumActive && (
+        {/* Banner para dar dica de upgrade, mas mais genérico */}
+        {userType === "student" && isPremiumActive && currentSubscriptionBillingPeriod === "monthly" && (
           <div className="mb-4 p-4 bg-duo-blue/10 rounded-xl border-2 border-duo-blue/20">
             <p className="text-sm text-duo-text mb-2">
-              Você está no plano mensal. Mude para o plano anual e economize!
+              Você está em um plano mensal. Faça upgrade ou mude para o plano anual e economize!
             </p>
           </div>
         )}
 
-        {/* Billing Period Selector - Ocultar para student com subscription ativa mensal */}
-        {!(userType === "student" && isPremiumActive) && (
-          <BillingPeriodSelector.Simple
-            selectedPeriod={selectedBillingPeriod}
-            onSelect={onSelectBillingPeriod}
-            monthlyLabel={texts.monthlyLabel}
-            annualLabel={texts.annualLabel}
-            perMonth={texts.perMonth}
-            perYear={texts.perYear}
-            annualDiscount={planDiscount}
-          />
-        )}
+        {/* Billing Period Selector - Mostrar sempre, exceto se a única opção for anual */}
+        <BillingPeriodSelector.Simple
+          selectedPeriod={selectedBillingPeriod}
+          onSelect={onSelectBillingPeriod}
+          monthlyLabel={texts.monthlyLabel}
+          annualLabel={texts.annualLabel}
+          perMonth={texts.perMonth}
+          perYear={texts.perYear}
+          annualDiscount={planDiscount}
+        />
 
         {/* Plan Cards */}
         {plans.length > 0 && (
@@ -139,23 +137,30 @@ function PlansSelectorSimple({
               .filter((plan) => {
                 // Para student com subscription ativa
                 if (userType === "student" && isPremiumActive) {
-                  // Só o plano premium é relevante
-                  if (plan.id !== "premium") return false;
-
-                  // Se está no anual, não mostra nada (sem downgrade)
-                  if (currentSubscriptionBillingPeriod === "annual") {
+                  const currentPlan = String(currentSubscriptionPlan || "").trim().toLowerCase();
+                  const isCurrentPro = currentPlan.includes("pro");
+                  const isPlanPro = plan.id === "pro";
+                  
+                  // Se for mudança de período no mesmo plano
+                  if ((isCurrentPro && isPlanPro) || (!isCurrentPro && !isPlanPro)) {
+                    // Só mostra se for para upgrade de mensal pra anual
+                    if (currentSubscriptionBillingPeriod === "monthly" && selectedBillingPeriod === "annual") {
+                      return true;
+                    }
                     return false;
                   }
 
-                  // Se está no mensal, só mostra se o período selecionado for anual (upgrade)
-                  if (currentSubscriptionBillingPeriod === "monthly") {
-                    return selectedBillingPeriod === "annual";
+                  // Upgrade de Premium para Pro
+                  if (!isCurrentPro && isPlanPro) {
+                    return true;
                   }
 
-                  // Não permitir re-assinar o mesmo plano+período
-                  return (
-                    selectedBillingPeriod !== currentSubscriptionBillingPeriod
-                  );
+                  // Downgrade de Pro para Premium: não mostrar
+                  if (isCurrentPro && !isPlanPro) {
+                    return false;
+                  }
+                  
+                  return true;
                 }
 
                 // Para gym com subscription ativa: filtrar baseado na hierarquia e período
@@ -229,7 +234,9 @@ function PlansSelectorSimple({
               {isLoading
                 ? "Processando..."
                 : userType === "student" && isPremiumActive
-                  ? "Mudar para Plano Anual"
+                  ? (selectedPlan === "pro" && String(currentSubscriptionPlan || "").trim().toLowerCase().includes("premium"))
+                    ? "Fazer upgrade para Pro"
+                    : "Mudar Período do Plano"
                   : texts.subscribeButton}
             </DuoButton>
           </>

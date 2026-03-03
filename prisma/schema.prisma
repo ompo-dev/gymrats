@@ -166,6 +166,9 @@ model Student {
   // Assinatura
   subscription Subscription?
 
+  // Acessos GymPass/Pro
+  proGymAccesses ProGymAccess[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -299,6 +302,9 @@ model Gym {
   
   // Benefícios para alunos (enterprise)
   assistedSubscriptions Subscription[] @relation("EnterpriseAssisted")
+  
+  // Acessos de Alunos PRO da rede (quando academia for Enterprise)
+  proGymAccesses ProGymAccess[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1020,6 +1026,7 @@ model GymSubscription {
   status             String    @default("active") // active, canceled, expired, past_due, trialing
   basePrice          Float // Preço fixo mensal ou anual
   pricePerStudent    Float // Preço por aluno/mês (apenas para plano mensal, 0 para anual)
+  pricePerPersonal   Float? // Preço por personal filiado/mês (apenas Enterprise, Ex: 100 reais)
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean   @default(false)
@@ -1071,4 +1078,24 @@ model SubscriptionPayment {
   updatedAt DateTime @updatedAt
 
   @@map("subscription_payments")
+}
+
+// ============================================
+// ACESSO PRO e REDE ENTERPRISE
+// ============================================
+
+model ProGymAccess {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gymId     String
+  gym       Gym      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  usedAt    DateTime @default(now())
+  type      String   @default("check_in") // check_in, day_use
+
+  createdAt DateTime @default(now())
+  
+  @@index([studentId])
+  @@index([gymId])
+  @@map("pro_gym_access")
 }

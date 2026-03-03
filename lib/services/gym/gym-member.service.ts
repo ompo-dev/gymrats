@@ -23,7 +23,7 @@ export class GymMemberService {
       orderBy: { createdAt: "desc" },
     });
 
-    return memberships.map((m) => {
+    const mappedMemberships = memberships.map((m) => {
       const { student } = m;
       const { user } = student;
       const { profile } = student;
@@ -60,6 +60,56 @@ export class GymMemberService {
           : undefined,
       };
     });
+
+    const networkAccesses = await db.proGymAccess.findMany({
+      where: { gymId },
+      distinct: ["studentId"],
+      include: {
+        student: {
+          include: { user: true, profile: true, progress: true },
+        },
+      },
+    });
+
+    const mappedNetworkAccesses = networkAccesses.map((a: typeof networkAccesses[0]) => {
+      const { student } = a;
+      const { user } = student;
+      const { profile } = student;
+      const { progress } = student;
+
+      return {
+        id: student.id,
+        name: user.name,
+        email: user.email,
+        avatar: student.avatar || user.image || undefined,
+        age: student.age ?? 0,
+        gender: student.gender ?? "",
+        phone: student.phone || "",
+        membershipStatus: "network_pro" as any, // Adicionamos status especial
+        joinDate: a.createdAt,
+        currentStreak: progress?.currentStreak || 0,
+        currentWeight: profile?.weight ?? 0,
+        profile: profile
+          ? {
+              id: student.id,
+              name: user.name,
+              height: profile.height ?? 0,
+              weight: profile.weight ?? 0,
+              fitnessLevel: profile.fitnessLevel ?? "iniciante",
+              goals: profile.goals ? JSON.parse(profile.goals) : [],
+            }
+          : undefined,
+        progress: progress
+          ? {
+              currentStreak: progress.currentStreak,
+              totalXP: progress.totalXP,
+              currentLevel: progress.currentLevel,
+            }
+          : undefined,
+      };
+    });
+
+    return [...mappedMemberships, ...mappedNetworkAccesses];
   }
 
   static async getStudentById(gymId: string, studentId: string) {

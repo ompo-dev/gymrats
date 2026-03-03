@@ -279,25 +279,18 @@ Todos os valores atuais no código estão com a precificação antiga. A **lista
 
 ### 14.1 Aluno — Premium (R$ 6 / R$ 60) e Pro (R$ 150 / R$ 1.500)
 
-- [lib/utils/subscription.ts](c:\Projects\Teste\gymrats\lib\utils\subscription.ts): em `createStudentSubscriptionBilling`, trocar `prices` para `monthly: 600` (centavos), `annual: 6000`.
-- [lib/actions/payments/abacate-pay.ts](c:\Projects\Teste\gymrats\lib\actions\payments\abacate-pay.ts): objeto `prices.premium`: `monthly: 600`, `annual: 6000`.
-- [app/student/payments/hooks/use-payments-page.ts](c:\Projects\Teste\gymrats\app\student\payments\hooks\use-payments-page.ts): `monthlyPrice: 6`, `annualPrice: 60`.
-- [app/api/webhooks/abacatepay/route.ts](c:\Projects\Teste\gymrats\app\api\webhooks\abacatepay\route.ts): hoje usa `amount >= 15000` para inferir anual; com anual R$ 60 = 6000 centavos, usar apenas `metadata.billingPeriod === "annual"` (ou `amount >= 6000` se quiser fallback) para definir `isAnnual`.
-- **Plano Pro:** adicionar em `subscription.ts` e `abacate-pay.ts` preços `pro: { monthly: 15000, annual: 150000 }`; em `subscription-helpers.ts` função `isProPlan(plan)`; nova função `hasProAccess(studentId)` e `canStudentAccessGymAsPro(studentId, gymId)`; criar tabela/registro de uso Pro em academia Enterprise (contagem para cobrança da academia). Ver **Etapa 1** na seção 16.
+- **Centralizado em `lib/access-control/plans-config.ts`**: `STUDENT_PLANS_CONFIG`.
+- [lib/utils/subscription.ts](c:\Projects\Teste\GymRats-Complete\gymrats\lib\utils\subscription.ts) e [lib/actions/payments/abacate-pay.ts](c:\Projects\Teste\GymRats-Complete\gymrats\lib\actions\payments\abacate-pay.ts): Passam a importar os valores de `STUDENT_PLANS_CONFIG` ao invés de usar strings/números mágicos.
+- [app/student/payments/hooks/use-payments-page.ts](c:\Projects\Teste\GymRats-Complete\gymrats\app\student\payments\hooks\use-payments-page.ts) e telas UI: Consultar os valores do config.
+- [app/api/webhooks/abacatepay/route.ts](c:\Projects\Teste\GymRats-Complete\gymrats\app\api\webhooks\abacatepay\route.ts): Usar `metadata.billingPeriod === "annual"` para definir `isAnnual`.
+- **Plano Pro:** Implementar validação `hasProAccess(studentId)` usando o novo avaliador `checkAbility()` do `core.ts` e registrar visitas `ProGymAccess`. Ver **Etapa 1** na seção 16.
 
 ### 14.2 Academia (R$ 300 / 500 / 700; anual = base × 10)
 
-- [lib/utils/subscription.ts](c:\Projects\Teste\gymrats\lib\utils\subscription.ts): em `createGymSubscriptionBilling` e `createGymSubscriptionPix`, substituir `prices` por:
-  - basic: base 30000 (R$ 300), perStudent 150 (R$ 1,50)
-  - premium: base 50000, perStudent 100
-  - enterprise: base 70000, perStudent 50  
-  E **anual:** `basePrice = planPrices.base * 10` (valor fixo anual em centavos: 300000, 500000, 700000), mantendo `perStudentPrice = 0` no anual.
-- [lib/api/handlers/gym-subscriptions.handler.ts](c:\Projects\Teste\gymrats\lib\api\handlers\gym-subscriptions.handler.ts): `planPrices` em reais: basic 300 / 1,5, premium 500 / 1, enterprise 700 / 0,5; no anual, persistir `basePrice` como valor anual (3000, 5000, 7000) e `pricePerStudent: 0`.
-- [app/api/gym-subscriptions/current/route.ts](c:\Projects\Teste\gymrats\app\api\gym-subscriptions\current\route.ts): atualizar exibição de preços (150/250/400 → 300/500/700).
-- [components/organisms/gym/financial/financial-subscription-tab.tsx](c:\Projects\Teste\gymrats\components\organisms\gym\financial\financial-subscription-tab.tsx) e [components/organisms/gym/financial/subscription-plans-selector.tsx](c:\Projects\Teste\gymrats\components\organisms\gym\financial\subscription-plans-selector.tsx): base 300, 500, 700 e perStudent 1,5 / 1 / 0,5; e texto/label para anual (ex.: “R$ 3.000/ano”).
-- [app/api/gym-subscriptions/create/route.ts](c:\Projects\Teste\gymrats\app\api\gym-subscriptions\create\route.ts): alinhar `planPrices` com os mesmos valores.
-- Trial e lugares que usam “basePrice” para exibição: [app/api/gym-subscriptions/start-trial/route.ts](c:\Projects\Teste\gymrats\app\api\gym-subscriptions\start-trial\route.ts), [app/gym/actions.ts](c:\Projects\Teste\gymrats\app\gym\actions.ts), [lib/utils/auto-trial.ts](c:\Projects\Teste\gymrats\lib\utils\auto-trial.ts), [hooks/use-subscription-unified.ts](c:\Projects\Teste\gymrats\hooks\use-subscription-unified.ts): atualizar 150 → 300 onde for preço base Basic (trial pode continuar com desconto ou primeiro mês simbólico; definir regra de negócio).
-- [server/handlers/gym-subscriptions.ts](c:\Projects\Teste\gymrats\server\handlers\gym-subscriptions.ts): `prices` e qualquer `base: 150` para 300 e demais tiers.
+- **Centralizado em `lib/access-control/plans-config.ts`**: `GYM_PLANS_CONFIG`.
+- Toda a UI, incluindo [components/organisms/gym/financial/financial-subscription-tab.tsx](c:\Projects\Teste\GymRats-Complete\gymrats\components\organisms\gym\financial\financial-subscription-tab.tsx) e [subscription-plans-selector.tsx](c:\Projects\Teste\GymRats-Complete\gymrats\components\organisms\gym\financial\subscription-plans-selector.tsx), agora iteram dinamicamente por `GYM_PLANS_CONFIG` traduzindo via `formatPlanCurrency()`.
+- [lib/utils/subscription.ts](c:\Projects\Teste\GymRats-Complete\gymrats\lib\utils\subscription.ts): Lógicas de Billing/Pix puxando `planPrices.base` dinamicamente do Config.
+- [server/handlers/gym-subscriptions.ts](c:\Projects\Teste\GymRats-Complete\gymrats\server\handlers\gym-subscriptions.ts) e [app/api/gym-subscriptions/start-trial/route.ts](c:\Projects\Teste\GymRats-Complete\gymrats\app\api\gym-subscriptions\start-trial\route.ts): Mapeamento para os novos valores via config global (300/500/700).
 
 ### 14.3 Personais
 
@@ -339,9 +332,9 @@ Cada etapa lista **o que fazer**, **onde fazer** (arquivos a criar, alterar ou d
 
 ---
 
-### Etapa 1 — Valores de todos os planos + Plano Pro (R$ 150) + acesso grátis a academias Enterprise para Pro
+### Etapa 1 — Integrar Access Control Central (SSoT) + Lógicas de Acesso PRO e Enterprise
 
-**Objetivo:** Atualizar todos os preços (aluno Premium R$ 6/60, Pro R$ 150/1.500; academia 300/500/700, anual ×10, +100 por personal no Enterprise); adicionar plano Pro ao aluno; implementar regra “aluno Pro pode entrar gratuitamente em qualquer academia Enterprise” e contabilizar esse uso no cálculo de alunos da academia.
+**Objetivo:** Já possuímos o `lib/access-control/plans-config.ts` criado. Agora precisamos **aplicá-lo em substituição aos valores injetados via hardcode** nas ações de pagamento e displays UI. Também devemos adicionar a mitigação da tabela de uso para Alunos PRO.
 
 #### 1.1 Banco de dados (Prisma)
 

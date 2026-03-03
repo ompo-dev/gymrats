@@ -224,7 +224,8 @@ export async function POST(request: NextRequest) {
       // Calcular novos períodos
       const now = new Date();
       const periodEnd = new Date(now);
-      const isAnnual = metadata.billingPeriod === "annual" || amount >= 15000;
+      const isAnnual = metadata.billingPeriod === "annual";
+      const planType = typeof metadata.planId === "string" && metadata.planId.toLowerCase() === "pro" ? "Pro" : "Premium";
 
       if (isAnnual) {
         periodEnd.setFullYear(periodEnd.getFullYear() + 1);
@@ -233,10 +234,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Atualizar Subscription
+      const updatedPlanName = `${planType} ${isAnnual ? "Anual" : "Mensal"}`;
+
       await db.subscription.update({
         where: { id: subscription.id },
         data: {
-          plan: `Premium ${isAnnual ? "Anual" : "Mensal"}`,
+          plan: updatedPlanName,
           status: "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
@@ -261,7 +264,7 @@ export async function POST(request: NextRequest) {
       });
 
       console.log(
-        `[Webhook] Assinatura do aluno ${subscription.studentId} atualizada para PREMIUM.`,
+        `[Webhook] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName.toUpperCase()}.`,
       );
     }
 

@@ -18,11 +18,34 @@ export const POST = createSafeHandler(
       where: { gymId, studentId, status: "active" },
     });
 
+    let usedProAccess = false;
+
     if (!membership) {
-      return NextResponse.json(
-        { error: "Aluno não é membro ativo desta academia" },
-        { status: 403 },
-      );
+      // Tentar Cross-Origin Access (Aluno PRO em Academia Enterprise)
+      const studentSubscription = await db.subscription.findUnique({
+        where: { studentId },
+      });
+
+      const gymSubscription = await db.gymSubscription.findUnique({
+        where: { gymId },
+      });
+
+      const isStudentPro =
+        studentSubscription?.status === "active" &&
+        String(studentSubscription.plan).toLowerCase().includes("pro");
+
+      const isGymEnterprise =
+        gymSubscription?.status === "active" &&
+        String(gymSubscription.plan).toLowerCase().includes("enterprise");
+
+      if (isStudentPro && isGymEnterprise) {
+        usedProAccess = true;
+      } else {
+        return NextResponse.json(
+          { error: "Aluno não é membro ativo e não possui acesso de rede válido nesta academia" },
+          { status: 403 },
+        );
+      }
     }
 
     // Verificar se já tem check-in aberto hoje
@@ -63,6 +86,16 @@ export const POST = createSafeHandler(
 
     // Adicionar XP ao GymProfile (+5 XP por check-in)
     await GymDomainService.addGymXP(gymId, 5);
+
+    if (usedProAccess) {
+      await db.proGymAccess.create({
+        data: {
+          gymId,
+          studentId,
+          type: "check_in",
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, checkIn }, { status: 201 });
   },
