@@ -118,7 +118,7 @@ export async function createGymSubscriptionHandler(
     const now = new Date();
     const config = getGymPlanConfig(plan);
     if (!config) {
-      return badRequestResponse("Plano inválido");
+      return badRequestResponse("Plão inválido");
     }
 
     const basePrice = centsToReais(
@@ -126,7 +126,9 @@ export async function createGymSubscriptionHandler(
     );
     const pricePerStudent =
       billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
-    const pricePerPersonal = config.pricePerPersonal ? centsToReais(config.pricePerPersonal) : null;
+    const pricePerPersonal = config.pricePerPersonal
+      ? centsToReais(config.pricePerPersonal)
+      : null;
 
     // Calcular período
     const periodEnd = new Date(now);
@@ -136,25 +138,7 @@ export async function createGymSubscriptionHandler(
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    // Se existe subscription, atualizar (não limpar trialStart/trialEnd: trial só uma vez)
-    if (existingSubscription) {
-      await db.gymSubscription.update({
-        where: { id: existingSubscription.id },
-        data: {
-          plan,
-          billingPeriod,
-          status: "active",
-          basePrice,
-          pricePerStudent,
-          pricePerPersonal,
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-          canceledAt: null,
-          cancelAtPeriodEnd: false,
-        },
-      });
-    }
-
+    // Criar billing AbacatePay primeiro
     const billing = await createGymSubscriptionBilling(
       gymId,
       plan,
@@ -168,17 +152,43 @@ export async function createGymSubscriptionHandler(
       );
     }
 
-    // Atualizar subscription com billingId
+    // Atualizar ou criar subscription com status pending_payment
+    // Não ativar aqui — o webhook é quem ativa após pagamento confirmado
     if (existingSubscription) {
       await db.gymSubscription.update({
         where: { id: existingSubscription.id },
         data: {
+          plan,
+          billingPeriod,
+          status: "pending_payment",
+          basePrice,
+          pricePerStudent,
+          pricePerPersonal,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+          abacatePayBillingId: billing.id,
+        },
+      });
+    } else {
+      // Primeira assinatura (sem trial prévio)
+      await db.gymSubscription.create({
+        data: {
+          gymId,
+          plan,
+          billingPeriod,
+          status: "pending_payment",
+          basePrice,
+          pricePerStudent,
+          pricePerPersonal,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
           abacatePayBillingId: billing.id,
         },
       });
     }
 
     // Resolver referral de academia (se veio por link de indicação)
+    // Chamado aqui pois o cookie só existe enquanto o usuário está na sessão ativa
     try {
       const cookieStore = await cookies();
       const refCookie = cookieStore.get("gymrats_referral")?.value;
@@ -186,7 +196,7 @@ export async function createGymSubscriptionHandler(
         const normalized = refCookie.startsWith("@") ? refCookie : `@${refCookie}`;
         await ReferralService.resolveReferral(normalized, "GYM", gymId);
       }
-    } catch { /* silencioso */ }
+    } catch { /* silencioso — não bloqueia a assinatura */ }
 
     return successResponse({
       billingUrl: String(billing.url || ""),
