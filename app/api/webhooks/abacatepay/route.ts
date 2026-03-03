@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
         await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
         // Lógica de Comissão por Indicação de Academia (50% Referrals)
+        console.log(`[Webhook] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`);
         await ReferralService.onFirstPaymentConfirmed("GYM", gymSub.gymId, amount, paymentId);
 
         console.log(
@@ -200,13 +201,11 @@ export async function POST(request: NextRequest) {
         return successResponse({ received: true, type: "gym" });
       }
 
-      // 2. Tentar Subscription (aluno) - apenas billing, não pixQrCode
-      let subscription = pixQrCode
-        ? null
-        : await db.subscription.findUnique({
-            where: { abacatePayBillingId: paymentId },
-            include: { student: true },
-          });
+      // 2. Tentar Subscription (aluno)
+      let subscription = await db.subscription.findUnique({
+        where: { abacatePayBillingId: paymentId },
+        include: { student: true },
+      });
 
       if (!subscription && metadata.studentId) {
         subscription = await db.subscription.findUnique({
@@ -272,6 +271,7 @@ export async function POST(request: NextRequest) {
       );
 
       // Lógica de Comissão por Indicação de Aluno (50% Referrals)
+      console.log(`[Webhook] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`);
       await ReferralService.onFirstPaymentConfirmed("STUDENT", subscription.studentId, amount, paymentId);
     }
 

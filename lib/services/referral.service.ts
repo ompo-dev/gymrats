@@ -104,6 +104,8 @@ export class ReferralService {
     amountCents: number,
     paymentId: string
   ): Promise<Referral | null> {
+    console.log(`[ReferralService] Tentando converter: ${referredType} | ID: ${referredId} | Payment: ${paymentId}`);
+    
     const referral = await db.referral.findFirst({
       where: {
         referredType,
@@ -112,7 +114,12 @@ export class ReferralService {
       },
     });
 
-    if (!referral) return null; // Already converted or doesn't exist
+    if (!referral) {
+        console.warn(`[ReferralService] Registro PENDING NÃO ENCONTRADO para ${referredType} ID ${referredId}`);
+        return null;
+    }
+
+    console.log(`[ReferralService] ✅ Registro PENDING encontrado! ID: ${referral.id}. Calculando comissão...`);
 
     // 50% commission mapped in cents
     const commissionCents = Math.floor(amountCents * 0.5);
