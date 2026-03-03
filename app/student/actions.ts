@@ -135,6 +135,21 @@ export async function getGymLocations() {
   }
 }
 
+export async function getActiveBoostCampaigns() {
+  try {
+    const campaigns = await db.boostCampaign.findMany({
+      where: {
+        status: "active",
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return campaigns;
+  } catch (error) {
+    console.error("[getActiveBoostCampaigns] Erro:", error);
+    return [];
+  }
+}
+
 export async function getStudentSubscription() {
   try {
     const { ctx, error } = await getStudentContext();

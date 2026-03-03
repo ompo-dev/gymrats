@@ -22,6 +22,7 @@ import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { EducationPage } from "@/components/organisms/education/education-page";
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
+import { BoostCampaignCarousel } from "@/components/organisms/home/home/boost-campaign-carousel";
 import { ContinueWorkoutCard } from "@/components/organisms/home/home/continue-workout-card";
 import { LevelProgressCard } from "@/components/organisms/home/home/level-progress-card";
 import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
@@ -397,6 +398,14 @@ function StudentHomeContent() {
               </p>
             </div>
           </FadeIn>
+
+          {/* Anúncios de Academias (Boost Campaigns) */}
+          <WhileInView delay={0.3}>
+            <BoostCampaignCarousel
+              gyms={currentGymLocations}
+              onViewGymProfile={handleViewGymProfile}
+            />
+          </WhileInView>
 
           {/* Card de Progresso de Nível */}
           {progress && (

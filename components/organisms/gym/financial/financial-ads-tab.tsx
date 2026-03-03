@@ -7,7 +7,6 @@ import {
   Plus,
   Sparkles,
   Trash2,
-  X,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
@@ -18,7 +17,7 @@ import {
   getBoostCampaignPix,
 } from "@/app/gym/actions";
 import { BoostCampaignPixModal } from "@/components/organisms/gym/financial/boost-campaign-pix-modal";
-import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
 
@@ -331,25 +330,32 @@ export function FinancialAdsTab({
 
                 {/* Confirm delete inline */}
                 {confirmDeleteId === campaign.id && (
-                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/30 rounded-xl mb-2">
-                    <p className="text-xs text-duo-text flex-1">
-                      Confirmar cancelamento da campanha?
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl mb-2 space-y-3">
+                    <p className="text-sm font-bold text-duo-text">
+                      Cancelar o anúncio &ldquo;{campaign.title}&rdquo;?
                     </p>
-                    <DuoButton
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => setConfirmDeleteId(null)}
-                    >
-                      <X className="w-3 h-3" /> Não
-                    </DuoButton>
-                    <DuoButton
-                      size="sm"
-                      disabled={deletingId === campaign.id}
-                      onClick={() => handleDelete(campaign.id)}
-                      className="!bg-red-500 hover:!bg-red-600"
-                    >
-                      {deletingId === campaign.id ? "..." : "Cancelar anúncio"}
-                    </DuoButton>
+                    <p className="text-xs text-duo-gray-dark">
+                      Esta ação não pode ser desfeita.
+                    </p>
+                    <div className="flex gap-2">
+                      <DuoButton
+                        size="sm"
+                        variant="ghost"
+                        className="flex-1"
+                        onClick={() => setConfirmDeleteId(null)}
+                      >
+                        Não, manter
+                      </DuoButton>
+                      <DuoButton
+                        size="sm"
+                        variant="danger"
+                        className="flex-1"
+                        disabled={deletingId === campaign.id}
+                        onClick={() => handleDelete(campaign.id)}
+                      >
+                        {deletingId === campaign.id ? "Cancelando..." : "Sim, cancelar"}
+                      </DuoButton>
+                    </div>
                   </div>
                 )}
 
@@ -475,21 +481,28 @@ export function FinancialAdsTab({
                     <p className="text-xs text-duo-gray-dark mt-1 text-center">R$ {PRICE_PER_STEP.toFixed(2)} por cada 12h</p>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">Cupom Vinculado (Opcional)</label>
-                    <select className="w-full rounded-xl border-2 border-duo-border bg-duo-bg p-3 font-medium text-duo-text outline-none focus:border-duo-primary" value={linkedCouponId} onChange={(e) => setLinkedCouponId(e.target.value)}>
-                      <option value="">Nenhum cupom</option>
-                      {coupons.map((c) => (<option key={c.id} value={c.id}>{c.code} ({c.type === "percentage" ? `${c.value}%` : `R$ ${c.value}`})</option>))}
-                    </select>
-                  </div>
+                  <DuoSelect.Simple
+                    label="Cupom Vinculado (Opcional)"
+                    value={linkedCouponId}
+                    onChange={(val) => setLinkedCouponId(val)}
+                    options={[
+                      { value: "", label: "Nenhum cupom" },
+                      ...coupons.map((c) => ({
+                        value: c.id,
+                        label: `${c.code} (${c.type === "percentage" ? `${c.value}%` : `R$ ${c.value}`})`,
+                      })),
+                    ]}
+                  />
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">Plano Vinculado (Opcional)</label>
-                    <select className="w-full rounded-xl border-2 border-duo-border bg-duo-bg p-3 font-medium text-duo-text outline-none focus:border-duo-primary" value={linkedPlanId} onChange={(e) => setLinkedPlanId(e.target.value)}>
-                      <option value="">Levar para o perfil da academia</option>
-                      {plans.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-                    </select>
-                  </div>
+                  <DuoSelect.Simple
+                    label="Plano Vinculado (Opcional)"
+                    value={linkedPlanId}
+                    onChange={(val) => setLinkedPlanId(val)}
+                    options={[
+                      { value: "", label: "Levar para o perfil da academia" },
+                      ...plans.map((p) => ({ value: p.id, label: p.name })),
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -507,7 +520,7 @@ export function FinancialAdsTab({
                 <div className="flex gap-3">
                   <DuoButton variant="secondary" className="flex-1" onClick={() => setModalOpen(false)}>Cancelar</DuoButton>
                   <DuoButton className="flex-1" onClick={handleCreate} disabled={isSubmitting}>
-                    {isSubmitting ? "Processando..." : `Gerar PIX · R$ ${totalPrice.toFixed(2)}`}
+                    {isSubmitting ? "Processando..." : `Gerar PIX `}
                   </DuoButton>
                 </div>
               </motion.div>
