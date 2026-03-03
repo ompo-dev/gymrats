@@ -5,7 +5,15 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
-import type { Coupon, Expense, FinancialSummary, Payment } from "@/lib/types";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  MembershipPlan,
+  Payment,
+} from "@/lib/types";
+import { FinancialAdsTab } from "./financial/financial-ads-tab";
 import { FinancialCouponsTab } from "./financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "./financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "./financial/financial-overview-tab";
@@ -16,6 +24,8 @@ interface GymFinancialPageProps {
   financialSummary: FinancialSummary | null;
   payments?: Payment[];
   coupons?: Coupon[];
+  campaigns?: BoostCampaign[];
+  plans?: MembershipPlan[];
   expenses?: Expense[];
   balanceReais?: number;
   balanceCents?: number;
@@ -60,12 +70,15 @@ type FinancialViewMode =
   | "payments"
   | "coupons"
   | "expenses"
-  | "subscription";
+  | "subscription"
+  | "ads";
 
 export function GymFinancialPage({
   financialSummary,
   payments = [],
   coupons = [],
+  campaigns = [],
+  plans = [],
   expenses = [],
   balanceReais = 0,
   balanceCents = 0,
@@ -115,6 +128,7 @@ export function GymFinancialPage({
               { value: "coupons", label: "Cupons" },
               { value: "expenses", label: "Despesas" },
               { value: "subscription", label: "Assinatura" },
+              { value: "ads", label: "Impulsionamento" },
             ]}
             value={viewMode}
             onChange={(value) => handleTabChange(value)}
@@ -165,6 +179,14 @@ export function GymFinancialPage({
                 }
               : undefined
           }
+        />
+      )}
+
+      {viewMode === "ads" && (
+        <FinancialAdsTab
+          campaigns={campaigns}
+          coupons={coupons}
+          plans={plans}
         />
       )}
     </div>

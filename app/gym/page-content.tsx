@@ -17,6 +17,7 @@ import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import type {
   CheckIn,
+  BoostCampaign,
   Coupon,
   Equipment,
   Expense,
@@ -56,6 +57,7 @@ interface GymHomeContentProps {
   initialExpenses: Expense[];
   initialBalanceWithdraws?: BalanceWithdraws;
   initialCoupons?: Coupon[];
+  initialCampaigns?: BoostCampaign[];
   initialSubscription?: {
     id: string;
     plan: string;
@@ -76,6 +78,7 @@ function GymHomeContent({
   initialExpenses,
   initialBalanceWithdraws,
   initialCoupons = [],
+  initialCampaigns = [],
   initialSubscription,
 }: GymHomeContentProps) {
   const router = useRouter();
@@ -174,6 +177,8 @@ function GymHomeContent({
           financialSummary={financialSummary}
           payments={payments}
           coupons={initialCoupons}
+          campaigns={initialCampaigns}
+          plans={plans}
           expenses={expenses}
           balanceReais={initialBalanceWithdraws?.balanceReais ?? 0}
           balanceCents={initialBalanceWithdraws?.balanceCents ?? 0}
@@ -207,6 +212,7 @@ export default function GymHome({
   initialExpenses,
   initialBalanceWithdraws,
   initialCoupons,
+  initialCampaigns,
   initialSubscription,
 }: GymHomeContentProps) {
   return (
@@ -229,6 +235,7 @@ export default function GymHome({
         initialExpenses={initialExpenses}
         initialBalanceWithdraws={initialBalanceWithdraws}
         initialCoupons={initialCoupons}
+        initialCampaigns={initialCampaigns}
         initialSubscription={initialSubscription}
       />
     </Suspense>
