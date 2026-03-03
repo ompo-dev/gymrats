@@ -1,9 +1,11 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { STUDENT_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
+import { ReferralService } from "@/lib/services/referral.service";
 import { getStudentContext } from "@/lib/utils/student/student-context";
 
 export async function createAbacateBilling(
@@ -41,6 +43,16 @@ export async function createAbacateBilling(
 
     const customerId = existingSubscription?.abacatePayCustomerId;
 
+    // Ler referral do cookie
+    const cookieStore = await cookies();
+    const refCookie = cookieStore.get("gymrats_referral")?.value;
+    const refCode = refCookie ? decodeURIComponent(refCookie) : null;
+    if (refCode) {
+      // Normaliza: cookie pode ter @ ou não
+      const normalized = refCode.startsWith("@") ? refCode : `@${refCode}`;
+      await ReferralService.resolveReferral(normalized, "STUDENT", studentId).catch(() => null);
+    }
+
     // Criar billing no Abacate Pay
     const billingResponse = await abacatePay.createBilling({
       frequency: "ONE_TIME",
@@ -70,6 +82,7 @@ export async function createAbacateBilling(
         studentId: String(studentId),
         planId,
         billingPeriod,
+        ...(refCode ? { referralCode: refCode } : {}),
       },
     });
 

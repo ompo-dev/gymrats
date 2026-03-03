@@ -19,6 +19,7 @@ import {
   type UsePaymentsPageProps,
   usePaymentsPage,
 } from "./hooks/use-payments-page";
+import { useReferralTracker } from "@/hooks/use-referral-tracker";
 
 export interface StudentPaymentsPageProps {
   subscription?: {
@@ -40,6 +41,9 @@ export interface StudentPaymentsPageProps {
 }
 
 export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
+  // Captura ?ref= da URL e salva em cookie para rastreio de indicação
+  useReferralTracker();
+
   const {
     activeTab,
     subscription,

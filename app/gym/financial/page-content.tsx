@@ -11,6 +11,7 @@ import { FinancialOverviewTab } from "@/components/organisms/gym/financial/finan
 import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
 import { FinancialSubscriptionTab } from "@/components/organisms/gym/financial/financial-subscription-tab";
 import type { Coupon, Expense, FinancialSummary, Payment } from "@/lib/types";
+import { useReferralTracker } from "@/hooks/use-referral-tracker";
 
 interface FinancialPageProps {
   financialSummary: FinancialSummary;
@@ -62,6 +63,9 @@ export default function FinancialPage({
   expenses,
   subscription: initialSubscription,
 }: FinancialPageProps) {
+  // Captura ?ref= da URL (links de indicação de academia)
+  useReferralTracker();
+
   const [view, setView] = useQueryState(
     "view",
     parseAsString.withDefault("overview"),

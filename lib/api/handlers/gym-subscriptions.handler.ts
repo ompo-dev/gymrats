@@ -4,9 +4,11 @@
  * Centraliza toda a lógica das rotas relacionadas a subscriptions de gyms
  */
 
+import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import { getGymSubscription, startGymTrial } from "@/app/gym/actions";
 import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 import {
   centsToReais,
   getGymPlanConfig,
@@ -175,6 +177,16 @@ export async function createGymSubscriptionHandler(
         },
       });
     }
+
+    // Resolver referral de academia (se veio por link de indicação)
+    try {
+      const cookieStore = await cookies();
+      const refCookie = cookieStore.get("gymrats_referral")?.value;
+      if (refCookie) {
+        const normalized = refCookie.startsWith("@") ? refCookie : `@${refCookie}`;
+        await ReferralService.resolveReferral(normalized, "GYM", gymId);
+      }
+    } catch { /* silencioso */ }
 
     return successResponse({
       billingUrl: String(billing.url || ""),
