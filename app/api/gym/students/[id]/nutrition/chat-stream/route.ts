@@ -158,39 +158,62 @@ export async function POST(
           { role: "user" as const, content: message },
         ];
 
-        const response = await chatCompletionStream({
-          messages,
-          systemPrompt: enhancedSystemPrompt,
-          temperature: 0.7,
-          responseFormat: "json_object",
-          maxTokens: 1024,
+        sendSSE(controller, "status", {
+          status: "calling_ai",
+          message: "Consultando IA...",
         });
 
-        let buffer = "";
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        let accumulatedContent = "";
+        let lastEmittedFoodCount = -1;
+        const step = 80;
 
-        if (!reader) {
-          sendSSE(controller, "error", { error: "Stream não disponível" });
-          controller.close();
-          return;
-        }
+        const fullContent = await chatCompletionStream(
+          {
+            messages,
+            systemPrompt: enhancedSystemPrompt,
+            temperature: 0.7,
+            responseFormat: "json_object",
+            maxTokens: 1024,
+          },
+          (delta) => {
+            sendSSE(controller, "token", { delta });
+            accumulatedContent += delta;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const { partial, foods } = extractFoodsAndPartialFromStream(buffer);
+            const contentLen = accumulatedContent.length;
+            const prevLen = contentLen - delta.length;
+            const checkpoints: number[] = [];
+            if (delta.length > step) {
+              for (let i = prevLen; i < contentLen; i += step)
+                checkpoints.push(i);
+            }
+            checkpoints.push(contentLen);
 
-          if (partial) {
-            sendSSE(controller, "token", { content: partial });
-          }
-          if (foods?.length) {
-            sendSSE(controller, "food_progress", { foods });
-          }
-        }
+            for (const len of checkpoints) {
+              const slice = accumulatedContent.slice(0, len);
+              const { foods: extractedFoods } =
+                extractFoodsAndPartialFromStream(slice);
 
-        const parsed = parseNutritionResponse(buffer);
+              if (
+                extractedFoods.length > 0 &&
+                extractedFoods.length > lastEmittedFoodCount
+              ) {
+                lastEmittedFoodCount = extractedFoods.length;
+                sendSSE(controller, "food_progress", {
+                  foods: extractedFoods,
+                  index: lastEmittedFoodCount - 1,
+                  total: extractedFoods.length,
+                });
+              }
+            }
+          },
+        );
+
+        sendSSE(controller, "status", {
+          status: "parsing",
+          message: "Processando...",
+        });
+
+        const parsed = parseNutritionResponse(fullContent);
 
         if (!parsed) {
           sendSSE(controller, "error", { error: "Erro ao processar resposta" });

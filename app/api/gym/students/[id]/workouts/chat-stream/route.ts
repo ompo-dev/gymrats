@@ -235,45 +235,77 @@ export async function POST(
             { role: "user", content: message },
           ];
 
-        const response = await chatCompletionStream({
-          messages: messagesArr,
-          systemPrompt: enhancedSystemPrompt,
-          temperature: 0.7,
-          responseFormat: "json_object",
+        sendSSE(controller, "status", {
+          status: "calling_ai",
+          message: "Consultando IA...",
         });
 
-        let fullMessage = "";
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let parsedData = null;
+        let accumulatedContent = "";
+        let lastEmittedWorkoutCount = 0;
+        let lastEmittedPartialExerciseCount = -1;
+        const step = 80;
 
-        if (!reader) {
-          sendSSE(controller, "error", { error: "Stream não disponível" });
-          controller.close();
-          return;
-        }
+        const fullContent = await chatCompletionStream(
+          {
+            messages: messagesArr,
+            systemPrompt: enhancedSystemPrompt,
+            temperature: 0.7,
+            responseFormat: "json_object",
+          },
+          (delta) => {
+            sendSSE(controller, "token", { delta });
+            accumulatedContent += delta;
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          fullMessage += chunk;
+            const contentLen = accumulatedContent.length;
+            const prevLen = contentLen - delta.length;
+            const checkpoints: number[] = [];
+            if (delta.length > step) {
+              for (let i = prevLen; i < contentLen; i += step)
+                checkpoints.push(i);
+            }
+            checkpoints.push(contentLen);
 
-          const { partial, workouts } = extractWorkoutsAndPartialFromStream(
-            fullMessage,
-          );
+            for (const len of checkpoints) {
+              const slice = accumulatedContent.slice(0, len);
+              const { completeWorkouts, partialWorkout } =
+                extractWorkoutsAndPartialFromStream(slice);
 
-          if (partial) {
-            sendSSE(controller, "token", { content: partial });
-          }
+              while (lastEmittedWorkoutCount < completeWorkouts.length) {
+                const workout = completeWorkouts[lastEmittedWorkoutCount];
+                const total =
+                  completeWorkouts.length + (partialWorkout ? 1 : 0);
+                sendSSE(controller, "workout_progress", {
+                  workout,
+                  index: lastEmittedWorkoutCount,
+                  total,
+                });
+                lastEmittedWorkoutCount++;
+                lastEmittedPartialExerciseCount = -1;
+              }
+              if (
+                partialWorkout &&
+                partialWorkout.exercises.length >
+                  lastEmittedPartialExerciseCount
+              ) {
+                lastEmittedPartialExerciseCount =
+                  partialWorkout.exercises.length;
+                const total = completeWorkouts.length + 1;
+                sendSSE(controller, "workout_progress", {
+                  workout: partialWorkout,
+                  index: completeWorkouts.length,
+                  total,
+                });
+              }
+            }
+          },
+        );
 
-          if (workouts?.length) {
-            parsedData = workouts;
-            sendSSE(controller, "workout_progress", { workouts });
-          }
-        }
+        sendSSE(controller, "status", {
+          status: "parsing",
+          message: "Processando resposta...",
+        });
 
-        const parsed = parseWorkoutResponse(fullMessage);
+        const parsed = parseWorkoutResponse(fullContent);
 
         if (!parsed) {
           sendSSE(controller, "error", { error: "Erro ao processar resposta" });

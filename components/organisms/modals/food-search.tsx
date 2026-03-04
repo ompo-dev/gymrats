@@ -304,9 +304,6 @@ function FoodSearchSimple({
       }
       return newSet;
     });
-    if (onSelectMeal) {
-      onSelectMeal(mealId);
-    }
   };
 
   const hasSelectedMeals = selectedMealIds.size > 0;
