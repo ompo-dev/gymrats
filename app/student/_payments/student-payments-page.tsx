@@ -80,13 +80,10 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleStartTrial,
     handleUpgrade,
     handleCancelConfirm,
-    subscriptionModalOpen,
-    setSubscriptionModalOpen,
-    selectedPlanForModal,
-    selectedBillingForModal,
     isFirstPayment,
-    doCreateSubscription,
     refetchSubscription,
+    subscriptionPixModal,
+    setSubscriptionPixModal,
   } = usePaymentsPage(props as UsePaymentsPageProps);
 
   const [expandedGymIdMemberships, setExpandedGymIdMemberships] = useState<
@@ -353,6 +350,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           onStartTrial={handleStartTrial}
           onSubscribe={handleUpgrade}
           onCancel={handleCancelConfirm}
+          isFirstPayment={isFirstPayment}
           plans={availablePlans}
           showPlansWhen="always"
         />
@@ -399,34 +397,16 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
         />
       )}
 
-      {subscriptionModalOpen && (
+      {subscriptionPixModal && (
         <PixQrModal
-          isOpen={subscriptionModalOpen}
-          onClose={() => setSubscriptionModalOpen(false)}
-          title="Pagamento PIX"
-          generateConfig={{
-            planName:
-              STUDENT_PLANS_CONFIG[
-                selectedPlanForModal.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
-              ]?.name ?? selectedPlanForModal,
-            amountReais:
-              (STUDENT_PLANS_CONFIG[
-                selectedPlanForModal.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
-              ]?.prices[selectedBillingForModal] ?? 0) / 100,
-            isFirstPayment: true,
-            onGeneratePix: async (refCode) => {
-              const pixData = await doCreateSubscription(
-                selectedBillingForModal,
-                refCode,
-              );
-              return pixData;
-            },
-            isLoading: isCreatingSubscription,
-            getSimulatePixUrl: (pixId) =>
-              `/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(pixId)}`,
-            refetchSubscription,
-            subscriptionStatus: subscription?.status,
-          }}
+          isOpen={true}
+          onClose={() => setSubscriptionPixModal(null)}
+          brCode={subscriptionPixModal.brCode}
+          brCodeBase64={subscriptionPixModal.brCodeBase64}
+          amount={subscriptionPixModal.amount}
+          expiresAt={subscriptionPixModal.expiresAt}
+          simulatePixUrl={`/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(subscriptionPixModal.pixId)}`}
+          onSimulateSuccess={() => refetchSubscription().then(() => undefined)}
           pollConfig={{
             type: "subscription",
             refetch: refetchSubscription,
@@ -435,7 +415,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
             targetStatus: "active",
           }}
           onPaymentConfirmed={() => {
-            setSubscriptionModalOpen(false);
+            setSubscriptionPixModal(null);
             void handlePixConfirmed();
           }}
           paymentConfirmedToast={{

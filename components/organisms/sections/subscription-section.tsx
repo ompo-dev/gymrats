@@ -46,8 +46,11 @@ export interface SubscriptionSectionProps {
   onSubscribe: (
     plan: string,
     billingPeriod: "monthly" | "annual",
+    referralCode?: string | null,
   ) => Promise<void>;
   onCancel: () => Promise<void>;
+  /** Primeira assinatura (para mostrar campo @) */
+  isFirstPayment?: boolean;
   /** Chamado após confirmar pagamento (ex.: refetch da assinatura). Para gym, passar refetch do useGymSubscription. */
   onPaymentSuccess?: () => Promise<void>;
 
@@ -99,6 +102,7 @@ function SubscriptionSectionSimple({
   texts = {},
   showPlansWhen = "no-subscription",
   trialEndingDays = 3,
+  isFirstPayment = false,
 }: SubscriptionSectionProps) {
   const {
     selectedPlan,
@@ -346,7 +350,7 @@ function SubscriptionSectionSimple({
 
     // Se o componente pai forneceu um callback, usar ele (mantém consistência)
     if (onSubscribe) {
-      await onSubscribe(selectedPlanData.id, selectedBillingPeriod);
+      await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
       return;
     }
 

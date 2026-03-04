@@ -24,6 +24,7 @@ type UseSubscriptionReturn = {
   isStartingTrial: boolean;
   createSubscription: (
     plan: "monthly" | "annual",
+    referralCode?: string | null,
   ) => Promise<{ billingUrl?: string; error?: string }>;
   isCreatingSubscription: boolean;
   cancelSubscription: () => Promise<{ success?: boolean; error?: string }>;
@@ -53,6 +54,7 @@ export function useSubscription(
     subscription: result.subscription as StudentSubscriptionData | null,
     createSubscription: result.createSubscription as (
       plan: "monthly" | "annual",
+      referralCode?: string | null,
     ) => Promise<{ billingUrl?: string; error?: string }>,
   };
 }

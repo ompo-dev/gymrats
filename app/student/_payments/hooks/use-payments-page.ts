@@ -86,13 +86,13 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     amount: number;
     expiresAt?: string;
   } | null>(null);
-  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
-  const [selectedPlanForModal, setSelectedPlanForModal] = useState<
-    "premium" | "pro"
-  >("premium");
-  const [selectedBillingForModal, setSelectedBillingForModal] = useState<
-    "monthly" | "annual"
-  >("monthly");
+  const [subscriptionPixModal, setSubscriptionPixModal] = useState<{
+    pixId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    expiresAt?: string;
+  } | null>(null);
   const [_daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
   useEffect(() => {
@@ -440,6 +440,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCode?: string;
         brCodeBase64?: string;
         amount?: number;
+        expiresAt?: string;
       };
       if (pix.pixId && pix.brCode) {
         await refetchSubscription();
@@ -448,8 +449,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
           brCode: pix.brCode,
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
-          referralCodeInvalid: (pix as { referralCodeInvalid?: boolean })
-            .referralCodeInvalid,
+          expiresAt: pix.expiresAt,
         };
       }
       return null;
@@ -474,26 +474,20 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const handleUpgrade = async (
     planId: string,
     billingPeriod: "monthly" | "annual",
+    referralCode?: string | null,
   ) => {
-    const planKey = (planId?.toLowerCase() === "pro" ? "pro" : "premium") as
-      | "premium"
-      | "pro";
     const billingKey = billingPeriod;
-
-    if (isFirstPayment) {
-      setSelectedPlanForModal(planKey);
-      setSelectedBillingForModal(billingKey);
-      setSubscriptionModalOpen(true);
-      return;
-    }
-
-    const pixData = await doCreateSubscription(billingKey, null);
+    const pixData = await doCreateSubscription(
+      billingKey,
+      referralCode ?? null,
+    );
     if (pixData) {
-      setPixModal({
-        paymentId: pixData.pixId,
+      setSubscriptionPixModal({
+        pixId: pixData.pixId,
         brCode: pixData.brCode,
         brCodeBase64: pixData.brCodeBase64,
         amount: pixData.amount,
+        expiresAt: pixData.expiresAt,
       });
     }
   };
@@ -561,12 +555,9 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     setChangePlanMembershipId,
     pixModal,
     setPixModal,
-    subscriptionModalOpen,
-    setSubscriptionModalOpen,
-    selectedPlanForModal,
-    selectedBillingForModal,
+    subscriptionPixModal,
+    setSubscriptionPixModal,
     isFirstPayment,
-    doCreateSubscription,
     refetchSubscription,
 
     // Modals
