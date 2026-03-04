@@ -3,6 +3,7 @@
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { ExerciseSteppers } from "@/components/atoms/progress/exercise-steppers";
+import { DuoButton } from "@/components/duo";
 import type { ExerciseLog, WorkoutExercise } from "@/lib/types";
 import { WeightTracker } from "../../trackers/weight-tracker";
 
@@ -84,13 +85,14 @@ function WeightTrackerOverlaySimple({
       >
         <div className="border-b-2 border-duo-border bg-duo-bg-card p-4 shadow-sm shrink-0">
           <div className="mb-3 flex items-center justify-between">
-            <button
+            <DuoButton
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
             >
               <X className="h-6 w-6 text-duo-gray-dark" />
-            </button>
+            </DuoButton>
             <div className="text-sm font-bold text-duo-gray-dark">
               Exercício {currentExercise} /{totalExercises}
             </div>

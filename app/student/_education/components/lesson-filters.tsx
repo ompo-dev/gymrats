@@ -2,7 +2,7 @@
 
 import { Filter, Search, X } from "lucide-react";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard, DuoSelect } from "@/components/duo";
+import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
 
 interface LessonFiltersProps {
   searchQuery: string;
@@ -43,13 +43,15 @@ export function LessonFilters({
               className="w-full rounded-xl border-2 border-gray-300 bg-white py-3 pl-12 pr-10 font-semibold text-duo-text placeholder:text-duo-gray-dark focus:border-duo-blue focus:outline-none focus:ring-2 focus:ring-duo-blue/20"
             />
             {searchQuery && (
-              <button
+              <DuoButton
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => onSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-duo-gray-dark transition-colors hover:bg-gray-100 hover:text-duo-text"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </DuoButton>
             )}
           </div>
 

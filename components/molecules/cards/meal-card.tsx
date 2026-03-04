@@ -121,27 +121,31 @@ function MealCardSimple({
                 </DuoButton>
               )}
               {!meal.completed ? (
-                <button
+                <DuoButton
+                  variant="outline"
+                  size="icon-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onComplete();
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-green text-duo-green transition-all hover:bg-duo-green hover:text-white active:scale-90"
+                  className="border-duo-green text-duo-green hover:bg-duo-green hover:text-white"
                   title="Marcar como completa"
                 >
                   <Check className="h-5 w-5" />
-                </button>
+                </DuoButton>
               ) : (
-                <button
+                <DuoButton
+                  variant="primary"
+                  size="icon-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onComplete();
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-duo-green transition-all hover:bg-duo-green/90 active:scale-90"
+                  className="bg-duo-green border-duo-green hover:bg-duo-green/90"
                   title="Desmarcar"
                 >
                   <Check className="h-5 w-5 text-white" />
-                </button>
+                </DuoButton>
               )}
             </div>
           )}
@@ -245,7 +249,7 @@ function MealCardSimple({
                 >
                   <DuoButton
                     variant="danger"
-                    className="w-full"
+                    fullWidth
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete();

@@ -2,7 +2,7 @@
 
 import { BookOpen, CheckCircle2 } from "lucide-react";
 import { motion } from "motion/react";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import type { WorkoutExercise } from "@/lib/types";
 
 interface ExerciseCardViewProps {
@@ -148,27 +148,27 @@ function ExerciseCardViewSimple({
           )}
 
           {exercise.educationalId && onViewEducation && (
-            <button
+            <DuoButton
               type="button"
+              variant="outline"
+              fullWidth
               onClick={() => {
                 if (exercise.educationalId) {
                   onViewEducation(exercise.educationalId);
                 }
               }}
-              className="w-full rounded-xl border-2 border-duo-green/30 bg-duo-green/5 p-3 text-left transition-all hover:border-duo-green/50 hover:bg-duo-green/10 focus:outline-none focus:ring-2 focus:ring-duo-green/20"
+              className="justify-start text-left h-auto py-3"
             >
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 shrink-0 text-duo-green" />
-                <div className="flex-1">
-                  <div className="text-xs sm:text-sm font-bold text-duo-green">
-                    Ver técnica detalhada
-                  </div>
-                  <div className="text-xs text-duo-fg-muted">
-                    Instruções completas, dicas e erros comuns
-                  </div>
+              <BookOpen className="h-5 w-5 shrink-0 text-duo-green" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs sm:text-sm font-bold text-duo-green">
+                  Ver técnica detalhada
+                </div>
+                <div className="text-xs text-duo-fg-muted">
+                  Instruções completas, dicas e erros comuns
                 </div>
               </div>
-            </button>
+            </DuoButton>
           )}
         </div>
       </DuoCard.Root>

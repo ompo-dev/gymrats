@@ -72,12 +72,14 @@ export function ExerciseAlternativeSelector({
                 Escolha uma Alternativa
               </h2>
             </div>
-            <button
+            <DuoButton
+              type="button"
+              variant="ghost"
+              size="icon"
               onClick={onCancel}
-              className="rounded-xl p-2 transition-colors hover:bg-duo-bg-elevated"
             >
               <X className="h-6 w-6 text-duo-gray-dark" />
-            </button>
+            </DuoButton>
           </div>
           <p className="text-sm text-duo-gray-dark">
             Selecione o exercício principal ou uma das alternativas abaixo
@@ -149,24 +151,19 @@ export function ExerciseAlternativeSelector({
 
                       {/* Link para conteúdo educacional */}
                       {option.educationalId && onViewEducation && (
-                        <button
+                        <DuoButton
+                          type="button"
+                          variant="link"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log(
-                              "[DEBUG] Clicou em Ver técnica no modal de alternativas:",
-                              {
-                                educationalId: option.educationalId,
-                                optionName: option.name,
-                              },
-                            );
-                            // Chamar onViewEducation que já fecha os modais e navega
                             onViewEducation(option.educationalId!);
                           }}
-                          className="mt-2 flex items-center gap-1 text-xs font-bold text-duo-blue transition-colors hover:text-duo-blue/80"
+                          className="mt-2"
                         >
                           <BookOpen className="h-4 w-4" />
                           Ver técnica e instruções
-                        </button>
+                        </DuoButton>
                       )}
                     </div>
                   </div>
@@ -193,14 +190,10 @@ export function ExerciseAlternativeSelector({
         {/* Action Buttons */}
         <div className="sticky bottom-0 border-t-2 border-duo-border bg-duo-bg-card p-4 sm:p-6 shadow-lg">
           <div className="flex gap-3">
-            <DuoButton variant="white" onClick={onCancel} className="flex-1">
+            <DuoButton variant="white" fullWidth onClick={onCancel}>
               CANCELAR
             </DuoButton>
-            <DuoButton
-              variant="primary"
-              onClick={handleSelect}
-              className="flex-1"
-            >
+            <DuoButton variant="primary" fullWidth onClick={handleSelect}>
               CONFIRMAR
             </DuoButton>
           </div>

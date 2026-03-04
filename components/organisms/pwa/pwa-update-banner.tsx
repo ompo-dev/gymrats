@@ -3,6 +3,7 @@
 import { RefreshCw, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { DuoButton } from "@/components/duo";
 import { usePWAUpdate } from "@/hooks/use-pwa-update";
 import { cn } from "@/lib/utils";
 
@@ -64,26 +65,23 @@ function PWAUpdateBannerSimple() {
               Uma nova versão está disponível
             </p>
           </div>
-          <button
+          <DuoButton
+            variant="white"
+            size="sm"
             onClick={handleUpdate}
-            className={cn(
-              "rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-primary",
-              "hover:bg-white/90 transition-all shadow-sm",
-            )}
             aria-label="Atualizar aplicativo"
           >
             Atualizar
-          </button>
-          <button
+          </DuoButton>
+          <DuoButton
+            variant="ghost"
+            size="icon-sm"
             onClick={handleDismiss}
-            className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-full",
-              "bg-white/20 text-white/80 hover:bg-white/30 transition-all",
-            )}
+            className="bg-white/20 text-white hover:bg-white/30"
             aria-label="Fechar banner"
           >
             <X className="h-3.5 w-3.5" />
-          </button>
+          </DuoButton>
         </div>
       </motion.div>
     </AnimatePresence>

@@ -124,7 +124,6 @@ export function CreateUnitModal({
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="h-10 w-10 rounded-full"
               >
                 <X className="h-5 w-5" />
               </DuoButton>
@@ -202,7 +201,7 @@ export function CreateUnitModal({
               <DuoButton
                 onClick={onClose}
                 variant="outline"
-                className="flex-1"
+                fullWidth
                 disabled={isCreating}
               >
                 Cancelar
@@ -210,17 +209,11 @@ export function CreateUnitModal({
               <DuoButton
                 onClick={handleCreateUnit}
                 variant="primary"
-                className="flex-1"
+                fullWidth
                 disabled={!canCreate}
+                isLoading={isCreating}
               >
-                {isCreating ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    Criando...
-                  </>
-                ) : (
-                  "CRIAR PLANO"
-                )}
+                CRIAR PLANO
               </DuoButton>
             </div>
           </motion.div>

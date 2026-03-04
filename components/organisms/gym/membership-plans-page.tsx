@@ -168,7 +168,7 @@ export function MembershipPlansPage({
           Planos de Matrícula
         </h2>
         {!isCreating && (
-          <DuoButton onClick={() => setIsCreating(true)} className="flex gap-2">
+          <DuoButton variant="primary" onClick={() => setIsCreating(true)}>
             <Plus className="h-4 w-4" />
             Novo Plano
           </DuoButton>
@@ -222,15 +222,14 @@ export function MembershipPlansPage({
                 <DuoButton
                   size="sm"
                   variant="outline"
-                  className="flex-1"
+                  fullWidth
                   onClick={() => startEditing(plan)}
                 >
                   Editar
                 </DuoButton>
                 <DuoButton
                   size="sm"
-                  variant="outline"
-                  className="border-[var(--duo-danger)] text-[var(--duo-danger)] hover:bg-[var(--duo-danger)]/10"
+                  variant="danger"
                   onClick={() => handleDelete(plan.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -305,15 +304,17 @@ export function MembershipPlansPage({
             </div>
           </div>
           <div className="mt-6 flex gap-2">
-            <DuoButton variant="outline" className="flex-1" onClick={resetForm}>
+            <DuoButton variant="outline" fullWidth onClick={resetForm}>
               Cancelar
             </DuoButton>
             <DuoButton
-              className="flex-1"
+              variant="primary"
+              fullWidth
               onClick={handleCreate}
               disabled={saving || !form.name || !form.price}
+              isLoading={saving}
             >
-              {saving ? "Salvando..." : "Salvar"}
+              Salvar
             </DuoButton>
           </div>
         </DuoCard.Root>

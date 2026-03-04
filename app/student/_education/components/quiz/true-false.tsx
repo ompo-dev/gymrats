@@ -90,8 +90,9 @@ export function TrueFalse({ exercise, onAnswer }: TrueFalseProps) {
         <DuoButton
           onClick={handleSubmit}
           disabled={!selectedOption}
+          variant="primary"
           size="lg"
-          className="w-full"
+          fullWidth
         >
           Verificar
         </DuoButton>

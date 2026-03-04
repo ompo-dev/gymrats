@@ -53,7 +53,7 @@ export function GymEquipmentDetail({
           <p className="text-xl font-bold text-duo-gray-dark">
             Equipamento não encontrado
           </p>
-          <DuoButton onClick={onBack} className="mt-4">
+          <DuoButton variant="outline" onClick={onBack} className="mt-4">
             Voltar para Equipamentos
           </DuoButton>
         </DuoCard.Root>
@@ -115,7 +115,7 @@ export function GymEquipmentDetail({
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-4 sm:px-0">
       <FadeIn>
-        <DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
+        <DuoButton variant="ghost" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Voltar para Equipamentos</span>
           <span className="sm:hidden">Voltar</span>
@@ -168,7 +168,9 @@ export function GymEquipmentDetail({
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <DuoButton
-                  className="w-full sm:w-auto"
+                  variant="primary"
+                  fullWidth
+                  className="sm:w-auto"
                   onClick={() => setIsEditModalOpen(true)}
                 >
                   <Edit className="h-4 w-4" />
@@ -177,7 +179,8 @@ export function GymEquipmentDetail({
                 </DuoButton>
                 <DuoButton
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  fullWidth
+                  className="sm:w-auto"
                   onClick={() => setIsMaintenanceModalOpen(true)}
                 >
                   <Wrench className="h-4 w-4" />
@@ -483,7 +486,7 @@ export function GymEquipmentDetail({
                 <p className="text-sm text-duo-gray-dark">
                   Esse equipamento ainda não teve manutenções registradas
                 </p>
-                <DuoButton className="mt-4">Registrar Manutenção</DuoButton>
+                <DuoButton variant="primary" onClick={() => setIsMaintenanceModalOpen(true)} className="mt-4">Registrar Manutenção</DuoButton>
               </DuoCard.Root>
             )}
           </DuoCard.Root>

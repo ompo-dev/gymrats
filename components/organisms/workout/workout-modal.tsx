@@ -105,7 +105,8 @@ function WorkoutModalSimple() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <DuoButton
-                className="flex-1 bg-duo-green hover:bg-duo-green-dark text-white font-bold"
+                variant="primary"
+                fullWidth
                 onClick={() => {
                   handlers.handleClose();
                   editPlanModal.open();
@@ -116,7 +117,7 @@ function WorkoutModalSimple() {
               </DuoButton>
               <DuoButton
                 variant="outline"
-                className="flex-1"
+                fullWidth
                 onClick={handlers.handleClose}
               >
                 Fechar

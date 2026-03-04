@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft } from "lucide-react";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface BackButtonProps {
@@ -21,16 +22,14 @@ export function BackButton({
   color = "duo-blue",
 }: BackButtonProps) {
   return (
-    <button
+    <DuoButton
+      variant="link"
+      size="sm"
       onClick={onClick}
-      className={cn(
-        "mb-4 flex items-center gap-2 font-bold hover:underline",
-        colorClasses[color],
-        className,
-      )}
+      className={cn("mb-4", colorClasses[color], className)}
     >
       <ArrowLeft className="h-5 w-5" />
       Voltar
-    </button>
+    </DuoButton>
   );
 }

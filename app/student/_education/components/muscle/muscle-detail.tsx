@@ -3,7 +3,7 @@
 import { ArrowLeft, Book, Dumbbell } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import type { MuscleInfo } from "@/lib/types";
 
 interface MuscleDetailProps {
@@ -15,14 +15,16 @@ export function MuscleDetail({ muscle, onBack }: MuscleDetailProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
-        <button
+        <DuoButton
           type="button"
+          variant="link"
+          size="sm"
           onClick={onBack}
-          className="mb-4 flex items-center gap-2 font-bold text-duo-blue hover:underline"
+          className="mb-4"
         >
           <ArrowLeft className="h-5 w-5" />
           Voltar
-        </button>
+        </DuoButton>
       </FadeIn>
 
       <SlideIn delay={0.1}>

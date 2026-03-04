@@ -150,14 +150,15 @@ export function MaintenanceModal({
         <div className="mt-4 flex gap-2">
           <DuoButton
             variant="outline"
-            className="flex-1"
+            fullWidth
             onClick={onClose}
             disabled={saving}
           >
             Cancelar
           </DuoButton>
           <DuoButton
-            className="flex-1"
+            variant="primary"
+            fullWidth
             onClick={handleSubmit}
             disabled={saving}
           >

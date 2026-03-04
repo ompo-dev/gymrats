@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { DuoButton } from "@/components/duo";
 import { APP_VERSION } from "@/lib/constants/version";
 
 export function PWARegister() {
@@ -143,20 +144,23 @@ export function PWARegister() {
         <div className="fixed bottom-4 right-4 z-50 bg-primary text-primary-foreground p-4 rounded-lg shadow-lg max-w-sm">
           <p className="text-sm font-medium mb-2">Nova versão disponível!</p>
           <div className="flex gap-2">
-            <button
+            <DuoButton
               type="button"
+              variant="white"
+              size="sm"
               onClick={handleUpdate}
-              className="px-4 py-2 bg-white text-primary rounded text-sm font-medium hover:bg-gray-100 transition-colors"
             >
               Atualizar Agora
-            </button>
-            <button
+            </DuoButton>
+            <DuoButton
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setUpdateAvailable(false)}
-              className="px-4 py-2 bg-transparent border border-white/30 rounded text-sm hover:bg-white/10 transition-colors"
+              className="border-white/30 text-white hover:bg-white/10"
             >
               Depois
-            </button>
+            </DuoButton>
           </div>
         </div>
       )}

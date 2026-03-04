@@ -28,30 +28,24 @@ export function LandingNavbar({
 
         <div className="flex items-center gap-4">
           <div className="flex rounded-2xl bg-[var(--duo-bg-card)] p-1 border-2 border-[var(--duo-border)] shadow-sm scale-90 sm:scale-100">
-            <button
+            <DuoButton
+              variant={viewMode === "student" ? "primary" : "ghost"}
+              size="sm"
               onClick={() => onViewModeChange("student")}
-              className={cn(
-                "flex items-center gap-2 px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-black transition-all rounded-xl",
-                viewMode === "student"
-                  ? "bg-[var(--duo-primary)] text-white shadow-md"
-                  : "text-[var(--duo-fg-muted)] hover:text-[var(--duo-fg)]",
-              )}
+              className="flex items-center gap-2 px-3 sm:px-4 text-[10px] sm:text-xs rounded-xl"
             >
               <Users className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
               <span className="hidden xs:inline">ALUNO</span>
-            </button>
-            <button
+            </DuoButton>
+            <DuoButton
+              variant={viewMode === "gym" ? "secondary" : "ghost"}
+              size="sm"
               onClick={() => onViewModeChange("gym")}
-              className={cn(
-                "flex items-center gap-2 px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-black transition-all rounded-xl",
-                viewMode === "gym"
-                  ? "bg-[var(--duo-secondary)] text-white shadow-md"
-                  : "text-[var(--duo-fg-muted)] hover:text-[var(--duo-fg)]",
-              )}
+              className="flex items-center gap-2 px-3 sm:px-4 text-[10px] sm:text-xs rounded-xl"
             >
               <Building2 className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
               <span className="hidden xs:inline">ACADEMIA</span>
-            </button>
+            </DuoButton>
           </div>
 
           <div className="hidden items-center gap-4 lg:flex">
@@ -59,11 +53,7 @@ export function LandingNavbar({
           </div>
 
           <Link href="/welcome">
-            <DuoButton
-              variant="primary"
-              size="sm"
-              className="px-6 sm:px-8 font-black shadow-lg shadow-[var(--duo-primary)]/20 uppercase tracking-wider whitespace-nowrap"
-            >
+            <DuoButton variant="primary" size="sm">
               Entrar
             </DuoButton>
           </Link>

@@ -37,14 +37,16 @@ export function LessonDetail({
   return (
     <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
-        <button
+        <DuoButton
           type="button"
+          variant="link"
+          size="sm"
           onClick={onBack}
-          className="mb-4 flex items-center gap-2 font-bold text-duo-green hover:underline"
+          className="mb-4"
         >
           <ArrowLeft className="h-5 w-5" />
           Voltar
-        </button>
+        </DuoButton>
       </FadeIn>
 
       <SlideIn delay={0.1}>
@@ -100,7 +102,7 @@ export function LessonDetail({
       </SlideIn>
 
       <SlideIn delay={0.3}>
-        <DuoButton onClick={onComplete} className="w-full">
+        <DuoButton onClick={onComplete} variant="primary" fullWidth>
           {lesson.quiz ? "FAZER QUIZ" : "CONCLUIR LIÇÃO"}
         </DuoButton>
       </SlideIn>

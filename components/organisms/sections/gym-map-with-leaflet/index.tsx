@@ -261,12 +261,13 @@ export function GymMapWithLeaflet({
                       {activeAd.description}
                     </p>
                     <div className="mt-4 pt-3 border-t border-duo-border flex justify-end">
-                      <button
-                        className="px-4 py-2 flex items-center gap-2 rounded-xl text-xs font-bold text-duo-bg transition-transform group-hover:scale-105 shadow-md"
-                        style={{ backgroundColor: activeAd.primaryColor }}
+                      <DuoButton
+                        size="sm"
+                        className="flex items-center gap-2 transition-transform group-hover:scale-105"
+                        style={{ backgroundColor: activeAd.primaryColor, color: "var(--duo-bg)", borderColor: activeAd.primaryColor }}
                       >
                         Assinar Agora <ChevronRight className="w-4 h-4" />
-                      </button>
+                      </DuoButton>
                     </div>
                   </div>
                 </motion.div>

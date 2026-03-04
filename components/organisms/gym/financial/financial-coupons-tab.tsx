@@ -4,7 +4,7 @@ import { Gift, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createGymCoupon } from "@/app/gym/actions";
-import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
 import { toValidDate } from "@/lib/utils/date-safe";
@@ -88,7 +88,7 @@ export function FinancialCouponsTab({
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-[var(--duo-fg)]">Cupons</h2>
+            <h2 className="font-bold text-duo-fg">Cupons</h2>
           </div>
           <DuoButton size="sm" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" />
@@ -186,21 +186,17 @@ export function FinancialCouponsTab({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
-              <div>
-                <label className="mb-1 block text-sm font-medium text-duo-text">
-                  Tipo de desconto
-                </label>
-                <select
-                  value={discountKind}
-                  onChange={(e) =>
-                    setDiscountKind(e.target.value as "PERCENTAGE" | "FIXED")
-                  }
-                  className="w-full rounded-lg border border-duo-border px-3 py-2 text-duo-text"
-                >
-                  <option value="PERCENTAGE">Porcentagem (%)</option>
-                  <option value="FIXED">Valor fixo (R$)</option>
-                </select>
-              </div>
+              <DuoSelect.Simple
+                label="Tipo de desconto"
+                options={[
+                  { value: "PERCENTAGE", label: "Porcentagem (%)" },
+                  { value: "FIXED", label: "Valor fixo (R$)" },
+                ]}
+                value={discountKind}
+                onChange={(v) =>
+                  setDiscountKind(v as "PERCENTAGE" | "FIXED")
+                }
+              />
               <DuoInput.Simple
                 label={
                   discountKind === "PERCENTAGE"
@@ -224,17 +220,18 @@ export function FinancialCouponsTab({
               <div className="flex gap-2">
                 <DuoButton
                   variant="secondary"
-                  className="flex-1"
+                  fullWidth
                   onClick={() => setModalOpen(false)}
                 >
                   Cancelar
                 </DuoButton>
                 <DuoButton
-                  className="flex-1"
+                  variant="primary"
+                  fullWidth
                   onClick={handleCreate}
-                  disabled={isSubmitting}
+                  isLoading={isSubmitting}
                 >
-                  {isSubmitting ? "Criando..." : "Criar"}
+                  Criar
                 </DuoButton>
               </div>
             </div>

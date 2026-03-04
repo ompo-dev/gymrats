@@ -3,7 +3,7 @@
 import { ChevronDown, Dumbbell, MessageSquare, Moon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
-import { DuoCard } from "@/components/duo";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 interface Exercise {
@@ -100,14 +100,16 @@ function ExerciseItemCard({
               <div className="flex items-center gap-2">
                 <div className="font-bold text-duo-fg">{exercise.name}</div>
                 {onReference && (
-                  <button
+                  <DuoButton
                     type="button"
+                    variant="ghost"
+                    size="icon-sm"
                     onClick={handleReference}
-                    className="shrink-0 text-duo-green hover:text-duo-green/80 transition-colors"
+                    className="text-duo-green hover:text-duo-green/80"
                     title="Referenciar este exercício"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />
-                  </button>
+                  </DuoButton>
                 )}
               </div>
               <div className="text-xs text-duo-fg-muted">
@@ -279,14 +281,16 @@ export function WorkoutPreviewCard({
                     {workout.title}
                   </h4>
                   {onReference && (
-                    <button
+                    <DuoButton
                       type="button"
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={handleWorkoutReference}
-                      className="shrink-0 text-duo-green hover:text-duo-green/80 transition-colors"
+                      className="text-duo-green hover:text-duo-green/80"
                       title="Referenciar este treino"
                     >
                       <MessageSquare className="h-4 w-4" />
-                    </button>
+                    </DuoButton>
                   )}
                 </div>
                 <p className="text-sm text-duo-fg-muted">

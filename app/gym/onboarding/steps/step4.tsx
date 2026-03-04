@@ -108,7 +108,7 @@ export function Step4({ formData, setFormData }: StepProps) {
             <DuoButton
               onClick={() => setShowEquipmentSearch(true)}
               variant="primary"
-              className="w-full"
+              fullWidth
             >
               <Plus className="mr-2 h-4 w-4" />
               ADICIONAR EQUIPAMENTOS
@@ -148,15 +148,16 @@ export function Step4({ formData, setFormData }: StepProps) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <button
+                          <DuoButton
                             type="button"
+                            variant="outline"
+                            size="icon-sm"
                             onClick={() =>
                               handleQuantityChange(group.equipment.id, -1)
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-border bg-duo-bg-card text-duo-fg transition-all hover:bg-duo-bg-elevated active:scale-90"
                           >
                             <Minus className="h-4 w-4" />
-                          </button>
+                          </DuoButton>
                           <div className="w-16 text-center">
                             <div className="text-sm font-bold text-duo-fg">
                               {group.quantity}
@@ -165,24 +166,26 @@ export function Step4({ formData, setFormData }: StepProps) {
                               {group.quantity === 1 ? "unidade" : "unidades"}
                             </div>
                           </div>
-                          <button
+                          <DuoButton
                             type="button"
+                            variant="accent"
+                            size="icon-sm"
                             onClick={() =>
                               handleQuantityChange(group.equipment.id, 1)
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-orange bg-duo-orange text-white transition-all hover:bg-duo-orange/90 active:scale-90"
                           >
                             <Plus className="h-4 w-4" />
-                          </button>
-                          <button
+                          </DuoButton>
+                          <DuoButton
                             type="button"
+                            variant="danger"
+                            size="icon-sm"
                             onClick={() =>
                               handleRemoveEquipment(group.equipment.id)
                             }
-                            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-duo-danger/50 bg-duo-danger/10 text-duo-danger transition-all hover:bg-duo-danger/20 active:scale-90"
                           >
                             <X className="h-4 w-4" />
-                          </button>
+                          </DuoButton>
                         </div>
                       </motion.div>
                     ))}

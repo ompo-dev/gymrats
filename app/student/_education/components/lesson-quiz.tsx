@@ -237,7 +237,8 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
           <DuoButton
             onClick={handleSubmitQuiz}
             disabled={quizAnswers.length < lesson.quiz.questions.length}
-            className="w-full"
+            variant="primary"
+            fullWidth
           >
             ENVIAR RESPOSTAS
           </DuoButton>
@@ -271,7 +272,8 @@ export function LessonQuiz({ lesson, onComplete, onRetry }: LessonQuizProps) {
                   onRetry();
                 }
               }}
-              className="w-full"
+              variant="primary"
+              fullWidth
             >
               {quizScore >= 70 ? "CONTINUAR" : "TENTAR NOVAMENTE"}
             </DuoButton>

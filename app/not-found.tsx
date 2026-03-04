@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, Home } from "lucide-react";
 import { motion } from "motion/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DuoButton } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
 export default function NotFound() {
@@ -95,45 +96,38 @@ export default function NotFound() {
 
         {/* Actions */}
         <div className="flex items-center gap-3 border-t border-white/10 p-6">
-          <button
+          <DuoButton
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() => router.back()}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium",
-              "bg-white/10 text-foreground hover:bg-white/20",
-              "border border-white/10 transition-all",
-            )}
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar
-          </button>
+          </DuoButton>
 
           {isStudentRoute ? (
-            <button
+            <DuoButton
               type="button"
+              variant="primary"
+              size="sm"
+              fullWidth
               onClick={() => router.push("/student")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2",
-                "text-sm font-medium bg-primary text-primary-foreground",
-                "hover:bg-primary/90 transition-all",
-              )}
             >
               <Home className="h-4 w-4" />
               Ir para /student
-            </button>
+            </DuoButton>
           ) : (
-            <button
+            <DuoButton
               type="button"
+              variant="primary"
+              size="sm"
+              fullWidth
               onClick={() => router.push("/")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2",
-                "text-sm font-medium bg-primary text-primary-foreground",
-                "hover:bg-primary/90 transition-all",
-              )}
             >
               <Home className="h-4 w-4" />
               Ir para Início
-            </button>
+            </DuoButton>
           )}
         </div>
       </motion.div>

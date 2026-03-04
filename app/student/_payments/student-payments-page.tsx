@@ -11,7 +11,7 @@ import {
 import { useMemo, useState } from "react";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
-import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { DuoButton, DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
@@ -199,9 +199,11 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
             const isExpanded = expandedGymIdMemberships === group.gymId;
             return (
               <DuoCard.Root key={group.gymId} variant="default" size="default">
-                <button
+                <DuoButton
                   type="button"
-                  className="flex w-full items-center gap-2 text-left"
+                  variant="ghost"
+                  fullWidth
+                  className="flex items-center gap-2 justify-start text-left h-auto py-2"
                   onClick={() =>
                     setExpandedGymIdMemberships(isExpanded ? null : group.gymId)
                   }
@@ -220,7 +222,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
                       {group.memberships.length} plano(s) nesta academia
                     </div>
                   </div>
-                </button>
+                </DuoButton>
                 {isExpanded && (
                   <div className="mt-3 space-y-3 border-t border-duo-border pt-3">
                     {group.memberships.map(
@@ -299,9 +301,11 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
                   variant="default"
                   size="default"
                 >
-                  <button
+                  <DuoButton
                     type="button"
-                    className="flex w-full items-center gap-2 text-left"
+                    variant="ghost"
+                    fullWidth
+                    className="flex items-center gap-2 justify-start text-left h-auto py-2"
                     onClick={() =>
                       setExpandedGymIdPayments(isExpanded ? null : group.gymId)
                     }
@@ -321,7 +325,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
                         {totalPaid.toFixed(2)}
                       </div>
                     </div>
-                  </button>
+                  </DuoButton>
                   {isExpanded && (
                     <div className="mt-3 space-y-2 border-t border-duo-border pt-3">
                       {group.payments.map((payment: StudentPayment) => (
