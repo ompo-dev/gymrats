@@ -170,7 +170,7 @@ export async function createSubscriptionHandler(
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
       expiresAt: pix.expiresAt,
-      referralCodeInvalid: referralCodeInvalid || undefined,
+      ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });
   } catch (error) {
     console.error("[createSubscriptionHandler] Erro:", error);

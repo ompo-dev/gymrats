@@ -61,10 +61,9 @@ export const auth = betterAuth({
       create: {
         before: async (session, _ctx) => {
           // Mapear token -> sessionToken (legacy) e expiresAt -> expires (legacy)
-          const updatedData: Record<
-            string,
-            string | number | boolean | object | null
-          > = { ...session };
+          const updatedData = {
+            ...session,
+          } as Record<string, string | number | boolean | object | null>;
 
           if (session.token && !session.sessionToken) {
             updatedData.sessionToken = session.token;

@@ -427,7 +427,14 @@ export async function deleteBoostCampaign(
 export async function getBoostCampaignPix(
   campaignId: string,
 ): Promise<
-  | { success: true; brCode: string; brCodeBase64: string; amount: number; pixId: string }
+  | {
+      success: true;
+      brCode: string;
+      brCodeBase64: string;
+      amount: number;
+      pixId: string;
+      expiresAt?: string;
+    }
   | { success: false; error: string }
 > {
   try {

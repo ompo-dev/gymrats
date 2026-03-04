@@ -116,13 +116,10 @@ export function FinancialAdsTab({
   // filters
   const [statusFilter, setStatusFilter] = useState("all");
 
-
-
   const filteredCampaigns =
     statusFilter === "all"
       ? campaigns
       : campaigns.filter((c) => c.status === statusFilter);
-
 
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
@@ -336,10 +333,10 @@ export function FinancialAdsTab({
                 {confirmDeleteId === campaign.id && (
                   <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl mb-2 space-y-3">
                     <p className="text-sm font-bold text-duo-text">
-                      Cancelar o anúncio &ldquo;{campaign.title}&rdquo;?
+                      Excluir o anúncio &ldquo;{campaign.title}&rdquo;?
                     </p>
                     <p className="text-xs text-duo-gray-dark">
-                      Esta ação não pode ser desfeita.
+                      Esta ação é irreversível.
                     </p>
                     <div className="flex gap-2">
                       <DuoButton
@@ -348,7 +345,7 @@ export function FinancialAdsTab({
                         className="flex-1"
                         onClick={() => setConfirmDeleteId(null)}
                       >
-                        Não, manter
+                        Manter
                       </DuoButton>
                       <DuoButton
                         size="sm"
@@ -357,7 +354,9 @@ export function FinancialAdsTab({
                         disabled={deletingId === campaign.id}
                         onClick={() => handleDelete(campaign.id)}
                       >
-                        {deletingId === campaign.id ? "Cancelando..." : "Sim, cancelar"}
+                        {deletingId === campaign.id
+                          ? "Excluindo..."
+                          : "Excluir"}
                       </DuoButton>
                     </div>
                   </div>
@@ -370,7 +369,9 @@ export function FinancialAdsTab({
                     disabled={payingId === campaign.id}
                     onClick={() => handlePayCampaign(campaign)}
                   >
-                    {payingId === campaign.id ? "Gerando PIX..." : "Pagar agora"}
+                    {payingId === campaign.id
+                      ? "Gerando PIX..."
+                      : "Pagar agora"}
                   </DuoButton>
                 )}
               </DuoCard.Root>
@@ -396,7 +397,11 @@ export function FinancialAdsTab({
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
               onClick={(e) => e.stopPropagation()}
-              style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+              style={{
+                maxHeight: "90vh",
+                display: "flex",
+                flexDirection: "column",
+              }}
             >
               {/* Header */}
               <motion.div
@@ -406,7 +411,9 @@ export function FinancialAdsTab({
                 className="border-b-2 border-duo-border p-6 shrink-0"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-duo-text">Criar Anúncio</h2>
+                  <h2 className="text-2xl font-bold text-duo-text">
+                    Criar Anúncio
+                  </h2>
                   <DuoButton
                     type="button"
                     variant="ghost"
@@ -423,23 +430,43 @@ export function FinancialAdsTab({
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
                 {/* Preview */}
                 <div>
-                  <p className="text-sm font-bold text-duo-fg-muted mb-2">Preview do anúncio</p>
-                  <div className="border-2 rounded-xl p-4 overflow-hidden relative" style={{ borderColor: primaryColor }}>
-                    <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: primaryColor }} />
+                  <p className="text-sm font-bold text-duo-fg-muted mb-2">
+                    Preview do anúncio
+                  </p>
+                  <div
+                    className="border-2 rounded-xl p-4 overflow-hidden relative"
+                    style={{ borderColor: primaryColor }}
+                  >
+                    <div
+                      className="absolute top-0 left-0 w-full h-1"
+                      style={{ backgroundColor: primaryColor }}
+                    />
                     <div className="flex justify-between mt-1 mb-2">
-                      <span className="text-[10px] uppercase font-bold text-duo-gray-dark bg-duo-bg px-2 py-0.5 rounded-md border border-duo-border">Patrocinado</span>
+                      <span className="text-[10px] uppercase font-bold text-duo-gray-dark bg-duo-bg px-2 py-0.5 rounded-md border border-duo-border">
+                        Patrocinado
+                      </span>
                     </div>
-                    <h5 className="font-bold text-lg" style={{ color: primaryColor }}>
+                    <h5
+                      className="font-bold text-lg"
+                      style={{ color: primaryColor }}
+                    >
                       {title || "Título Chamativo da Promoção"}
                     </h5>
                     <p className="text-sm text-duo-text mt-1">
-                      {description || "Mostre por que os alunos devem escolher a sua academia..."}
+                      {description ||
+                        "Mostre por que os alunos devem escolher a sua academia..."}
                     </p>
                     <div className="mt-4 pt-3 border-t border-duo-border flex justify-between items-center">
                       <div className="text-xs text-duo-gray-dark font-medium">
-                        {linkedCouponId ? "Cupom vinculado" : "Sem cupom"} • {linkedPlanId ? "Plano vinculado" : "Perfil da academia"}
+                        {linkedCouponId ? "Cupom vinculado" : "Sem cupom"} •{" "}
+                        {linkedPlanId
+                          ? "Plano vinculado"
+                          : "Perfil da academia"}
                       </div>
-                      <button className="px-3 py-1.5 rounded-lg text-xs font-bold text-duo-bg" style={{ backgroundColor: primaryColor }}>
+                      <button
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-duo-bg"
+                        style={{ backgroundColor: primaryColor }}
+                      >
                         Assinar Agora
                       </button>
                     </div>
@@ -455,7 +482,9 @@ export function FinancialAdsTab({
                     onChange={(e) => setTitle(e.target.value)}
                   />
                   <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">Descrição</label>
+                    <label className="text-sm font-bold text-duo-text mb-1 block">
+                      Descrição
+                    </label>
                     <textarea
                       className="w-full h-24 rounded-xl border-2 border-duo-border bg-duo-bg p-3 text-duo-text focus:border-duo-primary focus:outline-none transition-colors"
                       placeholder="Descreva a oferta..."
@@ -465,24 +494,53 @@ export function FinancialAdsTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">Cor Primária</label>
+                    <label className="text-sm font-bold text-duo-text mb-1 block">
+                      Cor Primária
+                    </label>
                     <div className="flex gap-2">
-                      <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg" />
-                      <DuoInput.Simple value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
+                      <input
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg"
+                      />
+                      <DuoInput.Simple
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                      />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 block">Duração do Anúncio</label>
+                    <label className="text-sm font-bold text-duo-text mb-2 block">
+                      Duração do Anúncio
+                    </label>
                     <div className="flex items-center justify-between bg-duo-bg border-2 border-duo-border rounded-xl px-4 py-3">
-                      <button onClick={decDuration} disabled={durationHours <= MIN_HOURS} className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed">−</button>
+                      <button
+                        onClick={decDuration}
+                        disabled={durationHours <= MIN_HOURS}
+                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        −
+                      </button>
                       <div className="text-center">
-                        <p className="font-bold text-lg text-duo-text">{formatDuration(durationHours)}</p>
-                        <p className="text-xs text-duo-gray-dark">R$ {totalPrice.toFixed(2)}</p>
+                        <p className="font-bold text-lg text-duo-text">
+                          {formatDuration(durationHours)}
+                        </p>
+                        <p className="text-xs text-duo-gray-dark">
+                          R$ {totalPrice.toFixed(2)}
+                        </p>
                       </div>
-                      <button onClick={incDuration} className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary">+</button>
+                      <button
+                        onClick={incDuration}
+                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary"
+                      >
+                        +
+                      </button>
                     </div>
-                    <p className="text-xs text-duo-gray-dark mt-1 text-center">R$ {PRICE_PER_STEP.toFixed(2)} por cada 12h</p>
+                    <p className="text-xs text-duo-gray-dark mt-1 text-center">
+                      R$ {PRICE_PER_STEP.toFixed(2)} por cada 12h
+                    </p>
                   </div>
 
                   <DuoSelect.Simple
@@ -518,12 +576,26 @@ export function FinancialAdsTab({
                 className="shrink-0 border-t-2 border-duo-border p-6 space-y-4"
               >
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-duo-gray-dark">{formatDuration(durationHours)}</span>
-                  <span className="font-bold text-duo-text text-xl">R$ {totalPrice.toFixed(2)}</span>
+                  <span className="text-sm text-duo-gray-dark">
+                    {formatDuration(durationHours)}
+                  </span>
+                  <span className="font-bold text-duo-text text-xl">
+                    R$ {totalPrice.toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex gap-3">
-                  <DuoButton variant="secondary" className="flex-1" onClick={() => setModalOpen(false)}>Cancelar</DuoButton>
-                  <DuoButton className="flex-1" onClick={handleCreate} disabled={isSubmitting}>
+                  <DuoButton
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() => setModalOpen(false)}
+                  >
+                    Cancelar
+                  </DuoButton>
+                  <DuoButton
+                    className="flex-1"
+                    onClick={handleCreate}
+                    disabled={isSubmitting}
+                  >
                     {isSubmitting ? "Processando..." : `Gerar PIX `}
                   </DuoButton>
                 </div>
@@ -532,7 +604,6 @@ export function FinancialAdsTab({
           </motion.div>
         )}
       </AnimatePresence>
-             
 
       {/* Modal PIX */}
       {pixModal && (

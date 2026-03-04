@@ -16,6 +16,11 @@ export const POST = createSafeHandler(
   async ({ studentContext, params }) => {
     const { paymentId } = paramsSchema.parse(params);
     const studentId = studentContext?.studentId;
+    if (!studentId)
+      return NextResponse.json(
+        { error: "Estudante não autenticado" },
+        { status: 401 }
+      );
 
     try {
       const result = await createPixForPendingPayment(paymentId, studentId);
