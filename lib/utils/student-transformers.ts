@@ -367,7 +367,7 @@ function transformDailyNutrition(
     targetProtein: nutrition.targetProtein || 150,
     targetCarbs: nutrition.targetCarbs || 250,
     targetFats: nutrition.targetFats || 65,
-    targetWater: nutrition.targetWater || 2000,
+    targetWater: nutrition.targetWater || 3000,
   };
 }
 

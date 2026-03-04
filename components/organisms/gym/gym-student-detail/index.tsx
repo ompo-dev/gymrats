@@ -54,6 +54,7 @@ export function GymStudentDetail({
     handleAddMealSubmit,
     handleAddFood,
     applyNutrition,
+    updateTargetWater,
     removeMeal,
     removeFoodFromMeal,
     handleToggleWaterGlass,
@@ -171,6 +172,7 @@ export function GymStudentDetail({
             onAddMeal={handleAddMealSubmit}
             onAddFood={handleAddFood}
             onApplyNutrition={applyNutrition}
+            onUpdateTargetWater={updateTargetWater}
             onRemoveMeal={removeMeal}
             onRemoveFood={removeFoodFromMeal}
             onToggleWaterGlass={handleToggleWaterGlass}

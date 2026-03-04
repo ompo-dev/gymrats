@@ -25,6 +25,7 @@
 - `apply-workout-progress-migration.js`: Arquivo da camada local.
 - `apply-workout-type-migration.js`: Arquivo da camada local.
 - `apply-boost-campaign-radius-km-migration.js`: Adiciona coluna radiusKm (INTEGER, default 5) em boost_campaigns para alcance geográfico dos anúncios.
+- `apply-student-profile-target-water-migration.js`: Adiciona coluna targetWater (INTEGER) em student_profiles para meta diária de água.
 
 ## Detalhamento técnico por arquivo
 
@@ -160,6 +161,13 @@
 - Por que: suportar alcance geográfico dos anúncios (raio em km); usado pela API `/api/boost-campaigns/nearby` e pela UI de criação de campanha.
 - Comunica com: Banco de dados (Prisma).
 - Uso: `node scripts/migration/apply-boost-campaign-radius-km-migration.js`. Depois executar `npx prisma generate`.
+
+### `apply-student-profile-target-water-migration.js`
+- O que faz: adiciona a coluna `targetWater` (INTEGER) na tabela `student_profiles` e define 3000ml para registros existentes.
+- Como: executa `ALTER TABLE "student_profiles" ADD COLUMN IF NOT EXISTS "targetWater" INTEGER` e `UPDATE ... SET "targetWater" = 3000 WHERE "targetWater" IS NULL` via Prisma `$executeRawUnsafe`.
+- Por que: permitir que a academia defina a meta diária de água do aluno.
+- Comunica com: Banco de dados (Prisma).
+- Uso: `node scripts/migration/apply-student-profile-target-water-migration.js`. Depois executar `npx prisma generate`.
 
 ## Observações
 - Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.

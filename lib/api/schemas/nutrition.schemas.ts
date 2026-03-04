@@ -55,6 +55,7 @@ export const updateDailyNutritionSchema = z.object({
     .optional(),
   meals: z.array(nutritionMealSchema).optional(),
   waterIntake: z.number().int().nonnegative().optional(),
+  targetWater: z.number().int().positive().optional(),
 });
 
 export const dailyNutritionUpdateSchema = updateDailyNutritionSchema;

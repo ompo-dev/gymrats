@@ -1,8 +1,8 @@
 "use client";
 
-import { Apple, Loader2 } from "lucide-react";
-import { useState } from "react";
-import { DuoCard } from "@/components/duo";
+import { Apple, Droplets, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
@@ -32,6 +32,7 @@ export interface DietTabProps {
       totalFats: number;
     };
   }) => void | Promise<void>;
+  onUpdateTargetWater: (targetWater: number) => void | Promise<void>;
   onRemoveMeal: (mealId: string) => void;
   onRemoveFood: (mealId: string, foodId: string) => void;
   onToggleWaterGlass: (index: number) => void;
@@ -48,6 +49,7 @@ export function DietTab({
   onAddMeal,
   onAddFood,
   onApplyNutrition,
+  onUpdateTargetWater,
   onRemoveMeal,
   onRemoveFood,
   onToggleWaterGlass,
@@ -55,6 +57,8 @@ export function DietTab({
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
+  const [targetWaterInput, setTargetWaterInput] = useState("3000");
+  const [isSavingTargetWater, setIsSavingTargetWater] = useState(false);
   const targetCal = student.profile?.targetCalories ?? 2000;
   const targetProtein = student.profile?.targetProtein ?? 150;
   const targetCarbs = student.profile?.targetCarbs ?? 250;
@@ -74,6 +78,21 @@ export function DietTab({
       targetFats,
       targetWater: 3000,
     };
+
+  useEffect(() => {
+    setTargetWaterInput(String(nutrition.targetWater ?? 3000));
+  }, [nutrition.targetWater]);
+
+  const handleSaveTargetWater = async () => {
+    const parsed = Number(targetWaterInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    setIsSavingTargetWater(true);
+    try {
+      await onUpdateTargetWater(parsed);
+    } finally {
+      setIsSavingTargetWater(false);
+    }
+  };
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -103,22 +122,56 @@ export function DietTab({
           <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
         </div>
       ) : nutrition ? (
-        <NutritionTracker.Simple
-          nutrition={nutrition}
-          onMealComplete={onMealComplete}
-          onAddMeal={() => setShowAddMeal(true)}
-          onAddFoodToMeal={(mealId?: string) => {
-            if (mealId) {
-              setSelectedMealId(mealId);
-            } else {
-              setSelectedMealId(null);
-            }
-            setShowFoodSearch(true);
-          }}
-          onDeleteMeal={onRemoveMeal}
-          onDeleteFood={onRemoveFood}
-          onToggleWaterGlass={onToggleWaterGlass}
-        />
+        <>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
+              <div className="flex items-center gap-2">
+                <Droplets className="h-5 w-5 text-duo-blue" />
+                <h2 className="font-bold text-duo-fg">
+                  Meta diária de água
+                </h2>
+              </div>
+            </DuoCard.Header>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <DuoInput.Simple
+                label="Total em ml"
+                type="number"
+                value={targetWaterInput}
+                min={0}
+                step={50}
+                onChange={(event) => setTargetWaterInput(event.target.value)}
+              />
+              <DuoButton
+                className="sm:w-40"
+                onClick={handleSaveTargetWater}
+                disabled={isSavingTargetWater}
+              >
+                {isSavingTargetWater ? "Salvando..." : "Salvar"}
+              </DuoButton>
+            </div>
+            <p className="mt-2 text-xs text-duo-fg-muted">
+              A academia define a meta; o aluno registra a água consumida.
+            </p>
+          </DuoCard.Root>
+
+          <NutritionTracker.Simple
+            nutrition={nutrition}
+            onMealComplete={onMealComplete}
+            onAddMeal={() => setShowAddMeal(true)}
+            onAddFoodToMeal={(mealId?: string) => {
+              if (mealId) {
+                setSelectedMealId(mealId);
+              } else {
+                setSelectedMealId(null);
+              }
+              setShowFoodSearch(true);
+            }}
+            onDeleteMeal={onRemoveMeal}
+            onDeleteFood={onRemoveFood}
+            onToggleWaterGlass={onToggleWaterGlass}
+            waterReadOnly
+          />
+        </>
       ) : (
         <div className="py-12 text-center">
           <Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />

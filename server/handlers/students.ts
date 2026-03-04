@@ -955,7 +955,7 @@ async function getAllStudentDataForUser({
             targetProtein: profile?.targetProtein || 150,
             targetCarbs: profile?.targetCarbs || 250,
             targetFats: profile?.targetFats || 65,
-            targetWater: 2000,
+            targetWater: profile?.targetWater ?? 3000,
           };
         } else {
           result.dailyNutrition = {
@@ -970,7 +970,7 @@ async function getAllStudentDataForUser({
             targetProtein: profile?.targetProtein || 150,
             targetCarbs: profile?.targetCarbs || 250,
             targetFats: profile?.targetFats || 65,
-            targetWater: 2000,
+            targetWater: profile?.targetWater ?? 3000,
           };
         }
       } catch (error) {
@@ -988,7 +988,7 @@ async function getAllStudentDataForUser({
             targetProtein: 150,
             targetCarbs: 250,
             targetFats: 65,
-            targetWater: 2000,
+            targetWater: profile?.targetWater ?? 3000,
           };
         }
       }
@@ -1377,7 +1377,7 @@ function getNeutralData() {
       targetProtein: 150,
       targetCarbs: 250,
       targetFats: 65,
-      targetWater: 2000,
+      targetWater: profile?.targetWater ?? 3000,
     },
     foodDatabase: [],
     subscription: null,

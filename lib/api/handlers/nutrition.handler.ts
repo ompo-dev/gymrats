@@ -69,6 +69,7 @@ export async function getDailyNutritionHandler(
         targetProtein: true,
         targetCarbs: true,
         targetFats: true,
+        targetWater: true,
       },
     });
 
@@ -113,7 +114,7 @@ export async function getDailyNutritionHandler(
           targetProtein: profile?.targetProtein || 150,
           targetCarbs: profile?.targetCarbs || 250,
           targetFats: profile?.targetFats || 65,
-          targetWater: 3000,
+          targetWater: profile?.targetWater ?? 3000,
         });
       }
       throw error;
@@ -133,7 +134,7 @@ export async function getDailyNutritionHandler(
         targetProtein: profile?.targetProtein || 150,
         targetCarbs: profile?.targetCarbs || 250,
         targetFats: profile?.targetFats || 65,
-        targetWater: 3000,
+      targetWater: profile?.targetWater ?? 3000,
       });
     }
 
@@ -198,7 +199,7 @@ export async function getDailyNutritionHandler(
       targetProtein: profile?.targetProtein || 150,
       targetCarbs: profile?.targetCarbs || 250,
       targetFats: profile?.targetFats || 65,
-      targetWater: 3000,
+      targetWater: profile?.targetWater ?? 3000,
     });
   } catch (error) {
     console.error("[getDailyNutritionHandler] Erro:", error);
@@ -229,7 +230,7 @@ export async function updateDailyNutritionHandler(
       return validation.response;
     }
 
-    const { date, meals, waterIntake } = validation.data;
+    const { date, meals, waterIntake, targetWater } = validation.data;
 
     let dateKey: string;
     try {
@@ -242,6 +243,21 @@ export async function updateDailyNutritionHandler(
       getBrazilNutritionDayRange(dateKey);
 
     try {
+      if (targetWater !== undefined) {
+        await db.studentProfile.upsert({
+          where: { studentId },
+          create: { studentId, targetWater },
+          update: { targetWater },
+        });
+      }
+
+      const hasNutritionPayload =
+        meals !== undefined || waterIntake !== undefined || date !== undefined;
+
+      if (!hasNutritionPayload) {
+        return successResponse({ message: "Meta de água atualizada com sucesso" });
+      }
+
       // Buscar ou criar daily nutrition
       let dailyNutrition = await db.dailyNutrition.findFirst({
         where: {

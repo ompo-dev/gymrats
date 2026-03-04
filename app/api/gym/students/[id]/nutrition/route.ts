@@ -61,6 +61,7 @@ export async function GET(
         targetProtein: true,
         targetCarbs: true,
         targetFats: true,
+        targetWater: true,
       },
     });
 
@@ -100,7 +101,7 @@ export async function GET(
           targetProtein: profile?.targetProtein || 150,
           targetCarbs: profile?.targetCarbs || 250,
           targetFats: profile?.targetFats || 65,
-          targetWater: 3000,
+          targetWater: profile?.targetWater ?? 3000,
         });
       }
       throw error;
@@ -119,7 +120,7 @@ export async function GET(
         targetProtein: profile?.targetProtein || 150,
         targetCarbs: profile?.targetCarbs || 250,
         targetFats: profile?.targetFats || 65,
-        targetWater: 3000,
+        targetWater: profile?.targetWater ?? 3000,
       });
     }
 
@@ -182,7 +183,7 @@ export async function GET(
       targetProtein: profile?.targetProtein || 150,
       targetCarbs: profile?.targetCarbs || 250,
       targetFats: profile?.targetFats || 65,
-      targetWater: 3000,
+      targetWater: profile?.targetWater ?? 3000,
     });
   } catch (error) {
     console.error("[gym/students/[id]/nutrition] Erro:", error);
@@ -220,7 +221,21 @@ export async function POST(
       return validation.response;
     }
 
-    const { date, meals, waterIntake } = validation.data;
+    const { date, meals, targetWater } = validation.data;
+
+    if (targetWater !== undefined) {
+      await db.studentProfile.upsert({
+        where: { studentId },
+        create: { studentId, targetWater },
+        update: { targetWater },
+      });
+    }
+
+    const hasNutritionPayload = meals !== undefined || date !== undefined;
+
+    if (!hasNutritionPayload) {
+      return successResponse({ message: "Meta de água atualizada com sucesso" });
+    }
 
     let dateKey: string;
     try {
@@ -247,13 +262,8 @@ export async function POST(
         data: {
           studentId,
           date: startOfDay,
-          waterIntake: waterIntake || 0,
+          waterIntake: 0,
         },
-      });
-    } else if (waterIntake !== undefined) {
-      dailyNutrition = await db.dailyNutrition.update({
-        where: { id: dailyNutrition.id },
-        data: { waterIntake: waterIntake },
       });
     }
 

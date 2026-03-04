@@ -116,9 +116,9 @@ export function useGymStudentDetail({
       targetProtein: profile?.targetProtein ?? 150,
       targetCarbs: profile?.targetCarbs ?? 250,
       targetFats: profile?.targetFats ?? 65,
-      targetWater: 3000,
+      targetWater: dailyNutrition?.targetWater ?? profile?.targetWater ?? 3000,
     };
-  }, [student?.profile]);
+  }, [student?.profile, dailyNutrition?.targetWater]);
 
   const calculateTotalsFromCompletedMeals = useCallback((meals: Meal[]) => {
     const completedMeals = meals.filter((meal) => meal.completed === true);
@@ -167,6 +167,26 @@ export function useGymStudentDetail({
       }
     },
     [student?.id, nutritionDate, calculateTotalsFromCompletedMeals, getTargets],
+  );
+
+  const updateTargetWater = useCallback(
+    async (targetWater: number) => {
+      if (!student?.id) return;
+      const normalized = Math.max(0, Math.round(targetWater));
+      try {
+        await fetch(`/api/gym/students/${student.id}/nutrition`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetWater: normalized }),
+        });
+        setDailyNutrition((prev) =>
+          prev ? { ...prev, targetWater: normalized } : prev,
+        );
+      } catch (error) {
+        console.error("[GymStudentDetail] Erro ao salvar meta de água:", error);
+      }
+    },
+    [student?.id],
   );
 
   const applyNutrition = useCallback(
@@ -406,6 +426,7 @@ export function useGymStudentDetail({
     handleAddMealSubmit,
     handleAddFood,
     applyNutrition,
+    updateTargetWater,
     removeMeal,
     removeFoodFromMeal,
     handleToggleWaterGlass,

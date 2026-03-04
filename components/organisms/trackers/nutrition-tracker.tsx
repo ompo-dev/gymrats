@@ -30,6 +30,8 @@ export interface NutritionTrackerProps {
   onToggleWaterGlass?: (index: number) => void;
   /** Modo somente leitura: oculta botões de adicionar/editar/excluir */
   readOnly?: boolean;
+  /** Bloqueia apenas a edição da hidratação */
+  waterReadOnly?: boolean;
 }
 
 function NutritionTrackerSimple({
@@ -41,6 +43,7 @@ function NutritionTrackerSimple({
   onDeleteFood,
   onToggleWaterGlass,
   readOnly = false,
+  waterReadOnly = false,
 }: NutritionTrackerProps) {
   const [expandedFoodId, setExpandedFoodId] = useState<string | null>(null);
 
@@ -69,8 +72,9 @@ function NutritionTrackerSimple({
     [nutrition.waterIntake],
   );
 
+  const isWaterReadOnly = readOnly || waterReadOnly;
   const handleToggleWaterGlass = (index: number) => {
-    if (!readOnly && onToggleWaterGlass) {
+    if (!isWaterReadOnly && onToggleWaterGlass) {
       onToggleWaterGlass(index);
     }
   };
@@ -137,7 +141,7 @@ function NutritionTrackerSimple({
               A água é essencial para seu desempenho e recuperação. Comece
               registrando seu primeiro copo de água.
             </p>
-            {!readOnly && (
+            {!isWaterReadOnly && (
               <DuoButton
                 onClick={() => handleToggleWaterGlass(0)}
                 variant="primary"
@@ -155,7 +159,7 @@ function NutritionTrackerSimple({
           target={nutrition.targetWater}
           glasses={waterGlasses}
           onToggleGlass={handleToggleWaterGlass}
-          readOnly={readOnly}
+          readOnly={isWaterReadOnly}
         />
       )}
 

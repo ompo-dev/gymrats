@@ -276,6 +276,7 @@ export class StudentDomainService {
       targetProtein: data.targetProtein,
       targetCarbs: data.targetCarbs,
       targetFats: data.targetFats,
+      targetWater: data.targetWater,
       mealsPerDay: data.mealsPerDay,
       bmr: data.bmr,
       tdee: data.tdee,
@@ -598,6 +599,7 @@ export class StudentDomainService {
         targetProtein: true,
         targetCarbs: true,
         targetFats: true,
+        targetWater: true,
       },
     });
 
@@ -628,7 +630,7 @@ export class StudentDomainService {
         targetProtein: profile?.targetProtein || 150,
         targetCarbs: profile?.targetCarbs || 250,
         targetFats: profile?.targetFats || 65,
-        targetWater: 2000,
+        targetWater: profile?.targetWater ?? 3000,
       };
     }
 
@@ -644,7 +646,7 @@ export class StudentDomainService {
       targetProtein: profile?.targetProtein || 150,
       targetCarbs: profile?.targetCarbs || 250,
       targetFats: profile?.targetFats || 65,
-      targetWater: 2000,
+      targetWater: profile?.targetWater ?? 3000,
     };
   }
 

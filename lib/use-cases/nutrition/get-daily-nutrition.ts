@@ -66,6 +66,7 @@ export async function getDailyNutritionUseCase(
         targetProtein: true,
         targetCarbs: true,
         targetFats: true,
+        targetWater: true,
       },
     }),
     db.dailyNutrition.findFirst({
@@ -84,7 +85,7 @@ export async function getDailyNutritionUseCase(
     targetProtein: profile?.targetProtein ?? 150,
     targetCarbs: profile?.targetCarbs ?? 250,
     targetFats: profile?.targetFats ?? 65,
-    targetWater: 2000,
+    targetWater: profile?.targetWater ?? 3000,
   };
 
   if (!dailyNutrition) {

@@ -42,6 +42,7 @@ export const updateStudentProfileSchema = z.object({
   targetProtein: z.number().positive().optional().nullable(),
   targetCarbs: z.number().positive().optional().nullable(),
   targetFats: z.number().positive().optional().nullable(),
+  targetWater: z.number().int().positive().optional().nullable(),
   mealsPerDay: z.number().int().positive().optional().nullable(),
   // Valores metabólicos calculados
   bmr: z.number().positive().optional().nullable(),

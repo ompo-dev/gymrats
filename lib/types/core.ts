@@ -415,6 +415,7 @@ export interface UserProfile {
   targetProtein?: number;
   targetCarbs?: number;
   targetFats?: number;
+  targetWater?: number;
   mealsPerDay?: number;
 }
 

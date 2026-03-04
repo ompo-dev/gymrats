@@ -76,6 +76,7 @@ export interface StudentProfileData {
   targetProtein?: number;
   targetCarbs?: number;
   targetFats?: number;
+  targetWater?: number;
   mealsPerDay?: number;
   hasWeightLossGoal?: boolean;
   // Horas disponíveis por dia para treino (para planejamento de treino mensal)
@@ -288,7 +289,7 @@ export const initialStudentData: StudentData = {
     targetProtein: 150,
     targetCarbs: 250,
     targetFats: 65,
-    targetWater: 2000,
+    targetWater: 3000,
   },
   foodDatabase: [],
   subscription: null,
