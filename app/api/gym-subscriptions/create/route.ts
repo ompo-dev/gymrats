@@ -5,6 +5,7 @@ import {
 } from "@/lib/access-control/plans-config";
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { ReferralService } from "@/lib/services/referral.service";
 import { db } from "@/lib/db";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 
@@ -18,9 +19,14 @@ export const POST = createSafeHandler(
       );
     }
 
-    const { plan = "basic", billingPeriod = "monthly" } = body as {
+    const {
+      plan = "basic",
+      billingPeriod = "monthly",
+      referralCode,
+    } = body as {
       plan?: string;
       billingPeriod?: string;
+      referralCode?: string;
     };
     const safePlan = plan as string;
     const safeBillingPeriod = billingPeriod as "monthly" | "annual";
@@ -84,12 +90,25 @@ export const POST = createSafeHandler(
       subscriptionId = created.id;
     }
 
+    let referralCodeInvalid = false;
+    if (referralCode) {
+      const resolved = await ReferralService.resolveReferral(
+        referralCode.startsWith("@") ? referralCode : `@${referralCode}`,
+        "GYM",
+        gymId,
+      );
+      if (!resolved) {
+        referralCodeInvalid = true;
+      }
+    }
+
     const pix = await createGymSubscriptionPix(
       gymId,
       safePlan as "basic" | "premium" | "enterprise",
       activeStudents,
       safeBillingPeriod,
       subscriptionId!,
+      { referralCode: referralCode || null },
     );
 
     if (!pix || !pix.id) {
@@ -111,6 +130,7 @@ export const POST = createSafeHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });
   },
   {

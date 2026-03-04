@@ -121,13 +121,22 @@ function transformSectionResponse(
           d.personalRecords ||
           []) as StudentData["personalRecords"],
       };
-    case "subscription":
-      if (d && typeof d === "object" && "success" in d)
-        return {
-          subscription: (d as { subscription: StudentData["subscription"] })
-            .subscription as StudentData["subscription"],
+    case "subscription": {
+      if (d && typeof d === "object" && "success" in d) {
+        const payload = d as {
+          subscription?: StudentData["subscription"] | null;
+          isFirstPayment?: boolean;
         };
+        const sub = payload.subscription;
+        const isFirstPayment = payload.isFirstPayment ?? true;
+        return {
+          subscription: sub
+            ? ({ ...sub, isFirstPayment } as StudentData["subscription"])
+            : null,
+        };
+      }
       return { subscription: (d as StudentData["subscription"]) || null };
+    }
     case "memberships":
       return {
         memberships: Array.isArray(d) ? d : d.memberships || [],

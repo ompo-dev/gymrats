@@ -142,33 +142,7 @@ export class ReferralService {
       },
     });
 
-    // Tentar fazer auto-withdraw se o aluno tiver PIX cadastrado
-    const referrer = await db.student.findUnique({
-      where: { id: referral.referrerStudentId },
-      select: { id: true, pixKey: true, pixKeyType: true },
-    });
-
-    if (referrer && referrer.pixKey && referrer.pixKeyType) {
-      try {
-        console.log(
-          `[ReferralService] Iniciando auto-withdraw da comissão para o referrer ${referrer.id}...`,
-        );
-        await ReferralService.createWithdraw(referrer.id, {
-          amountCents: commissionCents,
-          // usa modo fake no DEV
-          fake: process.env.NODE_ENV !== "production",
-        });
-        console.log(
-          `[ReferralService] Auto-withdraw concluído com sucesso para o referrer ${referrer.id}.`,
-        );
-      } catch (err) {
-        console.error(
-          `[ReferralService] Falha no auto-withdraw para ${referrer.id}:`,
-          err,
-        );
-      }
-    }
-
+    // Comissão fica como saldo disponível para saque manual (não auto-withdraw)
     return updatedReferral;
   }
 

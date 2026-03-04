@@ -4,8 +4,6 @@
  */
 
 import { db } from "@/lib/db";
-import { ReferralService } from "@/lib/services/referral.service";
-import { cookies } from "next/headers";
 
 export type EnsureRoleResult =
   | { ok: true; studentId?: string; gymId?: string }
@@ -28,17 +26,6 @@ export async function ensureStudentRole(
       student = await db.student.create({
         data: { userId },
       });
-    }
-
-    // Tenta resolver indicação se houver cookie
-    try {
-      const cookieStore = await cookies();
-      const refCode = cookieStore.get("gymrats_referral")?.value;
-      if (refCode) {
-        await ReferralService.resolveReferral(refCode, "STUDENT", student.id);
-      }
-    } catch {
-      // Ignora erro de cookie/referral
     }
 
     return { ok: true, studentId: student.id };
@@ -76,17 +63,6 @@ export async function ensureGymRole(
           email: updatedUser.email || userEmail,
         },
       });
-    }
-
-    // Tenta resolver indicação se houver cookie
-    try {
-      const cookieStore = await cookies();
-      const refCode = cookieStore.get("gymrats_referral")?.value;
-      if (refCode) {
-        await ReferralService.resolveReferral(refCode, "GYM", gym.id);
-      }
-    } catch {
-      // Ignora erro de cookie/referral
     }
 
     return { ok: true, gymId: gym.id };

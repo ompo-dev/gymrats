@@ -140,13 +140,14 @@ export async function createGymSubscriptionHandler(
 
     const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
 
-    // Criar billing PIX AbacatePay primeiro
+    // Criar billing PIX AbacatePay primeiro (com 5% desconto se referralCode válido)
     const pix = await createGymSubscriptionPix(
       gymId,
       plan as "basic" | "premium" | "enterprise",
       activeStudents,
       billingPeriod,
       subscriptionToUseId,
+      { referralCode: referralCode || null },
     );
 
     if (!pix || !pix.id) {

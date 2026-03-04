@@ -322,11 +322,14 @@ export async function createStudentSubscriptionBilling(
  * Cria cobrança PIX para assinatura de estudante via pixQrCode.
  * Não cria produtos na AbacatePay - valor dinâmico.
  */
+const REFERRAL_DISCOUNT_PERCENT = 0.05; // 5% de desconto para indicados
+
 export async function createStudentSubscriptionPix(
   studentId: string,
   planType: "premium" | "pro",
   billingPeriod: "monthly" | "annual",
   subscriptionId: string,
+  options?: { referralCode?: string | null },
 ): Promise<GymSubscriptionPixResponse | null> {
   const student = await db.student.findUnique({
     where: { id: studentId },
@@ -342,7 +345,18 @@ export async function createStudentSubscriptionPix(
     throw new Error(`Plano inválido: ${planType}`);
   }
 
-  const selectedPrice = config.prices[billingPeriod];
+  let selectedPrice = config.prices[billingPeriod];
+  if (options?.referralCode) {
+    const referrer = await db.student.findUnique({
+      where: {
+        referralCode:
+          options.referralCode.startsWith("@") ? options.referralCode : `@${options.referralCode}`,
+      },
+    });
+    if (referrer && referrer.id !== studentId) {
+      selectedPrice = Math.floor(selectedPrice * (1 - REFERRAL_DISCOUNT_PERCENT));
+    }
+  }
   const planName = planType.charAt(0).toUpperCase() + planType.slice(1);
   const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
   const description = `GymRats ${planName} ${periodLabel}`.slice(0, 37);
@@ -509,6 +523,7 @@ export async function createGymSubscriptionPix(
   studentCount: number,
   billingPeriod: "monthly" | "annual" = "monthly",
   subscriptionId: string,
+  options?: { referralCode?: string | null },
 ): Promise<GymSubscriptionPixResponse | null> {
   const gym = await db.gym.findUnique({
     where: { id: gymId },
@@ -529,10 +544,22 @@ export async function createGymSubscriptionPix(
   const perStudentPrice =
     billingPeriod === "annual" ? 0 : config.pricePerStudent;
 
-  const totalAmount =
+  let totalAmount =
     billingPeriod === "annual"
       ? basePrice
       : basePrice + perStudentPrice * studentCount;
+
+  if (options?.referralCode) {
+    const referrer = await db.student.findUnique({
+      where: {
+        referralCode:
+          options.referralCode.startsWith("@") ? options.referralCode : `@${options.referralCode}`,
+      },
+    });
+    if (referrer) {
+      totalAmount = Math.floor(totalAmount * (1 - REFERRAL_DISCOUNT_PERCENT));
+    }
+  }
 
   const planName = plan.charAt(0).toUpperCase() + plan.slice(1);
   const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";

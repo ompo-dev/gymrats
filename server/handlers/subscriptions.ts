@@ -6,10 +6,12 @@ import {
 import {
   activatePremiumUseCase,
   cancelSubscriptionUseCase,
-  createSubscriptionUseCase,
   getCurrentSubscriptionUseCase,
   startTrialUseCase,
 } from "@/lib/use-cases/subscriptions";
+import { ReferralService } from "@/lib/services/referral.service";
+import { createStudentSubscriptionPix } from "@/lib/utils/subscription";
+import { db } from "@/lib/db";
 import {
   badRequestResponse,
   internalErrorResponse,
@@ -31,7 +33,10 @@ export async function getCurrentSubscriptionHandler({
 }: SubscriptionContext) {
   try {
     const result = await getCurrentSubscriptionUseCase(studentId);
-    return successResponse(set, result);
+    const sub = result.subscription;
+    // Primeira vez = nunca pagou (trial não conta; status active de pagamento próprio = já pagou)
+    const isFirstPayment = !sub || sub.status !== "active" || (sub as { source?: string }).source === "GYM_ENTERPRISE";
+    return successResponse(set, { ...result, isFirstPayment });
   } catch (error) {
     console.error("[getCurrentSubscriptionHandler] Erro:", error);
     return internalErrorResponse(set, "Erro ao buscar assinatura", error);
@@ -56,12 +61,82 @@ export async function createSubscriptionHandler({
       );
     }
 
-    const { plan } = validation.data;
-    const result = await createSubscriptionUseCase({
-      studentId,
-      plan: plan as "monthly" | "annual",
+    const { plan, referralCode } = validation.data;
+
+    if (referralCode) {
+      try {
+        const normalized = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
+        await ReferralService.resolveReferral(normalized, "STUDENT", studentId);
+      } catch {
+        /* silencioso */
+      }
+    }
+
+    const existingSubscription = await db.subscription.findUnique({
+      where: { studentId },
     });
-    return successResponse(set, result);
+
+    const now = new Date();
+    const periodEnd = new Date(now);
+    if (plan === "annual") {
+      periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    } else {
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+    }
+
+    let subscriptionId: string;
+    const planLabel = plan === "annual" ? "Premium Anual" : "Premium Mensal";
+
+    if (existingSubscription) {
+      await db.subscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          plan: planLabel,
+          billingPeriod: plan,
+          status: "pending_payment",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          canceledAt: null,
+          cancelAtPeriodEnd: false,
+        },
+      });
+      subscriptionId = existingSubscription.id;
+    } else {
+      const created = await db.subscription.create({
+        data: {
+          studentId,
+          plan: planLabel,
+          billingPeriod: plan,
+          status: "pending_payment",
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+        },
+      });
+      subscriptionId = created.id;
+    }
+    const pix = await createStudentSubscriptionPix(
+      studentId,
+      "premium",
+      plan,
+      subscriptionId,
+      { referralCode: referralCode || null },
+    );
+
+    if (!pix || !pix.brCode) {
+      throw new Error("Erro ao criar cobrança PIX: resposta inválida da AbacatePay");
+    }
+
+    await db.subscription.update({
+      where: { id: subscriptionId },
+      data: { abacatePayBillingId: pix.id },
+    });
+
+    return successResponse(set, {
+      pixId: pix.id,
+      brCode: pix.brCode,
+      brCodeBase64: pix.brCodeBase64,
+      amount: pix.amount,
+    });
   } catch (error) {
     console.error("[createSubscriptionHandler] Erro:", error);
     return internalErrorResponse(set, "Erro ao criar assinatura", error);

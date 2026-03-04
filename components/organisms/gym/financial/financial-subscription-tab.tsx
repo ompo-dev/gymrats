@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixPaymentModal } from "./pix-payment-modal";
+import { ReferralPixModal } from "./referral-pix-modal";
 
 interface FinancialSubscriptionTabProps {
   subscription?: {
@@ -101,6 +102,20 @@ export function FinancialSubscriptionTab({
     brCodeBase64: string;
     amount: number;
   } | null>(null);
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [referralPixData, setReferralPixData] = useState<{
+    pixId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    referralCodeInvalid?: boolean;
+  } | null>(null);
+  const [selectedPlanForReferral, setSelectedPlanForReferral] = useState<
+    "basic" | "premium" | "enterprise"
+  >("premium");
+  const [selectedBillingForReferral, setSelectedBillingForReferral] = useState<
+    "monthly" | "annual"
+  >("monthly");
 
   const {
     subscription: subscriptionData,
@@ -193,29 +208,48 @@ export function FinancialSubscriptionTab({
     }
   };
 
+  const isFirstPayment =
+    (subscriptionData as { isFirstPayment?: boolean } | undefined)?.isFirstPayment ?? true;
+
   const handleSubscribe = async (
     plan: string,
     billingPeriod: "monthly" | "annual",
   ) => {
+    const planKey = plan as "basic" | "premium" | "enterprise";
+    const billingKey = billingPeriod as "monthly" | "annual";
+
+    if (isFirstPayment) {
+      setSelectedPlanForReferral(planKey);
+      setSelectedBillingForReferral(billingKey);
+      setReferralPixData(null);
+      setReferralModalOpen(true);
+      return;
+    }
+
+    await doCreateSubscription(planKey, billingKey, null);
+  };
+
+  const doCreateSubscription = async (
+    plan: "basic" | "premium" | "enterprise",
+    billingPeriod: "monthly" | "annual",
+    referralCode: string | null,
+  ) => {
     try {
-      const result = await createSubscription(
-        plan as "basic" | "premium" | "enterprise",
-        billingPeriod,
-      );
+      const result = await createSubscription(plan, billingPeriod, referralCode);
       if (result.error) {
         toast({
           variant: "destructive",
           title: "Erro ao criar assinatura",
           description: result.error,
         });
-        return;
+        return null;
       }
-      // Gym usa PIX inline (valor dinâmico, sem produtos)
       const pix = result as {
         pixId?: string;
         brCode?: string;
         brCodeBase64?: string;
         amount?: number;
+        referralCodeInvalid?: boolean;
       };
       if (pix.pixId && pix.brCode) {
         await refetchSubscription();
@@ -224,10 +258,11 @@ export function FinancialSubscriptionTab({
           brCode: pix.brCode,
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
+          referralCodeInvalid: pix.referralCodeInvalid,
         };
-        setPendingPix(pixData);
-        savePendingPixToStorage(pixData);
+        return pixData;
       }
+      return null;
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : "Erro ao criar cobrança";
@@ -236,6 +271,7 @@ export function FinancialSubscriptionTab({
         title: "Erro ao criar cobrança",
         description: msg,
       });
+      return null;
     }
   };
 
@@ -332,7 +368,58 @@ export function FinancialSubscriptionTab({
           nextRenewal: "Próxima renovação",
         }}
       />
-      {pendingPix && (
+      {referralModalOpen && (
+        <ReferralPixModal
+          isOpen={referralModalOpen}
+          onClose={() => {
+            setReferralModalOpen(false);
+            if (referralPixData) {
+              toast({
+                title: "PIX salvo",
+                description:
+                  "Volte aqui para ver o PIX novamente ou verificar se o pagamento foi confirmado.",
+              });
+            }
+            setReferralPixData(null);
+          }}
+          planName={
+            GYM_PLANS_CONFIG[
+              selectedPlanForReferral.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
+            ]?.name ?? selectedPlanForReferral
+          }
+          amountReais={
+            (GYM_PLANS_CONFIG[
+              selectedPlanForReferral.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
+            ]?.prices[selectedBillingForReferral] ?? 0) / 100
+          }
+          isFirstPayment={isFirstPayment}
+          onGeneratePix={async (refCode) => {
+            const pixData = await doCreateSubscription(
+              selectedPlanForReferral,
+              selectedBillingForReferral,
+              refCode,
+            );
+            if (pixData) {
+              setReferralPixData(pixData);
+              savePendingPixToStorage(pixData);
+              return pixData;
+            }
+            return null;
+          }}
+          isLoading={isCreatingSubscription}
+          pixData={referralPixData}
+          refetchSubscription={refetchSubscription}
+          subscriptionStatus={subscription?.status}
+          onPaymentConfirmed={() => {
+            clearPendingPixStorage();
+            refetchSubscription();
+            setReferralModalOpen(false);
+            setReferralPixData(null);
+            useGymsDataStore.getState().loadAllGyms();
+          }}
+        />
+      )}
+      {pendingPix && !referralModalOpen && (
         <PixPaymentModal
           isOpen={!!pendingPix}
           onClose={() => {

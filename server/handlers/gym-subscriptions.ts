@@ -5,7 +5,8 @@ import {
   centsToReais,
 } from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
-import { createGymSubscriptionBilling } from "@/lib/utils/subscription";
+import { ReferralService } from "@/lib/services/referral.service";
+import { createGymSubscriptionPix } from "@/lib/utils/subscription";
 import {
   badRequestResponse,
   internalErrorResponse,
@@ -44,7 +45,7 @@ export async function getCurrentGymSubscriptionHandler({
     });
 
     if (!subscription) {
-      return successResponse(set, { subscription: null });
+      return successResponse(set, { subscription: null, isFirstPayment: true });
     }
 
     const now = new Date();
@@ -56,6 +57,9 @@ export async function getCurrentGymSubscriptionHandler({
     if (subscription.status === "canceled" && !isTrialActive) {
       return successResponse(set, { subscription: null });
     }
+
+    // Primeira vez = nunca pagou (trial não conta; status active = já pagou)
+    const isFirstPayment = subscription.status !== "active";
 
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
@@ -95,6 +99,7 @@ export async function getCurrentGymSubscriptionHandler({
             ? subscription.basePrice
             : subscription.basePrice +
               subscription.pricePerStudent * activeStudents,
+        isFirstPayment,
       },
     });
   } catch (error) {
@@ -145,7 +150,7 @@ export async function createGymSubscriptionHandler({
       );
     }
 
-    const { plan, billingPeriod = "monthly" } = validation.data;
+    const { plan, billingPeriod = "monthly", referralCode } = validation.data;
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
     });
@@ -178,14 +183,30 @@ export async function createGymSubscriptionHandler({
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    // Ao assinar, não limpar trialStart/trialEnd: trial só uma vez por academia
+    const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
+
+    const pix = await createGymSubscriptionPix(
+      gymId,
+      plan,
+      activeStudents,
+      billingPeriod,
+      subscriptionToUseId,
+      { referralCode: referralCode || null },
+    );
+
+    if (!pix || !pix.id) {
+      throw new Error(
+        "Erro ao criar cobrança PIX: resposta inválida da AbacatePay",
+      );
+    }
+
     if (existingSubscription) {
       await db.gymSubscription.update({
         where: { id: existingSubscription.id },
         data: {
           plan,
           billingPeriod,
-          status: "active",
+          status: "pending_payment",
           basePrice,
           pricePerStudent,
           pricePerPersonal,
@@ -193,33 +214,40 @@ export async function createGymSubscriptionHandler({
           currentPeriodEnd: periodEnd,
           canceledAt: null,
           cancelAtPeriodEnd: false,
+          abacatePayBillingId: pix.id,
+        },
+      });
+    } else {
+      await db.gymSubscription.create({
+        data: {
+          gymId,
+          plan,
+          billingPeriod,
+          status: "pending_payment",
+          basePrice,
+          pricePerStudent,
+          pricePerPersonal,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          abacatePayBillingId: pix.id,
         },
       });
     }
 
-    const billing = await createGymSubscriptionBilling(
-      gymId,
-      plan,
-      activeStudents,
-      billingPeriod,
-    );
-
-    if (!billing || !billing.id) {
-      throw new Error(
-        "Erro ao criar cobrança: resposta inválida da AbacatePay",
-      );
-    }
-
-    if (existingSubscription) {
-      await db.gymSubscription.update({
-        where: { id: existingSubscription.id },
-        data: { abacatePayBillingId: billing.id },
-      });
+    if (referralCode) {
+      try {
+        const normalized = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
+        await ReferralService.resolveReferral(normalized, "GYM", gymId);
+      } catch {
+        /* silencioso */
+      }
     }
 
     return successResponse(set, {
-      billingUrl: String(billing.url || ""),
-      billingId: String(billing.id || ""),
+      pixId: pix.id,
+      brCode: pix.brCode,
+      brCodeBase64: pix.brCodeBase64,
+      amount: pix.amount,
     });
   } catch (error) {
     console.error("[createGymSubscriptionHandler] Erro:", error);

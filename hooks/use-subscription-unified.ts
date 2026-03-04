@@ -115,15 +115,18 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
       ? "/api/subscriptions/cancel"
       : "/api/gym-subscriptions/cancel";
 
-  const { data, isLoading, error, refetch } = useQuery<SubscriptionData | null>(
-    {
-      queryKey: [queryKey],
-      queryFn: async () => {
-        try {
-          const response = await apiClient.get<{
-            subscription: SubscriptionData | null;
-          }>(currentEndpoint);
-          const sub = response.data.subscription;
+  const { data, isLoading, error, refetch } = useQuery<
+    (SubscriptionData & { isFirstPayment?: boolean }) | null
+  >({
+    queryKey: [queryKey],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get<{
+          subscription: SubscriptionData | null;
+          isFirstPayment?: boolean;
+        }>(currentEndpoint);
+        const sub = response.data.subscription;
+        const isFirstPayment = response.data.isFirstPayment ?? true;
 
           if (!sub) {
             return null;
@@ -167,13 +170,17 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
               ...baseData,
               activeStudents: (sub as GymSubscriptionData).activeStudents || 0,
               totalAmount: (sub as GymSubscriptionData).totalAmount || 0,
-              billingPeriod: billingPeriodFromAPI as "monthly" | "annual", // Garantir que billingPeriod seja preservado
+              billingPeriod: billingPeriodFromAPI as "monthly" | "annual",
+              isFirstPayment,
             };
 
-            return gymData as GymSubscriptionData;
+            return gymData as GymSubscriptionData & { isFirstPayment?: boolean };
           }
 
-          const result = baseData as StudentSubscriptionData;
+          const result = {
+            ...baseData,
+            isFirstPayment,
+          } as StudentSubscriptionData & { isFirstPayment?: boolean };
           return result;
         } catch (_error) {
           return null;
@@ -349,16 +356,14 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
             referralCode?: string;
           },
     ) => {
-      // Adicionar referralCode da URL se não estiver presente nos params
       const finalParams = { ...params };
-      if (!finalParams.referralCode && typeof window !== "undefined") {
-        const urlParams = new URL(window.location.href).searchParams;
-        const ref = urlParams.get("ref");
-        if (ref) finalParams.referralCode = ref;
-      }
 
       const response = await apiClient.post<{
         billingUrl?: string;
+        pixId?: string;
+        brCode?: string;
+        brCodeBase64?: string;
+        amount?: number;
         error?: string;
       }>(createEndpoint, finalParams);
       return response.data;
@@ -439,17 +444,25 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
   });
 
   // Criar funções tipadas separadamente para evitar problemas de inferência
-  const createSubscriptionStudent = async (plan: "monthly" | "annual") => {
-    return await createSubscriptionMutation.mutateAsync({ plan });
+  const createSubscriptionStudent = async (
+    plan: "monthly" | "annual",
+    referralCode?: string | null,
+  ) => {
+    return await createSubscriptionMutation.mutateAsync({
+      plan,
+      referralCode: referralCode || undefined,
+    });
   };
 
   const createSubscriptionGym = async (
     plan: "basic" | "premium" | "enterprise",
     billingPeriod: "monthly" | "annual" = "monthly",
+    referralCode?: string | null,
   ) => {
     return await createSubscriptionMutation.mutateAsync({
       plan,
       billingPeriod,
+      referralCode: referralCode || undefined,
     });
   };
 

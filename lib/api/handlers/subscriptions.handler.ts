@@ -35,7 +35,13 @@ export async function getCurrentSubscriptionHandler(
     }
 
     const subscription = await getStudentSubscription();
-    return successResponse({ subscription });
+    // Primeira vez = nunca pagou (trial não conta; status active de pagamento próprio = já pagou)
+    const sub = subscription as { status?: string; source?: string } | null;
+    const isFirstPayment =
+      !sub ||
+      sub.status !== "active" ||
+      sub.source === "GYM_ENTERPRISE";
+    return successResponse({ subscription, isFirstPayment });
   } catch (error) {
     console.error("[getCurrentSubscriptionHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar assinatura", error);
@@ -90,8 +96,16 @@ export async function createSubscriptionHandler(
 
     const { plan, referralCode } = validation.data;
 
+    let referralCodeInvalid = false;
     if (referralCode) {
-      await ReferralService.resolveReferral(referralCode, "STUDENT", studentId);
+      const resolved = await ReferralService.resolveReferral(
+        referralCode,
+        "STUDENT",
+        studentId,
+      );
+      if (!resolved) {
+        referralCodeInvalid = true;
+      }
     }
 
     // Verificar se existe subscription
@@ -139,6 +153,7 @@ export async function createSubscriptionHandler(
       "premium",
       plan as "monthly" | "annual",
       subscriptionToUseId,
+      { referralCode: referralCode || null },
     );
 
     if (!pix || !pix.brCode) {
@@ -152,6 +167,7 @@ export async function createSubscriptionHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      referralCodeInvalid: referralCodeInvalid || undefined,
     });
   } catch (error) {
     console.error("[createSubscriptionHandler] Erro:", error);

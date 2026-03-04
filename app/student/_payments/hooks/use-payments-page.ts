@@ -85,6 +85,20 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     brCodeBase64: string;
     amount: number;
   } | null>(null);
+  const [referralModalOpen, setReferralModalOpen] = useState(false);
+  const [referralPixData, setReferralPixData] = useState<{
+    pixId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    referralCodeInvalid?: boolean;
+  } | null>(null);
+  const [selectedPlanForReferral, setSelectedPlanForReferral] = useState<
+    "premium" | "pro"
+  >("premium");
+  const [selectedBillingForReferral, setSelectedBillingForReferral] = useState<
+    "monthly" | "annual"
+  >("monthly");
   const [_daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
   useEffect(() => {
@@ -413,33 +427,36 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     }
   };
 
-  const handleUpgrade = async (
-    planId: string,
+  const isFirstPayment =
+    (subscription as { isFirstPayment?: boolean } | null | undefined)
+      ?.isFirstPayment ?? true;
+
+  const doCreateSubscription = async (
     billingPeriod: "monthly" | "annual",
+    referralCode: string | null,
   ) => {
     try {
-      // Usa o 'plan' como o billingPeriod da assinatura atual, pq os estudantes assinam sempre Premium
-      const result = await _createSubscription(billingPeriod);
-
+      const result = await _createSubscription(billingPeriod, referralCode);
       const pix = result as {
         pixId?: string;
         brCode?: string;
         brCodeBase64?: string;
         amount?: number;
       };
-
       if (pix.pixId && pix.brCode) {
-        setPixModal({
-          paymentId: pix.pixId,
+        await refetchSubscription();
+        return {
+          pixId: pix.pixId,
           brCode: pix.brCode,
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
-        });
-      } else {
-        throw new Error("Resposta de PIX inválida do servidor.");
+          referralCodeInvalid: (pix as { referralCodeInvalid?: boolean })
+            .referralCodeInvalid,
+        };
       }
+      return null;
     } catch (error) {
-      console.error("[handleUpgrade] Erro:", error);
+      console.error("[doCreateSubscription] Erro:", error);
       const err = error as {
         response?: { data?: { message?: string } };
         message?: string;
@@ -451,6 +468,33 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
           err.response?.data?.message ||
           (err instanceof Error ? err.message : undefined) ||
           "Ocorreu um erro. Tente novamente.",
+      });
+      return null;
+    }
+  };
+
+  const handleUpgrade = async (
+    planId: string,
+    billingPeriod: "monthly" | "annual",
+  ) => {
+    const planKey = (planId === "pro" ? "pro" : "premium") as "premium" | "pro";
+    const billingKey = billingPeriod;
+
+    if (isFirstPayment) {
+      setSelectedPlanForReferral(planKey);
+      setSelectedBillingForReferral(billingKey);
+      setReferralPixData(null);
+      setReferralModalOpen(true);
+      return;
+    }
+
+    const pixData = await doCreateSubscription(billingKey, null);
+    if (pixData) {
+      setPixModal({
+        paymentId: pixData.pixId,
+        brCode: pixData.brCode,
+        brCodeBase64: pixData.brCodeBase64,
+        amount: pixData.amount,
       });
     }
   };
@@ -518,6 +562,17 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     setChangePlanMembershipId,
     pixModal,
     setPixModal,
+
+    // Referral modal (primeira assinatura)
+    referralModalOpen,
+    setReferralModalOpen,
+    referralPixData,
+    setReferralPixData,
+    selectedPlanForReferral,
+    selectedBillingForReferral,
+    isFirstPayment,
+    doCreateSubscription,
+    refetchSubscription,
 
     // Modals
     cancelDialogModal,

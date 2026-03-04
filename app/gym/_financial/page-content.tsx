@@ -19,7 +19,6 @@ import type {
   MembershipPlan,
   Payment,
 } from "@/lib/types";
-import { useReferralTracker } from "@/hooks/use-referral-tracker";
 
 interface FinancialPageProps {
   financialSummary: FinancialSummary;
@@ -75,9 +74,6 @@ export default function FinancialPage({
   campaigns = [],
   plans = [],
 }: FinancialPageProps) {
-  // Captura ?ref= da URL (links de indicação de academia)
-  useReferralTracker();
-
   const [view, setView] = useQueryState(
     "view",
     parseAsString.withDefault("overview"),

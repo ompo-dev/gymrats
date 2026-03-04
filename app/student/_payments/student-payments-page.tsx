@@ -24,7 +24,8 @@ import {
   type UsePaymentsPageProps,
   usePaymentsPage,
 } from "./hooks/use-payments-page";
-import { useReferralTracker } from "@/hooks/use-referral-tracker";
+import { ReferralPixModal } from "@/components/organisms/gym/financial/referral-pix-modal";
+import { STUDENT_PLANS_CONFIG, centsToReais } from "@/lib/access-control/plans-config";
 
 export interface StudentPaymentsPageProps {
   subscription?: {
@@ -46,9 +47,6 @@ export interface StudentPaymentsPageProps {
 }
 
 export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
-  // Captura ?ref= da URL e salva em cookie para rastreio de indicação
-  useReferralTracker();
-
   const {
     activeTab,
     subscription,
@@ -82,6 +80,15 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleStartTrial,
     handleUpgrade,
     handleCancelConfirm,
+    referralModalOpen,
+    setReferralModalOpen,
+    referralPixData,
+    setReferralPixData,
+    selectedPlanForReferral,
+    selectedBillingForReferral,
+    isFirstPayment,
+    doCreateSubscription,
+    refetchSubscription,
   } = usePaymentsPage(props as UsePaymentsPageProps);
 
   const [expandedGymIdMemberships, setExpandedGymIdMemberships] = useState<
@@ -375,6 +382,53 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
           onPaymentConfirmed={handlePixConfirmed}
+        />
+      )}
+
+      {referralModalOpen && (
+        <ReferralPixModal
+          isOpen={referralModalOpen}
+          onClose={() => {
+            setReferralModalOpen(false);
+            setReferralPixData(null);
+          }}
+          planName={
+            STUDENT_PLANS_CONFIG[
+              selectedPlanForReferral.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+            ]?.name ?? selectedPlanForReferral
+          }
+          amountReais={
+            (STUDENT_PLANS_CONFIG[
+              selectedPlanForReferral.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+            ]?.prices[selectedBillingForReferral] ?? 0) / 100
+          }
+          isFirstPayment={isFirstPayment}
+          onGeneratePix={async (refCode) => {
+            const pixData = await doCreateSubscription(
+              selectedBillingForReferral,
+              refCode,
+            );
+            if (pixData) {
+              setReferralPixData(pixData);
+              return pixData;
+            }
+            return null;
+          }}
+          isLoading={isCreatingSubscription}
+          pixData={referralPixData}
+          refetchSubscription={refetchSubscription}
+          subscriptionStatus={subscription?.status}
+          onPaymentConfirmed={() => {
+            refetchSubscription();
+            setReferralModalOpen(false);
+            setReferralPixData(null);
+            handlePixConfirmed();
+          }}
+          simulatePixUrl={
+            referralPixData
+              ? `/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(referralPixData.pixId)}`
+              : undefined
+          }
         />
       )}
     </div>
