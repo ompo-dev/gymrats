@@ -18,6 +18,11 @@ import {
 } from "@/components/duo";
 import type { ReferralData } from "../hooks/use-student-referral";
 import { useStudentReferral } from "../hooks/use-student-referral";
+import {
+  formatCurrencyBR,
+  formatCurrencyInput,
+  parseCurrencyBR,
+} from "@/lib/utils/currency";
 
 interface ReferralCodeSectionProps {
   referralCode: string;
@@ -32,7 +37,9 @@ function ReferralCodeSection({
 }: ReferralCodeSectionProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
-      <h2 className="text-xl font-bold text-duo-fg mb-1">Seu código de indicação</h2>
+      <h2 className="text-xl font-bold text-duo-fg mb-1">
+        Seu código de indicação
+      </h2>
       <p className="text-sm text-duo-gray-dark mb-4">
         Compartilhe seu código com amigos ou academias. Quando alguém usar no
         momento do pagamento da primeira assinatura (no modal PIX), você ganha{" "}
@@ -76,14 +83,14 @@ function ReferralStatsSection({ data }: ReferralStatsSectionProps) {
     <DuoStatsGrid.Root columns={2}>
       <DuoStatCard.Simple
         icon={Wallet}
-        value={`R$ ${(data?.balanceReais ?? 0).toFixed(2)}`}
+        value={formatCurrencyBR(data?.balanceReais ?? 0)}
         label="Saldo Disponível"
         iconColor="var(--duo-primary)"
       />
       <DuoStatCard.Simple
         icon={DollarSign}
-        value={`R$ ${((data?.totalEarnedCents ?? 0) / 100).toFixed(2)}`}
-        label="Total Ganho Histórico"
+        value={formatCurrencyBR((data?.totalEarnedCents ?? 0) / 100)}
+        label="Ganho Total"
         iconColor="var(--duo-success)"
       />
     </DuoStatsGrid.Root>
@@ -163,9 +170,9 @@ function WithdrawSection({
   onWithdraw,
 }: WithdrawSectionProps) {
   const balance = data?.balanceReais ?? 0;
-  const amountNum = parseFloat(withdrawAmount);
+  const amountNum = parseCurrencyBR(withdrawAmount);
   const isValid =
-    !isNaN(amountNum) &&
+    !Number.isNaN(amountNum) &&
     amountNum >= 3.5 &&
     amountNum <= balance;
 
@@ -181,14 +188,19 @@ function WithdrawSection({
         </p>
 
         <DuoInput.Simple
-          label="Valor do Saque (R$)"
-          type="number"
-          step={0.01}
-          min={3.5}
+          label="Valor do Saque"
+          type="text"
+          inputMode="decimal"
           value={withdrawAmount}
-          placeholder="Mín. 3.50"
-          onChange={(e) => setWithdrawAmount(e.target.value)}
+          placeholder="R$ 0,00"
+          onChange={(e) =>
+            setWithdrawAmount(formatCurrencyInput(e.target.value))
+          }
         />
+
+        <p className="text-xs text-duo-gray-dark">
+          Disponível: {formatCurrencyBR(balance)} • Mín. R$ 3,50
+        </p>
 
         <DuoButton
           onClick={onWithdraw}
@@ -227,7 +239,7 @@ function WithdrawHistorySection({ withdraws }: WithdrawHistorySectionProps) {
             >
               <div>
                 <div className="font-bold text-sm text-duo-fg">
-                  Saque R$ {w.amount.toFixed(2)}
+                  Saque {formatCurrencyBR(w.amount)}
                 </div>
                 <div className="text-xs text-duo-gray-dark mt-0.5">
                   {new Date(w.createdAt).toLocaleDateString("pt-BR", {

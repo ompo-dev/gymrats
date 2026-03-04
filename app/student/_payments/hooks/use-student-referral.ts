@@ -1,8 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { z } from "zod";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { parseCurrencyBR } from "@/lib/utils/currency";
+
+const withdrawAmountSchema = (balanceReais: number) =>
+  z
+    .string()
+    .min(1, "Informe o valor")
+    .transform(parseCurrencyBR)
+    .refine((n) => !Number.isNaN(n), "Valor inválido")
+    .refine((n) => n >= 3.5, "Valor mínimo: R$ 3,50")
+    .refine((n) => n <= balanceReais, "Saldo insuficiente");
 
 export interface ReferralData {
   referralCode: string;
@@ -92,15 +103,17 @@ export function useStudentReferral() {
   }, [pixKey, pixKeyType, toast]);
 
   const handleWithdraw = useCallback(async () => {
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount < 3.5) {
+    const balanceReais = data?.balanceReais ?? 0;
+    const parsed = withdrawAmountSchema(balanceReais).safeParse(withdrawAmount);
+    if (!parsed.success) {
       toast({
         variant: "destructive",
         title: "Valor inválido",
-        description: "O valor mínimo para saque é de R$ 3,50.",
+        description: parsed.error.errors[0]?.message ?? "Verifique o valor.",
       });
       return;
     }
+    const amount = parsed.data;
 
     try {
       setIsWithdrawing(true);
