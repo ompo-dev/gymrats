@@ -434,7 +434,11 @@ export function FinancialSubscriptionTab({
           brCodeBase64={pendingPix.brCodeBase64}
           amount={pendingPix.amount}
           simulatePixUrl={`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pendingPix.pixId)}`}
-          onSimulateSuccess={refetchSubscription}
+          onSimulateSuccess={
+            refetchSubscription
+              ? () => refetchSubscription().then(() => undefined)
+              : undefined
+          }
           pollConfig={{
             type: "subscription",
             refetch: refetchSubscription,

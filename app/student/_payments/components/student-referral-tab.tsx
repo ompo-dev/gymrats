@@ -8,132 +8,284 @@ import {
   Send,
   CheckCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
   DuoCard,
   DuoStatCard,
   DuoStatsGrid,
   DuoButton,
+  DuoInput,
+  DuoSelect,
 } from "@/components/duo";
-import { apiClient } from "@/lib/api/client";
-import { useToast } from "@/hooks/use-toast";
+import type { ReferralData } from "../hooks/use-student-referral";
+import { useStudentReferral } from "../hooks/use-student-referral";
 
-interface ReferralData {
-  referralCode: string;
-  pixKey: string | null;
-  pixKeyType: string | null;
-  balanceReais: number;
-  balanceCents: number;
-  totalEarnedCents: number;
-  withdraws: {
-    id: string;
-    amount: number;
-    status: string;
-    createdAt: Date;
-    completedAt: Date | null;
-  }[];
+interface ReferralLinkSectionProps {
+  refSlug: string;
+  getReferralLink: () => string;
+  copyLink: () => void;
+  copied: boolean;
 }
 
+function ReferralLinkSection({
+  refSlug,
+  getReferralLink,
+  copyLink,
+  copied,
+}: ReferralLinkSectionProps) {
+  return (
+    <DuoCard.Root variant="default" padding="md">
+      <h2 className="text-xl font-bold text-duo-fg mb-1">Seu Link de Indicação</h2>
+      <p className="text-sm text-duo-gray-dark mb-4">
+        Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia e
+        redireciona automaticamente. Você ganha{" "}
+        <strong className="text-duo-accent">50% de comissão</strong> na primeira
+        assinatura.
+      </p>
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-duo-fg">
+            {refSlug ? `@${refSlug}` : "Carregando..."}
+          </div>
+          <div className="text-xs text-duo-gray-dark font-mono mt-0.5">
+            {refSlug ? getReferralLink() : ""}
+          </div>
+        </div>
+        <DuoButton
+          onClick={copyLink}
+          variant={copied ? "secondary" : "primary"}
+          className="shrink-0 gap-1.5 transition-all"
+          disabled={!refSlug}
+        >
+          {copied ? (
+            <>
+              <CheckCircle className="h-4 w-4" /> Copiado!
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4" /> Copiar Link
+            </>
+          )}
+        </DuoButton>
+      </div>
+    </DuoCard.Root>
+  );
+}
+
+interface ReferralStatsSectionProps {
+  data: ReferralData | null;
+}
+
+function ReferralStatsSection({ data }: ReferralStatsSectionProps) {
+  return (
+    <DuoStatsGrid.Root columns={2}>
+      <DuoStatCard.Simple
+        icon={Wallet}
+        value={`R$ ${(data?.balanceReais ?? 0).toFixed(2)}`}
+        label="Saldo Disponível"
+        iconColor="var(--duo-primary)"
+      />
+      <DuoStatCard.Simple
+        icon={DollarSign}
+        value={`R$ ${((data?.totalEarnedCents ?? 0) / 100).toFixed(2)}`}
+        label="Total Ganho Histórico"
+        iconColor="var(--duo-success)"
+      />
+    </DuoStatsGrid.Root>
+  );
+}
+
+interface PixKeyConfigSectionProps {
+  pixKey: string;
+  setPixKey: (v: string) => void;
+  pixKeyType: string;
+  setPixKeyType: (v: string) => void;
+  isUpdatingPix: boolean;
+  onUpdatePix: () => void;
+}
+
+function PixKeyConfigSection({
+  pixKey,
+  setPixKey,
+  pixKeyType,
+  setPixKeyType,
+  isUpdatingPix,
+  onUpdatePix,
+}: PixKeyConfigSectionProps) {
+  return (
+    <DuoCard.Root variant="default" padding="md">
+      <h3 className="font-bold text-lg text-duo-fg border-b border-duo-border pb-2 mb-4">
+        Configurar Recebimento (PIX)
+      </h3>
+      <div className="space-y-3">
+        <DuoSelect.Simple
+          label="Tipo de Chave PIX"
+          options={[
+            { value: "CPF", label: "CPF" },
+            { value: "EMAIL", label: "E-mail" },
+            { value: "PHONE", label: "Celular" },
+            { value: "RANDOM", label: "Chave Aleatória" },
+            { value: "CNPJ", label: "CNPJ" },
+          ]}
+          value={pixKeyType}
+          onChange={(v) => setPixKeyType(v)}
+          placeholder="Selecione..."
+        />
+
+        <DuoInput.Simple
+          label="Sua Chave PIX"
+          value={pixKey}
+          onChange={(e) => setPixKey(e.target.value)}
+          placeholder="Ex: 123.456.789-00"
+        />
+
+        <DuoButton
+          onClick={onUpdatePix}
+          disabled={isUpdatingPix || !pixKey}
+          className="w-full mt-2"
+          variant="primary"
+        >
+          Salvar PIX
+        </DuoButton>
+      </div>
+    </DuoCard.Root>
+  );
+}
+
+interface WithdrawSectionProps {
+  data: ReferralData | null;
+  withdrawAmount: string;
+  setWithdrawAmount: (v: string) => void;
+  isWithdrawing: boolean;
+  onWithdraw: () => void;
+}
+
+function WithdrawSection({
+  data,
+  withdrawAmount,
+  setWithdrawAmount,
+  isWithdrawing,
+  onWithdraw,
+}: WithdrawSectionProps) {
+  const balance = data?.balanceReais ?? 0;
+  const amountNum = parseFloat(withdrawAmount);
+  const isValid =
+    !isNaN(amountNum) &&
+    amountNum >= 3.5 &&
+    amountNum <= balance;
+
+  return (
+    <DuoCard.Root variant="default" padding="md">
+      <h3 className="font-bold text-lg text-duo-fg border-b border-duo-border pb-2 mb-4">
+        Solicitar Saque
+      </h3>
+      <div className="space-y-4">
+        <p className="text-sm text-duo-gray-dark">
+          As transferências PIX são processadas imediatamente via AbacatePay
+          (Taxa fixa de R$ 0,80 descontada).
+        </p>
+
+        <DuoInput.Simple
+          label="Valor do Saque (R$)"
+          type="number"
+          step={0.01}
+          min={3.5}
+          value={withdrawAmount}
+          placeholder="Mín. 3.50"
+          onChange={(e) => setWithdrawAmount(e.target.value)}
+        />
+
+        <DuoButton
+          onClick={onWithdraw}
+          disabled={isWithdrawing || !withdrawAmount || !isValid}
+          className="w-full gap-2"
+          variant="secondary"
+        >
+          <Send className="w-4 h-4" />
+          {isWithdrawing ? "Processando..." : "Sacar agora"}
+        </DuoButton>
+      </div>
+    </DuoCard.Root>
+  );
+}
+
+interface WithdrawHistorySectionProps {
+  withdraws: ReferralData["withdraws"];
+}
+
+function WithdrawHistorySection({ withdraws }: WithdrawHistorySectionProps) {
+  return (
+    <DuoCard.Root variant="default" padding="md">
+      <h3 className="font-bold text-lg text-duo-fg border-b border-duo-border pb-2 mb-4">
+        Histórico de Saques
+      </h3>
+      {withdraws.length === 0 ? (
+        <div className="text-center py-6 text-duo-gray-dark text-sm">
+          Você ainda não realizou nenhum saque.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {withdraws.map((w) => (
+            <div
+              key={w.id}
+              className="flex justify-between items-center bg-duo-bg-dark rounded-xl p-3 border border-duo-border"
+            >
+              <div>
+                <div className="font-bold text-sm text-duo-fg">
+                  Saque R$ {w.amount.toFixed(2)}
+                </div>
+                <div className="text-xs text-duo-gray-dark mt-0.5">
+                  {new Date(w.createdAt).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {w.status === "complete" ? (
+                  <span className="flex items-center gap-1 text-xs font-medium text-duo-success">
+                    <CheckCircle className="w-3 h-3" /> Pago
+                  </span>
+                ) : w.status === "failed" ? (
+                  <span className="text-xs font-medium text-duo-destructive">
+                    Falhou
+                  </span>
+                ) : (
+                  <span className="text-xs font-medium text-duo-accent">
+                    Processando
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </DuoCard.Root>
+  );
+}
+
+/** Tab de indicações do aluno: link, saldo, PIX e saques. */
 export function StudentReferralTab() {
-  const { toast } = useToast();
-  const [data, setData] = useState<ReferralData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [pixKey, setPixKey] = useState("");
-  const [pixKeyType, setPixKeyType] = useState("CPF");
-  const [isUpdatingPix, setIsUpdatingPix] = useState(false);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
-  const [copied, setCopied] = useState(false);
-
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      const res = await apiClient.get<ReferralData>("/api/students/referrals");
-      setData(res.data);
-      // Pre-preenche PIX com os valores já salvos
-      if (res.data.pixKey) setPixKey(res.data.pixKey);
-      if (res.data.pixKeyType) setPixKeyType(res.data.pixKeyType);
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao carregar indicações",
-        description: "Não foi possível carregar o histórico de indicações.",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  // Link único inteligente — /r/CODIGO detecta role e redireciona
-  const refSlug = data?.referralCode?.replace("@", "") ?? "";
-  const getReferralLink = () => `${window.location.origin}/r/${refSlug}`;
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(getReferralLink());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleUpdatePix = async () => {
-    try {
-      setIsUpdatingPix(true);
-      await apiClient.post("/api/students/referrals/pix-key", {
-        pixKey,
-        pixKeyType,
-      });
-      toast({
-        title: "Chave PIX atualizada!",
-        description: "Agora você pode realizar saques de suas comissões.",
-      });
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível atualizar a chave PIX.",
-      });
-    } finally {
-      setIsUpdatingPix(false);
-    }
-  };
-
-  const handleWithdraw = async () => {
-    const amount = parseFloat(withdrawAmount);
-    if (isNaN(amount) || amount < 3.5) {
-      toast({
-        variant: "destructive",
-        title: "Valor inválido",
-        description: "O valor mínimo para saque é de R$ 3,50.",
-      });
-      return;
-    }
-
-    try {
-      setIsWithdrawing(true);
-      await apiClient.post("/api/students/referrals/withdraw", {
-        amountCents: Math.floor(amount * 100),
-      });
-      toast({
-        title: "Saque solicitado!",
-        description: "O valor será transferido para sua chave PIX.",
-      });
-      setWithdrawAmount("");
-      await loadData();
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao sacar",
-        description:
-          err.response?.data?.error || "Verifique sua chave PIX ou saldo.",
-      });
-    } finally {
-      setIsWithdrawing(false);
-    }
-  };
+  const {
+    data,
+    isLoading,
+    refSlug,
+    getReferralLink,
+    copyLink,
+    copied,
+    pixKey,
+    setPixKey,
+    pixKeyType,
+    setPixKeyType,
+    isUpdatingPix,
+    handleUpdatePix,
+    withdrawAmount,
+    setWithdrawAmount,
+    isWithdrawing,
+    handleWithdraw,
+  } = useStudentReferral();
 
   if (isLoading && !data) {
     return (
@@ -145,199 +297,31 @@ export function StudentReferralTab() {
 
   return (
     <div className="space-y-6">
-      {/* Link de Indicação */}
-      <DuoCard.Root variant="default" padding="md">
-        <h2 className="text-xl font-bold text-[var(--duo-fg)] mb-1">
-          Seu Link de Indicação
-        </h2>
-        <p className="text-sm text-duo-gray-dark mb-4">
-          Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia
-          e redireciona automaticamente. Você ganha{" "}
-          <strong className="text-duo-accent">50% de comissão</strong> na
-          primeira assinatura.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-duo-fg">
-              {refSlug ? `@${refSlug}` : "Carregando..."}
-            </div>
-            <div className="text-xs text-duo-gray-dark font-mono mt-0.5">
-              {refSlug ? getReferralLink() : ""}
-            </div>
-          </div>
-          <DuoButton
-            onClick={copyLink}
-            variant={copied ? "secondary" : "primary"}
-            className="shrink-0 gap-1.5 transition-all"
-            disabled={!refSlug}
-          >
-            {copied ? (
-              <>
-                <CheckCircle className="h-4 w-4" /> Copiado!
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" /> Copiar Link
-              </>
-            )}
-          </DuoButton>
-        </div>
-      </DuoCard.Root>
-
-      <DuoStatsGrid.Root columns={2}>
-        <DuoStatCard.Simple
-          icon={Wallet}
-          value={`R$ ${(data?.balanceReais || 0).toFixed(2)}`}
-          label="Saldo Disponível"
-          iconColor="var(--duo-primary)"
-        />
-        <DuoStatCard.Simple
-          icon={DollarSign}
-          value={`R$ ${((data?.totalEarnedCents || 0) / 100).toFixed(2)}`}
-          label="Total Ganho Histórico"
-          iconColor="var(--duo-success)"
-        />
-      </DuoStatsGrid.Root>
-
+      <ReferralLinkSection
+        refSlug={refSlug}
+        getReferralLink={getReferralLink}
+        copyLink={copyLink}
+        copied={copied}
+      />
+      <ReferralStatsSection data={data} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <DuoCard.Root variant="default" padding="md">
-          <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-            Configurar Recebimento (PIX)
-          </h3>
-          <div className="space-y-3">
-            <label className="block">
-              <span className="text-sm font-medium text-duo-gray-dark">
-                Tipo de Chave PIX
-              </span>
-              <select
-                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                value={pixKeyType}
-                onChange={(e) => setPixKeyType(e.target.value)}
-              >
-                <option value="CPF">CPF</option>
-                <option value="EMAIL">E-mail</option>
-                <option value="PHONE">Celular</option>
-                <option value="RANDOM">Chave Aleatória</option>
-                <option value="CNPJ">CNPJ</option>
-              </select>
-            </label>
-
-            <label className="block">
-              <span className="text-sm font-medium text-duo-gray-dark">
-                Sua Chave PIX
-              </span>
-              <input
-                type="text"
-                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                value={pixKey}
-                placeholder="Ex: 123.456.789-00"
-                onChange={(e) => setPixKey(e.target.value)}
-              />
-            </label>
-
-            <DuoButton
-              onClick={handleUpdatePix}
-              disabled={isUpdatingPix || !pixKey}
-              className="w-full mt-2"
-              variant="primary"
-            >
-              Salvar PIX
-            </DuoButton>
-          </div>
-        </DuoCard.Root>
-
-        <DuoCard.Root variant="default" padding="md">
-          <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-            Solicitar Saque
-          </h3>
-          <div className="space-y-4">
-            <p className="text-sm text-duo-gray-dark">
-              As transferências PIX são processadas imediatamente via AbacatePay
-              (Taxa fixa de R$ 0,80 descontada).
-            </p>
-
-            <label className="block">
-              <span className="text-sm font-medium text-duo-gray-dark">
-                Valor do Saque (R$)
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="3.50"
-                className="mt-1 block w-full rounded-xl border border-duo-border bg-duo-bg p-2 focus:border-duo-blue focus:outline-none focus:ring-1 focus:ring-duo-blue transition-all"
-                value={withdrawAmount}
-                placeholder="Mín. 3.50"
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-              />
-            </label>
-
-            <DuoButton
-              onClick={handleWithdraw}
-              disabled={
-                isWithdrawing ||
-                !withdrawAmount ||
-                parseFloat(withdrawAmount) < 3.5 ||
-                parseFloat(withdrawAmount) > (data?.balanceReais || 0)
-              }
-              className="w-full gap-2"
-              variant="secondary"
-            >
-              <Send className="w-4 h-4" />
-              {isWithdrawing ? "Processando..." : "Sacar agora"}
-            </DuoButton>
-          </div>
-        </DuoCard.Root>
+        <PixKeyConfigSection
+          pixKey={pixKey}
+          setPixKey={setPixKey}
+          pixKeyType={pixKeyType}
+          setPixKeyType={setPixKeyType}
+          isUpdatingPix={isUpdatingPix}
+          onUpdatePix={handleUpdatePix}
+        />
+        <WithdrawSection
+          data={data}
+          withdrawAmount={withdrawAmount}
+          setWithdrawAmount={setWithdrawAmount}
+          isWithdrawing={isWithdrawing}
+          onWithdraw={handleWithdraw}
+        />
       </div>
-
-      <DuoCard.Root variant="default" padding="md">
-        <h3 className="font-bold text-lg text-[var(--duo-fg)] border-b border-duo-border pb-2 mb-4">
-          Histórico de Saques
-        </h3>
-        {(data?.withdraws?.length || 0) === 0 ? (
-          <div className="text-center py-6 text-duo-gray-dark text-sm">
-            Você ainda não realizou nenhum saque.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {data!.withdraws.map((w) => (
-              <div
-                key={w.id}
-                className="flex justify-between items-center bg-duo-bg-dark rounded-xl p-3 border border-duo-border"
-              >
-                <div>
-                  <div className="font-bold text-sm text-[var(--duo-fg)]">
-                    Saque R$ {w.amount.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-duo-gray-dark mt-0.5">
-                    {new Date(w.createdAt).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {w.status === "complete" ? (
-                    <span className="flex items-center gap-1 text-xs font-medium text-duo-success">
-                      <CheckCircle className="w-3 h-3" /> Pago
-                    </span>
-                  ) : w.status === "failed" ? (
-                    <span className="text-xs font-medium text-duo-destructive">
-                      Falhou
-                    </span>
-                  ) : (
-                    <span className="text-xs font-medium text-duo-accent">
-                      Processando
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </DuoCard.Root>
+      <WithdrawHistorySection withdraws={data?.withdraws ?? []} />
     </div>
   );
 }

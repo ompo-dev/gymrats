@@ -217,7 +217,7 @@ export function FinancialAdsTab({
               style={{ color: "var(--duo-secondary)" }}
               aria-hidden
             />
-            <h2 className="font-bold text-[var(--duo-fg)]">Anúncios</h2>
+            <h2 className="font-bold text-duo-fg">Anúncios</h2>
           </div>
           <DuoButton size="sm" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" />
@@ -544,7 +544,9 @@ export function FinancialAdsTab({
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
           simulatePixUrl={`/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`}
-          onSimulateSuccess={() => router.refresh()}
+          onSimulateSuccess={async () => {
+            router.refresh();
+          }}
           pollConfig={{
             type: "check",
             check: async () => {

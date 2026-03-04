@@ -23,6 +23,7 @@ type UseGymSubscriptionReturn = {
   createSubscription: (
     plan: "basic" | "premium" | "enterprise",
     billingPeriod?: "monthly" | "annual",
+    referralCode?: string | null,
   ) => Promise<{ billingUrl?: string; error?: string }>;
   isCreatingSubscription: boolean;
   cancelSubscription: () => Promise<{ success?: boolean; error?: string }>;
@@ -53,6 +54,7 @@ export function useGymSubscription(
     createSubscription: result.createSubscription as (
       plan: "basic" | "premium" | "enterprise",
       billingPeriod?: "monthly" | "annual",
+      referralCode?: string | null,
     ) => Promise<{ billingUrl?: string; error?: string }>,
   };
 }
