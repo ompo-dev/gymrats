@@ -433,11 +433,15 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           simulatePixUrl={`/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(subscriptionPixModal.pixId)}`}
           onSimulateSuccess={() => refetchSubscription().then(() => undefined)}
           pollConfig={{
-            type: "subscription",
-            refetch: refetchSubscription,
-            currentStatus: subscription?.status,
-            initialStatus: "pending",
-            targetStatus: "active",
+            type: "check",
+            check: async () => {
+              await refetchSubscription();
+              const res = await apiClient.get<{
+                subscription?: { status?: string } | null;
+              }>("/api/subscriptions/current");
+              return res.data.subscription?.status === "active";
+            },
+            intervalMs: 3000,
           }}
           onPaymentConfirmed={() => {
             setSubscriptionPixModal(null);

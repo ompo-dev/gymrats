@@ -457,11 +457,15 @@ export function FinancialSubscriptionTab({
               : undefined
           }
           pollConfig={{
-            type: "subscription",
-            refetch: refetchSubscription,
-            currentStatus: subscription?.status,
-            initialStatus: "pending",
-            targetStatus: "active",
+            type: "check",
+            check: async () => {
+              await refetchSubscription();
+              const res = await apiClient.get<{
+                subscription?: { status?: string } | null;
+              }>("/api/gym-subscriptions/current");
+              return res.data.subscription?.status === "active";
+            },
+            intervalMs: 3000,
           }}
           onPaymentConfirmed={() => {
             clearPendingPixStorage();
