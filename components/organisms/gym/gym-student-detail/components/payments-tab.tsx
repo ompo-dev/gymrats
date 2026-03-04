@@ -1,18 +1,15 @@
 "use client";
 
 import {
-  AlertCircle,
-  CheckCircle,
+  Building2,
   ChevronDown,
   ChevronRight,
   DollarSign,
-  XCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useMemo, useState } from "react";
+import { MembershipCard } from "@/app/student/_payments/components/membership-card";
 import { DuoButton, DuoCard } from "@/components/duo";
-import type { Payment } from "@/lib/types";
-import { formatDatePtBr } from "@/lib/utils/date-safe";
+import type { Payment, StudentGymMembership } from "@/lib/types";
 
 export interface PaymentsTabProps {
   payments: Payment[];
@@ -21,35 +18,66 @@ export interface PaymentsTabProps {
 
 export function PaymentsTab({
   payments,
-  onTogglePaymentStatus,
+  onTogglePaymentStatus: _onTogglePaymentStatus,
 }: PaymentsTabProps) {
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
-  const paidCount = payments.filter((p) => p.status === "paid").length;
-  const pendingCount = payments.filter(
-    (p) => p.status === "pending" || p.status === "overdue",
-  ).length;
-  const totalPaid = payments
-    .filter((p) => p.status === "paid")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const totalPending = payments
-    .filter((p) => p.status === "pending" || p.status === "overdue")
-    .reduce((sum, p) => sum + p.amount, 0);
-  const paymentsByPlan = payments.reduce<
-    Array<{ planId: string; planName: string; payments: Payment[] }>
-  >((groups, payment) => {
-    const planId = payment.planId || payment.planName;
-    const existing = groups.find((g) => g.planId === planId);
-    if (existing) {
-      existing.payments.push(payment);
-    } else {
-      groups.push({
-        planId,
-        planName: payment.planName,
-        payments: [payment],
-      });
-    }
-    return groups;
-  }, []);
+  const [expandedMembershipId, setExpandedMembershipId] = useState<string | null>(
+    null,
+  );
+  const membershipsByPlan = useMemo(
+    () =>
+      payments.reduce<
+        Array<{
+          planId: string;
+          planName: string;
+          memberships: StudentGymMembership[];
+        }>
+      >((groups, payment) => {
+        const planId = payment.planId || payment.planName;
+        const existing = groups.find((g) => g.planId === planId);
+
+        const mappedMembership: StudentGymMembership = {
+          id: payment.id,
+          gymId: "gym-student-detail",
+          gymName: "Academia",
+          gymAddress: "Vínculo no perfil do aluno",
+          planId,
+          planName: payment.planName,
+          planType: "monthly",
+          startDate: payment.date ? new Date(payment.date) : new Date(),
+          nextBillingDate: payment.dueDate ? new Date(payment.dueDate) : undefined,
+          amount: payment.amount,
+          status:
+            payment.status === "paid"
+              ? "active"
+              : payment.status === "canceled"
+                ? "canceled"
+                : "pending",
+          autoRenew: false,
+          paymentMethod:
+            payment.paymentMethod === "credit-card" ||
+            payment.paymentMethod === "debit-card" ||
+            payment.paymentMethod === "pix"
+              ? {
+                  type: payment.paymentMethod,
+                }
+              : undefined,
+          benefits: [],
+        };
+
+        if (existing) {
+          existing.memberships.push(mappedMembership);
+        } else {
+          groups.push({
+            planId,
+            planName: payment.planName,
+            memberships: [mappedMembership],
+          });
+        }
+        return groups;
+      }, []),
+    [payments],
+  );
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -63,61 +91,11 @@ export function PaymentsTab({
           <h2 className="font-bold text-duo-fg">Histórico de Pagamentos</h2>
         </div>
       </DuoCard.Header>
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-        <DuoCard.Root variant="highlighted" size="sm">
-          <div className="flex items-center gap-3">
-            <CheckCircle className="h-6 w-6 text-duo-green" />
-            <div>
-              <p className="text-sm font-bold text-duo-gray-dark">Pagos</p>
-              <p className="text-2xl font-bold text-duo-green">{paidCount}</p>
-            </div>
-          </div>
-        </DuoCard.Root>
-
-        <DuoCard.Root variant="orange" size="sm">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-6 w-6 text-duo-orange" />
-            <div>
-              <p className="text-sm font-bold text-duo-gray-dark">Pendentes</p>
-              <p className="text-2xl font-bold text-duo-orange">
-                {pendingCount}
-              </p>
-            </div>
-          </div>
-        </DuoCard.Root>
-
-        <DuoCard.Root variant="blue" size="sm">
-          <div className="flex items-center gap-3">
-            <DollarSign className="h-6 w-6 text-duo-blue" />
-            <div>
-              <p className="text-sm font-bold text-duo-gray-dark">Total Pago</p>
-              <p className="text-xl font-bold text-duo-blue">
-                R$ {totalPaid.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </DuoCard.Root>
-
-        <DuoCard.Root variant="default" size="sm">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="h-6 w-6 text-duo-orange" />
-            <div>
-              <p className="text-sm font-bold text-duo-gray-dark">
-                Total Pendente
-              </p>
-              <p className="text-xl font-bold text-duo-orange">
-                R$ {totalPending.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </DuoCard.Root>
-      </div>
-
       <div className="space-y-3">
-        {paymentsByPlan.map((group) => {
+        {membershipsByPlan.map((group) => {
           const isExpanded = expandedPlanId === group.planId;
-          const totalPaidByPlan = group.payments.reduce(
-            (sum, p) => sum + (p.status === "paid" ? p.amount : 0),
+          const totalPaidByPlan = group.memberships.reduce(
+            (sum, m) => sum + (m.status === "active" ? m.amount : 0),
             0,
           );
 
@@ -137,75 +115,39 @@ export function PaymentsTab({
                 ) : (
                   <ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
                 )}
-                <DollarSign className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+                <Building2 className="h-5 w-5 shrink-0 text-duo-gray-dark" />
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-duo-text truncate">
                     {group.planName}
                   </div>
                   <div className="text-xs text-duo-gray-dark">
-                    {group.payments.length} pagamento(s) • Total pago: R${" "}
+                    {group.memberships.length} pagamento(s) • Total pago: R${" "}
                     {totalPaidByPlan.toFixed(2)}
                   </div>
                 </div>
               </DuoButton>
               {isExpanded && (
                 <div className="mt-3 space-y-3 border-t border-duo-border pt-3">
-                  {group.payments.map((payment, index) => (
-                    <motion.div
-                      key={payment.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
-                    >
-                      <DuoCard.Root variant="default" size="default">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-duo-text text-sm sm:text-base wrap-break-words">
-                              {payment.planName}
-                            </h3>
-                            <p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
-                              Vencimento: {formatDatePtBr(payment.dueDate) || "N/A"}
-                            </p>
-                            {payment.status === "paid" && (
-                              <p className="text-xs sm:text-sm text-duo-gray-dark">
-                                Pago em: {formatDatePtBr(payment.date) || "N/A"}
-                              </p>
-                            )}
-                            <p className="text-xs sm:text-sm text-duo-gray-dark capitalize">
-                              Método: {payment.paymentMethod.replace("-", " ")}
-                            </p>
-                          </div>
-
-                          <div className="w-full sm:w-auto text-left sm:text-right">
-                            <p className="text-xl sm:text-2xl font-bold text-duo-blue mb-2">
-                              R$ {payment.amount.toFixed(2)}
-                            </p>
-
-                            <DuoButton
-                              onClick={() => onTogglePaymentStatus(payment.id)}
-                              variant={payment.status === "paid" ? "primary" : "outline"}
-                              size="sm"
-                              className="w-full sm:w-auto"
-                            >
-                              {payment.status === "paid" ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4" />
-                                  Pago
-                                </>
-                              ) : (
-                                <>
-                                  <XCircle className="h-4 w-4" />
-                                  <span className="hidden sm:inline">
-                                    Marcar como Pago
-                                  </span>
-                                  <span className="sm:hidden">Marcar Pago</span>
-                                </>
-                              )}
-                            </DuoButton>
-                          </div>
-                        </div>
-                      </DuoCard.Root>
-                    </motion.div>
+                  {group.memberships.map((membership) => (
+                    <MembershipCard
+                      key={membership.id}
+                      membership={membership}
+                      isExpanded={expandedMembershipId === membership.id}
+                      readOnly
+                      isChangePlanSelecting={false}
+                      changePlanPlans={[]}
+                      onToggleExpand={() =>
+                        setExpandedMembershipId(
+                          expandedMembershipId === membership.id
+                            ? null
+                            : membership.id,
+                        )
+                      }
+                      onTrocarPlano={() => {}}
+                      onSelectChangePlan={() => {}}
+                      onCancelChangePlan={() => {}}
+                      onCancelMembership={() => {}}
+                    />
                   ))}
                 </div>
               )}

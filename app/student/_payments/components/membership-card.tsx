@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export interface MembershipCardProps {
   membership: StudentGymMembership;
   isExpanded: boolean;
+  readOnly?: boolean;
   isChangePlanSelecting: boolean;
   changePlanPlans: Array<{
     id: string;
@@ -26,6 +27,7 @@ export interface MembershipCardProps {
 export function MembershipCard({
   membership,
   isExpanded,
+  readOnly = false,
   isChangePlanSelecting,
   changePlanPlans,
   onToggleExpand,
@@ -41,7 +43,8 @@ export function MembershipCard({
       variant="default"
       size="default"
       className={cn(
-        "cursor-pointer transition-all",
+        "transition-all",
+        !readOnly && "cursor-pointer",
         isExpanded && "border-duo-blue ring-2 ring-duo-blue/20",
       )}
       onClick={onToggleExpand}
@@ -49,7 +52,7 @@ export function MembershipCard({
       <div className="flex-1 min-w-0">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-duo-gray-dark mt-0.5 line-clamp-2 break-words">
+            <p className="text-xs text-duo-gray-dark mt-0.5 line-clamp-2 wrap-break-word">
               {membership.gymAddress}
             </p>
 
@@ -100,7 +103,7 @@ export function MembershipCard({
               </div>
             </div>
 
-            {isExpanded && isActive && (
+            {isExpanded && isActive && !readOnly && (
               <div
                 className="mt-4 pt-4 border-t-2 border-duo-border space-y-3"
                 onClick={(e) => e.stopPropagation()}

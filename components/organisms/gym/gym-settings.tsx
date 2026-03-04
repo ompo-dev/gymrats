@@ -544,13 +544,13 @@ export function GymSettingsPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.3 }}
                   className={cn(
-                    "rounded-xl border-2 p-3 transition-all grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-start",
+                    "rounded-xl border-2 p-3 transition-all",
                     s.enabled
                       ? "border-duo-secondary/40 bg-duo-secondary/5"
                       : "border-duo-border bg-duo-bg-elevated/50",
                   )}
                 >
-                  <div className="flex min-w-0 items-start gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                     <label
                       className={cn(
                         "flex cursor-pointer shrink-0",
@@ -586,28 +586,30 @@ export function GymSettingsPage({
                         </span>
                       )}
                     </label>
-                  </div>
-                  {s.enabled && (
-                    <div className="flex flex-1 items-center gap-2 sm:gap-4 min-w-0">
-                      <DuoInput.Simple
-                        type="time"
-                        value={s.open}
-                        onChange={(e) =>
-                          updateDaySchedule(day.id, "open", e.target.value)
-                        }
-                        className="w-24 min-w-0 text-sm"
-                      />
-                      <span className="text-duo-fg-muted shrink-0">–</span>
-                      <DuoInput.Simple
-                        type="time"
-                        value={s.close}
-                        onChange={(e) =>
-                          updateDaySchedule(day.id, "close", e.target.value)
-                        }
-                        className="w-24 min-w-0 text-sm"
-                      />
+                    {s.enabled && (
+                      <div className="flex min-w-0 flex-1 items-center justify-end gap-2 sm:gap-4">
+                        <DuoInput.Simple
+                          type="time"
+                          value={s.open}
+                          onChange={(e) =>
+                            updateDaySchedule(day.id, "open", e.target.value)
+                          }
+                          className="w-24 min-w-0"
+                          inputClassName="h-8 px-2 py-1 text-sm"
+                        />
+                        <span className="text-duo-fg-muted shrink-0">–</span>
+                        <DuoInput.Simple
+                          type="time"
+                          value={s.close}
+                          onChange={(e) =>
+                            updateDaySchedule(day.id, "close", e.target.value)
+                          }
+                          className="w-24 min-w-0"
+                          inputClassName="h-8 px-2 py-1 text-sm"
+                        />
+                      </div>
+                    )}
                     </div>
-                  )}
                 </motion.div>
               );
             })}

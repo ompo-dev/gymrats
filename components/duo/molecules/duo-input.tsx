@@ -15,6 +15,7 @@ export interface DuoInputProps extends InputHTMLAttributes<HTMLInputElement> {
   helperText?: string;
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
+  inputClassName?: string;
 }
 
 function DuoInputRoot({
@@ -148,6 +149,7 @@ const DuoInputSimple = forwardRef<HTMLInputElement, DuoInputProps>(
       helperText,
       leftIcon,
       rightIcon,
+      inputClassName,
       className,
       id: propId,
       ...props
@@ -169,6 +171,7 @@ const DuoInputSimple = forwardRef<HTMLInputElement, DuoInputProps>(
           <DuoInputField
             ref={ref}
             id={id}
+            className={inputClassName}
             aria-describedby={errorId ?? helperId}
             aria-invalid={!!error}
             error={!!error}
