@@ -16,6 +16,7 @@
 - `apply-multi-gyms-migration.js`: Arquivo da camada local.
 - `apply-nutrition-chat-usage-migration.js`: Arquivo da camada local.
 - `apply-nutrition-migration.js`: Arquivo da camada local.
+- `apply-pix-cache-payments-migration.js`: Adiciona pixBrCode, pixBrCodeBase64, pixExpiresAt em payments para cache de PIX (reutilizar no "Pagar agora").
 - `apply-subscriptions-migration.js`: Arquivo da camada local.
 - `apply-unit-studentid-migration.js`: Arquivo da camada local.
 - `apply-weight-history-migration.js`: Arquivo da camada local.

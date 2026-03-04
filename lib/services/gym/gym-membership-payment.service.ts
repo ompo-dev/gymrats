@@ -122,6 +122,7 @@ export async function createMembershipPaymentPix(
   const pix = pixResponse.data;
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + plan.duration);
+  const pixExpiresAt = pix.expiresAt ? new Date(pix.expiresAt) : null;
 
   const payment = await db.payment.create({
     data: {
@@ -134,6 +135,9 @@ export async function createMembershipPaymentPix(
       status: "pending",
       paymentMethod: "pix",
       abacatePayBillingId: pix.id,
+      pixBrCode: pix.brCode,
+      pixBrCodeBase64: pix.brCodeBase64,
+      pixExpiresAt,
       reference: options?.membershipId
         ? `membership:${options.membershipId}`
         : null,
@@ -221,6 +225,7 @@ export async function createChangePlanPaymentPix(
   const pix = pixResponse.data;
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + newPlan.duration);
+  const pixExpiresAt = pix.expiresAt ? new Date(pix.expiresAt) : null;
 
   const payment = await db.payment.create({
     data: {
@@ -233,6 +238,9 @@ export async function createChangePlanPaymentPix(
       status: "pending",
       paymentMethod: "pix",
       abacatePayBillingId: pix.id,
+      pixBrCode: pix.brCode,
+      pixBrCodeBase64: pix.brCodeBase64,
+      pixExpiresAt,
       reference: `membership:${membershipId}`,
     },
   });
@@ -246,8 +254,12 @@ export async function createChangePlanPaymentPix(
   };
 }
 
+/** Mínimo de segundos restantes para considerar o PIX ainda utilizável */
+const PIX_MIN_SECONDS_REMAINING = 60;
+
 /**
- * Gera novo PIX para um pagamento pendente existente (PIX anterior pode ter expirado).
+ * Gera ou reutiliza PIX para um pagamento pendente.
+ * Se já existe PIX válido (não expirado), retorna ele para que o countdown mostre o tempo real.
  */
 export async function createPixForPendingPayment(
   paymentId: string,
@@ -274,6 +286,31 @@ export async function createPixForPendingPayment(
     );
   }
   if (!payment.plan) throw new Error("Plano não encontrado");
+
+  // Reutilizar PIX em cache se ainda válido (countdown correto)
+  const cached = payment as typeof payment & {
+    pixBrCode?: string | null;
+    pixBrCodeBase64?: string | null;
+    pixExpiresAt?: Date | null;
+  };
+  if (
+    cached.pixBrCode &&
+    cached.pixBrCodeBase64 &&
+    cached.pixExpiresAt
+  ) {
+    const now = Date.now();
+    const expiresAtMs = cached.pixExpiresAt.getTime();
+    const secondsRemaining = Math.floor((expiresAtMs - now) / 1000);
+    if (secondsRemaining >= PIX_MIN_SECONDS_REMAINING) {
+      return {
+        brCode: cached.pixBrCode,
+        brCodeBase64: cached.pixBrCodeBase64,
+        amount: Math.round((payment.amount as number) * 100),
+        paymentId: payment.id,
+        expiresAt: cached.pixExpiresAt.toISOString(),
+      };
+    }
+  }
 
   const membershipId = payment.reference?.startsWith("membership:")
     ? payment.reference.slice("membership:".length)
@@ -317,10 +354,16 @@ export async function createPixForPendingPayment(
   }
 
   const pix = pixResponse.data;
+  const pixExpiresAt = pix.expiresAt ? new Date(pix.expiresAt) : null;
 
   await db.payment.update({
     where: { id: paymentId },
-    data: { abacatePayBillingId: pix.id },
+    data: {
+      abacatePayBillingId: pix.id,
+      pixBrCode: pix.brCode,
+      pixBrCodeBase64: pix.brCodeBase64,
+      pixExpiresAt,
+    },
   });
 
   return {

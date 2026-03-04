@@ -930,8 +930,12 @@ model Payment {
 
   // AbacatePay: PIX para pagamento de plano (membership)
   abacatePayBillingId String?   @unique // ID do pixQrCode na AbacatePay
-  withdrawnAt         DateTime? // Quando foi sacado para a academia
-  withdrawId          String? // externalId do withdraw na AbacatePay
+  // Cache do PIX atual para reutilizar se ainda válido (evita gerar novo a cada "Pagar agora")
+  pixBrCode       String?   // brCode copia-e-cola
+  pixBrCodeBase64 String?   // QR em base64
+  pixExpiresAt    DateTime? // Expiração em ISO (quando o PIX invalida)
+  withdrawnAt     DateTime? // Quando foi sacado para a academia
+  withdrawId      String?   // externalId do withdraw na AbacatePay
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
