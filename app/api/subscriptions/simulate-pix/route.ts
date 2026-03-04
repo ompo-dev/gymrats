@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 
 /**
  * Simula o pagamento de um PIX de assinatura student em modo dev.
@@ -63,6 +64,17 @@ export const POST = createSafeHandler(
           canceledAt: null,
         },
       });
+
+      // Creditar comissão de indicação (igual ao webhook — webhook pode não disparar em dev)
+      const amountCents = result.data.amount ?? 0;
+      if (amountCents > 0) {
+        await ReferralService.onFirstPaymentConfirmed(
+          "STUDENT",
+          studentId,
+          amountCents,
+          pixId,
+        );
+      }
     }
 
     return NextResponse.json({ success: true, status: result.data.status });

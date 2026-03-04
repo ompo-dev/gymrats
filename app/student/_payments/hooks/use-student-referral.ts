@@ -53,6 +53,13 @@ export function useStudentReferral() {
     loadData();
   }, [loadData]);
 
+  // Refetch ao voltar para a página (ex.: após pagar PIX e retornar)
+  useEffect(() => {
+    const onFocus = () => loadData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [loadData]);
+
   const refSlug = data?.referralCode?.replace("@", "") ?? "";
   const getReferralLink = useCallback(
     () =>

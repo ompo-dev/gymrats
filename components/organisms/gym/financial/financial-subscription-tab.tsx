@@ -429,7 +429,11 @@ export function FinancialSubscriptionTab({
           brCodeBase64={pendingPix.brCodeBase64}
           amount={pendingPix.amount}
           expiresAt={pendingPix.expiresAt}
-          referralSlot={{ onApplyReferral: handleApplyReferral }}
+          referralSlot={
+            !pendingPix.originalAmount
+              ? { onApplyReferral: handleApplyReferral }
+              : undefined
+          }
           valueSlot={
             pendingPix.originalAmount && pendingPix.originalAmount > pendingPix.amount
               ? {
