@@ -15,6 +15,8 @@ interface UseGymSubscriptionOptions {
 
 type UseGymSubscriptionReturn = {
   subscription: GymSubscriptionData | null;
+  /** true quando usuário nunca assinou antes (primeira assinatura). ReferralPixModal só deve aparecer nesse caso. */
+  isFirstPayment: boolean;
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;

@@ -35,12 +35,14 @@ export async function getCurrentSubscriptionHandler(
     }
 
     const subscription = await getStudentSubscription();
-    // Primeira vez = nunca pagou (trial não conta; status active de pagamento próprio = já pagou)
+    // Primeira vez = nunca pagou. Se já assinou antes (canceled/expired/active), não é primeira vez.
     const sub = subscription as { status?: string; source?: string } | null;
     const isFirstPayment =
       !sub ||
-      sub.status !== "active" ||
-      sub.source === "GYM_ENTERPRISE";
+      sub.source === "GYM_ENTERPRISE" ||
+      (sub.status !== "active" &&
+        sub.status !== "canceled" &&
+        sub.status !== "expired");
     return successResponse({ subscription, isFirstPayment });
   } catch (error) {
     console.error("[getCurrentSubscriptionHandler] Erro:", error);

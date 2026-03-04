@@ -119,6 +119,7 @@ export function FinancialSubscriptionTab({
 
   const {
     subscription: subscriptionData,
+    isFirstPayment,
     isLoading: isLoadingSubscription,
     startTrial: startTrialHook,
     isStartingTrial,
@@ -207,9 +208,6 @@ export function FinancialSubscriptionTab({
       });
     }
   };
-
-  const isFirstPayment =
-    (subscriptionData as { isFirstPayment?: boolean } | undefined)?.isFirstPayment ?? true;
 
   const handleSubscribe = async (
     plan: string,

@@ -37,7 +37,10 @@ export async function getCurrentGymSubscriptionHandler({
   try {
     const gymId = await getActiveGymId(userId);
     if (!gymId) {
-      return successResponse(set, { subscription: null });
+      return successResponse(set, {
+        subscription: null,
+        isFirstPayment: true,
+      });
     }
 
     const subscription = await db.gymSubscription.findUnique({
@@ -54,8 +57,12 @@ export async function getCurrentGymSubscriptionHandler({
       : null;
     const isTrialActive = trialEndDate ? trialEndDate > now : false;
 
+    // Cancelado e trial expirado: usuário já assinou antes → NÃO é primeira vez
     if (subscription.status === "canceled" && !isTrialActive) {
-      return successResponse(set, { subscription: null });
+      return successResponse(set, {
+        subscription: null,
+        isFirstPayment: false,
+      });
     }
 
     // Primeira vez = nunca pagou (trial não conta; status active = já pagou)
