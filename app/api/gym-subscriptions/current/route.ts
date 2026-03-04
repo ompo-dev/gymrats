@@ -11,7 +11,11 @@ export const GET = createSafeHandler(
     });
 
     if (!subscription) {
-      return NextResponse.json({ subscription: null, canStartTrial: true });
+      return NextResponse.json({
+        subscription: null,
+        canStartTrial: true,
+        isFirstPayment: true,
+      });
     }
 
     // Se expirou trial ou cancelado, ainda assim retornamos o objeto para o frontend saber o histórico (ex.: canStartTrial: false)
@@ -38,6 +42,12 @@ export const GET = createSafeHandler(
         : subscription.basePrice +
           subscription.pricePerStudent * activeStudents;
 
+    // Primeira vez = nunca pagou. Quem já assinou (active/canceled/expired) não é primeira vez.
+    const isFirstPayment =
+      subscription.status !== "active" &&
+      subscription.status !== "canceled" &&
+      subscription.status !== "expired";
+
     return NextResponse.json({
       subscription: {
         ...subscription,
@@ -47,7 +57,9 @@ export const GET = createSafeHandler(
         activeStudents,
         totalAmount,
         canStartTrial: false,
+        isFirstPayment,
       },
+      isFirstPayment,
     });
   },
   {
