@@ -79,6 +79,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handlePayNowClick,
     handleStartTrial,
     handleUpgrade,
+    handleApplyReferralStudent,
     handleCancelConfirm,
     isFirstPayment,
     refetchSubscription,
@@ -405,6 +406,20 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           brCodeBase64={subscriptionPixModal.brCodeBase64}
           amount={subscriptionPixModal.amount}
           expiresAt={subscriptionPixModal.expiresAt}
+          referralSlot={
+            isFirstPayment
+              ? { onApplyReferral: handleApplyReferralStudent }
+              : undefined
+          }
+          valueSlot={
+            subscriptionPixModal.originalAmount &&
+            subscriptionPixModal.originalAmount > subscriptionPixModal.amount
+              ? {
+                  strikethrough: subscriptionPixModal.originalAmount,
+                  badge: { code: "Indicação", discountString: "5%" },
+                }
+              : undefined
+          }
           simulatePixUrl={`/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(subscriptionPixModal.pixId)}`}
           onSimulateSuccess={() => refetchSubscription().then(() => undefined)}
           pollConfig={{

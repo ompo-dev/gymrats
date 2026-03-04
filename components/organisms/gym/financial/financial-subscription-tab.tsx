@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GYM_PLANS_CONFIG,
   centsToReais,
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import { apiClient } from "@/lib/api/client";
 
 interface FinancialSubscriptionTabProps {
   subscription?: {
@@ -47,6 +48,7 @@ function loadPendingPixFromStorage(): {
   brCodeBase64: string;
   amount: number;
   expiresAt?: string;
+  originalAmount?: number;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -58,6 +60,7 @@ function loadPendingPixFromStorage(): {
       brCodeBase64?: string;
       amount: number;
       expiresAt?: string;
+      originalAmount?: number;
       createdAt: number;
     };
     if (data.expiresAt && Date.now() > new Date(data.expiresAt).getTime()) {
@@ -70,6 +73,7 @@ function loadPendingPixFromStorage(): {
       brCodeBase64: data.brCodeBase64 ?? "",
       amount: data.amount,
       expiresAt: data.expiresAt,
+      originalAmount: data.originalAmount,
     };
   } catch {
     return null;
@@ -82,6 +86,7 @@ function savePendingPixToStorage(pix: {
   brCodeBase64: string;
   amount: number;
   expiresAt?: string;
+  originalAmount?: number;
 }) {
   sessionStorage.setItem(
     PENDING_PIX_KEY,
@@ -104,6 +109,7 @@ export function FinancialSubscriptionTab({
     brCodeBase64: string;
     amount: number;
     expiresAt?: string;
+    originalAmount?: number;
   } | null>(null);
   const {
     subscription: subscriptionData,
@@ -269,6 +275,50 @@ export function FinancialSubscriptionTab({
     }
   };
 
+  const handleApplyReferral = useCallback(
+    async (referralCode: string) => {
+      const res = await apiClient.post<{
+        pixId?: string;
+        brCode?: string;
+        brCodeBase64?: string;
+        amount?: number;
+        expiresAt?: string;
+        originalAmount?: number;
+        error?: string;
+        referralCodeInvalid?: boolean;
+      }>("/api/gym-subscriptions/apply-referral", {
+        referralCode: referralCode.trim(),
+      });
+      const data = res.data;
+      if (data.error) {
+        return {
+          error: data.error,
+          referralCodeInvalid: data.referralCodeInvalid,
+        };
+      }
+      if (
+        data.pixId &&
+        data.brCode &&
+        data.brCodeBase64 != null &&
+        data.amount != null
+      ) {
+        const newPix = {
+          pixId: data.pixId,
+          brCode: data.brCode,
+          brCodeBase64: data.brCodeBase64,
+          amount: data.amount,
+          expiresAt: data.expiresAt,
+          originalAmount: data.originalAmount,
+        };
+        setPendingPix(newPix);
+        savePendingPixToStorage(newPix);
+        return newPix;
+      }
+      return { error: "Resposta inválida" };
+    },
+    []
+  );
+
   const handleCancel = async () => {
     try {
       // A atualização otimista já acontece no hook, então a UI já está atualizada
@@ -379,6 +429,15 @@ export function FinancialSubscriptionTab({
           brCodeBase64={pendingPix.brCodeBase64}
           amount={pendingPix.amount}
           expiresAt={pendingPix.expiresAt}
+          referralSlot={{ onApplyReferral: handleApplyReferral }}
+          valueSlot={
+            pendingPix.originalAmount && pendingPix.originalAmount > pendingPix.amount
+              ? {
+                  strikethrough: pendingPix.originalAmount,
+                  badge: { code: "Indicação", discountString: "5%" },
+                }
+              : undefined
+          }
           simulatePixUrl={`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pendingPix.pixId)}`}
           onSimulateSuccess={
             refetchSubscription

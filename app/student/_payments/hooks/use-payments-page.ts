@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
@@ -92,6 +92,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     brCodeBase64: string;
     amount: number;
     expiresAt?: string;
+    originalAmount?: number;
   } | null>(null);
   const [_daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
@@ -488,9 +489,50 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCodeBase64: pixData.brCodeBase64,
         amount: pixData.amount,
         expiresAt: pixData.expiresAt,
+        originalAmount: (pixData as { originalAmount?: number }).originalAmount,
       });
     }
   };
+
+  const handleApplyReferralStudent = useCallback(async (referralCode: string) => {
+    const res = await apiClient.post<{
+      pixId?: string;
+      brCode?: string;
+      brCodeBase64?: string;
+      amount?: number;
+      expiresAt?: string;
+      originalAmount?: number;
+      error?: string;
+      referralCodeInvalid?: boolean;
+    }>("/api/subscriptions/apply-referral", {
+      referralCode: referralCode.trim(),
+    });
+    const data = res.data;
+    if (data.error) {
+      return {
+        error: data.error,
+        referralCodeInvalid: data.referralCodeInvalid,
+      };
+    }
+    if (
+      data.pixId &&
+      data.brCode &&
+      data.brCodeBase64 != null &&
+      data.amount != null
+    ) {
+      const newPix = {
+        pixId: data.pixId,
+        brCode: data.brCode,
+        brCodeBase64: data.brCodeBase64,
+        amount: data.amount,
+        expiresAt: data.expiresAt,
+        originalAmount: data.originalAmount,
+      };
+      setSubscriptionPixModal(newPix);
+      return newPix;
+    }
+    return { error: "Resposta inválida" };
+  }, []);
 
   const handleCancelConfirm = async () => {
     cancelDialogModal.close();
@@ -573,6 +615,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     handlePayNowClick,
     handleStartTrial,
     handleUpgrade,
+    handleApplyReferralStudent,
     handleCancelConfirm,
   };
 }

@@ -2,7 +2,7 @@
 
 import { Copy, Play, QrCode } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DuoButton } from "@/components/duo";
+import { DuoButton, DuoInput } from "@/components/duo";
 import { Modal } from "@/components/organisms/modals/modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
@@ -71,6 +71,19 @@ export interface PixQrModalProps {
   className?: string;
   /** ISO date-time. Se informado, exibe countdown; ao expirar mostra "PIX expirado". */
   expiresAt?: string;
+  /** Slot para aplicar indicação (gym): @ + Aplicar, gera novo PIX com 5% desconto */
+  referralSlot?: {
+    onApplyReferral: (referralCode: string) => Promise<
+      | {
+          pixId: string;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          expiresAt?: string;
+        }
+      | { error: string; referralCodeInvalid?: boolean }
+    >;
+  };
 }
 
 /** Retorna segundos restantes e se está expirado */
@@ -269,9 +282,12 @@ export function PixQrModal({
   },
   className,
   expiresAt,
+  referralSlot,
 }: PixQrModalProps) {
   const { toast } = useToast();
   const hasClosedRef = useRef(false);
+  const [referralCode, setReferralCode] = useState("");
+  const [isApplyingReferral, setIsApplyingReferral] = useState(false);
 
   // Poll tipo "check" (payment, boost)
   useEffect(() => {
@@ -387,10 +403,63 @@ export function PixQrModal({
     paymentConfirmedToast,
   ]);
 
+  const handleApplyReferral = useCallback(async () => {
+    if (!referralSlot?.onApplyReferral || !referralCode.trim()) return;
+    setIsApplyingReferral(true);
+    try {
+      const result = await referralSlot.onApplyReferral(referralCode.trim());
+      if ("error" in result) {
+        toast({
+          variant: "destructive",
+          title: result.referralCodeInvalid
+            ? "Código inválido"
+            : "Erro ao aplicar",
+          description: result.error,
+        });
+      } else {
+        toast({
+          title: "Desconto aplicado!",
+          description: "5% de desconto. O valor foi atualizado.",
+        });
+        setReferralCode("");
+      }
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Não foi possível aplicar a indicação.",
+      });
+    } finally {
+      setIsApplyingReferral(false);
+    }
+  }, [referralSlot, referralCode, toast, onClose]);
+
   return (
     <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
       <Modal.Header title={title} onClose={onClose} />
       <div className={`space-y-6 p-6 bg-duo-bg-card ${className ?? ""}`}>
+        {referralSlot && (
+          <div className="space-y-2 rounded-xl border border-duo-border bg-duo-bg p-3">
+            <p className="text-sm font-medium text-duo-fg">
+              Foi indicado por um aluno? Ganhe 5% de desconto
+            </p>
+            <div className="flex gap-2">
+              <DuoInput.Simple
+                placeholder="@usuario"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value)}
+                className="flex-1"
+              />
+              <DuoButton
+                onClick={handleApplyReferral}
+                disabled={isApplyingReferral || !referralCode.trim()}
+                size="sm"
+              >
+                {isApplyingReferral ? "Aplicando..." : "Aplicar"}
+              </DuoButton>
+            </div>
+          </div>
+        )}
         <PixQrBlock
           brCode={brCode}
           brCodeBase64={brCodeBase64}
