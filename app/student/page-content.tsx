@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
-import { StudentMembershipPixModal } from "@/app/student/_components/student-membership-pix-modal";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import { apiClient } from "@/lib/api/client";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
 import { LearningPath } from "@/app/student/_learn/learning-path";
@@ -618,17 +619,37 @@ function StudentHomeContent() {
         ))}
 
       {pixModal && (
-        <StudentMembershipPixModal
+        <PixQrModal
           isOpen={pixModal.open}
           onClose={() => setPixModal(null)}
-          paymentId={pixModal.paymentId}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
-          planName={pixModal.planName}
-          originalPrice={pixModal.originalPrice}
-          appliedCoupon={pixModal.appliedCoupon}
+          valueSlot={
+            pixModal.planName
+              ? {
+                  label: `Assinatura: ${pixModal.planName}`,
+                  strikethrough: pixModal.originalPrice,
+                  badge: pixModal.appliedCoupon,
+                }
+              : undefined
+          }
+          simulatePixUrl={`/api/students/payments/${pixModal.paymentId}/simulate-pix`}
+          onSimulateSuccess={handlePixConfirmed}
+          pollConfig={{
+            type: "check",
+            check: async () => {
+              const res = await apiClient.get<{ status: string }>(
+                `/api/payments/${pixModal.paymentId}`,
+              );
+              return res.data.status === "paid";
+            },
+          }}
           onPaymentConfirmed={handlePixConfirmed}
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua mensalidade está ativa.",
+          }}
         />
       )}
 

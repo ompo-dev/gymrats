@@ -10,7 +10,7 @@ import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
-import { PixPaymentModal } from "./pix-payment-modal";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { ReferralPixModal } from "./referral-pix-modal";
 
 interface FinancialSubscriptionTabProps {
@@ -420,7 +420,7 @@ export function FinancialSubscriptionTab({
         />
       )}
       {pendingPix && !referralModalOpen && (
-        <PixPaymentModal
+        <PixQrModal
           isOpen={!!pendingPix}
           onClose={() => {
             setPendingPix(null);
@@ -430,19 +430,27 @@ export function FinancialSubscriptionTab({
                 "Volte aqui para ver o PIX novamente ou verificar se o pagamento foi confirmado.",
             });
           }}
-          onPaymentConfirmed={() => {
-            clearPendingPixStorage();
-            refetchSubscription();
-            // Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
-            useGymsDataStore.getState().loadAllGyms();
-          }}
-          pixId={pendingPix.pixId}
           brCode={pendingPix.brCode}
           brCodeBase64={pendingPix.brCodeBase64}
           amount={pendingPix.amount}
-          refetchSubscription={refetchSubscription}
-          subscriptionStatus={subscription?.status}
-          initialStatus="pending"
+          simulatePixUrl={`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pendingPix.pixId)}`}
+          onSimulateSuccess={refetchSubscription}
+          pollConfig={{
+            type: "subscription",
+            refetch: refetchSubscription,
+            currentStatus: subscription?.status,
+            initialStatus: "pending",
+            targetStatus: "active",
+          }}
+          onPaymentConfirmed={() => {
+            clearPendingPixStorage();
+            refetchSubscription();
+            useGymsDataStore.getState().loadAllGyms();
+          }}
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua assinatura está ativa.",
+          }}
         />
       )}
     </>

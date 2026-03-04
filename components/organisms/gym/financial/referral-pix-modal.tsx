@@ -1,11 +1,10 @@
 "use client";
 
-import { Copy, Play, QrCode } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { Modal } from "@/components/organisms/modals/modal";
+import { PixQrBlock } from "@/components/organisms/modals/pix-qr-modal";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 
 export interface ReferralPixModalProps {
   isOpen: boolean;
@@ -53,7 +52,6 @@ export function ReferralPixModal({
   const { toast } = useToast();
   const [referralCode, setReferralCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [referralCodeInvalid, setReferralCodeInvalid] = useState(false);
 
   const resolvedSimulateUrl =
@@ -96,43 +94,6 @@ export function ReferralPixModal({
       onClose();
     }
   }, [isOpen, pixData, subscriptionStatus, onPaymentConfirmed, onClose]);
-
-  const copyCode = useCallback(() => {
-    if (!pixData) return;
-    navigator.clipboard.writeText(pixData.brCode);
-    toast({
-      title: "Código copiado!",
-      description: "Cole no app do seu banco para pagar via PIX.",
-    });
-  }, [pixData?.brCode, toast]);
-
-  const simulatePayment = useCallback(async () => {
-    if (!pixData || !resolvedSimulateUrl || !refetchSubscription) return;
-    setIsSimulating(true);
-    try {
-      await apiClient.post(resolvedSimulateUrl, {});
-      toast({
-        title: "Pagamento simulado!",
-        description: "Aguardando confirmação...",
-      });
-      await refetchSubscription();
-    } catch (err) {
-      const msg =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response
-              ?.data?.error
-          : err instanceof Error
-            ? err.message
-            : "Erro ao simular";
-      toast({
-        variant: "destructive",
-        title: "Erro ao simular",
-        description: String(msg),
-      });
-    } finally {
-      setIsSimulating(false);
-    }
-  }, [pixData, resolvedSimulateUrl, refetchSubscription, toast]);
 
   const handleGeneratePix = async () => {
     setIsGenerating(true);
@@ -200,58 +161,19 @@ export function ReferralPixModal({
           </div>
         )}
 
-        {/* QR Code ou botão Gerar PIX */}
+        {/* QR Code (PixQrBlock) ou botão Gerar PIX */}
         {pixData ? (
-          <>
-            <p className="text-sm text-duo-fg-muted">
-              Escaneie o QR Code ou copie o código PIX para pagar no app do seu
-              banco.
-            </p>
-            <div className="flex flex-col items-center gap-4">
-              <div className="bg-duo-bg-elevated p-4 rounded-xl border-2 border-duo-border">
-                {pixData.brCodeBase64 ? (
-                  <img
-                    src={
-                      pixData.brCodeBase64.startsWith("data:")
-                        ? pixData.brCodeBase64
-                        : `data:image/png;base64,${pixData.brCodeBase64}`
-                    }
-                    alt="QR Code PIX"
-                    className="w-48 h-48 object-contain"
-                  />
-                ) : (
-                  <div className="w-48 h-48 flex items-center justify-center bg-duo-bg-elevated rounded">
-                    <QrCode className="w-24 h-24 text-duo-fg-muted" />
-                  </div>
-                )}
-              </div>
-              <DuoButton
-                onClick={copyCode}
-                variant="outline"
-                className="w-full"
-                size="sm"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar código PIX
-              </DuoButton>
-              {resolvedSimulateUrl && (
-                <DuoButton
-                  onClick={simulatePayment}
-                  disabled={isSimulating}
-                  variant="outline"
-                  className="w-full border-dashed"
-                  size="sm"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {isSimulating ? "Simulando..." : "Simular pagamento"}
-                </DuoButton>
-              )}
-            </div>
-            <p className="text-xs text-duo-fg-muted text-center">
-              O pagamento é confirmado automaticamente. Você pode fechar e ir ao
-              app do banco — ao voltar aqui, o PIX estará disponível novamente.
-            </p>
-          </>
+          <PixQrBlock
+            brCode={pixData.brCode}
+            brCodeBase64={pixData.brCodeBase64}
+            amount={pixData.amount}
+            simulatePixUrl={resolvedSimulateUrl || undefined}
+            onSimulateSuccess={
+              refetchSubscription
+                ? () => refetchSubscription().then(() => undefined)
+                : undefined
+            }
+          />
         ) : (
           <DuoButton
             onClick={handleGeneratePix}

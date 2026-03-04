@@ -9,7 +9,8 @@ import {
   Plus,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { StudentMembershipPixModal } from "@/app/student/_components/student-membership-pix-modal";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import { apiClient } from "@/lib/api/client";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
@@ -374,14 +375,29 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
       />
 
       {pixModal && (
-        <StudentMembershipPixModal
+        <PixQrModal
           isOpen={true}
           onClose={() => setPixModal(null)}
-          paymentId={pixModal.paymentId}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          valueSlot={undefined}
+          simulatePixUrl={`/api/students/payments/${pixModal.paymentId}/simulate-pix`}
+          onSimulateSuccess={handlePixConfirmed}
+          pollConfig={{
+            type: "check",
+            check: async () => {
+              const res = await apiClient.get<{ status: string }>(
+                `/api/payments/${pixModal.paymentId}`,
+              );
+              return res.data.status === "paid";
+            },
+          }}
           onPaymentConfirmed={handlePixConfirmed}
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua mensalidade está ativa.",
+          }}
         />
       )}
 

@@ -16,7 +16,8 @@ import {
   deleteBoostCampaign,
   getBoostCampaignPix,
 } from "@/app/gym/actions";
-import { BoostCampaignPixModal } from "@/components/organisms/gym/financial/boost-campaign-pix-modal";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
@@ -532,19 +533,34 @@ export function FinancialAdsTab({
 
       {/* Modal PIX */}
       {pixModal && (
-        <BoostCampaignPixModal
+        <PixQrModal
           isOpen={!!pixModal}
           onClose={() => {
             setPixModal(null);
             router.refresh();
           }}
-          campaignId={pixModal.campaignId}
+          title="Pagar Anúncio"
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          simulatePixUrl={`/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`}
+          onSimulateSuccess={() => router.refresh()}
+          pollConfig={{
+            type: "check",
+            check: async () => {
+              const res = await apiClient.get<{ status: string }>(
+                `/api/gym/boost-campaigns/${pixModal.campaignId}`,
+              );
+              return res.data.status === "active";
+            },
+          }}
           onPaymentConfirmed={() => {
             setPixModal(null);
             router.refresh();
+          }}
+          paymentConfirmedToast={{
+            title: "Campanha ativada!",
+            description: "Pagamento confirmado.",
           }}
         />
       )}
