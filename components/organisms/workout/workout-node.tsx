@@ -21,6 +21,9 @@ interface WorkoutNodeWorkoutProps extends WorkoutNodeBaseProps {
   isFirst?: boolean;
   previousWorkouts?: WorkoutSession[];
   previousUnitsWorkouts?: WorkoutSession[];
+  lockOverride?: boolean;
+  isDisabled?: boolean;
+  isMissed?: boolean;
   /** Quando definido (ex: landing/marketing), exibe o anel de progresso com essa porcentagem em vez do store. */
   mockProgressPercent?: number;
 }
@@ -82,6 +85,9 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
     isFirst = false,
     previousWorkouts = [],
     previousUnitsWorkouts = [],
+    lockOverride,
+    isDisabled = false,
+    isMissed = false,
     mockProgressPercent,
   } = props;
 
@@ -126,9 +132,11 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
 
   // Se todos os workouts anteriores foram completados (otimista ou do backend), desbloquear
   // Caso contrário, usar workout.locked do backend
-  const isLocked = allPreviousCompleted
+  const computedLocked = allPreviousCompleted
     ? false // Desbloquear se todos anteriores estão completos
     : workout.locked; // Usar locked do backend caso contrário
+  const isLocked =
+    lockOverride !== undefined ? lockOverride : computedLocked;
 
   const useMockProgress =
     mockProgressPercent !== undefined && mockProgressPercent !== null;
@@ -148,15 +156,16 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
     (isFirst && allPreviousUnitsCompleted) ||
     (!isFirst && allPreviousInUnitCompleted);
 
-  const inProgress = !isCompleted && canShowProgress && hasProgress;
+  const inProgress = !isCompleted && !isDisabled && canShowProgress && hasProgress;
 
-  const isCurrent = !isLocked && !isCompleted && !inProgress;
+  const isCurrent = !isLocked && !isDisabled && !isCompleted && !inProgress;
 
   const isInProgressState = inProgress && !isCompleted && !isLocked;
 
   const shouldShowProgress =
     !isCompleted &&
     !isLocked &&
+    !isDisabled &&
     canShowProgress &&
     (hasProgress || useMockProgress || !isLocked);
 
@@ -284,6 +293,8 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
             isLocked={isLocked}
             isCompleted={isCompleted}
             isCurrent={isCurrent || isInProgressState}
+            isDisabled={isDisabled}
+            isMissed={isMissed}
           />
         </ProgressRing>
       ) : (
@@ -292,6 +303,8 @@ function WorkoutNodeSimple(props: WorkoutNodeProps) {
           isLocked={isLocked}
           isCompleted={isCompleted}
           isCurrent={isCurrent}
+          isDisabled={isDisabled}
+          isMissed={isMissed}
         />
       )}
 

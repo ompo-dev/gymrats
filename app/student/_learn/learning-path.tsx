@@ -88,6 +88,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     ? (weeklyPlan.slots as unknown as PlanSlotData[])
     : [];
   const hasPlan = weeklyPlan && slots.length >= 7;
+  const todayIndex = (new Date().getDay() + 6) % 7; // 0 = Segunda, 6 = Domingo
 
   if (!hasPlan) {
     return (
@@ -140,6 +141,9 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
       <StaggerContainer className="relative flex flex-col items-center space-y-6">
         {slots.map((slot: PlanSlotData, index: number) => {
           const position = positions[index % 7];
+          const isToday = slot.dayOfWeek === todayIndex;
+          const isPast = slot.dayOfWeek < todayIndex;
+          const isFuture = slot.dayOfWeek > todayIndex;
 
           if (slot.type === "rest" || !slot.workout) {
             return (
@@ -150,11 +154,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
           }
 
           const workout = slot.workout;
-          const isFirst = index === 0;
-          const previousSlots = slots.slice(0, index);
-          const previousWorkouts = previousSlots
-            .filter((s: PlanSlotData) => s.type === "workout" && s.workout)
-            .map((s: PlanSlotData) => s.workout!);
+          const isMissed = isPast && !slot.completed;
 
           return (
             <StaggerItem key={slot.id} className="relative w-full">
@@ -168,9 +168,9 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
                 onClick={(isLocked) => {
                   handleWorkoutClick(workout.id, isLocked, workout.type);
                 }}
-                isFirst={isFirst}
-                previousWorkouts={previousWorkouts}
-                previousUnitsWorkouts={[]}
+                lockOverride={isFuture}
+                isDisabled={!isToday}
+                isMissed={isMissed}
               />
             </StaggerItem>
           );

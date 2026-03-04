@@ -63,21 +63,20 @@ export function DietTab({
   const targetProtein = student.profile?.targetProtein ?? 150;
   const targetCarbs = student.profile?.targetCarbs ?? 250;
   const targetFats = student.profile?.targetFats ?? 65;
-  const nutrition =
-    dailyNutrition ?? {
-      date: nutritionDate,
-      meals: [],
-      totalCalories: 0,
-      totalProtein: 0,
-      totalCarbs: 0,
-      totalFats: 0,
-      waterIntake: 0,
-      targetCalories: targetCal,
-      targetProtein,
-      targetCarbs,
-      targetFats,
-      targetWater: 3000,
-    };
+  const nutrition = dailyNutrition ?? {
+    date: nutritionDate,
+    meals: [],
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFats: 0,
+    waterIntake: 0,
+    targetCalories: targetCal,
+    targetProtein,
+    targetCarbs,
+    targetFats,
+    targetWater: 3000,
+  };
 
   useEffect(() => {
     setTargetWaterInput(String(nutrition.targetWater ?? 3000));
@@ -123,13 +122,11 @@ export function DietTab({
         </div>
       ) : nutrition ? (
         <>
-          <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Root variant="default" padding="md" className="mb-4">
             <DuoCard.Header>
               <div className="flex items-center gap-2">
                 <Droplets className="h-5 w-5 text-duo-blue" />
-                <h2 className="font-bold text-duo-fg">
-                  Meta diária de água
-                </h2>
+                <h2 className="font-bold text-duo-fg">Meta diária de água</h2>
               </div>
             </DuoCard.Header>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
