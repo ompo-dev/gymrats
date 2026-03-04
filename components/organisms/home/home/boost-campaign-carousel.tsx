@@ -191,7 +191,20 @@ export function BoostCampaignCarousel({
             "/api/boost-campaigns/nearby",
             { params: { lat: position.lat, lng: position.lng } },
           );
-          setCampaigns(res.data.campaigns ?? []);
+          const next = res.data.campaigns ?? [];
+          setCampaigns((prev) => {
+            if (next.length > 0) return next;
+            if (prev.length > 0) return prev;
+            return next;
+          });
+          if (next.length === 0) {
+            try {
+              const fallback = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+              if (fallback.length > 0) setCampaigns(fallback);
+            } catch {
+              // mantém prev ou []
+            }
+          }
         } else {
           const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
           setCampaigns(activeCampaigns);
@@ -201,7 +214,7 @@ export function BoostCampaignCarousel({
           const fallback = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
           setCampaigns(fallback);
         } catch {
-          setCampaigns([]);
+          setCampaigns((prev) => prev);
         }
       } finally {
         hasLoadedOnceRef.current = true;
