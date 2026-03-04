@@ -45,6 +45,31 @@ export const POST = createSafeHandler(
       where: { gymId },
     });
 
+    let canApplyReferral = true;
+    if (existingSubscription?.id) {
+      const hasEverPaid = await db.subscriptionPayment.count({
+        where: {
+          gymSubscriptionId: existingSubscription.id,
+          status: "succeeded",
+        },
+      });
+      const isTrialActive =
+        existingSubscription.status === "trialing" &&
+        !!existingSubscription.trialEnd &&
+        new Date(existingSubscription.trialEnd).getTime() > Date.now();
+      canApplyReferral = isTrialActive || hasEverPaid === 0;
+    }
+
+    if (referralCode && !canApplyReferral) {
+      return NextResponse.json(
+        {
+          error:
+            "Indicação disponível apenas para primeira assinatura ou trial ativo.",
+        },
+        { status: 400 },
+      );
+    }
+
     const now = new Date();
     const periodEnd = new Date(now);
     if (billingPeriod === "annual") {
@@ -130,6 +155,7 @@ export const POST = createSafeHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      canApplyReferral,
       ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });
   },

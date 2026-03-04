@@ -41,6 +41,27 @@ export const POST = createSafeHandler(
       );
     }
 
+    const hasEverPaid = await db.subscriptionPayment.count({
+      where: {
+        subscriptionId: subscription.id,
+        status: "succeeded",
+      },
+    });
+    const canApplyReferral =
+      subscription.source === "GYM_ENTERPRISE" ||
+      subscription.status === "trialing" ||
+      hasEverPaid === 0;
+
+    if (!canApplyReferral) {
+      return NextResponse.json(
+        {
+          error:
+            "Indicação disponível apenas para primeira assinatura, trial ativo ou benefício Enterprise.",
+        },
+        { status: 400 }
+      );
+    }
+
     const referrer = await db.student.findUnique({
       where: { referralCode: normalized },
     });

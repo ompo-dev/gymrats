@@ -41,7 +41,7 @@ export function AddStudentModal({
 }: AddStudentModalProps) {
   const { actions, loaders } = useGym("actions", "loaders");
   const { toast } = useToast();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<StudentSearchResult | null>(
     null,
@@ -52,13 +52,17 @@ export function AddStudentModal({
   const [error, setError] = useState("");
 
   const handleSearch = async () => {
-    if (!email || email.length < 3) return;
+    const normalizedIdentifier = identifier.trim();
+    if (!normalizedIdentifier || normalizedIdentifier.length < 3) return;
     setIsSearching(true);
     setSearchResult(null);
     setError("");
     try {
+      const searchQuery = normalizedIdentifier.startsWith("@")
+        ? normalizedIdentifier
+        : `@${normalizedIdentifier}`;
       const res = await fetch(
-        `/api/gyms/students/search?email=${encodeURIComponent(email)}`,
+        `/api/gyms/students/search?email=${encodeURIComponent(searchQuery)}`,
       );
       const data = await res.json();
       setSearchResult(data);
@@ -117,7 +121,7 @@ export function AddStudentModal({
   };
 
   const handleClose = () => {
-    setEmail("");
+    setIdentifier("");
     setSearchResult(null);
     setSelectedPlanId("");
     setCustomAmount("");
@@ -164,17 +168,17 @@ export function AddStudentModal({
         <div className="mb-4">
           <div className="flex gap-2">
             <DuoInput.Simple
-              label="Buscar por e-mail"
-              placeholder="email@exemplo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              label="Buscar por @ do aluno"
+              placeholder="@usuario"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               leftIcon={<Search className="h-4 w-4" />}
               className="flex-1"
             />
             <DuoButton
               onClick={handleSearch}
-              disabled={isSearching || email.length < 3}
+              disabled={isSearching || identifier.trim().length < 3}
               variant="primary"
             >
               {isSearching ? (
@@ -193,7 +197,7 @@ export function AddStudentModal({
             {!searchResult.found && (
               <DuoCard.Root variant="orange" size="sm">
                 <p className="text-sm text-duo-text">
-                  Nenhum aluno encontrado com este e-mail. Verifique se o
+                  Nenhum aluno encontrado com este @/e-mail. Verifique se o
                   usuário está cadastrado com a role <strong>STUDENT</strong>.
                 </p>
               </DuoCard.Root>

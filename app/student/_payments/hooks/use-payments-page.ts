@@ -93,6 +93,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     amount: number;
     expiresAt?: string;
     originalAmount?: number;
+    canApplyReferral?: boolean;
   } | null>(null);
   const [_daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
@@ -442,6 +443,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCodeBase64?: string;
         amount?: number;
         expiresAt?: string;
+        canApplyReferral?: boolean;
       };
       if (pix.pixId && pix.brCode) {
         await refetchSubscription();
@@ -451,6 +453,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
           expiresAt: pix.expiresAt,
+          canApplyReferral: pix.canApplyReferral ?? false,
         };
       }
       return null;
@@ -489,6 +492,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCodeBase64: pixData.brCodeBase64,
         amount: pixData.amount,
         expiresAt: pixData.expiresAt,
+        canApplyReferral: pixData.canApplyReferral ?? false,
         originalAmount: (pixData as { originalAmount?: number }).originalAmount,
       });
     }

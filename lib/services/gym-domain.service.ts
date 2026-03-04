@@ -653,9 +653,21 @@ export class GymDomainService {
 
   static async searchStudentByEmail(gymId: string, email: string) {
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedIdentifier = normalizedEmail.startsWith("@")
+      ? normalizedEmail.slice(1)
+      : normalizedEmail;
+    const isFullEmail = normalizedIdentifier.includes("@");
+
+    const emailWhere = isFullEmail
+      ? { contains: normalizedIdentifier, mode: "insensitive" as const }
+      : {
+          startsWith: `${normalizedIdentifier}@`,
+          mode: "insensitive" as const,
+        };
+
     const user = await db.user.findFirst({
       where: {
-        email: { contains: normalizedEmail, mode: "insensitive" },
+        email: emailWhere,
         role: { in: ["STUDENT", "ADMIN"] },
       },
       include: {

@@ -42,7 +42,10 @@ export async function getCurrentSubscriptionHandler(
       studentId?: string;
     } | null;
 
-    // Primeira vez = nunca pagou com sucesso. Quem já assinou antes não vê indicação.
+    // Elegibilidade de indicação:
+    // - Mostra se estiver em trial
+    // - Mostra se vier de benefício GYM_ENTERPRISE
+    // - Caso contrário, só mostra se nunca teve pagamento bem-sucedido
     let isFirstPayment = true;
     if (sub?.id) {
       const hasEverPaid = await db.subscriptionPayment.count({
@@ -51,10 +54,13 @@ export async function getCurrentSubscriptionHandler(
           status: "succeeded",
         },
       });
-      if (hasEverPaid > 0) isFirstPayment = false;
+      isFirstPayment = hasEverPaid === 0;
     }
+    const isTrialing = sub?.status === "trialing";
     if (sub?.source === "GYM_ENTERPRISE") {
-      isFirstPayment = true; // Benefício Enterprise: nunca pagou próprio
+      isFirstPayment = true; // Benefício Enterprise mantém indicação disponível
+    } else if (isTrialing) {
+      isFirstPayment = true; // Trial mantém indicação disponível
     }
 
     return successResponse({ subscription, isFirstPayment });
@@ -129,6 +135,28 @@ export async function createSubscriptionHandler(
       where: { studentId },
     });
 
+    let canApplyReferral = true;
+    if (existingSubscription?.id) {
+      const hasEverPaid = await db.subscriptionPayment.count({
+        where: {
+          subscriptionId: existingSubscription.id,
+          status: "succeeded",
+        },
+      });
+      canApplyReferral = hasEverPaid === 0;
+      if (existingSubscription.source === "GYM_ENTERPRISE") {
+        canApplyReferral = true;
+      } else if (existingSubscription.status === "trialing") {
+        canApplyReferral = true;
+      }
+    }
+
+    if (referralCode && !canApplyReferral) {
+      return badRequestResponse(
+        "Indicação disponível apenas para primeira assinatura, trial ativo ou benefício Enterprise.",
+      );
+    }
+
     const now = new Date();
     const periodEnd = new Date(now);
     if (plan === "annual") {
@@ -184,6 +212,7 @@ export async function createSubscriptionHandler(
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
       expiresAt: pix.expiresAt,
+      canApplyReferral,
       ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });
   } catch (error) {

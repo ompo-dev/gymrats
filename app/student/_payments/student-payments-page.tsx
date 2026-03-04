@@ -416,7 +416,8 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           amount={subscriptionPixModal.amount}
           expiresAt={subscriptionPixModal.expiresAt}
           referralSlot={
-            isFirstPayment && !subscriptionPixModal.originalAmount
+            subscriptionPixModal.canApplyReferral &&
+            !subscriptionPixModal.originalAmount
               ? { onApplyReferral: handleApplyReferralStudent }
               : undefined
           }

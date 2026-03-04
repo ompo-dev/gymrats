@@ -42,6 +42,28 @@ export const POST = createSafeHandler(
       );
     }
 
+    const hasEverPaid = await db.subscriptionPayment.count({
+      where: {
+        gymSubscriptionId: subscription.id,
+        status: "succeeded",
+      },
+    });
+    const isTrialActive =
+      subscription.status === "trialing" &&
+      !!subscription.trialEnd &&
+      new Date(subscription.trialEnd).getTime() > Date.now();
+    const canApplyReferral = isTrialActive || hasEverPaid === 0;
+
+    if (!canApplyReferral) {
+      return NextResponse.json(
+        {
+          error:
+            "Indicação disponível apenas para primeira assinatura ou trial ativo.",
+        },
+        { status: 400 }
+      );
+    }
+
     const referrer = await db.student.findUnique({
       where: { referralCode: normalized },
     });

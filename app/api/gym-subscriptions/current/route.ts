@@ -42,11 +42,16 @@ export const GET = createSafeHandler(
         : subscription.basePrice +
           subscription.pricePerStudent * activeStudents;
 
-    // Primeira vez = nunca pagou. Quem já assinou (active/canceled/expired) não é primeira vez.
-    const isFirstPayment =
-      subscription.status !== "active" &&
-      subscription.status !== "canceled" &&
-      subscription.status !== "expired";
+    // Elegibilidade de indicação:
+    // - Mostra durante trial
+    // - Fora do trial, só mostra se nunca teve pagamento bem-sucedido
+    const hasEverPaid = await db.subscriptionPayment.count({
+      where: {
+        gymSubscriptionId: subscription.id,
+        status: "succeeded",
+      },
+    });
+    const isFirstPayment = isTrial || hasEverPaid === 0;
 
     return NextResponse.json({
       subscription: {

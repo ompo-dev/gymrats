@@ -49,6 +49,7 @@ function loadPendingPixFromStorage(): {
   amount: number;
   expiresAt?: string;
   originalAmount?: number;
+  canApplyReferral?: boolean;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -61,6 +62,7 @@ function loadPendingPixFromStorage(): {
       amount: number;
       expiresAt?: string;
       originalAmount?: number;
+      canApplyReferral?: boolean;
       createdAt: number;
     };
     if (data.expiresAt && Date.now() > new Date(data.expiresAt).getTime()) {
@@ -74,6 +76,7 @@ function loadPendingPixFromStorage(): {
       amount: data.amount,
       expiresAt: data.expiresAt,
       originalAmount: data.originalAmount,
+      canApplyReferral: data.canApplyReferral,
     };
   } catch {
     return null;
@@ -87,6 +90,7 @@ function savePendingPixToStorage(pix: {
   amount: number;
   expiresAt?: string;
   originalAmount?: number;
+  canApplyReferral?: boolean;
 }) {
   sessionStorage.setItem(
     PENDING_PIX_KEY,
@@ -110,6 +114,7 @@ export function FinancialSubscriptionTab({
     amount: number;
     expiresAt?: string;
     originalAmount?: number;
+    canApplyReferral?: boolean;
   } | null>(null);
   const {
     subscription: subscriptionData,
@@ -222,6 +227,7 @@ export function FinancialSubscriptionTab({
         brCodeBase64: pixData.brCodeBase64,
         amount: pixData.amount,
         expiresAt: pixData.expiresAt,
+        canApplyReferral: pixData.canApplyReferral ?? false,
       });
       savePendingPixToStorage(pixData);
     }
@@ -249,6 +255,7 @@ export function FinancialSubscriptionTab({
         amount?: number;
         expiresAt?: string;
         referralCodeInvalid?: boolean;
+        canApplyReferral?: boolean;
       };
       if (pix.pixId && pix.brCode) {
         await refetchSubscription();
@@ -258,6 +265,7 @@ export function FinancialSubscriptionTab({
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
           expiresAt: pix.expiresAt,
+          canApplyReferral: pix.canApplyReferral ?? false,
           referralCodeInvalid: pix.referralCodeInvalid,
         };
         return pixData;
@@ -430,7 +438,7 @@ export function FinancialSubscriptionTab({
           amount={pendingPix.amount}
           expiresAt={pendingPix.expiresAt}
           referralSlot={
-            !pendingPix.originalAmount
+            pendingPix.canApplyReferral && !pendingPix.originalAmount
               ? { onApplyReferral: handleApplyReferral }
               : undefined
           }

@@ -257,5 +257,8 @@ export const updateGymPlanSchema = z.object({
 });
 
 export const gymStudentsSearchQuerySchema = z.object({
-  email: z.string().email("Email inválido").min(3, "Email muito curto"),
+  email: z
+    .string()
+    .trim()
+    .min(3, "Informe ao menos 3 caracteres para buscar"),
 });
