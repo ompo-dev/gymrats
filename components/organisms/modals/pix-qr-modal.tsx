@@ -45,6 +45,8 @@ export interface PixQrBlockProps {
   simulatePixUrl?: string;
   onSimulateSuccess?: () => Promise<void>;
   onCopy?: () => void;
+  /** ISO date-time. Se informado, exibe countdown; ao expirar mostra "PIX expirado". */
+  expiresAt?: string;
 }
 
 /** @deprecated Use fluxo com brCode já gerado ao clicar Assinar Agora. */
@@ -57,6 +59,7 @@ export interface PixQrModalGenerateConfig {
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
     referralCodeInvalid?: boolean;
   } | null>;
   isLoading?: boolean;
@@ -87,6 +90,40 @@ export interface PixQrModalProps {
   className?: string;
   /** Modo legado: gera PIX ao abrir. Preferir passar brCode já gerado ao clicar Assinar Agora. */
   generateConfig?: PixQrModalGenerateConfig;
+  /** ISO date-time. Se informado, exibe countdown; ao expirar mostra "PIX expirado". */
+  expiresAt?: string;
+}
+
+/** Retorna segundos restantes e se está expirado */
+function usePixCountdown(expiresAt?: string | null) {
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) {
+      setSecondsRemaining(null);
+      return;
+    }
+    const update = () => {
+      const now = Date.now();
+      const end = new Date(expiresAt).getTime();
+      const diff = Math.max(0, Math.floor((end - now) / 1000));
+      setSecondsRemaining(diff);
+      return diff;
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+
+  const isExpired = secondsRemaining !== null && secondsRemaining <= 0;
+  return { secondsRemaining, isExpired };
+}
+
+/** Formata segundos como MM:SS */
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** Bloco reutilizável: QR + valor + copiar + simular (sem modal) */
@@ -98,9 +135,11 @@ export function PixQrBlock({
   simulatePixUrl,
   onSimulateSuccess,
   onCopy,
+  expiresAt,
 }: PixQrBlockProps) {
   const { toast } = useToast();
   const [isSimulating, setIsSimulating] = useState(false);
+  const { secondsRemaining, isExpired } = usePixCountdown(expiresAt);
   const valueReais = (amount / 100).toFixed(2);
 
   const copyCode = useCallback(() => {
@@ -142,10 +181,24 @@ export function PixQrBlock({
 
   return (
     <>
-      <p className="text-sm text-duo-fg-muted">
-        Escaneie o QR Code ou copie o código PIX para pagar no app do seu
-        banco.
-      </p>
+      {isExpired ? (
+        <p className="text-sm font-medium text-duo-accent">
+          PIX expirado. Gere um novo para pagar.
+        </p>
+      ) : secondsRemaining !== null ? (
+        <p className="text-sm text-duo-fg-muted">
+          Expira em{" "}
+          <span className="font-mono font-semibold text-duo-fg">
+            {formatCountdown(secondsRemaining)}
+          </span>
+          {" — "}Escaneie o QR Code ou copie o código no app do seu banco.
+        </p>
+      ) : (
+        <p className="text-sm text-duo-fg-muted">
+          Escaneie o QR Code ou copie o código PIX para pagar no app do seu
+          banco.
+        </p>
+      )}
       <div className="flex flex-col items-center gap-4">
         <div className="bg-duo-bg-elevated p-4 rounded-xl border-2 border-duo-border">
           {brCodeBase64 ? (
@@ -189,6 +242,7 @@ export function PixQrBlock({
           variant="outline"
           className="w-full"
           size="sm"
+          disabled={isExpired}
         >
           <Copy className="w-4 h-4 mr-2" />
           Copiar código PIX
@@ -196,7 +250,7 @@ export function PixQrBlock({
         {simulatePixUrl && (
           <DuoButton
             onClick={simulatePayment}
-            disabled={isSimulating}
+            disabled={isSimulating || isExpired}
             variant="outline"
             className="w-full border-dashed"
             size="sm"
@@ -236,6 +290,7 @@ export function PixQrModal({
   },
   className,
   generateConfig,
+  expiresAt: expiresAtProp,
 }: PixQrModalProps) {
   const { toast } = useToast();
   const hasClosedRef = useRef(false);
@@ -244,6 +299,7 @@ export function PixQrModal({
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
   } | null>(null);
   const [referralCode, setReferralCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -292,6 +348,7 @@ export function PixQrModal({
           brCode: result.brCode,
           brCodeBase64: result.brCodeBase64,
           amount: result.amount,
+          expiresAt: result.expiresAt,
         });
         toast({
           title: "PIX gerado!",
@@ -522,6 +579,11 @@ export function PixQrModal({
             brCode={brCode}
             brCodeBase64={brCodeBase64}
             amount={amount}
+            expiresAt={
+              hasPixFromProps
+                ? expiresAtProp
+                : generatedPix?.expiresAt
+            }
             valueSlot={
               valueSlot ??
               (generateConfig

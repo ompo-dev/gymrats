@@ -208,6 +208,7 @@ function StudentHomeContent() {
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
     planName?: string;
     originalPrice?: number;
     appliedCoupon?: { code: string; discountString: string };
@@ -226,6 +227,7 @@ function StudentHomeContent() {
         brCodeBase64?: string;
         amount?: number;
         paymentId?: string;
+        expiresAt?: string;
         membershipId?: string;
         success?: boolean;
         planName?: string;
@@ -249,6 +251,7 @@ function StudentHomeContent() {
           brCode: data.brCode!,
           brCodeBase64: data.brCodeBase64!,
           amount: data.amount!,
+          expiresAt: data.expiresAt,
           planName: data.planName,
           originalPrice: data.originalPrice,
           appliedCoupon: data.appliedCoupon,
@@ -285,6 +288,7 @@ function StudentHomeContent() {
         brCodeBase64: string;
         amount: number;
         paymentId: string;
+        expiresAt?: string;
       }>(`/api/students/memberships/${membershipId}/change-plan`, { planId });
       setPixModal({
         open: true,
@@ -292,6 +296,7 @@ function StudentHomeContent() {
         brCode: res.data.brCode,
         brCodeBase64: res.data.brCodeBase64,
         amount: res.data.amount,
+        expiresAt: res.data.expiresAt,
       });
     } catch (err) {
       const msg =
@@ -625,6 +630,7 @@ function StudentHomeContent() {
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          expiresAt={pixModal.expiresAt}
           valueSlot={
             pixModal.planName
               ? {

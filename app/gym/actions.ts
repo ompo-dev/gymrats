@@ -344,9 +344,10 @@ export async function createBoostCampaign(data: {
 
     // Gera PIX direto (igual ao fluxo de alunos — não exige taxId)
     const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
     const pixResponse = await abacatePay.createPixQrCode({
       amount: data.amountCents,
-      expiresIn: 3600 * 24, // 24h
+      expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
       description: `Impulsionamento: ${data.title}`.slice(0, 37),
       metadata: {
         campaignId: campaign.id,
@@ -383,6 +384,7 @@ export async function createBoostCampaign(data: {
       amount: pixResponse.data.amount,
       pixId: pixResponse.data.id,
       campaignId: campaign.id,
+      expiresAt: pixResponse.data.expiresAt,
     } as const;
   } catch (error) {
     console.error("[createBoostCampaign] Erro:", error);
@@ -453,9 +455,10 @@ export async function getBoostCampaignPix(
     }
 
     // Cria novo PIX
+    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
     const pixResponse = await abacatePay.createPixQrCode({
       amount: campaign.amountCents,
-      expiresIn: 3600 * 24, // 24h
+      expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
       description: `Impulsionamento: ${campaign.title}`.slice(0, 37),
       metadata: {
         campaignId: campaign.id,
@@ -488,6 +491,7 @@ export async function getBoostCampaignPix(
       brCodeBase64: pixResponse.data.brCodeBase64,
       amount: pixResponse.data.amount,
       pixId: pixResponse.data.id,
+      expiresAt: pixResponse.data.expiresAt,
     };
   } catch (error) {
     console.error("[getBoostCampaignPix] Erro:", error);

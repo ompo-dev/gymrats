@@ -1,12 +1,14 @@
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
+import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
 
 export interface MembershipPaymentPixResult {
   brCode: string;
   brCodeBase64: string;
   amount: number; // centavos
   paymentId: string;
+  expiresAt: string; // ISO date-time
 }
 
 /**
@@ -91,7 +93,7 @@ export async function createMembershipPaymentPix(
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: amountCentavos,
-    expiresIn: 3600, // 1 hora
+    expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
     description,
     metadata: {
       gymId,
@@ -143,6 +145,7 @@ export async function createMembershipPaymentPix(
     brCodeBase64: pix.brCodeBase64,
     amount: pix.amount,
     paymentId: payment.id,
+    expiresAt: pix.expiresAt,
   };
 }
 
@@ -151,6 +154,7 @@ export interface ChangePlanPaymentPixResult {
   brCodeBase64: string;
   amount: number;
   paymentId: string;
+  expiresAt: string;
 }
 
 /**
@@ -188,7 +192,7 @@ export async function createChangePlanPaymentPix(
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: amountCentavos,
-    expiresIn: 3600,
+    expiresIn: PIX_EXPIRES_IN_SECONDS,
     description,
     metadata: {
       gymId: membership.gymId,
@@ -238,6 +242,7 @@ export async function createChangePlanPaymentPix(
     brCodeBase64: pix.brCodeBase64,
     amount: pix.amount,
     paymentId: payment.id,
+    expiresAt: pix.expiresAt,
   };
 }
 
@@ -288,7 +293,7 @@ export async function createPixForPendingPayment(
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: amountCentavos,
-    expiresIn: 3600,
+    expiresIn: PIX_EXPIRES_IN_SECONDS,
     description,
     metadata: {
       gymId: payment.gymId,
@@ -323,5 +328,6 @@ export async function createPixForPendingPayment(
     brCodeBase64: pix.brCodeBase64,
     amount: pix.amount,
     paymentId: payment.id,
+    expiresAt: pix.expiresAt,
   };
 }

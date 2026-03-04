@@ -40,13 +40,13 @@ interface FinancialSubscriptionTabProps {
 }
 
 const PENDING_PIX_KEY = "gym-pending-pix";
-const PIX_EXPIRY_MS = 55 * 60 * 1000; // 55 min (PIX vale 1h)
 
 function loadPendingPixFromStorage(): {
   pixId: string;
   brCode: string;
   brCodeBase64: string;
   amount: number;
+  expiresAt?: string;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -57,9 +57,10 @@ function loadPendingPixFromStorage(): {
       brCode: string;
       brCodeBase64?: string;
       amount: number;
+      expiresAt?: string;
       createdAt: number;
     };
-    if (Date.now() - data.createdAt > PIX_EXPIRY_MS) {
+    if (data.expiresAt && Date.now() > new Date(data.expiresAt).getTime()) {
       sessionStorage.removeItem(PENDING_PIX_KEY);
       return null;
     }
@@ -68,6 +69,7 @@ function loadPendingPixFromStorage(): {
       brCode: data.brCode,
       brCodeBase64: data.brCodeBase64 ?? "",
       amount: data.amount,
+      expiresAt: data.expiresAt,
     };
   } catch {
     return null;
@@ -79,6 +81,7 @@ function savePendingPixToStorage(pix: {
   brCode: string;
   brCodeBase64: string;
   amount: number;
+  expiresAt?: string;
 }) {
   sessionStorage.setItem(
     PENDING_PIX_KEY,
@@ -100,6 +103,7 @@ export function FinancialSubscriptionTab({
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
   } | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [selectedPlanForModal, setSelectedPlanForModal] = useState<
@@ -113,6 +117,7 @@ export function FinancialSubscriptionTab({
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
   } | null>(null);
 
   const {
@@ -229,6 +234,7 @@ export function FinancialSubscriptionTab({
         brCode: pixData.brCode,
         brCodeBase64: pixData.brCodeBase64,
         amount: pixData.amount,
+        expiresAt: pixData.expiresAt,
       });
       savePendingPixToStorage(pixData);
     }
@@ -254,6 +260,7 @@ export function FinancialSubscriptionTab({
         brCode?: string;
         brCodeBase64?: string;
         amount?: number;
+        expiresAt?: string;
         referralCodeInvalid?: boolean;
       };
       if (pix.pixId && pix.brCode) {
@@ -263,6 +270,7 @@ export function FinancialSubscriptionTab({
           brCode: pix.brCode,
           brCodeBase64: pix.brCodeBase64 ?? "",
           amount: pix.amount ?? 0,
+          expiresAt: pix.expiresAt,
           referralCodeInvalid: pix.referralCodeInvalid,
         };
         return pixData;
@@ -450,6 +458,7 @@ export function FinancialSubscriptionTab({
           brCode={pendingPix.brCode}
           brCodeBase64={pendingPix.brCodeBase64}
           amount={pendingPix.amount}
+          expiresAt={pendingPix.expiresAt}
           simulatePixUrl={`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pendingPix.pixId)}`}
           onSimulateSuccess={
             refetchSubscription

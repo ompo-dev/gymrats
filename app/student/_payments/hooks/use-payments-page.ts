@@ -84,6 +84,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     brCode: string;
     brCodeBase64: string;
     amount: number;
+    expiresAt?: string;
   } | null>(null);
   const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
   const [selectedPlanForModal, setSelectedPlanForModal] = useState<
@@ -314,6 +315,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCodeBase64: string;
         amount: number;
         paymentId: string;
+        expiresAt?: string;
       }>(`/api/students/memberships/${changePlanMembershipId}/change-plan`, {
         planId,
       });
@@ -322,6 +324,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCode: res.data.brCode,
         brCodeBase64: res.data.brCodeBase64,
         amount: res.data.amount,
+        expiresAt: res.data.expiresAt,
       });
       setChangePlanPlans([]);
       setChangePlanMembershipId(null);
@@ -353,12 +356,14 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCode: string;
         brCodeBase64: string;
         amount: number;
+        expiresAt?: string;
       }>(`/api/students/payments/${payment.id}/pay-now`, {});
       setPixModal({
         paymentId: res.data.paymentId,
         brCode: res.data.brCode,
         brCodeBase64: res.data.brCodeBase64,
         amount: res.data.amount,
+        expiresAt: res.data.expiresAt,
       });
     } catch (err) {
       const msg =

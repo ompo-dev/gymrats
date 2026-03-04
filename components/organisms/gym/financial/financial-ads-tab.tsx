@@ -34,6 +34,7 @@ interface PixModalState {
   amount: number; // centavos
   campaignId: string; // usado como paymentId no modal
   campaignTitle: string;
+  expiresAt?: string;
 }
 
 const PRICE_PER_12H = 30; // R$ 30,00 por 12h
@@ -148,6 +149,7 @@ export function FinancialAdsTab({
           amount: result.amount ?? totalPrice * 100,
           campaignId: result.campaignId ?? "",
           campaignTitle: title,
+          expiresAt: result.expiresAt,
         });
         setTitle("");
         setDescription("");
@@ -178,6 +180,7 @@ export function FinancialAdsTab({
           amount: result.amount,
           campaignId: campaign.id,
           campaignTitle: campaign.title,
+          expiresAt: result.expiresAt,
         });
       } else {
         toast({ variant: "destructive", title: result.error });
@@ -543,6 +546,7 @@ export function FinancialAdsTab({
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          expiresAt={pixModal.expiresAt}
           simulatePixUrl={`/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`}
           onSimulateSuccess={async () => {
             router.refresh();

@@ -24,6 +24,7 @@ export const POST = createSafeHandler(
         brCode: result.brCode,
         brCodeBase64: result.brCodeBase64,
         amount: result.amount,
+        expiresAt: result.expiresAt,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erro ao gerar PIX";

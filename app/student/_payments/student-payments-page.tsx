@@ -378,6 +378,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
+          expiresAt={pixModal.expiresAt}
           valueSlot={undefined}
           simulatePixUrl={`/api/students/payments/${pixModal.paymentId}/simulate-pix`}
           onSimulateSuccess={handlePixConfirmed}

@@ -8,12 +8,16 @@ import type { CreateBillingRequest } from "@/lib/api/abacatepay";
 import { abacatePay } from "@/lib/api/abacatepay";
 import { db } from "@/lib/db";
 
+/** Tempo de expiração do PIX em segundos (4 minutos) */
+export const PIX_EXPIRES_IN_SECONDS = 4 * 60;
+
 /** Resposta PIX QRCode - usado para gym (valor dinâmico, sem criar produtos) */
 export interface GymSubscriptionPixResponse {
   id: string;
   brCode: string;
   brCodeBase64: string;
   amount: number; // centavos
+  expiresAt: string; // ISO date-time
 }
 
 // Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
@@ -363,7 +367,7 @@ export async function createStudentSubscriptionPix(
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: selectedPrice,
-    expiresIn: 3600, // 1 hora
+    expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
     description,
     metadata: {
       studentId,
@@ -393,6 +397,7 @@ export async function createStudentSubscriptionPix(
     brCode: pix.brCode,
     brCodeBase64: pix.brCodeBase64,
     amount: pix.amount,
+    expiresAt: pix.expiresAt,
   };
 }
 
@@ -567,7 +572,7 @@ export async function createGymSubscriptionPix(
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: totalAmount,
-    expiresIn: 3600, // 1 hora
+    expiresIn: PIX_EXPIRES_IN_SECONDS, // 4 minutos
     description,
     metadata: {
       gymId,
@@ -597,5 +602,6 @@ export async function createGymSubscriptionPix(
     brCode: pix.brCode,
     brCodeBase64: pix.brCodeBase64,
     amount: pix.amount,
+    expiresAt: pix.expiresAt,
   };
 }

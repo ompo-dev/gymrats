@@ -169,6 +169,7 @@ export async function createSubscriptionHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      expiresAt: pix.expiresAt,
       referralCodeInvalid: referralCodeInvalid || undefined,
     });
   } catch (error) {

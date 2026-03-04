@@ -208,6 +208,7 @@ export async function createGymSubscriptionHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      expiresAt: pix.expiresAt,
     });
   } catch (error) {
     console.error("[createGymSubscriptionHandler] Erro:", error);
