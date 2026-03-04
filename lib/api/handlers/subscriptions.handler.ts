@@ -167,6 +167,7 @@ export async function createSubscriptionHandler(
 
     // Se existe subscription, atualizar (não limpar trialStart/trialEnd: trial só uma vez)
     // Atualizar status para pending_payment, pois o webhook quem ativa
+    let subscriptionToUseId = existingSubscription?.id;
     if (existingSubscription) {
       await db.subscription.update({
         where: { id: existingSubscription.id },
@@ -180,7 +181,7 @@ export async function createSubscriptionHandler(
         },
       });
     } else {
-      await db.subscription.create({
+      const createdSubscription = await db.subscription.create({
         data: {
           studentId,
           plan: `Premium ${plan === "annual" ? "Anual" : "Mensal"}`,
@@ -189,9 +190,13 @@ export async function createSubscriptionHandler(
           currentPeriodEnd: periodEnd,
         },
       });
+      subscriptionToUseId = createdSubscription.id;
     }
 
-    const subscriptionToUseId = existingSubscription?.id || `new-${Date.now()}`;
+    if (!subscriptionToUseId) {
+      return internalErrorResponse("Erro ao preparar assinatura");
+    }
+
     const pix = await createStudentSubscriptionPix(
       studentId,
       "premium",
@@ -205,6 +210,13 @@ export async function createSubscriptionHandler(
         "Erro ao criar cobrança PIX: resposta inválida da AbacatePay",
       );
     }
+
+    await db.subscription.update({
+      where: { id: subscriptionToUseId },
+      data: {
+        abacatePayBillingId: pix.id,
+      },
+    });
 
     return successResponse({
       pixId: pix.id,

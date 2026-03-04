@@ -39,12 +39,22 @@ export const POST = createSafeHandler(
     }
 
     // Ativar assinatura localmente (webhook pode não disparar em dev)
-    const sub = await db.subscription.findFirst({
+    let sub = await db.subscription.findFirst({
       where: {
         studentId,
         abacatePayBillingId: pixId,
       },
     });
+    // Fallback para PIXs antigos que não salvaram abacatePayBillingId
+    if (!sub) {
+      sub = await db.subscription.findFirst({
+        where: {
+          studentId,
+          status: "pending_payment",
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+    }
     if (sub) {
       const now = new Date();
       const periodEnd = new Date(now);
