@@ -52,6 +52,8 @@ export interface PixQrBlockProps {
 export interface PixQrModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Chamado ao fechar pelo usuário (X ou clique fora). Use para cancelar cobrança PIX. Não é chamado em F5/navegação nem ao fechar após pagamento confirmado. */
+  onCancelPayment?: () => void | Promise<void>;
   title?: string;
   /** Dados PIX (obrigatório - gerar antes de abrir o modal). */
   brCode: string;
@@ -267,6 +269,7 @@ export function PixQrBlock({
 export function PixQrModal({
   isOpen,
   onClose,
+  onCancelPayment,
   title = "Pagamento PIX",
   brCode,
   brCodeBase64,
@@ -288,6 +291,15 @@ export function PixQrModal({
   const hasClosedRef = useRef(false);
   const [referralCode, setReferralCode] = useState("");
   const [isApplyingReferral, setIsApplyingReferral] = useState(false);
+
+  /** Fechamento pelo usuário (X ou clique fora): cancela cobrança e depois fecha. Não usado ao fechar após pagamento confirmado. */
+  const handleUserClose = useCallback(async () => {
+    try {
+      await onCancelPayment?.();
+    } finally {
+      onClose();
+    }
+  }, [onCancelPayment, onClose]);
 
   // Poll tipo "check" (payment, boost)
   useEffect(() => {
@@ -435,8 +447,8 @@ export function PixQrModal({
   }, [referralSlot, referralCode, toast, onClose]);
 
   return (
-    <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
-      <Modal.Header title={title} onClose={onClose} />
+    <Modal.Root isOpen={isOpen} onClose={handleUserClose} maxWidth="max-w-sm">
+      <Modal.Header title={title} onClose={handleUserClose} />
       <div className={`space-y-6 p-6 bg-duo-bg-card ${className ?? ""}`}>
         {referralSlot && (
           <div className="space-y-2 rounded-xl border border-duo-border bg-duo-bg p-3">

@@ -627,6 +627,11 @@ function StudentHomeContent() {
         <PixQrModal
           isOpen={pixModal.open}
           onClose={() => setPixModal(null)}
+          onCancelPayment={async () => {
+            await apiClient.patch(`/api/payments/${pixModal.paymentId}`, {
+              status: "canceled",
+            });
+          }}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}

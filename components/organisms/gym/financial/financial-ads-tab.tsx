@@ -644,6 +644,9 @@ export function FinancialAdsTab({
             setPixModal(null);
             router.refresh();
           }}
+          onCancelPayment={async () => {
+            await deleteBoostCampaign(pixModal.campaignId);
+          }}
           title="Pagar Anúncio"
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
