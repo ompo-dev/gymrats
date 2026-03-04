@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Dumbbell } from "lucide-react";
 import { motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
 import { getActiveBoostCampaigns } from "@/app/student/actions";
+import { apiClient } from "@/lib/api/client";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
 
 interface BoostCampaignCarouselProps {
@@ -12,59 +13,84 @@ interface BoostCampaignCarouselProps {
   onViewGymProfile: (gymId: string, planId?: string, couponId?: string) => void;
 }
 
-export function BoostCampaignCarousel({
-  gyms,
-  onViewGymProfile,
-}: BoostCampaignCarouselProps) {
-  const [campaigns, setCampaigns] = useState<BoostCampaign[]>([]);
-  const [loading, setLoading] = useState(true);
+/** Registra impressão quando o card entra na viewport (1x por campanha por sessão) */
+function useImpressionTracker() {
+  const sentImpressions = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
-    async function fetchCampaigns() {
-      try {
-        // Obtenha os anúncios que estão "active"
-        const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
-        setCampaigns(activeCampaigns);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
+  const trackImpression = useCallback(async (campaignId: string) => {
+    if (sentImpressions.current.has(campaignId)) return;
+    sentImpressions.current.add(campaignId);
+    try {
+      await apiClient.post(`/api/boost-campaigns/${campaignId}/impression`, {});
+    } catch {
+      sentImpressions.current.delete(campaignId);
     }
-    fetchCampaigns();
   }, []);
 
-  if (loading || campaigns.length === 0) return null;
+  return trackImpression;
+}
+
+/** Registra clique (1x por campanha por aluno no backend) */
+async function trackClick(campaignId: string) {
+  try {
+    await apiClient.post(`/api/boost-campaigns/${campaignId}/click`, {});
+  } catch {
+    // Silencioso: usuário não autenticado ou já contou
+  }
+}
+
+function CampaignCard({
+  campaign,
+  gym,
+  primaryColor,
+  onViewGymProfile,
+  onImpression,
+}: {
+  campaign: BoostCampaign;
+  gym: GymLocation | undefined;
+  primaryColor: string;
+  onViewGymProfile: (gymId: string, planId?: string, couponId?: string) => void;
+  onImpression: (campaignId: string) => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) onImpression(campaign.id);
+      },
+      { threshold: 0.5, rootMargin: "0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [campaign.id, onImpression]);
+
+  const handleClick = async () => {
+    await trackClick(campaign.id);
+    onViewGymProfile(
+      campaign.gymId,
+      campaign.linkedPlanId || undefined,
+      campaign.linkedCouponId || undefined
+    );
+  };
 
   return (
-    <div className="mb-6 space-y-4">
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
-        {campaigns.map((campaign) => {
-          const gym = gyms.find((g) => g.id === campaign.gymId);
-          // O card usa a cor primária da academia ou fallback
-          const primaryColor = campaign.primaryColor || "var(--duo-primary)";
-
-          return (
-            <motion.div
-              key={campaign.id}
-              className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0 cursor-pointer"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.2 }}
-            >
-              <DuoCard.Root
-                variant="default"
-                padding="none"
-                className="h-full flex flex-col overflow-hidden ring-1 ring-black/5"
-                onClick={() =>
-                  onViewGymProfile(
-                    campaign.gymId,
-                    campaign.linkedPlanId || undefined,
-                    campaign.linkedCouponId || undefined
-                  )
-                }
-              >
+    <motion.div
+      ref={cardRef}
+      className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0 cursor-pointer"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ y: -4 }}
+      transition={{ duration: 0.2 }}
+    >
+      <DuoCard.Root
+        variant="default"
+        padding="none"
+        className="h-full flex flex-col overflow-hidden ring-1 ring-black/5"
+        onClick={handleClick}
+      >
                 <div className="p-5 flex-1 flex flex-col gap-4">
                   {/* Header: Logo + Gym Name + Sponsored Badge */}
                   <div className="flex items-center gap-3">
@@ -119,8 +145,50 @@ export function BoostCampaignCarousel({
                     </div>
                   </div>
                 </div>
-              </DuoCard.Root>
-            </motion.div>
+      </DuoCard.Root>
+    </motion.div>
+  );
+}
+
+export function BoostCampaignCarousel({
+  gyms,
+  onViewGymProfile,
+}: BoostCampaignCarouselProps) {
+  const [campaigns, setCampaigns] = useState<BoostCampaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const trackImpression = useImpressionTracker();
+
+  useEffect(() => {
+    async function fetchCampaigns() {
+      try {
+        const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+        setCampaigns(activeCampaigns);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchCampaigns();
+  }, []);
+
+  if (loading || campaigns.length === 0) return null;
+
+  return (
+    <div className="mb-6 space-y-4">
+      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
+        {campaigns.map((campaign) => {
+          const gym = gyms.find((g) => g.id === campaign.gymId);
+          const primaryColor = campaign.primaryColor || "var(--duo-primary)";
+          return (
+            <CampaignCard
+              key={campaign.id}
+              campaign={campaign}
+              gym={gym}
+              primaryColor={primaryColor}
+              onViewGymProfile={onViewGymProfile}
+              onImpression={trackImpression}
+            />
           );
         })}
       </div>

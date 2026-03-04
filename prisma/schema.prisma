@@ -176,6 +176,9 @@ model Student {
   referralsMade Referral[]        @relation("ReferrerStudent")
   withdraws     StudentWithdraw[]
 
+  // Impulsionamento (1 impressão e 1 clique por campanha por aluno)
+  boostCampaignEngagements BoostCampaignEngagement[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1218,7 +1221,28 @@ model BoostCampaign {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  engagements BoostCampaignEngagement[]
+
   @@index([gymId])
   @@index([status])
   @@map("boost_campaigns")
+}
+
+// Controle de impressão/clique: cada aluno conta no máximo 1x por campanha
+model BoostCampaignEngagement {
+  id           String    @id @default(cuid())
+  campaignId   String
+  campaign     BoostCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  impressionAt DateTime?  // Quando viu o anúncio (1ª vez)
+  clickAt      DateTime?  // Quando clicou (1ª vez)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([campaignId, studentId])
+  @@index([campaignId])
+  @@index([studentId])
+  @@map("boost_campaign_engagements")
 }
