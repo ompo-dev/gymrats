@@ -52,7 +52,11 @@ export const POST = createSafeHandler(
       subscription.status === "trialing" &&
       !!subscription.trialEnd &&
       new Date(subscription.trialEnd).getTime() > Date.now();
-    const canApplyReferral = isTrialActive || hasEverPaid === 0;
+    const hasHistoricalPaidStatus = ["active", "canceled", "expired"].includes(
+      subscription.status,
+    );
+    const canApplyReferral =
+      isTrialActive || (!hasHistoricalPaidStatus && hasEverPaid === 0);
 
     if (!canApplyReferral) {
       return NextResponse.json(

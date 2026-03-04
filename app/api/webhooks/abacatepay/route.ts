@@ -175,6 +175,27 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        // Registrar/atualizar pagamento da assinatura da academia.
+        // Isso é essencial para regras como "já assinou alguma vez".
+        await db.subscriptionPayment.upsert({
+          where: { abacatePayBillingId: paymentId },
+          update: {
+            gymSubscriptionId: gymSub.id,
+            amount: amount / 100,
+            status: "succeeded",
+            paymentMethod: billing?.payment?.method || "pix",
+            paidAt: now,
+          },
+          create: {
+            gymSubscriptionId: gymSub.id,
+            amount: amount / 100,
+            status: "succeeded",
+            paymentMethod: billing?.payment?.method || "pix",
+            abacatePayBillingId: paymentId,
+            paidAt: now,
+          },
+        });
+
         const planQualified = ["premium", "enterprise"].includes(
           gymSub.plan?.toLowerCase() ?? "",
         );

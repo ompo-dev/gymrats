@@ -51,7 +51,11 @@ export const GET = createSafeHandler(
         status: "succeeded",
       },
     });
-    const isFirstPayment = isTrial || hasEverPaid === 0;
+    const hasHistoricalPaidStatus = ["active", "canceled", "expired"].includes(
+      subscription.status,
+    );
+    const isFirstPayment =
+      isTrial || (!hasHistoricalPaidStatus && hasEverPaid === 0);
 
     return NextResponse.json({
       subscription: {
