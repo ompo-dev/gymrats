@@ -32,11 +32,10 @@ export const POST = createSafeHandler(
       where: { gymId },
     });
 
-    if (
-      !subscription ||
-      subscription.status !== "pending_payment" ||
-      !subscription.abacatePayBillingId
-    ) {
+    const isPending =
+      subscription?.status === "pending" ||
+      subscription?.status === "pending_payment";
+    if (!subscription || !isPending) {
       return NextResponse.json(
         { error: "Não há assinatura pendente para aplicar indicação" },
         { status: 400 }
