@@ -151,12 +151,19 @@ function CampaignCard({
   );
 }
 
+/** Chave estável para posição (evita refetch por flutuação mínima) */
+function positionKey(lat: number, lng: number): string {
+  return `${lat.toFixed(4)},${lng.toFixed(4)}`;
+}
+
 export function BoostCampaignCarousel({
   gyms,
   onViewGymProfile,
 }: BoostCampaignCarouselProps) {
   const [campaigns, setCampaigns] = useState<BoostCampaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const lastFetchedKeyRef = useRef<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
   const trackImpression = useImpressionTracker();
   const { position, loading: geoLoading, requestPermission } = useUserGeolocation();
 
@@ -167,8 +174,17 @@ export function BoostCampaignCarousel({
   useEffect(() => {
     if (geoLoading) return;
 
+    const key = position
+      ? positionKey(position.lat, position.lng)
+      : "no-position";
+    if (lastFetchedKeyRef.current === key && hasLoadedOnceRef.current) {
+      return;
+    }
+    lastFetchedKeyRef.current = key;
+
     async function fetchCampaigns() {
-      setLoading(true);
+      const isInitialLoad = !hasLoadedOnceRef.current;
+      if (isInitialLoad) setLoading(true);
       try {
         if (position) {
           const res = await apiClient.get<{ campaigns: BoostCampaign[] }>(
@@ -188,6 +204,7 @@ export function BoostCampaignCarousel({
           setCampaigns([]);
         }
       } finally {
+        hasLoadedOnceRef.current = true;
         setLoading(false);
       }
     }
