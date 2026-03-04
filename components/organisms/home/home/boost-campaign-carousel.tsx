@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
 import { getActiveBoostCampaigns } from "@/app/student/actions";
 import { apiClient } from "@/lib/api/client";
+import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
 
 interface BoostCampaignCarouselProps {
@@ -157,20 +158,41 @@ export function BoostCampaignCarousel({
   const [campaigns, setCampaigns] = useState<BoostCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const trackImpression = useImpressionTracker();
+  const { position, loading: geoLoading, requestPermission } = useUserGeolocation();
 
   useEffect(() => {
+    requestPermission();
+  }, [requestPermission]);
+
+  useEffect(() => {
+    if (geoLoading) return;
+
     async function fetchCampaigns() {
+      setLoading(true);
       try {
-        const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
-        setCampaigns(activeCampaigns);
+        if (position) {
+          const res = await apiClient.get<{ campaigns: BoostCampaign[] }>(
+            "/api/boost-campaigns/nearby",
+            { params: { lat: position.lat, lng: position.lng } },
+          );
+          setCampaigns(res.data.campaigns ?? []);
+        } else {
+          const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+          setCampaigns(activeCampaigns);
+        }
       } catch (error) {
-        console.error(error);
+        try {
+          const fallback = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+          setCampaigns(fallback);
+        } catch {
+          setCampaigns([]);
+        }
       } finally {
         setLoading(false);
       }
     }
     fetchCampaigns();
-  }, []);
+  }, [position?.lat, position?.lng, geoLoading]);
 
   if (loading || campaigns.length === 0) return null;
 

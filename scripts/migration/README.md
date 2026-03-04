@@ -24,6 +24,7 @@
 - `apply-workout-history-optional-migration.js`: Arquivo da camada local.
 - `apply-workout-progress-migration.js`: Arquivo da camada local.
 - `apply-workout-type-migration.js`: Arquivo da camada local.
+- `apply-boost-campaign-radius-km-migration.js`: Adiciona coluna radiusKm (INTEGER, default 5) em boost_campaigns para alcance geográfico dos anúncios.
 
 ## Detalhamento técnico por arquivo
 
@@ -152,6 +153,13 @@
 - Expõe: sem exports nomeados (ou apenas default).
 - Comunica com: Banco de dados (Prisma)
 - Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
+
+### `apply-boost-campaign-radius-km-migration.js`
+- O que faz: adiciona a coluna `radiusKm` (INTEGER NOT NULL DEFAULT 5) na tabela `boost_campaigns`.
+- Como: executa `ALTER TABLE "boost_campaigns" ADD COLUMN IF NOT EXISTS "radiusKm" ...` via Prisma `$executeRawUnsafe`.
+- Por que: suportar alcance geográfico dos anúncios (raio em km); usado pela API `/api/boost-campaigns/nearby` e pela UI de criação de campanha.
+- Comunica com: Banco de dados (Prisma).
+- Uso: `node scripts/migration/apply-boost-campaign-radius-km-migration.js`. Depois executar `npx prisma generate`.
 
 ## Observações
 - Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.

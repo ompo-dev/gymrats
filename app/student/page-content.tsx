@@ -29,7 +29,7 @@ import { LevelProgressCard } from "@/components/organisms/home/home/level-progre
 import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
-import { GymMap } from "@/components/organisms/sections/gym-map";
+import { GymMapWithLeaflet } from "@/components/organisms/sections/gym-map-with-leaflet";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
@@ -612,7 +612,7 @@ function StudentHomeContent() {
             preSelectedCoupon={preSelectedCoupon}
           />
         ) : (
-          <GymMap.Simple
+          <GymMapWithLeaflet
             gyms={currentGymLocations}
             dayPasses={currentDayPasses}
             memberships={currentMemberships}

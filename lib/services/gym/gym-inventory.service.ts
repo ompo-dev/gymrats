@@ -7,6 +7,8 @@ interface CreateGymInput {
   phone: string;
   email: string;
   cnpj?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   equipment?: Array<{ name: string; type: string }>;
 }
 
@@ -16,6 +18,8 @@ interface UpdateOnboardingInput {
   phone: string;
   email: string;
   cnpj?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   equipment?: Array<{ name: string; type: string }>;
 }
 
@@ -346,6 +350,8 @@ export class GymInventoryService {
         phone: data.phone,
         email: data.email,
         cnpj: data.cnpj || null,
+        latitude: data.latitude ?? null,
+        longitude: data.longitude ?? null,
       },
     });
 
@@ -384,6 +390,8 @@ export class GymInventoryService {
         phone: data.phone,
         email: data.email,
         cnpj: data.cnpj || null,
+        ...(data.latitude != null && { latitude: data.latitude }),
+        ...(data.longitude != null && { longitude: data.longitude }),
       },
     });
 

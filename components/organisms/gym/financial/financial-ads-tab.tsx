@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   Eye,
+  MapPin,
   MousePointerClick,
   Plus,
   Sparkles,
@@ -97,9 +98,18 @@ export function FinancialAdsTab({
   const [linkedCouponId, setLinkedCouponId] = useState("");
   const [linkedPlanId, setLinkedPlanId] = useState("");
   const [durationHours, setDurationHours] = useState(MIN_HOURS);
+  const [radiusKm, setRadiusKm] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const totalPrice = calcPrice(durationHours);
+
+  const RADIUS_OPTIONS = [
+    { value: 3, label: "3 km" },
+    { value: 5, label: "5 km" },
+    { value: 10, label: "10 km" },
+    { value: 20, label: "20 km" },
+    { value: 50, label: "50 km" },
+  ];
 
   const incDuration = () => setDurationHours((h) => h + STEP_HOURS);
   const decDuration = () =>
@@ -136,6 +146,7 @@ export function FinancialAdsTab({
         linkedPlanId: linkedPlanId || null,
         durationHours,
         amountCents: totalPrice * 100,
+        radiusKm,
       });
 
       if (result.success && result.brCode) {
@@ -152,6 +163,7 @@ export function FinancialAdsTab({
         setDescription("");
         setPrimaryColor("#E2FF38");
         setDurationHours(12);
+        setRadiusKm(5);
         router.refresh();
       } else {
         toast({
@@ -540,6 +552,25 @@ export function FinancialAdsTab({
                     </div>
                     <p className="text-xs text-duo-gray-dark mt-1 text-center">
                       R$ {PRICE_PER_STEP.toFixed(2)} por cada 12h
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-duo-text mb-2 block flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      Alcance (raio)
+                    </label>
+                    <DuoSelect.Simple
+                      value={String(radiusKm)}
+                      onChange={(val) => setRadiusKm(Number(val))}
+                      options={RADIUS_OPTIONS.map((o) => ({
+                        value: String(o.value),
+                        label: o.label,
+                      }))}
+                      placeholder="Raio em km"
+                    />
+                    <p className="text-xs text-duo-gray-dark mt-1">
+                      Alunos dentro deste raio da sua academia verão o anúncio na home.
                     </p>
                   </div>
 

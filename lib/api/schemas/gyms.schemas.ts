@@ -29,6 +29,8 @@ export const updateGymProfileSchema = z
       z.string().min(1, "Telefone é obrigatório").optional().nullable(),
     ),
     cnpj: z.string().optional().nullable(),
+    latitude: z.number().optional().nullable(),
+    longitude: z.number().optional().nullable(),
     pixKey: z.string().optional().nullable(),
     pixKeyType: z
       .enum(["CPF", "CNPJ", "PHONE", "EMAIL", "RANDOM"])

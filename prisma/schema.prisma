@@ -1207,7 +1207,10 @@ model BoostCampaign {
   // Analytics
   clicks          Int       @default(0)
   impressions     Int       @default(0)
-  
+
+  // Alcance geográfico (raio em km a partir da academia)
+  radiusKm        Int       @default(5)
+
   // Vínculos
   linkedCouponId  String?   // ID do cupom na abacate pay
   linkedPlanId    String?   // ID do MembershipPlan vinculado, opcional

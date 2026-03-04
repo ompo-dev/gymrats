@@ -59,7 +59,7 @@ export class GymDomainService {
   }
 
   /**
-   * Updates gym profile (address, phone, cnpj, openingHours only)
+   * Updates gym profile (address, phone, cnpj, openingHours, latitude, longitude)
    */
   static async updateGymProfile(
     gymId: string,
@@ -68,6 +68,8 @@ export class GymDomainService {
       address?: string;
       phone?: string;
       cnpj?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       pixKey?: string | null;
       pixKeyType?: string | null;
       openingHours?: {
@@ -83,6 +85,8 @@ export class GymDomainService {
     if (data.address !== undefined) updateData.address = data.address;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.cnpj !== undefined) updateData.cnpj = data.cnpj;
+    if (data.latitude !== undefined) updateData.latitude = data.latitude;
+    if (data.longitude !== undefined) updateData.longitude = data.longitude;
     if (data.pixKey !== undefined) updateData.pixKey = data.pixKey;
     if (data.pixKeyType !== undefined) updateData.pixKeyType = data.pixKeyType;
     if (data.openingHours !== undefined) {

@@ -3,6 +3,7 @@
 import type { Gym, GymProfile, GymStats } from "@prisma/client";
 import { getUserContext } from "@/lib/context/auth-context-factory";
 import { db } from "@/lib/db";
+import { geocodeAddress } from "@/lib/services/geocoding.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { initializeGymTrial } from "@/lib/utils/auto-trial";
 import { ensureGymRole } from "@/lib/utils/ensure-user-role";
@@ -24,9 +25,13 @@ export async function submitNewGym(formData: GymOnboardingData) {
       ? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`
       : `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zipCode}`;
 
+    const coords = await geocodeAddress(fullAddress);
+
     const newGym = await GymInventoryService.createGym(ctx.user.id, {
       ...formData,
       address: fullAddress,
+      latitude: coords?.lat ?? null,
+      longitude: coords?.lng ?? null,
     });
 
     return { success: true, gymId: newGym.id };
@@ -73,6 +78,8 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
       ? `${formData.address}, ${formData.addressNumber}, ${formData.city}, ${formData.state} - ${formData.zipCode}`
       : `${formData.address}, ${formData.city}, ${formData.state} - ${formData.zipCode}`;
 
+    const coords = await geocodeAddress(fullAddress);
+
     const gyms = await db.gym.findMany({ where: { userId: ctx.user.id } });
     const gymId = gyms[0]?.id;
 
@@ -80,11 +87,15 @@ export async function submitGymOnboarding(formData: GymOnboardingData) {
       await GymInventoryService.updateOnboarding(gymId, {
         ...formData,
         address: fullAddress,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
       });
     } else {
       const newGym = await GymInventoryService.createGym(ctx.user.id, {
         ...formData,
         address: fullAddress,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
       });
     }
 

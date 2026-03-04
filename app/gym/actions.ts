@@ -316,6 +316,7 @@ export async function createBoostCampaign(data: {
   linkedPlanId: string | null;
   durationHours: number;
   amountCents: number;
+  radiusKm?: number;
 }) {
   try {
     const { ctx, errorResponse } = await getGymContext();
@@ -326,6 +327,8 @@ export async function createBoostCampaign(data: {
       where: { id: ctx.gymId },
       select: { name: true, email: true },
     });
+
+    const radiusKm = data.radiusKm ?? 5;
 
     // Cria a campanha no DB com status pending_payment
     const campaign = await db.boostCampaign.create({
@@ -338,6 +341,7 @@ export async function createBoostCampaign(data: {
         linkedPlanId: data.linkedPlanId,
         durationHours: data.durationHours,
         amountCents: data.amountCents,
+        radiusKm,
         status: "pending_payment",
       },
     });

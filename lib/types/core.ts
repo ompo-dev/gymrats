@@ -903,6 +903,7 @@ export interface BoostCampaign {
   status: string; // "pending_payment", "active", "expired", "canceled"
   clicks: number;
   impressions: number;
+  radiusKm?: number;
   linkedCouponId: string | null;
   linkedPlanId: string | null;
   abacatePayBillingId: string | null;

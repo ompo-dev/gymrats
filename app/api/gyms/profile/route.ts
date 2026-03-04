@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { updateGymProfileSchema } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { geocodeAddress } from "@/lib/services/geocoding.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 
@@ -18,7 +19,20 @@ export const GET = createSafeHandler(
 export const PATCH = createSafeHandler(
   async ({ gymContext, body }) => {
     const gymId = gymContext?.gymId;
-    await GymDomainService.updateGymProfile(gymId, body);
+    let updateBody = { ...body };
+
+    if (body.address != null && String(body.address).trim() !== "") {
+      const coords = await geocodeAddress(String(body.address).trim());
+      if (coords) {
+        updateBody = {
+          ...updateBody,
+          latitude: coords.lat,
+          longitude: coords.lng,
+        };
+      }
+    }
+
+    await GymDomainService.updateGymProfile(gymId, updateBody);
     const profile = await GymInventoryService.getProfile(gymId);
     return NextResponse.json({ profile });
   },
