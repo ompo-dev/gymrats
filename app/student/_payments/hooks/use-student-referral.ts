@@ -60,20 +60,14 @@ export function useStudentReferral() {
     return () => window.removeEventListener("focus", onFocus);
   }, [loadData]);
 
-  const refSlug = data?.referralCode?.replace("@", "") ?? "";
-  const getReferralLink = useCallback(
-    () =>
-      typeof window !== "undefined"
-        ? `${window.location.origin}/r/${refSlug}`
-        : "",
-    [refSlug],
-  );
+  const referralCode = data?.referralCode ?? "";
 
-  const copyLink = useCallback(() => {
-    navigator.clipboard.writeText(getReferralLink());
+  const copyCode = useCallback(() => {
+    if (!referralCode) return;
+    navigator.clipboard.writeText(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [getReferralLink]);
+  }, [referralCode]);
 
   const handleUpdatePix = useCallback(async () => {
     try {
@@ -139,9 +133,8 @@ export function useStudentReferral() {
   return {
     data,
     isLoading,
-    refSlug,
-    getReferralLink,
-    copyLink,
+    referralCode,
+    copyCode,
     copied,
     pixKey,
     setPixKey,

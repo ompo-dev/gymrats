@@ -19,44 +19,38 @@ import {
 import type { ReferralData } from "../hooks/use-student-referral";
 import { useStudentReferral } from "../hooks/use-student-referral";
 
-interface ReferralLinkSectionProps {
-  refSlug: string;
-  getReferralLink: () => string;
-  copyLink: () => void;
+interface ReferralCodeSectionProps {
+  referralCode: string;
+  copyCode: () => void;
   copied: boolean;
 }
 
-function ReferralLinkSection({
-  refSlug,
-  getReferralLink,
-  copyLink,
+function ReferralCodeSection({
+  referralCode,
+  copyCode,
   copied,
-}: ReferralLinkSectionProps) {
+}: ReferralCodeSectionProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
       <h2 className="text-xl font-bold text-duo-fg mb-1">Seu código de indicação</h2>
       <p className="text-sm text-duo-gray-dark mb-4">
-        Compartilhe seu código <strong>@</strong> com amigos ou academias.
-        Quando alguém usar seu código no momento do pagamento da primeira
-        assinatura (no modal PIX), você ganha{" "}
+        Compartilhe seu código com amigos ou academias. Quando alguém usar no
+        momento do pagamento da primeira assinatura (no modal PIX), você ganha{" "}
         <strong className="text-duo-accent">50% de comissão</strong> e quem
         pagou ganha <strong>5% de desconto</strong>.
       </p>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-duo-fg">
-            {refSlug ? `@${refSlug}` : "Carregando..."}
-          </div>
-          <div className="text-xs text-duo-gray-dark font-mono mt-0.5">
-            {refSlug ? getReferralLink() : ""}
+          <div className="text-lg font-bold text-duo-fg font-mono">
+            {referralCode ? referralCode : "Carregando..."}
           </div>
         </div>
         <DuoButton
-          onClick={copyLink}
+          onClick={copyCode}
           variant={copied ? "secondary" : "primary"}
           className="shrink-0 gap-1.5 transition-all"
-          disabled={!refSlug}
+          disabled={!referralCode}
         >
           {copied ? (
             <>
@@ -64,7 +58,7 @@ function ReferralLinkSection({
             </>
           ) : (
             <>
-              <Copy className="h-4 w-4" /> Copiar Link
+              <Copy className="h-4 w-4" /> Copiar código
             </>
           )}
         </DuoButton>
@@ -272,9 +266,8 @@ export function StudentReferralTab() {
   const {
     data,
     isLoading,
-    refSlug,
-    getReferralLink,
-    copyLink,
+    referralCode,
+    copyCode,
     copied,
     pixKey,
     setPixKey,
@@ -298,10 +291,9 @@ export function StudentReferralTab() {
 
   return (
     <div className="space-y-6">
-      <ReferralLinkSection
-        refSlug={refSlug}
-        getReferralLink={getReferralLink}
-        copyLink={copyLink}
+      <ReferralCodeSection
+        referralCode={referralCode}
+        copyCode={copyCode}
         copied={copied}
       />
       <ReferralStatsSection data={data} />
