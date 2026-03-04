@@ -9,6 +9,7 @@ import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
 import { getAuthToken } from "@/lib/auth/token-client";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 interface FoodSearchChatProps {
@@ -26,6 +27,7 @@ interface FoodSearchChatProps {
   onClose: () => void;
   selectedMealId?: string | null;
   meals?: Meal[];
+  onSelectMeal?: (mealId: string | null) => void;
   chatStreamUrl?: string;
   onApplyNutrition?: (data: {
     meals: Meal[];
@@ -71,6 +73,7 @@ export function FoodSearchChat({
   onClose,
   selectedMealId,
   meals: initialMeals = [],
+  onSelectMeal,
   chatStreamUrl = "/api/nutrition/chat-stream",
   onApplyNutrition,
 }: FoodSearchChatProps) {
@@ -107,6 +110,13 @@ export function FoodSearchChat({
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [localSelectedMealId, setLocalSelectedMealId] = useState<string | null>(
+    selectedMealId ?? null,
+  );
+
+  useEffect(() => {
+    setLocalSelectedMealId(selectedMealId ?? null);
+  }, [selectedMealId]);
 
   // Scroll para última mensagem
   useEffect(() => {
@@ -237,8 +247,10 @@ export function FoodSearchChat({
       }));
 
       let selectedMealInfo = null;
-      if (selectedMealId) {
-        const selectedMeal = meals.find((m: Meal) => m.id === selectedMealId);
+      if (localSelectedMealId) {
+        const selectedMeal = meals.find(
+          (m: Meal) => m.id === localSelectedMealId,
+        );
         if (selectedMeal) {
           selectedMealInfo = {
             id: selectedMeal.id,
@@ -267,9 +279,11 @@ export function FoodSearchChat({
 
       const response = await fetch(`${API_BASE}${chatStreamUrl}`, {
         method: "POST",
+        cache: "no-store",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Accept: "text/event-stream",
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
@@ -281,12 +295,22 @@ export function FoodSearchChat({
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const fallbackText = await response.text();
+        throw new Error(fallbackText || `HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("text/event-stream")) {
+        const fallbackText = await response.text();
+        throw new Error(fallbackText || "Resposta inválida do servidor.");
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      if (!reader) throw new Error("Stream não disponível");
+      if (!reader) {
+        const fallbackText = await response.text();
+        throw new Error(fallbackText || "Stream não disponível");
+      }
 
       let buffer = "";
       let fullMessage = "";
@@ -415,7 +439,7 @@ export function FoodSearchChat({
     console.log("[FoodSearchChat] Iniciando adição de alimentos:", {
       extractedFoodsCount: extractedFoods.length,
       currentMealsCount: meals.length,
-      selectedMealId,
+      selectedMealId: localSelectedMealId,
       currentMeals: meals.map((m: Meal) => ({
         id: m.id,
         type: m.type,
@@ -424,8 +448,8 @@ export function FoodSearchChat({
     });
 
     // Buscar refeição selecionada para usar como fallback
-    const selectedMeal = selectedMealId
-      ? meals.find((m: Meal) => m.id === selectedMealId)
+    const selectedMeal = localSelectedMealId
+      ? meals.find((m: Meal) => m.id === localSelectedMealId)
       : null;
 
     // Se houver refeição selecionada e algum alimento não especificar mealType,
@@ -789,6 +813,53 @@ export function FoodSearchChat({
                     Limite diário atingido. Tente novamente amanhã.
                   </span>
                 )}
+              </div>
+            )}
+            {meals.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2 text-xs font-bold text-duo-fg-muted">
+                  Selecionar refeição (opcional)
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <DuoButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setLocalSelectedMealId(null);
+                      onSelectMeal?.(null);
+                    }}
+                    className={cn(
+                      "rounded-lg border-2 px-3 py-1.5 text-xs min-h-0",
+                      !localSelectedMealId
+                        ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
+                        : "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
+                    )}
+                  >
+                    Qualquer
+                  </DuoButton>
+                  {meals.map((meal) => {
+                    const isSelected = localSelectedMealId === meal.id;
+                    return (
+                      <DuoButton
+                        key={meal.id}
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setLocalSelectedMealId(meal.id);
+                          onSelectMeal?.(meal.id);
+                        }}
+                        className={cn(
+                          "rounded-lg border-2 px-3 py-1.5 text-xs min-h-0",
+                          isSelected
+                            ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
+                            : "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
+                        )}
+                      >
+                        {getMealName(meal.type)} ({meal.name})
+                      </DuoButton>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

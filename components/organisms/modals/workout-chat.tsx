@@ -830,8 +830,11 @@ export function WorkoutChat({
       // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
       const response = await fetch(`${API_BASE_URL}${chatStreamUrl}`, {
         method: "POST",
+        cache: "no-store",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          Accept: "text/event-stream",
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
@@ -849,7 +852,16 @@ export function WorkoutChat({
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const fallbackText = await response.text();
+        throw new Error(
+          fallbackText || `HTTP ${response.status}: ${response.statusText}`,
+        );
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("text/event-stream")) {
+        const fallbackText = await response.text();
+        throw new Error(fallbackText || "Resposta inválida do servidor.");
       }
 
       // Processar eventos SSE
@@ -861,7 +873,8 @@ export function WorkoutChat({
       const receivedWorkouts: PreviewWorkout[] = [];
 
       if (!reader) {
-        throw new Error("Stream não disponível");
+        const fallbackText = await response.text();
+        throw new Error(fallbackText || "Stream não disponível");
       }
 
       // Função para atualizar ou criar mensagem de status

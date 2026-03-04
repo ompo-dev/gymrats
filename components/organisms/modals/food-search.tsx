@@ -20,7 +20,7 @@ interface FoodSearchProps {
   onClose: () => void;
   selectedMealId?: string | null;
   meals?: Meal[];
-  onSelectMeal?: (mealId: string) => void;
+  onSelectMeal?: (mealId: string | null) => void;
   onAddMeal?: (
     mealsData: Array<{
       name: string;
@@ -321,6 +321,7 @@ function FoodSearchSimple({
         onClose={onClose}
         selectedMealId={selectedMealId}
         meals={meals}
+        onSelectMeal={onSelectMeal}
         chatStreamUrl={chatStreamUrl}
         onApplyNutrition={onApplyNutrition}
       />
