@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  Dumbbell,
   Eye,
   MapPin,
   MousePointerClick,
@@ -42,7 +43,7 @@ const PRICE_PER_12H = 30; // R$ 30,00 por 12h
 
 const MIN_HOURS = 12;
 const STEP_HOURS = 12;
-const PRICE_PER_STEP = 30; // R$30 por cada 12h
+const PRICE_PER_STEP = 30; // R$30 por cada 12h (base)
 
 function formatDuration(hours: number): string {
   if (hours < 24) return `${hours}h`;
@@ -51,8 +52,18 @@ function formatDuration(hours: number): string {
   return rem > 0 ? `${days}d ${rem}h` : `${days} dia${days > 1 ? "s" : ""}`;
 }
 
-function calcPrice(hours: number): number {
-  return (hours / STEP_HOURS) * PRICE_PER_STEP;
+function getRadiusMultiplier(radiusKm: number): number {
+  if (radiusKm <= 3) return 1;
+  if (radiusKm <= 5) return 2;
+  if (radiusKm <= 10) return 3;
+  if (radiusKm <= 20) return 4;
+  return 5;
+}
+
+function calcPrice(hours: number, radiusKm: number): number {
+  const steps = hours / STEP_HOURS;
+  const multiplier = getRadiusMultiplier(radiusKm);
+  return steps * PRICE_PER_STEP * multiplier;
 }
 
 const STATUS_FILTERS = [
@@ -101,7 +112,9 @@ export function FinancialAdsTab({
   const [radiusKm, setRadiusKm] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const totalPrice = calcPrice(durationHours);
+  const totalPrice = calcPrice(durationHours, radiusKm);
+  const radiusMultiplier = getRadiusMultiplier(radiusKm);
+  const stepPrice = PRICE_PER_STEP * radiusMultiplier;
 
   const RADIUS_OPTIONS = [
     { value: 3, label: "3 km" },
@@ -445,44 +458,55 @@ export function FinancialAdsTab({
                   <p className="text-sm font-bold text-duo-fg-muted mb-2">
                     Preview do anúncio
                   </p>
-                  <div
-                    className="border-2 rounded-xl p-4 overflow-hidden relative"
-                    style={{ borderColor: primaryColor }}
+                  <DuoCard.Root
+                    variant="default"
+                    padding="none"
+                    className="overflow-hidden ring-1 ring-black/5"
                   >
-                    <div
-                      className="absolute top-0 left-0 w-full h-1"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <div className="flex justify-between mt-1 mb-2">
-                      <span className="text-[10px] uppercase font-bold text-duo-gray-dark bg-duo-bg px-2 py-0.5 rounded-md border border-duo-border">
-                        Patrocinado
-                      </span>
-                    </div>
-                    <h5
-                      className="font-bold text-lg"
-                      style={{ color: primaryColor }}
-                    >
-                      {title || "Título Chamativo da Promoção"}
-                    </h5>
-                    <p className="text-sm text-duo-text mt-1">
-                      {description ||
-                        "Mostre por que os alunos devem escolher a sua academia..."}
-                    </p>
-                    <div className="mt-4 pt-3 border-t border-duo-border flex justify-between items-center">
-                      <div className="text-xs text-duo-gray-dark font-medium">
-                        {linkedCouponId ? "Cupom vinculado" : "Sem cupom"} •{" "}
-                        {linkedPlanId
-                          ? "Plano vinculado"
-                          : "Perfil da academia"}
+                    <div className="p-5 flex-1 flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
+                          <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-duo-text truncate">
+                            Sua academia
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <Sparkles
+                              className="w-3 h-3"
+                              style={{ color: primaryColor }}
+                            />
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
+                              Patrocinado
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <button
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-duo-bg"
-                        style={{ backgroundColor: primaryColor }}
-                      >
-                        Assinar Agora
-                      </button>
+
+                      <div className="flex-1">
+                        <h3
+                          className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
+                          style={{ color: primaryColor }}
+                        >
+                          {title || "Título Chamativo da Promoção"}
+                        </h3>
+                        <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
+                          {description ||
+                            "Mostre por que os alunos devem escolher a sua academia..."}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-duo-border/60">
+                        <div
+                          className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          Aproveitar Oferta
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </DuoCard.Root>
                 </div>
 
                 {/* Campos */}
@@ -551,12 +575,12 @@ export function FinancialAdsTab({
                       </button>
                     </div>
                     <p className="text-xs text-duo-gray-dark mt-1 text-center">
-                      R$ {PRICE_PER_STEP.toFixed(2)} por cada 12h
+                      R$ {stepPrice.toFixed(2)} por cada 12h
                     </p>
                   </div>
 
                   <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 block flex items-center gap-1">
+                    <label className="text-sm font-bold text-duo-text mb-2 flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
                       Alcance (raio)
                     </label>
@@ -570,7 +594,8 @@ export function FinancialAdsTab({
                       placeholder="Raio em km"
                     />
                     <p className="text-xs text-duo-gray-dark mt-1">
-                      Alunos dentro deste raio da sua academia verão o anúncio na home.
+                      Alunos dentro deste raio verão o anúncio na home. Multiplicador: x
+                      {radiusMultiplier}.
                     </p>
                   </div>
 

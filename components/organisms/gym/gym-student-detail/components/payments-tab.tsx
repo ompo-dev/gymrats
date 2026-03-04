@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertCircle, CheckCircle, DollarSign, XCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  DollarSign,
+  XCircle,
+} from "lucide-react";
+import { useState } from "react";
 import { motion } from "motion/react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import type { Payment } from "@/lib/types";
@@ -15,6 +23,7 @@ export function PaymentsTab({
   payments,
   onTogglePaymentStatus,
 }: PaymentsTabProps) {
+  const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const paidCount = payments.filter((p) => p.status === "paid").length;
   const pendingCount = payments.filter(
     (p) => p.status === "pending" || p.status === "overdue",
@@ -25,6 +34,22 @@ export function PaymentsTab({
   const totalPending = payments
     .filter((p) => p.status === "pending" || p.status === "overdue")
     .reduce((sum, p) => sum + p.amount, 0);
+  const paymentsByPlan = payments.reduce<
+    Array<{ planId: string; planName: string; payments: Payment[] }>
+  >((groups, payment) => {
+    const planId = payment.planId || payment.planName;
+    const existing = groups.find((g) => g.planId === planId);
+    if (existing) {
+      existing.payments.push(payment);
+    } else {
+      groups.push({
+        planId,
+        planName: payment.planName,
+        payments: [payment],
+      });
+    }
+    return groups;
+  }, []);
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -35,9 +60,7 @@ export function PaymentsTab({
             style={{ color: "var(--duo-secondary)" }}
             aria-hidden
           />
-          <h2 className="font-bold text-[var(--duo-fg)]">
-            Histórico de Pagamentos
-          </h2>
+          <h2 className="font-bold text-duo-fg">Histórico de Pagamentos</h2>
         </div>
       </DuoCard.Header>
       <div className="mb-6 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -91,63 +114,104 @@ export function PaymentsTab({
       </div>
 
       <div className="space-y-3">
-        {payments.map((payment, index) => (
-          <motion.div
-            key={payment.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.4 }}
-          >
-            <DuoCard.Root variant="default" size="default">
-              <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-duo-text text-sm sm:text-base wrap-break-words">
-                    {payment.planName}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
-                    Vencimento: {formatDatePtBr(payment.dueDate) || "N/A"}
-                  </p>
-                  {payment.status === "paid" && (
-                    <p className="text-xs sm:text-sm text-duo-gray-dark">
-                      Pago em: {formatDatePtBr(payment.date) || "N/A"}
-                    </p>
-                  )}
-                  <p className="text-xs sm:text-sm text-duo-gray-dark capitalize">
-                    Método: {payment.paymentMethod.replace("-", " ")}
-                  </p>
-                </div>
+        {paymentsByPlan.map((group) => {
+          const isExpanded = expandedPlanId === group.planId;
+          const totalPaidByPlan = group.payments.reduce(
+            (sum, p) => sum + (p.status === "paid" ? p.amount : 0),
+            0,
+          );
 
-                <div className="w-full sm:w-auto text-left sm:text-right">
-                  <p className="text-xl sm:text-2xl font-bold text-duo-blue mb-2">
-                    R$ {payment.amount.toFixed(2)}
-                  </p>
-
-                  <DuoButton
-                    onClick={() => onTogglePaymentStatus(payment.id)}
-                    variant={payment.status === "paid" ? "primary" : "outline"}
-                    size="sm"
-                    className="w-full sm:w-auto"
-                  >
-                    {payment.status === "paid" ? (
-                      <>
-                        <CheckCircle className="h-4 w-4" />
-                        Pago
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="h-4 w-4" />
-                        <span className="hidden sm:inline">
-                          Marcar como Pago
-                        </span>
-                        <span className="sm:hidden">Marcar Pago</span>
-                      </>
-                    )}
-                  </DuoButton>
+          return (
+            <DuoCard.Root key={group.planId} variant="default" size="default">
+              <DuoButton
+                type="button"
+                variant="ghost"
+                fullWidth
+                className="flex items-center gap-2 justify-start text-left h-auto py-2"
+                onClick={() =>
+                  setExpandedPlanId(isExpanded ? null : group.planId)
+                }
+              >
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
+                )}
+                <DollarSign className="h-5 w-5 shrink-0 text-duo-gray-dark" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-duo-text truncate">
+                    {group.planName}
+                  </div>
+                  <div className="text-xs text-duo-gray-dark">
+                    {group.payments.length} pagamento(s) • Total pago: R${" "}
+                    {totalPaidByPlan.toFixed(2)}
+                  </div>
                 </div>
-              </div>
+              </DuoButton>
+              {isExpanded && (
+                <div className="mt-3 space-y-3 border-t border-duo-border pt-3">
+                  {group.payments.map((payment, index) => (
+                    <motion.div
+                      key={payment.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.4 }}
+                    >
+                      <DuoCard.Root variant="default" size="default">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-duo-text text-sm sm:text-base wrap-break-words">
+                              {payment.planName}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-duo-gray-dark mt-1">
+                              Vencimento: {formatDatePtBr(payment.dueDate) || "N/A"}
+                            </p>
+                            {payment.status === "paid" && (
+                              <p className="text-xs sm:text-sm text-duo-gray-dark">
+                                Pago em: {formatDatePtBr(payment.date) || "N/A"}
+                              </p>
+                            )}
+                            <p className="text-xs sm:text-sm text-duo-gray-dark capitalize">
+                              Método: {payment.paymentMethod.replace("-", " ")}
+                            </p>
+                          </div>
+
+                          <div className="w-full sm:w-auto text-left sm:text-right">
+                            <p className="text-xl sm:text-2xl font-bold text-duo-blue mb-2">
+                              R$ {payment.amount.toFixed(2)}
+                            </p>
+
+                            <DuoButton
+                              onClick={() => onTogglePaymentStatus(payment.id)}
+                              variant={payment.status === "paid" ? "primary" : "outline"}
+                              size="sm"
+                              className="w-full sm:w-auto"
+                            >
+                              {payment.status === "paid" ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4" />
+                                  Pago
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="h-4 w-4" />
+                                  <span className="hidden sm:inline">
+                                    Marcar como Pago
+                                  </span>
+                                  <span className="sm:hidden">Marcar Pago</span>
+                                </>
+                              )}
+                            </DuoButton>
+                          </div>
+                        </div>
+                      </DuoCard.Root>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </DuoCard.Root>
-          </motion.div>
-        ))}
+          );
+        })}
       </div>
     </DuoCard.Root>
   );

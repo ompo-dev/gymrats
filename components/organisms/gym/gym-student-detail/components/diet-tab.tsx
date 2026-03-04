@@ -94,7 +94,8 @@ export function DietTab({
   };
 
   return (
-    <DuoCard.Root variant="default" padding="md">
+    <>
+      <DuoCard.Root variant="default" padding="md">
       <DuoCard.Header>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -182,6 +183,8 @@ export function DietTab({
         </div>
       )}
 
+      </DuoCard.Root>
+
       {showAddMeal && (
         <AddMealModal.Simple
           onClose={() => setShowAddMeal(false)}
@@ -207,6 +210,6 @@ export function DietTab({
           chatStreamUrl={`/api/gym/students/${student.id}/nutrition/chat-stream`}
         />
       )}
-    </DuoCard.Root>
+    </>
   );
 }

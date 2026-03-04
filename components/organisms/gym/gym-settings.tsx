@@ -544,14 +544,26 @@ export function GymSettingsPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.3 }}
                   className={cn(
-                    "rounded-xl border-2 p-3 transition-all grid grid-cols-[1fr_auto] items-center gap-3",
+                    "rounded-xl border-2 p-3 transition-all grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-start",
                     s.enabled
                       ? "border-duo-secondary/40 bg-duo-secondary/5"
                       : "border-duo-border bg-duo-bg-elevated/50",
                   )}
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <label className="flex cursor-pointer items-center gap-2 shrink-0">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <label
+                      className={cn(
+                        "flex cursor-pointer shrink-0",
+                        s.enabled
+                          ? "flex-col items-start gap-1"
+                          : "items-center gap-2",
+                      )}
+                    >
+                      {s.enabled && (
+                        <span className="text-sm font-bold text-duo-fg">
+                          {day.label}
+                        </span>
+                      )}
                       <div className="relative">
                         <input
                           type="checkbox"
@@ -568,9 +580,11 @@ export function GymSettingsPage({
                         <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
                         <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
                       </div>
-                      <span className="text-sm font-bold text-duo-fg">
-                        {day.label}
-                      </span>
+                      {!s.enabled && (
+                        <span className="text-sm font-bold text-duo-fg">
+                          {day.label}
+                        </span>
+                      )}
                     </label>
                   </div>
                   {s.enabled && (
@@ -581,7 +595,7 @@ export function GymSettingsPage({
                         onChange={(e) =>
                           updateDaySchedule(day.id, "open", e.target.value)
                         }
-                        className="h-8 w-24 min-w-0 text-sm"
+                        className="w-24 min-w-0 text-sm"
                       />
                       <span className="text-duo-fg-muted shrink-0">–</span>
                       <DuoInput.Simple
@@ -590,7 +604,7 @@ export function GymSettingsPage({
                         onChange={(e) =>
                           updateDaySchedule(day.id, "close", e.target.value)
                         }
-                        className="h-8 w-24 min-w-0 text-sm"
+                        className="w-24 min-w-0 text-sm"
                       />
                     </div>
                   )}
