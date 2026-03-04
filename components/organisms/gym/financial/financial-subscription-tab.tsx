@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { ReferralPixModal } from "./referral-pix-modal";
 
 interface FinancialSubscriptionTabProps {
   subscription?: {
@@ -102,20 +101,19 @@ export function FinancialSubscriptionTab({
     brCodeBase64: string;
     amount: number;
   } | null>(null);
-  const [referralModalOpen, setReferralModalOpen] = useState(false);
-  const [referralPixData, setReferralPixData] = useState<{
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState<
+    "basic" | "premium" | "enterprise"
+  >("premium");
+  const [selectedBillingForModal, setSelectedBillingForModal] = useState<
+    "monthly" | "annual"
+  >("monthly");
+  const [pixFromGenerate, setPixFromGenerate] = useState<{
     pixId: string;
     brCode: string;
     brCodeBase64: string;
     amount: number;
-    referralCodeInvalid?: boolean;
   } | null>(null);
-  const [selectedPlanForReferral, setSelectedPlanForReferral] = useState<
-    "basic" | "premium" | "enterprise"
-  >("premium");
-  const [selectedBillingForReferral, setSelectedBillingForReferral] = useState<
-    "monthly" | "annual"
-  >("monthly");
 
   const {
     subscription: subscriptionData,
@@ -217,14 +215,23 @@ export function FinancialSubscriptionTab({
     const billingKey = billingPeriod as "monthly" | "annual";
 
     if (isFirstPayment) {
-      setSelectedPlanForReferral(planKey);
-      setSelectedBillingForReferral(billingKey);
-      setReferralPixData(null);
-      setReferralModalOpen(true);
+      setSelectedPlanForModal(planKey);
+      setSelectedBillingForModal(billingKey);
+      setPixFromGenerate(null);
+      setSubscriptionModalOpen(true);
       return;
     }
 
-    await doCreateSubscription(planKey, billingKey, null);
+    const pixData = await doCreateSubscription(planKey, billingKey, null);
+    if (pixData) {
+      setPendingPix({
+        pixId: pixData.pixId,
+        brCode: pixData.brCode,
+        brCodeBase64: pixData.brCodeBase64,
+        amount: pixData.amount,
+      });
+      savePendingPixToStorage(pixData);
+    }
   };
 
   const doCreateSubscription = async (
@@ -366,58 +373,70 @@ export function FinancialSubscriptionTab({
           nextRenewal: "Próxima renovação",
         }}
       />
-      {referralModalOpen && (
-        <ReferralPixModal
-          isOpen={referralModalOpen}
+      {subscriptionModalOpen && (
+        <PixQrModal
+          isOpen={subscriptionModalOpen}
           onClose={() => {
-            setReferralModalOpen(false);
-            if (referralPixData) {
+            if (pixFromGenerate) {
+              savePendingPixToStorage(pixFromGenerate);
               toast({
                 title: "PIX salvo",
                 description:
                   "Volte aqui para ver o PIX novamente ou verificar se o pagamento foi confirmado.",
               });
             }
-            setReferralPixData(null);
+            setSubscriptionModalOpen(false);
+            setPixFromGenerate(null);
           }}
-          planName={
-            GYM_PLANS_CONFIG[
-              selectedPlanForReferral.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
-            ]?.name ?? selectedPlanForReferral
-          }
-          amountReais={
-            (GYM_PLANS_CONFIG[
-              selectedPlanForReferral.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
-            ]?.prices[selectedBillingForReferral] ?? 0) / 100
-          }
-          isFirstPayment={isFirstPayment}
-          onGeneratePix={async (refCode) => {
-            const pixData = await doCreateSubscription(
-              selectedPlanForReferral,
-              selectedBillingForReferral,
-              refCode,
-            );
-            if (pixData) {
-              setReferralPixData(pixData);
-              savePendingPixToStorage(pixData);
-              return pixData;
-            }
-            return null;
+          generateConfig={{
+            planName:
+              GYM_PLANS_CONFIG[
+                selectedPlanForModal.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
+              ]?.name ?? selectedPlanForModal,
+            amountReais:
+              (GYM_PLANS_CONFIG[
+                selectedPlanForModal.toUpperCase() as keyof typeof GYM_PLANS_CONFIG
+              ]?.prices[selectedBillingForModal] ?? 0) / 100,
+            isFirstPayment: true,
+            onGeneratePix: async (refCode) => {
+              const pixData = await doCreateSubscription(
+                selectedPlanForModal,
+                selectedBillingForModal,
+                refCode,
+              );
+              if (pixData) {
+                setPixFromGenerate(pixData);
+                return pixData;
+              }
+              return null;
+            },
+            isLoading: isCreatingSubscription,
+            getSimulatePixUrl: (pixId) =>
+              `/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pixId)}`,
+            refetchSubscription,
+            subscriptionStatus: subscription?.status,
           }}
-          isLoading={isCreatingSubscription}
-          pixData={referralPixData}
-          refetchSubscription={refetchSubscription}
-          subscriptionStatus={subscription?.status}
+          pollConfig={{
+            type: "subscription",
+            refetch: refetchSubscription,
+            currentStatus: subscription?.status,
+            initialStatus: "pending",
+            targetStatus: "active",
+          }}
           onPaymentConfirmed={() => {
             clearPendingPixStorage();
             refetchSubscription();
-            setReferralModalOpen(false);
-            setReferralPixData(null);
+            setSubscriptionModalOpen(false);
+            setPixFromGenerate(null);
             useGymsDataStore.getState().loadAllGyms();
+          }}
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua assinatura está ativa.",
           }}
         />
       )}
-      {pendingPix && !referralModalOpen && (
+      {pendingPix && !subscriptionModalOpen && (
         <PixQrModal
           isOpen={!!pendingPix}
           onClose={() => {

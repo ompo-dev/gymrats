@@ -25,8 +25,7 @@ import {
   type UsePaymentsPageProps,
   usePaymentsPage,
 } from "./hooks/use-payments-page";
-import { ReferralPixModal } from "@/components/organisms/gym/financial/referral-pix-modal";
-import { STUDENT_PLANS_CONFIG, centsToReais } from "@/lib/access-control/plans-config";
+import { STUDENT_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 
 export interface StudentPaymentsPageProps {
   subscription?: {
@@ -81,12 +80,10 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleStartTrial,
     handleUpgrade,
     handleCancelConfirm,
-    referralModalOpen,
-    setReferralModalOpen,
-    referralPixData,
-    setReferralPixData,
-    selectedPlanForReferral,
-    selectedBillingForReferral,
+    subscriptionModalOpen,
+    setSubscriptionModalOpen,
+    selectedPlanForModal,
+    selectedBillingForModal,
     isFirstPayment,
     doCreateSubscription,
     refetchSubscription,
@@ -401,50 +398,49 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
         />
       )}
 
-      {referralModalOpen && (
-        <ReferralPixModal
-          isOpen={referralModalOpen}
-          onClose={() => {
-            setReferralModalOpen(false);
-            setReferralPixData(null);
-          }}
-          planName={
-            STUDENT_PLANS_CONFIG[
-              selectedPlanForReferral.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
-            ]?.name ?? selectedPlanForReferral
-          }
-          amountReais={
-            (STUDENT_PLANS_CONFIG[
-              selectedPlanForReferral.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
-            ]?.prices[selectedBillingForReferral] ?? 0) / 100
-          }
-          isFirstPayment={isFirstPayment}
-          onGeneratePix={async (refCode) => {
-            const pixData = await doCreateSubscription(
-              selectedBillingForReferral,
-              refCode,
-            );
-            if (pixData) {
-              setReferralPixData(pixData);
+      {subscriptionModalOpen && (
+        <PixQrModal
+          isOpen={subscriptionModalOpen}
+          onClose={() => setSubscriptionModalOpen(false)}
+          title="Pagamento PIX"
+          generateConfig={{
+            planName:
+              STUDENT_PLANS_CONFIG[
+                selectedPlanForModal.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+              ]?.name ?? selectedPlanForModal,
+            amountReais:
+              (STUDENT_PLANS_CONFIG[
+                selectedPlanForModal.toUpperCase() as keyof typeof STUDENT_PLANS_CONFIG
+              ]?.prices[selectedBillingForModal] ?? 0) / 100,
+            isFirstPayment: true,
+            onGeneratePix: async (refCode) => {
+              const pixData = await doCreateSubscription(
+                selectedBillingForModal,
+                refCode,
+              );
               return pixData;
-            }
-            return null;
+            },
+            isLoading: isCreatingSubscription,
+            getSimulatePixUrl: (pixId) =>
+              `/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(pixId)}`,
+            refetchSubscription,
+            subscriptionStatus: subscription?.status,
           }}
-          isLoading={isCreatingSubscription}
-          pixData={referralPixData}
-          refetchSubscription={refetchSubscription}
-          subscriptionStatus={subscription?.status}
+          pollConfig={{
+            type: "subscription",
+            refetch: refetchSubscription,
+            currentStatus: subscription?.status,
+            initialStatus: "pending",
+            targetStatus: "active",
+          }}
           onPaymentConfirmed={() => {
-            refetchSubscription();
-            setReferralModalOpen(false);
-            setReferralPixData(null);
-            handlePixConfirmed();
+            setSubscriptionModalOpen(false);
+            void handlePixConfirmed();
           }}
-          simulatePixUrl={
-            referralPixData
-              ? `/api/subscriptions/simulate-pix?pixId=${encodeURIComponent(referralPixData.pixId)}`
-              : undefined
-          }
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua assinatura está ativa.",
+          }}
         />
       )}
     </div>

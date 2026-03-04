@@ -2,7 +2,7 @@
 
 import { Copy, Play, QrCode } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DuoButton } from "@/components/duo";
+import { DuoButton, DuoInput } from "@/components/duo";
 import { Modal } from "@/components/organisms/modals/modal";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api/client";
@@ -47,16 +47,35 @@ export interface PixQrBlockProps {
   onCopy?: () => void;
 }
 
+/** @deprecated Use fluxo com brCode já gerado ao clicar Assinar Agora. */
+export interface PixQrModalGenerateConfig {
+  planName: string;
+  amountReais: number;
+  isFirstPayment: boolean;
+  onGeneratePix: (referralCode: string | null) => Promise<{
+    pixId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    referralCodeInvalid?: boolean;
+  } | null>;
+  isLoading?: boolean;
+  getSimulatePixUrl?: (pixId: string) => string;
+  refetchSubscription?: () => Promise<unknown>;
+  subscriptionStatus?: string;
+}
+
 export interface PixQrModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  brCode: string;
-  brCodeBase64: string;
-  amount: number; // centavos
+  /** Dados PIX (quando já gerado). Obrigatório se generateConfig não for passado. */
+  brCode?: string;
+  brCodeBase64?: string;
+  amount?: number; // centavos
   /** Slot customizado para exibição do valor */
   valueSlot?: PixQrModalValueSlot;
-  /** URL para simular pagamento (ex: /api/.../simulate-pix). Se não informado, botão de simular não aparece */
+  /** URL para simular pagamento. Se não informado, botão de simular não aparece */
   simulatePixUrl?: string;
   /** Callback após simular (ex: refetch) */
   onSimulateSuccess?: () => Promise<void>;
@@ -66,6 +85,8 @@ export interface PixQrModalProps {
   paymentConfirmedToast?: { title: string; description: string };
   /** Classes extras no container */
   className?: string;
+  /** Modo legado: gera PIX ao abrir. Preferir passar brCode já gerado ao clicar Assinar Agora. */
+  generateConfig?: PixQrModalGenerateConfig;
 }
 
 /** Bloco reutilizável: QR + valor + copiar + simular (sem modal) */
@@ -195,17 +216,17 @@ export function PixQrBlock({
 
 /**
  * Modal unificado de QR Code PIX.
- * Usa composition via props (valueSlot, pollConfig, simulatePixUrl).
+ * Suporta: (1) QR direto com brCode; (2) Modo gerar com @ de indicação (primeira assinatura).
  */
 export function PixQrModal({
   isOpen,
   onClose,
   title = "Pagamento PIX",
-  brCode,
-  brCodeBase64,
-  amount,
+  brCode: brCodeProp,
+  brCodeBase64: brCodeBase64Prop,
+  amount: amountProp,
   valueSlot,
-  simulatePixUrl,
+  simulatePixUrl: simulatePixUrlProp,
   onSimulateSuccess,
   pollConfig,
   onPaymentConfirmed,
@@ -214,9 +235,118 @@ export function PixQrModal({
     description: "Seu pagamento foi processado.",
   },
   className,
+  generateConfig,
 }: PixQrModalProps) {
   const { toast } = useToast();
   const hasClosedRef = useRef(false);
+  const [generatedPix, setGeneratedPix] = useState<{
+    pixId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+  } | null>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [referralCodeInvalid, setReferralCodeInvalid] = useState(false);
+
+  const hasPixFromProps = !!(
+    brCodeProp &&
+    brCodeBase64Prop != null &&
+    typeof amountProp === "number"
+  );
+  const hasPixFromGenerate = !!generatedPix;
+  const hasPix = hasPixFromProps || hasPixFromGenerate;
+
+  const brCode = hasPixFromProps ? brCodeProp! : generatedPix?.brCode ?? "";
+  const brCodeBase64 = hasPixFromProps
+    ? brCodeBase64Prop!
+    : generatedPix?.brCodeBase64 ?? "";
+  const amount = hasPixFromProps ? amountProp! : generatedPix?.amount ?? 0;
+  const simulatePixUrl =
+    simulatePixUrlProp ??
+    (generatedPix && generateConfig?.getSimulatePixUrl
+      ? generateConfig.getSimulatePixUrl(generatedPix.pixId)
+      : undefined);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setGeneratedPix(null);
+      setReferralCode("");
+      setReferralCodeInvalid(false);
+    }
+  }, [isOpen]);
+
+  const handleGeneratePix = useCallback(async () => {
+    if (!generateConfig) return;
+    setIsGenerating(true);
+    setReferralCodeInvalid(false);
+    try {
+      const code = referralCode.trim() ? referralCode.trim() : null;
+      const result = await generateConfig.onGeneratePix(code);
+      if (result) {
+        if (result.referralCodeInvalid) {
+          setReferralCodeInvalid(true);
+        }
+        setGeneratedPix({
+          pixId: result.pixId,
+          brCode: result.brCode,
+          brCodeBase64: result.brCodeBase64,
+          amount: result.amount,
+        });
+        toast({
+          title: "PIX gerado!",
+          description: "Escaneie o QR Code ou copie o código para pagar.",
+        });
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar PIX",
+        description: err instanceof Error ? err.message : "Tente novamente.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [generateConfig, referralCode, toast]);
+
+  useEffect(() => {
+    if (
+      generatedPix &&
+      generateConfig?.refetchSubscription &&
+      isOpen &&
+      generateConfig.subscriptionStatus !== "active"
+    ) {
+      const interval = setInterval(
+        () => generateConfig.refetchSubscription?.(),
+        8000,
+      );
+      return () => clearInterval(interval);
+    }
+  }, [
+    generatedPix,
+    generateConfig?.refetchSubscription,
+    generateConfig?.subscriptionStatus,
+    isOpen,
+  ]);
+
+  useEffect(() => {
+    if (
+      isOpen &&
+      generatedPix &&
+      generateConfig?.subscriptionStatus === "active" &&
+      onPaymentConfirmed
+    ) {
+      hasClosedRef.current = true;
+      onPaymentConfirmed();
+      onClose();
+    }
+  }, [
+    isOpen,
+    generatedPix,
+    generateConfig?.subscriptionStatus,
+    onPaymentConfirmed,
+    onClose,
+  ]);
 
   // Poll tipo "check" (payment, boost)
   useEffect(() => {
@@ -332,18 +462,84 @@ export function PixQrModal({
     paymentConfirmedToast,
   ]);
 
+  const showGenerateForm = generateConfig && !hasPix;
+
   return (
     <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="max-w-sm">
       <Modal.Header title={title} onClose={onClose} />
       <div className={`space-y-6 p-6 bg-duo-bg-card ${className ?? ""}`}>
-        <PixQrBlock
-          brCode={brCode}
-          brCodeBase64={brCodeBase64}
-          amount={amount}
-          valueSlot={valueSlot}
-          simulatePixUrl={simulatePixUrl}
-          onSimulateSuccess={onSimulateSuccess}
-        />
+        {showGenerateForm ? (
+          <>
+            <div className="text-center space-y-1">
+              <p className="text-lg font-bold text-duo-fg">
+                {generateConfig.planName}
+              </p>
+              <p className="text-2xl font-bold text-duo-green">
+                R$ {generateConfig.amountReais.toFixed(2)}
+              </p>
+            </div>
+            {generateConfig.isFirstPayment && (
+              <div className="space-y-2 rounded-xl border border-duo-border bg-duo-bg p-4">
+                <p className="text-sm font-medium text-duo-fg">
+                  Foi indicado? Ganhe 5% de desconto (opcional)
+                </p>
+                <p className="text-xs text-duo-gray-dark">
+                  Digite o @ do usuário que te indicou (ex: @fulano)
+                </p>
+                <DuoInput.Simple
+                  placeholder="@usuario"
+                  value={referralCode}
+                  onChange={(e) => {
+                    setReferralCode(e.target.value);
+                    setReferralCodeInvalid(false);
+                  }}
+                />
+                {referralCodeInvalid && (
+                  <p className="text-xs text-duo-accent font-medium">
+                    Não encontramos o @
+                    &quot;
+                    {referralCode.trim().startsWith("@")
+                      ? referralCode.trim()
+                      : `@${referralCode.trim()}`}
+                    &quot;. O pagamento foi gerado sem desconto.
+                  </p>
+                )}
+              </div>
+            )}
+            <DuoButton
+              onClick={handleGeneratePix}
+              disabled={isGenerating || generateConfig.isLoading}
+              className="w-full"
+              size="lg"
+            >
+              {isGenerating || generateConfig.isLoading
+                ? "Gerando PIX..."
+                : "Gerar PIX"}
+            </DuoButton>
+          </>
+        ) : hasPix ? (
+          <PixQrBlock
+            brCode={brCode}
+            brCodeBase64={brCodeBase64}
+            amount={amount}
+            valueSlot={
+              valueSlot ??
+              (generateConfig
+                ? { label: generateConfig.planName }
+                : undefined)
+            }
+            simulatePixUrl={simulatePixUrl}
+            onSimulateSuccess={
+              onSimulateSuccess ??
+              (generateConfig?.refetchSubscription
+                ? () =>
+                    generateConfig!.refetchSubscription!().then(() =>
+                      undefined,
+                    )
+                : undefined)
+            }
+          />
+        ) : null}
       </div>
     </Modal.Root>
   );

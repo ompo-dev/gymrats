@@ -85,18 +85,11 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     brCodeBase64: string;
     amount: number;
   } | null>(null);
-  const [referralModalOpen, setReferralModalOpen] = useState(false);
-  const [referralPixData, setReferralPixData] = useState<{
-    pixId: string;
-    brCode: string;
-    brCodeBase64: string;
-    amount: number;
-    referralCodeInvalid?: boolean;
-  } | null>(null);
-  const [selectedPlanForReferral, setSelectedPlanForReferral] = useState<
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = useState(false);
+  const [selectedPlanForModal, setSelectedPlanForModal] = useState<
     "premium" | "pro"
   >("premium");
-  const [selectedBillingForReferral, setSelectedBillingForReferral] = useState<
+  const [selectedBillingForModal, setSelectedBillingForModal] = useState<
     "monthly" | "annual"
   >("monthly");
   const [_daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -477,14 +470,15 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     planId: string,
     billingPeriod: "monthly" | "annual",
   ) => {
-    const planKey = (planId === "pro" ? "pro" : "premium") as "premium" | "pro";
+    const planKey = (planId?.toLowerCase() === "pro" ? "pro" : "premium") as
+      | "premium"
+      | "pro";
     const billingKey = billingPeriod;
 
     if (isFirstPayment) {
-      setSelectedPlanForReferral(planKey);
-      setSelectedBillingForReferral(billingKey);
-      setReferralPixData(null);
-      setReferralModalOpen(true);
+      setSelectedPlanForModal(planKey);
+      setSelectedBillingForModal(billingKey);
+      setSubscriptionModalOpen(true);
       return;
     }
 
@@ -562,14 +556,10 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     setChangePlanMembershipId,
     pixModal,
     setPixModal,
-
-    // Referral modal (primeira assinatura)
-    referralModalOpen,
-    setReferralModalOpen,
-    referralPixData,
-    setReferralPixData,
-    selectedPlanForReferral,
-    selectedBillingForReferral,
+    subscriptionModalOpen,
+    setSubscriptionModalOpen,
+    selectedPlanForModal,
+    selectedBillingForModal,
     isFirstPayment,
     doCreateSubscription,
     refetchSubscription,
