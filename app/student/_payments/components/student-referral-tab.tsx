@@ -34,12 +34,13 @@ function ReferralLinkSection({
 }: ReferralLinkSectionProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
-      <h2 className="text-xl font-bold text-duo-fg mb-1">Seu Link de Indicação</h2>
+      <h2 className="text-xl font-bold text-duo-fg mb-1">Seu código de indicação</h2>
       <p className="text-sm text-duo-gray-dark mb-4">
-        Compartilhe com qualquer pessoa — o app detecta se é aluno ou academia e
-        redireciona automaticamente. Você ganha{" "}
-        <strong className="text-duo-accent">50% de comissão</strong> na primeira
-        assinatura.
+        Compartilhe seu código <strong>@</strong> com amigos ou academias.
+        Quando alguém usar seu código no momento do pagamento da primeira
+        assinatura (no modal PIX), você ganha{" "}
+        <strong className="text-duo-accent">50% de comissão</strong> e quem
+        pagou ganha <strong>5% de desconto</strong>.
       </p>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 rounded-xl border border-duo-border bg-duo-bg p-3">
