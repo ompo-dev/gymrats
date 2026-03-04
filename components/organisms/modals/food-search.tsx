@@ -28,6 +28,16 @@ interface FoodSearchProps {
       time?: string;
     }>,
   ) => void;
+  chatStreamUrl?: string;
+  onApplyNutrition?: (data: {
+    meals: Meal[];
+    totals: {
+      totalCalories: number;
+      totalProtein: number;
+      totalCarbs: number;
+      totalFats: number;
+    };
+  }) => Promise<void> | void;
 }
 
 const mealIcons: Record<string, string> = {
@@ -70,6 +80,8 @@ function FoodSearchSimple({
   meals = [],
   onSelectMeal,
   onAddMeal,
+  chatStreamUrl,
+  onApplyNutrition,
 }: FoodSearchProps) {
   // Verificar se é premium/trial
   const { can } = useAbility();
@@ -309,6 +321,8 @@ function FoodSearchSimple({
         onClose={onClose}
         selectedMealId={selectedMealId}
         meals={meals}
+        chatStreamUrl={chatStreamUrl}
+        onApplyNutrition={onApplyNutrition}
       />
     );
   }

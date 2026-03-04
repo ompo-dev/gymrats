@@ -1,6 +1,6 @@
 "use client";
 
-import type { PlanSlotData } from "@/lib/types";
+import type { PlanSlotData, UserProfile, WeeklyPlanData } from "@/lib/types";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import {
   DAY_NAMES,
@@ -18,6 +18,11 @@ interface EditUnitModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onPlanUpdated?: () => void;
+  apiMode?: "student" | "gym";
+  studentId?: string;
+  weeklyPlan?: WeeklyPlanData | null;
+  loadWeeklyPlan?: (force?: boolean) => Promise<void>;
+  profile?: UserProfile;
 }
 
 export function EditUnitModal(props: EditUnitModalProps = {}) {
@@ -175,6 +180,10 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
         <ExerciseSearch.Simple
           workoutId={editingWorkoutId}
           onClose={() => setShowExerciseSearch(false)}
+          apiMode={props.apiMode}
+          studentId={props.studentId}
+          profile={props.profile}
+          onPlanUpdated={props.onPlanUpdated}
         />
       )}
 
@@ -183,6 +192,12 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
           unitId={unitId}
           workouts={sortedWorkouts}
           onClose={() => setShowWorkoutChat(false)}
+          mode={props.apiMode}
+          studentId={props.studentId}
+          weeklyPlan={props.weeklyPlan}
+          profile={props.profile}
+          onPlanUpdated={props.onPlanUpdated}
+          loadWeeklyPlan={props.loadWeeklyPlan}
         />
       )}
 
@@ -196,6 +211,12 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
             ]
           }
           onClose={closeWorkoutChatWithRefresh}
+          mode={props.apiMode}
+          studentId={props.studentId}
+          weeklyPlan={props.weeklyPlan}
+          profile={props.profile}
+          onPlanUpdated={props.onPlanUpdated}
+          loadWeeklyPlan={props.loadWeeklyPlan}
         />
       )}
 

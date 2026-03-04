@@ -8,6 +8,7 @@ import { apiClient } from "@/lib/api/client";
 import type {
   MuscleGroup,
   PlanSlotData,
+  WeeklyPlanData,
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
@@ -28,6 +29,10 @@ export interface UseEditUnitModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onPlanUpdated?: () => void;
+  apiMode?: "student" | "gym";
+  studentId?: string;
+  weeklyPlan?: WeeklyPlanData | null;
+  loadWeeklyPlan?: (force?: boolean) => Promise<void>;
 }
 
 export function useEditUnitModal({
@@ -35,15 +40,36 @@ export function useEditUnitModal({
   isOpen: isOpenProp,
   onClose: onCloseProp,
   onPlanUpdated,
+  apiMode = "student",
+  studentId,
+  weeklyPlan: weeklyPlanOverride,
+  loadWeeklyPlan: loadWeeklyPlanOverride,
 }: UseEditUnitModalProps = {}) {
   const {
     isOpen: isOpenEditUnit,
     close: closeEditUnit,
     paramValue: unitId,
   } = useModalStateWithParam("editUnit", "unitId");
+  const isGymMode = apiMode === "gym";
   const actions = useStudent("actions");
-  const weeklyPlan = useStudent("weeklyPlan");
-  const { loadWeeklyPlan } = useStudent("loaders");
+  const storeWeeklyPlan = useStudent("weeklyPlan");
+  const storeLoaders = useStudent("loaders");
+  const weeklyPlan = isGymMode ? weeklyPlanOverride : storeWeeklyPlan;
+  const loadWeeklyPlan = isGymMode
+    ? loadWeeklyPlanOverride
+    : storeLoaders.loadWeeklyPlan;
+  const weeklyPlanUrl =
+    isGymMode && studentId
+      ? `/api/gym/students/${studentId}/weekly-plan`
+      : "/api/workouts/weekly-plan";
+  const workoutsManageUrl =
+    isGymMode && studentId
+      ? `/api/gym/students/${studentId}/workouts/manage`
+      : "/api/workouts/manage";
+  const exercisesUrl =
+    isGymMode && studentId
+      ? `/api/gym/students/${studentId}/workouts/exercises`
+      : "/api/workouts/exercises";
 
   const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
   const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
@@ -194,12 +220,34 @@ export function useEditUnitModal({
         ...rest,
         ...(mg !== undefined && { muscleGroup: mg as MuscleGroup }),
       };
-      actions.updateWorkout(workoutId, payload).catch((err) => {
-        console.error(err);
-        toast.error("Erro ao atualizar treino");
-      });
+      if (isGymMode) {
+        if (!studentId) {
+          toast.error("Aluno não identificado");
+          return;
+        }
+        apiClient
+          .put(`${workoutsManageUrl}/${workoutId}`, payload)
+          .then(() => loadWeeklyPlan?.(true))
+          .then(() => onPlanUpdated?.())
+          .catch((err) => {
+            console.error(err);
+            toast.error("Erro ao atualizar treino");
+          });
+      } else {
+        actions.updateWorkout(workoutId, payload).catch((err) => {
+          console.error(err);
+          toast.error("Erro ao atualizar treino");
+        });
+      }
     },
-    [actions],
+    [
+      actions,
+      isGymMode,
+      studentId,
+      workoutsManageUrl,
+      loadWeeklyPlan,
+      onPlanUpdated,
+    ],
   );
 
   useEffect(() => {
@@ -270,11 +318,11 @@ export function useEditUnitModal({
   const handleSaveUnit = useCallback(async () => {
     if (isWeeklyPlanMode) {
       try {
-        await apiClient.patch("/api/workouts/weekly-plan", {
+        await apiClient.patch(weeklyPlanUrl, {
           title,
           description,
         });
-        await loadWeeklyPlan(true);
+        await loadWeeklyPlan?.(true);
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");
       } catch (err) {
@@ -304,22 +352,42 @@ export function useEditUnitModal({
   const handleCreateWorkout = useCallback(async () => {
     if (!unitId) return;
     try {
-      const workoutId = await actions.createWorkout({
-        unitId,
-        title: "Novo Dia",
-        description: "Descrição do treino",
-        muscleGroup: "",
-        difficulty: "iniciante",
-        estimatedTime: 0,
-        type: "strength",
-      });
-      setEditingWorkoutId(workoutId);
+      if (isGymMode) {
+        if (!studentId) {
+          toast.error("Aluno não identificado");
+          return;
+        }
+        const response = await apiClient.post(workoutsManageUrl, {
+          unitId,
+          title: "Novo Dia",
+          description: "Descrição do treino",
+          muscleGroup: "",
+          difficulty: "iniciante",
+          estimatedTime: 0,
+          type: "strength",
+        });
+        const workoutId = response.data?.data?.id as string | undefined;
+        if (workoutId) {
+          setEditingWorkoutId(workoutId);
+        }
+      } else {
+        const workoutId = await actions.createWorkout({
+          unitId,
+          title: "Novo Dia",
+          description: "Descrição do treino",
+          muscleGroup: "",
+          difficulty: "iniciante",
+          estimatedTime: 0,
+          type: "strength",
+        });
+        setEditingWorkoutId(workoutId);
+      }
       toast.success("Novo dia de treino adicionado!");
     } catch (err) {
       console.error(err);
       toast.error("Erro ao criar treino");
     }
-  }, [unitId, actions]);
+  }, [unitId, actions, isGymMode, studentId, workoutsManageUrl]);
 
   const confirmDeleteWorkout = useCallback(async () => {
     if (!deleteWorkoutConfirmationId) return;
@@ -327,7 +395,17 @@ export function useEditUnitModal({
     setDeleteWorkoutConfirmationId(null);
     if (editingWorkoutId === workoutIdToDelete) setEditingWorkoutId(null);
     try {
-      await actions.deleteWorkout(workoutIdToDelete);
+      if (isGymMode) {
+        if (!studentId) {
+          toast.error("Aluno não identificado");
+          return;
+        }
+        await apiClient.delete(`${workoutsManageUrl}/${workoutIdToDelete}`);
+        await loadWeeklyPlan?.(true);
+        onPlanUpdated?.();
+      } else {
+        await actions.deleteWorkout(workoutIdToDelete);
+      }
       toast.success("Dia de treino removido!");
     } catch (err) {
       console.error(err);
@@ -336,7 +414,16 @@ export function useEditUnitModal({
           ?.message || "Falha ao remover treino";
       toast.error(message);
     }
-  }, [deleteWorkoutConfirmationId, editingWorkoutId, actions]);
+  }, [
+    deleteWorkoutConfirmationId,
+    editingWorkoutId,
+    actions,
+    isGymMode,
+    studentId,
+    workoutsManageUrl,
+    loadWeeklyPlan,
+    onPlanUpdated,
+  ]);
 
   const cancelDeleteWorkout = useCallback(
     () => setDeleteWorkoutConfirmationId(null),
@@ -344,10 +431,14 @@ export function useEditUnitModal({
   );
 
   const handleResetWeek = useCallback(async () => {
+    if (isGymMode) {
+      toast.info("Reset semanal disponível apenas no app do aluno.");
+      return;
+    }
     setResetting(true);
     try {
       await apiClient.patch("/api/students/week-reset");
-      await loadWeeklyPlan(true);
+      await loadWeeklyPlan?.(true);
       setWeeklyPlanSlotsKey((k) => k + 1);
       onPlanUpdated?.();
       toast.success("Semana resetada! Os treinos estão disponíveis novamente.");
@@ -356,7 +447,7 @@ export function useEditUnitModal({
     } finally {
       setResetting(false);
     }
-  }, [loadWeeklyPlan, onPlanUpdated]);
+  }, [loadWeeklyPlan, onPlanUpdated, isGymMode]);
 
   const handleRemoveWorkoutFromSlot = useCallback(
     async (slotId: string) => {
@@ -364,8 +455,8 @@ export function useEditUnitModal({
       if (!slot?.workout) return;
       setLoadingSlotId(slotId);
       try {
-        await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
-        await loadWeeklyPlan(true);
+        await apiClient.delete(`${workoutsManageUrl}/${slot.workout.id}`);
+        await loadWeeklyPlan?.(true);
         onPlanUpdated?.();
         toast.success("Treino removido. O dia foi marcado como descanso.");
       } catch {
@@ -374,14 +465,14 @@ export function useEditUnitModal({
         setLoadingSlotId(null);
       }
     },
-    [planSlots, loadWeeklyPlan, onPlanUpdated],
+    [planSlots, loadWeeklyPlan, onPlanUpdated, workoutsManageUrl],
   );
 
   const handleAddWorkoutToSlot = useCallback(
     async (slotId: string, dayName: string) => {
       setLoadingSlotId(slotId);
       try {
-        await apiClient.post("/api/workouts/manage", {
+        await apiClient.post(workoutsManageUrl, {
           planSlotId: slotId,
           title: `Treino ${dayName}`,
           description: "",
@@ -390,7 +481,7 @@ export function useEditUnitModal({
           difficulty: "iniciante",
           estimatedTime: 0,
         });
-        await loadWeeklyPlan(true);
+        await loadWeeklyPlan?.(true);
         onPlanUpdated?.();
         toast.success(
           "Treino adicionado. Adicione exercícios ou use o Chat IA.",
@@ -422,12 +513,34 @@ export function useEditUnitModal({
 
   const handleUpdateExercise = useCallback(
     (exerciseId: string, data: Partial<WorkoutExercise>) => {
+      if (isGymMode) {
+        if (!studentId) {
+          toast.error("Aluno não identificado");
+          return;
+        }
+        apiClient
+          .put(`${exercisesUrl}/${exerciseId}`, data as any)
+          .then(() => loadWeeklyPlan?.(true))
+          .then(() => onPlanUpdated?.())
+          .catch((err) => {
+            console.error(err);
+            toast.error("Erro ao salvar exercício");
+          });
+        return;
+      }
       actions.updateWorkoutExercise(exerciseId, data).catch((err) => {
         console.error(err);
         toast.error("Erro ao salvar exercício");
       });
     },
-    [actions],
+    [
+      actions,
+      isGymMode,
+      studentId,
+      exercisesUrl,
+      loadWeeklyPlan,
+      onPlanUpdated,
+    ],
   );
 
   const handleReorderExercises = useCallback(
@@ -455,7 +568,17 @@ export function useEditUnitModal({
     const exerciseIdToDelete = deleteConfirmationId;
     setDeleteConfirmationId(null);
     try {
-      await actions.deleteWorkoutExercise(exerciseIdToDelete);
+      if (isGymMode) {
+        if (!studentId) {
+          toast.error("Aluno não identificado");
+          return;
+        }
+        await apiClient.delete(`${exercisesUrl}/${exerciseIdToDelete}`);
+        await loadWeeklyPlan?.(true);
+        onPlanUpdated?.();
+      } else {
+        await actions.deleteWorkoutExercise(exerciseIdToDelete);
+      }
       toast.success("Exercício removido!");
     } catch (err) {
       console.error(err);
@@ -464,7 +587,15 @@ export function useEditUnitModal({
           ?.message || "Erro ao remover exercício. Tente novamente.";
       toast.error(message);
     }
-  }, [deleteConfirmationId, actions]);
+  }, [
+    deleteConfirmationId,
+    actions,
+    isGymMode,
+    studentId,
+    exercisesUrl,
+    loadWeeklyPlan,
+    onPlanUpdated,
+  ]);
 
   const cancelDelete = useCallback(() => setDeleteConfirmationId(null), []);
 
@@ -475,7 +606,7 @@ export function useEditUnitModal({
 
   const closeWorkoutChatWithRefresh = useCallback(() => {
     setChatSlotId(null);
-    loadWeeklyPlan(true);
+    loadWeeklyPlan?.(true);
     onPlanUpdated?.();
   }, [loadWeeklyPlan, onPlanUpdated]);
 

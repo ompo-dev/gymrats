@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
 import type {
   DailyNutrition,
+  FoodItem,
+  Meal,
+  MealFoodItem,
   Payment,
   PlanSlotData,
   StudentData,
@@ -49,6 +52,7 @@ export function useGymStudentDetail({
   );
   const [isLoadingWeeklyPlan, setIsLoadingWeeklyPlan] = useState(false);
   const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+  const [isEditWeeklyPlanOpen, setIsEditWeeklyPlanOpen] = useState(false);
 
   const fetchWeeklyPlan = useCallback(async () => {
     if (!student?.id) return;
@@ -103,6 +107,211 @@ export function useGymStudentDetail({
       }
     },
     [student?.id, nutritionDate],
+  );
+
+  const getTargets = useCallback(() => {
+    const profile = student?.profile;
+    return {
+      targetCalories: profile?.targetCalories ?? 2000,
+      targetProtein: profile?.targetProtein ?? 150,
+      targetCarbs: profile?.targetCarbs ?? 250,
+      targetFats: profile?.targetFats ?? 65,
+      targetWater: 3000,
+    };
+  }, [student?.profile]);
+
+  const calculateTotalsFromCompletedMeals = useCallback((meals: Meal[]) => {
+    const completedMeals = meals.filter((meal) => meal.completed === true);
+    return {
+      totalCalories: completedMeals.reduce(
+        (sum, meal) => sum + (meal.calories || 0),
+        0,
+      ),
+      totalProtein: completedMeals.reduce(
+        (sum, meal) => sum + (meal.protein || 0),
+        0,
+      ),
+      totalCarbs: completedMeals.reduce(
+        (sum, meal) => sum + (meal.carbs || 0),
+        0,
+      ),
+      totalFats: completedMeals.reduce((sum, meal) => sum + (meal.fats || 0), 0),
+    };
+  }, []);
+
+  const persistNutrition = useCallback(
+    async (nextMeals: Meal[], nextWater: number) => {
+      if (!student?.id) return;
+      const totals = calculateTotalsFromCompletedMeals(nextMeals);
+      const targets = getTargets();
+      const nextNutrition: DailyNutrition = {
+        date: nutritionDate,
+        meals: nextMeals,
+        waterIntake: nextWater,
+        ...totals,
+        ...targets,
+      };
+      setDailyNutrition(nextNutrition);
+      try {
+        await fetch(`/api/gym/students/${student.id}/nutrition`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: nutritionDate,
+            meals: nextMeals,
+            waterIntake: nextWater,
+          }),
+        });
+      } catch (error) {
+        console.error("[GymStudentDetail] Erro ao salvar nutrição:", error);
+      }
+    },
+    [student?.id, nutritionDate, calculateTotalsFromCompletedMeals, getTargets],
+  );
+
+  const applyNutrition = useCallback(
+    async (data: { meals: Meal[]; totals: Record<string, number> }) => {
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition(data.meals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const handleMealComplete = useCallback(
+    async (mealId: string) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const updatedMeals = baseMeals.map((meal) =>
+        meal.id === mealId ? { ...meal, completed: !meal.completed } : meal,
+      );
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition(updatedMeals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const handleAddMealSubmit = useCallback(
+    async (
+      mealsData: Array<{
+        name: string;
+        type: Meal["type"];
+        time?: string;
+      }>,
+    ) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const newMeals: Meal[] = mealsData.map((mealData) => ({
+        id: `meal-${Date.now()}-${Math.random()}`,
+        name: mealData.name,
+        type: mealData.type,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        completed: false,
+        time: mealData.time,
+        foods: [],
+      }));
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition([...baseMeals, ...newMeals], nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const handleAddFood = useCallback(
+    async (
+      foods: Array<{ food: FoodItem; servings: number }>,
+      mealIds: string[],
+    ) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const updatedMeals = baseMeals.map((meal) => {
+        if (!mealIds.includes(meal.id)) return meal;
+        const newFoods: MealFoodItem[] = foods.map(({ food, servings }) => ({
+          id: `food-${Date.now()}-${Math.random()}`,
+          foodId: food.id,
+          foodName: food.name,
+          servings,
+          calories: food.calories * servings,
+          protein: food.protein * servings,
+          carbs: food.carbs * servings,
+          fats: food.fats * servings,
+          servingSize: food.servingSize,
+        }));
+        const updatedFoods = [...(meal.foods || []), ...newFoods];
+        const totals = newFoods.reduce(
+          (sum, f) => ({
+            calories: sum.calories + f.calories,
+            protein: sum.protein + f.protein,
+            carbs: sum.carbs + f.carbs,
+            fats: sum.fats + f.fats,
+          }),
+          { calories: 0, protein: 0, carbs: 0, fats: 0 },
+        );
+        return {
+          ...meal,
+          foods: updatedFoods,
+          calories: meal.calories + totals.calories,
+          protein: meal.protein + totals.protein,
+          carbs: meal.carbs + totals.carbs,
+          fats: meal.fats + totals.fats,
+        };
+      });
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition(updatedMeals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const removeMeal = useCallback(
+    async (mealId: string) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const updatedMeals = baseMeals.filter((meal) => meal.id !== mealId);
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition(updatedMeals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const removeFoodFromMeal = useCallback(
+    async (mealId: string, foodId: string) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const updatedMeals = baseMeals.map((meal) => {
+        if (meal.id !== mealId) return meal;
+        const updatedFoods = (meal.foods || []).filter(
+          (food) => food.id !== foodId,
+        );
+        const totals = updatedFoods.reduce(
+          (sum, food) => ({
+            calories: sum.calories + (food.calories || 0),
+            protein: sum.protein + (food.protein || 0),
+            carbs: sum.carbs + (food.carbs || 0),
+            fats: sum.fats + (food.fats || 0),
+          }),
+          { calories: 0, protein: 0, carbs: 0, fats: 0 },
+        );
+        return {
+          ...meal,
+          foods: updatedFoods,
+          calories: totals.calories,
+          protein: totals.protein,
+          carbs: totals.carbs,
+          fats: totals.fats,
+        };
+      });
+      const nextWater = dailyNutrition?.waterIntake ?? 0;
+      await persistNutrition(updatedMeals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
+  );
+
+  const handleToggleWaterGlass = useCallback(
+    async (index: number) => {
+      const baseMeals = dailyNutrition?.meals ?? [];
+      const current = dailyNutrition?.waterIntake ?? 0;
+      const glassAmount = 250;
+      const nextWater =
+        index < current / glassAmount ? current - glassAmount : current + glassAmount;
+      await persistNutrition(baseMeals, nextWater);
+    },
+    [dailyNutrition, persistNutrition],
   );
 
   useEffect(() => {
@@ -167,11 +376,22 @@ export function useGymStudentDetail({
     { value: "payments", label: "Pagamentos", emoji: "💳" },
   ];
 
+  const openWorkoutsEditor = () => {
+    setActiveTab("workouts");
+    setIsEditWeeklyPlanOpen(true);
+  };
+
+  const openDietTab = () => {
+    setActiveTab("diet");
+  };
+
   return {
     student,
     studentPayments,
     activeTab,
     setActiveTab,
+    isEditWeeklyPlanOpen,
+    setIsEditWeeklyPlanOpen,
     membershipStatus,
     isUpdatingStatus,
     weeklyPlan,
@@ -180,11 +400,21 @@ export function useGymStudentDetail({
     setNutritionDate,
     isLoadingWeeklyPlan,
     isLoadingNutrition,
+    fetchWeeklyPlan,
     fetchNutrition,
+    handleMealComplete,
+    handleAddMealSubmit,
+    handleAddFood,
+    applyNutrition,
+    removeMeal,
+    removeFoodFromMeal,
+    handleToggleWaterGlass,
     handleMembershipAction,
     togglePaymentStatus,
     tabOptions,
     DAY_NAMES,
+    openWorkoutsEditor,
+    openDietTab,
   };
 }
 

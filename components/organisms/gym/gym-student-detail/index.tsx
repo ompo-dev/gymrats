@@ -38,6 +38,8 @@ export function GymStudentDetail({
     studentPayments,
     activeTab,
     setActiveTab,
+    isEditWeeklyPlanOpen,
+    setIsEditWeeklyPlanOpen,
     membershipStatus,
     isUpdatingStatus,
     weeklyPlan,
@@ -46,10 +48,20 @@ export function GymStudentDetail({
     setNutritionDate,
     isLoadingWeeklyPlan,
     isLoadingNutrition,
+    fetchWeeklyPlan,
     fetchNutrition,
+    handleMealComplete,
+    handleAddMealSubmit,
+    handleAddFood,
+    applyNutrition,
+    removeMeal,
+    removeFoodFromMeal,
+    handleToggleWaterGlass,
     handleMembershipAction,
     togglePaymentStatus,
     tabOptions,
+    openWorkoutsEditor,
+    openDietTab,
   } = useGymStudentDetail({ student, payments, onBack });
 
   if (!studentData) {
@@ -85,6 +97,8 @@ export function GymStudentDetail({
           membershipStatus={membershipStatus}
           isUpdatingStatus={isUpdatingStatus}
           onMembershipAction={handleMembershipAction}
+          onAssignWorkout={openWorkoutsEditor}
+          onAssignDiet={openDietTab}
         />
       </SlideIn>
 
@@ -137,6 +151,9 @@ export function GymStudentDetail({
             student={studentData}
             weeklyPlan={weeklyPlan}
             isLoadingWeeklyPlan={isLoadingWeeklyPlan}
+            isEditOpen={isEditWeeklyPlanOpen}
+            onEditOpenChange={setIsEditWeeklyPlanOpen}
+            onReloadWeeklyPlan={fetchWeeklyPlan}
           />
         </SlideIn>
       )}
@@ -150,6 +167,13 @@ export function GymStudentDetail({
             isLoadingNutrition={isLoadingNutrition}
             onNutritionDateChange={setNutritionDate}
             onFetchNutrition={fetchNutrition}
+            onMealComplete={handleMealComplete}
+            onAddMeal={handleAddMealSubmit}
+            onAddFood={handleAddFood}
+            onApplyNutrition={applyNutrition}
+            onRemoveMeal={removeMeal}
+            onRemoveFood={removeFoodFromMeal}
+            onToggleWaterGlass={handleToggleWaterGlass}
           />
         </SlideIn>
       )}

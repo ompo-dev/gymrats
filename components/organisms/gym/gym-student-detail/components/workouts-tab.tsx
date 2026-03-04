@@ -1,7 +1,10 @@
 "use client";
 
 import { Calendar, Clock, Dumbbell, Loader2, Moon, Trophy } from "lucide-react";
-import { DuoCard } from "@/components/duo";
+import { useState } from "react";
+import { DuoButton, DuoCard } from "@/components/duo";
+import { EditUnitModal } from "@/components/organisms/modals/edit-unit-modal";
+import { apiClient } from "@/lib/api/client";
 import { WorkoutPreviewCard } from "@/components/organisms/modals/workout-preview-card";
 import type {
   PlanSlotData,
@@ -139,13 +142,36 @@ export interface WorkoutsTabProps {
   student: StudentData;
   weeklyPlan: WeeklyPlanData | null | undefined;
   isLoadingWeeklyPlan: boolean;
+  isEditOpen?: boolean;
+  onEditOpenChange?: (open: boolean) => void;
+  onReloadWeeklyPlan?: () => Promise<void>;
 }
 
 export function WorkoutsTab({
   student,
   weeklyPlan,
   isLoadingWeeklyPlan,
+  isEditOpen,
+  onEditOpenChange,
+  onReloadWeeklyPlan,
 }: WorkoutsTabProps) {
+  const [localOpen, setLocalOpen] = useState(false);
+  const isModalOpen = isEditOpen ?? localOpen;
+  const setModalOpen = (open: boolean) => {
+    if (onEditOpenChange) {
+      onEditOpenChange(open);
+    } else {
+      setLocalOpen(open);
+    }
+  };
+
+  const handleOpenEditor = async () => {
+    if (!weeklyPlan) {
+      await apiClient.post(`/api/gym/students/${student.id}/weekly-plan`, {});
+      await onReloadWeeklyPlan?.();
+    }
+    setModalOpen(true);
+  };
   const slots = weeklyPlan?.slots ?? [];
   const sortedSlots = [...slots].sort(
     (a: PlanSlotData, b: PlanSlotData) => a.dayOfWeek - b.dayOfWeek,
@@ -159,13 +185,18 @@ export function WorkoutsTab({
     <div className="space-y-6">
       <DuoCard.Root variant="default" padding="md">
         <DuoCard.Header>
-          <div className="flex items-center gap-2">
-            <Calendar
-              className="h-5 w-5 shrink-0"
-              style={{ color: "var(--duo-secondary)" }}
-              aria-hidden
-            />
-            <h2 className="font-bold text-duo-fg">Plano Semanal do Aluno</h2>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-duo-fg">Plano Semanal do Aluno</h2>
+            </div>
+            <DuoButton size="sm" variant="outline" onClick={handleOpenEditor}>
+              Editar Plano
+            </DuoButton>
           </div>
         </DuoCard.Header>
         {isLoadingWeeklyPlan ? (
@@ -266,6 +297,18 @@ export function WorkoutsTab({
           </div>
         )}
       </DuoCard.Root>
+
+      <EditUnitModal
+        isWeeklyPlanMode
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        onPlanUpdated={onReloadWeeklyPlan}
+        apiMode="gym"
+        studentId={student.id}
+        weeklyPlan={weeklyPlan ?? null}
+        loadWeeklyPlan={onReloadWeeklyPlan}
+        profile={student.profile}
+      />
     </div>
   );
 }

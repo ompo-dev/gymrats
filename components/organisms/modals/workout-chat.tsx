@@ -22,6 +22,8 @@ import { getAuthToken } from "@/lib/auth/token-client";
 import type {
   PlanSlotData,
   Unit,
+  UserProfile,
+  WeeklyPlanData,
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
@@ -34,6 +36,13 @@ interface WorkoutChatProps {
   planSlotId?: string;
   slotContext?: string; // Ex: "Segunda" - para contexto no prompt
   workouts?: WorkoutSession[];
+  mode?: "student" | "gym";
+  studentId?: string;
+  weeklyPlan?: WeeklyPlanData | null;
+  profile?: UserProfile;
+  onPlanUpdated?: () => void;
+  loadWeeklyPlan?: (force?: boolean) => Promise<void>;
+  loadWorkouts?: (force?: boolean) => Promise<void>;
 }
 
 interface ChatMessage {
@@ -102,13 +111,24 @@ export function WorkoutChat({
   planSlotId,
   slotContext,
   workouts: initialWorkouts = [],
+  mode = "student",
+  studentId,
+  weeklyPlan: weeklyPlanOverride,
+  profile: profileOverride,
+  onPlanUpdated,
+  loadWeeklyPlan: loadWeeklyPlanOverride,
+  loadWorkouts: loadWorkoutsOverride,
 }: WorkoutChatProps) {
   const storeUnits = useStudent("units");
   const storeWeeklyPlan = useStudent("weeklyPlan");
+  const storeLoaders = useStudent("loaders");
 
-  const unitsArray = Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
-  const slotsArray: PlanSlotData[] = Array.isArray(storeWeeklyPlan?.slots)
-    ? (storeWeeklyPlan.slots as unknown as PlanSlotData[])
+  const effectiveWeeklyPlan =
+    mode === "gym" ? weeklyPlanOverride : storeWeeklyPlan;
+  const unitsArray =
+    mode === "gym" ? [] : Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
+  const slotsArray: PlanSlotData[] = Array.isArray(effectiveWeeklyPlan?.slots)
+    ? (effectiveWeeklyPlan?.slots as unknown as PlanSlotData[])
     : [];
 
   const unit = unitId ? unitsArray.find((u: Unit) => u.id === unitId) : null;
@@ -128,8 +148,18 @@ export function WorkoutChat({
 
   // Actions e loaders do store
   const _actions = useStudent("actions");
-  const loaders = useStudent("loaders");
+  const loaders =
+    mode === "gym"
+      ? { loadWeeklyPlan: loadWeeklyPlanOverride, loadWorkouts: loadWorkoutsOverride }
+      : storeLoaders;
   const { can } = useAbility();
+  const isGymMode = mode === "gym";
+  const chatStreamUrl = isGymMode
+    ? `/api/gym/students/${studentId}/workouts/chat-stream`
+    : "/api/workouts/chat-stream";
+  const processUrl = isGymMode
+    ? `/api/gym/students/${studentId}/workouts/process`
+    : "/api/workouts/process";
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -164,6 +194,24 @@ export function WorkoutChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const weeklyPlanRef = useRef<WeeklyPlanData | null | undefined>(
+    weeklyPlanOverride,
+  );
+
+  useEffect(() => {
+    weeklyPlanRef.current = weeklyPlanOverride;
+  }, [weeklyPlanOverride]);
+
+  const getLatestWeeklyPlan = () =>
+    mode === "gym"
+      ? weeklyPlanRef.current
+      : useStudentUnifiedStore.getState().data.weeklyPlan;
+  const getLatestUnits = () =>
+    mode === "gym" ? [] : useStudentUnifiedStore.getState().data.units ?? [];
+  const getProfile = () =>
+    mode === "gym"
+      ? profileOverride
+      : useStudentUnifiedStore.getState().data.profile;
 
   // Armazenar dados completos do último parse para processamento
   const [pendingWorkoutData, setPendingWorkoutData] =
@@ -174,6 +222,14 @@ export function WorkoutChat({
       toast({
         title: "Erro",
         description: "Dados do treino não encontrados.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isGymMode && !studentId) {
+      toast({
+        title: "Erro",
+        description: "Aluno não identificado para o chat da academia.",
         variant: "destructive",
       });
       return;
@@ -251,10 +307,14 @@ export function WorkoutChat({
         const originalWorkoutTitle = reference.workoutTitle;
 
         // Recarregar workouts para buscar o ID correto
-        await loaders.loadWorkouts(true);
-        const currentUnits = useStudentUnifiedStore.getState().data.units ?? [];
+        if (isGymMode) {
+          await loaders.loadWeeklyPlan?.(true);
+        } else {
+          await loaders.loadWorkouts(true);
+        }
+        const currentUnits = getLatestUnits();
         const currentUnit = currentUnits.find((u: Unit) => u.id === unitId);
-        const currentWorkouts = currentUnit?.workouts || [];
+        const currentWorkouts = isGymMode ? workouts : currentUnit?.workouts || [];
 
         // Buscar pelo título ORIGINAL (antes da modificação) - isso é crítico!
         const workoutFromDb = currentWorkouts.find(
@@ -311,7 +371,7 @@ export function WorkoutChat({
           for (const preview of workoutsToCreate) {
             try {
               await apiClient.post(
-                "/api/workouts/process",
+                processUrl,
                 {
                   parsedPlan: {
                     intent: "create",
@@ -338,15 +398,13 @@ export function WorkoutChat({
           }
 
           // Recarregar dados após criar
-          if (planSlotId) {
+          if (planSlotId || isGymMode) {
             await loaders.loadWeeklyPlan?.(true);
           } else {
             await loaders.loadWorkouts(true);
           }
-          const updatedUnits =
-            useStudentUnifiedStore.getState().data.units ?? [];
-          const updatedWeeklyPlan =
-            useStudentUnifiedStore.getState().data.weeklyPlan;
+          const updatedUnits = getLatestUnits();
+          const updatedWeeklyPlan = getLatestWeeklyPlan();
           const updatedUnit = unitId
             ? updatedUnits.find((u: Unit) => u.id === unitId)
             : null;
@@ -443,7 +501,7 @@ export function WorkoutChat({
       }
 
       const processResponse = await apiClient.post(
-        "/api/workouts/process",
+        processUrl,
         processPayload,
         {
           timeout: 120000,
@@ -456,11 +514,12 @@ export function WorkoutChat({
       );
 
       // Recarregar dados do store após processamento
-      if (planSlotId) {
+      if (planSlotId || isGymMode) {
         await loaders.loadWeeklyPlan?.(true);
       } else {
         await loaders.loadWorkouts(true);
       }
+      onPlanUpdated?.();
 
       toast({
         title: "Treino adicionado!",
@@ -682,6 +741,14 @@ export function WorkoutChat({
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isProcessing) return;
+    if (isGymMode && !studentId) {
+      toast({
+        title: "Erro",
+        description: "Aluno não identificado para o chat da academia.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const userMessage = inputMessage.trim();
     const currentReference = reference; // Guardar referência antes de limpar
@@ -736,7 +803,7 @@ export function WorkoutChat({
 
     try {
       // Buscar perfil do student para contexto
-      const profile = useStudentUnifiedStore.getState().data.profile;
+      const profile = getProfile();
 
       // Preparar informações sobre workouts existentes para a IA
       const existingWorkouts = workouts.map((w: WorkoutSession) => ({
@@ -761,7 +828,7 @@ export function WorkoutChat({
       const token = getAuthToken();
 
       // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
-      const response = await fetch(`${API_BASE_URL}/api/workouts/chat-stream`, {
+      const response = await fetch(`${API_BASE_URL}${chatStreamUrl}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

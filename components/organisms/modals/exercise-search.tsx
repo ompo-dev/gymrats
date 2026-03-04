@@ -8,7 +8,7 @@ import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import { muscleDatabase } from "@/lib/educational-data/muscles";
-import type { MuscleInfo } from "@/lib/types";
+import type { MuscleInfo, UserProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { EmptyState } from "./empty-state";
 import { EndOfListState } from "./end-of-list-state";
@@ -20,6 +20,10 @@ import { SearchInput } from "./search-input";
 interface ExerciseSearchProps {
   workoutId: string;
   onClose: () => void;
+  apiMode?: "student" | "gym";
+  studentId?: string;
+  onPlanUpdated?: () => void;
+  profile?: UserProfile;
 }
 
 interface ExerciseResult {
@@ -80,8 +84,16 @@ const getDifficultyClasses = (difficulty?: string) => {
   return `${colors.bg} ${colors.text}`;
 };
 
-function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
-  const profile = useStudent("profile");
+function ExerciseSearchSimple({
+  workoutId,
+  onClose,
+  apiMode = "student",
+  studentId,
+  onPlanUpdated,
+  profile: profileOverride,
+}: ExerciseSearchProps) {
+  const storeProfile = useStudent("profile");
+  const profile = apiMode === "gym" ? profileOverride : storeProfile;
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -270,6 +282,7 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
   })();
 
   const actions = useStudent("actions");
+  const isGymMode = apiMode === "gym";
 
   const handleExerciseSelection = (exerciseId: string) => {
     setSelectedExerciseIds((prev) => {
@@ -301,13 +314,24 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
     // Iniciar adição de todos os exercícios (SEM await - optimistic update acontece primeiro!)
     // As actions fazem optimistic update IMEDIATAMENTE, então UI já está atualizada
     // Enviar APENAS educationalId - backend busca todas as informações e calcula sets/reps/rest
-    const addPromises = exercisesToAdd.map((ex) =>
-      actions
-        .addWorkoutExercise(workoutId, {
-          educationalId: ex.id,
-          name: ex.name, // Obrigatório para validação da API
-        })
-        .catch((e: Error) => {
+    const addPromises = exercisesToAdd.map((ex) => {
+      const payload = {
+        educationalId: ex.id,
+        name: ex.name,
+      };
+      const addPromise = isGymMode
+        ? studentId
+          ? apiClient.post(
+              `/api/gym/students/${studentId}/workouts/exercises`,
+              {
+                workoutId,
+                ...payload,
+              },
+            )
+          : Promise.reject(new Error("Aluno não identificado"))
+        : actions.addWorkoutExercise(workoutId, payload);
+
+      return addPromise.catch((e: Error) => {
           // Tratar erros em background (não bloqueia UI)
           console.error("Erro ao adicionar exercício:", e);
           const err = e as {
@@ -328,8 +352,8 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
           } else {
             toast.error(errorMessage);
           }
-        }),
-    );
+        });
+    });
 
     // Toast apenas para feedback - UI já atualizou via optimistic update
     toast.success(
@@ -337,6 +361,12 @@ function ExerciseSearchSimple({ workoutId, onClose }: ExerciseSearchProps) {
         exercisesToAdd.length > 1 ? "s" : ""
       } adicionado${exercisesToAdd.length > 1 ? "s" : ""}`,
     );
+
+    if (isGymMode) {
+      Promise.allSettled(addPromises).finally(() => {
+        onPlanUpdated?.();
+      });
+    }
 
     // Limpar seleções
     setSelectedExerciseIds([]);

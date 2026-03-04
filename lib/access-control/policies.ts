@@ -21,9 +21,18 @@ const STUDENT_POLICIES: PlanPolicy<StudentPlan> = {
 };
 
 const GYM_POLICIES: PlanPolicy<GymPlan> = {
-  BASIC: [],
-  PREMIUM: [Features.ADVANCED_REPORTS],
-  ENTERPRISE: [Features.ADVANCED_REPORTS, Features.ASSIGN_PERSONAL],
+  BASIC: [Features.USE_AI_WORKOUT, Features.USE_AI_NUTRITION],
+  PREMIUM: [
+    Features.USE_AI_WORKOUT,
+    Features.USE_AI_NUTRITION,
+    Features.ADVANCED_REPORTS,
+  ],
+  ENTERPRISE: [
+    Features.USE_AI_WORKOUT,
+    Features.USE_AI_NUTRITION,
+    Features.ADVANCED_REPORTS,
+    Features.ASSIGN_PERSONAL,
+  ],
 };
 
 const PERSONAL_POLICIES: PlanPolicy<PersonalPlan> = {

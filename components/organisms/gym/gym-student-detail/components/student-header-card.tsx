@@ -23,6 +23,8 @@ export interface StudentHeaderCardProps {
   membershipStatus: "active" | "inactive" | "suspended" | "canceled";
   isUpdatingStatus: boolean;
   onMembershipAction: (action: "suspended" | "canceled" | "active") => void;
+  onAssignWorkout?: () => void;
+  onAssignDiet?: () => void;
 }
 
 export function StudentHeaderCard({
@@ -30,6 +32,8 @@ export function StudentHeaderCard({
   membershipStatus,
   isUpdatingStatus,
   onMembershipAction,
+  onAssignWorkout,
+  onAssignDiet,
 }: StudentHeaderCardProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -86,6 +90,7 @@ export function StudentHeaderCard({
               size="sm"
               variant="outline"
               className="flex-1 sm:flex-initial"
+              onClick={onAssignWorkout}
             >
               <Dumbbell className="h-4 w-4" />
               Atribuir Treino
@@ -94,6 +99,7 @@ export function StudentHeaderCard({
               size="sm"
               variant="outline"
               className="flex-1 sm:flex-initial"
+              onClick={onAssignDiet}
             >
               <Apple className="h-4 w-4" />
               Atribuir Dieta

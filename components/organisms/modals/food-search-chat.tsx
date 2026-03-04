@@ -26,6 +26,16 @@ interface FoodSearchChatProps {
   onClose: () => void;
   selectedMealId?: string | null;
   meals?: Meal[];
+  chatStreamUrl?: string;
+  onApplyNutrition?: (data: {
+    meals: Meal[];
+    totals: {
+      totalCalories: number;
+      totalProtein: number;
+      totalCarbs: number;
+      totalFats: number;
+    };
+  }) => Promise<void> | void;
 }
 
 interface ChatMessage {
@@ -61,9 +71,12 @@ export function FoodSearchChat({
   onClose,
   selectedMealId,
   meals: initialMeals = [],
+  chatStreamUrl = "/api/nutrition/chat-stream",
+  onApplyNutrition,
 }: FoodSearchChatProps) {
   // Buscar meals atualizados do store para ter dados sempre atualizados
-  const storeMeals = useStudent("dailyNutrition")?.meals || [];
+  const storeMeals =
+    (useStudent("dailyNutrition") as { meals?: Meal[] } | null)?.meals || [];
   const meals = storeMeals.length > 0 ? storeMeals : initialMeals;
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -252,7 +265,7 @@ export function FoodSearchChat({
           : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
       const token = getAuthToken();
 
-      const response = await fetch(`${API_BASE}/api/nutrition/chat-stream`, {
+      const response = await fetch(`${API_BASE}${chatStreamUrl}`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -638,18 +651,22 @@ export function FoodSearchChat({
         ),
       };
 
-      // Atualizar store UMA ÚNICA VEZ com tudo
-      const { updateNutrition } = useStudentUnifiedStore.getState();
-      console.log("[FoodSearchChat] Atualizando store com", {
-        totalMeals: allMeals.length,
-        newMeals: newMeals.length,
-        foodsAdded: Object.values(foodsToAddByMealType).flat().length,
-      });
+      if (onApplyNutrition) {
+        await onApplyNutrition({ meals: allMeals, totals });
+      } else {
+        // Atualizar store UMA ÚNICA VEZ com tudo
+        const { updateNutrition } = useStudentUnifiedStore.getState();
+        console.log("[FoodSearchChat] Atualizando store com", {
+          totalMeals: allMeals.length,
+          newMeals: newMeals.length,
+          foodsAdded: Object.values(foodsToAddByMealType).flat().length,
+        });
 
-      await updateNutrition({
-        meals: allMeals,
-        ...totals,
-      });
+        await updateNutrition({
+          meals: allMeals,
+          ...totals,
+        });
+      }
 
       console.log(
         "[FoodSearchChat] ✅ Refeições e alimentos adicionados com sucesso, fechando modal",
