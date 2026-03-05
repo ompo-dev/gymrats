@@ -428,6 +428,33 @@ function StudentHomeContent() {
     setProfileRefreshKey((k) => k + 1);
   };
 
+  const handleCancelPersonalAssignment = async (assignmentId: string) => {
+    try {
+      await apiClient.post(
+        `/api/students/personals/assignments/${assignmentId}/cancel`,
+        {},
+      );
+      toast({
+        title: "Desvinculado",
+        description: "Você foi desvinculado deste personal.",
+      });
+      setProfileRefreshKey((k) => k + 1);
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : err instanceof Error
+            ? err.message
+            : "Erro ao desvincular";
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: String(msg),
+      });
+    }
+  };
+
   const handlePurchaseDayPass = (gymId: string) => {
     const gym = currentGymLocations.find((g: GymLocation) => g.id === gymId);
     if (!gym || !gym.plans?.daily || gym.plans.daily <= 0) return;
@@ -665,6 +692,8 @@ function StudentHomeContent() {
               setPreSelectedPlan(null);
               setPreSelectedCoupon(null);
             }}
+            onCancelAssignment={handleCancelPersonalAssignment}
+            profileRefreshKey={profileRefreshKey}
             onSubscribe={handleSubscribePersonal}
             preSelectedPlan={preSelectedPlan}
             preSelectedCoupon={preSelectedCoupon}
@@ -672,7 +701,6 @@ function StudentHomeContent() {
         ) : (
           <PersonalMapWithLeaflet
             onViewPersonal={(id) => setPersonalId(id)}
-            onViewPersonalProfile={handleViewPersonalProfile}
           />
         ))}
 
@@ -688,6 +716,11 @@ function StudentHomeContent() {
             onJoinPlan={handleJoinGym}
             onChangePlan={handleChangePlan}
             onCancelMembership={handleCancelMembership}
+            onViewPersonal={(id) => {
+              setTab("personals");
+              setPersonalId(id);
+              setGymId(null);
+            }}
             profileRefreshKey={profileRefreshKey}
             preSelectedPlan={preSelectedPlan}
             preSelectedCoupon={preSelectedCoupon}

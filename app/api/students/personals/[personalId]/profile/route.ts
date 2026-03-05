@@ -32,7 +32,7 @@ export const GET = createSafeHandler(
           },
           studentAssignments: {
             where: { studentId, status: "active" },
-            select: { id: true },
+            select: { id: true, status: true },
           },
         },
       }),
@@ -65,6 +65,9 @@ export const GET = createSafeHandler(
       };
     });
 
+    const assignment = personal.studentAssignments[0];
+    const isSubscribed = !!assignment;
+
     return NextResponse.json({
       id: personal.id,
       name: personal.name,
@@ -78,7 +81,10 @@ export const GET = createSafeHandler(
         address: a.gym.address,
       })),
       plans,
-      isSubscribed: personal.studentAssignments.length > 0,
+      isSubscribed,
+      myAssignment: isSubscribed
+        ? { id: assignment.id, status: assignment.status }
+        : null,
       studentsCount,
     });
   },

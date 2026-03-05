@@ -6,7 +6,7 @@ import {
   Dumbbell,
   MapPin,
   Monitor,
-  Phone,
+  UserMinus,
   Users,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -33,12 +33,15 @@ interface PersonalProfileData {
     benefits?: string[];
   }[];
   isSubscribed: boolean;
+  myAssignment?: { id: string; status: string } | null;
   studentsCount?: number;
 }
 
 interface PersonalProfileViewProps {
   personalId: string;
   onBack: () => void;
+  onCancelAssignment?: (assignmentId: string) => void | Promise<void>;
+  profileRefreshKey?: number;
   onSubscribe: (
     personalId: string,
     planId: string,
@@ -61,6 +64,8 @@ interface PersonalProfileViewProps {
 export function PersonalProfileView({
   personalId,
   onBack,
+  onCancelAssignment,
+  profileRefreshKey,
   onSubscribe,
   preSelectedPlan,
   preSelectedCoupon,
@@ -95,7 +100,7 @@ export function PersonalProfileView({
     return () => {
       cancelled = true;
     };
-  }, [personalId]);
+  }, [personalId, profileRefreshKey]);
 
   const handleSubscribe = useCallback(
     async (planId: string, couponId?: string | null) => {
@@ -270,6 +275,32 @@ export function PersonalProfileView({
           </div>
         </DuoCard.Root>
       )}
+
+      {profile.isSubscribed &&
+        profile.myAssignment &&
+        onCancelAssignment && (
+          <DuoCard.Root variant="default" padding="md">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-duo-fg">
+                  Você está vinculado a este personal
+                </p>
+                <p className="text-sm text-duo-fg-muted">Vínculo ativo</p>
+              </div>
+              <DuoButton
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  onCancelAssignment(profile.myAssignment!.id)
+                }
+                className="gap-2 border-duo-red text-duo-red hover:bg-duo-red/10"
+              >
+                <UserMinus className="h-4 w-4" />
+                Desvincular
+              </DuoButton>
+            </div>
+          </DuoCard.Root>
+        )}
 
       <DuoCard.Root variant="default" padding="md">
         <DuoCard.Header>

@@ -31,6 +31,14 @@ export const GET = createSafeHandler(
             benefits: true,
           },
         },
+        personalAffiliations: {
+          where: { status: "active" },
+          include: {
+            personal: {
+              select: { id: true, name: true, avatar: true, isActive: true },
+            },
+          },
+        },
       },
     });
 
@@ -88,6 +96,14 @@ export const GET = createSafeHandler(
       }
     }
 
+    const personals = gym.personalAffiliations
+      .filter((a) => a.personal?.isActive !== false)
+      .map((a) => ({
+        id: a.personal!.id,
+        name: a.personal!.name,
+        avatar: a.personal!.avatar,
+      }));
+
     return NextResponse.json({
       id: gym.id,
       name: gym.name,
@@ -117,6 +133,7 @@ export const GET = createSafeHandler(
         duration: p.duration,
         benefits: p.benefits ? JSON.parse(p.benefits) : [],
       })),
+      personals,
       myMembership,
     });
   },

@@ -2,12 +2,16 @@
 
 import { Gift, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { createGymCoupon } from "@/app/gym/actions";
 import { createPersonalCoupon } from "@/app/personal/actions";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
+import {
+  formatCurrencyInput,
+  parseCurrencyBR,
+} from "@/lib/utils/currency";
 import { toValidDate } from "@/lib/utils/date-safe";
 
 interface FinancialCouponsTabProps {
@@ -28,8 +32,27 @@ export function FinancialCouponsTab({
     "PERCENTAGE",
   );
   const [discount, setDiscount] = useState("");
+
+  const handleDiscountChange = useCallback(
+    (value: string) => {
+      if (discountKind === "FIXED") {
+        setDiscount(formatCurrencyInput(value));
+      } else {
+        const num = Number.parseFloat(value.replace(",", "."));
+        if (value === "" || (!Number.isNaN(num) && num >= 0 && num <= 100)) {
+          setDiscount(value);
+        }
+      }
+    },
+    [discountKind],
+  );
   const [maxRedeems, setMaxRedeems] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const discountNum =
+    discountKind === "FIXED"
+      ? parseCurrencyBR(discount)
+      : Number.parseFloat(discount.replace(",", "."));
 
   const handleCreate = async () => {
     const codeTrim = code.trim().toUpperCase();
@@ -37,13 +60,12 @@ export function FinancialCouponsTab({
       toast({ variant: "destructive", title: "Informe o código do cupom" });
       return;
     }
-    const discountNum = Number.parseFloat(discount.replace(",", "."));
     if (Number.isNaN(discountNum) || discountNum <= 0) {
       toast({ variant: "destructive", title: "Informe o valor do desconto" });
       return;
     }
     if (discountKind === "PERCENTAGE" && discountNum > 100) {
-      toast({ variant: "destructive", title: "Porcentagem deve ser até 100" });
+      toast({ variant: "destructive", title: "Porcentagem deve ser até 100%" });
       return;
     }
     setIsSubmitting(true);
@@ -54,7 +76,7 @@ export function FinancialCouponsTab({
         code: codeTrim,
         notes: notes.trim() || codeTrim,
         discountKind,
-        discount: discountNum,
+        discount: discountKind === "FIXED" ? parseCurrencyBR(discount) : discountNum,
         maxRedeems: maxRedeems.trim()
           ? Math.max(-1, Math.floor(Number(maxRedeems)))
           : undefined,
@@ -198,21 +220,29 @@ export function FinancialCouponsTab({
                   { value: "FIXED", label: "Valor fixo (R$)" },
                 ]}
                 value={discountKind}
-                onChange={(v) =>
-                  setDiscountKind(v as "PERCENTAGE" | "FIXED")
-                }
+                onChange={(v) => {
+                  setDiscountKind(v as "PERCENTAGE" | "FIXED");
+                  setDiscount("");
+                }}
               />
               <DuoInput.Simple
                 label={
                   discountKind === "PERCENTAGE"
-                    ? "Desconto (%)"
+                    ? "Desconto (%) - máx. 100"
                     : "Desconto (R$)"
                 }
-                type="text"
-                inputMode="decimal"
-                placeholder={discountKind === "PERCENTAGE" ? "20" : "10,00"}
+                type={discountKind === "PERCENTAGE" ? "number" : "text"}
+                inputMode={discountKind === "FIXED" ? "decimal" : "numeric"}
+                placeholder={discountKind === "PERCENTAGE" ? "20" : "R$ 0,00"}
                 value={discount}
-                onChange={(e) => setDiscount(e.target.value)}
+                onChange={(e) =>
+                  handleDiscountChange(e.target.value)
+                }
+                {...(discountKind === "PERCENTAGE" && {
+                  min: 0,
+                  max: 100,
+                  step: 0.01,
+                } as React.InputHTMLAttributes<HTMLInputElement>)}
               />
               <DuoInput.Simple
                 label="Máximo de usos (vazio = ilimitado)"

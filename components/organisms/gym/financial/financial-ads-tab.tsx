@@ -554,7 +554,7 @@ export function FinancialAdsTab({
 
                   <div>
                     <label className="text-sm font-bold text-duo-text mb-1 block">
-                      Cor Primária
+                      Cor Primária (opcional)
                     </label>
                     <div className="flex gap-2">
                       <input

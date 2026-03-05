@@ -5,6 +5,7 @@ import {
   Check,
   Clock,
   CreditCard,
+  ChevronRight,
   Dumbbell,
   MapPin,
   Phone,
@@ -12,6 +13,7 @@ import {
   UserMinus,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
@@ -47,6 +49,7 @@ interface GymProfileData {
     status: string;
     planId: string | null;
   } | null;
+  personals?: Array<{ id: string; name: string; avatar: string | null }>;
 }
 
 interface GymProfileViewProps {
@@ -55,6 +58,7 @@ interface GymProfileViewProps {
   onJoinPlan?: (gymId: string, planId: string, couponId?: string) => void;
   onChangePlan?: (membershipId: string, planId: string) => void;
   onCancelMembership?: (membershipId: string) => void | Promise<void>;
+  onViewPersonal?: (personalId: string) => void;
   profileRefreshKey?: number;
   preSelectedPlan?: string | null;
   preSelectedCoupon?: string | null;
@@ -68,6 +72,7 @@ export function GymProfileView({
   onJoinPlan,
   onChangePlan,
   onCancelMembership,
+  onViewPersonal,
   profileRefreshKey,
   preSelectedPlan,
   preSelectedCoupon,
@@ -316,6 +321,49 @@ export function GymProfileView({
           </div>
         </DuoCard.Root>
       )}
+
+      {profile.personals &&
+        profile.personals.length > 0 &&
+        variant === "student" &&
+        onViewPersonal && (
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
+              <div className="flex items-center gap-2">
+                <Users
+                  className="h-5 w-5 shrink-0 text-duo-secondary"
+                  aria-hidden
+                />
+                <h2 className="font-bold text-duo-fg">Personais</h2>
+              </div>
+            </DuoCard.Header>
+            <div className="space-y-3">
+              {profile.personals.map((p) => (
+                <DuoCard.Root
+                  key={p.id}
+                  variant="default"
+                  size="default"
+                  onClick={() => onViewPersonal(p.id)}
+                  className="cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
+                        <Image
+                          src={p.avatar || "/placeholder.svg"}
+                          alt={p.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <p className="font-bold text-duo-text">{p.name}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-duo-gray-dark" />
+                  </div>
+                </DuoCard.Root>
+              ))}
+            </div>
+          </DuoCard.Root>
+        )}
 
       {profile.myMembership &&
         (profile.myMembership.status === "active" ||

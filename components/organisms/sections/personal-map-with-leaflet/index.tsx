@@ -7,7 +7,6 @@ import {
   MapPin,
   Monitor,
   Navigation,
-  Star,
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -39,11 +38,6 @@ const PersonalMapContainerComponent = dynamic(
 
 interface PersonalMapWithLeafletProps {
   onViewPersonal: (personalId: string) => void;
-  onViewPersonalProfile?: (
-    personalId: string,
-    planId?: string,
-    couponId?: string,
-  ) => void;
 }
 
 const FILTER_OPTIONS = [
@@ -55,7 +49,6 @@ const FILTER_OPTIONS = [
 
 export function PersonalMapWithLeaflet({
   onViewPersonal,
-  onViewPersonalProfile,
 }: PersonalMapWithLeafletProps) {
   const { position, requestPermission } = useUserGeolocation();
   const {
@@ -211,83 +204,22 @@ export function PersonalMapWithLeaflet({
             </div>
           ) : (
             <div className="space-y-3">
-              {sortedPersonals.map((p) => {
-                const hasActiveAd = p.activeCampaigns && p.activeCampaigns.length > 0;
-                const activeAd = hasActiveAd ? p.activeCampaigns![0] : null;
-
-                if (hasActiveAd && activeAd) {
-                  return (
-                    <motion.div
-                      key={p.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1, duration: 0.4 }}
-                    >
-                      <div
-                        className="border-2 rounded-2xl p-4 overflow-hidden relative group bg-duo-bg shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
-                        style={{ borderColor: activeAd.primaryColor }}
-                        onClick={() => {
-                          if (
-                            activeAd.linkedPlanId &&
-                            onViewPersonalProfile
-                          ) {
-                            onViewPersonalProfile(
-                              p.id,
-                              activeAd.linkedPlanId,
-                              activeAd.linkedCouponId ?? undefined,
-                            );
-                          } else {
-                            onViewPersonal(p.id);
-                          }
-                        }}
-                      >
-                        <div
-                          className="absolute top-0 left-0 w-full h-1"
-                          style={{ backgroundColor: activeAd.primaryColor }}
-                        />
-                        <div className="flex justify-between mt-1 mb-2 items-center">
-                          <span className="text-[10px] uppercase font-bold text-duo-text bg-duo-gray/20 px-2 py-0.5 rounded-md border border-duo-border flex items-center gap-1">
-                            <Star className="w-3 h-3 fill-duo-text" /> Patrocinado
-                          </span>
-                          <span className="text-xs font-bold text-duo-gray-dark flex items-center gap-1">
-                            <MapPin className="w-3 h-3" /> {p.name}
-                          </span>
-                        </div>
-                        <h5
-                          className="font-bold text-lg"
-                          style={{ color: activeAd.primaryColor }}
-                        >
-                          {activeAd.title}
-                        </h5>
-                        <p className="text-sm text-duo-text mt-1">
-                          {activeAd.description}
-                        </p>
-                        <div className="mt-4 pt-3 border-t border-duo-border flex justify-end">
-                          <span className="text-xs font-bold text-duo-gray-dark flex items-center gap-1">
-                            Ver perfil <ChevronRight className="w-4 h-4" />
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                }
-
-                return (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.4 }}
+              {sortedPersonals.map((p) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.4 }}
+                >
+                  <DuoCard.Root
+                    variant="default"
+                    size="default"
+                    onClick={() => onViewPersonal(p.id)}
+                    className={cn(
+                      "cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]",
+                      selectedPersonal?.id === p.id && "ring-2 ring-duo-primary",
+                    )}
                   >
-                    <DuoCard.Root
-                      variant="default"
-                      size="default"
-                      onClick={() => onViewPersonal(p.id)}
-                      className={cn(
-                        "cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]",
-                        selectedPersonal?.id === p.id && "ring-2 ring-duo-primary",
-                      )}
-                    >
                       <div className="flex items-start gap-3">
                         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
                           <Image
@@ -342,8 +274,7 @@ export function PersonalMapWithLeaflet({
                       </div>
                     </DuoCard.Root>
                   </motion.div>
-                );
-              })}
+                ))}
             </div>
           )}
         </DuoCard.Root>
