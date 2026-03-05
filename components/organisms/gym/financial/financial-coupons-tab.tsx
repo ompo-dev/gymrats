@@ -4,6 +4,7 @@ import { Gift, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createGymCoupon } from "@/app/gym/actions";
+import { createPersonalCoupon } from "@/app/personal/actions";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
@@ -11,10 +12,12 @@ import { toValidDate } from "@/lib/utils/date-safe";
 
 interface FinancialCouponsTabProps {
   coupons?: Coupon[];
+  variant?: "gym" | "personal";
 }
 
 export function FinancialCouponsTab({
   coupons = [],
+  variant = "gym",
 }: FinancialCouponsTabProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -45,7 +48,9 @@ export function FinancialCouponsTab({
     }
     setIsSubmitting(true);
     try {
-      const result = await createGymCoupon({
+      const createFn =
+        variant === "personal" ? createPersonalCoupon : createGymCoupon;
+      const result = await createFn({
         code: codeTrim,
         notes: notes.trim() || codeTrim,
         discountKind,

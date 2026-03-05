@@ -15,6 +15,7 @@ export type PersonalActions = Pick<
   | "updateProfile"
   | "assignStudent"
   | "removeStudent"
+  | "createExpense"
   | "createPersonalSubscription"
   | "cancelPersonalSubscription"
   | "hydrateInitial"

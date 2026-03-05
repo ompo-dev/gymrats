@@ -52,6 +52,9 @@ export function usePersonal<T extends PersonalSelector>(
   const removeStudent = usePersonalUnifiedStore(
     (state) => state.removeStudent,
   );
+  const createExpense = usePersonalUnifiedStore(
+    (state) => state.createExpense,
+  );
   const createPersonalSubscription = usePersonalUnifiedStore(
     (state) => state.createPersonalSubscription,
   );
@@ -70,6 +73,7 @@ export function usePersonal<T extends PersonalSelector>(
         updateProfile,
         assignStudent,
         removeStudent,
+        createExpense,
         createPersonalSubscription,
         cancelPersonalSubscription,
         hydrateInitial,
@@ -95,6 +99,7 @@ export function usePersonal<T extends PersonalSelector>(
         updateProfile,
         assignStudent,
         removeStudent,
+        createExpense,
         createPersonalSubscription,
         cancelPersonalSubscription,
         hydrateInitial,

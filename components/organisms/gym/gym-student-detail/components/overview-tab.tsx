@@ -1,6 +1,6 @@
 "use client";
 
-import { DollarSign, Dumbbell, Target, Users } from "lucide-react";
+import { DollarSign, Dumbbell, Target, UserPlus, Users } from "lucide-react";
 import { DuoCard } from "@/components/duo";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import type { StudentData } from "@/lib/types";
@@ -77,6 +77,38 @@ export function OverviewTab({ student }: OverviewTabProps) {
                 </span>
               </div>
             </DuoCard.Root>
+          </div>
+        </DuoCard.Root>
+      )}
+      {(student.assignedPersonals?.length ?? 0) > 0 && (
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <UserPlus
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-[var(--duo-fg)]">
+                Personais Atribuídos
+              </h2>
+            </div>
+          </DuoCard.Header>
+          <div className="flex flex-wrap gap-2">
+            {student.assignedPersonals?.map((p) => (
+              <span
+                key={p.id}
+                className="inline-flex items-center gap-1.5 rounded-full bg-duo-purple/15 px-3 py-1.5 text-sm font-bold text-duo-purple"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                {p.name}
+                {p.gym && (
+                  <span className="text-xs opacity-80">
+                    (via {p.gym.name})
+                  </span>
+                )}
+              </span>
+            ))}
           </div>
         </DuoCard.Root>
       )}

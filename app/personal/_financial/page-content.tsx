@@ -141,11 +141,11 @@ export function PersonalFinancialPageContent({
       )}
 
       {viewMode === "coupons" && (
-        <FinancialCouponsTab coupons={coupons} />
+        <FinancialCouponsTab coupons={coupons} variant="personal" />
       )}
 
       {viewMode === "expenses" && (
-        <FinancialExpensesTab expenses={expenses} />
+        <FinancialExpensesTab expenses={expenses} variant="personal" />
       )}
 
       {viewMode === "subscription" && (
@@ -157,6 +157,7 @@ export function PersonalFinancialPageContent({
           campaigns={campaigns}
           coupons={coupons}
           plans={plans}
+          variant="personal"
         />
       )}
     </div>

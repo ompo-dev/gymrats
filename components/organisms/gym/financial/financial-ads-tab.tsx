@@ -28,6 +28,7 @@ interface FinancialAdsTabProps {
   campaigns?: BoostCampaign[];
   coupons?: Coupon[];
   plans?: MembershipPlan[];
+  variant?: "gym" | "personal";
 }
 
 interface PixModalState {
@@ -97,6 +98,7 @@ export function FinancialAdsTab({
   campaigns = [],
   coupons = [],
   plans = [],
+  variant = "gym",
 }: FinancialAdsTabProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -244,10 +246,12 @@ export function FinancialAdsTab({
             />
             <h2 className="font-bold text-duo-fg">Anúncios</h2>
           </div>
-          <DuoButton size="sm" onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Novo anúncio
-          </DuoButton>
+          {variant === "gym" && (
+            <DuoButton size="sm" onClick={() => setModalOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Novo anúncio
+            </DuoButton>
+          )}
         </DuoCard.Header>
 
         <div className="space-y-4">

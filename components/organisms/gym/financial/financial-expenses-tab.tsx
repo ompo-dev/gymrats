@@ -9,10 +9,12 @@ import { AddExpenseModal } from "./add-expense-modal";
 
 interface FinancialExpensesTabProps {
   expenses?: Expense[];
+  variant?: "gym" | "personal";
 }
 
 export function FinancialExpensesTab({
   expenses = [],
+  variant = "gym",
 }: FinancialExpensesTabProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const list = Array.isArray(expenses) ? expenses : [];
@@ -91,6 +93,7 @@ export function FinancialExpensesTab({
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={() => setIsAddModalOpen(false)}
+        variant={variant}
       />
     </>
   );

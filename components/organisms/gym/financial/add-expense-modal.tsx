@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 
 const EXPENSE_TYPES = [
   { value: "maintenance", label: "Manutenção" },
@@ -29,14 +30,19 @@ interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  variant?: "gym" | "personal";
 }
 
 export function AddExpenseModal({
   isOpen,
   onClose,
   onSuccess,
+  variant = "gym",
 }: AddExpenseModalProps) {
-  const { actions, loaders } = useGym("actions", "loaders");
+  const gymData = useGym("actions", "loaders");
+  const personalData = usePersonal("actions", "loaders");
+  const { actions, loaders } =
+    variant === "personal" ? personalData : gymData;
   const [form, setForm] = useState({
     type: "other" as (typeof EXPENSE_TYPES)[number]["value"],
     description: "",
@@ -102,7 +108,9 @@ export function AddExpenseModal({
             Nova Despesa
           </DialogTitle>
           <DialogDescription>
-            Registre uma despesa para manter o controle financeiro da academia.
+            {variant === "personal"
+              ? "Registre uma despesa para manter o controle financeiro."
+              : "Registre uma despesa para manter o controle financeiro da academia."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

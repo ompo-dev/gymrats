@@ -618,6 +618,12 @@ export interface StudentData {
   attendanceRate: number;
   favoriteEquipment: string[];
   assignedTrainer?: string;
+  assignedPersonals?: {
+    id: string;
+    name: string;
+    email?: string;
+    gym?: { id: string; name: string };
+  }[];
   notes?: string;
   gymMembership?: StudentGymMembership;
   payments?: StudentPayment[];

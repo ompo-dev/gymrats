@@ -1,5 +1,159 @@
 import { db } from "@/lib/db";
-import type { StudentData } from "@/lib/types";
+import type {
+  StudentData,
+  UserProfile,
+  UserProgress,
+  ExerciseLog,
+  MuscleGroup,
+  WorkoutHistory,
+} from "@/lib/types";
+
+const EXERCISE_DIFFICULTY = [
+  "muito-facil",
+  "facil",
+  "ideal",
+  "dificil",
+  "muito-dificil",
+] as const;
+type ExerciseDifficulty = (typeof EXERCISE_DIFFICULTY)[number];
+
+function toExerciseDifficulty(v: string | null | undefined): ExerciseDifficulty {
+  if (v && EXERCISE_DIFFICULTY.includes(v as ExerciseDifficulty))
+    return v as ExerciseDifficulty;
+  return "ideal";
+}
+
+function toMuscleGroups(arr: unknown): MuscleGroup[] {
+  const valid: MuscleGroup[] = [
+    "peito",
+    "costas",
+    "pernas",
+    "ombros",
+    "bracos",
+    "core",
+    "gluteos",
+    "cardio",
+    "funcional",
+  ];
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((x): x is MuscleGroup =>
+    typeof x === "string" && valid.includes(x as MuscleGroup),
+  );
+}
+
+const VALID_GOALS = [
+  "perder-peso",
+  "ganhar-massa",
+  "definir",
+  "saude",
+  "forca",
+  "resistencia",
+] as const;
+type GoalType = (typeof VALID_GOALS)[number];
+
+function toGoals(arr: unknown): UserProfile["goals"] {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter((x): x is GoalType =>
+    typeof x === "string" && VALID_GOALS.includes(x as GoalType),
+  );
+}
+
+const VALID_FEEDBACK = ["excelente", "bom", "regular", "ruim"] as const;
+type FeedbackType = (typeof VALID_FEEDBACK)[number];
+
+function toOverallFeedback(v: string | null | undefined): FeedbackType | undefined {
+  if (!v) return undefined;
+  if (VALID_FEEDBACK.includes(v as FeedbackType)) return v as FeedbackType;
+  return undefined;
+}
+
+function buildUserProfile(
+  student: { id: string; user?: { name: string | null } | null; age: number | null; gender: string | null },
+  profile: {
+    height?: number | null;
+    weight?: number | null;
+    fitnessLevel?: string | null;
+    weeklyWorkoutFrequency?: number | null;
+    targetCalories?: number | null;
+    targetProtein?: number | null;
+    targetCarbs?: number | null;
+    targetFats?: number | null;
+    availableEquipment?: string | null;
+  } | null,
+  goals: UserProfile["goals"],
+): UserProfile {
+  const availableEquipment: string[] = profile?.availableEquipment
+    ? (() => {
+        try {
+          const arr = JSON.parse(profile.availableEquipment);
+          return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === "string") : [];
+        } catch {
+          return [];
+        }
+      })()
+    : [];
+  const gender = (["male", "female", "non-binary", "prefer-not-to-say"].includes(
+    student.gender ?? "",
+  )
+    ? student.gender
+    : "prefer-not-to-say") as UserProfile["gender"];
+  return {
+    id: student.id,
+    name: student.user?.name ?? "",
+    age: student.age ?? 0,
+    gender,
+    height: profile?.height ?? 0,
+    weight: profile?.weight ?? 0,
+    fitnessLevel: (profile?.fitnessLevel ?? "iniciante") as UserProfile["fitnessLevel"],
+    weeklyWorkoutFrequency: profile?.weeklyWorkoutFrequency ?? 3,
+    workoutDuration: 45,
+    goals,
+    availableEquipment,
+    gymType: "academia-completa",
+    preferredWorkoutTime: "tarde",
+    preferredSets: 3,
+    preferredRepRange: "hipertrofia",
+    restTime: "medio",
+    targetCalories: profile?.targetCalories ?? 2000,
+    targetProtein: profile?.targetProtein ?? 150,
+    targetCarbs: profile?.targetCarbs ?? 250,
+    targetFats: profile?.targetFats ?? 65,
+  };
+}
+
+function buildUserProgress(
+  progress: {
+    currentLevel?: number;
+    totalXP?: number;
+    workoutsCompleted?: number;
+    currentStreak?: number;
+    longestStreak?: number;
+    xpToNextLevel?: number;
+    lastActivityDate?: Date | null;
+    dailyGoalXP?: number;
+    todayXP?: number;
+  } | null,
+): UserProgress {
+  const level = progress?.currentLevel ?? 1;
+  const totalXP = progress?.totalXP ?? 0;
+  const xpToNextLevel =
+    progress?.xpToNextLevel ?? Math.max(0, 100 * level - totalXP);
+  return {
+    currentStreak: progress?.currentStreak ?? 0,
+    longestStreak: progress?.longestStreak ?? progress?.currentStreak ?? 0,
+    totalXP,
+    currentLevel: level,
+    xpToNextLevel,
+    workoutsCompleted: progress?.workoutsCompleted ?? 0,
+    achievements: [],
+    lastActivityDate:
+      progress?.lastActivityDate?.toISOString().slice(0, 10) ??
+      new Date().toISOString().slice(0, 10),
+    dailyGoalXP: progress?.dailyGoalXP ?? 100,
+    weeklyXP: [0, 0, 0, 0, 0, 0, 0],
+    todayXP: progress?.todayXP ?? 0,
+  };
+}
 
 export class StudentPersonalService {
   static async searchStudentByEmail(personalId: string, email: string) {
@@ -425,8 +579,16 @@ export class StudentPersonalService {
     const { student } = assignment;
     const profile = student.profile;
     const progress = student.progress;
-    const goals: string[] = profile?.goals
-      ? (JSON.parse(profile.goals) as string[])
+    const goals: UserProfile["goals"] = profile?.goals
+      ? toGoals(
+          (() => {
+            try {
+              return JSON.parse(profile.goals);
+            } catch {
+              return [];
+            }
+          })(),
+        )
       : [];
     const weightHistoryList = student.weightHistory ?? [];
     const currentWeight = profile?.weight ?? 0;
@@ -449,6 +611,15 @@ export class StudentPersonalService {
       expectedMonthly > 0
         ? Math.min(100, Math.round((totalVisits / expectedMonthly) * 100))
         : 0;
+
+    const personalsAssignments =
+      await this.listPersonalsByStudent(student.id);
+    const assignedPersonals = personalsAssignments.map((a) => ({
+      id: a.personal.id,
+      name: a.personal.name,
+      email: a.personal.email ?? undefined,
+      gym: a.gym ? { id: a.gym.id, name: a.gym.name } : undefined,
+    }));
 
     const workoutHistory = (student.workouts ?? []).map((wh) => {
       const setsParsed = (ex: { sets: string }) => {
@@ -486,14 +657,22 @@ export class StudentPersonalService {
           sets: setsParsed(ex),
           notes: ex.notes ?? undefined,
           formCheckScore: ex.formCheckScore ?? undefined,
-          difficulty: ex.difficulty ?? "ideal",
-        })),
-        overallFeedback: wh.overallFeedback ?? undefined,
+          difficulty: toExerciseDifficulty(ex.difficulty),
+        })) as ExerciseLog[],
+        overallFeedback: toOverallFeedback(wh.overallFeedback ?? undefined),
         bodyPartsFatigued: wh.bodyPartsFatigued
-          ? (JSON.parse(wh.bodyPartsFatigued) as string[])
+          ? toMuscleGroups(
+              (() => {
+                try {
+                  return JSON.parse(wh.bodyPartsFatigued);
+                } catch {
+                  return [];
+                }
+              })(),
+            )
           : [],
       };
-    });
+    }) as WorkoutHistory[];
 
     const studentData: StudentData = {
       id: student.id,
@@ -508,59 +687,8 @@ export class StudentPersonalService {
       joinDate: assignment.createdAt,
       totalVisits,
       currentStreak: progress?.currentStreak ?? 0,
-      profile: profile
-        ? {
-            id: student.id,
-            name: student.user?.name ?? "",
-            height: profile.height ?? 0,
-            weight: profile.weight ?? 0,
-            fitnessLevel: profile.fitnessLevel ?? "iniciante",
-            goals,
-            weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency ?? 3,
-            targetCalories: profile.targetCalories ?? 2000,
-            targetProtein: profile.targetProtein ?? 150,
-            targetCarbs: profile.targetCarbs ?? 250,
-            targetFats: profile.targetFats ?? 65,
-          }
-        : {
-            id: student.id,
-            name: student.user?.name ?? "",
-            height: 0,
-            weight: 0,
-            fitnessLevel: "iniciante",
-            goals: [],
-            weeklyWorkoutFrequency: 3,
-            targetCalories: 2000,
-            targetProtein: 150,
-            targetCarbs: 250,
-            targetFats: 65,
-          },
-      progress: progress
-        ? {
-            currentLevel: progress.currentLevel,
-            totalXP: progress.totalXP,
-            workoutsCompleted: progress.workoutsCompleted,
-          }
-        : {
-            currentLevel: 1,
-            totalXP: 0,
-            workoutsCompleted: 0,
-          },
-      recentWorkouts: (student.workouts ?? []).slice(0, 5).map((wh) => ({
-        id: wh.id,
-        date: wh.date,
-        duration: wh.duration ?? 0,
-        exercises: wh.exercises.map((ex) => ({
-          name: ex.exerciseName,
-          sets: (() => {
-            try {
-              return JSON.parse(ex.sets);
-            } catch {
-              return [];
-            }
-          })(),
-        })),
-      })),
+      profile: buildUserProfile(student, profile, goals),
+      progress: buildUserProgress(progress),
       workoutHistory,
       weightHistory: weightHistoryList.map((wh) => ({
         date: wh.date,
@@ -570,7 +698,14 @@ export class StudentPersonalService {
       hasWeightLossGoal: goals.includes("perder-peso"),
       attendanceRate,
       favoriteEquipment: profile?.availableEquipment
-        ? (JSON.parse(profile.availableEquipment) as string[])
+        ? (() => {
+            try {
+              const arr = JSON.parse(profile.availableEquipment);
+              return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === "string") : [];
+            } catch {
+              return [];
+            }
+          })()
         : [],
       currentWeight,
       personalRecords: (student.records ?? []).map((r) => ({
@@ -597,6 +732,7 @@ export class StudentPersonalService {
             benefits: [],
           }
         : undefined,
+      assignedPersonals,
     };
 
     return studentData;

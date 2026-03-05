@@ -195,10 +195,57 @@ export async function getPersonalCoupons(): Promise<Coupon[]> {
   try {
     const { ctx, errorResponse } = await getPersonalContext();
     if (errorResponse || !ctx) return [];
-    return await PersonalFinancialService.getCoupons(ctx.personalId) as unknown as Coupon[];
+    return (await PersonalFinancialService.getCoupons(
+      ctx.personalId,
+    )) as unknown as Coupon[];
   } catch (error) {
     console.error("[getPersonalCoupons] Erro:", error);
     return [];
+  }
+}
+
+export async function createPersonalCoupon(data: {
+  code: string;
+  notes: string;
+  discountKind: "PERCENTAGE" | "FIXED";
+  discount: number;
+  maxRedeems?: number;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const code = data.code.trim().toUpperCase();
+    const discountType =
+      data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
+
+    const existing = await db.personalCoupon.findFirst({
+      where: { personalId: ctx.personalId, code },
+    });
+    if (existing)
+      return { success: false, error: "Cupom com esse código já existe" };
+
+    await db.personalCoupon.create({
+      data: {
+        personalId: ctx.personalId,
+        code,
+        notes: data.notes || code,
+        discountType,
+        discountValue: data.discount,
+        maxUses: data.maxRedeems ?? -1,
+        isActive: true,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[createPersonalCoupon] Erro:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Erro ao criar cupom",
+    };
   }
 }
 

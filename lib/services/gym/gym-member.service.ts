@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
 
 export class GymMemberService {
   /**
@@ -218,6 +219,15 @@ export class GymMemberService {
       : [];
     const favoriteEquipment = availableEquipment;
 
+    const personalsAssignments =
+      await StudentPersonalService.listPersonalsByStudent(student.id);
+    const assignedPersonals = personalsAssignments.map((a) => ({
+      id: a.personal.id,
+      name: a.personal.name,
+      email: a.personal.email ?? undefined,
+      gym: a.gym ? { id: a.gym.id, name: a.gym.name } : undefined,
+    }));
+
     const studentData = {
       id: student.id,
       name: student.user.name,
@@ -294,6 +304,7 @@ export class GymMemberService {
         autoRenew: membership.autoRenew,
         benefits: [],
       },
+      assignedPersonals,
     };
 
     return studentData;
