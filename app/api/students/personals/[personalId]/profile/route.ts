@@ -17,7 +17,7 @@ export const GET = createSafeHandler(
     const studentId = studentContext?.studentId ?? "";
 
     const [personal, studentsCount] = await Promise.all([
-      db.personal.findUnique({
+      (db.personal as any).findUnique({
         where: { id: personalId, isActive: true },
         include: {
           gymAffiliations: {
@@ -41,6 +41,21 @@ export const GET = createSafeHandler(
       }),
     ]);
 
+    // Buscar pagamento ativo para descobrir qual plano o aluno contratou
+    const activePaidPayment = studentId
+      ? await (db as any).personalStudentPayment.findFirst({
+          where: {
+            personalId,
+            studentId,
+            status: "paid",
+          },
+          include: {
+            plan: { select: { id: true, name: true, type: true, price: true, duration: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      : null;
+
     if (!personal) {
       return NextResponse.json(
         { error: "Personal não encontrado" },
@@ -48,7 +63,7 @@ export const GET = createSafeHandler(
       );
     }
 
-    const plans = personal.membershipPlans.map((p) => {
+    const plans = (personal as any).membershipPlans.map((p: any) => {
       let benefits: string[] = [];
       if (p.benefits) {
         try {
@@ -65,7 +80,7 @@ export const GET = createSafeHandler(
       };
     });
 
-    const assignment = personal.studentAssignments[0];
+    const assignment = (personal as any).studentAssignments[0];
     const isSubscribed = !!assignment;
 
     return NextResponse.json({
@@ -75,7 +90,7 @@ export const GET = createSafeHandler(
       bio: personal.bio,
       atendimentoPresencial: personal.atendimentoPresencial,
       atendimentoRemoto: personal.atendimentoRemoto,
-      gyms: personal.gymAffiliations.map((a) => ({
+      gyms: (personal as any).gymAffiliations.map((a: any) => ({
         id: a.gym.id,
         name: a.gym.name,
         address: a.gym.address,
@@ -83,7 +98,19 @@ export const GET = createSafeHandler(
       plans,
       isSubscribed,
       myAssignment: isSubscribed
-        ? { id: assignment.id, status: assignment.status }
+        ? {
+            id: assignment.id,
+            status: assignment.status,
+            activePlan: activePaidPayment?.plan
+              ? {
+                  id: activePaidPayment.plan.id,
+                  name: activePaidPayment.plan.name,
+                  type: activePaidPayment.plan.type,
+                  price: activePaidPayment.plan.price,
+                  duration: activePaidPayment.plan.duration,
+                }
+              : null,
+          }
         : null,
       studentsCount,
     });

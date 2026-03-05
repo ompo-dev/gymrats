@@ -40,6 +40,8 @@ export function PersonalStudentDetail({
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
+    handleRemoveAssignment,
+    isRemovingAssignment,
   } = usePersonalStudentDetail({
     studentId,
     assignment,
@@ -64,6 +66,8 @@ export function PersonalStudentDetail({
           assignment={assignment}
           onAssignWorkout={openWorkoutsEditor}
           onAssignDiet={openDietTab}
+          onRemoveAssignment={() => handleRemoveAssignment(studentId)}
+          isRemovingAssignment={isRemovingAssignment}
         />
       </SlideIn>
 

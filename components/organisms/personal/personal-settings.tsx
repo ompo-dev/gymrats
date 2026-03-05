@@ -111,6 +111,17 @@ export function PersonalSettingsPage({
     await onRefresh?.();
   };
 
+  const hasChanges =
+    name !== (profile?.name ?? "") ||
+    phone !== (profile?.phone ?? "") ||
+    bio !== (profile?.bio ?? "") ||
+    address !== (profile?.address ?? "") ||
+    cref !== (profile?.cref ?? "") ||
+    pixKeyType !== (profile?.pixKeyType ?? "") ||
+    pixKey !== (profile?.pixKey ?? "") ||
+    atendimentoPresencial !== (profile?.atendimentoPresencial ?? true) ||
+    atendimentoRemoto !== (profile?.atendimentoRemoto ?? true);
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
@@ -292,48 +303,68 @@ export function PersonalSettingsPage({
             </h3>
           </DuoCard.Header>
           <div className="space-y-3">
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={atendimentoPresencial}
-                onChange={(e) => setAtendimentoPresencial(e.target.checked)}
-                className="h-4 w-4 rounded border-duo-border text-duo-primary focus:ring-duo-primary"
-              />
-              <span className="text-sm font-medium text-duo-fg">
-                Atendimento presencial
-              </span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={atendimentoRemoto}
-                onChange={(e) => setAtendimentoRemoto(e.target.checked)}
-                className="h-4 w-4 rounded border-duo-border text-duo-primary focus:ring-duo-primary"
-              />
-              <span className="text-sm font-medium text-duo-fg">
-                Atendimento remoto
-              </span>
-            </label>
+            {[
+              {
+                id: "presencial",
+                label: "Atendimento presencial",
+                checked: atendimentoPresencial,
+                onChange: setAtendimentoPresencial,
+              },
+              {
+                id: "remoto",
+                label: "Atendimento remoto",
+                checked: atendimentoRemoto,
+                onChange: setAtendimentoRemoto,
+              },
+            ].map((item) => (
+              <div
+                key={item.id}
+                className={cn(
+                  "rounded-xl border-2 p-3 transition-all",
+                  item.checked
+                    ? "border-duo-secondary/40 bg-duo-secondary/5"
+                    : "border-duo-border bg-duo-bg-elevated/50",
+                )}
+              >
+                <label className="flex cursor-pointer items-center justify-between">
+                  <span className="text-sm font-bold text-duo-fg">
+                    {item.label}
+                  </span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={(e) => item.onChange(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
+                    <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </div>
+                </label>
+              </div>
+            ))}
           </div>
         </DuoCard.Root>
       </SlideIn>
 
-      <SlideIn delay={0.25}>
-        <DuoButton
-          onClick={onSave}
-          disabled={saving}
-          className="w-full"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            "Salvar perfil"
-          )}
-        </DuoButton>
-      </SlideIn>
+      {hasChanges && (
+        <SlideIn delay={0.25}>
+          <DuoButton
+            onClick={onSave}
+            disabled={saving}
+            className="w-full"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              "Salvar perfil"
+            )}
+          </DuoButton>
+        </SlideIn>
+      )}
 
       {saveError && (
         <SlideIn delay={0.3}>

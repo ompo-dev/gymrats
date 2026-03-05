@@ -1,6 +1,6 @@
 "use client";
 
-import { Apple, Dumbbell, Users } from "lucide-react";
+import { Apple, Dumbbell, Loader2, UserMinus, Users } from "lucide-react";
 import Image from "next/image";
 import { DuoButton, DuoCard } from "@/components/duo";
 import type { PersonalStudentAssignmentForDetail } from "../hooks/use-personal-student-detail";
@@ -10,12 +10,16 @@ export interface PersonalStudentHeaderCardProps {
   assignment: PersonalStudentAssignmentForDetail;
   onAssignWorkout?: () => void;
   onAssignDiet?: () => void;
+  onRemoveAssignment?: () => void;
+  isRemovingAssignment?: boolean;
 }
 
 export function PersonalStudentHeaderCard({
   assignment,
   onAssignWorkout,
   onAssignDiet,
+  onRemoveAssignment,
+  isRemovingAssignment,
 }: PersonalStudentHeaderCardProps) {
   const studentName = assignment.student?.user?.name ?? "Aluno";
   const studentEmail = assignment.student?.user?.email ?? "";
@@ -80,6 +84,22 @@ export function PersonalStudentHeaderCard({
               <Apple className="h-4 w-4" />
               Atribuir Dieta
             </DuoButton>
+            {onRemoveAssignment && (
+              <DuoButton
+                size="sm"
+                variant="danger"
+                className="flex-1 sm:flex-initial"
+                onClick={onRemoveAssignment}
+                disabled={isRemovingAssignment}
+              >
+                {isRemovingAssignment ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserMinus className="h-4 w-4" />
+                )}
+                Desvincular Aluno
+              </DuoButton>
+            )}
           </div>
         </div>
       </div>

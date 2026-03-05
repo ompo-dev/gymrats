@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePersonal } from "@/hooks/use-personal";
+import { useToast } from "@/hooks/use-toast";
 import type {
   DailyNutrition,
   WeeklyPlanData,
@@ -53,6 +55,9 @@ export function usePersonalStudentDetail({
   assignment,
   onBack,
 }: UsePersonalStudentDetailProps) {
+  const { actions, loaders } = usePersonal("actions", "loaders");
+  const { toast } = useToast();
+  const [isRemovingAssignment, setIsRemovingAssignment] = useState(false);
   const [activeTab, setActiveTab] =
     useState<PersonalStudentDetailTab>("overview");
   const [weeklyPlan, setWeeklyPlan] = useState<
@@ -148,6 +153,37 @@ export function usePersonalStudentDetail({
     setActiveTab("diet");
   }, []);
 
+  const handleRemoveAssignment = useCallback(
+    async (sId: string) => {
+      setIsRemovingAssignment(true);
+      try {
+        await actions.removeStudent(sId);
+        await loaders.loadSection("students");
+        toast({
+          title: "Vínculo removido",
+          description: "O aluno foi desvinculado com sucesso.",
+        });
+        onBack();
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { error?: string } } }).response
+                ?.data?.error
+            : err instanceof Error
+              ? err.message
+              : "Erro ao remover vínculo";
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: String(msg),
+        });
+      } finally {
+        setIsRemovingAssignment(false);
+      }
+    },
+    [actions, loaders, toast, onBack],
+  );
+
   return {
     assignment,
     activeTab,
@@ -164,5 +200,7 @@ export function usePersonalStudentDetail({
     fetchNutrition,
     onBack,
     tabOptions,
+    handleRemoveAssignment,
+    isRemovingAssignment,
   };
 }

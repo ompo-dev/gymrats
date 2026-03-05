@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, ChevronRight, Search, UserPlus, Users } from "lucide-react";
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
@@ -23,6 +24,20 @@ type SearchResult = {
   alreadyLinked: boolean;
 };
 
+type PersonalProfileForGym = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  bio: string | null;
+  atendimentoPresencial: boolean;
+  atendimentoRemoto: boolean;
+  email?: string;
+  phone?: string | null;
+  cref?: string | null;
+  gyms: { id: string; name: string; address?: string }[];
+  studentsCount?: number;
+};
+
 export function GymSettingsTeamCard() {
   const [personals, setPersonals] = useState<TeamPersonal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,6 +45,10 @@ export function GymSettingsTeamCard() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  const [viewPersonalId, setViewPersonalId] = useState<string | null>(null);
+  const [personalProfile, setPersonalProfile] =
+    useState<PersonalProfileForGym | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   const loadTeam = useCallback(async () => {
     setLoading(true);
@@ -68,6 +87,28 @@ export function GymSettingsTeamCard() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  const loadPersonalProfile = useCallback(async (personalId: string) => {
+    setLoadingProfile(true);
+    try {
+      const res = await apiClient.get<PersonalProfileForGym>(
+        `/api/gym/personals/${personalId}/profile`,
+      );
+      setPersonalProfile(res.data);
+    } catch {
+      setPersonalProfile(null);
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (viewPersonalId) {
+      loadPersonalProfile(viewPersonalId);
+    } else {
+      setPersonalProfile(null);
+    }
+  }, [viewPersonalId, loadPersonalProfile]);
+
   async function handleAddPersonal(personalId: string) {
     setError("");
     try {
@@ -76,7 +117,9 @@ export function GymSettingsTeamCard() {
       setSearchResults([]);
       await loadTeam();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao adicionar personal");
+      setError(
+        err instanceof Error ? err.message : "Erro ao adicionar personal",
+      );
     }
   }
 
@@ -88,8 +131,99 @@ export function GymSettingsTeamCard() {
       });
       await loadTeam();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao remover personal");
+      setError(
+        err instanceof Error ? err.message : "Erro ao remover personal",
+      );
     }
+  }
+
+  if (viewPersonalId) {
+    return (
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
+          <DuoButton
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewPersonalId(null)}
+            className="gap-1 font-bold"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </DuoButton>
+        </DuoCard.Header>
+
+        {loadingProfile ? (
+          <p className="py-8 text-center text-sm text-duo-fg-muted">
+            Carregando perfil...
+          </p>
+        ) : personalProfile ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-duo-border">
+                <Image
+                  src={personalProfile.avatar || "/placeholder.svg"}
+                  alt={personalProfile.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="font-bold text-duo-fg">{personalProfile.name}</h3>
+                {personalProfile.email && (
+                  <p className="text-xs text-duo-fg-muted">
+                    {personalProfile.email}
+                  </p>
+                )}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {personalProfile.atendimentoPresencial && (
+                    <span className="rounded-full bg-duo-blue/10 px-2 py-0.5 text-xs font-bold text-duo-blue">
+                      Presencial
+                    </span>
+                  )}
+                  {personalProfile.atendimentoRemoto && (
+                    <span className="rounded-full bg-duo-purple/10 px-2 py-0.5 text-xs font-bold text-duo-purple">
+                      Remoto
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {personalProfile.bio && (
+              <p className="text-sm text-duo-fg-muted">{personalProfile.bio}</p>
+            )}
+
+            {personalProfile.cref && (
+              <div className="rounded-lg border border-duo-border p-3">
+                <p className="text-xs text-duo-fg-muted">CREF</p>
+                <p className="text-sm font-semibold text-duo-fg">
+                  {personalProfile.cref}
+                </p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-duo-border p-3 text-center">
+                <p className="text-lg font-bold text-duo-fg">
+                  {personalProfile.studentsCount ?? 0}
+                </p>
+                <p className="text-xs text-duo-fg-muted">Alunos</p>
+              </div>
+              <div className="rounded-lg border border-duo-border p-3 text-center">
+                <p className="text-lg font-bold text-duo-fg">
+                  {personalProfile.gyms.length}
+                </p>
+                <p className="text-xs text-duo-fg-muted">Academias</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-duo-fg-muted">
+            Não foi possível carregar o perfil.
+          </p>
+        )}
+      </DuoCard.Root>
+    );
   }
 
   return (
@@ -126,7 +260,9 @@ export function GymSettingsTeamCard() {
                     disabled={p.alreadyLinked}
                     onClick={() => handleAddPersonal(p.id)}
                   >
-                    {p.alreadyLinked ? "Vinculado" : (
+                    {p.alreadyLinked ? (
+                      "Vinculado"
+                    ) : (
                       <>
                         <UserPlus className="mr-1 h-3 w-3" />
                         Vincular
@@ -156,27 +292,48 @@ export function GymSettingsTeamCard() {
             <p className="text-sm text-duo-fg-muted">Carregando equipe...</p>
           ) : null}
           {!loading && personals.length === 0 ? (
-            <p className="text-sm text-duo-fg-muted">Nenhum personal vinculado.</p>
+            <p className="text-sm text-duo-fg-muted">
+              Nenhum personal vinculado.
+            </p>
           ) : null}
           {personals.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between rounded-lg border border-duo-border p-3"
+              className="flex items-center justify-between rounded-lg border border-duo-border p-3 cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.99]"
+              onClick={() => setViewPersonalId(item.personal.id)}
             >
-              <div>
-                <p className="text-sm font-semibold text-duo-fg">
-                  {item.personal.name}
-                </p>
-                <p className="text-xs text-duo-fg-muted">{item.personal.email}</p>
+              <div className="flex items-center gap-3">
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-duo-border">
+                  <Image
+                    src={item.personal.avatar || "/placeholder.svg"}
+                    alt={item.personal.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-duo-fg">
+                    {item.personal.name}
+                  </p>
+                  <p className="text-xs text-duo-fg-muted">
+                    {item.personal.email}
+                  </p>
+                </div>
               </div>
-              <DuoButton
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={() => handleRemovePersonal(item.personal.id)}
-              >
-                Remover
-              </DuoButton>
+              <div className="flex items-center gap-2">
+                <DuoButton
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemovePersonal(item.personal.id);
+                  }}
+                >
+                  Remover
+                </DuoButton>
+                <ChevronRight className="h-4 w-4 text-duo-fg-muted" />
+              </div>
             </div>
           ))}
         </div>

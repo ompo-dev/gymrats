@@ -33,7 +33,17 @@ interface PersonalProfileData {
     benefits?: string[];
   }[];
   isSubscribed: boolean;
-  myAssignment?: { id: string; status: string } | null;
+  myAssignment?: {
+    id: string;
+    status: string;
+    activePlan?: {
+      id: string;
+      name: string;
+      type: string;
+      price: number;
+      duration: number;
+    } | null;
+  } | null;
   studentsCount?: number;
 }
 
@@ -285,7 +295,11 @@ export function PersonalProfileView({
                 <p className="font-bold text-duo-fg">
                   Você está vinculado a este personal
                 </p>
-                <p className="text-sm text-duo-fg-muted">Vínculo ativo</p>
+                <p className="text-sm text-duo-fg-muted">
+                  Vínculo ativo
+                  {profile.myAssignment.activePlan && (
+                    <> • Plano: <span className="font-semibold text-duo-fg">{profile.myAssignment.activePlan.name}</span> — R$ {profile.myAssignment.activePlan.price.toFixed(2)}</>                  )}
+                </p>
               </div>
               <DuoButton
                 variant="outline"
@@ -323,6 +337,8 @@ export function PersonalProfileView({
                 className={cn(
                   !profile.isSubscribed &&
                     "cursor-pointer transition-all hover:border-duo-blue",
+                  profile.myAssignment?.activePlan?.id === plan.id &&
+                    "border-duo-green ring-1 ring-duo-green/30",
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -336,6 +352,11 @@ export function PersonalProfileView({
                     <p className="text-lg font-bold text-duo-green">
                       R$ {plan.price.toFixed(2)}
                     </p>
+                    {profile.myAssignment?.activePlan?.id === plan.id && (
+                      <span className="mt-1 inline-flex items-center rounded-full border-2 border-duo-green bg-duo-green/10 px-3 py-1 text-xs font-bold text-duo-green">
+                        Plano ativo
+                      </span>
+                    )}
                     {!profile.isSubscribed && (
                       <DuoButton
                         size="sm"
