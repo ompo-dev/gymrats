@@ -70,7 +70,7 @@ export async function getUserInfoFromServer(): Promise<{
   try {
     const { apiClient } = await import("@/lib/api/client");
     const response = await apiClient.get<{
-      user: { role: "STUDENT" | "GYM" | "ADMIN" } | null;
+      user: { role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" } | null;
     }>("/api/auth/session");
 
     if (!response.data.user) {

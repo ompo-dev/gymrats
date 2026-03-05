@@ -59,11 +59,22 @@ export function GymStudentDetail({
     removeFoodFromMeal,
     handleToggleWaterGlass,
     handleMembershipAction,
+    handleAssignPersonal,
+    isAssigningPersonal,
     togglePaymentStatus,
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
   } = useGymStudentDetail({ student, payments, onBack });
+
+  const handleOpenAssignPersonal = () => {
+    const personalId = window.prompt("Informe o ID do personal para atribuição");
+    if (!personalId) return;
+    handleAssignPersonal(personalId).catch((error) => {
+      console.error("[GymStudentDetail] Erro ao atribuir personal:", error);
+      alert("Não foi possível atribuir o personal para este aluno.");
+    });
+  };
 
   if (!studentData) {
     return (
@@ -100,6 +111,8 @@ export function GymStudentDetail({
           onMembershipAction={handleMembershipAction}
           onAssignWorkout={openWorkoutsEditor}
           onAssignDiet={openDietTab}
+          onAssignPersonal={handleOpenAssignPersonal}
+          isAssigningPersonal={isAssigningPersonal}
         />
       </SlideIn>
 

@@ -1,23 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { updateRoleSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import { type UpdateRoleInput, updateRoleUseCase } from "@/lib/use-cases/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
     // Validar body com Zod
     const validation = await validateBody(request, updateRoleSchema);
     if (!validation.success) {
       return validation.response;
     }
 
+    const targetUserId =
+      auth.user.role === "ADMIN" ? validation.data.userId : auth.userId;
+
     const result = await updateRoleUseCase(
       {
         findUserById: (id) =>
           db.user.findUnique({
             where: { id },
-            include: { student: true, gyms: true },
+            include: { student: true, gyms: true, personal: true },
           }) as unknown as Promise<
             import("@/lib/use-cases/auth").UserSummary | null
           >,
@@ -28,9 +37,16 @@ export async function POST(request: NextRequest) {
         createStudent: (id) =>
           db.student.create({ data: { userId: id } }).then(() => undefined),
         findGymByUserId: (id) => db.gym.findFirst({ where: { userId: id } }),
+        findPersonalByUserId: (id) =>
+          db.personal.findUnique({ where: { userId: id } }),
         createGym: (data) => db.gym.create({ data }).then(() => undefined),
+        createPersonal: (data) =>
+          db.personal.create({ data }).then(() => undefined),
       },
-      validation.data as UpdateRoleInput,
+      {
+        ...(validation.data as UpdateRoleInput),
+        userId: targetUserId,
+      },
     );
 
     if (!result.ok) {

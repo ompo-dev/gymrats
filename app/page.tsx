@@ -21,7 +21,9 @@ export default function Home() {
       try {
         const { apiClient } = await import("@/lib/api/client");
         const response = await apiClient.get<{
-          user: { role: "PENDING" | "STUDENT" | "GYM" | "ADMIN" } | null;
+          user:
+            | { role: "PENDING" | "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" }
+            | null;
         }>("/api/auth/session");
 
         if (response.data.user) {
@@ -38,6 +40,9 @@ export default function Home() {
             return;
           } else if (role === "GYM") {
             router.push("/gym");
+            return;
+          } else if (role === "PERSONAL") {
+            router.push("/personal");
             return;
           }
         }

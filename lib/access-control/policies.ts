@@ -36,8 +36,8 @@ const GYM_POLICIES: PlanPolicy<GymPlan> = {
 };
 
 const PERSONAL_POLICIES: PlanPolicy<PersonalPlan> = {
-  COM_IA: [Features.USE_AI_WORKOUT],
-  SUPERIOR: [Features.USE_AI_WORKOUT, Features.USE_AI_NUTRITION],
+  STANDARD: [Features.USE_AI_WORKOUT],
+  PRO_AI: [Features.USE_AI_WORKOUT, Features.USE_AI_NUTRITION],
 };
 
 // Matriz Base
@@ -73,6 +73,6 @@ export const GymInheritedFeatures: Partial<Record<GymPlan, FeatureKey[]>> = {
 export const PersonalInheritedFeatures: Partial<
   Record<PersonalPlan, FeatureKey[]>
 > = {
-  COM_IA: [],
-  SUPERIOR: [],
+  STANDARD: [],
+  PRO_AI: [],
 };

@@ -7,12 +7,14 @@ interface AuthState {
   isAuthenticated: boolean;
   userProfile: UserProfile | null;
   userId: string | null;
-  userRole: "STUDENT" | "GYM" | "ADMIN" | null;
+  userRole: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" | null;
   isAdmin: boolean;
   setAuthenticated: (authenticated: boolean) => void;
   setUserProfile: (profile: UserProfile | null) => void;
   setUserId: (id: string | null) => void;
-  setUserRole: (role: "STUDENT" | "GYM" | "ADMIN" | null) => void;
+  setUserRole: (
+    role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" | null,
+  ) => void;
   setIsAdmin: (isAdmin: boolean) => void;
   logout: () => void;
 }

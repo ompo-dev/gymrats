@@ -11,7 +11,7 @@ export interface RegisterData {
   name: string;
   email: string;
   password: string;
-  userType?: "student" | "gym";
+  userType?: "student" | "gym" | "personal";
 }
 
 export interface AuthResponse {
@@ -19,7 +19,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     name: string;
-    role: "STUDENT" | "GYM" | "ADMIN";
+    role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
   };
   session: {
     id: string;
@@ -33,7 +33,10 @@ export const authApi = {
       // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-in",
-        credentials,
+        credentials as unknown as Record<
+          string,
+          string | number | boolean | object | null
+        >,
       );
       return response.data;
     } catch (error) {
@@ -49,7 +52,10 @@ export const authApi = {
       // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-up",
-        data,
+        data as unknown as Record<
+          string,
+          string | number | boolean | object | null
+        >,
       );
       return response.data;
     } catch (error) {
@@ -70,7 +76,7 @@ export const authApi = {
 
       // Também chamar endpoint de logout para compatibilidade
       await apiClient.post("/api/auth/sign-out");
-    } catch {
+    } catch (error) {
       // Se falhar, apenas limpar localStorage e cookies
       if (typeof window !== "undefined") {
         clearAuthToken();

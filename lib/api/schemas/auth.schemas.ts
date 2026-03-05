@@ -17,18 +17,20 @@ export const signInSchema = z.object({
 
 export const updateRoleSchema = z.object({
   userId: z.string().min(1, "userId é obrigatório"),
-  role: z.enum(["STUDENT", "GYM", "ADMIN"], {
-    errorMap: () => ({ message: "role deve ser STUDENT, GYM ou ADMIN" }),
+  role: z.enum(["STUDENT", "GYM", "PERSONAL", "ADMIN"], {
+    errorMap: () => ({
+      message: "role deve ser STUDENT, GYM, PERSONAL ou ADMIN",
+    }),
   }),
-  userType: z.enum(["student", "gym"], {
-    errorMap: () => ({ message: "userType deve ser student ou gym" }),
+  userType: z.enum(["student", "gym", "personal"], {
+    errorMap: () => ({ message: "userType deve ser student, gym ou personal" }),
   }),
 });
 
 export const updateUserRoleSchema = z.object({
   userId: z.string().min(1, "userId é obrigatório"),
-  role: z.enum(["STUDENT", "GYM"], {
-    errorMap: () => ({ message: "role deve ser STUDENT ou GYM" }),
+  role: z.enum(["STUDENT", "GYM", "PERSONAL"], {
+    errorMap: () => ({ message: "role deve ser STUDENT, GYM ou PERSONAL" }),
   }),
 });
 

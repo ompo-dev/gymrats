@@ -1,6 +1,7 @@
 import type { Gym, Student } from "@prisma/client";
 import { type NextRequest, NextResponse } from "next/server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { updateUserRoleSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import {
@@ -10,17 +11,24 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
     // Validar body com Zod
     const validation = await validateBody(request, updateUserRoleSchema);
     if (!validation.success) {
       return validation.response;
     }
 
-    const { userId, role } = validation.data;
+    const role = validation.data.role as "STUDENT" | "GYM" | "PERSONAL";
+    const userId =
+      auth.user.role === "ADMIN" ? validation.data.userId : auth.userId;
 
     const updatedUser = await db.user.update({
       where: { id: userId },
-      data: { role: role as "STUDENT" | "GYM" },
+      data: { role },
     });
 
     // Criar Student ou Gym se necessário e inicializar trial
@@ -65,6 +73,19 @@ export async function POST(request: NextRequest) {
       // Inicializar trial automaticamente para a academia
       if (gym) {
         await initializeGymTrial(gym.id);
+      }
+    } else if (role === "PERSONAL") {
+      const existingPersonal = await db.personal.findUnique({
+        where: { userId },
+      });
+      if (!existingPersonal) {
+        await db.personal.create({
+          data: {
+            userId,
+            name: updatedUser.name,
+            email: updatedUser.email,
+          },
+        });
       }
     }
 

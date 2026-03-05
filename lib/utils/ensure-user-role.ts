@@ -6,7 +6,7 @@
 import { db } from "@/lib/db";
 
 export type EnsureRoleResult =
-  | { ok: true; studentId?: string; gymId?: string }
+  | { ok: true; studentId?: string; gymId?: string; personalId?: string }
   | { ok: false; error: string };
 
 export async function ensureStudentRole(
@@ -68,6 +68,41 @@ export async function ensureGymRole(
     return { ok: true, gymId: gym.id };
   } catch (error) {
     console.error("[ensureGymRole] Erro:", error);
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Erro ao criar perfil",
+    };
+  }
+}
+
+export async function ensurePersonalRole(
+  userId: string,
+  userName: string,
+  userEmail: string,
+): Promise<EnsureRoleResult> {
+  try {
+    const updatedUser = await db.user.update({
+      where: { id: userId },
+      data: { role: "PERSONAL" },
+    });
+
+    let personal = await db.personal.findUnique({
+      where: { userId },
+    });
+
+    if (!personal) {
+      personal = await db.personal.create({
+        data: {
+          userId,
+          name: updatedUser.name || userName,
+          email: updatedUser.email || userEmail,
+        },
+      });
+    }
+
+    return { ok: true, personalId: personal.id };
+  } catch (error) {
+    console.error("[ensurePersonalRole] Erro:", error);
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Erro ao criar perfil",

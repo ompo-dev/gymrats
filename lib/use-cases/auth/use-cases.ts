@@ -129,19 +129,20 @@ export async function signUpUseCase(
 
 export interface UpdateRoleInput {
   userId: string;
-  role: "STUDENT" | "GYM" | "ADMIN";
-  userType?: "student" | "gym";
+  role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
+  userType?: "student" | "gym" | "personal";
 }
 
 export interface UpdateRoleDeps {
   findUserById: (userId: string) => Promise<UserSummary | null>;
   updateUserRole: (
     userId: string,
-    role: "STUDENT" | "GYM" | "ADMIN",
+    role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN",
   ) => Promise<UserSummary>;
   findStudentByUserId: (userId: string) => Promise<{ id: string } | null>;
   createStudent: (userId: string) => Promise<void>;
   findGymByUserId: (userId: string) => Promise<{ id: string } | null>;
+  findPersonalByUserId: (userId: string) => Promise<{ id: string } | null>;
   createGym: (data: {
     userId: string;
     name: string;
@@ -150,6 +151,11 @@ export interface UpdateRoleDeps {
     email: string;
     plan: string;
     isActive: boolean;
+  }) => Promise<void>;
+  createPersonal: (data: {
+    userId: string;
+    name: string;
+    email: string;
   }) => Promise<void>;
 }
 
@@ -187,6 +193,17 @@ export async function updateRoleUseCase(
         email: user.email,
         plan: "basic",
         isActive: true,
+      });
+    }
+  }
+
+  if (input.role === "PERSONAL") {
+    const existingPersonal = await deps.findPersonalByUserId(input.userId);
+    if (!existingPersonal) {
+      await deps.createPersonal({
+        userId: input.userId,
+        name: user.name,
+        email: user.email,
       });
     }
   }

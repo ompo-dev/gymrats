@@ -10,6 +10,7 @@ import {
   Mail,
   PauseCircle,
   Phone,
+  UserPlus,
   Users,
 } from "lucide-react";
 import Image from "next/image";
@@ -25,6 +26,8 @@ export interface StudentHeaderCardProps {
   onMembershipAction: (action: "suspended" | "canceled" | "active") => void;
   onAssignWorkout?: () => void;
   onAssignDiet?: () => void;
+  onAssignPersonal?: () => void;
+  isAssigningPersonal?: boolean;
 }
 
 export function StudentHeaderCard({
@@ -34,6 +37,8 @@ export function StudentHeaderCard({
   onMembershipAction,
   onAssignWorkout,
   onAssignDiet,
+  onAssignPersonal,
+  isAssigningPersonal = false,
 }: StudentHeaderCardProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -103,6 +108,20 @@ export function StudentHeaderCard({
             >
               <Apple className="h-4 w-4" />
               Atribuir Dieta
+            </DuoButton>
+            <DuoButton
+              size="sm"
+              variant="outline"
+              className="flex-1 sm:flex-initial"
+              onClick={onAssignPersonal}
+              disabled={isAssigningPersonal}
+            >
+              {isAssigningPersonal ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <UserPlus className="h-4 w-4" />
+              )}
+              Atribuir Personal
             </DuoButton>
             {student.gymMembership?.id && (
               <>

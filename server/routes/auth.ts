@@ -244,7 +244,7 @@ export const authRoutes = new Elysia()
           findUserById: (userId) =>
             db.user.findUnique({
               where: { id: userId },
-              include: { student: true, gyms: true },
+              include: { student: true, gyms: true, personal: true },
             }) as unknown as Promise<
               import("@/lib/use-cases/auth").UserSummary | null
             >,
@@ -255,7 +255,11 @@ export const authRoutes = new Elysia()
           createStudent: (userId) =>
             db.student.create({ data: { userId } }).then(() => undefined),
           findGymByUserId: (userId) => db.gym.findFirst({ where: { userId } }),
+          findPersonalByUserId: (userId) =>
+            db.personal.findUnique({ where: { userId } }),
           createGym: (data) => db.gym.create({ data }).then(() => undefined),
+          createPersonal: (data) =>
+            db.personal.create({ data }).then(() => undefined),
         },
         validation.data,
       );

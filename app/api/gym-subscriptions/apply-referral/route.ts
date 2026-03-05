@@ -84,6 +84,9 @@ export const POST = createSafeHandler(
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
     });
+    const activePersonals = await db.gymPersonalAffiliation.count({
+      where: { gymId, status: "active" },
+    });
 
     const config =
       GYM_PLANS_CONFIG[
@@ -101,7 +104,11 @@ export const POST = createSafeHandler(
       subscription.billingPeriod === "annual"
         ? 0
         : config.pricePerStudent * activeStudents;
-    const originalAmountCents = basePrice + perStudentTotal;
+    const perPersonalTotal =
+      subscription.billingPeriod === "annual"
+        ? 0
+        : (config.pricePerPersonal ?? 0) * activePersonals;
+    const originalAmountCents = basePrice + perStudentTotal + perPersonalTotal;
 
     const pix = await createGymSubscriptionPix(
       gymId,

@@ -2,7 +2,7 @@ export type UserRole = "STUDENT" | "GYM" | "PERSONAL" | "ADMIN" | "PENDING";
 
 export type StudentPlan = "FREE" | "PREMIUM" | "PRO";
 export type GymPlan = "BASIC" | "PREMIUM" | "ENTERPRISE";
-export type PersonalPlan = "COM_IA" | "SUPERIOR";
+export type PersonalPlan = "STANDARD" | "PRO_AI";
 
 export type UserPlan = StudentPlan | GymPlan | PersonalPlan | string; // Permitir fallback temporário para strings
 

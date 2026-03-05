@@ -1,7 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import type { ZodType } from "zod";
 import { log, recordApiRequest } from "@/lib/observability";
-import { requireGym, requireStudent } from "../middleware/auth.middleware";
+import {
+  requireGym,
+  requirePersonal,
+  requireStudent,
+} from "../middleware/auth.middleware";
 import {
   completeIdempotencyKey,
   failIdempotencyKey,
@@ -9,7 +13,7 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency-store";
 
-type AuthStrategy = "gym" | "student" | "none";
+type AuthStrategy = "gym" | "student" | "personal" | "none";
 
 interface HandlerOptions<
   TBody = Record<string, string | number | boolean | object | null>,
@@ -25,10 +29,13 @@ interface HandlerOptions<
 
 interface AuthUser {
   id: string;
+  role?: string;
   studentId?: string;
-  student?: Record<string, string | number | boolean | object | null>;
+  student?: Record<string, unknown>;
+  personalId?: string;
+  personal?: Record<string, unknown>;
   activeGymId?: string;
-  [key: string]: string | number | boolean | object | null | undefined;
+  [key: string]: unknown;
 }
 
 type SafeHandlerContext<
@@ -40,14 +47,20 @@ type SafeHandlerContext<
   query: TQuery;
   gymContext?: {
     gymId: string;
-    session: Record<string, string | number | boolean | object | null>;
+    session: Record<string, unknown>;
     user: AuthUser;
   };
   studentContext?: {
     studentId: string;
-    session: Record<string, string | number | boolean | object | null>;
+    session: Record<string, unknown>;
     user: AuthUser;
-    student: Record<string, string | number | boolean | object | null>;
+    student: Record<string, unknown>;
+  };
+  personalContext?: {
+    personalId: string;
+    session: Record<string, unknown>;
+    user: AuthUser;
+    personal: Record<string, unknown>;
   };
   params?: Record<string, string>;
 };
@@ -79,6 +92,7 @@ export function createSafeHandler<
     try {
       let gymContext: SafeHandlerContext["gymContext"];
       let studentContext: SafeHandlerContext["studentContext"];
+      let personalContext: SafeHandlerContext["personalContext"];
 
       // 1. Auth check
       if (options.auth === "gym") {
@@ -86,25 +100,35 @@ export function createSafeHandler<
         if ("response" in result) return result.response;
         const sessionUser = result.session as { user?: AuthUser } | undefined;
         const resultWithGymId = result as { gymId?: string };
-        gymContext = {
+        const nextGymContext: NonNullable<SafeHandlerContext["gymContext"]> = {
           gymId: sessionUser?.user?.activeGymId || resultWithGymId.gymId || "",
-          session: result.session,
-          user: result.user,
+          session: result.session as Record<string, unknown>,
+          user: result.user as AuthUser,
         };
         // Ensure gymId is set (middleware should have it or user should have activeGymId)
-        if (!gymContext.gymId) {
+        if (!nextGymContext.gymId) {
           const { getGymContext } = await import("@/lib/utils/gym/gym-context");
           const ctxResult = await getGymContext();
-          if (ctxResult.ctx) gymContext.gymId = ctxResult.ctx.gymId;
+          if (ctxResult.ctx) nextGymContext.gymId = ctxResult.ctx.gymId;
         }
+        gymContext = nextGymContext;
       } else if (options.auth === "student") {
         const result = await requireStudent(req);
         if ("response" in result) return result.response;
         studentContext = {
-          studentId: result.user.studentId,
-          session: result.session,
-          user: result.user,
-          student: result.user.student,
+          studentId: String(result.user.studentId),
+          session: result.session as Record<string, unknown>,
+          user: result.user as AuthUser,
+          student: (result.user.student || {}) as Record<string, unknown>,
+        };
+      } else if (options.auth === "personal") {
+        const result = await requirePersonal(req);
+        if ("response" in result) return result.response;
+        personalContext = {
+          personalId: String(result.user.personalId),
+          session: result.session as Record<string, unknown>,
+          user: result.user as AuthUser,
+          personal: (result.user.personal || {}) as Record<string, unknown>,
         };
       }
 
@@ -144,6 +168,7 @@ export function createSafeHandler<
           query,
           gymContext,
           studentContext,
+          personalContext,
           params,
         });
         const latencyMs = Date.now() - startedAt;
@@ -153,7 +178,10 @@ export function createSafeHandler<
           path: logMetaBase.route,
           status: response.status,
           latencyMs,
-          userId: gymContext?.user?.id ?? studentContext?.user?.id,
+          userId:
+            gymContext?.user?.id ??
+            studentContext?.user?.id ??
+            personalContext?.user?.id,
           studentId: studentContext?.studentId,
           gymId: gymContext?.gymId,
         });
@@ -213,7 +241,7 @@ export function createSafeHandler<
         key: idemKey,
         route: req.nextUrl.pathname,
         method,
-        body,
+        body: body as Record<string, string | number | boolean | object | null>,
       });
 
       try {
@@ -223,6 +251,7 @@ export function createSafeHandler<
           query,
           gymContext,
           studentContext,
+          personalContext,
           params,
         });
         const responseClone = response.clone();
@@ -239,7 +268,10 @@ export function createSafeHandler<
           path: logMetaBase.route,
           status: response.status,
           latencyMs,
-          userId: gymContext?.user?.id ?? studentContext?.user?.id,
+          userId:
+            gymContext?.user?.id ??
+            studentContext?.user?.id ??
+            personalContext?.user?.id,
           studentId: studentContext?.studentId,
           gymId: gymContext?.gymId,
         });

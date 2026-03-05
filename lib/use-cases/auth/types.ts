@@ -1,4 +1,9 @@
-export type AuthRole = "STUDENT" | "GYM" | "ADMIN" | "PERSONAL";
+export type AuthRole =
+  | "PENDING"
+  | "STUDENT"
+  | "GYM"
+  | "ADMIN"
+  | "PERSONAL";
 
 export interface UserSummary {
   id: string;
@@ -14,6 +19,7 @@ export interface UserSummary {
     [key: string]: unknown;
   } | null;
   gyms?: { id: string; [key: string]: unknown }[] | null;
+  personal?: { id: string; [key: string]: unknown } | null;
   password?: string | null;
 }
 

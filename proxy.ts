@@ -45,6 +45,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/personal")) {
+    if (!hasAuth) {
+      return NextResponse.redirect(new URL("/welcome", request.url));
+    }
+    return NextResponse.next();
+  }
+
   return NextResponse.next();
 }
 

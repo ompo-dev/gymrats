@@ -71,6 +71,9 @@ export async function getCurrentGymSubscriptionHandler({
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
     });
+    const activePersonals = await db.gymPersonalAffiliation.count({
+      where: { gymId, status: "active" },
+    });
 
     return successResponse(set, {
       subscription: {
@@ -105,8 +108,10 @@ export async function getCurrentGymSubscriptionHandler({
           (subscription.billingPeriod || "monthly") === "annual"
             ? subscription.basePrice
             : subscription.basePrice +
-              subscription.pricePerStudent * activeStudents,
+              subscription.pricePerStudent * activeStudents +
+              (subscription.pricePerPersonal ?? 0) * activePersonals,
         isFirstPayment,
+        activePersonals,
       },
     });
   } catch (error) {

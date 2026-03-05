@@ -27,6 +27,9 @@ export const GET = createSafeHandler(
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
     });
+    const activePersonals = await db.gymPersonalAffiliation.count({
+      where: { gymId, status: "active" },
+    });
 
     const trialEndMs = getTimeMs(subscription.trialEnd);
     const isTrial = !!subscription.trialEnd && (trialEndMs ?? 0) > Date.now();
@@ -40,7 +43,8 @@ export const GET = createSafeHandler(
       subscription.billingPeriod === "annual"
         ? subscription.basePrice
         : subscription.basePrice +
-          subscription.pricePerStudent * activeStudents;
+          subscription.pricePerStudent * activeStudents +
+          (subscription.pricePerPersonal ?? 0) * activePersonals;
 
     // Elegibilidade de indicação:
     // - Mostra durante trial
@@ -64,6 +68,7 @@ export const GET = createSafeHandler(
         isTrial,
         daysRemaining,
         activeStudents,
+        activePersonals,
         totalAmount,
         canStartTrial: false,
         isFirstPayment,

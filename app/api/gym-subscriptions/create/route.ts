@@ -40,6 +40,9 @@ export const POST = createSafeHandler(
     const activeStudents = await db.gymMembership.count({
       where: { gymId, status: "active" },
     });
+    const activePersonals = await db.gymPersonalAffiliation.count({
+      where: { gymId, status: "active" },
+    });
 
     const existingSubscription = await db.gymSubscription.findUnique({
       where: { gymId },
@@ -85,6 +88,10 @@ export const POST = createSafeHandler(
     const basePrice = centsToReais(config.prices[safeBillingPeriod]);
     const pricePerStudent =
       safeBillingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
+    const pricePerPersonal =
+      safeBillingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerPersonal ?? 0);
 
     let subscriptionId = existingSubscription?.id;
 
@@ -97,6 +104,7 @@ export const POST = createSafeHandler(
           status: "pending",
           basePrice,
           pricePerStudent,
+          pricePerPersonal,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
           canceledAt: null,
@@ -112,6 +120,7 @@ export const POST = createSafeHandler(
           status: "pending",
           basePrice,
           pricePerStudent,
+          pricePerPersonal,
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
         },
@@ -159,6 +168,7 @@ export const POST = createSafeHandler(
       brCode: pix.brCode,
       brCodeBase64: pix.brCodeBase64,
       amount: pix.amount,
+      activePersonals,
       canApplyReferral,
       ...(referralCodeInvalid && { referralCodeInvalid: true }),
     });

@@ -9,7 +9,7 @@ const SETTINGS = [
   {
     icon: Users,
     title: "Gerenciar Equipe",
-    description: "Adicionar e remover funcionários",
+    description: "Adicionar e remover personais",
     color: "duo-purple",
   },
   {

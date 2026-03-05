@@ -1,7 +1,9 @@
 import {
   GYM_PLANS_CONFIG,
+  PERSONAL_PLANS_CONFIG,
   STUDENT_PLANS_CONFIG,
   getGymPlanConfig,
+  getPersonalPlanConfig,
   getStudentPlanConfig,
 } from "@/lib/access-control/plans-config";
 import type { CreateBillingRequest } from "@/lib/api/abacatepay";
@@ -18,6 +20,32 @@ export interface GymSubscriptionPixResponse {
   brCodeBase64: string;
   amount: number; // centavos
   expiresAt: string; // ISO date-time
+}
+
+export interface GymSubscriptionPricingInput {
+  plan: "basic" | "premium" | "enterprise";
+  billingPeriod: "monthly" | "annual";
+  studentCount: number;
+  personalCount: number;
+}
+
+export interface GymSubscriptionPricingResult {
+  basePrice: number;
+  perStudentPrice: number;
+  perPersonalPrice: number;
+  totalAmount: number;
+}
+
+export interface PersonalSubscriptionPricingInput {
+  plan: "standard" | "pro_ai";
+  billingPeriod: "monthly" | "annual";
+  hasPremiumOrEnterpriseAffiliation: boolean;
+}
+
+export interface PersonalSubscriptionPricingResult {
+  basePrice: number;
+  discountPercent: number;
+  effectivePrice: number;
 }
 
 // Re-exportar utilitários puros para que imports server-side existentes continuem funcionando.
@@ -328,6 +356,70 @@ export async function createStudentSubscriptionBilling(
  */
 const REFERRAL_DISCOUNT_PERCENT = 0.05; // 5% de desconto para indicados
 
+async function countActiveGymPersonals(gymId: string): Promise<number> {
+  return db.gymPersonalAffiliation.count({
+    where: { gymId, status: "active" },
+  });
+}
+
+export function calculateGymSubscriptionPricing({
+  plan,
+  billingPeriod,
+  studentCount,
+  personalCount,
+}: GymSubscriptionPricingInput): GymSubscriptionPricingResult {
+  const config = getGymPlanConfig(plan);
+  if (!config) {
+    throw new Error(`Plano inválido: ${plan}`);
+  }
+
+  const basePrice = config.prices[billingPeriod];
+  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
+  const perPersonalPrice =
+    billingPeriod === "annual" ? 0 : (config.pricePerPersonal ?? 0);
+
+  const totalAmount =
+    billingPeriod === "annual"
+      ? basePrice
+      : basePrice +
+        perStudentPrice * studentCount +
+        perPersonalPrice * personalCount;
+
+  return {
+    basePrice,
+    perStudentPrice,
+    perPersonalPrice,
+    totalAmount,
+  };
+}
+
+export function calculatePersonalSubscriptionPricing({
+  plan,
+  billingPeriod,
+  hasPremiumOrEnterpriseAffiliation,
+}: PersonalSubscriptionPricingInput): PersonalSubscriptionPricingResult {
+  const config =
+    PERSONAL_PLANS_CONFIG[plan.toUpperCase() as keyof typeof PERSONAL_PLANS_CONFIG] ||
+    getPersonalPlanConfig(plan);
+
+  if (!config) {
+    throw new Error(`Plano inválido: ${plan}`);
+  }
+
+  const basePrice = config.prices[billingPeriod];
+  const discountPercent = hasPremiumOrEnterpriseAffiliation ? 50 : 0;
+  const effectivePrice =
+    discountPercent > 0
+      ? Math.floor(basePrice * (1 - discountPercent / 100))
+      : basePrice;
+
+  return {
+    basePrice,
+    discountPercent,
+    effectivePrice,
+  };
+}
+
 export async function createStudentSubscriptionPix(
   studentId: string,
   planType: "premium" | "pro",
@@ -424,21 +516,13 @@ export async function createGymSubscriptionBilling(
     throw new Error("Academia não encontrada");
   }
 
-  const config = getGymPlanConfig(plan);
-  if (!config) {
-    throw new Error(`Plano inválido: ${plan}`);
-  }
-
-  const basePrice = config.prices[billingPeriod];
-  const perStudentPrice =
-    billingPeriod === "annual" ? 0 : config.pricePerStudent;
-
-  // No plano anual, o total é apenas o basePrice (sem cobrança por aluno)
-  // No plano mensal, soma base + (por aluno × quantidade de alunos)
-  const totalAmount =
-    billingPeriod === "annual"
-      ? basePrice
-      : basePrice + perStudentPrice * studentCount;
+  const personalCount = await countActiveGymPersonals(gymId);
+  const { totalAmount } = calculateGymSubscriptionPricing({
+    plan,
+    billingPeriod,
+    studentCount,
+    personalCount,
+  });
 
   const billingData: CreateBillingRequest = {
     frequency: billingPeriod === "annual" ? "ONE_TIME" : "MULTIPLE_PAYMENTS",
@@ -454,7 +538,7 @@ export async function createGymSubscriptionBilling(
             ? `Assinatura ${plan} anual - Preço fixo para todos os alunos - R$ ${(
                 totalAmount / 100
               ).toFixed(2)}/ano`
-            : `Assinatura ${plan} mensal para ${studentCount} alunos - R$ ${(
+            : `Assinatura ${plan} mensal para ${studentCount} alunos e ${personalCount} personais - R$ ${(
                 totalAmount / 100
               ).toFixed(2)}/mês`,
         quantity: 1,
@@ -539,20 +623,13 @@ export async function createGymSubscriptionPix(
     throw new Error("Academia não encontrada");
   }
 
-  const config =
-    GYM_PLANS_CONFIG[plan.toUpperCase() as keyof typeof GYM_PLANS_CONFIG];
-  if (!config) {
-    throw new Error(`Plano inválido: ${plan}`);
-  }
-
-  const basePrice = config.prices[billingPeriod];
-  const perStudentPrice =
-    billingPeriod === "annual" ? 0 : config.pricePerStudent;
-
-  let totalAmount =
-    billingPeriod === "annual"
-      ? basePrice
-      : basePrice + perStudentPrice * studentCount;
+  const personalCount = await countActiveGymPersonals(gymId);
+  let { totalAmount } = calculateGymSubscriptionPricing({
+    plan,
+    billingPeriod,
+    studentCount,
+    personalCount,
+  });
 
   if (options?.referralCode) {
     const referrer = await db.student.findUnique({

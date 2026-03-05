@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowLeft, Building2, Check, Dumbbell, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  Check,
+  Dumbbell,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,9 +22,9 @@ import { useAuthStore } from "@/stores";
 export default function UserTypePage() {
   const router = useRouter();
   const { setUserRole } = useAuthStore();
-  const [selectedType, setSelectedType] = useState<"student" | "gym" | null>(
-    null,
-  );
+  const [selectedType, setSelectedType] = useState<
+    "student" | "gym" | "personal" | null
+  >(null);
   const [isChecking, setIsChecking] = useState(true);
 
   // Se já tem role definido (STUDENT/GYM), redirecionar para área correspondente
@@ -48,6 +55,11 @@ export default function UserTypePage() {
           router.replace("/gym");
           return;
         }
+        if (role === "PERSONAL") {
+          setUserRole("PERSONAL");
+          router.replace("/personal");
+          return;
+        }
 
         // PENDING: permanecer na página para escolher
       } catch (error) {
@@ -61,14 +73,22 @@ export default function UserTypePage() {
     checkAndRedirect();
   }, [router, setUserRole]);
 
-  const handleSelectType = (type: "student" | "gym") => {
+  const handleSelectType = (type: "student" | "gym" | "personal") => {
     setSelectedType(type);
     // Armazena intenção localmente - cadastro só ocorre ao concluir onboarding
     if (typeof window !== "undefined") {
       sessionStorage.setItem("gymrats:onboarding-intent", type);
     }
     // Navega para onboarding sem cadastrar no banco
-    router.push(type === "student" ? "/student/onboarding" : "/gym/onboarding");
+    if (type === "student") {
+      router.push("/student/onboarding");
+      return;
+    }
+    if (type === "gym") {
+      router.push("/gym/onboarding");
+      return;
+    }
+    router.push("/personal/onboarding");
   };
 
   if (isChecking) {
@@ -94,6 +114,13 @@ export default function UserTypePage() {
     "Controle de equipamentos",
     "Gestão financeira",
     "Gamificação para academias",
+  ];
+
+  const personalFeatures = [
+    "Atendimento presencial e remoto",
+    "Gestão de alunos próprios",
+    "Vínculo com academias",
+    "Acompanhamento com IA (Pro AI)",
   ];
 
   return (
@@ -144,7 +171,7 @@ export default function UserTypePage() {
           </motion.div>
 
           {/* Cards */}
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-3">
             {/* Aluno */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -301,6 +328,89 @@ export default function UserTypePage() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.8 }}
                         className="flex items-center justify-center gap-2 font-bold text-duo-orange"
+                      >
+                        <Check className="h-5 w-5" />
+                        <span>Selecionado</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </DuoCard.Root>
+            </motion.div>
+
+            {/* Personal */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.5 }}
+            >
+              <DuoCard.Root
+                variant="outlined"
+                padding="lg"
+                onClick={() => handleSelectType("personal")}
+                className={`cursor-pointer border-2 transition-all ${
+                  selectedType === "personal"
+                    ? "border-duo-blue bg-duo-blue/10 shadow-xl"
+                    : "border-duo-border bg-duo-bg-card hover:border-duo-blue/50 hover:shadow-lg"
+                }`}
+              >
+                <div className="w-full p-2">
+                  <div className="mb-6 text-center">
+                    <motion.div
+                      className={`mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full ${
+                        selectedType === "personal"
+                          ? "bg-duo-blue"
+                          : "bg-duo-bg-elevated"
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ type: "spring", stiffness: 400 }}
+                    >
+                      <UserRound
+                        className={`h-12 w-12 ${
+                          selectedType === "personal"
+                            ? "text-white"
+                            : "text-duo-fg-muted"
+                        }`}
+                      />
+                    </motion.div>
+                    <h2 className="mb-2 text-2xl font-bold text-duo-fg">
+                      Sou Personal
+                    </h2>
+                    <p className="text-sm text-duo-fg-muted">
+                      Atenda alunos de forma independente e em academias
+                    </p>
+                  </div>
+
+                  <div className="mb-6 space-y-2">
+                    {personalFeatures.map((feature, index) => (
+                      <motion.div
+                        key={feature}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{
+                          delay: 0.55 + index * 0.1,
+                        }}
+                        className="flex items-center gap-2 text-sm text-duo-fg-muted"
+                      >
+                        <div
+                          className={`h-2 w-2 rounded-full ${
+                            selectedType === "personal"
+                              ? "bg-duo-blue"
+                              : "bg-duo-border"
+                          }`}
+                        />
+                        <span>{feature}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <AnimatePresence>
+                    {selectedType === "personal" && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="flex items-center justify-center gap-2 font-bold text-duo-blue"
                       >
                         <Check className="h-5 w-5" />
                         <span>Selecionado</span>

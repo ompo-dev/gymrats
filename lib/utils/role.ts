@@ -2,7 +2,7 @@
  * Utilitários para trabalhar com roles
  */
 
-export type UserRole = "STUDENT" | "GYM" | "ADMIN";
+export type UserRole = "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
 
 /**
  * Converte role para userType (mantido para compatibilidade com componentes legados)
@@ -10,12 +10,13 @@ export type UserRole = "STUDENT" | "GYM" | "ADMIN";
  */
 export function roleToUserType(
   role: UserRole | string | null | undefined,
-): "student" | "gym" | null {
+): "student" | "gym" | "personal" | null {
   if (!role) return null;
 
   const upperRole = role.toUpperCase();
   if (upperRole === "STUDENT") return "student";
   if (upperRole === "GYM") return "gym";
+  if (upperRole === "PERSONAL") return "personal";
   if (upperRole === "ADMIN") return "gym"; // ADMIN pode acessar como gym
 
   return null;
@@ -35,6 +36,16 @@ export function isStudent(role: UserRole | string | null | undefined): boolean {
 export function isGym(role: UserRole | string | null | undefined): boolean {
   if (!role) return false;
   return role.toUpperCase() === "GYM" || role.toUpperCase() === "ADMIN";
+}
+
+/**
+ * Verifica se o role é de um personal
+ */
+export function isPersonal(
+  role: UserRole | string | null | undefined,
+): boolean {
+  if (!role) return false;
+  return role.toUpperCase() === "PERSONAL" || role.toUpperCase() === "ADMIN";
 }
 
 /**

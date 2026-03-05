@@ -28,6 +28,7 @@ model User {
   // Relacionamentos
   student        Student?
   gyms           Gym[] // Um usuário pode ter várias academias
+  personal       Personal? // Perfil de personal trainer (1:1)
   activeGymId    String? // Academia atualmente selecionada
   accounts       Account[]
   sessions       Session[]
@@ -38,9 +39,10 @@ model User {
 }
 
 enum UserRole {
-  PENDING // Usuário novo que ainda não escolheu tipo (aluno ou academia)
+  PENDING // Usuário novo que ainda não escolheu tipo (aluno, academia ou personal)
   STUDENT
   GYM
+  PERSONAL
   ADMIN
 }
 
@@ -178,6 +180,9 @@ model Student {
 
   // Impulsionamento (1 impressão e 1 clique por campanha por aluno)
   boostCampaignEngagements BoostCampaignEngagement[]
+
+  // Atribuições de personal (academia ou autoatribuição do personal)
+  personalAssignments StudentPersonalAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -323,6 +328,10 @@ model Gym {
   // Cupons de desconto
   coupons GymCoupon[]
 
+  // Personais filiados à academia (equipe)
+  personalAffiliations GymPersonalAffiliation[]
+  studentPersonalAssignments StudentPersonalAssignment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -374,6 +383,118 @@ model GymStats {
   updatedAt DateTime @updatedAt
 
   @@map("gym_stats")
+}
+
+// ============================================
+// PERSONAL (PERSONAL TRAINERS)
+// ============================================
+
+model Personal {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  email                 String
+  phone                 String?
+  avatar                String?
+  bio                   String?
+  address               String? // Opcional; não visível publicamente como academia
+  latitude              Float?
+  longitude             Float?
+  atendimentoPresencial Boolean  @default(true)
+  atendimentoRemoto     Boolean  @default(true)
+  isActive              Boolean  @default(true)
+
+  subscription    PersonalSubscription?
+  gymAffiliations GymPersonalAffiliation[]
+  studentAssignments StudentPersonalAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("personals")
+}
+
+model PersonalSubscription {
+  id                    String   @id @default(cuid())
+  personalId            String   @unique
+  personal              Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  plan                  String   // standard, pro_ai
+  billingPeriod         String   @default("monthly") // monthly, annual
+  status                String   @default("active") // active, canceled, expired, past_due, trialing
+  basePrice             Float    // Preço base em reais (antes de desconto)
+  effectivePrice        Float?   // Preço efetivo após desconto (ex.: 50% quando filiado)
+  discountPercent       Int?     // Ex.: 50 quando filiado a academia premium/enterprise
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean  @default(false)
+  canceledAt            DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+
+  abacatePayBillingId   String?  @unique
+  abacatePayCustomerId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("personal_subscriptions")
+}
+
+enum GymPersonalAffiliationStatus {
+  active
+  canceled
+  pending
+}
+
+model GymPersonalAffiliation {
+  id             String                      @id @default(cuid())
+  personalId     String
+  personal       Personal                    @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  gymId          String
+  gym            Gym                         @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  status         GymPersonalAffiliationStatus @default(active)
+  discountPercent Int?                       // 50 quando academia é premium/enterprise
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([personalId, gymId])
+  @@index([gymId])
+  @@index([personalId])
+  @@map("gym_personal_affiliations")
+}
+
+enum StudentPersonalAssignedBy {
+  GYM
+  PERSONAL
+}
+
+enum StudentPersonalAssignmentStatus {
+  active
+  removed
+}
+
+model StudentPersonalAssignment {
+  id         String                         @id @default(cuid())
+  studentId  String
+  student    Student                        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  personalId String
+  personal   Personal                       @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  gymId      String?                        // Academia que atribuiu (quando assignedBy = GYM)
+  gym        Gym?                           @relation(fields: [gymId], references: [id], onDelete: SetNull)
+  assignedBy StudentPersonalAssignedBy
+  status     StudentPersonalAssignmentStatus @default(active)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, personalId])
+  @@index([studentId])
+  @@index([personalId])
+  @@index([gymId])
+  @@map("student_personal_assignments")
 }
 
 // ============================================

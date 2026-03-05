@@ -41,6 +41,7 @@ export function useGymStudentDetail({
   >(student?.membershipStatus ?? "inactive");
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isAssigningPersonal, setIsAssigningPersonal] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<
     WeeklyPlanData | null | undefined
   >(undefined);
@@ -387,6 +388,26 @@ export function useGymStudentDetail({
     }
   };
 
+  const handleAssignPersonal = async (personalId: string) => {
+    if (!student?.id || !personalId.trim()) return;
+    setIsAssigningPersonal(true);
+    try {
+      const response = await fetch(
+        `/api/gym/students/${student.id}/assign-personal`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ personalId: personalId.trim() }),
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Não foi possível atribuir o personal");
+      }
+    } finally {
+      setIsAssigningPersonal(false);
+    }
+  };
+
   const tabOptions = [
     { value: "overview", label: "Visão Geral", emoji: "📊" },
     { value: "workouts", label: "Treinos", emoji: "💪" },
@@ -431,6 +452,8 @@ export function useGymStudentDetail({
     removeFoodFromMeal,
     handleToggleWaterGlass,
     handleMembershipAction,
+    handleAssignPersonal,
+    isAssigningPersonal,
     togglePaymentStatus,
     tabOptions,
     DAY_NAMES,

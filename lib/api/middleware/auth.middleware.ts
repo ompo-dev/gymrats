@@ -15,6 +15,7 @@ export interface AuthResult {
     id: string;
     role?: string;
     student?: { id: string } | null;
+    personal?: { id: string } | null;
     gyms?: { id: string }[] | null;
     [key: string]: string | number | boolean | object | null | undefined;
   };
@@ -66,6 +67,7 @@ export async function requireAuth(
           where: { id: betterAuthSession.user.id },
           include: {
             student: { select: { id: true } },
+            personal: { select: { id: true } },
             gyms: { select: { id: true } },
           },
         });
@@ -93,6 +95,7 @@ export async function requireAuth(
             user: {
               ...user,
               student: user.student || undefined,
+              personal: user.personal || undefined,
               gyms: user.gyms || [],
             },
           };
@@ -257,6 +260,83 @@ export async function requireGym(
   }
 
   return auth;
+}
+
+/**
+ * Valida se o usuário é um personal
+ * ADMIN tem acesso completo, então também passa por aqui
+ */
+export async function requirePersonal(
+  request: NextRequest,
+): Promise<AuthResult | AuthError> {
+  const auth = await requireAuth(request);
+
+  if ("error" in auth) {
+    return auth;
+  }
+
+  const isAdmin = auth.user?.role === "ADMIN";
+  const isPersonalRole = auth.user?.role === "PERSONAL";
+
+  if (!isAdmin && !isPersonalRole) {
+    return {
+      response: NextResponse.json(
+        { error: "Usuário não é um personal" },
+        { status: 403 },
+      ),
+      error: "Acesso negado: requer role PERSONAL ou ADMIN",
+    };
+  }
+
+  let personalId = auth.user?.personal?.id;
+  let personal = auth.user?.personal;
+
+  if ((isAdmin || isPersonalRole) && !personalId) {
+    const { db } = await import("@/lib/db");
+    const existingPersonal = await db.personal.findUnique({
+      where: { userId: auth.userId },
+      select: { id: true },
+    });
+
+    if (!existingPersonal) {
+      const userRecord = await db.user.findUnique({
+        where: { id: auth.userId },
+        select: { name: true, email: true },
+      });
+      const created = await db.personal.create({
+        data: {
+          userId: auth.userId,
+          name: userRecord?.name || "Personal",
+          email: userRecord?.email || "",
+        },
+        select: { id: true },
+      });
+      personalId = created.id;
+      personal = { id: created.id };
+    } else {
+      personalId = existingPersonal.id;
+      personal = { id: existingPersonal.id };
+    }
+  }
+
+  if (!personalId) {
+    return {
+      response: NextResponse.json(
+        { error: "Personal ID não encontrado" },
+        { status: 500 },
+      ),
+      error: "Personal ID não disponível",
+    };
+  }
+
+  return {
+    ...auth,
+    user: {
+      ...auth.user,
+      personalId,
+      personal: personal || { id: personalId },
+    },
+  };
 }
 
 /**

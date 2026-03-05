@@ -101,6 +101,8 @@ function WelcomePageContent() {
             router.push(
               hasReferral ? "/gym?tab=financial&subTab=subscription" : "/gym",
             );
+          } else if (user.role === "PERSONAL") {
+            router.push("/personal");
           } else {
             router.push("/welcome");
           }
@@ -165,7 +167,9 @@ function WelcomePageContent() {
 
             if (sessionResponse) {
               const userRole =
-                (sessionResponse.user as { role: "STUDENT" | "GYM" | "ADMIN" })
+                (sessionResponse.user as {
+                  role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
+                })
                   .role || sessionResponse.user.role;
 
               // ⚠️ SEGURANÇA: Salvar apenas token no localStorage para compatibilidade
@@ -232,6 +236,8 @@ function WelcomePageContent() {
                     ? "/gym?tab=financial&subTab=subscription"
                     : "/gym",
                 );
+              } else if (userRole === "PERSONAL") {
+                router.push("/personal");
               } else {
                 router.push("/welcome");
               }

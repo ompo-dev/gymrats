@@ -49,7 +49,7 @@ export function GymLayoutContent({
       return;
     }
     if (!canAccessGym && role && !isOnboarding) {
-      router.push("/student");
+      router.push(role === "PERSONAL" ? "/personal" : "/student");
     }
   }, [canAccessGym, role, sessionLoading, router, isOnboarding]);
 

@@ -26,6 +26,8 @@
 - `apply-workout-type-migration.js`: Arquivo da camada local.
 - `apply-boost-campaign-radius-km-migration.js`: Adiciona coluna radiusKm (INTEGER, default 5) em boost_campaigns para alcance geográfico dos anúncios.
 - `apply-student-profile-target-water-migration.js`: Adiciona coluna targetWater (INTEGER) em student_profiles para meta diária de água.
+- `apply-personal-entity-migration.js`: Adiciona role PERSONAL ao UserRole; cria tabelas personals, personal_subscriptions, gym_personal_affiliations, student_personal_assignments e enums relacionados (entidade Personal).
+- `apply-student-personal-gym-fk-migration.js`: Adiciona FK `student_personal_assignments.gymId -> gyms.id` (ON DELETE SET NULL), com limpeza prévia de vínculos órfãos.
 
 ## Detalhamento técnico por arquivo
 

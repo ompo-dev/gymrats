@@ -1,4 +1,4 @@
-import type { StudentPlan, GymPlan } from "./types";
+import type { StudentPlan, GymPlan, PersonalPlan } from "./types";
 
 /**
  * plans-config.ts
@@ -24,8 +24,10 @@ export interface GymPlanConfig extends PlanConfig {
     annual: number; // base centavos
   };
   pricePerStudent: number; // centavos
-  pricePerPersonal?: number; // centavos (apenas Enterprise)
+  pricePerPersonal?: number; // centavos
 }
+
+export interface PersonalPlanConfig extends PlanConfig {}
 
 export const STUDENT_PLANS_CONFIG: Record<
   Exclude<StudentPlan, "FREE">,
@@ -81,6 +83,7 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
       annual: 300000, // R$ 3.000,00
     },
     pricePerStudent: 150, // R$ 1,50
+    pricePerPersonal: 10000, // R$ 100,00
   },
   PREMIUM: {
     id: "premium",
@@ -97,6 +100,7 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
       annual: 500000, // R$ 5.000,00
     },
     pricePerStudent: 100, // R$ 1,00
+    pricePerPersonal: 10000, // R$ 100,00
   },
   ENTERPRISE: {
     id: "enterprise",
@@ -112,6 +116,39 @@ export const GYM_PLANS_CONFIG: Record<GymPlan, GymPlanConfig> = {
     },
     pricePerStudent: 50, // R$ 0,50
     pricePerPersonal: 10000, // R$ 100,00
+  },
+};
+
+export const PERSONAL_PLANS_CONFIG: Record<PersonalPlan, PersonalPlanConfig> = {
+  STANDARD: {
+    id: "standard",
+    name: "Standard",
+    description:
+      "Plano base para personais com gestão essencial e sem recursos avançados de IA.",
+    features: [
+      "Perfil profissional completo",
+      "Gestão de alunos e acompanhamentos",
+      "Vínculo com academias",
+    ],
+    prices: {
+      monthly: 30000, // R$ 300,00
+      annual: 300000, // R$ 3.000,00
+    },
+  },
+  PRO_AI: {
+    id: "pro_ai",
+    name: "Pro AI",
+    description:
+      "Plano avançado para personais com recursos de IA para treino e nutrição.",
+    features: [
+      "Tudo do Standard",
+      "Treinos com IA",
+      "Suporte a recomendações com IA",
+    ],
+    prices: {
+      monthly: 45000, // R$ 450,00
+      annual: 450000, // R$ 4.500,00
+    },
   },
 };
 
@@ -147,4 +184,12 @@ export const getStudentPlanConfig = (planName: string) => {
 export const getGymPlanConfig = (planName: string) => {
   const p = planName.toUpperCase() as keyof typeof GYM_PLANS_CONFIG;
   return GYM_PLANS_CONFIG[p] || null;
+};
+
+/**
+ * Retorna a configuração de um plano de personal (tratado case-insensitive).
+ */
+export const getPersonalPlanConfig = (planName: string) => {
+  const p = planName.toUpperCase() as keyof typeof PERSONAL_PLANS_CONFIG;
+  return PERSONAL_PLANS_CONFIG[p] || null;
 };
