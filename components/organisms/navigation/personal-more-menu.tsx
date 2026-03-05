@@ -1,0 +1,77 @@
+"use client";
+
+import { Crown, type LucideIcon, Settings } from "lucide-react";
+import { motion } from "motion/react";
+import { parseAsString, useQueryState } from "nuqs";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { NavigationButtonCard } from "@/components/ui/navigation-button-card";
+
+interface MoreMenuItem {
+  id: string;
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  color: "duo-blue" | "duo-yellow" | "duo-green";
+}
+
+const moreMenuItems: MoreMenuItem[] = [
+  {
+    id: "settings",
+    icon: Settings,
+    label: "Configurações",
+    description: "Perfil e modalidades de atendimento",
+    color: "duo-green",
+  },
+  {
+    id: "financial",
+    icon: Crown,
+    label: "Assinatura",
+    description: "Plano e pagamento",
+    color: "duo-yellow",
+  },
+];
+
+function PersonalMoreMenuSimple() {
+  const [, setTab] = useQueryState("tab", parseAsString);
+
+  const handleItemClick = async (itemId: string) => {
+    await setTab(itemId);
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">Mais</h1>
+          <p className="text-sm text-duo-gray-dark">
+            Configurações e assinatura
+          </p>
+        </div>
+      </FadeIn>
+
+      <SlideIn delay={0.1}>
+        <div className="grid gap-4">
+          {moreMenuItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
+            >
+              <NavigationButtonCard
+                icon={item.icon}
+                title={item.label}
+                description={item.description}
+                color={item.color}
+                onClick={() => handleItemClick(item.id)}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </SlideIn>
+    </div>
+  );
+}
+
+export const PersonalMoreMenu = { Simple: PersonalMoreMenuSimple };

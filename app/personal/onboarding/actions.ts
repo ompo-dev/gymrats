@@ -12,6 +12,11 @@ export async function submitPersonalOnboarding(input: {
   atendimentoRemoto: boolean;
 }) {
   try {
+    const name = typeof input.name === "string" ? input.name.trim() : "";
+    if (name.length < 2) {
+      return { success: false, error: "Nome deve ter pelo menos 2 caracteres." };
+    }
+
     const { ctx: userCtx, error } = await getUserContext();
     if (error || !userCtx) {
       return { success: false, error: error || "Sessão inválida" };
@@ -36,11 +41,11 @@ export async function submitPersonalOnboarding(input: {
     await db.personal.update({
       where: { id: ensured.personalId },
       data: {
-        name: input.name,
-        phone: input.phone || null,
-        bio: input.bio || null,
-        atendimentoPresencial: input.atendimentoPresencial,
-        atendimentoRemoto: input.atendimentoRemoto,
+        name,
+        phone: typeof input.phone === "string" ? input.phone.trim() || null : null,
+        bio: typeof input.bio === "string" ? input.bio.trim().slice(0, 500) || null : null,
+        atendimentoPresencial: Boolean(input.atendimentoPresencial),
+        atendimentoRemoto: Boolean(input.atendimentoRemoto),
       },
     });
 

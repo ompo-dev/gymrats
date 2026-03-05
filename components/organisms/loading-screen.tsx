@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 
 interface LoadingScreenProps {
-  variant?: "student" | "gym";
+  variant?: "student" | "gym" | "personal";
   message?: string;
   className?: string;
 }
@@ -15,7 +15,12 @@ function LoadingScreenSimple({
   message = "Carregando...",
   className,
 }: LoadingScreenProps) {
-  const Icon = variant === "student" ? Dumbbell : Building2;
+  const Icon =
+    variant === "student"
+      ? Dumbbell
+      : variant === "personal"
+        ? Dumbbell
+        : Building2;
   const colors =
     variant === "student"
       ? {
@@ -23,11 +28,17 @@ function LoadingScreenSimple({
           bg: "bg-duo-green/10",
           ring: "border-duo-green",
         }
-      : {
-          primary: "text-duo-orange",
-          bg: "bg-duo-orange/10",
-          ring: "border-duo-orange",
-        };
+      : variant === "personal"
+        ? {
+            primary: "text-duo-primary",
+            bg: "bg-duo-primary/10",
+            ring: "border-duo-primary",
+          }
+        : {
+            primary: "text-duo-orange",
+            bg: "bg-duo-orange/10",
+            ring: "border-duo-orange",
+          };
 
   return (
     <div

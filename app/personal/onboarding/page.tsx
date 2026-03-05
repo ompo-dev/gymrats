@@ -70,6 +70,7 @@ export default function PersonalOnboardingPage() {
 
     const checkProfileAndRedirect = async () => {
       if (!isMounted || loading || isChecking) return;
+      if (typeof window === "undefined") return;
       if (sessionStorage.getItem("gymrats:onboarding-intent") === "personal") {
         return;
       }
@@ -80,11 +81,12 @@ export default function PersonalOnboardingPage() {
         const response = await apiClient.get<{ personal: { id: string } | null }>(
           "/api/personals",
         );
-        if (response.data.personal?.id) {
+        if (response.data?.personal?.id) {
           window.location.href = "/personal";
+          return;
         }
       } catch {
-        // Fluxo segue normalmente quando ainda não existe personal.
+        // Fluxo segue normalmente quando ainda não existe personal ou sessão.
       } finally {
         isChecking = false;
       }
@@ -99,7 +101,7 @@ export default function PersonalOnboardingPage() {
   }, [isMounted, loading]);
 
   const canProceed = () => {
-    if (step === 1) return formData.name.trim().length > 0;
+    if (step === 1) return formData.name.trim().length >= 2;
     if (step === 2) return true;
     return false;
   };
@@ -118,7 +120,7 @@ export default function PersonalOnboardingPage() {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim()) return;
+    if (formData.name.trim().length < 2) return;
     setLoading(true);
     setShowConfetti(true);
     setError(null);

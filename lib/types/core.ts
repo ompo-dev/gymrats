@@ -546,7 +546,7 @@ export interface WorkoutWithCalories extends WorkoutSession {
   caloriesPerExercise: { exerciseId: string; calories: number }[];
 }
 
-export type UserType = "student" | "gym";
+export type UserType = "student" | "gym" | "personal";
 
 export interface GymProfile {
   id: string;

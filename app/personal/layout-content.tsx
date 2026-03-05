@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  DollarSign,
   LayoutDashboard,
   MoreHorizontal,
   Users,
@@ -61,6 +62,7 @@ export function PersonalLayoutContent({ children }: PersonalLayoutContentProps) 
     { id: "dashboard", icon: LayoutDashboard, label: "Início" },
     { id: "students", icon: Users, label: "Alunos" },
     { id: "gyms", icon: Building2, label: "Academias" },
+    { id: "financial", icon: DollarSign, label: "Finanças" },
     { id: "more", icon: MoreHorizontal, label: "Mais" },
   ];
 
