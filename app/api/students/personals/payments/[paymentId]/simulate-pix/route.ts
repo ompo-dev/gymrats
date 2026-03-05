@@ -53,21 +53,30 @@ export const POST = createSafeHandler(
       );
     }
 
-    const assignment = await db.studentPersonalAssignment.upsert({
+    let assignment = await db.studentPersonalAssignment.findFirst({
       where: {
-        studentId_personalId: {
-          studentId: payment.studentId,
-          personalId: payment.personalId,
-        },
-      },
-      create: {
         studentId: payment.studentId,
         personalId: payment.personalId,
-        assignedBy: "PERSONAL",
-        status: "active",
+        gymId: null,
       },
-      update: { status: "active" },
     });
+
+    if (assignment) {
+      assignment = await db.studentPersonalAssignment.update({
+        where: { id: assignment.id },
+        data: { status: "active" },
+      });
+    } else {
+      assignment = await db.studentPersonalAssignment.create({
+        data: {
+          studentId: payment.studentId,
+          personalId: payment.personalId,
+          gymId: null,
+          assignedBy: "PERSONAL",
+          status: "active",
+        },
+      });
+    }
 
     await db.personalStudentPayment.update({
       where: { id: payment.id },
