@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
@@ -34,13 +35,7 @@ export const GET = createSafeHandler(
         ).map((a) => a.personalId)
       : null;
 
-    const where: {
-      id?: { in: string[] };
-      AND?: Array<{
-        OR: Array<{ name?: { contains: string; mode: "insensitive" }; email?: { contains: string; mode: "insensitive" } };
-      }>;
-      OR?: Array<{ name?: { contains: string; mode: "insensitive" }; email?: { contains: string; mode: "insensitive" }>;
-    } = {};
+    const where: Prisma.PersonalWhereInput = {};
 
     if (linkedIds && linkedIds.length === 0) {
       return NextResponse.json({ personals: [] });
