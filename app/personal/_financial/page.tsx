@@ -1,40 +1,45 @@
 import {
   getPersonalAffiliations,
-  getPersonalStudents,
+  getPersonalCoupons,
+  getPersonalExpenses,
+  getPersonalFinancialSummary,
+  getPersonalStudentAssignments,
   getPersonalSubscription,
 } from "../actions";
 import { PersonalFinancialRouteWrapper } from "./personal-financial-route-wrapper";
 
-const EMPTY_FINANCIAL_SUMMARY = {
-  totalRevenue: 0,
-  totalExpenses: 0,
-  netProfit: 0,
-  monthlyRecurring: 0,
-  pendingPayments: 0,
-  overduePayments: 0,
-  averageTicket: 0,
-  churnRate: 0,
-  revenueGrowth: 0,
-};
-
 export default async function PersonalFinancialPage() {
-  const [subscription, students, affiliations] = await Promise.all([
+  const [
+    subscription,
+    students,
+    affiliations,
+    financialSummary,
+    payments,
+    coupons,
+    expenses,
+  ] = await Promise.all([
     getPersonalSubscription(),
-    getPersonalStudents(),
+    getPersonalStudentAssignments(),
     getPersonalAffiliations(),
+    getPersonalFinancialSummary(),
+    Promise.resolve([]),
+    getPersonalCoupons(),
+    getPersonalExpenses(),
   ]);
+
+  if (!financialSummary) return null;
 
   return (
     <PersonalFinancialRouteWrapper
       subscription={subscription}
       students={students}
       affiliations={affiliations}
-      payments={[]}
-      coupons={[]}
+      payments={payments}
+      coupons={coupons}
       campaigns={[]}
       plans={[]}
-      expenses={[]}
-      financialSummary={EMPTY_FINANCIAL_SUMMARY}
+      expenses={expenses}
+      financialSummary={financialSummary}
       balanceReais={0}
       balanceCents={0}
       withdraws={[]}

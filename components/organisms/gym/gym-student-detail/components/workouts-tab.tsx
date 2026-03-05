@@ -145,6 +145,7 @@ export interface WorkoutsTabProps {
   isEditOpen?: boolean;
   onEditOpenChange?: (open: boolean) => void;
   onReloadWeeklyPlan?: () => Promise<void>;
+  onCreateWeeklyPlan?: () => Promise<void>;
 }
 
 export function WorkoutsTab({
@@ -154,6 +155,7 @@ export function WorkoutsTab({
   isEditOpen,
   onEditOpenChange,
   onReloadWeeklyPlan,
+  onCreateWeeklyPlan,
 }: WorkoutsTabProps) {
   const [localOpen, setLocalOpen] = useState(false);
   const isModalOpen = isEditOpen ?? localOpen;
@@ -167,8 +169,12 @@ export function WorkoutsTab({
 
   const handleOpenEditor = async () => {
     if (!weeklyPlan) {
-      await apiClient.post(`/api/gym/students/${student.id}/weekly-plan`, {});
-      await onReloadWeeklyPlan?.();
+      if (onCreateWeeklyPlan) {
+        await onCreateWeeklyPlan();
+      } else {
+        await apiClient.post(`/api/gym/students/${student.id}/weekly-plan`, {});
+        await onReloadWeeklyPlan?.();
+      }
     }
     setModalOpen(true);
   };

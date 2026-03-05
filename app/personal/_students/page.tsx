@@ -2,7 +2,7 @@ import {
   getPersonalAffiliations,
   getPersonalStudents,
 } from "../actions";
-import { PersonalStudentsRouteWrapper } from "./personal-students-route-wrapper";
+import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 
 export default async function PersonalStudentsPage() {
   const [students, affiliations] = await Promise.all([
@@ -11,9 +11,10 @@ export default async function PersonalStudentsPage() {
   ]);
 
   return (
-    <PersonalStudentsRouteWrapper
+    <GymStudentsPage
       students={students}
-      affiliations={affiliations}
+      variant="personal"
+      personalAffiliations={affiliations}
     />
   );
 }

@@ -3,15 +3,21 @@
 import { Flame, Loader2, Search, UserPlus } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { getGymStudentById, getGymStudentPayments } from "@/app/gym/actions";
+import {
+  getPersonalStudentById,
+  getPersonalStudentPayments,
+} from "@/app/personal/actions";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { Payment, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { AddPersonalStudentModal } from "@/components/organisms/personal/add-personal-student-modal";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
 
@@ -19,16 +25,23 @@ interface StudentDetailLoaderProps {
   studentId: string;
   fallbackStudent: StudentData | null;
   onBack: () => void;
+  variant?: "gym" | "personal";
 }
 
 function StudentDetailLoader({
   studentId,
   fallbackStudent,
   onBack,
+  variant = "gym",
 }: StudentDetailLoaderProps) {
   const [student, setStudent] = useState<StudentData | null>(fallbackStudent);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const getStudentById =
+    variant === "personal" ? getPersonalStudentById : getGymStudentById;
+  const getStudentPayments =
+    variant === "personal" ? getPersonalStudentPayments : getGymStudentPayments;
 
   useEffect(() => {
     let cancelled = false;
@@ -36,8 +49,8 @@ function StudentDetailLoader({
       setIsLoading(true);
       try {
         const [fullStudent, studentPayments] = await Promise.all([
-          getGymStudentById(studentId),
-          getGymStudentPayments(studentId),
+          getStudentById(studentId),
+          getStudentPayments(studentId),
         ]);
         if (!cancelled) {
           setStudent(fullStudent ?? fallbackStudent);
@@ -53,7 +66,7 @@ function StudentDetailLoader({
     return () => {
       cancelled = true;
     };
-  }, [studentId, fallbackStudent]);
+  }, [studentId, fallbackStudent, getStudentById, getStudentPayments]);
 
   if (isLoading && !student) {
     return (
@@ -64,16 +77,33 @@ function StudentDetailLoader({
   }
 
   return (
-    <GymStudentDetail student={student} payments={payments} onBack={onBack} />
+    <GymStudentDetail
+      student={student}
+      payments={payments}
+      onBack={onBack}
+      variant={variant}
+    />
   );
+}
+
+interface PersonalAffiliationOption {
+  id: string;
+  gym: { id: string; name: string };
 }
 
 interface GymStudentsPageProps {
   students?: StudentData[];
+  variant?: "gym" | "personal";
+  personalAffiliations?: PersonalAffiliationOption[];
 }
 
-export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
+export function GymStudentsPage({
+  students = [],
+  variant = "gym",
+  personalAffiliations = [],
+}: GymStudentsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
   const membershipPlans = useGym("membershipPlans");
 
   const [searchQuery, setSearchQuery] = useQueryState("search", {
@@ -134,6 +164,7 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
         studentId={studentId}
         fallbackStudent={safeStudents.find((s) => s.id === studentId) ?? null}
         onBack={() => setStudentId(null)}
+        variant={variant}
       />
     );
   }
@@ -354,12 +385,24 @@ export function GymStudentsPage({ students = [] }: GymStudentsPageProps) {
         </SlideIn>
       )}
 
-      <AddStudentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={() => setIsModalOpen(false)}
-        membershipPlans={membershipPlans}
-      />
+      {variant === "personal" ? (
+        <AddPersonalStudentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => {
+            setIsModalOpen(false);
+            router.refresh();
+          }}
+          affiliations={personalAffiliations}
+        />
+      ) : (
+        <AddStudentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={() => setIsModalOpen(false)}
+          membershipPlans={membershipPlans}
+        />
+      )}
     </div>
   );
 }

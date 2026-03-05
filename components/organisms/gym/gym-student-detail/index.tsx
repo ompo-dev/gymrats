@@ -28,12 +28,14 @@ interface GymStudentDetailProps {
   student: StudentData | null;
   payments?: Payment[];
   onBack: () => void;
+  variant?: "gym" | "personal";
 }
 
 export function GymStudentDetail({
   student,
   payments = [],
   onBack,
+  variant = "gym",
 }: GymStudentDetailProps) {
   const {
     student: studentData,
@@ -67,7 +69,9 @@ export function GymStudentDetail({
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
-  } = useGymStudentDetail({ student, payments, onBack });
+    createWeeklyPlan,
+    studentsApiBase,
+  } = useGymStudentDetail({ student, payments, onBack, variant });
 
   const [assignPersonalOpen, setAssignPersonalOpen] = useState(false);
 
@@ -118,7 +122,7 @@ export function GymStudentDetail({
           onMembershipAction={handleMembershipAction}
           onAssignWorkout={openWorkoutsEditor}
           onAssignDiet={openDietTab}
-          onAssignPersonal={handleOpenAssignPersonal}
+          onAssignPersonal={variant === "personal" ? undefined : handleOpenAssignPersonal}
           isAssigningPersonal={isAssigningPersonal}
         />
         <AssignPersonalModal
@@ -181,6 +185,7 @@ export function GymStudentDetail({
             isEditOpen={isEditWeeklyPlanOpen}
             onEditOpenChange={setIsEditWeeklyPlanOpen}
             onReloadWeeklyPlan={fetchWeeklyPlan}
+            onCreateWeeklyPlan={createWeeklyPlan}
           />
         </SlideIn>
       )}
@@ -202,6 +207,11 @@ export function GymStudentDetail({
             onRemoveMeal={removeMeal}
             onRemoveFood={removeFoodFromMeal}
             onToggleWaterGlass={handleToggleWaterGlass}
+            chatStreamUrl={
+              studentData
+                ? `${studentsApiBase}/${studentData.id}/nutrition/chat-stream`
+                : undefined
+            }
           />
         </SlideIn>
       )}

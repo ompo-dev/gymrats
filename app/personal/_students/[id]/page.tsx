@@ -3,8 +3,12 @@
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { PersonalStudentDetail } from "@/components/organisms/personal/personal-student-detail";
-import type { PersonalStudentAssignmentForDetail } from "@/components/organisms/personal/personal-student-detail/hooks/use-personal-student-detail";
+import { GymStudentDetail } from "@/components/organisms/gym/gym-student-detail";
+import {
+  getPersonalStudentById,
+  getPersonalStudentPayments,
+} from "../../actions";
+import type { Payment, StudentData } from "@/lib/types";
 
 export default function PersonalStudentDetailPage({
   params,
@@ -13,8 +17,8 @@ export default function PersonalStudentDetailPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const [assignment, setAssignment] =
-    useState<PersonalStudentAssignmentForDetail | null>(null);
+  const [student, setStudent] = useState<StudentData | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,17 +26,16 @@ export default function PersonalStudentDetailPage({
     async function load() {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/personals/students/${id}`);
-        const data = await res.json();
+        const [fullStudent, studentPayments] = await Promise.all([
+          getPersonalStudentById(id),
+          getPersonalStudentPayments(id),
+        ]);
         if (!cancelled) {
-          if (res.ok && data.assignment) {
-            setAssignment(data.assignment);
-          } else {
-            setAssignment(null);
-          }
+          setStudent(fullStudent ?? null);
+          setPayments(studentPayments ?? []);
         }
       } catch {
-        if (!cancelled) setAssignment(null);
+        if (!cancelled) setStudent(null);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -43,7 +46,7 @@ export default function PersonalStudentDetailPage({
     };
   }, [id]);
 
-  if (isLoading && !assignment) {
+  if (isLoading && !student) {
     return (
       <div className="flex min-h-[300px] items-center justify-center px-4 py-6">
         <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
@@ -51,16 +54,17 @@ export default function PersonalStudentDetailPage({
     );
   }
 
-  if (!assignment) {
+  if (!student) {
     router.replace("/personal?tab=students");
     return null;
   }
 
   return (
-    <PersonalStudentDetail
-      studentId={id}
-      assignment={assignment}
+    <GymStudentDetail
+      student={student}
+      payments={payments}
       onBack={() => router.push("/personal?tab=students")}
+      variant="personal"
     />
   );
 }

@@ -5,6 +5,8 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { updateDailyNutritionSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import {
   getBrazilNutritionDateKey,
@@ -192,5 +194,149 @@ export async function GET(
   } catch (error) {
     console.error("[personals/students/[id]/nutrition] Erro:", error);
     return internalErrorResponse("Erro ao buscar nutrição");
+  }
+}
+
+/**
+ * POST /api/personals/students/[id]/nutrition
+ * Atualiza a nutrição do dia do aluno pelo personal.
+ */
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx) {
+      return errorResponse ?? internalErrorResponse("Não autenticado");
+    }
+
+    const { id: studentId } = await params;
+
+    const assignment = await db.studentPersonalAssignment.findFirst({
+      where: {
+        studentId,
+        personalId: ctx.personalId,
+        status: "active",
+      },
+    });
+    if (!assignment) {
+      return forbiddenResponse(
+        "Aluno não encontrado ou não está atribuído a você",
+      );
+    }
+
+    const validation = await validateBody(request, updateDailyNutritionSchema);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const { date, meals, targetWater } = validation.data;
+
+    if (targetWater !== undefined) {
+      await db.studentProfile.upsert({
+        where: { studentId },
+        create: { studentId, targetWater },
+        update: { targetWater },
+      });
+    }
+
+    const hasNutritionPayload = meals !== undefined || date !== undefined;
+
+    if (!hasNutritionPayload) {
+      return successResponse({ message: "Meta de água atualizada com sucesso" });
+    }
+
+    let dateKey: string;
+    try {
+      dateKey = getBrazilNutritionDateKey(date);
+    } catch {
+      return badRequestResponse("Data inválida fornecida");
+    }
+
+    const { start: startOfDay, end: endOfDay } =
+      getBrazilNutritionDayRange(dateKey);
+
+    let dailyNutrition = await db.dailyNutrition.findFirst({
+      where: {
+        studentId,
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+    });
+
+    if (!dailyNutrition) {
+      dailyNutrition = await db.dailyNutrition.create({
+        data: {
+          studentId,
+          date: startOfDay,
+          waterIntake: 0,
+        },
+      });
+    }
+
+    if (meals && Array.isArray(meals)) {
+      await db.nutritionMeal.deleteMany({
+        where: { dailyNutritionId: dailyNutrition.id },
+      });
+
+      for (const meal of meals) {
+        if (!meal.name || !meal.type) {
+          console.warn(
+            "[personals/nutrition] Meal sem name ou type, pulando:",
+            meal,
+          );
+          continue;
+        }
+
+        const nutritionMeal = await db.nutritionMeal.create({
+          data: {
+            dailyNutritionId: dailyNutrition.id,
+            name: meal.name,
+            type: meal.type,
+            calories: meal.calories || 0,
+            protein: meal.protein || 0,
+            carbs: meal.carbs || 0,
+            fats: meal.fats || 0,
+            time: meal.time || null,
+            completed: meal.completed || false,
+            order: meal.order !== undefined ? meal.order : 0,
+          },
+        });
+
+        if (meal.foods && Array.isArray(meal.foods)) {
+          for (const food of meal.foods) {
+            if (!food.foodName) {
+              console.warn(
+                "[personals/nutrition] Food sem foodName, pulando:",
+                food,
+              );
+              continue;
+            }
+
+            await db.nutritionFood.create({
+              data: {
+                nutritionMealId: nutritionMeal.id,
+                foodId: food.foodId || null,
+                foodName: food.foodName,
+                servings: food.servings || 1,
+                calories: food.calories || 0,
+                protein: food.protein || 0,
+                carbs: food.carbs || 0,
+                fats: food.fats || 0,
+                servingSize: food.servingSize || "",
+              },
+            });
+          }
+        }
+      }
+    }
+
+    return successResponse({ message: "Nutrição atualizada com sucesso" });
+  } catch (error) {
+    console.error("[personals/students/[id]/nutrition] Erro POST:", error);
+    return internalErrorResponse("Erro ao atualizar nutrição");
   }
 }

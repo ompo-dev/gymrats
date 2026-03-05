@@ -36,6 +36,7 @@ export interface DietTabProps {
   onRemoveMeal: (mealId: string) => void;
   onRemoveFood: (mealId: string, foodId: string) => void;
   onToggleWaterGlass: (index: number) => void;
+  chatStreamUrl?: string;
 }
 
 export function DietTab({
@@ -53,6 +54,7 @@ export function DietTab({
   onRemoveMeal,
   onRemoveFood,
   onToggleWaterGlass,
+  chatStreamUrl,
 }: DietTabProps) {
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMeal, setShowAddMeal] = useState(false);
@@ -207,7 +209,7 @@ export function DietTab({
           meals={nutrition.meals}
           onSelectMeal={(mealId) => setSelectedMealId(mealId)}
           onApplyNutrition={onApplyNutrition}
-          chatStreamUrl={`/api/gym/students/${student.id}/nutrition/chat-stream`}
+          chatStreamUrl={chatStreamUrl}
         />
       )}
     </>

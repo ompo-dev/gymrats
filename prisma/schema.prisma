@@ -405,9 +405,11 @@ model Personal {
   atendimentoRemoto     Boolean  @default(true)
   isActive              Boolean  @default(true)
 
-  subscription    PersonalSubscription?
-  gymAffiliations GymPersonalAffiliation[]
+  subscription       PersonalSubscription?
+  gymAffiliations    GymPersonalAffiliation[]
   studentAssignments StudentPersonalAssignment[]
+  coupons            PersonalCoupon[]
+  expenses           PersonalExpense[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1100,6 +1102,43 @@ model Expense {
   createdAt DateTime @default(now())
 
   @@map("expenses")
+}
+
+model PersonalCoupon {
+  id           String    @id @default(cuid())
+  personalId   String
+  personal     Personal  @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  code         String
+  notes        String?
+  discountType String    // "percentage" | "fixed"
+  discountValue Float
+  maxUses      Int       @default(-1) // -1 = ilimitado
+  currentUses  Int       @default(0)
+  isActive     Boolean   @default(true)
+  expiresAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([personalId])
+  @@index([code])
+  @@map("personal_coupons")
+}
+
+model PersonalExpense {
+  id          String   @id @default(cuid())
+  personalId  String
+  personal    Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  type        String   // maintenance, equipment, staff, utilities, rent, other
+  description String?
+  amount      Float
+  date        DateTime @default(now())
+  category    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([personalId])
+  @@map("personal_expenses")
 }
 
 model PaymentMethod {

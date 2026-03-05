@@ -27,12 +27,18 @@ export interface UseGymStudentDetailProps {
   student: StudentData | null;
   payments?: Payment[];
   onBack: () => void;
+  variant?: "gym" | "personal";
 }
+
+const getStudentsApiBase = (variant: "gym" | "personal") =>
+  variant === "personal" ? "/api/personals/students" : "/api/gym/students";
 
 export function useGymStudentDetail({
   student,
   payments = [],
+  variant = "gym",
 }: UseGymStudentDetailProps) {
+  const apiBase = getStudentsApiBase(variant);
   const actions = useGym("actions");
   const [studentPayments, setStudentPayments] = useState(payments);
   const [activeTab, setActiveTab] = useState<StudentDetailTab>("overview");
@@ -59,7 +65,7 @@ export function useGymStudentDetail({
     if (!student?.id) return;
     setIsLoadingWeeklyPlan(true);
     try {
-      const res = await fetch(`/api/gym/students/${student.id}/weekly-plan`);
+      const res = await fetch(`${apiBase}/${student.id}/weekly-plan`);
       const data = await res.json();
       if (data.success && data.weeklyPlan) {
         setWeeklyPlan(data.weeklyPlan);
@@ -71,7 +77,7 @@ export function useGymStudentDetail({
     } finally {
       setIsLoadingWeeklyPlan(false);
     }
-  }, [student?.id]);
+  }, [student?.id, apiBase]);
 
   const fetchNutrition = useCallback(
     async (date?: string) => {
@@ -80,7 +86,7 @@ export function useGymStudentDetail({
       setIsLoadingNutrition(true);
       try {
         const res = await fetch(
-          `/api/gym/students/${student.id}/nutrition?date=${d}`,
+          `${apiBase}/${student.id}/nutrition?date=${d}`,
         );
         const data = await res.json();
         if (data.success) {
@@ -107,7 +113,7 @@ export function useGymStudentDetail({
         setIsLoadingNutrition(false);
       }
     },
-    [student?.id, nutritionDate],
+    [student?.id, nutritionDate, apiBase],
   );
 
   const getTargets = useCallback(() => {
@@ -154,7 +160,7 @@ export function useGymStudentDetail({
       };
       setDailyNutrition(nextNutrition);
       try {
-        await fetch(`/api/gym/students/${student.id}/nutrition`, {
+        await fetch(`${apiBase}/${student.id}/nutrition`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -167,7 +173,7 @@ export function useGymStudentDetail({
         console.error("[GymStudentDetail] Erro ao salvar nutrição:", error);
       }
     },
-    [student?.id, nutritionDate, calculateTotalsFromCompletedMeals, getTargets],
+    [student?.id, nutritionDate, calculateTotalsFromCompletedMeals, getTargets, apiBase],
   );
 
   const updateTargetWater = useCallback(
@@ -175,7 +181,7 @@ export function useGymStudentDetail({
       if (!student?.id) return;
       const normalized = Math.max(0, Math.round(targetWater));
       try {
-        await fetch(`/api/gym/students/${student.id}/nutrition`, {
+        await fetch(`${apiBase}/${student.id}/nutrition`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ targetWater: normalized }),
@@ -187,7 +193,7 @@ export function useGymStudentDetail({
         console.error("[GymStudentDetail] Erro ao salvar meta de água:", error);
       }
     },
-    [student?.id],
+    [student?.id, apiBase],
   );
 
   const applyNutrition = useCallback(
@@ -389,7 +395,7 @@ export function useGymStudentDetail({
   };
 
   const handleAssignPersonal = async (personalId: string) => {
-    if (!student?.id || !personalId.trim()) return;
+    if (!student?.id || !personalId.trim() || variant === "personal") return;
     setIsAssigningPersonal(true);
     try {
       const response = await fetch(
@@ -426,6 +432,16 @@ export function useGymStudentDetail({
     setActiveTab("diet");
   };
 
+  const createWeeklyPlan = useCallback(async () => {
+    if (!student?.id) return;
+    const res = await fetch(`${apiBase}/${student.id}/weekly-plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) await fetchWeeklyPlan();
+  }, [student?.id, apiBase, fetchWeeklyPlan]);
+
   return {
     student,
     studentPayments,
@@ -459,6 +475,8 @@ export function useGymStudentDetail({
     DAY_NAMES,
     openWorkoutsEditor,
     openDietTab,
+    createWeeklyPlan,
+    studentsApiBase: apiBase,
   };
 }
 
