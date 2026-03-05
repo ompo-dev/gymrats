@@ -1,7 +1,7 @@
 "use client";
 
 import { Flame, Loader2, Search, UserPlus } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
@@ -113,6 +113,12 @@ export function GymStudentsPage({
     "status",
     parseAsString.withDefault("active"),
   );
+  const [networkFilter, setNetworkFilter] = useQueryState("network", {
+    defaultValue: "all",
+  });
+  const [gymFilter, setGymFilter] = useQueryState("gym", {
+    defaultValue: "all",
+  });
   const [studentId, setStudentId] = useQueryState("studentId");
 
   const safeStudents = Array.isArray(students) ? students : [];
@@ -123,6 +129,7 @@ export function GymStudentsPage({
       membershipStatus?: string;
       status?: string;
       student?: { user?: { name?: string; email?: string } };
+      gymMembership?: { gymId?: string };
     };
     const name = s.name ?? s.student?.user?.name ?? "";
     const email = s.email ?? s.student?.user?.email ?? "";
@@ -136,6 +143,23 @@ export function GymStudentsPage({
       statusFilter === "all" ||
       (statusFilter === "active" && isActive) ||
       (statusFilter === "inactive" && !isActive);
+
+    // Personal variant specific filters
+    if (variant === "personal") {
+      const studentGymId = s.gymMembership?.gymId;
+      const matchesNetwork =
+        networkFilter === "all" ||
+        (networkFilter === "personal" && !studentGymId) ||
+        (networkFilter === "gym" && !!studentGymId);
+
+      const matchesGym =
+        networkFilter !== "gym" ||
+        gymFilter === "all" ||
+        (networkFilter === "gym" && studentGymId === gymFilter);
+
+      return matchesSearch && matchesStatus && matchesNetwork && matchesGym;
+    }
+
     return matchesSearch && matchesStatus;
   });
 
@@ -156,6 +180,20 @@ export function GymStudentsPage({
     { value: "all", label: "Todos" },
     { value: "active", label: "Ativos" },
     { value: "inactive", label: "Inativos" },
+  ];
+
+  const networkOptions = [
+    { value: "all", label: "Todos" },
+    { value: "personal", label: "Pessoais" },
+    { value: "gym", label: "Academia" },
+  ];
+
+  const gymOptions = [
+    { value: "all", label: "Todas as academias" },
+    ...personalAffiliations.map((aff) => ({
+      value: aff.gym.id,
+      label: aff.gym.name,
+    })),
   ];
 
   if (studentId) {
@@ -212,14 +250,42 @@ export function GymStudentsPage({
               leftIcon={<Search className="h-5 w-5" />}
               className="h-12"
             />
-            <DuoSelect.Simple
-              options={statusOptions}
-              value={statusFilter || "all"}
-              onChange={(value) =>
-                setStatusFilter(value as "all" | "active" | "inactive")
-              }
-              placeholder="Status"
-            />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <DuoSelect.Simple
+                options={statusOptions}
+                value={statusFilter || "all"}
+                onChange={(value) =>
+                  setStatusFilter(value as "all" | "active" | "inactive")
+                }
+                placeholder="Status"
+              />
+              {variant === "personal" && (
+                <DuoSelect.Simple
+                  options={networkOptions}
+                  value={networkFilter || "all"}
+                  onChange={(value) => setNetworkFilter(value as string)}
+                  placeholder="Tipo de Vínculo"
+                />
+              )}
+            </div>
+
+            <AnimatePresence>
+              {variant === "personal" && networkFilter === "gym" && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <DuoSelect.Simple
+                    options={gymOptions}
+                    value={gymFilter || "all"}
+                    onChange={(value) => setGymFilter(value as string)}
+                    placeholder="Selecione a Academia"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </DuoCard.Root>
       </SlideIn>
@@ -348,19 +414,34 @@ export function GymStudentsPage({
                   </div>
                 </div>
 
-                {student.assignedTrainer && (
+                {variant === "personal" ? (
                   <DuoCard.Root
                     variant="default"
                     size="sm"
                     className="mt-4 bg-gray-100 p-2 text-center"
                   >
                     <p className="text-xs font-bold text-duo-gray-dark">
-                      Personal:{" "}
+                      Contexto:{" "}
                       <span className="text-duo-text">
-                        {student.assignedTrainer}
+                        {student.gymMembership?.gymName ?? "Atendimento independente"}
                       </span>
                     </p>
                   </DuoCard.Root>
+                ) : (
+                  student.assignedTrainer && (
+                    <DuoCard.Root
+                      variant="default"
+                      size="sm"
+                      className="mt-4 bg-gray-100 p-2 text-center"
+                    >
+                      <p className="text-xs font-bold text-duo-gray-dark">
+                        Personal:{" "}
+                        <span className="text-duo-text">
+                          {student.assignedTrainer}
+                        </span>
+                      </p>
+                    </DuoCard.Root>
+                  )
                 )}
               </DuoCard.Root>
             </motion.div>

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface StudentSearchResult {
   found: boolean;
-  isAlreadyAssigned?: boolean;
+  assignedGymIds?: string[];
   student?: {
     id: string;
     name: string;
@@ -181,17 +181,27 @@ export function AddPersonalStudentModal({
               </DuoCard.Root>
             )}
 
-            {searchResult.found && searchResult.isAlreadyAssigned && (
-              <DuoCard.Root variant="orange" size="sm">
-                <p className="text-sm text-duo-text">
-                  Este aluno já está atribuído a você.
-                </p>
-              </DuoCard.Root>
+            {searchResult.found && searchResult.student && (
+              (() => {
+                const currentContext = selectedGymId || "independent";
+                const isAlreadyAssignedInContext = searchResult.assignedGymIds?.includes(currentContext);
+
+                if (isAlreadyAssignedInContext) {
+                  return (
+                    <DuoCard.Root variant="orange" size="sm">
+                      <p className="text-sm text-duo-text">
+                        Este aluno já está atribuído a você {selectedGymId ? "nesta academia" : "como atendimento independente"}.
+                      </p>
+                    </DuoCard.Root>
+                  );
+                }
+                return null;
+              })()
             )}
 
             {searchResult.found &&
-              !searchResult.isAlreadyAssigned &&
-              searchResult.student && (
+              searchResult.student &&
+              !searchResult.assignedGymIds?.includes(selectedGymId || "independent") && (
                 <>
                   <DuoCard.Root variant="highlighted" size="sm">
                     <div className="flex items-center gap-3">
@@ -250,7 +260,7 @@ export function AddPersonalStudentModal({
 
                   <DuoButton
                     onClick={handleAssign}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || searchResult.assignedGymIds?.includes(selectedGymId || "independent")}
                     className="w-full"
                   >
                     {isSubmitting ? (

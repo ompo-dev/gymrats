@@ -501,7 +501,7 @@ model StudentPersonalAssignment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([studentId, personalId])
+  @@unique([studentId, personalId, gymId])
   @@index([studentId])
   @@index([personalId])
   @@index([gymId])

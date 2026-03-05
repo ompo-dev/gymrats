@@ -195,10 +195,12 @@ export class StudentPersonalService {
       return { found: false };
     }
 
-    const existingAssignment = user.student.personalAssignments[0];
+    const assignments = user.student.personalAssignments;
+    const assignedGymIds = assignments.map((a) => a.gymId ?? "independent");
+    
     return {
       found: true,
-      isAlreadyAssigned: !!existingAssignment,
+      assignedGymIds,
       student: {
         id: user.student.id,
         name: user.name,
@@ -226,8 +228,8 @@ export class StudentPersonalService {
       throw new Error("Personal não está filiado à academia");
     }
 
-    const existing = await db.studentPersonalAssignment.findUnique({
-      where: { studentId_personalId: { studentId, personalId } },
+    const existing = await (db.studentPersonalAssignment as any).findUnique({
+      where: { studentId_personalId_gymId: { studentId, personalId, gymId } },
     });
 
     if (existing) {
@@ -269,8 +271,8 @@ export class StudentPersonalService {
       }
     }
 
-    const existing = await db.studentPersonalAssignment.findUnique({
-      where: { studentId_personalId: { studentId, personalId } },
+    const existing = await (db.studentPersonalAssignment as any).findUnique({
+      where: { studentId_personalId_gymId: { studentId, personalId, gymId: gymId ?? null } },
     });
 
     if (existing) {
@@ -295,11 +297,11 @@ export class StudentPersonalService {
     });
   }
 
-  static async removeAssignment(input: { studentId: string; personalId: string }) {
-    const { studentId, personalId } = input;
+  static async removeAssignment(input: { studentId: string; personalId: string; gymId?: string }) {
+    const { studentId, personalId, gymId = null } = input;
 
-    const existing = await db.studentPersonalAssignment.findUnique({
-      where: { studentId_personalId: { studentId, personalId } },
+    const existing = await (db.studentPersonalAssignment as any).findUnique({
+      where: { studentId_personalId_gymId: { studentId, personalId, gymId } },
     });
     if (!existing) return null;
 
@@ -356,12 +358,12 @@ export class StudentPersonalService {
     return assignment;
   }
 
-  static async listStudentsByPersonal(personalId: string, gymId?: string) {
+  static async listStudentsByPersonal(personalId: string, gymId?: string | null) {
     return db.studentPersonalAssignment.findMany({
       where: {
         personalId,
         status: "active",
-        ...(gymId ? { gymId } : {}),
+        ...(gymId !== undefined ? { gymId } : {}),
       },
       include: {
         student: {
