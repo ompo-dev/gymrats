@@ -4,7 +4,7 @@
  * quando Client Components no fallback podem não estar disponíveis durante o streaming.
  */
 interface LoadingScreenFallbackProps {
-  variant?: "student" | "gym";
+  variant?: "student" | "gym" | "personal";
   message?: string;
 }
 
@@ -13,12 +13,27 @@ export function LoadingScreenFallback({
   message = "Carregando...",
 }: LoadingScreenFallbackProps) {
   const isStudent = variant === "student";
-  const primaryClass = isStudent ? "text-duo-green" : "text-duo-orange";
-  const bgClass = isStudent ? "bg-duo-green/10" : "bg-duo-orange/10";
-  const ringClass = isStudent ? "border-duo-green" : "border-duo-orange";
+  const isPersonal = variant === "personal";
+  const primaryClass = isStudent
+    ? "text-duo-green"
+    : isPersonal
+      ? "text-duo-primary"
+      : "text-duo-orange";
+  const bgClass = isStudent
+    ? "bg-duo-green/10"
+    : isPersonal
+      ? "bg-duo-primary/10"
+      : "bg-duo-orange/10";
+  const ringClass = isStudent
+    ? "border-duo-green"
+    : isPersonal
+      ? "border-duo-primary"
+      : "border-duo-orange";
   const subtext = isStudent
     ? "Preparando sua experiência..."
-    : "Carregando sua academia...";
+    : isPersonal
+      ? "Carregando sua área profissional..."
+      : "Carregando sua academia...";
 
   return (
     <div

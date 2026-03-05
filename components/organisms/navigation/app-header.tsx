@@ -10,7 +10,7 @@ import { StreakModal } from "../modals/streak-modal";
 import { GymSelector } from "./gym-selector";
 
 interface AppHeaderProps {
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   stats: {
     streak: number;
     xp: number;
@@ -24,13 +24,15 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
   const [streakModalOpen, setStreakModalOpen] = useState(false);
   const [themeModalOpen, setThemeModalOpen] = useState(false);
   const isGym = userType === "gym";
+  const isPersonal = userType === "personal";
+  const isTeamView = isGym || isPersonal;
 
   return (
     <>
       <header
         className={cn(
           "sticky top-0 z-50 w-full bg-duo-bg-card",
-          isGym
+          isTeamView
             ? "border-b-2 border-duo-border shadow-sm"
             : "border-b border-duo-border",
         )}
@@ -41,13 +43,21 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
           )}
         >
           <div className="flex items-center gap-3 w-full">
-            {/* Logo apenas para students, Seletor para gyms */}
+            {/* Logo para student/personal, seletor apenas para gyms */}
             {isGym ? (
               <GymSelector.Simple />
             ) : (
               showLogo && (
-                <Link href="/student" className="flex items-center gap-2">
-                  <div className="text-2xl font-black tracking-tight text-duo-green">
+                <Link
+                  href={isPersonal ? "/personal" : "/student"}
+                  className="flex items-center gap-2"
+                >
+                  <div
+                    className={cn(
+                      "text-2xl font-black tracking-tight",
+                      isPersonal ? "text-duo-primary" : "text-duo-green",
+                    )}
+                  >
                     GymRats
                   </div>
                 </Link>
@@ -55,17 +65,19 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
             )}
           </div>
 
-          <div className={cn("flex items-center", isGym ? "gap-2" : "gap-3")}>
+          <div
+            className={cn("flex items-center", isTeamView ? "gap-2" : "gap-3")}
+          >
             {/* Color Picker - teste de temas */}
             <button
               onClick={() => setThemeModalOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg-card)] text-[var(--duo-primary)] transition-all hover:border-[var(--duo-primary)] hover:bg-[var(--duo-primary)]/10"
+              className="flex h-9 w-9 items-center justify-center rounded-xl border-2 border-duo-border bg-duo-bg-card text-duo-primary transition-all hover:border-duo-primary hover:bg-duo-primary/10"
               aria-label="Testar temas"
             >
               <Palette size={18} />
             </button>
             {/* Streak only for students */}
-            {!isGym && (
+            {!isTeamView && (
               <button
                 onClick={() => setStreakModalOpen(true)}
                 className={cn(
@@ -95,7 +107,7 @@ function AppHeaderSimple({ userType, stats, showLogo = true }: AppHeaderProps) {
         </div>
       </header>
 
-      {!isGym && (
+      {!isTeamView && (
         <StreakModal.Simple
           open={streakModalOpen}
           onClose={() => setStreakModalOpen(false)}

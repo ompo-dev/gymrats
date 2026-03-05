@@ -16,7 +16,7 @@ export interface TabConfig {
 
 export interface AppLayoutProps {
   children: ReactNode;
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   tabs: TabConfig[];
   defaultTab: string;
   basePath: string;

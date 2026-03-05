@@ -12,7 +12,7 @@ interface Tab {
 }
 
 interface AppBottomNavProps {
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   activeTab: string;
   tabs: Tab[];
   onTabChange: (tab: string) => void;
@@ -25,9 +25,18 @@ function AppBottomNavSimple({
   onTabChange,
 }: AppBottomNavProps) {
   const isGym = userType === "gym";
+  const isPersonal = userType === "personal";
   const _activeColor = isGym ? "#FF9600" : "#1CB0F6";
-  const activeBgClass = isGym ? "bg-[#FF9600]/10" : "bg-duo-blue/10";
-  const activeTextClass = isGym ? "text-[#FF9600]" : "text-duo-blue";
+  const activeBgClass = isGym
+    ? "bg-[#FF9600]/10"
+    : isPersonal
+      ? "bg-duo-primary/10"
+      : "bg-duo-blue/10";
+  const activeTextClass = isGym
+    ? "text-[#FF9600]"
+    : isPersonal
+      ? "text-duo-primary"
+      : "text-duo-blue";
 
   return (
     <motion.nav
