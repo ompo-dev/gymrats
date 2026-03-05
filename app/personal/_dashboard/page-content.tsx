@@ -1,7 +1,12 @@
 "use client";
 
 import { PersonalDashboardPage } from "@/components/organisms/personal";
-import type { PersonalProfile } from "../types";
+import type {
+  PersonalAffiliation,
+  PersonalProfile,
+  PersonalStudentAssignment,
+  PersonalSubscriptionData,
+} from "../types";
 
 interface PersonalDashboardStats {
   gyms: number;
@@ -13,11 +18,25 @@ interface PersonalDashboardStats {
 interface PersonalDashboardPageContentProps {
   profile: PersonalProfile | null;
   stats: PersonalDashboardStats;
+  affiliations: PersonalAffiliation[];
+  students: PersonalStudentAssignment[];
+  subscription: PersonalSubscriptionData | null;
 }
 
 export function PersonalDashboardPageContent({
   profile,
   stats,
+  affiliations,
+  students,
+  subscription,
 }: PersonalDashboardPageContentProps) {
-  return <PersonalDashboardPage profile={profile} stats={stats} />;
+  return (
+    <PersonalDashboardPage
+      profile={profile}
+      stats={stats}
+      affiliations={affiliations}
+      students={students}
+      subscription={subscription}
+    />
+  );
 }

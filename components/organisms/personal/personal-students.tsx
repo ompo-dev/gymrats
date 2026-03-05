@@ -1,7 +1,10 @@
 "use client";
 
-import { Loader2, UserMinus, UserPlus } from "lucide-react";
+import { Loader2, Search, UserMinus, UserPlus } from "lucide-react";
+import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +40,9 @@ export function PersonalStudentsPage({
   onRefresh,
 }: PersonalStudentsPageProps) {
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useQueryState("search", {
+    defaultValue: "",
+  });
   const [filter, setFilter] = useState<string>(FILTER_ALL);
   const [gymIdFilter, setGymIdFilter] = useState<string>("");
   const [assignStudentId, setAssignStudentId] = useState("");
@@ -45,6 +51,14 @@ export function PersonalStudentsPage({
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const filteredStudents = students.filter((item) => {
+    const name = item.student?.user?.name ?? "";
+    const email = item.student?.user?.email ?? "";
+    const searchLower = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !searchLower ||
+      name.toLowerCase().includes(searchLower) ||
+      email.toLowerCase().includes(searchLower);
+    if (!matchesSearch) return false;
     if (filter === FILTER_INDEPENDENT) return !item.gym?.id;
     if (filter === FILTER_VIA_GYM && gymIdFilter)
       return item.gym?.id === gymIdFilter;
@@ -121,14 +135,38 @@ export function PersonalStudentsPage({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <DuoCard.Root>
-        <h2 className="text-lg font-bold text-duo-fg">Alunos atendidos</h2>
-        <p className="mt-1 text-sm text-duo-fg-muted">
-          Filtre por contexto e atribua ou remova alunos.
-        </p>
-      </DuoCard.Root>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">Alunos</h1>
+          <p className="text-sm text-duo-gray-dark">
+            Gerencie alunos independentes e via academia
+          </p>
+        </div>
+      </FadeIn>
 
+      <SlideIn delay={0.1}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <Search
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-duo-fg">Buscar</h2>
+            </div>
+            <DuoInput.Simple
+              label="Nome ou email"
+              placeholder="Buscar aluno..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </DuoCard.Header>
+        </DuoCard.Root>
+      </SlideIn>
+
+      <SlideIn delay={0.2}>
       <DuoCard.Root>
         <h3 className="font-semibold text-duo-fg">Atribuir aluno</h3>
         <div className="mt-3 space-y-3">
@@ -166,7 +204,9 @@ export function PersonalStudentsPage({
           </DuoButton>
         </div>
       </DuoCard.Root>
+      </SlideIn>
 
+      <SlideIn delay={0.3}>
       <DuoCard.Root>
         <h3 className="font-semibold text-duo-fg">Filtro</h3>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -229,6 +269,7 @@ export function PersonalStudentsPage({
           </div>
         )}
       </DuoCard.Root>
+      </SlideIn>
 
       {filteredStudents.length === 0 ? (
         <DuoCard.Root>
@@ -239,7 +280,8 @@ export function PersonalStudentsPage({
           </p>
         </DuoCard.Root>
       ) : (
-        filteredStudents.map((item) => (
+        <SlideIn delay={0.4}>
+        {filteredStudents.map((item) => (
           <DuoCard.Root key={item.id}>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -266,7 +308,8 @@ export function PersonalStudentsPage({
               </DuoButton>
             </div>
           </DuoCard.Root>
-        ))
+        ))}
+        </SlideIn>
       )}
     </div>
   );

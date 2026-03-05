@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, type LucideIcon, Settings } from "lucide-react";
+import { BarChart3, Crown, type LucideIcon, Settings } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -16,6 +16,13 @@ interface MoreMenuItem {
 }
 
 const moreMenuItems: MoreMenuItem[] = [
+  {
+    id: "stats",
+    icon: BarChart3,
+    label: "Estatísticas",
+    description: "Análises detalhadas e relatórios",
+    color: "duo-blue",
+  },
   {
     id: "settings",
     icon: Settings,
@@ -34,8 +41,18 @@ const moreMenuItems: MoreMenuItem[] = [
 
 function PersonalMoreMenuSimple() {
   const [, setTab] = useQueryState("tab", parseAsString);
+  const [, setSubTab] = useQueryState("subTab", parseAsString);
 
   const handleItemClick = async (itemId: string) => {
+    if (itemId === "financial") {
+      await setTab("financial");
+      await setSubTab("subscription");
+      return;
+    }
+    if (itemId === "stats") {
+      await setTab("stats");
+      return;
+    }
     await setTab(itemId);
   };
 

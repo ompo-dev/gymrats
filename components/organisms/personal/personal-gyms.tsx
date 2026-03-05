@@ -2,6 +2,8 @@
 
 import { Building2, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
@@ -97,14 +99,17 @@ export function PersonalGymsPage({
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <DuoCard.Root>
-        <h2 className="text-lg font-bold text-duo-fg">Academias vinculadas</h2>
-        <p className="mt-1 text-sm text-duo-fg-muted">
-          Academias onde você atua. Solicite à academia seu ID para vincular.
-        </p>
-      </DuoCard.Root>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">Academias</h1>
+          <p className="text-sm text-duo-gray-dark">
+            Academias onde você atua
+          </p>
+        </div>
+      </FadeIn>
 
+      <SlideIn delay={0.1}>
       <DuoCard.Root>
         <h3 className="font-semibold text-duo-fg">Vincular nova academia</h3>
         <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -130,7 +135,9 @@ export function PersonalGymsPage({
           </DuoButton>
         </div>
       </DuoCard.Root>
+      </SlideIn>
 
+      <SlideIn delay={0.2}>
       {affiliations.length === 0 ? (
         <DuoCard.Root>
           <p className="text-sm text-duo-fg-muted">
@@ -159,6 +166,7 @@ export function PersonalGymsPage({
           </DuoCard.Root>
         ))
       )}
+      </SlideIn>
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { PersonalDashboardPageContent } from "./_dashboard/page-content";
 import { PersonalFinancialPageContent } from "./_financial/page-content";
 import { PersonalGymsPageContent } from "./_gyms/page-content";
 import { PersonalSettingsPageContent } from "./_settings/page-content";
+import { PersonalStatsPageContent } from "./_stats/page-content";
 import { PersonalStudentsPageContent } from "./_students/page-content";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
 import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
@@ -85,7 +86,13 @@ function PersonalHomeContent({
       className="px-4 py-6"
     >
       {tab === "dashboard" && (
-        <PersonalDashboardPageContent profile={profile} stats={stats} />
+        <PersonalDashboardPageContent
+          profile={profile}
+          stats={stats}
+          affiliations={affiliations}
+          students={students}
+          subscription={subscription}
+        />
       )}
       {tab === "students" && (
         <PersonalStudentsPageContent
@@ -107,7 +114,15 @@ function PersonalHomeContent({
         />
       )}
       {tab === "settings" && (
-        <PersonalSettingsPageContent profile={profile} />
+        <PersonalSettingsPageContent profile={profile} onRefresh={load} />
+      )}
+      {tab === "stats" && (
+        <PersonalStatsPageContent
+          gyms={stats.gyms}
+          students={stats.students}
+          studentsViaGym={stats.studentsViaGym}
+          independentStudents={stats.independentStudents}
+        />
       )}
       {tab === "more" && <PersonalMoreMenu.Simple />}
     </motion.div>

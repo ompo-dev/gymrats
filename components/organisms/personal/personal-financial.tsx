@@ -3,11 +3,12 @@
 import { Loader2 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 export interface PersonalSubscriptionDisplay {
   id: string;
@@ -105,44 +106,40 @@ export function PersonalFinancialPage({
     }
   };
 
+  const viewMode = subTab === "subscription" ? "subscription" : "overview";
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <DuoCard.Root>
-        <h2 className="text-lg font-bold text-duo-fg">Finanças</h2>
-        <p className="mt-1 text-sm text-duo-fg-muted">
-          Assinatura e desconto por afiliação a academias Premium/Enterprise.
-        </p>
-      </DuoCard.Root>
+    <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
+      <FadeIn>
+        <div className="text-center">
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">
+            Gestão Financeira
+          </h1>
+          <p className="text-sm text-duo-gray-dark">
+            Assinatura e desconto por afiliação a academias Premium/Enterprise
+          </p>
+        </div>
+      </FadeIn>
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setSubTab("overview")}
-          className={cn(
-            "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-            subTab === "overview"
-              ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-              : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-          )}
-        >
-          Resumo
-        </button>
-        <button
-          type="button"
-          onClick={() => setSubTab("subscription")}
-          className={cn(
-            "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-            subTab === "subscription"
-              ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-              : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-          )}
-        >
-          Assinatura
-        </button>
-      </div>
+      <SlideIn delay={0.1}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <h2 className="font-bold text-duo-fg">Categoria</h2>
+          </DuoCard.Header>
+          <DuoSelect.Simple
+            options={[
+              { value: "overview", label: "Resumo" },
+              { value: "subscription", label: "Assinatura" },
+            ]}
+            value={viewMode}
+            onChange={(v) => setSubTab(v)}
+            placeholder="Selecione a categoria"
+          />
+        </DuoCard.Root>
+      </SlideIn>
 
-      {subTab === "overview" && (
-        <>
+      {viewMode === "overview" && (
+        <SlideIn delay={0.2}>
           {subscription ? (
             <DuoCard.Root>
               <p className="text-sm text-duo-fg-muted">Plano atual</p>
@@ -175,10 +172,11 @@ export function PersonalFinancialPage({
               </p>
             </DuoCard.Root>
           )}
-        </>
+        </SlideIn>
       )}
 
-      {subTab === "subscription" && (
+      {viewMode === "subscription" && (
+        <SlideIn delay={0.2}>
         <DuoCard.Root>
           <h3 className="font-semibold text-duo-fg">Plano</h3>
           <div className="mt-3 space-y-3">
@@ -206,6 +204,7 @@ export function PersonalFinancialPage({
             </DuoButton>
           </div>
         </DuoCard.Root>
+        </SlideIn>
       )}
 
       {pixModal && (
