@@ -72,6 +72,7 @@ export async function getPersonalStudents(
       id: a.id,
       student: {
         id: a.student.id,
+        avatar: a.student.avatar ?? null,
         user: a.student.user
           ? {
               id: a.student.user.id,

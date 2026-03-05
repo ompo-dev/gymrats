@@ -1,6 +1,8 @@
 "use client";
 
 import { Loader2, Search, UserMinus, UserPlus } from "lucide-react";
+import { motion } from "motion/react";
+import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -8,11 +10,13 @@ import { usePersonalStudents } from "@/hooks/use-personal-students";
 import { cn } from "@/lib/utils";
 import { AddPersonalStudentModal } from "./add-personal-student-modal";
 import { PersonalStudentDetail } from "./personal-student-detail";
+import type { PersonalStudentAssignmentForDetail } from "./personal-student-detail/hooks/use-personal-student-detail";
 
 export interface PersonalStudentItem {
   id: string;
   student: {
     id: string;
+    avatar?: string | null;
     user?: { id?: string; name?: string | null; email?: string | null } | null;
   };
   gym?: { id: string; name: string } | null;
@@ -74,7 +78,7 @@ export function PersonalStudentsPage({
       return (
         <PersonalStudentDetail
           studentId={studentId}
-          assignment={selectedAssignment}
+          assignment={selectedAssignment as PersonalStudentAssignmentForDetail}
           onBack={handleBack}
         />
       );
@@ -94,11 +98,21 @@ export function PersonalStudentsPage({
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
-        <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-text">Alunos</h1>
-          <p className="text-sm text-duo-gray-dark">
-            Gerencie alunos independentes e via academia
-          </p>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold text-duo-text">
+              Gestão de Alunos
+            </h1>
+            <p className="text-sm text-duo-gray-dark">
+              {filteredStudents.length} aluno
+              {filteredStudents.length !== 1 ? "s" : ""} encontrado
+              {filteredStudents.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <DuoButton onClick={() => setAssignModalOpen(true)}>
+            <UserPlus className="h-5 w-5" />
+            Atribuir aluno
+          </DuoButton>
         </div>
       </FadeIn>
 
@@ -111,80 +125,60 @@ export function PersonalStudentsPage({
                 style={{ color: "var(--duo-secondary)" }}
                 aria-hidden
               />
-              <h2 className="font-bold text-duo-fg">Buscar</h2>
+              <h2 className="font-bold text-duo-fg">
+                Buscar e Filtrar
+              </h2>
             </div>
-            <DuoInput.Simple
-              label="Nome ou email"
-              placeholder="Buscar aluno..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           </DuoCard.Header>
-        </DuoCard.Root>
-      </SlideIn>
-
-      <SlideIn delay={0.2}>
-        <DuoCard.Root>
-          <h3 className="font-semibold text-duo-fg">Atribuir aluno</h3>
-          <p className="mt-1 text-sm text-duo-fg-muted">
-            Busque por @ ou email para vincular um aluno a você.
-          </p>
-          <DuoButton
-            onClick={() => setAssignModalOpen(true)}
-            variant="primary"
-            className="mt-3"
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Atribuir aluno
-          </DuoButton>
-        </DuoCard.Root>
-      </SlideIn>
-
-      <SlideIn delay={0.3}>
-        <DuoCard.Root>
-          <h3 className="font-semibold text-duo-fg">Filtro</h3>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={setFilterAll}
-              className={cn(
-                "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                filter === FILTER_ALL
-                  ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-                  : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-              )}
-            >
-              Todos
-            </button>
-            <button
-              type="button"
-              onClick={setFilterIndependent}
-              className={cn(
-                "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                filter === FILTER_INDEPENDENT
-                  ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-                  : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-              )}
-            >
-              Independentes
-            </button>
-            {affiliations.length > 0 && (
+          <div className="space-y-4">
+            <DuoInput.Simple
+              placeholder="Buscar por nome ou email..."
+              value={searchQuery || ""}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              leftIcon={<Search className="h-5 w-5" />}
+              className="h-12"
+            />
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={setFilterViaGym}
+                onClick={setFilterAll}
                 className={cn(
                   "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                  filter === FILTER_VIA_GYM
+                  filter === FILTER_ALL
                     ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
                     : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
                 )}
               >
-                Via academia
+                Todos
               </button>
-            )}
-          </div>
-          {filter === FILTER_VIA_GYM && affiliations.length > 0 && (
-            <div className="mt-3">
+              <button
+                type="button"
+                onClick={setFilterIndependent}
+                className={cn(
+                  "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
+                  filter === FILTER_INDEPENDENT
+                    ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
+                    : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
+                )}
+              >
+                Independentes
+              </button>
+              {affiliations.length > 0 && (
+                <button
+                  type="button"
+                  onClick={setFilterViaGym}
+                  className={cn(
+                    "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
+                    filter === FILTER_VIA_GYM
+                      ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
+                      : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
+                  )}
+                >
+                  Via academia
+                </button>
+              )}
+            </div>
+            {filter === FILTER_VIA_GYM && affiliations.length > 0 && (
               <DuoSelect.Simple
                 label="Academia"
                 value={gymIdFilter}
@@ -197,55 +191,101 @@ export function PersonalStudentsPage({
                   })),
                 ]}
               />
-            </div>
-          )}
+            )}
+          </div>
         </DuoCard.Root>
       </SlideIn>
 
       {filteredStudents.length === 0 ? (
-        <DuoCard.Root>
-          <p className="text-sm text-duo-fg-muted">
-            {students.length === 0
-              ? "Nenhum aluno atribuído."
-              : "Nenhum aluno corresponde ao filtro."}
-          </p>
-        </DuoCard.Root>
+        <SlideIn delay={0.2}>
+          <DuoCard.Root
+            variant="default"
+            size="default"
+            className="p-12 text-center"
+          >
+            <p className="text-xl font-bold text-duo-gray-dark">
+              Nenhum aluno encontrado
+            </p>
+            <p className="text-duo-gray-dark">
+              {students.length === 0
+                ? "Atribua alunos usando o botão acima."
+                : "Tente ajustar os filtros de busca"}
+            </p>
+          </DuoCard.Root>
+        </SlideIn>
       ) : (
-        <SlideIn delay={0.4}>
-          {filteredStudents.map((item) => (
-            <DuoCard.Root key={item.id}>
-              <div className="flex items-start justify-between gap-3">
-                <div
-                  className="min-w-0 flex-1 cursor-pointer"
+        <SlideIn delay={0.2}>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredStudents.map((item, index) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.4 }}
+              >
+                <DuoCard.Root
+                  variant="default"
+                  size="default"
                   onClick={() => handleOpenDetail(item.student.id)}
+                  className="cursor-pointer transition-all hover:border-duo-green active:scale-[0.98]"
                 >
-                  <p className="font-semibold text-duo-fg">
-                    {item.student?.user?.name || "Aluno"}
-                  </p>
-                  <p className="mt-1 text-sm text-duo-fg-muted">
-                    {item.gym?.name
-                      ? `Via ${item.gym.name}`
-                      : "Atendimento independente"}
-                  </p>
-                </div>
-                <DuoButton
-                  variant="danger"
-                  size="icon-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemove(item.student.id);
-                  }}
-                  disabled={removingId === item.student.id}
-                >
-                  {removingId === item.student.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <UserMinus className="h-4 w-4" />
-                  )}
-                </DuoButton>
-              </div>
-            </DuoCard.Root>
-          ))}
+                  <div className="mb-4 flex items-start gap-4">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
+                      <Image
+                        src={
+                          item.student?.avatar ||
+                          "/placeholder.svg"
+                        }
+                        alt={item.student?.user?.name ?? "Aluno"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-xl font-bold text-duo-text">
+                        {item.student?.user?.name ?? "Aluno"}
+                      </h3>
+                      <p className="text-sm text-duo-gray-dark">
+                        {item.student?.user?.email ?? ""}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-1 text-xs font-bold",
+                            item.gym?.id
+                              ? "bg-duo-blue text-white"
+                              : "bg-duo-purple/20 text-duo-purple",
+                          )}
+                        >
+                          {item.gym?.name
+                            ? `Via ${item.gym.name}`
+                            : "Independente"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <DuoButton
+                      variant="danger"
+                      size="icon-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemove(item.student.id);
+                      }}
+                      disabled={removingId === item.student.id}
+                    >
+                      {removingId === item.student.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <UserMinus className="h-4 w-4" />
+                      )}
+                    </DuoButton>
+                  </div>
+                </DuoCard.Root>
+              </motion.div>
+            ))}
+          </div>
         </SlideIn>
       )}
 

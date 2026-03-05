@@ -27,6 +27,7 @@ export interface PersonalStudentAssignment {
   id: string;
   student: {
     id: string;
+    avatar?: string | null;
     user?: { id: string; name?: string | null; email?: string | null } | null;
   };
   gym?: { id: string; name: string } | null;

@@ -128,7 +128,7 @@ export function PersonalFinancialPage({
           </SlideIn>
           <SlideIn delay={0.2}>
             {subscription ? (
-              <DuoCard.Root>
+              <DuoCard.Root variant="default" padding="md">
                 <p className="text-sm text-duo-fg-muted">Plano atual</p>
                 <p className="text-xl font-bold text-duo-fg">
                   {subscription.plan === "pro_ai" ? "Pro AI" : "Standard"}
@@ -153,7 +153,7 @@ export function PersonalFinancialPage({
                 </p>
               </DuoCard.Root>
             ) : (
-              <DuoCard.Root>
+              <DuoCard.Root variant="default" padding="md">
                 <p className="text-sm text-duo-fg-muted">
                   Nenhuma assinatura ativa. Use a aba Assinatura para contratar.
                 </p>
@@ -165,8 +165,10 @@ export function PersonalFinancialPage({
 
       {viewMode === "subscription" && (
         <SlideIn delay={0.2}>
-          <DuoCard.Root>
-            <h3 className="font-semibold text-duo-fg">Plano</h3>
+          <DuoCard.Root variant="default" padding="md">
+            <DuoCard.Header>
+              <h3 className="font-semibold text-duo-fg">Plano</h3>
+            </DuoCard.Header>
             <div className="mt-3 space-y-3">
               <DuoSelect.Simple
                 label="Plano"

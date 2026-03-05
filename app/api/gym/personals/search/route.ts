@@ -48,10 +48,11 @@ export const GET = createSafeHandler(
       where.id = { in: linkedIds };
     }
     if (term) {
+      const insensitive = "insensitive" as const;
       const searchFilter = {
         OR: [
-          { name: { contains: term, mode: "insensitive" as const } },
-          { email: { contains: term, mode: "insensitive" as const } },
+          { name: { contains: term, mode: insensitive } },
+          { email: { contains: term, mode: insensitive } },
         ],
       };
       if (linkedIds) {
