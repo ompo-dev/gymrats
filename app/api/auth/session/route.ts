@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Buscar dados da subscription para enriquecer a sessão
+    // studentId vem do getSessionUseCase, evitando query extra de student
     let subscriptionData: {
       plan: string;
       status: string;
@@ -63,30 +64,24 @@ export async function GET(request: NextRequest) {
       isPremium: boolean;
     } | null = null;
 
-    if (result.data.user.hasStudent) {
-      const student = await db.student.findFirst({
-        where: { userId: result.data.user.id },
-        select: { id: true },
+    const studentId = result.data.studentId;
+    if (result.data.user.hasStudent && studentId) {
+      const subscription = await db.subscription.findUnique({
+        where: { studentId },
+        select: {
+          plan: true,
+          status: true,
+          trialEnd: true,
+        },
       });
 
-      if (student) {
-        const subscription = await db.subscription.findUnique({
-          where: { studentId: student.id },
-          select: {
-            plan: true,
-            status: true,
-            trialEnd: true,
-          },
-        });
-
-        if (subscription && isPremiumPlan(subscription.plan)) {
-          subscriptionData = {
-            plan: subscription.plan,
-            status: subscription.status,
-            billingPeriod: getBillingPeriodFromPlan(subscription.plan),
-            isPremium: hasActivePremiumStatus(subscription),
-          };
-        }
+      if (subscription && isPremiumPlan(subscription.plan)) {
+        subscriptionData = {
+          plan: subscription.plan,
+          status: subscription.status,
+          billingPeriod: getBillingPeriodFromPlan(subscription.plan),
+          isPremium: hasActivePremiumStatus(subscription),
+        };
       }
     }
 

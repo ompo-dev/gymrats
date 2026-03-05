@@ -411,6 +411,8 @@ export interface GetSessionOutput {
     hasStudent: boolean;
     createdAt?: Date;
   };
+  /** StudentId quando hasStudent, para evitar query extra na rota de sessão */
+  studentId?: string | null;
   session: {
     id: string;
     token: string;
@@ -454,6 +456,7 @@ export async function getSessionUseCase(
             hasStudent,
             createdAt: user.createdAt,
           },
+          studentId: user.student?.id ?? null,
           session: {
             id: sessionId,
             token: sessionToken,
@@ -499,6 +502,7 @@ export async function getSessionUseCase(
       hasStudent,
       createdAt: session.user.createdAt,
     },
+    studentId: session.user.student?.id ?? null,
     session: {
       id: session.id,
       token: session.token || session.sessionToken || sessionToken,

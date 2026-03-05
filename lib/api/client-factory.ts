@@ -23,6 +23,7 @@ const SILENT_500_ROUTES = [
   "/api/payments",
   "/api/payment-methods",
   "/api/gyms/",
+  "/api/personals/",
 ];
 
 const SILENT_404_ROUTES = [
@@ -81,10 +82,16 @@ function createAxiosClient(): AxiosInstance {
     (error) => {
       const status = error?.response?.status;
       const url = error?.config?.url;
+      const method = error?.config?.method?.toUpperCase();
 
       if (status === 401 && typeof window !== "undefined") {
         // Prevent automatic redirect for session validation
         if (url?.includes("/api/auth/session")) {
+          return Promise.reject(error);
+        }
+        // Em rotas de mutação (POST/PATCH/DELETE), não redirecionar:
+        // deixa o componente tratar o erro (ex: "Sessão expirada, tente novamente")
+        if (["POST", "PATCH", "DELETE"].includes(method || "")) {
           return Promise.reject(error);
         }
         clearAuthToken();
