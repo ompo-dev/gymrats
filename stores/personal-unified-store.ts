@@ -49,7 +49,15 @@ export interface PersonalUnifiedState {
   createPersonalSubscription: (data: {
     plan: "standard" | "pro_ai";
     billingPeriod: "monthly" | "annual";
-  }) => Promise<{ pix?: { brCode: string; brCodeBase64: string; amount: number; expiresAt?: string } } | null>;
+  }) => Promise<{
+    pix?: {
+      pixId: string;
+      brCode: string;
+      brCodeBase64: string;
+      amount: number;
+      expiresAt?: string;
+    };
+  } | null>;
   cancelPersonalSubscription: () => Promise<void>;
 }
 
@@ -202,6 +210,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
         const res = await apiClient.post<{
           subscription: unknown;
           pix?: {
+            pixId: string;
             brCode: string;
             brCodeBase64: string;
             amount: number;

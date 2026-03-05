@@ -109,6 +109,8 @@ export function PersonalFinancialSubscriptionTab({
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
           expiresAt={pixModal.expiresAt}
+          simulatePixUrl={`/api/personals/subscription/simulate-pix?pixId=${encodeURIComponent(pixModal.pixId)}`}
+          onSimulateSuccess={() => loadSection("subscription")}
           pollConfig={{
             type: "subscription",
             refetch: () => loadSection("subscription"),

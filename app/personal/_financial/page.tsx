@@ -1,8 +1,11 @@
 import {
   getPersonalAffiliations,
+  getPersonalBoostCampaigns,
   getPersonalCoupons,
   getPersonalExpenses,
   getPersonalFinancialSummary,
+  getPersonalMembershipPlans,
+  getPersonalPayments,
   getPersonalStudentAssignments,
   getPersonalSubscription,
 } from "../actions";
@@ -17,14 +20,18 @@ export default async function PersonalFinancialPage() {
     payments,
     coupons,
     expenses,
+    campaigns,
+    plans,
   ] = await Promise.all([
     getPersonalSubscription(),
     getPersonalStudentAssignments(),
     getPersonalAffiliations(),
     getPersonalFinancialSummary(),
-    Promise.resolve([]),
+    getPersonalPayments(),
     getPersonalCoupons(),
     getPersonalExpenses(),
+    getPersonalBoostCampaigns(),
+    getPersonalMembershipPlans(),
   ]);
 
   if (!financialSummary) return null;
@@ -36,8 +43,8 @@ export default async function PersonalFinancialPage() {
       affiliations={affiliations}
       payments={payments}
       coupons={coupons}
-      campaigns={[]}
-      plans={[]}
+      campaigns={campaigns}
+      plans={plans}
       expenses={expenses}
       financialSummary={financialSummary}
       balanceReais={0}

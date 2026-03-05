@@ -28,20 +28,21 @@ export function PersonalGymsPage({
   onRefresh,
 }: PersonalGymsPageProps) {
   const { toast } = useToast();
-  const [gymIdInput, setGymIdInput] = useState("");
+  const [gymHandleInput, setGymHandleInput] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
 
   const handleLink = async () => {
-    const gymId = gymIdInput.trim();
-    if (!gymId) {
+    const handle = gymHandleInput.trim();
+    if (!handle) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Informe o ID da academia.",
+        description: "Informe o @ da academia.",
       });
       return;
     }
+    const gymId = handle.startsWith("@") ? handle : `@${handle}`;
     setIsLinking(true);
     try {
       await apiClient.post("/api/personals/affiliations", { gymId });
@@ -49,7 +50,7 @@ export function PersonalGymsPage({
         title: "Academia vinculada",
         description: "Você foi vinculado à academia.",
       });
-      setGymIdInput("");
+      setGymHandleInput("");
       await onRefresh();
     } catch (err: unknown) {
       const msg =
@@ -115,15 +116,15 @@ export function PersonalGymsPage({
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="min-w-0 flex-1">
             <DuoInput.Simple
-              label="ID da academia"
-              placeholder="UUID da academia"
-              value={gymIdInput}
-              onChange={(e) => setGymIdInput(e.target.value)}
+              label="@ da academia"
+              placeholder="@academia (ex: @maromba)"
+              value={gymHandleInput}
+              onChange={(e) => setGymHandleInput(e.target.value)}
             />
           </div>
           <DuoButton
             onClick={handleLink}
-            disabled={isLinking || !gymIdInput.trim()}
+            disabled={isLinking || !gymHandleInput.trim()}
             variant="primary"
           >
             {isLinking ? (

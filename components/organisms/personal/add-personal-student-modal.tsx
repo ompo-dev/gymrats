@@ -50,8 +50,10 @@ export function AddPersonalStudentModal({
   const [error, setError] = useState("");
 
   const handleSearch = async () => {
-    const normalizedIdentifier = identifier.trim();
-    if (!normalizedIdentifier || normalizedIdentifier.length < 3) return;
+    const trimmed = identifier.trim();
+    if (!trimmed) return;
+    const normalizedIdentifier = trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+    if (normalizedIdentifier.length < 3) return; // @ + pelo menos 2 caracteres
     setIsSearching(true);
     setSearchResult(null);
     setError("");
@@ -142,8 +144,8 @@ export function AddPersonalStudentModal({
         <div className="mb-4">
           <div className="flex gap-2">
             <DuoInput.Simple
-              label="Buscar por @ ou email do aluno"
-              placeholder="@usuario ou email@exemplo.com"
+              label="Buscar por @ do aluno"
+              placeholder="@usuario"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -151,7 +153,12 @@ export function AddPersonalStudentModal({
             />
             <DuoButton
               onClick={handleSearch}
-              disabled={isSearching || identifier.trim().length < 3}
+              disabled={
+                isSearching ||
+                (identifier.trim().startsWith("@")
+                  ? identifier.trim().length < 3
+                  : identifier.trim().length < 2)
+              }
               variant="primary"
             >
               {isSearching ? (
@@ -168,8 +175,8 @@ export function AddPersonalStudentModal({
             {!searchResult.found && (
               <DuoCard.Root variant="orange" size="sm">
                 <p className="text-sm text-duo-text">
-                  Nenhum aluno encontrado com este @/e-mail. Verifique se o
-                  usuário está cadastrado com a role <strong>STUDENT</strong>.
+                  Nenhum aluno encontrado com este @. Verifique se o usuário
+                  está cadastrado com a role <strong>STUDENT</strong>.
                 </p>
               </DuoCard.Root>
             )}

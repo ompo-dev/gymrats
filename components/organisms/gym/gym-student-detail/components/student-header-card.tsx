@@ -109,20 +109,22 @@ export function StudentHeaderCard({
               <Apple className="h-4 w-4" />
               Atribuir Dieta
             </DuoButton>
-            <DuoButton
-              size="sm"
-              variant="outline"
-              className="flex-1 sm:flex-initial"
-              onClick={onAssignPersonal}
-              disabled={isAssigningPersonal}
-            >
-              {isAssigningPersonal ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <UserPlus className="h-4 w-4" />
-              )}
-              Atribuir Personal
-            </DuoButton>
+            {onAssignPersonal != null && (
+              <DuoButton
+                size="sm"
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+                onClick={onAssignPersonal}
+                disabled={isAssigningPersonal}
+              >
+                {isAssigningPersonal ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                Atribuir Personal
+              </DuoButton>
+            )}
             {student.gymMembership?.id && (
               <>
                 {membershipStatus === "active" ? (

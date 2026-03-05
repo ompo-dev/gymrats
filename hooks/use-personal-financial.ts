@@ -24,6 +24,7 @@ export function usePersonalFinancial() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [pixModal, setPixModal] = useState<{
+    pixId: string;
     brCode: string;
     brCodeBase64: string;
     amount: number;
@@ -52,6 +53,7 @@ export function usePersonalFinancial() {
         });
         if (result?.pix) {
           setPixModal({
+            pixId: result.pix.pixId,
             brCode: result.pix.brCode,
             brCodeBase64: result.pix.brCodeBase64,
             amount: result.pix.amount,
