@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { Activity, Flame, Target, Users } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
+import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { StudentTabSelector } from "@/components/organisms/gym/gym-student-detail/components/student-tab-selector";
 import type { PersonalStudentAssignmentForDetail } from "./hooks/use-personal-student-detail";
 import { usePersonalStudentDetail } from "./hooks/use-personal-student-detail";
 import {
@@ -12,6 +13,7 @@ import {
   PersonalDietTab,
   PersonalProgressTab,
   PersonalRecordsTab,
+  PersonalStudentHeaderCard,
 } from "./components";
 
 interface PersonalStudentDetailProps {
@@ -36,44 +38,70 @@ export function PersonalStudentDetail({
     isLoadingNutrition,
     fetchNutrition,
     tabOptions,
+    openWorkoutsEditor,
+    openDietTab,
   } = usePersonalStudentDetail({
     studentId,
     assignment,
     onBack,
   });
 
-  const studentName = assignment.student?.user?.name ?? "Aluno";
+  const progress = assignment.student?.progress;
+  const recordsCount = assignment.student?.records?.length ?? 0;
   const studentEmail = assignment.student?.user?.email ?? "";
   const gymName = assignment.gym?.name;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
-        <div className="flex items-center gap-4">
-          <DuoButton variant="outline" size="icon-sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </DuoButton>
-          <div>
-            <h1 className="text-2xl font-bold text-duo-text">{studentName}</h1>
-            <p className="text-sm text-duo-fg-muted">
-              {gymName ? `Via ${gymName}` : "Atendimento independente"}
-            </p>
-          </div>
-        </div>
+        <DuoButton variant="ghost" onClick={onBack} className="gap-2 font-bold">
+          Voltar para Alunos
+        </DuoButton>
       </FadeIn>
 
       <SlideIn delay={0.1}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <h2 className="font-bold text-duo-fg">Categoria</h2>
-          </DuoCard.Header>
-          <DuoSelect.Simple
-            options={tabOptions}
-            value={activeTab}
-            onChange={(v) => setActiveTab(v as typeof activeTab)}
-            placeholder="Selecione"
+        <PersonalStudentHeaderCard
+          assignment={assignment}
+          onAssignWorkout={openWorkoutsEditor}
+          onAssignDiet={openDietTab}
+        />
+      </SlideIn>
+
+      <SlideIn delay={0.2}>
+        <DuoStatsGrid.Root columns={4} className="gap-4">
+          <DuoStatCard.Simple
+            icon={Target}
+            value={String(progress?.currentLevel ?? 1)}
+            label="Nível"
+            iconColor="var(--duo-secondary)"
           />
-        </DuoCard.Root>
+          <DuoStatCard.Simple
+            icon={Activity}
+            value={String(recordsCount)}
+            label="Recordes"
+            iconColor="var(--duo-primary)"
+          />
+          <DuoStatCard.Simple
+            icon={Flame}
+            value="—"
+            label="Sequência"
+            iconColor="var(--duo-accent)"
+          />
+          <DuoStatCard.Simple
+            icon={Users}
+            value="—"
+            label="Frequência"
+            iconColor="#A560E8"
+          />
+        </DuoStatsGrid.Root>
+      </SlideIn>
+
+      <SlideIn delay={0.3}>
+        <StudentTabSelector
+          activeTab={activeTab}
+          onTabChange={(t) => setActiveTab(t as typeof activeTab)}
+          tabOptions={tabOptions}
+        />
       </SlideIn>
 
       {activeTab === "overview" && (

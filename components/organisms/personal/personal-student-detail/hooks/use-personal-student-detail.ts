@@ -17,6 +17,7 @@ export interface PersonalStudentAssignmentForDetail {
   id: string;
   student: {
     id: string;
+    avatar?: string | null;
     user?: { id?: string; name?: string | null; email?: string | null } | null;
     profile?: {
       height?: number | null;
@@ -132,17 +133,27 @@ export function usePersonalStudentDetail({
   }, [activeTab, fetchNutrition]);
 
   const tabOptions = [
-    { value: "overview" as const, label: "Visão geral" },
-    { value: "workouts" as const, label: "Treinos" },
-    { value: "diet" as const, label: "Dieta" },
-    { value: "progress" as const, label: "Progresso" },
-    { value: "records" as const, label: "Recordes" },
+    { value: "overview" as const, label: "Visão Geral", emoji: "📊" },
+    { value: "workouts" as const, label: "Treinos", emoji: "💪" },
+    { value: "diet" as const, label: "Dieta", emoji: "🍎" },
+    { value: "progress" as const, label: "Progresso", emoji: "📈" },
+    { value: "records" as const, label: "Recordes", emoji: "🏆" },
   ];
+
+  const openWorkoutsEditor = useCallback(() => {
+    setActiveTab("workouts");
+  }, []);
+
+  const openDietTab = useCallback(() => {
+    setActiveTab("diet");
+  }, []);
 
   return {
     assignment,
     activeTab,
     setActiveTab,
+    openWorkoutsEditor,
+    openDietTab,
     weeklyPlan,
     dailyNutrition,
     nutritionDate,

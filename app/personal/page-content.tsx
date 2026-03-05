@@ -110,6 +110,11 @@ function PersonalHomeContent({
       {tab === "financial" && (
         <PersonalFinancialPageContent
           subscription={subscription}
+          payments={[]}
+          coupons={[]}
+          campaigns={[]}
+          plans={[]}
+          expenses={[]}
           onRefresh={load}
         />
       )}

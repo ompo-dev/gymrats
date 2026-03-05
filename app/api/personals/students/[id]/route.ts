@@ -51,6 +51,7 @@ export const GET = createSafeHandler(
         id: assignment.id,
         student: {
           id: assignment.student.id,
+          avatar: assignment.student.avatar ?? null,
           user: assignment.student.user,
           profile: assignment.student.profile,
           progress: assignment.student.progress,
