@@ -6,6 +6,10 @@ import type {
 } from "@/app/personal/types";
 import { apiClient } from "@/lib/api/client";
 import type {
+  Expense,
+  FinancialSummary,
+} from "@/lib/types";
+import type {
   PersonalDataSection,
   PersonalUnifiedData,
 } from "@/lib/types/personal-unified";
@@ -15,6 +19,8 @@ export const SECTION_ROUTES: Record<PersonalDataSection, string> = {
   affiliations: "/api/personals/affiliations",
   students: "/api/personals/students",
   subscription: "/api/personals/subscription",
+  financialSummary: "/api/personals/financial-summary",
+  expenses: "/api/personals/expenses",
 };
 
 const loadingSections = new Set<PersonalDataSection>();
@@ -61,6 +67,18 @@ export async function loadSection(
           subscription: PersonalSubscriptionData | null;
         }>(route).catch(() => ({ data: { subscription: null } }));
         return { subscription: res.data.subscription ?? null };
+      }
+      if (section === "financialSummary") {
+        const res = await apiClient.get<{
+          financialSummary: FinancialSummary | null;
+        }>(route).catch(() => ({ data: { financialSummary: null } }));
+        return { financialSummary: res.data.financialSummary ?? null };
+      }
+      if (section === "expenses") {
+        const res = await apiClient.get<{
+          expenses: Expense[];
+        }>(route).catch(() => ({ data: { expenses: [] } }));
+        return { expenses: res.data.expenses || [] };
       }
       return {};
     } finally {

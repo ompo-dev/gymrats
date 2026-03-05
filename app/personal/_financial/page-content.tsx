@@ -5,19 +5,12 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
-import { FinancialAdsTab } from "@/components/organisms/gym/financial/financial-ads-tab";
-import { FinancialCouponsTab } from "@/components/organisms/gym/financial/financial-coupons-tab";
 import { FinancialExpensesTab } from "@/components/organisms/gym/financial/financial-expenses-tab";
 import { FinancialOverviewTab } from "@/components/organisms/gym/financial/financial-overview-tab";
-import { FinancialPaymentsTab } from "@/components/organisms/gym/financial/financial-payments-tab";
 import { PersonalFinancialSubscriptionTab } from "@/components/organisms/personal/financial/personal-financial-subscription-tab";
 import type {
-  BoostCampaign,
-  Coupon,
   Expense,
   FinancialSummary,
-  MembershipPlan,
-  Payment,
 } from "@/lib/types";
 import type { PersonalSubscriptionData } from "../types";
 
@@ -35,65 +28,35 @@ const EMPTY_FINANCIAL_SUMMARY: FinancialSummary = {
 
 interface PersonalFinancialPageContentProps {
   subscription: PersonalSubscriptionData | null;
-  payments?: Payment[];
-  coupons?: Coupon[];
-  campaigns?: BoostCampaign[];
-  plans?: MembershipPlan[];
   expenses?: Expense[];
   financialSummary?: FinancialSummary | null;
-  balanceReais?: number;
-  balanceCents?: number;
-  withdraws?: {
-    id: string;
-    amount: number;
-    pixKey: string;
-    pixKeyType: string;
-    externalId: string;
-    status: string;
-    createdAt: Date;
-    completedAt: Date | null;
-  }[];
   onRefresh?: () => Promise<void>;
 }
 
 export function PersonalFinancialPageContent({
   subscription,
-  payments = [],
-  coupons = [],
-  campaigns = [],
-  plans = [],
   expenses = [],
   financialSummary = EMPTY_FINANCIAL_SUMMARY,
-  balanceReais = 0,
-  balanceCents = 0,
-  withdraws = [],
   onRefresh,
 }: PersonalFinancialPageContentProps) {
   const [subTab, setSubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("overview"),
   );
-  type ViewMode =
-    | "overview"
-    | "payments"
-    | "coupons"
-    | "expenses"
-    | "subscription"
-    | "ads";
+  type ViewMode = "overview" | "expenses" | "subscription";
   const [viewMode, setViewMode] = useState<ViewMode>(
     (subTab || "overview") as ViewMode,
   );
 
   useEffect(() => {
-    if (subTab && subTab !== "referrals") {
+    if (subTab && ["overview", "expenses", "subscription"].includes(subTab)) {
       setViewMode(subTab as ViewMode);
     }
   }, [subTab]);
 
   const handleTabChange = (tab: string) => {
-    const newViewMode = (tab === "referrals" ? "overview" : tab) as ViewMode;
-    setViewMode(newViewMode);
-    setSubTab(newViewMode);
+    setViewMode(tab as ViewMode);
+    setSubTab(tab);
   };
 
   const subscriptionForOverview = subscription
@@ -126,11 +89,8 @@ export function PersonalFinancialPageContent({
           <DuoSelect.Simple
             options={[
               { value: "overview", label: "Resumo" },
-              { value: "payments", label: "Pagamentos" },
-              { value: "coupons", label: "Cupons" },
               { value: "expenses", label: "Despesas" },
               { value: "subscription", label: "Assinatura" },
-              { value: "ads", label: "Impulsionamento" },
             ]}
             value={viewMode}
             onChange={(value) => handleTabChange(value)}
@@ -142,21 +102,13 @@ export function PersonalFinancialPageContent({
       {viewMode === "overview" && financialSummary && (
         <FinancialOverviewTab
           financialSummary={financialSummary}
-          payments={payments}
+          payments={[]}
           subscription={subscriptionForOverview}
-          balanceReais={balanceReais}
-          balanceCents={balanceCents}
-          withdraws={withdraws}
+          balanceReais={0}
+          balanceCents={0}
+          withdraws={[]}
           showWithdraw={false}
         />
-      )}
-
-      {viewMode === "payments" && (
-        <FinancialPaymentsTab payments={payments} />
-      )}
-
-      {viewMode === "coupons" && (
-        <FinancialCouponsTab coupons={coupons} />
       )}
 
       {viewMode === "expenses" && (
@@ -166,14 +118,7 @@ export function PersonalFinancialPageContent({
       {viewMode === "subscription" && (
         <PersonalFinancialSubscriptionTab onRefresh={onRefresh} />
       )}
-
-      {viewMode === "ads" && (
-        <FinancialAdsTab
-          campaigns={campaigns}
-          coupons={coupons}
-          plans={plans}
-        />
-      )}
     </div>
   );
 }
+

@@ -62,6 +62,9 @@ function PersonalHomeContent({
     store.students.length > 0 ? store.students : initialStudents;
   const subscription = store.subscription ?? initialSubscription;
 
+  const financialSummary = store.financialSummary ?? null;
+  const storeExpenses = store.expenses ?? [];
+
   const load = useCallback(async () => {
     await loadAll();
   }, [loadAll]);
@@ -92,6 +95,7 @@ function PersonalHomeContent({
           affiliations={affiliations}
           students={students}
           subscription={subscription}
+          financialSummary={financialSummary}
         />
       )}
       {tab === "students" && (
@@ -110,11 +114,8 @@ function PersonalHomeContent({
       {tab === "financial" && (
         <PersonalFinancialPageContent
           subscription={subscription}
-          payments={[]}
-          coupons={[]}
-          campaigns={[]}
-          plans={[]}
-          expenses={[]}
+          financialSummary={financialSummary}
+          expenses={storeExpenses}
           onRefresh={load}
         />
       )}

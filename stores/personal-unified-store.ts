@@ -11,6 +11,7 @@ import {
   loadSectionsIncremental,
   updateStoreWithSection,
 } from "./personal/load-helpers";
+import type { Expense } from "@/lib/types";
 
 export interface PersonalUnifiedState {
   data: PersonalUnifiedData;
@@ -34,6 +35,13 @@ export interface PersonalUnifiedState {
     gymId?: string;
   }) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
+  createExpense: (data: {
+    type: string;
+    description?: string | null;
+    amount: number;
+    date?: string | null;
+    category?: string | null;
+  }) => Promise<void>;
   createPersonalSubscription: (data: {
     plan: "standard" | "pro_ai";
     billingPeriod: "monthly" | "annual";
@@ -72,6 +80,8 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           "affiliations",
           "students",
           "subscription",
+          "financialSummary",
+          "expenses",
         ];
         const result = await loadSectionsIncremental(sections);
         updateStoreWithSection(set, result);
@@ -99,6 +109,8 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
         "affiliations",
         "students",
         "subscription",
+        "financialSummary",
+        "expenses",
       ];
       const sections = onlyPriorities
         ? priorities
@@ -166,6 +178,17 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
         await get().loadSection("students");
       } catch (err) {
         console.error("[personal-unified-store] removeStudent erro:", err);
+        throw err;
+      }
+    },
+
+    createExpense: async (payload) => {
+      try {
+        await apiClient.post("/api/personals/expenses", payload as any);
+        await get().loadSection("expenses");
+        await get().loadSection("financialSummary");
+      } catch (err) {
+        console.error("[personal-unified-store] createExpense erro:", err);
         throw err;
       }
     },

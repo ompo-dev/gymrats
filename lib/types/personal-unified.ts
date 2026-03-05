@@ -4,6 +4,7 @@ import type {
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "@/app/personal/types";
+import type { Expense, FinancialSummary } from "@/lib/types";
 
 export interface PersonalMetadata {
   lastSync: Date | null;
@@ -17,6 +18,8 @@ export interface PersonalUnifiedData {
   affiliations: PersonalAffiliation[];
   students: PersonalStudentAssignment[];
   subscription: PersonalSubscriptionData | null;
+  financialSummary: FinancialSummary | null;
+  expenses: Expense[];
   metadata: PersonalMetadata;
 }
 
@@ -24,13 +27,17 @@ export type PersonalDataSection =
   | "profile"
   | "affiliations"
   | "students"
-  | "subscription";
+  | "subscription"
+  | "financialSummary"
+  | "expenses";
 
 export const initialPersonalData: PersonalUnifiedData = {
   profile: null,
   affiliations: [],
   students: [],
   subscription: null,
+  financialSummary: null,
+  expenses: [],
   metadata: {
     lastSync: null,
     isLoading: false,

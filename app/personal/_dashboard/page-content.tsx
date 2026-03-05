@@ -7,6 +7,7 @@ import type {
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "../types";
+import type { FinancialSummary } from "@/lib/types";
 
 interface PersonalDashboardStats {
   gyms: number;
@@ -21,6 +22,7 @@ interface PersonalDashboardPageContentProps {
   affiliations: PersonalAffiliation[];
   students: PersonalStudentAssignment[];
   subscription: PersonalSubscriptionData | null;
+  financialSummary?: FinancialSummary | null;
 }
 
 export function PersonalDashboardPageContent({
@@ -29,6 +31,7 @@ export function PersonalDashboardPageContent({
   affiliations,
   students,
   subscription,
+  financialSummary,
 }: PersonalDashboardPageContentProps) {
   return (
     <PersonalDashboardPage
@@ -37,6 +40,8 @@ export function PersonalDashboardPageContent({
       affiliations={affiliations}
       students={students}
       subscription={subscription}
+      financialSummary={financialSummary}
     />
   );
 }
+
