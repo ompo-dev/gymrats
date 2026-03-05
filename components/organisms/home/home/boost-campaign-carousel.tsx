@@ -12,6 +12,11 @@ import type { BoostCampaign, GymLocation } from "@/lib/types";
 interface BoostCampaignCarouselProps {
   gyms: GymLocation[];
   onViewGymProfile: (gymId: string, planId?: string, couponId?: string) => void;
+  onViewPersonalProfile?: (
+    personalId: string,
+    planId?: string,
+    couponId?: string,
+  ) => void;
 }
 
 /** Registra impressão quando o card entra na viewport (1x por campanha por sessão) */
@@ -45,15 +50,25 @@ function CampaignCard({
   gym,
   primaryColor,
   onViewGymProfile,
+  onViewPersonalProfile,
   onImpression,
 }: {
   campaign: BoostCampaign;
   gym: GymLocation | undefined;
   primaryColor: string;
   onViewGymProfile: (gymId: string, planId?: string, couponId?: string) => void;
+  onViewPersonalProfile?: (
+    personalId: string,
+    planId?: string,
+    couponId?: string,
+  ) => void;
   onImpression: (campaignId: string) => void;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const isPersonal = !!campaign.personalId;
+  const displayName =
+    gym?.name || campaign.personal?.name || "Academias Parceiras";
+  const displayLogo = gym?.logo ?? campaign.personal?.avatar ?? null;
 
   useEffect(() => {
     const el = cardRef.current;
@@ -70,11 +85,13 @@ function CampaignCard({
 
   const handleClick = async () => {
     await trackClick(campaign.id);
-    onViewGymProfile(
-      campaign.gymId,
-      campaign.linkedPlanId || undefined,
-      campaign.linkedCouponId || undefined
-    );
+    const planId = campaign.linkedPlanId || undefined;
+    const couponId = campaign.linkedCouponId || undefined;
+    if (isPersonal && onViewPersonalProfile && campaign.personalId) {
+      onViewPersonalProfile(campaign.personalId, planId, couponId);
+    } else if (campaign.gymId) {
+      onViewGymProfile(campaign.gymId, planId, couponId);
+    }
   };
 
   return (
@@ -93,11 +110,11 @@ function CampaignCard({
         onClick={handleClick}
       >
                 <div className="p-5 flex-1 flex flex-col gap-4">
-                  {/* Header: Logo + Gym Name + Sponsored Badge */}
+                  {/* Header: Logo + Name + Sponsored Badge */}
                   <div className="flex items-center gap-3">
-                    {gym?.logo ? (
+                    {displayLogo ? (
                       <img
-                        src={gym.logo}
+                        src={displayLogo}
                         alt="Logo"
                         className="w-12 h-12 rounded-full object-cover border border-duo-border ring-2 ring-transparent transition-all"
                         style={{ outlineColor: primaryColor }}
@@ -109,7 +126,7 @@ function CampaignCard({
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-duo-text truncate">
-                        {gym?.name || "Academias Parceiras"}
+                        {displayName}
                       </p>
                       <div className="flex items-center gap-1 mt-0.5">
                         <Sparkles
@@ -159,6 +176,7 @@ function positionKey(lat: number, lng: number): string {
 export function BoostCampaignCarousel({
   gyms,
   onViewGymProfile,
+  onViewPersonalProfile,
 }: BoostCampaignCarouselProps) {
   const [campaigns, setCampaigns] = useState<BoostCampaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +248,9 @@ export function BoostCampaignCarousel({
     <div className="mb-6 space-y-4">
       <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide">
         {campaigns.map((campaign) => {
-          const gym = gyms.find((g) => g.id === campaign.gymId);
+          const gym = campaign.gymId
+            ? gyms.find((g) => g.id === campaign.gymId)
+            : undefined;
           const primaryColor = campaign.primaryColor || "var(--duo-primary)";
           return (
             <CampaignCard
@@ -239,6 +259,7 @@ export function BoostCampaignCarousel({
               gym={gym}
               primaryColor={primaryColor}
               onViewGymProfile={onViewGymProfile}
+              onViewPersonalProfile={onViewPersonalProfile}
               onImpression={trackImpression}
             />
           );

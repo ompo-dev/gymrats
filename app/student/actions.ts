@@ -141,9 +141,19 @@ export async function getActiveBoostCampaigns() {
       where: {
         status: "active",
       },
+      include: {
+        personal: {
+          select: { id: true, name: true, avatar: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
     });
-    return campaigns;
+    return campaigns.map((c) => ({
+      ...c,
+      personal: c.personal
+        ? { id: c.personal.id, name: c.personal.name, avatar: c.personal.avatar }
+        : null,
+    }));
   } catch (error) {
     console.error("[getActiveBoostCampaigns] Erro:", error);
     return [];

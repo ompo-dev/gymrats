@@ -16,25 +16,30 @@ export const GET = createSafeHandler(
     const { personalId } = paramsSchema.parse(params);
     const studentId = studentContext?.studentId ?? "";
 
-    const personal = await db.personal.findUnique({
-      where: { id: personalId, isActive: true },
-      include: {
-        gymAffiliations: {
-          where: { status: "active" },
-          include: {
-            gym: { select: { id: true, name: true, address: true } },
+    const [personal, studentsCount] = await Promise.all([
+      db.personal.findUnique({
+        where: { id: personalId, isActive: true },
+        include: {
+          gymAffiliations: {
+            where: { status: "active" },
+            include: {
+              gym: { select: { id: true, name: true, address: true } },
+            },
+          },
+          membershipPlans: {
+            where: { isActive: true },
+            orderBy: { price: "asc" },
+          },
+          studentAssignments: {
+            where: { studentId, status: "active" },
+            select: { id: true },
           },
         },
-        membershipPlans: {
-          where: { isActive: true },
-          orderBy: { price: "asc" },
-        },
-        studentAssignments: {
-          where: { studentId, status: "active" },
-          select: { id: true },
-        },
-      },
-    });
+      }),
+      db.studentPersonalAssignment.count({
+        where: { personalId, status: "active" },
+      }),
+    ]);
 
     if (!personal) {
       return NextResponse.json(
@@ -74,6 +79,7 @@ export const GET = createSafeHandler(
       })),
       plans,
       isSubscribed: personal.studentAssignments.length > 0,
+      studentsCount,
     });
   },
   {

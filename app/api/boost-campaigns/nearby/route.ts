@@ -55,28 +55,60 @@ export const GET = createSafeHandler(
         gym: {
           select: { id: true, latitude: true, longitude: true },
         },
+        personal: {
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            latitude: true,
+            longitude: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    const now = new Date();
+    const radiusKmDefault = 5;
     const filtered = campaigns.filter((c) => {
-      const gym = c.gym;
-      if (gym.latitude == null || gym.longitude == null) return false;
-      const radiusKm = c.radiusKm ?? 5;
-      const distance = haversineKm(
-        lat,
-        lng,
-        gym.latitude,
-        gym.longitude,
-      );
-      return distance <= radiusKm;
+      const radiusKm = c.radiusKm ?? radiusKmDefault;
+      if (c.gymId && c.gym) {
+        const gym = c.gym;
+        if (gym.latitude == null || gym.longitude == null) return false;
+        const distance = haversineKm(
+          lat,
+          lng,
+          gym.latitude,
+          gym.longitude,
+        );
+        return distance <= radiusKm;
+      }
+      if (c.personalId && c.personal) {
+        const personal = c.personal;
+        if (personal.latitude == null || personal.longitude == null)
+          return false;
+        const distance = haversineKm(
+          lat,
+          lng,
+          personal.latitude,
+          personal.longitude,
+        );
+        return distance <= radiusKm;
+      }
+      return false;
     });
 
     return NextResponse.json({
       campaigns: filtered.map((c) => ({
         id: c.id,
         gymId: c.gymId,
+        personalId: c.personalId,
+        personal: c.personal
+          ? {
+              id: c.personal.id,
+              name: c.personal.name,
+              avatar: c.personal.avatar,
+            }
+          : null,
         title: c.title,
         description: c.description,
         primaryColor: c.primaryColor,

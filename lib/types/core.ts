@@ -901,7 +901,9 @@ export interface DayPass {
 
 export interface BoostCampaign {
   id: string;
-  gymId: string;
+  gymId: string | null;
+  personalId?: string | null;
+  personal?: { id: string; name: string; avatar: string | null } | null;
   title: string;
   description: string;
   primaryColor: string;
@@ -918,4 +920,25 @@ export interface BoostCampaign {
   endsAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface PersonalLocation {
+  id: string;
+  name: string;
+  avatar: string | null;
+  address?: string;
+  coordinates: { lat: number; lng: number };
+  distance?: number;
+  atendimentoPresencial: boolean;
+  atendimentoRemoto: boolean;
+  gyms: { id: string; name: string }[];
+  isSubscribed: boolean;
+  activeCampaigns?: {
+    id: string;
+    title: string;
+    description: string;
+    primaryColor: string;
+    linkedCouponId: string | null;
+    linkedPlanId: string | null;
+  }[];
 }

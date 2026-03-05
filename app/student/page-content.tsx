@@ -10,7 +10,7 @@ import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
-import { PersonalListWithFilters } from "@/app/student/_personals/personal-list-with-filters";
+import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
 import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { LearningPath } from "@/app/student/_learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/_more/student-more-menu";
@@ -344,6 +344,19 @@ function StudentHomeContent() {
   ) => {
     setTab("gyms");
     setGymId(id);
+    setPersonalId(null);
+    setPreSelectedPlan(planId || null);
+    setPreSelectedCoupon(couponId || null);
+  };
+
+  const handleViewPersonalProfile = (
+    id: string,
+    planId?: string,
+    couponId?: string,
+  ) => {
+    setTab("personals");
+    setPersonalId(id);
+    setGymId(null);
     setPreSelectedPlan(planId || null);
     setPreSelectedCoupon(couponId || null);
   };
@@ -467,6 +480,7 @@ function StudentHomeContent() {
             <BoostCampaignCarousel
               gyms={currentGymLocations}
               onViewGymProfile={handleViewGymProfile}
+              onViewPersonalProfile={handleViewPersonalProfile}
             />
           </WhileInView>
 
@@ -646,12 +660,19 @@ function StudentHomeContent() {
         (personalId ? (
           <PersonalProfileView
             personalId={personalId}
-            onBack={() => setPersonalId(null)}
+            onBack={() => {
+              setPersonalId(null);
+              setPreSelectedPlan(null);
+              setPreSelectedCoupon(null);
+            }}
             onSubscribe={handleSubscribePersonal}
+            preSelectedPlan={preSelectedPlan}
+            preSelectedCoupon={preSelectedCoupon}
           />
         ) : (
-          <PersonalListWithFilters
+          <PersonalMapWithLeaflet
             onViewPersonal={(id) => setPersonalId(id)}
+            onViewPersonalProfile={handleViewPersonalProfile}
           />
         ))}
 

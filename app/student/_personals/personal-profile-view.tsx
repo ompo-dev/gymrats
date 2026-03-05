@@ -9,7 +9,7 @@ import {
   Phone,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
@@ -33,6 +33,7 @@ interface PersonalProfileData {
     benefits?: string[];
   }[];
   isSubscribed: boolean;
+  studentsCount?: number;
 }
 
 interface PersonalProfileViewProps {
@@ -53,12 +54,16 @@ interface PersonalProfileViewProps {
       appliedCoupon?: { code: string; discountString: string };
     },
   ) => void;
+  preSelectedPlan?: string | null;
+  preSelectedCoupon?: string | null;
 }
 
 export function PersonalProfileView({
   personalId,
   onBack,
   onSubscribe,
+  preSelectedPlan,
+  preSelectedCoupon,
 }: PersonalProfileViewProps) {
   const [profile, setProfile] = useState<PersonalProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,6 +71,7 @@ export function PersonalProfileView({
   const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(
     null,
   );
+  const [autoStarted, setAutoStarted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,33 +97,54 @@ export function PersonalProfileView({
     };
   }, [personalId]);
 
-  const handleSubscribe = async (planId: string) => {
-    if (!profile) return;
-    setSubscribingPlanId(planId);
-    try {
-      const res = await apiClient.post<{
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        paymentId: string;
-        pixId: string;
-        expiresAt?: string;
-        planName: string;
-        originalPrice: number;
-        appliedCoupon?: { code: string; discountString: string };
-      }>(`/api/students/personals/${personalId}/subscribe`, { planId });
-      onSubscribe(personalId, planId, res.data);
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
-          : "Erro ao assinar";
-      alert(msg);
-    } finally {
-      setSubscribingPlanId(null);
+  const handleSubscribe = useCallback(
+    async (planId: string, couponId?: string | null) => {
+      if (!profile) return;
+      setSubscribingPlanId(planId);
+      try {
+        const res = await apiClient.post<{
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          paymentId: string;
+          pixId: string;
+          expiresAt?: string;
+          planName: string;
+          originalPrice: number;
+          appliedCoupon?: { code: string; discountString: string };
+        }>(`/api/students/personals/${personalId}/subscribe`, {
+          planId,
+          couponId: couponId || null,
+        });
+        onSubscribe(personalId, planId, res.data);
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { error?: string } } }).response
+                ?.data?.error
+            : "Erro ao assinar";
+        alert(msg);
+      } finally {
+        setSubscribingPlanId(null);
+      }
+    },
+    [profile, personalId, onSubscribe],
+  );
+
+  useEffect(() => {
+    if (
+      profile &&
+      preSelectedPlan &&
+      !autoStarted &&
+      !profile.isSubscribed
+    ) {
+      const plan = profile.plans.find((p) => p.id === preSelectedPlan);
+      if (plan) {
+        setAutoStarted(true);
+        handleSubscribe(preSelectedPlan, preSelectedCoupon);
+      }
     }
-  };
+  }, [profile, preSelectedPlan, preSelectedCoupon, autoStarted, handleSubscribe]);
 
   if (loading) {
     return (
@@ -196,6 +223,29 @@ export function PersonalProfileView({
         </DuoCard.Root>
       </FadeIn>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <DuoCard.Root variant="default" size="sm">
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6 text-duo-blue" />
+            <div>
+              <p className="text-xs text-duo-gray-dark">Alunos</p>
+              <p className="text-lg font-bold">
+                {profile.studentsCount ?? 0}
+              </p>
+            </div>
+          </div>
+        </DuoCard.Root>
+        <DuoCard.Root variant="default" size="sm">
+          <div className="flex items-center gap-3">
+            <Dumbbell className="h-6 w-6 text-duo-orange" />
+            <div>
+              <p className="text-xs text-duo-gray-dark">Academias</p>
+              <p className="text-lg font-bold">{profile.gyms.length}</p>
+            </div>
+          </div>
+        </DuoCard.Root>
+      </div>
+
       {profile.gyms.length > 0 && (
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
@@ -263,7 +313,7 @@ export function PersonalProfileView({
                         disabled={subscribingPlanId === plan.id}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSubscribe(plan.id);
+                          handleSubscribe(plan.id, undefined);
                         }}
                       >
                         {subscribingPlanId === plan.id

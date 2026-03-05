@@ -58,6 +58,13 @@ export const GET = createSafeHandler(
           where: { studentId, status: "active" },
           select: { id: true },
         },
+        boostCampaigns: {
+          where: {
+            status: "active",
+            endsAt: { gt: new Date() },
+          },
+          orderBy: { endsAt: "asc" },
+        },
       },
     });
 
@@ -94,8 +101,11 @@ export const GET = createSafeHandler(
         name: p.name,
         avatar: p.avatar,
         bio: p.bio,
-        atendimentoPresencial: p.atendimentoPresencial,
-        atendimentoRemoto: p.atendimentoRemoto,
+        address: p.address ?? undefined,
+        coordinates: {
+          lat: p.latitude ?? 0,
+          lng: p.longitude ?? 0,
+        },
         distance:
           latNum != null &&
           lngNum != null &&
@@ -105,11 +115,22 @@ export const GET = createSafeHandler(
                 haversineKm(latNum, lngNum, p.latitude, p.longitude) * 10,
               ) / 10
             : null,
+        atendimentoPresencial: p.atendimentoPresencial,
+        atendimentoRemoto: p.atendimentoRemoto,
         gyms: p.gymAffiliations.map((a) => ({
           id: a.gym.id,
           name: a.gym.name,
         })),
         isSubscribed: p.studentAssignments.length > 0,
+        activeCampaigns:
+          p.boostCampaigns?.map((c) => ({
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            primaryColor: c.primaryColor,
+            linkedCouponId: c.linkedCouponId,
+            linkedPlanId: c.linkedPlanId,
+          })) ?? [],
       })),
     });
   },
