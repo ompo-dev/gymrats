@@ -28,10 +28,6 @@ export interface StudentHeaderCardProps {
   onAssignDiet?: () => void;
   onAssignPersonal?: () => void;
   isAssigningPersonal?: boolean;
-  /** Quando variant=personal: desvincular aluno (em vez de cancelar matrícula gym) */
-  onUnassignStudent?: () => void;
-  isUnassigning?: boolean;
-  variant?: "gym" | "personal";
 }
 
 export function StudentHeaderCard({
@@ -43,9 +39,6 @@ export function StudentHeaderCard({
   onAssignDiet,
   onAssignPersonal,
   isAssigningPersonal = false,
-  onUnassignStudent,
-  isUnassigning = false,
-  variant = "gym",
 }: StudentHeaderCardProps) {
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -132,73 +125,56 @@ export function StudentHeaderCard({
                 Atribuir Personal
               </DuoButton>
             )}
-            {variant === "personal" && onUnassignStudent ? (
-              <DuoButton
-                size="sm"
-                variant="outline"
-                className="flex-1 sm:flex-initial border-duo-red text-duo-red hover:bg-duo-red/10"
-                onClick={onUnassignStudent}
-                disabled={isUnassigning}
-              >
-                {isUnassigning ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Ban className="h-4 w-4" />
+            {student.gymMembership?.id && (
+              <>
+                {membershipStatus === "active" ? (
+                  <DuoButton
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 sm:flex-initial border-amber-300 text-amber-700 hover:bg-amber-50"
+                    onClick={() => onMembershipAction("suspended")}
+                    disabled={isUpdatingStatus}
+                  >
+                    {isUpdatingStatus ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <PauseCircle className="h-4 w-4" />
+                    )}
+                    Suspender
+                  </DuoButton>
+                ) : membershipStatus === "suspended" ? (
+                  <DuoButton
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 sm:flex-initial border-duo-green text-duo-green hover:bg-duo-green/10"
+                    onClick={() => onMembershipAction("active")}
+                    disabled={isUpdatingStatus}
+                  >
+                    {isUpdatingStatus ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    Reativar
+                  </DuoButton>
+                ) : null}
+                {membershipStatus !== "canceled" && (
+                  <DuoButton
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 sm:flex-initial border-duo-red text-duo-red hover:bg-duo-red/10"
+                    onClick={() => onMembershipAction("canceled")}
+                    disabled={isUpdatingStatus}
+                  >
+                    {isUpdatingStatus ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Ban className="h-4 w-4" />
+                    )}
+                    Cancelar Matrícula
+                  </DuoButton>
                 )}
-                Desvincular
-              </DuoButton>
-            ) : (
-              student.gymMembership?.id && (
-                <>
-                  {membershipStatus === "active" ? (
-                    <DuoButton
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 sm:flex-initial border-amber-300 text-amber-700 hover:bg-amber-50"
-                      onClick={() => onMembershipAction("suspended")}
-                      disabled={isUpdatingStatus}
-                    >
-                      {isUpdatingStatus ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <PauseCircle className="h-4 w-4" />
-                      )}
-                      Suspender
-                    </DuoButton>
-                  ) : membershipStatus === "suspended" ? (
-                    <DuoButton
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 sm:flex-initial border-duo-green text-duo-green hover:bg-duo-green/10"
-                      onClick={() => onMembershipAction("active")}
-                      disabled={isUpdatingStatus}
-                    >
-                      {isUpdatingStatus ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4" />
-                      )}
-                      Reativar
-                    </DuoButton>
-                  ) : null}
-                  {membershipStatus !== "canceled" && (
-                    <DuoButton
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 sm:flex-initial border-duo-red text-duo-red hover:bg-duo-red/10"
-                      onClick={() => onMembershipAction("canceled")}
-                      disabled={isUpdatingStatus}
-                    >
-                      {isUpdatingStatus ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Ban className="h-4 w-4" />
-                      )}
-                      Cancelar Matrícula
-                    </DuoButton>
-                  )}
-                </>
-              )
+              </>
             )}
           </div>
         </div>

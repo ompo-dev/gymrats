@@ -34,7 +34,6 @@ export function ProfilePageContent() {
     weightGain,
     recentWorkoutHistory,
     personalRecords,
-    memberships,
     lastInProgressWorkout,
     profileUserInfo,
     totalWorkoutsCompleted,
@@ -159,7 +158,7 @@ export function ProfilePageContent() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <MyAcademiasCard memberships={memberships} />
+        <MyAcademiasCard />
         <MyPersonalsCard />
       </div>
 

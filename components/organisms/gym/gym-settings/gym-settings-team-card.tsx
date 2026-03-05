@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  ChevronRight,
-  CreditCard,
-  MapPin,
-  Monitor,
-  Search,
-  UserPlus,
-  Users,
-} from "lucide-react";
-import Image from "next/image";
+import { Search, UserPlus, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
@@ -39,19 +30,6 @@ export function GymSettingsTeamCard() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
-  const [viewingPersonalId, setViewingPersonalId] = useState<string | null>(
-    null,
-  );
-  const [profileData, setProfileData] = useState<{
-    id: string;
-    name: string;
-    avatar: string | null;
-    bio: string | null;
-    atendimentoPresencial: boolean;
-    atendimentoRemoto: boolean;
-    gyms: { id: string; name: string; address?: string }[];
-    plans: { id: string; name: string; type: string; price: number; duration: number }[];
-  } | null>(null);
 
   const loadTeam = useCallback(async () => {
     setLoading(true);
@@ -109,22 +87,10 @@ export function GymSettingsTeamCard() {
         data: { personalId: id },
       });
       await loadTeam();
-      if (viewingPersonalId === id) setViewingPersonalId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao remover personal");
     }
   }
-
-  useEffect(() => {
-    if (!viewingPersonalId) {
-      setProfileData(null);
-      return;
-    }
-    apiClient
-      .get<typeof profileData>(`/api/gym/personals/${viewingPersonalId}/profile`)
-      .then((res) => setProfileData(res.data))
-      .catch(() => setProfileData(null));
-  }, [viewingPersonalId]);
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -197,37 +163,17 @@ export function GymSettingsTeamCard() {
               key={item.id}
               className="flex items-center justify-between rounded-lg border border-duo-border p-3"
             >
-              <button
-                type="button"
-                onClick={() => setViewingPersonalId(item.personal.id)}
-                className="flex items-center gap-3 min-w-0 flex-1 text-left"
-              >
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-duo-border">
-                  <Image
-                    src={item.personal.avatar || "/placeholder.svg"}
-                    alt={item.personal.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-duo-fg truncate">
-                    {item.personal.name}
-                  </p>
-                  <p className="text-xs text-duo-fg-muted truncate">
-                    {item.personal.email}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-duo-gray-dark" />
-              </button>
+              <div>
+                <p className="text-sm font-semibold text-duo-fg">
+                  {item.personal.name}
+                </p>
+                <p className="text-xs text-duo-fg-muted">{item.personal.email}</p>
+              </div>
               <DuoButton
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemovePersonal(item.personal.id);
-                }}
+                onClick={() => handleRemovePersonal(item.personal.id)}
               >
                 Remover
               </DuoButton>
@@ -235,110 +181,6 @@ export function GymSettingsTeamCard() {
           ))}
         </div>
       </div>
-
-      {viewingPersonalId && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setViewingPersonalId(null)}
-        >
-          <div
-            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-duo-bg-card border-2 border-duo-border p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {profileData ? (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-duo-fg">Perfil do Personal</h3>
-                  <DuoButton
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setViewingPersonalId(null)}
-                  >
-                    ✕
-                  </DuoButton>
-                </div>
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-duo-border">
-                    <Image
-                      src={profileData.avatar || "/placeholder.svg"}
-                      alt={profileData.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-bold text-duo-fg">{profileData.name}</p>
-                    <div className="flex gap-2 mt-1">
-                      {profileData.atendimentoPresencial && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-duo-blue/10 px-2 py-0.5 text-xs font-bold text-duo-blue">
-                          <MapPin className="h-3 w-3" />
-                          Presencial
-                        </span>
-                      )}
-                      {profileData.atendimentoRemoto && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-duo-purple/10 px-2 py-0.5 text-xs font-bold text-duo-purple">
-                          <Monitor className="h-3 w-3" />
-                          Remoto
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {profileData.bio && (
-                  <p className="text-sm text-duo-gray-dark mb-4">
-                    {profileData.bio}
-                  </p>
-                )}
-                {profileData.gyms.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs font-bold text-duo-fg-muted mb-2">
-                      Academias
-                    </p>
-                    <div className="space-y-1">
-                      {profileData.gyms.map((g) => (
-                        <p key={g.id} className="text-sm text-duo-gray-dark">
-                          {g.name}
-                          {g.address && ` • ${g.address}`}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {profileData.plans.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-duo-fg-muted mb-2 flex items-center gap-1">
-                      <CreditCard className="h-3 w-3" />
-                      Planos
-                    </p>
-                    <div className="space-y-2">
-                      {profileData.plans.map((p) => (
-                        <div
-                          key={p.id}
-                          className="flex justify-between items-center rounded-lg border border-duo-border p-2 text-sm"
-                        >
-                          <span className="font-medium text-duo-fg">
-                            {p.name}
-                          </span>
-                          <span className="text-duo-green font-bold">
-                            R$ {p.price.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-xs text-duo-fg-muted mt-2">
-                      Academia não pode assinar planos do personal.
-                    </p>
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="py-8 text-center text-duo-gray-dark">
-                Carregando perfil...
-              </p>
-            )}
-          </div>
-        </div>
-      )}
     </DuoCard.Root>
   );
 }

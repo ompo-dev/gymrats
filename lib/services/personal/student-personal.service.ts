@@ -356,21 +356,12 @@ export class StudentPersonalService {
     return assignment;
   }
 
-  static async listStudentsByPersonal(
-    personalId: string,
-    gymId?: string | null,
-  ) {
-    const gymFilter =
-      gymId === undefined
-        ? {}
-        : gymId === null
-          ? { gymId: null }
-          : { gymId };
+  static async listStudentsByPersonal(personalId: string, gymId?: string) {
     return db.studentPersonalAssignment.findMany({
       where: {
         personalId,
         status: "active",
-        ...gymFilter,
+        ...(gymId ? { gymId } : {}),
       },
       include: {
         student: {
@@ -393,7 +384,7 @@ export class StudentPersonalService {
    */
   static async listStudentsAsStudentData(
     personalId: string,
-    gymId?: string | null,
+    gymId?: string,
   ): Promise<StudentData[]> {
     const assignments = await this.listStudentsByPersonal(personalId, gymId);
     const result: StudentData[] = [];

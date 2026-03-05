@@ -95,24 +95,14 @@ export function PersonalSettingsPage({
     router.push("/student");
   };
 
-  const hasChanges =
-    name !== (profile?.name ?? "") ||
-    (phone || null) !== (profile?.phone ?? null) ||
-    (bio || null) !== (profile?.bio ?? null) ||
-    (address || null) !== (profile?.address ?? null) ||
-    (pixKey || null) !== (profile?.pixKey ?? null) ||
-    (pixKeyType || null) !== (profile?.pixKeyType ?? null) ||
-    atendimentoPresencial !== (profile?.atendimentoPresencial ?? true) ||
-    atendimentoRemoto !== (profile?.atendimentoRemoto ?? true);
-
   const onSave = async () => {
     await handleSave({
       name,
-      email,
+      email, // Read only now, but kept in payload just in case
       phone: phone || null,
       bio: bio || null,
       address: address || null,
-      cref: profile?.cref ?? null,
+      cref: cref || null,
       pixKey: pixKey || null,
       pixKeyType: pixKeyType || null,
       atendimentoPresencial,
@@ -157,17 +147,12 @@ export function PersonalSettingsPage({
                 Não pode ser alterado aqui
               </p>
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-[var(--duo-fg)]">
-                CREF
-              </label>
-              <div className="px-3 py-2 text-sm text-[var(--duo-fg-muted)] bg-[var(--duo-bg-elevated)] rounded-xl border border-[var(--duo-border)] select-none">
-                {cref || "—"}
-              </div>
-              <p className="text-xs text-[var(--duo-fg-muted)]">
-                Não pode ser alterado aqui
-              </p>
-            </div>
+            <DuoInput.Simple
+              label="CREF"
+              value={cref}
+              onChange={(e) => setCref(e.target.value)}
+              placeholder="000000-G/XX"
+            />
             <DuoInput.Simple
               label="Telefone"
               value={phone}
@@ -307,60 +292,48 @@ export function PersonalSettingsPage({
             </h3>
           </DuoCard.Header>
           <div className="space-y-3">
-            <label className="flex cursor-pointer items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={atendimentoPresencial}
+                onChange={(e) => setAtendimentoPresencial(e.target.checked)}
+                className="h-4 w-4 rounded border-duo-border text-duo-primary focus:ring-duo-primary"
+              />
               <span className="text-sm font-medium text-duo-fg">
                 Atendimento presencial
               </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={atendimentoPresencial}
-                  onChange={(e) =>
-                    setAtendimentoPresencial(e.target.checked)
-                  }
-                  className="peer sr-only"
-                />
-                <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
-                <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
-              </div>
             </label>
-            <label className="flex cursor-pointer items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={atendimentoRemoto}
+                onChange={(e) => setAtendimentoRemoto(e.target.checked)}
+                className="h-4 w-4 rounded border-duo-border text-duo-primary focus:ring-duo-primary"
+              />
               <span className="text-sm font-medium text-duo-fg">
                 Atendimento remoto
               </span>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={atendimentoRemoto}
-                  onChange={(e) => setAtendimentoRemoto(e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="h-6 w-11 rounded-full bg-duo-border transition-colors peer-checked:bg-duo-secondary" />
-                <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-duo-bg-card shadow-sm transition-transform peer-checked:translate-x-5" />
-              </div>
             </label>
           </div>
         </DuoCard.Root>
       </SlideIn>
 
-      {hasChanges && (
-        <SlideIn delay={0.25}>
-          <DuoButton
-            onClick={onSave}
-            disabled={saving}
-            className="w-full"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Salvando...
-              </>
-            ) : (
-              "Salvar perfil"
-            )}
-          </DuoButton>
-        </SlideIn>
-      )}
+      <SlideIn delay={0.25}>
+        <DuoButton
+          onClick={onSave}
+          disabled={saving}
+          className="w-full"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            "Salvar perfil"
+          )}
+        </DuoButton>
+      </SlideIn>
 
       {saveError && (
         <SlideIn delay={0.3}>

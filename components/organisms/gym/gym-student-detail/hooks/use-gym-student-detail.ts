@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
-import { apiClient } from "@/lib/api/client";
 import type {
   DailyNutrition,
   FoodItem,
@@ -15,7 +14,6 @@ import type {
 } from "@/lib/types";
 
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-const API_TIMEOUT_MS = 35000;
 
 export type StudentDetailTab =
   | "overview"
@@ -38,7 +36,6 @@ const getStudentsApiBase = (variant: "gym" | "personal") =>
 export function useGymStudentDetail({
   student,
   payments = [],
-  onBack,
   variant = "gym",
 }: UseGymStudentDetailProps) {
   const apiBase = getStudentsApiBase(variant);
@@ -50,7 +47,6 @@ export function useGymStudentDetail({
   >(student?.membershipStatus ?? "inactive");
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const [isUnassigning, setIsUnassigning] = useState(false);
   const [isAssigningPersonal, setIsAssigningPersonal] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<
     WeeklyPlanData | null | undefined
@@ -69,13 +65,9 @@ export function useGymStudentDetail({
     if (!student?.id) return;
     setIsLoadingWeeklyPlan(true);
     try {
-      const { data } = await apiClient.get<{
-        success?: boolean;
-        weeklyPlan?: WeeklyPlanData;
-      }>(`${apiBase}/${student.id}/weekly-plan`, {
-        timeout: API_TIMEOUT_MS,
-      });
-      if (data?.success && data?.weeklyPlan) {
+      const res = await fetch(`${apiBase}/${student.id}/weekly-plan`);
+      const data = await res.json();
+      if (data.success && data.weeklyPlan) {
         setWeeklyPlan(data.weeklyPlan);
       } else {
         setWeeklyPlan(null);
@@ -93,26 +85,13 @@ export function useGymStudentDetail({
       const d = date ?? nutritionDate;
       setIsLoadingNutrition(true);
       try {
-        const { data } = await apiClient.get<{
-          success?: boolean;
-          date?: string;
-          meals?: Meal[];
-          totalCalories?: number;
-          totalProtein?: number;
-          totalCarbs?: number;
-          totalFats?: number;
-          waterIntake?: number;
-          targetCalories?: number;
-          targetProtein?: number;
-          targetCarbs?: number;
-          targetFats?: number;
-          targetWater?: number;
-        }>(`${apiBase}/${student.id}/nutrition?date=${d}`, {
-          timeout: API_TIMEOUT_MS,
-        });
-        if (data?.success) {
+        const res = await fetch(
+          `${apiBase}/${student.id}/nutrition?date=${d}`,
+        );
+        const data = await res.json();
+        if (data.success) {
           setDailyNutrition({
-            date: data.date ?? d,
+            date: data.date,
             meals: data.meals ?? [],
             totalCalories: data.totalCalories ?? 0,
             totalProtein: data.totalProtein ?? 0,
@@ -181,15 +160,15 @@ export function useGymStudentDetail({
       };
       setDailyNutrition(nextNutrition);
       try {
-        await apiClient.post(
-          `${apiBase}/${student.id}/nutrition`,
-          {
+        await fetch(`${apiBase}/${student.id}/nutrition`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             date: nutritionDate,
             meals: nextMeals,
             waterIntake: nextWater,
-          },
-          { timeout: API_TIMEOUT_MS },
-        );
+          }),
+        });
       } catch (error) {
         console.error("[GymStudentDetail] Erro ao salvar nutrição:", error);
       }
@@ -202,11 +181,11 @@ export function useGymStudentDetail({
       if (!student?.id) return;
       const normalized = Math.max(0, Math.round(targetWater));
       try {
-        await apiClient.post(
-          `${apiBase}/${student.id}/nutrition`,
-          { targetWater: normalized },
-          { timeout: API_TIMEOUT_MS },
-        );
+        await fetch(`${apiBase}/${student.id}/nutrition`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetWater: normalized }),
+        });
         setDailyNutrition((prev) =>
           prev ? { ...prev, targetWater: normalized } : prev,
         );
@@ -419,38 +398,21 @@ export function useGymStudentDetail({
     if (!student?.id || !personalId.trim() || variant === "personal") return;
     setIsAssigningPersonal(true);
     try {
-      await apiClient.post(
+      const response = await fetch(
         `/api/gym/students/${student.id}/assign-personal`,
-        { personalId: personalId.trim() },
-        { timeout: API_TIMEOUT_MS },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ personalId: personalId.trim() }),
+        },
       );
-    } catch {
-      throw new Error("Não foi possível atribuir o personal");
+      if (!response.ok) {
+        throw new Error("Não foi possível atribuir o personal");
+      }
     } finally {
       setIsAssigningPersonal(false);
     }
   };
-
-  const handleUnassignStudent = useCallback(async () => {
-    if (!student?.id || variant !== "personal") return;
-    setIsUnassigning(true);
-    try {
-      await apiClient.post(
-        `/api/personals/students/${student.id}/unassign`,
-        {},
-        { timeout: API_TIMEOUT_MS },
-      );
-      onBack();
-    } catch (err) {
-      const msg =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ??
-        (err instanceof Error ? err.message : "Erro ao desvincular");
-      alert(msg);
-    } finally {
-      setIsUnassigning(false);
-    }
-  }, [student?.id, variant, onBack]);
 
   const tabOptions = [
     { value: "overview", label: "Visão Geral", emoji: "📊" },
@@ -472,16 +434,12 @@ export function useGymStudentDetail({
 
   const createWeeklyPlan = useCallback(async () => {
     if (!student?.id) return;
-    try {
-      await apiClient.post(
-        `${apiBase}/${student.id}/weekly-plan`,
-        {},
-        { timeout: API_TIMEOUT_MS },
-      );
-      await fetchWeeklyPlan();
-    } catch {
-      // Erro ao criar plano - fetchWeeklyPlan pode ser chamado para refresh
-    }
+    const res = await fetch(`${apiBase}/${student.id}/weekly-plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) await fetchWeeklyPlan();
   }, [student?.id, apiBase, fetchWeeklyPlan]);
 
   return {
@@ -512,8 +470,6 @@ export function useGymStudentDetail({
     handleMembershipAction,
     handleAssignPersonal,
     isAssigningPersonal,
-    handleUnassignStudent,
-    isUnassigning,
     togglePaymentStatus,
     tabOptions,
     DAY_NAMES,

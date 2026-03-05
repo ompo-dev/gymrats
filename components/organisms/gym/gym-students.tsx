@@ -91,27 +91,16 @@ interface PersonalAffiliationOption {
   gym: { id: string; name: string };
 }
 
-export type PersonalStudentOriginFilter = "all" | "academia" | "personal";
-
 interface GymStudentsPageProps {
   students?: StudentData[];
   variant?: "gym" | "personal";
   personalAffiliations?: PersonalAffiliationOption[];
-  /** Filtro de origem (apenas variant=personal) */
-  originFilter?: PersonalStudentOriginFilter;
-  selectedGymId?: string | null;
-  onOriginFilterChange?: (v: PersonalStudentOriginFilter) => void;
-  onSelectedGymChange?: (gymId: string | null) => void;
 }
 
 export function GymStudentsPage({
   students = [],
   variant = "gym",
   personalAffiliations = [],
-  originFilter = "all",
-  selectedGymId = null,
-  onOriginFilterChange,
-  onSelectedGymChange,
 }: GymStudentsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
@@ -223,42 +212,6 @@ export function GymStudentsPage({
               leftIcon={<Search className="h-5 w-5" />}
               className="h-12"
             />
-            {variant === "personal" &&
-              personalAffiliations.length > 0 &&
-              onOriginFilterChange && (
-                <>
-                  <DuoSelect.Simple
-                    label="Origem"
-                    options={[
-                      { value: "all", label: "Todos" },
-                      { value: "academia", label: "Academia" },
-                      { value: "personal", label: "Pessoal" },
-                    ]}
-                    value={originFilter}
-                    onChange={(v) =>
-                      onOriginFilterChange(
-                        v as PersonalStudentOriginFilter,
-                      )
-                    }
-                  />
-                  {originFilter === "academia" && onSelectedGymChange && (
-                    <DuoSelect.Simple
-                      label="Academia"
-                      options={[
-                        { value: "", label: "Selecione uma academia" },
-                        ...personalAffiliations.map((a) => ({
-                          value: a.gym.id,
-                          label: a.gym.name,
-                        })),
-                      ]}
-                      value={selectedGymId || ""}
-                      onChange={(v) =>
-                        onSelectedGymChange(v ? v : null)
-                      }
-                    />
-                  )}
-                </>
-              )}
             <DuoSelect.Simple
               options={statusOptions}
               value={statusFilter || "all"}

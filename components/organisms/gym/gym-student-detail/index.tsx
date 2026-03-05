@@ -65,8 +65,6 @@ export function GymStudentDetail({
     handleMembershipAction,
     handleAssignPersonal,
     isAssigningPersonal,
-    handleUnassignStudent,
-    isUnassigning,
     togglePaymentStatus,
     tabOptions,
     openWorkoutsEditor,
@@ -126,9 +124,6 @@ export function GymStudentDetail({
           onAssignDiet={openDietTab}
           onAssignPersonal={variant === "personal" ? undefined : handleOpenAssignPersonal}
           isAssigningPersonal={isAssigningPersonal}
-          onUnassignStudent={variant === "personal" ? handleUnassignStudent : undefined}
-          isUnassigning={isUnassigning}
-          variant={variant}
         />
         <AssignPersonalModal
           isOpen={assignPersonalOpen}
