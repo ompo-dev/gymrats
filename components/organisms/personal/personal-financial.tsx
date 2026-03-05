@@ -1,14 +1,13 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { parseAsString, useQueryState } from "nuqs";
+import { Building2, Loader2, Target, Users } from "lucide-react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
+import { DuoButton, DuoCard, DuoSelect, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
-import { useToast } from "@/hooks/use-toast";
+import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
+import { usePersonalFinancial } from "@/hooks/use-personal-financial";
 
 export interface PersonalSubscriptionDisplay {
   id: string;
@@ -24,8 +23,8 @@ export interface PersonalSubscriptionDisplay {
 }
 
 export interface PersonalFinancialPageProps {
-  subscription: PersonalSubscriptionDisplay | null;
-  onRefresh: () => Promise<void>;
+  subscription?: PersonalSubscriptionDisplay | null;
+  onRefresh?: () => Promise<void>;
 }
 
 const PLAN_OPTIONS = [
@@ -39,74 +38,33 @@ const BILLING_OPTIONS = [
 ];
 
 export function PersonalFinancialPage({
-  subscription,
+  subscription: _subscriptionProp,
   onRefresh,
 }: PersonalFinancialPageProps) {
-  const { toast } = useToast();
-  const [subTab, setSubTab] = useQueryState(
-    "subTab",
-    parseAsString.withDefault("overview"),
-  );
+  const {
+    subscription,
+    stats,
+    subTab,
+    setSubTab,
+    isSubmitting,
+    isCanceling,
+    pixModal,
+    setPixModal,
+    cancelDialogOpen,
+    setCancelDialogOpen,
+    handleSubscribe,
+    handleCancelConfirm,
+    handlePixConfirmed,
+    loadSection,
+  } = usePersonalFinancial();
+
   const [plan, setPlan] = useState("standard");
   const [billingPeriod, setBillingPeriod] = useState("monthly");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pixModal, setPixModal] = useState<{
-    brCode: string;
-    brCodeBase64: string;
-    amount: number;
-    expiresAt?: string;
-  } | null>(null);
-
-  const handleSubscribe = async () => {
-    setIsSubmitting(true);
-    try {
-      const res = await apiClient.post<{
-        subscription: unknown;
-        pix?: {
-          pixId: string;
-          brCode: string;
-          brCodeBase64: string;
-          amount: number;
-          expiresAt: string;
-        };
-      }>("/api/personals/subscription", {
-        plan: plan as "standard" | "pro_ai",
-        billingPeriod: billingPeriod as "monthly" | "annual",
-      });
-      await onRefresh();
-      const pix = res.data?.pix;
-      if (pix?.brCode && pix?.brCodeBase64) {
-        setPixModal({
-          brCode: pix.brCode,
-          brCodeBase64: pix.brCodeBase64,
-          amount: pix.amount,
-          expiresAt: pix.expiresAt,
-        });
-      } else {
-        toast({
-          title: "Assinatura atualizada",
-          description: "Seu plano foi registrado.",
-        });
-      }
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
-          : err instanceof Error
-            ? err.message
-            : "Erro ao contratar";
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: String(msg),
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const viewMode = subTab === "subscription" ? "subscription" : "overview";
+  const canCancel =
+    subscription &&
+    (subscription.status === "active" || subscription.status === "trialing");
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-6">
@@ -139,71 +97,117 @@ export function PersonalFinancialPage({
       </SlideIn>
 
       {viewMode === "overview" && (
-        <SlideIn delay={0.2}>
-          {subscription ? (
-            <DuoCard.Root>
-              <p className="text-sm text-duo-fg-muted">Plano atual</p>
-              <p className="text-xl font-bold text-duo-fg">
-                {subscription.plan === "pro_ai" ? "Pro AI" : "Standard"}
-              </p>
-              <p className="mt-1 text-sm text-duo-fg-muted">
-                Status: {subscription.status}
-              </p>
-              {subscription.effectivePrice != null && (
-                <p className="mt-1 text-sm text-duo-fg">
-                  Valor efetivo: R${" "}
-                  {Number(subscription.effectivePrice).toFixed(2)}/mês
-                  {subscription.discountPercent
-                    ? ` (${subscription.discountPercent}% de desconto)`
-                    : ""}
+        <>
+          <SlideIn delay={0.15}>
+            <DuoStatsGrid.Root columns={2} className="gap-4">
+              <DuoStatCard.Simple
+                icon={Building2}
+                value={String(stats.gyms)}
+                label="Academias"
+                iconColor="var(--duo-primary)"
+              />
+              <DuoStatCard.Simple
+                icon={Users}
+                value={String(stats.students)}
+                label="Alunos"
+                iconColor="var(--duo-secondary)"
+              />
+              <DuoStatCard.Simple
+                icon={Target}
+                value={String(stats.studentsViaGym)}
+                label="Via academia"
+                iconColor="var(--duo-accent)"
+              />
+              <DuoStatCard.Simple
+                icon={Users}
+                value={String(stats.independentStudents)}
+                label="Independentes"
+                iconColor="#A560E8"
+              />
+            </DuoStatsGrid.Root>
+          </SlideIn>
+          <SlideIn delay={0.2}>
+            {subscription ? (
+              <DuoCard.Root>
+                <p className="text-sm text-duo-fg-muted">Plano atual</p>
+                <p className="text-xl font-bold text-duo-fg">
+                  {subscription.plan === "pro_ai" ? "Pro AI" : "Standard"}
                 </p>
-              )}
-              <p className="mt-1 text-xs text-duo-fg-muted">
-                Próximo vencimento:{" "}
-                {new Date(
-                  subscription.currentPeriodEnd,
-                ).toLocaleDateString("pt-BR")}
-              </p>
-            </DuoCard.Root>
-          ) : (
-            <DuoCard.Root>
-              <p className="text-sm text-duo-fg-muted">
-                Nenhuma assinatura ativa. Use a aba Assinatura para contratar.
-              </p>
-            </DuoCard.Root>
-          )}
-        </SlideIn>
+                <p className="mt-1 text-sm text-duo-fg-muted">
+                  Status: {subscription.status}
+                </p>
+                {subscription.effectivePrice != null && (
+                  <p className="mt-1 text-sm text-duo-fg">
+                    Valor efetivo: R${" "}
+                    {Number(subscription.effectivePrice).toFixed(2)}/mês
+                    {subscription.discountPercent
+                      ? ` (${subscription.discountPercent}% de desconto)`
+                      : ""}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-duo-fg-muted">
+                  Próximo vencimento:{" "}
+                  {new Date(
+                    subscription.currentPeriodEnd,
+                  ).toLocaleDateString("pt-BR")}
+                </p>
+              </DuoCard.Root>
+            ) : (
+              <DuoCard.Root>
+                <p className="text-sm text-duo-fg-muted">
+                  Nenhuma assinatura ativa. Use a aba Assinatura para contratar.
+                </p>
+              </DuoCard.Root>
+            )}
+          </SlideIn>
+        </>
       )}
 
       {viewMode === "subscription" && (
         <SlideIn delay={0.2}>
-        <DuoCard.Root>
-          <h3 className="font-semibold text-duo-fg">Plano</h3>
-          <div className="mt-3 space-y-3">
-            <DuoSelect.Simple
-              label="Plano"
-              value={plan}
-              onChange={setPlan}
-              options={PLAN_OPTIONS}
-            />
-            <DuoSelect.Simple
-              label="Cobrança"
-              value={billingPeriod}
-              onChange={setBillingPeriod}
-              options={BILLING_OPTIONS}
-            />
-            <DuoButton
-              onClick={handleSubscribe}
-              disabled={isSubmitting}
-              variant="primary"
-            >
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {subscription ? "Atualizar plano" : "Contratar"}
-            </DuoButton>
-          </div>
-        </DuoCard.Root>
+          <DuoCard.Root>
+            <h3 className="font-semibold text-duo-fg">Plano</h3>
+            <div className="mt-3 space-y-3">
+              <DuoSelect.Simple
+                label="Plano"
+                value={plan}
+                onChange={setPlan}
+                options={PLAN_OPTIONS}
+              />
+              <DuoSelect.Simple
+                label="Cobrança"
+                value={billingPeriod}
+                onChange={setBillingPeriod}
+                options={BILLING_OPTIONS}
+              />
+              <div className="flex flex-wrap gap-3">
+                <DuoButton
+                  onClick={() =>
+                    handleSubscribe(
+                      plan as "standard" | "pro_ai",
+                      billingPeriod as "monthly" | "annual",
+                    )
+                  }
+                  disabled={isSubmitting}
+                  variant="primary"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  {subscription ? "Atualizar plano" : "Contratar"}
+                </DuoButton>
+                {canCancel && (
+                  <DuoButton
+                    variant="outline"
+                    onClick={() => setCancelDialogOpen(true)}
+                    disabled={isCanceling}
+                  >
+                    Cancelar assinatura
+                  </DuoButton>
+                )}
+              </div>
+            </div>
+          </DuoCard.Root>
         </SlideIn>
       )}
 
@@ -218,15 +222,15 @@ export function PersonalFinancialPage({
           expiresAt={pixModal.expiresAt}
           pollConfig={{
             type: "subscription",
-            refetch: onRefresh,
+            refetch: () => loadSection("subscription"),
             currentStatus: subscription?.status,
             initialStatus: "pending_payment",
             targetStatus: "active",
             intervalMs: 3000,
           }}
           onPaymentConfirmed={() => {
-            setPixModal(null);
-            onRefresh();
+            handlePixConfirmed();
+            onRefresh?.();
           }}
           paymentConfirmedToast={{
             title: "Pagamento confirmado!",
@@ -234,6 +238,13 @@ export function PersonalFinancialPage({
           }}
         />
       )}
+
+      <SubscriptionCancelDialog.Simple
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        onConfirm={handleCancelConfirm}
+        isLoading={isCanceling}
+      />
     </div>
   );
 }

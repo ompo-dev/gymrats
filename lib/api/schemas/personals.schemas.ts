@@ -28,3 +28,10 @@ export const studentPersonalAssignmentSchema = z.object({
   studentId: z.string().min(1),
   personalId: z.string().min(1),
 });
+
+export const personalStudentsSearchQuerySchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(3, "Informe ao menos 3 caracteres para buscar"),
+});

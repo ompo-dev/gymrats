@@ -6,9 +6,10 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
-import { apiClient } from "@/lib/api/client";
+import { useUserSession } from "@/hooks/use-user-session";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { usePersonalSettings } from "@/hooks/use-personal-settings";
+import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
 
 export interface PersonalProfileDisplay {
   id?: string;
@@ -31,68 +32,60 @@ export function PersonalSettingsPage({
 }: PersonalSettingsPageProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [name, setName] = useState(initialProfile?.name ?? "");
-  const [email, setEmail] = useState(initialProfile?.email ?? "");
-  const [phone, setPhone] = useState(initialProfile?.phone ?? "");
-  const [bio, setBio] = useState(initialProfile?.bio ?? "");
+  const { profile, saving, saveError, handleSave } = usePersonalSettings({
+    initialProfile,
+  });
+
+  const { role } = useUserSession();
+  const canSwitchToStudent = role === "PERSONAL" || role === "ADMIN";
+
+  const [name, setName] = useState(profile?.name ?? "");
+  const [email, setEmail] = useState(profile?.email ?? "");
+  const [phone, setPhone] = useState(profile?.phone ?? "");
+  const [bio, setBio] = useState(profile?.bio ?? "");
   const [atendimentoPresencial, setAtendimentoPresencial] = useState(
-    initialProfile?.atendimentoPresencial ?? true,
+    profile?.atendimentoPresencial ?? true,
   );
   const [atendimentoRemoto, setAtendimentoRemoto] = useState(
-    initialProfile?.atendimentoRemoto ?? true,
+    profile?.atendimentoRemoto ?? true,
   );
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
-    setName(initialProfile?.name ?? "");
-    setEmail(initialProfile?.email ?? "");
-    setPhone(initialProfile?.phone ?? "");
-    setBio(initialProfile?.bio ?? "");
-    setAtendimentoPresencial(initialProfile?.atendimentoPresencial ?? true);
-    setAtendimentoRemoto(initialProfile?.atendimentoRemoto ?? true);
-  }, [initialProfile]);
+    setName(profile?.name ?? "");
+    setEmail(profile?.email ?? "");
+    setPhone(profile?.phone ?? "");
+    setBio(profile?.bio ?? "");
+    setAtendimentoPresencial(profile?.atendimentoPresencial ?? true);
+    setAtendimentoRemoto(profile?.atendimentoRemoto ?? true);
+  }, [profile]);
 
-  const handleSave = async () => {
-    setSaveError("");
-    if (!name.trim() || !email.trim()) {
-      setSaveError("Nome e email são obrigatórios.");
-      return;
-    }
-    setSaving(true);
+  const handleLogout = async () => {
     try {
-      await apiClient.patch("/api/personals", {
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim() || undefined,
-        bio: bio.trim() || undefined,
-        atendimentoPresencial,
-        atendimentoRemoto,
-      });
-      toast({
-        title: "Perfil atualizado",
-        description: "Suas alterações foram salvas.",
-      });
-      setSaveError("");
-      router.refresh();
-      await onRefresh?.();
-    } catch (err) {
-      const msg =
-        err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
-          : err instanceof Error
-            ? err.message
-            : "Erro ao salvar. Tente novamente.";
-      setSaveError(msg);
+      await fetch("/api/auth/sign-out", { method: "POST" });
+      router.push("/welcome");
+    } catch {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: msg,
+        description: "Não foi possível sair.",
       });
-    } finally {
-      setSaving(false);
     }
+  };
+
+  const handleSwitchToStudent = () => {
+    router.push("/student");
+  };
+
+  const onSave = async () => {
+    await handleSave({
+      name,
+      email,
+      phone: phone || null,
+      bio: bio || null,
+      atendimentoPresencial,
+      atendimentoRemoto,
+    });
+    await onRefresh?.();
   };
 
   return (
@@ -183,6 +176,14 @@ export function PersonalSettingsPage({
         </DuoCard.Root>
       </SlideIn>
 
+      <SlideIn delay={0.25}>
+        <PersonalSettingsAccountCard
+          canSwitchToStudent={!!canSwitchToStudent}
+          onSwitchToStudent={handleSwitchToStudent}
+          onLogout={handleLogout}
+        />
+      </SlideIn>
+
       {saveError && (
         <div className="rounded-lg border border-duo-danger/40 bg-duo-danger/10 px-4 py-3 text-sm text-duo-danger">
           {saveError}
@@ -191,7 +192,7 @@ export function PersonalSettingsPage({
 
       <SlideIn delay={0.3}>
         <DuoButton
-          onClick={handleSave}
+          onClick={onSave}
           disabled={saving}
           variant="primary"
           className="w-full sm:w-auto"

@@ -1,6 +1,61 @@
 import { db } from "@/lib/db";
 
 export class StudentPersonalService {
+  static async searchStudentByEmail(personalId: string, email: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedIdentifier = normalizedEmail.startsWith("@")
+      ? normalizedEmail.slice(1)
+      : normalizedEmail;
+    const isFullEmail = normalizedIdentifier.includes("@");
+
+    const emailWhere = isFullEmail
+      ? { contains: normalizedIdentifier, mode: "insensitive" as const }
+      : {
+          startsWith: `${normalizedIdentifier}@`,
+          mode: "insensitive" as const,
+        };
+
+    const user = await db.user.findFirst({
+      where: {
+        email: emailWhere,
+        role: { in: ["STUDENT", "ADMIN"] },
+      },
+      include: {
+        student: {
+          include: {
+            profile: true,
+            progress: true,
+            personalAssignments: {
+              where: {
+                personalId,
+                status: "active",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user?.student) {
+      return { found: false };
+    }
+
+    const existingAssignment = user.student.personalAssignments[0];
+    return {
+      found: true,
+      isAlreadyAssigned: !!existingAssignment,
+      student: {
+        id: user.student.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.student.avatar,
+        age: user.student.age,
+        gender: user.student.gender,
+        currentLevel: user.student.progress?.currentLevel ?? 1,
+        currentStreak: user.student.progress?.currentStreak ?? 0,
+      },
+    };
+  }
   static async assignByGym(input: {
     studentId: string;
     personalId: string;
@@ -110,6 +165,40 @@ export class StudentPersonalService {
       },
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  static async getStudentDetailForPersonal(
+    personalId: string,
+    studentId: string,
+  ) {
+    const assignment = await db.studentPersonalAssignment.findFirst({
+      where: {
+        studentId,
+        personalId,
+        status: "active",
+      },
+      include: {
+        student: {
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+            profile: true,
+            progress: true,
+            records: {
+              orderBy: { date: "desc" },
+              take: 50,
+              select: {
+                exerciseName: true,
+                date: true,
+                value: true,
+                type: true,
+              },
+            },
+          },
+        },
+        gym: { select: { id: true, name: true } },
+      },
+    });
+    return assignment;
   }
 
   static async listStudentsByPersonal(personalId: string, gymId?: string) {
