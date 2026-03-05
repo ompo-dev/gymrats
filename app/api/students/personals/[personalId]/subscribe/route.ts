@@ -31,8 +31,8 @@ export const POST = createSafeHandler(
       );
     }
 
-    const existingAssignment = await db.studentPersonalAssignment.findUnique({
-      where: { studentId_personalId: { studentId, personalId } },
+    const existingAssignment = await db.studentPersonalAssignment.findFirst({
+      where: { studentId, personalId, status: "active" },
     });
 
     if (existingAssignment && existingAssignment.status === "active") {
