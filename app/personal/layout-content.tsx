@@ -17,9 +17,18 @@ import { useUserSession } from "@/hooks/use-user-session";
 
 interface PersonalLayoutContentProps {
   children: React.ReactNode;
+  initialStats: {
+    streak: number;
+    xp: number;
+    level: number;
+    ranking?: number;
+  };
 }
 
-export function PersonalLayoutContent({ children }: PersonalLayoutContentProps) {
+export function PersonalLayoutContent({
+  children,
+  initialStats,
+}: PersonalLayoutContentProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isOnboarding =
@@ -72,7 +81,7 @@ export function PersonalLayoutContent({ children }: PersonalLayoutContentProps) 
       tabs={personalTabs}
       defaultTab="dashboard"
       basePath="/personal"
-      stats={{ streak: 0, xp: 0 }}
+      stats={initialStats}
       showLogo={true}
       className="bg-duo-bg"
     >

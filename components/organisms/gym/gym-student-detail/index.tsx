@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Activity, Flame, Target, Users } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
@@ -11,6 +12,7 @@ import {
 } from "@/components/duo";
 import type { Payment, StudentData } from "@/lib/types";
 import {
+  AssignPersonalModal,
   DietTab,
   OverviewTab,
   PaymentsTab,
@@ -67,13 +69,18 @@ export function GymStudentDetail({
     openDietTab,
   } = useGymStudentDetail({ student, payments, onBack });
 
-  const handleOpenAssignPersonal = () => {
-    const personalId = window.prompt("Informe o ID do personal para atribuição");
-    if (!personalId) return;
-    handleAssignPersonal(personalId).catch((error) => {
+  const [assignPersonalOpen, setAssignPersonalOpen] = useState(false);
+
+  const handleOpenAssignPersonal = () => setAssignPersonalOpen(true);
+
+  const handleAssignAndClose = async (personalId: string) => {
+    try {
+      await handleAssignPersonal(personalId);
+      setAssignPersonalOpen(false);
+    } catch (error) {
       console.error("[GymStudentDetail] Erro ao atribuir personal:", error);
       alert("Não foi possível atribuir o personal para este aluno.");
-    });
+    }
   };
 
   if (!studentData) {
@@ -113,6 +120,12 @@ export function GymStudentDetail({
           onAssignDiet={openDietTab}
           onAssignPersonal={handleOpenAssignPersonal}
           isAssigningPersonal={isAssigningPersonal}
+        />
+        <AssignPersonalModal
+          isOpen={assignPersonalOpen}
+          onClose={() => setAssignPersonalOpen(false)}
+          onAssign={handleAssignAndClose}
+          isAssigning={isAssigningPersonal}
         />
       </SlideIn>
 

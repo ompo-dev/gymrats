@@ -231,6 +231,46 @@ export async function POST(request: NextRequest) {
         return successResponse({ received: true, type: "gym" });
       }
 
+      // 1.5. Tentar PersonalSubscription
+      const personalSub = await db.personalSubscription.findFirst({
+        where: { abacatePayBillingId: paymentId },
+        include: { personal: true },
+      });
+
+      if (personalSub && personalSub.status === "pending_payment") {
+        const now = new Date();
+        const periodEnd = new Date(now);
+        const isAnnual = personalSub.billingPeriod === "annual";
+        if (isAnnual) {
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        } else {
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+        }
+
+        await db.personalSubscription.update({
+          where: { id: personalSub.id },
+          data: {
+            status: "active",
+            currentPeriodStart: now,
+            currentPeriodEnd: periodEnd,
+            cancelAtPeriodEnd: false,
+            canceledAt: null,
+          },
+        });
+
+        console.log(
+          `[Webhook] PersonalSubscription ${personalSub.id} (personal ${personalSub.personalId}) ativada: ${personalSub.plan} ${personalSub.billingPeriod}`,
+        );
+        return successResponse({ received: true, type: "personal-subscription" });
+      }
+
+      if (personalSub && personalSub.status === "active") {
+        return successResponse({
+          received: true,
+          type: "personal-subscription-already-active",
+        });
+      }
+
       // 2. Tentar Subscription (aluno)
       let subscription = await db.subscription.findUnique({
         where: { abacatePayBillingId: paymentId },

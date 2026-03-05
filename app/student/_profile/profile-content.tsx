@@ -5,6 +5,7 @@ import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import {
   AccountSection,
+  MyPersonalsCard,
   PersonalRecordsCard,
   RecentHistoryCard,
   WeightEvolutionCard,
@@ -154,6 +155,8 @@ export function ProfilePageContent() {
           onWorkoutClick={() => router.push(firstWorkoutUrl)}
         />
       </div>
+
+      <MyPersonalsCard />
 
       <AccountSection
         isAdmin={isAdmin}

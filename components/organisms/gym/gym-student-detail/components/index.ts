@@ -1,3 +1,4 @@
+export { AssignPersonalModal } from "./assign-personal-modal";
 export { DietTab } from "./diet-tab";
 export { OverviewTab } from "./overview-tab";
 export { PaymentsTab } from "./payments-tab";

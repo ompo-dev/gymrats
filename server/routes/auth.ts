@@ -12,6 +12,7 @@ import {
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import { sendResetPasswordEmail } from "@/lib/services/email.service";
+import type { UserSummary } from "@/lib/use-cases/auth";
 import {
   forgotPasswordUseCase,
   getSessionUseCase,
@@ -28,9 +29,33 @@ import { getCookieValue } from "../utils/request";
 import { badRequestResponse, internalErrorResponse } from "../utils/response";
 import { validateBody } from "../utils/validation";
 
+function toUserSummary(u: {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  password?: string | null;
+  createdAt?: Date;
+  student?: { id: string } | null;
+  gyms?: { id: string }[];
+  personal?: { id: string } | null;
+}): UserSummary {
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: u.role as UserSummary["role"],
+    createdAt: u.createdAt,
+    student: u.student ?? undefined,
+    gyms: u.gyms ?? undefined,
+    personal: u.personal ?? undefined,
+    password: u.password,
+  };
+}
+
 export const authRoutes = new Elysia()
   .post("/sign-in", async ({ body, set }) => {
-    const validation = validateBody(body, signInSchema);
+    const validation = validateBody(body as Record<string, unknown>, signInSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -42,14 +67,16 @@ export const authRoutes = new Elysia()
     try {
       const result = await signInUseCase(
         {
-          findUserByEmail: (email) =>
-            db.user.findUnique({
+          findUserByEmail: async (email) => {
+            const u = await db.user.findUnique({
               where: { email },
               include: {
                 student: { select: { id: true } },
                 gyms: { select: { id: true } },
               },
-            }),
+            });
+            return u ? toUserSummary(u) : null;
+          },
           comparePassword: (plain, hashed) => bcrypt.compare(plain, hashed),
           createSession,
         },
@@ -79,7 +106,7 @@ export const authRoutes = new Elysia()
     }
   })
   .post("/sign-up", async ({ body, set }) => {
-    const validation = validateBody(body, signUpSchema);
+    const validation = validateBody(body as Record<string, unknown>, signUpSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -91,9 +118,15 @@ export const authRoutes = new Elysia()
     try {
       const result = await signUpUseCase(
         {
-          findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+          findUserByEmail: async (email) => {
+            const u = await db.user.findUnique({ where: { email } });
+            return u ? toUserSummary(u) : null;
+          },
           hashPassword: (plain) => bcrypt.hash(plain, 10),
-          createUser: (data) => db.user.create({ data }),
+          createUser: async (data) => {
+            const u = await db.user.create({ data });
+            return toUserSummary(u);
+          },
           createStudent: (userId) =>
             db.student.create({ data: { userId } }).then(() => undefined),
           createSession,
@@ -139,14 +172,16 @@ export const authRoutes = new Elysia()
         {
           getBetterAuthSession: async (headers) =>
             auth.api.getSession({ headers }),
-          findUserById: (userId) =>
-            db.user.findUnique({
+          findUserById: async (userId) => {
+            const u = await db.user.findUnique({
               where: { id: userId },
               include: {
                 student: { select: { id: true } },
                 gyms: { select: { id: true } },
               },
-            }),
+            });
+            return u ? toUserSummary(u) : null;
+          },
           getSessionTokenById: async (sessionId) => {
             const sessionFromDb = await db.session.findUnique({
               where: { id: sessionId },
@@ -154,7 +189,14 @@ export const authRoutes = new Elysia()
             });
             return sessionFromDb?.token || null;
           },
-          getSessionByToken: getSession,
+          getSessionByToken: async (token) => {
+            const session = await getSession(token);
+            if (!session) return null;
+            return {
+              ...session,
+              user: toUserSummary(session.user),
+            };
+          },
         },
         {
           headers: request.headers,
@@ -229,7 +271,7 @@ export const authRoutes = new Elysia()
     }
   })
   .post("/update-role", async ({ body, set }) => {
-    const validation = validateBody(body, updateRoleSchema);
+    const validation = validateBody(body as Record<string, unknown>, updateRoleSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -241,15 +283,17 @@ export const authRoutes = new Elysia()
     try {
       const result = await updateRoleUseCase(
         {
-          findUserById: (userId) =>
-            db.user.findUnique({
+          findUserById: async (userId) => {
+            const u = await db.user.findUnique({
               where: { id: userId },
               include: { student: true, gyms: true, personal: true },
-            }) as unknown as Promise<
-              import("@/lib/use-cases/auth").UserSummary | null
-            >,
-          updateUserRole: (userId, role) =>
-            db.user.update({ where: { id: userId }, data: { role } }),
+            });
+            return u ? toUserSummary(u) : null;
+          },
+          updateUserRole: async (userId, role) => {
+            const u = await db.user.update({ where: { id: userId }, data: { role } });
+            return toUserSummary(u);
+          },
           findStudentByUserId: (userId) =>
             db.student.findUnique({ where: { userId } }),
           createStudent: (userId) =>
@@ -280,7 +324,7 @@ export const authRoutes = new Elysia()
     }
   })
   .post("/forgot-password", async ({ body, set }) => {
-    const validation = validateBody(body, forgotPasswordSchema);
+    const validation = validateBody(body as Record<string, unknown>, forgotPasswordSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -292,7 +336,10 @@ export const authRoutes = new Elysia()
     try {
       const result = await forgotPasswordUseCase(
         {
-          findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+          findUserByEmail: async (email) => {
+            const u = await db.user.findUnique({ where: { email } });
+            return u ? toUserSummary(u) : null;
+          },
           deleteTokensByIdentifier: (identifier) =>
             db.verificationToken
               .deleteMany({ where: { identifier } })
@@ -325,7 +372,7 @@ export const authRoutes = new Elysia()
     }
   })
   .post("/verify-reset-code", async ({ body, set }) => {
-    const validation = validateBody(body, verifyResetCodeSchema);
+    const validation = validateBody(body as Record<string, unknown>, verifyResetCodeSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -348,7 +395,10 @@ export const authRoutes = new Elysia()
                 where: { identifier_token: { identifier, token } },
               })
               .then(() => undefined),
-          findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+          findUserByEmail: async (email) => {
+            const u = await db.user.findUnique({ where: { email } });
+            return u ? toUserSummary(u) : null;
+          },
           now: () => new Date(),
         },
         validation.data,
@@ -366,7 +416,7 @@ export const authRoutes = new Elysia()
     }
   })
   .post("/reset-password", async ({ body, set }) => {
-    const validation = validateBody(body, resetPasswordSchema);
+    const validation = validateBody(body as Record<string, unknown>, resetPasswordSchema);
     if (!validation.success) {
       return badRequestResponse(
         set,
@@ -389,7 +439,10 @@ export const authRoutes = new Elysia()
                 where: { identifier_token: { identifier, token } },
               })
               .then(() => undefined),
-          findUserByEmail: (email) => db.user.findUnique({ where: { email } }),
+          findUserByEmail: async (email) => {
+            const u = await db.user.findUnique({ where: { email } });
+            return u ? toUserSummary(u) : null;
+          },
           hashPassword: (plain) => bcrypt.hash(plain, 10),
           updateUserPassword: (userId, password) =>
             db.user

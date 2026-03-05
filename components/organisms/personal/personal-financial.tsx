@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -48,19 +49,44 @@ export function PersonalFinancialPage({
   const [plan, setPlan] = useState("standard");
   const [billingPeriod, setBillingPeriod] = useState("monthly");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pixModal, setPixModal] = useState<{
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    expiresAt?: string;
+  } | null>(null);
 
   const handleSubscribe = async () => {
     setIsSubmitting(true);
     try {
-      await apiClient.post("/api/personals/subscription", {
+      const res = await apiClient.post<{
+        subscription: unknown;
+        pix?: {
+          pixId: string;
+          brCode: string;
+          brCodeBase64: string;
+          amount: number;
+          expiresAt: string;
+        };
+      }>("/api/personals/subscription", {
         plan: plan as "standard" | "pro_ai",
         billingPeriod: billingPeriod as "monthly" | "annual",
       });
-      toast({
-        title: "Assinatura atualizada",
-        description: "Seu plano foi registrado.",
-      });
       await onRefresh();
+      const pix = res.data?.pix;
+      if (pix?.brCode && pix?.brCodeBase64) {
+        setPixModal({
+          brCode: pix.brCode,
+          brCodeBase64: pix.brCodeBase64,
+          amount: pix.amount,
+          expiresAt: pix.expiresAt,
+        });
+      } else {
+        toast({
+          title: "Assinatura atualizada",
+          description: "Seu plano foi registrado.",
+        });
+      }
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -129,7 +155,7 @@ export function PersonalFinancialPage({
               {subscription.effectivePrice != null && (
                 <p className="mt-1 text-sm text-duo-fg">
                   Valor efetivo: R${" "}
-                  {(subscription.effectivePrice / 100).toFixed(2)}/mês
+                  {Number(subscription.effectivePrice).toFixed(2)}/mês
                   {subscription.discountPercent
                     ? ` (${subscription.discountPercent}% de desconto)`
                     : ""}
@@ -180,6 +206,34 @@ export function PersonalFinancialPage({
             </DuoButton>
           </div>
         </DuoCard.Root>
+      )}
+
+      {pixModal && (
+        <PixQrModal
+          isOpen={!!pixModal}
+          onClose={() => setPixModal(null)}
+          title="Pagamento PIX - Assinatura Personal"
+          brCode={pixModal.brCode}
+          brCodeBase64={pixModal.brCodeBase64}
+          amount={pixModal.amount}
+          expiresAt={pixModal.expiresAt}
+          pollConfig={{
+            type: "subscription",
+            refetch: onRefresh,
+            currentStatus: subscription?.status,
+            initialStatus: "pending_payment",
+            targetStatus: "active",
+            intervalMs: 3000,
+          }}
+          onPaymentConfirmed={() => {
+            setPixModal(null);
+            onRefresh();
+          }}
+          paymentConfirmedToast={{
+            title: "Pagamento confirmado!",
+            description: "Sua assinatura foi ativada.",
+          }}
+        />
       )}
     </div>
   );

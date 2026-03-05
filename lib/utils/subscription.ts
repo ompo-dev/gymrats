@@ -493,6 +493,82 @@ export async function createStudentSubscriptionPix(
   };
 }
 
+export async function createPersonalSubscriptionPix(
+  personalId: string,
+  plan: "standard" | "pro_ai",
+  billingPeriod: "monthly" | "annual",
+  subscriptionId: string,
+): Promise<GymSubscriptionPixResponse | null> {
+  const personal = await db.personal.findUnique({
+    where: { id: personalId },
+  });
+
+  if (!personal) {
+    throw new Error("Personal não encontrado");
+  }
+
+  const affiliation = await db.gymPersonalAffiliation.findFirst({
+    where: {
+      personalId,
+      status: "active",
+      gym: {
+        subscription: {
+          status: "active",
+          plan: { in: ["premium", "enterprise"] },
+        },
+      },
+    },
+    select: { id: true },
+  });
+  const hasDiscount = !!affiliation;
+
+  const { effectivePrice } = calculatePersonalSubscriptionPricing({
+    plan,
+    billingPeriod,
+    hasPremiumOrEnterpriseAffiliation: hasDiscount,
+  });
+  const amountCents = effectivePrice;
+
+  const planName = plan === "pro_ai" ? "Pro AI" : "Standard";
+  const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
+  const description = `GymRats Personal ${planName} ${periodLabel}`.slice(0, 37);
+
+  const pixResponse = await abacatePay.createPixQrCode({
+    amount: amountCents,
+    expiresIn: PIX_EXPIRES_IN_SECONDS,
+    description,
+    metadata: {
+      personalId,
+      plan,
+      billingPeriod,
+      subscriptionId,
+      kind: "personal-subscription",
+    },
+    customer: personal.email
+      ? {
+          name: personal.name,
+          email: personal.email,
+          cellphone: personal.phone || "(00) 00000-0000",
+          taxId: "",
+        }
+      : undefined,
+  });
+
+  if (pixResponse.error || !pixResponse.data) {
+    console.error("[createPersonalSubscriptionPix] Erro:", pixResponse.error);
+    throw new Error(pixResponse.error || "Erro ao criar PIX na AbacatePay");
+  }
+
+  const pix = pixResponse.data;
+  return {
+    id: pix.id,
+    brCode: pix.brCode,
+    brCodeBase64: pix.brCodeBase64,
+    amount: pix.amount,
+    expiresAt: pix.expiresAt,
+  };
+}
+
 export async function createGymSubscriptionBilling(
   gymId: string,
   plan: "basic" | "premium" | "enterprise",

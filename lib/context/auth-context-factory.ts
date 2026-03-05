@@ -36,6 +36,12 @@ export type StudentContext = {
   student: Record<string, string | number | boolean | object | null>;
 };
 
+export type PersonalContext = {
+  personalId: string;
+  session: AuthSession["session"];
+  user: AuthSession["user"];
+};
+
 export type GymContextResult =
   | { ctx: GymContext; errorResponse?: undefined }
   | { ctx?: undefined; errorResponse: NextResponse };
@@ -43,6 +49,10 @@ export type GymContextResult =
 export type StudentContextResult =
   | { ctx: StudentContext; error?: undefined }
   | { ctx?: undefined; error: string };
+
+export type PersonalContextResult =
+  | { ctx: PersonalContext; errorResponse?: undefined }
+  | { ctx?: undefined; errorResponse: NextResponse };
 
 export type UserOnlyContext = {
   user: AuthSession["user"];
@@ -69,6 +79,7 @@ async function getAuthSession(): Promise<AuthSession | null> {
         include: {
           student: true,
           gyms: { select: { id: true } },
+          personal: { select: { id: true } },
         },
       });
 
@@ -105,11 +116,14 @@ export async function getAuthContext(options: {
   type: "student";
 }): Promise<StudentContextResult>;
 export async function getAuthContext(options: {
-  type: "gym" | "student";
-}): Promise<GymContextResult | StudentContextResult> {
+  type: "personal";
+}): Promise<PersonalContextResult>;
+export async function getAuthContext(options: {
+  type: "gym" | "student" | "personal";
+}): Promise<GymContextResult | StudentContextResult | PersonalContextResult> {
   const auth = await getAuthSession();
   if (!auth) {
-    if (options.type === "gym") {
+    if (options.type === "gym" || options.type === "personal") {
       return {
         errorResponse: NextResponse.json(
           { error: "Não autenticado" },
@@ -121,6 +135,54 @@ export async function getAuthContext(options: {
   }
 
   const { session, user } = auth;
+
+  if (options.type === "personal") {
+    const isAdmin = user.role === "ADMIN";
+    const isPersonalRole = user.role === "PERSONAL";
+    if (!isAdmin && !isPersonalRole) {
+      return {
+        errorResponse: NextResponse.json(
+          { error: "Usuário não é um personal" },
+          { status: 403 },
+        ),
+      };
+    }
+    const userWithPersonal = await db.user.findUnique({
+      where: { id: user.id },
+      include: { personal: { select: { id: true } } },
+    });
+    let personalId = (userWithPersonal?.personal as { id: string } | null)?.id;
+    if (!personalId && (isAdmin || isPersonalRole)) {
+      const existing = await db.personal.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+      });
+      if (existing) {
+        personalId = existing.id;
+      } else {
+        const created = await db.personal.create({
+          data: {
+            userId: user.id,
+            name: (user.name as string) || "Personal",
+            email: (user.email as string) || "",
+          },
+          select: { id: true },
+        });
+        personalId = created.id;
+      }
+    }
+    if (!personalId) {
+      return {
+        errorResponse: NextResponse.json(
+          { error: "Personal ID não encontrado" },
+          { status: 500 },
+        ),
+      };
+    }
+    return {
+      ctx: { personalId, session, user },
+    };
+  }
 
   if (options.type === "gym") {
     const isAdmin = user.role === "ADMIN";

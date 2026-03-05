@@ -33,10 +33,7 @@ export const authApi = {
       // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-in",
-        credentials as unknown as Record<
-          string,
-          string | number | boolean | object | null
-        >,
+        credentials,
       );
       return response.data;
     } catch (error) {
@@ -52,10 +49,7 @@ export const authApi = {
       // Usar axios client (API → Component)
       const response = await apiClient.post<AuthResponse>(
         "/api/auth/sign-up",
-        data as unknown as Record<
-          string,
-          string | number | boolean | object | null
-        >,
+        data,
       );
       return response.data;
     } catch (error) {
@@ -76,7 +70,7 @@ export const authApi = {
 
       // Também chamar endpoint de logout para compatibilidade
       await apiClient.post("/api/auth/sign-out");
-    } catch (error) {
+    } catch (err) {
       // Se falhar, apenas limpar localStorage e cookies
       if (typeof window !== "undefined") {
         clearAuthToken();
@@ -86,7 +80,7 @@ export const authApi = {
         localStorage.removeItem("userRole");
         localStorage.removeItem("isAdmin");
       }
-      throw error;
+      throw err;
     }
   },
 

@@ -119,17 +119,17 @@ export type ApiClient = {
   ): Promise<import("axios").AxiosResponse<T>>;
   post<T>(
     url: string,
-    data?: Record<string, string | number | boolean | object | null>,
+    data?: object,
     config?: AxiosRequestConfig,
   ): Promise<import("axios").AxiosResponse<T>>;
   put<T>(
     url: string,
-    data?: Record<string, string | number | boolean | object | null>,
+    data?: object,
     config?: AxiosRequestConfig,
   ): Promise<import("axios").AxiosResponse<T>>;
   patch<T>(
     url: string,
-    data?: Record<string, string | number | boolean | object | null>,
+    data?: object,
     config?: AxiosRequestConfig,
   ): Promise<import("axios").AxiosResponse<T>>;
   delete<T>(
@@ -144,28 +144,16 @@ export function createApiClient(): ApiClient {
     get<T>(url: string, config?: AxiosRequestConfig) {
       return client.get<T>(url, config);
     },
-    post<T>(
-      url: string,
-      data?: Record<string, string | number | boolean | object | null>,
-      config?: AxiosRequestConfig,
-    ) {
+    post<T>(url: string, data?: object, config?: AxiosRequestConfig) {
       return client.post<T>(url, data, {
         timeout: 30000,
         ...config,
       });
     },
-    put<T>(
-      url: string,
-      data?: Record<string, string | number | boolean | object | null>,
-      config?: AxiosRequestConfig,
-    ) {
+    put<T>(url: string, data?: object, config?: AxiosRequestConfig) {
       return client.put<T>(url, data, config);
     },
-    patch<T>(
-      url: string,
-      data?: Record<string, string | number | boolean | object | null>,
-      config?: AxiosRequestConfig,
-    ) {
+    patch<T>(url: string, data?: object, config?: AxiosRequestConfig) {
       return client.patch<T>(url, data, config);
     },
     delete<T>(url: string, config?: AxiosRequestConfig) {

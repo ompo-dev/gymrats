@@ -4,6 +4,21 @@ import { PersonalLayoutContent } from "./layout-content";
 
 export const dynamic = "force-dynamic";
 
+async function PersonalLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <PersonalLayoutContent
+      initialStats={{
+        streak: 0,
+        xp: 0,
+        level: 1,
+        ranking: 0,
+      }}
+    >
+      {children}
+    </PersonalLayoutContent>
+  );
+}
+
 export default function PersonalLayout({
   children,
 }: {
@@ -11,7 +26,7 @@ export default function PersonalLayout({
 }) {
   return (
     <Suspense fallback={<LoadingScreenFallback variant="personal" />}>
-      <PersonalLayoutContent>{children}</PersonalLayoutContent>
+      <PersonalLayoutWrapper>{children}</PersonalLayoutWrapper>
     </Suspense>
   );
 }

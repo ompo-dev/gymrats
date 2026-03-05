@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { personalSubscriptionSchema } from "@/lib/api/schemas/personals.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { PersonalSubscriptionService } from "@/lib/services/personal/personal-subscription.service";
+import { createPersonalSubscriptionPix } from "@/lib/utils/subscription";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
 
@@ -41,6 +42,30 @@ export const POST = createSafeHandler(
       plan,
       billingPeriod,
     });
+
+    const pix = await createPersonalSubscriptionPix(
+      personalId,
+      plan,
+      billingPeriod,
+      subscription.id,
+    );
+
+    if (pix) {
+      await db.personalSubscription.update({
+        where: { id: subscription.id },
+        data: { abacatePayBillingId: pix.id },
+      });
+      return NextResponse.json({
+        subscription,
+        pix: {
+          pixId: pix.id,
+          brCode: pix.brCode,
+          brCodeBase64: pix.brCodeBase64,
+          amount: pix.amount,
+          expiresAt: pix.expiresAt,
+        },
+      });
+    }
 
     return NextResponse.json({ subscription });
   },

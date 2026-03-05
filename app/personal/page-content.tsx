@@ -2,8 +2,7 @@
 
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { apiClient } from "@/lib/api/client";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import type {
   PersonalAffiliation,
   PersonalProfile,
@@ -16,48 +15,55 @@ import { PersonalGymsPageContent } from "./_gyms/page-content";
 import { PersonalSettingsPageContent } from "./_settings/page-content";
 import { PersonalStudentsPageContent } from "./_students/page-content";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
+import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
+import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
+import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
-function PersonalHomeContent() {
+interface PersonalHomeProps {
+  initialProfile: PersonalProfile | null;
+  initialAffiliations: PersonalAffiliation[];
+  initialStudents: PersonalStudentAssignment[];
+  initialSubscription: PersonalSubscriptionData | null;
+}
+
+function PersonalHomeContent({
+  initialProfile,
+  initialAffiliations,
+  initialStudents,
+  initialSubscription,
+}: PersonalHomeProps) {
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<PersonalProfile | null>(null);
-  const [affiliations, setAffiliations] = useState<PersonalAffiliation[]>([]);
-  const [students, setStudents] = useState<PersonalStudentAssignment[]>([]);
-  const [subscription, setSubscription] =
-    useState<PersonalSubscriptionData | null>(null);
-
-  const load = async () => {
-    try {
-      const [profileRes, affiliationsRes, studentsRes, subscriptionRes] =
-        await Promise.all([
-          apiClient.get<{ personal: PersonalProfile | null }>(
-            "/api/personals",
-          ),
-          apiClient.get<{ affiliations: PersonalAffiliation[] }>(
-            "/api/personals/affiliations",
-          ),
-          apiClient.get<{ students: PersonalStudentAssignment[] }>(
-            "/api/personals/students",
-          ),
-          apiClient
-            .get<{ subscription: PersonalSubscriptionData | null }>(
-              "/api/personals/subscription",
-            )
-            .catch(() => ({ data: { subscription: null } })),
-        ]);
-
-      setProfile(profileRes.data.personal);
-      setAffiliations(affiliationsRes.data.affiliations || []);
-      setStudents(studentsRes.data.students || []);
-      setSubscription(subscriptionRes.data.subscription ?? null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const hydrateInitial = usePersonalUnifiedStore((state) => state.hydrateInitial);
+  const loadAll = usePersonalUnifiedStore((state) => state.loadAll);
+  usePersonalInitializer();
+  useLoadPrioritizedPersonal({ onlyPriorities: true });
 
   useEffect(() => {
-    load().catch(() => setLoading(false));
-  }, []);
+    hydrateInitial({
+      profile: initialProfile,
+      affiliations: initialAffiliations,
+      students: initialStudents,
+      subscription: initialSubscription,
+    });
+  }, [
+    hydrateInitial,
+    initialProfile,
+    initialAffiliations,
+    initialStudents,
+    initialSubscription,
+  ]);
+
+  const store = usePersonalUnifiedStore((state) => state.data);
+  const profile = store.profile ?? initialProfile;
+  const affiliations =
+    store.affiliations.length > 0 ? store.affiliations : initialAffiliations;
+  const students =
+    store.students.length > 0 ? store.students : initialStudents;
+  const subscription = store.subscription ?? initialSubscription;
+
+  const load = useCallback(async () => {
+    await loadAll();
+  }, [loadAll]);
 
   const stats = useMemo(() => {
     const studentsViaGym = students.filter((item) => item.gym?.id).length;
@@ -69,16 +75,6 @@ function PersonalHomeContent() {
       independentStudents,
     };
   }, [affiliations.length, students]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-sm text-duo-fg-muted">
-          Carregando área do personal...
-        </p>
-      </div>
-    );
-  }
 
   return (
     <motion.div
@@ -118,7 +114,12 @@ function PersonalHomeContent() {
   );
 }
 
-export default function PersonalHome() {
+export default function PersonalHome({
+  initialProfile,
+  initialAffiliations,
+  initialStudents,
+  initialSubscription,
+}: PersonalHomeProps) {
   return (
     <Suspense
       fallback={
@@ -127,7 +128,12 @@ export default function PersonalHome() {
         </div>
       }
     >
-      <PersonalHomeContent />
+      <PersonalHomeContent
+        initialProfile={initialProfile}
+        initialAffiliations={initialAffiliations}
+        initialStudents={initialStudents}
+        initialSubscription={initialSubscription}
+      />
     </Suspense>
   );
 }

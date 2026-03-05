@@ -5,11 +5,14 @@ export type AuthRole =
   | "ADMIN"
   | "PERSONAL";
 
+/** Compatível com UserRole do Prisma para evitar divergência de tipos */
+export type UserSummaryRole = AuthRole;
+
 export interface UserSummary {
   id: string;
   email: string;
   name: string;
-  role: AuthRole;
+  role: UserSummaryRole;
   createdAt?: Date;
   student?: {
     id: string;

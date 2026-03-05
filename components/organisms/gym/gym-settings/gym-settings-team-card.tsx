@@ -1,7 +1,7 @@
 "use client";
 
-import { UserPlus, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Search, UserPlus, Users } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 
@@ -15,13 +15,23 @@ type TeamPersonal = {
   };
 };
 
+type SearchResult = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  alreadyLinked: boolean;
+};
+
 export function GymSettingsTeamCard() {
   const [personals, setPersonals] = useState<TeamPersonal[]>([]);
   const [loading, setLoading] = useState(false);
-  const [personalId, setPersonalId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
 
-  async function loadTeam() {
+  const loadTeam = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get<{ personals: TeamPersonal[] }>(
@@ -31,20 +41,39 @@ export function GymSettingsTeamCard() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     loadTeam().catch(() => undefined);
-  }, []);
+  }, [loadTeam]);
 
-  async function handleAddPersonal() {
-    if (!personalId.trim()) return;
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await apiClient.get<{ personals: SearchResult[] }>(
+          `/api/gym/personals/search?q=${encodeURIComponent(searchQuery.trim())}&limit=8`,
+        );
+        setSearchResults(res.data.personals || []);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  async function handleAddPersonal(personalId: string) {
     setError("");
     try {
-      await apiClient.post("/api/gym/personals", {
-        personalId: personalId.trim(),
-      });
-      setPersonalId("");
+      await apiClient.post("/api/gym/personals", { personalId });
+      setSearchQuery("");
+      setSearchResults([]);
       await loadTeam();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao adicionar personal");
@@ -73,21 +102,47 @@ export function GymSettingsTeamCard() {
       </DuoCard.Header>
 
       <div className="space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2">
           <DuoInput.Simple
-            label="ID do personal"
-            placeholder="Cole o ID do personal para vincular"
-            value={personalId}
-            onChange={(e) => setPersonalId(e.target.value)}
+            label="Buscar personal"
+            placeholder="Nome ou email do personal"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <DuoButton
-            type="button"
-            onClick={handleAddPersonal}
-            className="sm:self-end"
-          >
-            <UserPlus className="mr-1 h-4 w-4" />
-            Adicionar
-          </DuoButton>
+          {searchResults.length > 0 && (
+            <div className="rounded-lg border border-duo-border bg-duo-bg-card p-2 space-y-1 max-h-48 overflow-y-auto">
+              {searchResults.map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between rounded p-2 hover:bg-duo-bg/50"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-duo-fg">{p.name}</p>
+                    <p className="text-xs text-duo-fg-muted">{p.email}</p>
+                  </div>
+                  <DuoButton
+                    type="button"
+                    size="sm"
+                    disabled={p.alreadyLinked}
+                    onClick={() => handleAddPersonal(p.id)}
+                  >
+                    {p.alreadyLinked ? "Vinculado" : (
+                      <>
+                        <UserPlus className="mr-1 h-3 w-3" />
+                        Vincular
+                      </>
+                    )}
+                  </DuoButton>
+                </div>
+              ))}
+            </div>
+          )}
+          {searching && (
+            <p className="text-xs text-duo-fg-muted flex items-center gap-1">
+              <Search className="h-3 w-3" />
+              Buscando...
+            </p>
+          )}
         </div>
 
         {error ? (
