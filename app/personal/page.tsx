@@ -1,7 +1,7 @@
 import {
   getPersonalAffiliations,
   getPersonalProfile,
-  getPersonalStudents,
+  getPersonalStudentAssignments,
   getPersonalSubscription,
 } from "./actions";
 import PersonalHome from "./page-content";
@@ -10,7 +10,7 @@ export default async function PersonalPage() {
   const [profile, affiliations, students, subscription] = await Promise.all([
     getPersonalProfile(),
     getPersonalAffiliations(),
-    getPersonalStudents(),
+    getPersonalStudentAssignments(),
     getPersonalSubscription(),
   ]);
 

@@ -56,7 +56,10 @@ export function usePersonalStudents({
   const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
 
   const selectedAssignmentFromList = useMemo(
-    () => (studentId ? students.find((s) => s.student.id === studentId) : null),
+    () =>
+      studentId
+        ? students.find((s) => s?.student?.id === studentId) ?? null
+        : null,
     [studentId, students],
   );
 
@@ -90,6 +93,7 @@ export function usePersonalStudents({
   const filteredStudents = useMemo(
     () =>
       students.filter((item) => {
+        if (!item?.student) return false;
         const name = item.student?.user?.name ?? "";
         const email = item.student?.user?.email ?? "";
         const searchLower = searchQuery.toLowerCase().trim();
