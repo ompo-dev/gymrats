@@ -1,12 +1,14 @@
 "use client";
 
-import { Building2, Loader2 } from "lucide-react";
+import { Building2, ChevronRight, Loader2 } from "lucide-react";
+import Image from "next/image";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export interface PersonalGymItem {
   id: string;
@@ -21,11 +23,13 @@ export interface PersonalGymItem {
 export interface PersonalGymsPageProps {
   affiliations: PersonalGymItem[];
   onRefresh: () => Promise<void>;
+  onViewGym?: (gymId: string) => void;
 }
 
 export function PersonalGymsPage({
   affiliations,
   onRefresh,
+  onViewGym,
 }: PersonalGymsPageProps) {
   const { toast } = useToast();
   const [gymHandleInput, setGymHandleInput] = useState("");
@@ -149,13 +153,42 @@ export function PersonalGymsPage({
         affiliations.map((item) => (
           <DuoCard.Root key={item.id}>
             <div className="flex items-center justify-between gap-3">
-              <p className="font-semibold text-duo-fg">
-                {item.gym?.name || "Academia"}
-              </p>
+              <div
+                className={cn(
+                  "flex min-w-0 flex-1 items-center gap-3",
+                  onViewGym && "cursor-pointer",
+                )}
+                onClick={() => onViewGym?.(item.gym.id)}
+              >
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-duo-bg-elevated">
+                  <Image
+                    src={
+                      item.gym?.logo || item.gym?.image || "/placeholder.svg"
+                    }
+                    alt={item.gym?.name || "Academia"}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-duo-fg truncate">
+                    {item.gym?.name || "Academia"}
+                  </p>
+                  {onViewGym && (
+                    <p className="flex items-center gap-1 text-xs text-duo-gray-dark">
+                      Ver perfil
+                      <ChevronRight className="h-3 w-3" />
+                    </p>
+                  )}
+                </div>
+              </div>
               <DuoButton
                 variant="danger"
                 size="sm"
-                onClick={() => handleUnlink(item.gym.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUnlink(item.gym.id);
+                }}
                 disabled={unlinkingId === item.gym.id}
               >
                 {unlinkingId === item.gym.id ? (

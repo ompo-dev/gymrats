@@ -261,9 +261,201 @@ export async function getPersonalPayments(): Promise<Payment[]> {
 }
 
 export async function getPersonalBoostCampaigns(): Promise<BoostCampaign[]> {
-  // Retornar array vazio por enquanto (Personal ainda não tem campanhas de Ads ativas no Prisma model)
-  // Se for adicionar no futuro, bastaria adicionar à PersonalFinancialService
-  return [];
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx) return [];
+    return (await PersonalFinancialService.getBoostCampaigns(
+      ctx.personalId,
+    )) as unknown as BoostCampaign[];
+  } catch (error) {
+    console.error("[getPersonalBoostCampaigns] Erro:", error);
+    return [];
+  }
+}
+
+export async function createPersonalBoostCampaign(data: {
+  title: string;
+  description: string;
+  primaryColor: string;
+  linkedCouponId: string | null;
+  linkedPlanId: string | null;
+  durationHours: number;
+  amountCents: number;
+  radiusKm?: number;
+}) {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const personal = await db.personal.findUnique({
+      where: { id: ctx.personalId },
+      select: { name: true, email: true },
+    });
+
+    const radiusKm = data.radiusKm ?? 5;
+
+    const campaign = await db.boostCampaign.create({
+      data: {
+        personalId: ctx.personalId,
+        title: data.title,
+        description: data.description,
+        primaryColor: data.primaryColor,
+        linkedCouponId: data.linkedCouponId,
+        linkedPlanId: data.linkedPlanId,
+        durationHours: data.durationHours,
+        amountCents: data.amountCents,
+        radiusKm,
+        status: "pending_payment",
+      },
+    });
+
+    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
+    const pixResponse = await abacatePay.createPixQrCode({
+      amount: data.amountCents,
+      expiresIn: PIX_EXPIRES_IN_SECONDS,
+      description: `Impulsionamento: ${data.title}`.slice(0, 37),
+      metadata: {
+        campaignId: campaign.id,
+        personalId: ctx.personalId,
+        kind: "boost-campaign",
+      },
+      customer: personal?.email
+        ? {
+            name: personal.name ?? "Personal",
+            email: personal.email,
+            cellphone: "",
+            taxId: "",
+          }
+        : undefined,
+    });
+
+    if (pixResponse.error || !pixResponse.data) {
+      return {
+        success: false,
+        error: pixResponse.error ?? "Erro ao gerar PIX",
+      } as const;
+    }
+
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { abacatePayBillingId: pixResponse.data.id },
+    });
+
+    return {
+      success: true,
+      brCode: pixResponse.data.brCode,
+      brCodeBase64: pixResponse.data.brCodeBase64,
+      amount: pixResponse.data.amount,
+      pixId: pixResponse.data.id,
+      campaignId: campaign.id,
+      expiresAt: pixResponse.data.expiresAt,
+    } as const;
+  } catch (error) {
+    console.error("[createPersonalBoostCampaign] Erro:", error);
+    return { success: false, error: "Erro interno ao criar campanha" } as const;
+  }
+}
+
+export async function deletePersonalBoostCampaign(
+  campaignId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const campaign = await db.boostCampaign.findFirst({
+      where: { id: campaignId, personalId: ctx.personalId },
+    });
+
+    if (!campaign) return { success: false, error: "Campanha não encontrada" };
+
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { status: "canceled" },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[deletePersonalBoostCampaign] Erro:", error);
+    return { success: false, error: "Erro ao cancelar campanha" };
+  }
+}
+
+export async function getPersonalBoostCampaignPix(
+  campaignId: string,
+): Promise<
+  | {
+      success: true;
+      brCode: string;
+      brCodeBase64: string;
+      amount: number;
+      pixId: string;
+      expiresAt?: string;
+    }
+  | { success: false; error: string }
+> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "Não autenticado" };
+
+    const campaign = await db.boostCampaign.findFirst({
+      where: {
+        id: campaignId,
+        personalId: ctx.personalId,
+        status: "pending_payment",
+      },
+      include: { personal: { select: { name: true, email: true } } },
+    });
+
+    if (!campaign)
+      return { success: false, error: "Campanha não encontrada ou já paga" };
+
+    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
+    const pixResponse = await abacatePay.createPixQrCode({
+      amount: campaign.amountCents,
+      expiresIn: PIX_EXPIRES_IN_SECONDS,
+      description: `Impulsionamento: ${campaign.title}`.slice(0, 37),
+      metadata: {
+        campaignId: campaign.id,
+        personalId: ctx.personalId,
+        kind: "boost-campaign",
+      },
+      customer: campaign.personal?.email
+        ? {
+            name: campaign.personal.name ?? "Personal",
+            email: campaign.personal.email,
+            cellphone: "",
+            taxId: "",
+          }
+        : undefined,
+    });
+
+    if (pixResponse.error || !pixResponse.data) {
+      return { success: false, error: pixResponse.error ?? "Erro ao gerar PIX" };
+    }
+
+    await db.boostCampaign.update({
+      where: { id: campaign.id },
+      data: { abacatePayBillingId: pixResponse.data.id },
+    });
+
+    return {
+      success: true,
+      brCode: pixResponse.data.brCode,
+      brCodeBase64: pixResponse.data.brCodeBase64,
+      amount: pixResponse.data.amount,
+      pixId: pixResponse.data.id,
+      expiresAt: pixResponse.data.expiresAt,
+    };
+  } catch (error) {
+    console.error("[getPersonalBoostCampaignPix] Erro:", error);
+    return { success: false, error: "Erro ao gerar PIX" };
+  }
 }
 
 export async function getPersonalMembershipPlans(): Promise<PersonalMembershipPlan[]> {

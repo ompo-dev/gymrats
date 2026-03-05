@@ -18,6 +18,11 @@ import {
   deleteBoostCampaign,
   getBoostCampaignPix,
 } from "@/app/gym/actions";
+import {
+  createPersonalBoostCampaign,
+  deletePersonalBoostCampaign,
+  getPersonalBoostCampaignPix,
+} from "@/app/personal/actions";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -153,7 +158,9 @@ export function FinancialAdsTab({
     }
     setIsSubmitting(true);
     try {
-      const result = await createBoostCampaign({
+      const createFn =
+        variant === "personal" ? createPersonalBoostCampaign : createBoostCampaign;
+      const result = await createFn({
         title,
         description,
         primaryColor,
@@ -196,7 +203,11 @@ export function FinancialAdsTab({
   const handlePayCampaign = async (campaign: BoostCampaign) => {
     setPayingId(campaign.id);
     try {
-      const result = await getBoostCampaignPix(campaign.id);
+      const getPixFn =
+        variant === "personal"
+          ? getPersonalBoostCampaignPix
+          : getBoostCampaignPix;
+      const result = await getPixFn(campaign.id);
       if (result.success) {
         setPixModal({
           brCode: result.brCode,
@@ -219,7 +230,11 @@ export function FinancialAdsTab({
   const handleDelete = async (campaignId: string) => {
     setDeletingId(campaignId);
     try {
-      const result = await deleteBoostCampaign(campaignId);
+      const deleteFn =
+        variant === "personal"
+          ? deletePersonalBoostCampaign
+          : deleteBoostCampaign;
+      const result = await deleteFn(campaignId);
       if (result.success) {
         toast({ title: "Campanha cancelada." });
         setConfirmDeleteId(null);
@@ -246,7 +261,7 @@ export function FinancialAdsTab({
             />
             <h2 className="font-bold text-duo-fg">Anúncios</h2>
           </div>
-          {variant === "gym" && (
+          {(variant === "gym" || variant === "personal") && (
             <DuoButton size="sm" onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4" />
               Novo anúncio
@@ -260,7 +275,9 @@ export function FinancialAdsTab({
             <div className="p-3 text-sm text-duo-text">
               <span className="font-bold flex items-center gap-1">
                 <AlertCircle className="h-4 w-4 text-duo-secondary" />
-                Destaque sua academia
+                {variant === "personal"
+                  ? "Destaque seu perfil"
+                  : "Destaque sua academia"}
               </span>
               Seu anúncio aparecerá com prioridade para todos os alunos da
               região. A partir de{" "}
@@ -474,7 +491,7 @@ export function FinancialAdsTab({
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-duo-text truncate">
-                            Sua academia
+                            {variant === "personal" ? "Seu perfil" : "Sua academia"}
                           </p>
                           <div className="flex items-center gap-1 mt-0.5">
                             <Sparkles
@@ -497,7 +514,9 @@ export function FinancialAdsTab({
                         </h3>
                         <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
                           {description ||
-                            "Mostre por que os alunos devem escolher a sua academia..."}
+                            (variant === "personal"
+                              ? "Mostre por que os alunos devem escolher você..."
+                              : "Mostre por que os alunos devem escolher a sua academia...")}
                         </p>
                       </div>
 
@@ -674,22 +693,34 @@ export function FinancialAdsTab({
             router.refresh();
           }}
           onCancelPayment={async () => {
-            await deleteBoostCampaign(pixModal.campaignId);
+            const deleteFn =
+              variant === "personal"
+                ? deletePersonalBoostCampaign
+                : deleteBoostCampaign;
+            await deleteFn(pixModal.campaignId);
           }}
           title="Pagar Anúncio"
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
           expiresAt={pixModal.expiresAt}
-          simulatePixUrl={`/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`}
+          simulatePixUrl={
+            variant === "personal"
+              ? `/api/personals/boost-campaigns/${pixModal.campaignId}/simulate-pix`
+              : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
+          }
           onSimulateSuccess={async () => {
             router.refresh();
           }}
           pollConfig={{
             type: "check",
             check: async () => {
+              const base =
+                variant === "personal"
+                  ? "/api/personals/boost-campaigns"
+                  : "/api/gym/boost-campaigns";
               const res = await apiClient.get<{ status: string }>(
-                `/api/gym/boost-campaigns/${pixModal.campaignId}`,
+                `${base}/${pixModal.campaignId}`,
               );
               return res.data.status === "active";
             },

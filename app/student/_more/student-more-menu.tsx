@@ -8,6 +8,7 @@ import {
   MapPin,
   Palette,
   Settings,
+  Users,
   Wallet,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -36,6 +37,13 @@ const moreMenuItems: MoreMenuItem[] = [
     label: "Academias",
     description: "Encontre academias parceiras",
     color: "duo-blue",
+  },
+  {
+    id: "personals",
+    icon: Users,
+    label: "Personais",
+    description: "Encontre personais próximos ou remotos",
+    color: "duo-purple",
   },
   {
     id: "payments",
@@ -111,6 +119,10 @@ export function StudentMoreMenu() {
     }
     if (itemId === "payments") {
       await setTab("payments");
+      return;
+    }
+    if (itemId === "personals") {
+      await setTab("personals");
       return;
     }
     setTab(itemId);

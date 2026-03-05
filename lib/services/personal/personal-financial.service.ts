@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
-import type { Coupon, Expense, FinancialSummary } from "@/lib/types";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+} from "@/lib/types";
 
 export class PersonalFinancialService {
   static async getFinancialSummary(
@@ -102,6 +107,33 @@ export class PersonalFinancialService {
         benefits,
       };
     });
+  }
+
+  static async getBoostCampaigns(personalId: string): Promise<BoostCampaign[]> {
+    const campaigns = await db.boostCampaign.findMany({
+      where: { personalId },
+      orderBy: { createdAt: "desc" },
+    });
+    return campaigns.map((c) => ({
+      id: c.id,
+      gymId: c.gymId ?? "",
+      title: c.title,
+      description: c.description,
+      primaryColor: c.primaryColor,
+      durationHours: c.durationHours,
+      amountCents: c.amountCents,
+      status: c.status,
+      clicks: c.clicks,
+      impressions: c.impressions,
+      radiusKm: c.radiusKm,
+      linkedCouponId: c.linkedCouponId,
+      linkedPlanId: c.linkedPlanId,
+      abacatePayBillingId: c.abacatePayBillingId,
+      startsAt: c.startsAt,
+      endsAt: c.endsAt,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }));
   }
 
   static async getCoupons(personalId: string): Promise<Coupon[]> {

@@ -10,6 +10,8 @@ import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
+import { PersonalListWithFilters } from "@/app/student/_personals/personal-list-with-filters";
+import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { LearningPath } from "@/app/student/_learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/_more/student-more-menu";
 import {
@@ -68,6 +70,7 @@ function StudentHomeContent() {
   const [isMounted, setIsMounted] = useState(false);
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
+  const [personalId, setPersonalId] = useQueryState("personalId", parseAsString);
 
   // ✅ SEGURO: Verificar se é admin validando no servidor
   const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
@@ -203,6 +206,17 @@ function StudentHomeContent() {
   };
 
   const [pixModal, setPixModal] = useState<{
+    open: boolean;
+    paymentId: string;
+    brCode: string;
+    brCodeBase64: string;
+    amount: number;
+    expiresAt?: string;
+    planName?: string;
+    originalPrice?: number;
+    appliedCoupon?: { code: string; discountString: string };
+  } | null>(null);
+  const [personalPixModal, setPersonalPixModal] = useState<{
     open: boolean;
     paymentId: string;
     brCode: string;
@@ -365,6 +379,39 @@ function StudentHomeContent() {
 
   const handlePixConfirmed = async () => {
     await Promise.all([loadMemberships(), loadPayments()]);
+    setProfileRefreshKey((k) => k + 1);
+  };
+
+  const handleSubscribePersonal = (
+    _personalId: string,
+    _planId: string,
+    paymentData: {
+      brCode: string;
+      brCodeBase64: string;
+      amount: number;
+      paymentId: string;
+      pixId: string;
+      expiresAt?: string;
+      planName: string;
+      originalPrice: number;
+      appliedCoupon?: { code: string; discountString: string };
+    },
+  ) => {
+    setPersonalPixModal({
+      open: true,
+      paymentId: paymentData.paymentId,
+      brCode: paymentData.brCode,
+      brCodeBase64: paymentData.brCodeBase64,
+      amount: paymentData.amount,
+      expiresAt: paymentData.expiresAt,
+      planName: paymentData.planName,
+      originalPrice: paymentData.originalPrice,
+      appliedCoupon: paymentData.appliedCoupon,
+    });
+  };
+
+  const handlePersonalPixConfirmed = async () => {
+    setPersonalPixModal(null);
     setProfileRefreshKey((k) => k + 1);
   };
 
@@ -595,6 +642,19 @@ function StudentHomeContent() {
         />
       )}
 
+      {tab === "personals" &&
+        (personalId ? (
+          <PersonalProfileView
+            personalId={personalId}
+            onBack={() => setPersonalId(null)}
+            onSubscribe={handleSubscribePersonal}
+          />
+        ) : (
+          <PersonalListWithFilters
+            onViewPersonal={(id) => setPersonalId(id)}
+          />
+        ))}
+
       {tab === "gyms" &&
         (gymId ? (
           <GymProfileView
@@ -660,6 +720,42 @@ function StudentHomeContent() {
           paymentConfirmedToast={{
             title: "Pagamento confirmado!",
             description: "Sua mensalidade está ativa.",
+          }}
+        />
+      )}
+
+      {personalPixModal && (
+        <PixQrModal
+          isOpen={personalPixModal.open}
+          onClose={() => setPersonalPixModal(null)}
+          brCode={personalPixModal.brCode}
+          brCodeBase64={personalPixModal.brCodeBase64}
+          amount={personalPixModal.amount}
+          expiresAt={personalPixModal.expiresAt}
+          valueSlot={
+            personalPixModal.planName
+              ? {
+                  label: `Personal: ${personalPixModal.planName}`,
+                  strikethrough: personalPixModal.originalPrice,
+                  badge: personalPixModal.appliedCoupon,
+                }
+              : undefined
+          }
+          simulatePixUrl={`/api/students/personals/payments/${personalPixModal.paymentId}/simulate-pix`}
+          onSimulateSuccess={handlePersonalPixConfirmed}
+          pollConfig={{
+            type: "check",
+            check: async () => {
+              const res = await apiClient.get<{ status: string }>(
+                `/api/students/personals/payments/${personalPixModal.paymentId}`,
+              );
+              return res.data.status === "paid";
+            },
+          }}
+          onPaymentConfirmed={handlePersonalPixConfirmed}
+          paymentConfirmedToast={{
+            title: "Inscrição confirmada!",
+            description: "Você agora está inscrito com este personal.",
           }}
         />
       )}

@@ -57,6 +57,7 @@ function PersonalHomeContent({
   initialPlans,
 }: PersonalHomeProps) {
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
+  const [gymId, setGymId] = useQueryState("gymId", parseAsString);
   const hydrateInitial = usePersonalUnifiedStore((state) => state.hydrateInitial);
   const loadAll = usePersonalUnifiedStore((state) => state.loadAll);
   usePersonalInitializer();
@@ -149,6 +150,9 @@ function PersonalHomeContent({
         <PersonalGymsPageContent
           affiliations={affiliations}
           onRefresh={load}
+          gymId={gymId ?? null}
+          onViewGym={(id) => setGymId(id)}
+          onBackFromGym={() => setGymId(null)}
         />
       )}
       {tab === "financial" && (

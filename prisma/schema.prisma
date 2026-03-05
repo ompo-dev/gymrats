@@ -183,6 +183,7 @@ model Student {
 
   // Atribuições de personal (academia ou autoatribuição do personal)
   personalAssignments StudentPersonalAssignment[]
+  personalPayments    PersonalStudentPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -416,6 +417,8 @@ model Personal {
   coupons            PersonalCoupon[]
   expenses           PersonalExpense[]
   membershipPlans    PersonalMembershipPlan[]
+  boostCampaigns     BoostCampaign[]
+  studentPayments    PersonalStudentPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1157,12 +1160,34 @@ model PersonalMembershipPlan {
   duration   Int      // dias
   benefits   String?  // JSON array
   isActive   Boolean  @default(true)
+  payments   PersonalStudentPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([personalId])
   @@map("personal_membership_plans")
+}
+
+model PersonalStudentPayment {
+  id                    String   @id @default(cuid())
+  personalId            String
+  personal              Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  studentId             String
+  student               Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  planId                String
+  plan                  PersonalMembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  assignmentId          String?  // StudentPersonalAssignment criado após pagamento
+  amount                Float
+  status                String   @default("pending") // pending, paid, canceled
+  abacatePayBillingId   String?  @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([personalId])
+  @@index([studentId])
+  @@map("personal_student_payments")
 }
 
 model PaymentMethod {
@@ -1380,8 +1405,10 @@ model Referral {
 
 model BoostCampaign {
   id              String    @id @default(cuid())
-  gymId           String
-  gym             Gym       @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  gymId           String?
+  gym             Gym?      @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  personalId      String?
+  personal        Personal? @relation(fields: [personalId], references: [id], onDelete: Cascade)
   title           String
   description     String
   primaryColor    String    @default("#E2FF38") // Duo Yellow default
@@ -1412,6 +1439,7 @@ model BoostCampaign {
   engagements BoostCampaignEngagement[]
 
   @@index([gymId])
+  @@index([personalId])
   @@index([status])
   @@map("boost_campaigns")
 }

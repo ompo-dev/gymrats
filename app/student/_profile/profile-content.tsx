@@ -5,6 +5,7 @@ import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { ProfileHeader } from "@/components/ui/profile-header";
 import {
   AccountSection,
+  MyAcademiasCard,
   MyPersonalsCard,
   PersonalRecordsCard,
   RecentHistoryCard,
@@ -156,7 +157,10 @@ export function ProfilePageContent() {
         />
       </div>
 
-      <MyPersonalsCard />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MyAcademiasCard />
+        <MyPersonalsCard />
+      </div>
 
       <AccountSection
         isAdmin={isAdmin}

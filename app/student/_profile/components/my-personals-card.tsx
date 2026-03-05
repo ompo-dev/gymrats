@@ -1,9 +1,10 @@
 "use client";
 
-import { Users } from "lucide-react";
+import { ChevronRight, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { DuoCard } from "@/components/duo";
+import { useRouter } from "next/navigation";
+import { DuoButton, DuoCard } from "@/components/duo";
 import { apiClient } from "@/lib/api/client";
 
 type PersonalAssignment = {
@@ -23,8 +24,13 @@ type PersonalAssignment = {
 };
 
 export function MyPersonalsCard() {
+  const router = useRouter();
   const [assignments, setAssignments] = useState<PersonalAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleDiscoverPersonals = () => {
+    router.push("/student?tab=personals");
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -68,10 +74,14 @@ export function MyPersonalsCard() {
             <Users className="h-5 w-5 text-duo-purple" />
             <h2 className="font-bold text-duo-fg">Meus Personais</h2>
           </div>
+          <DuoButton size="sm" variant="outline" onClick={handleDiscoverPersonals}>
+            Encontrar personais
+            <ChevronRight className="h-4 w-4" />
+          </DuoButton>
         </DuoCard.Header>
         <p className="text-sm text-duo-fg-muted py-4">
           Você ainda não tem personais atribuídos. Sua academia pode atribuir um
-          personal a você.
+          personal a você ou você pode encontrar e contratar um.
         </p>
       </DuoCard.Root>
     );
@@ -84,6 +94,10 @@ export function MyPersonalsCard() {
           <Users className="h-5 w-5 text-duo-purple" />
           <h2 className="font-bold text-duo-fg">Meus Personais</h2>
         </div>
+        <DuoButton size="sm" variant="outline" onClick={handleDiscoverPersonals}>
+          Encontrar mais
+          <ChevronRight className="h-4 w-4" />
+        </DuoButton>
       </DuoCard.Header>
       <div className="space-y-3">
         {assignments.map((a) => (

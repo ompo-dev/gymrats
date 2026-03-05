@@ -312,6 +312,44 @@ export async function POST(request: NextRequest) {
           return successResponse({ received: true, type: "boost-campaign" });
         }
 
+        // 4. Tentar PersonalStudentPayment (assinatura aluno -> personal)
+        if (metadata.kind === "personal-subscription") {
+          const personalPayment = await db.personalStudentPayment.findFirst({
+            where: { abacatePayBillingId: paymentId, status: "pending" },
+          });
+
+          if (personalPayment) {
+            const assignment = await db.studentPersonalAssignment.upsert({
+              where: {
+                studentId_personalId: {
+                  studentId: personalPayment.studentId,
+                  personalId: personalPayment.personalId,
+                },
+              },
+              create: {
+                studentId: personalPayment.studentId,
+                personalId: personalPayment.personalId,
+                assignedBy: "PERSONAL",
+                status: "active",
+              },
+              update: { status: "active" },
+            });
+
+            await db.personalStudentPayment.update({
+              where: { id: personalPayment.id },
+              data: { status: "paid", assignmentId: assignment.id },
+            });
+
+            console.log(
+              `[Webhook] PersonalStudentPayment ${personalPayment.id} pago, assignment ${assignment.id} criado`,
+            );
+            return successResponse({
+              received: true,
+              type: "personal-subscription",
+            });
+          }
+        }
+
         console.error(
           `[Webhook] Registro não encontrado para paymentId: ${paymentId} ou metadata id`,
         );

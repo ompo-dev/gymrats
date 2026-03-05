@@ -52,12 +52,14 @@ interface GymProfileData {
 interface GymProfileViewProps {
   gymId: string;
   onBack: () => void;
-  onJoinPlan: (gymId: string, planId: string, couponId?: string) => void;
+  onJoinPlan?: (gymId: string, planId: string, couponId?: string) => void;
   onChangePlan?: (membershipId: string, planId: string) => void;
   onCancelMembership?: (membershipId: string) => void | Promise<void>;
   profileRefreshKey?: number;
   preSelectedPlan?: string | null;
   preSelectedCoupon?: string | null;
+  /** "student" usa /api/students/gyms, "personal" usa /api/personals/gyms */
+  variant?: "student" | "personal";
 }
 
 export function GymProfileView({
@@ -69,7 +71,12 @@ export function GymProfileView({
   profileRefreshKey,
   preSelectedPlan,
   preSelectedCoupon,
+  variant = "student",
 }: GymProfileViewProps) {
+  const profileUrl =
+    variant === "personal"
+      ? `/api/personals/gyms/${gymId}/profile`
+      : `/api/students/gyms/${gymId}/profile`;
   const [profile, setProfile] = useState<GymProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +86,7 @@ export function GymProfileView({
     let cancelled = false;
     setLoading(true);
     apiClient
-      .get<GymProfileData>(`/api/students/gyms/${gymId}/profile`)
+      .get<GymProfileData>(profileUrl)
       .then((res) => {
         if (!cancelled) {
           setProfile(res.data);
@@ -97,10 +104,16 @@ export function GymProfileView({
     return () => {
       cancelled = true;
     };
-  }, [gymId, profileRefreshKey]);
+  }, [profileUrl, profileRefreshKey]);
 
   useEffect(() => {
-    if (profile && preSelectedPlan && !autoStarted) {
+    if (
+      profile &&
+      preSelectedPlan &&
+      !autoStarted &&
+      onJoinPlan &&
+      variant === "student"
+    ) {
       const plan = profile.plans.find((p) => p.id === preSelectedPlan);
       const hasMembership = !!profile.myMembership;
       if (plan && !hasMembership) {
@@ -115,6 +128,7 @@ export function GymProfileView({
     autoStarted,
     gymId,
     onJoinPlan,
+    variant,
   ]);
 
   if (loading) {
@@ -356,9 +370,15 @@ export function GymProfileView({
               const isMyPlan = profile.myMembership?.planId === plan.id;
               const isActive = profile.myMembership?.status === "active";
               const isPending = profile.myMembership?.status === "pending";
-              const canContract = !hasMembership;
+              const showActions = variant === "student";
+              const canContract =
+                showActions && !hasMembership && !!onJoinPlan;
               const canChangePlan =
-                hasMembership && isActive && !isMyPlan && !!onChangePlan;
+                showActions &&
+                hasMembership &&
+                isActive &&
+                !isMyPlan &&
+                !!onChangePlan;
 
               return (
                 <DuoCard.Root
@@ -372,7 +392,7 @@ export function GymProfileView({
                   )}
                   onClick={() => {
                     if (canContract)
-                      onJoinPlan(
+                      onJoinPlan?.(
                         profile.id,
                         plan.id,
                         preSelectedCoupon || undefined,
