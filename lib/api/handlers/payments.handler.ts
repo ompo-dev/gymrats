@@ -307,6 +307,7 @@ export async function getMembershipsHandler(
       gymId: membership.gymId,
       gymName: membership.gym.name,
       gymAddress: membership.gym.address || "",
+      gymLogo: membership.gym.logo || undefined,
       planId: membership.planId || "",
       planName: membership.plan?.name || undefined,
       startDate: membership.startDate,

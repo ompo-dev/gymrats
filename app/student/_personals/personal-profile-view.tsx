@@ -33,7 +33,12 @@ interface PersonalProfileData {
     benefits?: string[];
   }[];
   isSubscribed: boolean;
-  myAssignment?: { id: string; status: string } | null;
+  myAssignment?: {
+    id: string;
+    status: string;
+    planId?: string | null;
+    planName?: string | null;
+  } | null;
   studentsCount?: number;
 }
 
@@ -315,47 +320,56 @@ export function PersonalProfileView({
               Nenhum plano disponível
             </p>
           ) : (
-            profile.plans.map((plan) => (
-              <DuoCard.Root
-                key={plan.id}
-                variant="default"
-                size="default"
-                className={cn(
-                  !profile.isSubscribed &&
-                    "cursor-pointer transition-all hover:border-duo-blue",
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-duo-text">{plan.name}</p>
-                    <p className="text-xs text-duo-gray-dark">
-                      {plan.duration} dias • {plan.type}
-                    </p>
+            profile.plans.map((plan) => {
+              const isMyPlan =
+                profile.myAssignment?.planId === plan.id;
+              return (
+                <DuoCard.Root
+                  key={plan.id}
+                  variant="default"
+                  size="default"
+                  className={cn(
+                    !profile.isSubscribed &&
+                      "cursor-pointer transition-all hover:border-duo-blue",
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-duo-text">{plan.name}</p>
+                      <p className="text-xs text-duo-gray-dark">
+                        {plan.duration} dias • {plan.type}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-duo-green">
+                        R$ {plan.price.toFixed(2)}
+                      </p>
+                      {isMyPlan && (
+                        <span className="mt-2 inline-flex rounded-full border-2 border-duo-green bg-duo-green/10 px-3 py-1 text-xs font-bold text-duo-green">
+                          Plano ativo
+                        </span>
+                      )}
+                      {!profile.isSubscribed && (
+                        <DuoButton
+                          size="sm"
+                          variant="primary"
+                          className="mt-2"
+                          disabled={subscribingPlanId === plan.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSubscribe(plan.id, undefined);
+                          }}
+                        >
+                          {subscribingPlanId === plan.id
+                            ? "Processando..."
+                            : "Assinar"}
+                        </DuoButton>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-duo-green">
-                      R$ {plan.price.toFixed(2)}
-                    </p>
-                    {!profile.isSubscribed && (
-                      <DuoButton
-                        size="sm"
-                        variant="primary"
-                        className="mt-2"
-                        disabled={subscribingPlanId === plan.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSubscribe(plan.id, undefined);
-                        }}
-                      >
-                        {subscribingPlanId === plan.id
-                          ? "Processando..."
-                          : "Assinar"}
-                      </DuoButton>
-                    )}
-                  </div>
-                </div>
-              </DuoCard.Root>
-            ))
+                </DuoCard.Root>
+              );
+            })
           )}
         </div>
       </DuoCard.Root>

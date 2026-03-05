@@ -61,6 +61,7 @@ export function useProfilePage() {
     workoutHistory: storeWorkoutHistory,
     personalRecords: storePersonalRecords,
     units: storeUnits,
+    memberships: storeMemberships,
     isAdmin: storeIsAdmin,
     role: storeRole,
   } = useStudent(
@@ -72,6 +73,7 @@ export function useProfilePage() {
     "workoutHistory",
     "personalRecords",
     "units",
+    "memberships",
     "isAdmin",
     "role",
   );
@@ -297,6 +299,8 @@ export function useProfilePage() {
     await addWeight(weightValue);
   };
 
+  const memberships = storeMemberships || [];
+
   return {
     weightModal,
     newWeight,
@@ -307,6 +311,7 @@ export function useProfilePage() {
     weightGain,
     recentWorkoutHistory,
     personalRecords,
+    memberships,
     lastInProgressWorkout,
     profileUserInfo,
     totalWorkoutsCompleted,

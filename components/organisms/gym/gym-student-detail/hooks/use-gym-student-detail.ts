@@ -47,6 +47,7 @@ export function useGymStudentDetail({
   >(student?.membershipStatus ?? "inactive");
 
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isUnassigning, setIsUnassigning] = useState(false);
   const [isAssigningPersonal, setIsAssigningPersonal] = useState(false);
   const [weeklyPlan, setWeeklyPlan] = useState<
     WeeklyPlanData | null | undefined
@@ -414,6 +415,26 @@ export function useGymStudentDetail({
     }
   };
 
+  const handleUnassignStudent = useCallback(async () => {
+    if (!student?.id || variant !== "personal") return;
+    setIsUnassigning(true);
+    try {
+      const res = await fetch(
+        `/api/personals/students/${student.id}/unassign`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Não foi possível desvincular");
+      }
+      onBack();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao desvincular");
+    } finally {
+      setIsUnassigning(false);
+    }
+  }, [student?.id, variant, onBack]);
+
   const tabOptions = [
     { value: "overview", label: "Visão Geral", emoji: "📊" },
     { value: "workouts", label: "Treinos", emoji: "💪" },
@@ -470,6 +491,8 @@ export function useGymStudentDetail({
     handleMembershipAction,
     handleAssignPersonal,
     isAssigningPersonal,
+    handleUnassignStudent,
+    isUnassigning,
     togglePaymentStatus,
     tabOptions,
     DAY_NAMES,

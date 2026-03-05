@@ -21,7 +21,6 @@ import { cn } from "@/lib/utils";
 import {
   GymSettingsAccountCard,
   GymSettingsHeader,
-  GymSettingsOtherCard,
   GymSettingsTeamCard,
 } from "./gym-settings/index";
 import { MembershipPlansPage } from "./membership-plans-page";
@@ -610,7 +609,7 @@ export function GymSettingsPage({
                         />
                       </div>
                     )}
-                    </div>
+                  </div>
                 </motion.div>
               );
             })}
@@ -647,10 +646,6 @@ export function GymSettingsPage({
 
       <SlideIn delay={0.4}>
         <GymSettingsTeamCard />
-      </SlideIn>
-
-      <SlideIn delay={0.45}>
-        <GymSettingsOtherCard />
       </SlideIn>
 
       <SlideIn delay={0.5}>

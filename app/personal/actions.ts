@@ -130,11 +130,16 @@ export async function getPersonalStudentAssignments(
   }
 }
 
-export async function getPersonalStudentsAsStudentData(): Promise<StudentData[]> {
+export async function getPersonalStudentsAsStudentData(
+  gymId?: string | null,
+): Promise<StudentData[]> {
   try {
     const { ctx, errorResponse } = await getPersonalContext();
     if (errorResponse || !ctx) return [];
-    return StudentPersonalService.listStudentsAsStudentData(ctx.personalId);
+    return StudentPersonalService.listStudentsAsStudentData(
+      ctx.personalId,
+      gymId,
+    );
   } catch (error) {
     console.error("[getPersonalStudentsAsStudentData] Erro:", error);
     return [];

@@ -72,7 +72,13 @@ type ContextType =
 const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
   learn: ["weeklyPlan", "progress", "workoutHistory"],
   diet: ["dailyNutrition", "progress"],
-  profile: ["profile", "weightHistory", "progress", "personalRecords"],
+  profile: [
+    "profile",
+    "weightHistory",
+    "progress",
+    "personalRecords",
+    "memberships",
+  ],
   payments: ["subscription", "payments", "paymentMethods", "memberships"],
   gyms: ["gymLocations"],
   home: [

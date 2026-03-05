@@ -1,6 +1,13 @@
 "use client";
 
-import { Building2, DollarSign, TrendingDown, TrendingUp, UserPlus, Users } from "lucide-react";
+import {
+  Building2,
+  DollarSign,
+  TrendingDown,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -24,7 +31,12 @@ export interface PersonalDashboardStats {
 
 export interface PersonalAffiliationItem {
   id: string;
-  gym: { id: string; name: string; image?: string | null; logo?: string | null };
+  gym: {
+    id: string;
+    name: string;
+    image?: string | null;
+    logo?: string | null;
+  };
 }
 
 export interface PersonalStudentItem {
@@ -77,7 +89,10 @@ export function PersonalDashboardPage({
   const topStudents = students.slice(0, 5);
 
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -90,13 +105,21 @@ export function PersonalDashboardPage({
             </DuoAlert>
           )}
 
-          {subscription?.status === "trialing" && subscription.currentPeriodEnd && (
-            <DuoAlert variant="warning" title="Período de Avaliação">
-              Seu trial termina em{" "}
-              {Math.max(0, Math.ceil((new Date(subscription.currentPeriodEnd).getTime() - Date.now()) / (1000 * 3600 * 24)))}{" "}
-              dias. Assine um plano para continuar usando.
-            </DuoAlert>
-          )}
+          {subscription?.status === "trialing" &&
+            subscription.currentPeriodEnd && (
+              <DuoAlert variant="warning" title="Período de Avaliação">
+                Seu trial termina em{" "}
+                {Math.max(
+                  0,
+                  Math.ceil(
+                    (new Date(subscription.currentPeriodEnd).getTime() -
+                      Date.now()) /
+                      (1000 * 3600 * 24),
+                  ),
+                )}{" "}
+                dias. Assine um plano para continuar usando.
+              </DuoAlert>
+            )}
 
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
             <div className="text-center sm:text-left">
@@ -110,40 +133,6 @@ export function PersonalDashboardPage({
           </div>
         </div>
       </FadeIn>
-
-      {/* Quick Actions */}
-      <SlideIn delay={0.05}>
-        <div className="flex flex-wrap gap-3">
-          <DuoButton
-            variant="primary"
-            size="sm"
-            onClick={() => router.push("/personal?tab=students")}
-            className="flex items-center gap-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            Adicionar Aluno
-          </DuoButton>
-          <DuoButton
-            variant="white"
-            size="sm"
-            onClick={() => router.push("/personal?tab=gyms")}
-            className="flex items-center gap-2"
-          >
-            <Building2 className="h-4 w-4" />
-            Vincular Academia
-          </DuoButton>
-          <DuoButton
-            variant="white"
-            size="sm"
-            onClick={() => router.push("/personal?tab=financial")}
-            className="flex items-center gap-2"
-          >
-            <DollarSign className="h-4 w-4" />
-            Ver Finanças
-          </DuoButton>
-        </div>
-      </SlideIn>
-
       <SlideIn delay={0.1}>
         <DuoStatsGrid.Root columns={4} className="gap-4">
           <DuoStatCard.Simple
@@ -197,7 +186,9 @@ export function PersonalDashboardPage({
               <div className="rounded-xl bg-duo-green/10 p-3 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <TrendingUp className="h-3.5 w-3.5 text-duo-green" />
-                  <p className="text-xs font-bold text-duo-gray-dark">Receita</p>
+                  <p className="text-xs font-bold text-duo-gray-dark">
+                    Receita
+                  </p>
                 </div>
                 <p className="mt-1 text-lg font-bold text-duo-green">
                   {formatCurrency(financialSummary.totalRevenue)}
@@ -206,7 +197,9 @@ export function PersonalDashboardPage({
               <div className="rounded-xl bg-duo-danger/10 p-3 text-center">
                 <div className="flex items-center justify-center gap-1">
                   <TrendingDown className="h-3.5 w-3.5 text-duo-danger" />
-                  <p className="text-xs font-bold text-duo-gray-dark">Despesas</p>
+                  <p className="text-xs font-bold text-duo-gray-dark">
+                    Despesas
+                  </p>
                 </div>
                 <p className="mt-1 text-lg font-bold text-duo-danger">
                   {formatCurrency(financialSummary.totalExpenses)}
@@ -217,7 +210,9 @@ export function PersonalDashboardPage({
                   <DollarSign className="h-3.5 w-3.5 text-duo-primary" />
                   <p className="text-xs font-bold text-duo-gray-dark">Lucro</p>
                 </div>
-                <p className={`mt-1 text-lg font-bold ${financialSummary.netProfit >= 0 ? "text-duo-green" : "text-duo-danger"}`}>
+                <p
+                  className={`mt-1 text-lg font-bold ${financialSummary.netProfit >= 0 ? "text-duo-green" : "text-duo-danger"}`}
+                >
                   {formatCurrency(financialSummary.netProfit)}
                 </p>
               </div>

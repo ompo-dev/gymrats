@@ -68,6 +68,20 @@ export const GET = createSafeHandler(
     const assignment = personal.studentAssignments[0];
     const isSubscribed = !!assignment;
 
+    let planId: string | null = null;
+    let planName: string | null = null;
+    if (isSubscribed) {
+      const lastPayment = await db.personalStudentPayment.findFirst({
+        where: { studentId, personalId, status: "paid" },
+        include: { plan: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+      });
+      if (lastPayment) {
+        planId = lastPayment.plan.id;
+        planName = lastPayment.plan.name;
+      }
+    }
+
     return NextResponse.json({
       id: personal.id,
       name: personal.name,
@@ -83,7 +97,12 @@ export const GET = createSafeHandler(
       plans,
       isSubscribed,
       myAssignment: isSubscribed
-        ? { id: assignment.id, status: assignment.status }
+        ? {
+            id: assignment.id,
+            status: assignment.status,
+            planId,
+            planName,
+          }
         : null,
       studentsCount,
     });
