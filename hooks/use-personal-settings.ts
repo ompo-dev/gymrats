@@ -11,6 +11,7 @@ export interface UsePersonalSettingsProps {
     phone?: string | null;
     bio?: string | null;
     address?: string | null;
+    cref?: string | null;
     pixKey?: string | null;
     pixKeyType?: string | null;
     atendimentoPresencial?: boolean;
@@ -33,6 +34,7 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
       phone?: string | null;
       bio?: string | null;
       address?: string | null;
+      cref?: string | null;
       pixKey?: string | null;
       pixKeyType?: string | null;
       atendimentoPresencial?: boolean;
@@ -51,6 +53,7 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
           phone: data.phone?.trim() || null,
           bio: data.bio?.trim() || null,
           address: data.address?.trim() || null,
+          cref: data.cref?.trim() || null,
           pixKey: data.pixKey?.trim() || null,
           pixKeyType: data.pixKeyType || null,
           atendimentoPresencial: data.atendimentoPresencial,

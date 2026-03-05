@@ -3,15 +3,38 @@ import {
   getPersonalProfile,
   getPersonalStudentAssignments,
   getPersonalSubscription,
+  getPersonalFinancialSummary,
+  getPersonalPayments,
+  getPersonalCoupons,
+  getPersonalExpenses,
+  getPersonalBoostCampaigns,
+  getPersonalMembershipPlans,
 } from "./actions";
 import PersonalHome from "./page-content";
 
 export default async function PersonalPage() {
-  const [profile, affiliations, students, subscription] = await Promise.all([
+  const [
+    profile,
+    affiliations,
+    students,
+    subscription,
+    financialSummary,
+    payments,
+    coupons,
+    expenses,
+    campaigns,
+    plans,
+  ] = await Promise.all([
     getPersonalProfile(),
     getPersonalAffiliations(),
     getPersonalStudentAssignments(),
     getPersonalSubscription(),
+    getPersonalFinancialSummary(),
+    getPersonalPayments(),
+    getPersonalCoupons(),
+    getPersonalExpenses(),
+    getPersonalBoostCampaigns(),
+    getPersonalMembershipPlans(),
   ]);
 
   return (
@@ -20,6 +43,12 @@ export default async function PersonalPage() {
       initialAffiliations={affiliations}
       initialStudents={students}
       initialSubscription={subscription}
+      initialFinancialSummary={financialSummary}
+      initialPayments={payments}
+      initialCoupons={coupons}
+      initialExpenses={expenses}
+      initialCampaigns={campaigns}
+      initialPlans={plans}
     />
   );
 }

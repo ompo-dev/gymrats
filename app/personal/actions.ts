@@ -6,6 +6,7 @@ import { PersonalGymService } from "@/lib/services/personal/personal-gym.service
 import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import type {
+  BoostCampaign,
   Coupon,
   Expense,
   FinancialSummary,
@@ -18,6 +19,18 @@ import type {
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "./types";
+
+export interface PersonalMembershipPlan {
+  id: string;
+  personalId: string;
+  name: string;
+  description?: string | null;
+  type: string; // Changed from "monthly" | "quarterly" | "semi-annual" | "annual" | "trial" to string
+  price: number;
+  duration: number;
+  benefits?: string[] | string | null; // Changed from string | null to string[] | string | null
+  isActive: boolean;
+}
 
 export async function getPersonalProfile(): Promise<PersonalProfile | null> {
   try {
@@ -33,6 +46,10 @@ export async function getPersonalProfile(): Promise<PersonalProfile | null> {
       email: personal.email,
       bio: personal.bio,
       phone: personal.phone,
+      address: (personal as any).address,
+      cref: (personal as any).cref,
+      pixKey: (personal as any).pixKey,
+      pixKeyType: (personal as any).pixKeyType,
       atendimentoPresencial: personal.atendimentoPresencial,
       atendimentoRemoto: personal.atendimentoRemoto,
     };
@@ -51,7 +68,7 @@ export async function getPersonalAffiliations(): Promise<
     const affiliations = await PersonalGymService.listPersonalGyms(
       ctx.personalId,
     );
-    return affiliations.map((a) => ({
+    return (affiliations as any[]).map((a: any) => ({
       id: a.id,
       gym: {
         id: a.gym.id,
@@ -92,7 +109,7 @@ export async function getPersonalStudentAssignments(
       ctx.personalId,
       gymId,
     );
-    return assignments.map((a) => ({
+    return (assignments as any[]).map((a: any) => ({
       id: a.id,
       student: {
         id: a.student.id,
@@ -178,18 +195,102 @@ export async function getPersonalCoupons(): Promise<Coupon[]> {
   try {
     const { ctx, errorResponse } = await getPersonalContext();
     if (errorResponse || !ctx) return [];
-    return PersonalFinancialService.getCoupons(ctx.personalId);
+    return await PersonalFinancialService.getCoupons(ctx.personalId) as unknown as Coupon[];
   } catch (error) {
     console.error("[getPersonalCoupons] Erro:", error);
     return [];
   }
 }
 
+export async function getPersonalPayments(): Promise<Payment[]> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx) return [];
+    return await PersonalFinancialService.getPayments(ctx.personalId) as unknown as Payment[];
+  } catch (error) {
+    console.error("[getPersonalPayments] Erro:", error);
+    return [];
+  }
+}
+
+export async function getPersonalBoostCampaigns(): Promise<BoostCampaign[]> {
+  // Retornar array vazio por enquanto (Personal ainda não tem campanhas de Ads ativas no Prisma model)
+  // Se for adicionar no futuro, bastaria adicionar à PersonalFinancialService
+  return [];
+}
+
+export async function getPersonalMembershipPlans(): Promise<PersonalMembershipPlan[]> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx) return [];
+    return await PersonalFinancialService.getMembershipPlans(ctx.personalId);
+  } catch (error) {
+    console.error("[getPersonalMembershipPlans] Erro:", error);
+    return [];
+  }
+}
+
+export async function createPersonalMembershipPlan(
+  data: Omit<PersonalMembershipPlan, "id" | "isActive" | "personalId">,
+) {
+  const { ctx, errorResponse } = await getPersonalContext();
+  if (errorResponse || !ctx) throw new Error("Não autorizado");
+
+  const parsedBenefits = Array.isArray(data.benefits)
+    ? JSON.stringify(data.benefits)
+    : data.benefits;
+
+    const plan = await (db as any).personalMembershipPlan.create({
+    data: {
+      personalId: ctx.personalId,
+      name: data.name,
+      description: data.description,
+      type: data.type,
+      price: data.price,
+      duration: data.duration,
+      benefits: parsedBenefits,
+      isActive: true,
+    },
+  });
+  return plan;
+}
+
+export async function updatePersonalMembershipPlan(
+  planId: string,
+  data: Partial<Omit<PersonalMembershipPlan, "id" | "personalId">>,
+) {
+  const { ctx, errorResponse } = await getPersonalContext();
+  if (errorResponse || !ctx) throw new Error("Não autorizado");
+
+  const updateData: any = { ...data };
+  if (data.benefits !== undefined) {
+    updateData.benefits = Array.isArray(data.benefits)
+      ? JSON.stringify(data.benefits)
+      : data.benefits;
+  }
+
+  const plan = await (db as any).personalMembershipPlan.update({
+    where: { id: planId, personalId: ctx.personalId },
+    data: updateData,
+  });
+  return plan;
+}
+
+export async function deletePersonalMembershipPlan(planId: string) {
+  const { ctx, errorResponse } = await getPersonalContext();
+  if (errorResponse || !ctx) throw new Error("Não autorizado");
+
+  await (db as any).personalMembershipPlan.update({
+    where: { id: planId, personalId: ctx.personalId },
+    data: { isActive: false },
+  });
+}
+
 export async function getPersonalSubscription(): Promise<PersonalSubscriptionData | null> {
   try {
     const { ctx, errorResponse } = await getPersonalContext();
     if (errorResponse || !ctx) return null;
-    const sub = await db.personalSubscription.findUnique({
+    const sub = await (db as any).personalSubscription.findUnique({
       where: { personalId: ctx.personalId },
     });
     if (!sub) return null;

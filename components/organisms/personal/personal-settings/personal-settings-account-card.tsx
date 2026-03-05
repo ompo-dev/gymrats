@@ -5,8 +5,8 @@ import { motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
 
 interface PersonalSettingsAccountCardProps {
-  canSwitchToStudent: boolean;
-  onSwitchToStudent: () => void;
+  canSwitchToStudent?: boolean;
+  onSwitchToStudent?: () => void;
   onLogout: () => void;
 }
 

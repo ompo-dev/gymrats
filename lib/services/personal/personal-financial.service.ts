@@ -9,25 +9,44 @@ export class PersonalFinancialService {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const [expenses] = await Promise.all([
+    const defaultSummary = {
+      pendingPayments: 0,
+      overduePayments: 0,
+      churnRate: 0,
+      revenueGrowth: 0,
+    };
+
+    const [expenses, membershipPlans] = await Promise.all([
       db.personalExpense.aggregate({
         where: { personalId, date: { gte: startOfMonth } },
         _sum: { amount: true },
       }),
+      (db as any).personalMembershipPlan.findMany({
+        where: { personalId, isActive: true },
+        select: { price: true },
+      }),
     ]);
 
-    const totalExpenses = expenses._sum.amount ?? 0;
+    const totalDespesas = expenses._sum.amount ?? 0;
+    const totalReceitas = 0; // TODO: Implement when PersonalPayment model exists
+
+    const mrr = (membershipPlans as any[]).reduce(
+      (sum: number, plan: any) => sum + plan.price,
+      0,
+    );
+    const totalPayments = 0; // TODO: Implement when PersonalPayment model exists
+    const avgTicket = 0;
 
     return {
-      totalRevenue: 0,
-      totalExpenses,
-      netProfit: -totalExpenses,
-      monthlyRecurring: 0,
-      pendingPayments: 0,
-      overduePayments: 0,
-      averageTicket: 0,
-      churnRate: 0,
-      revenueGrowth: 0,
+      totalRevenue: totalReceitas,
+      totalExpenses: totalDespesas,
+      netProfit: totalReceitas - totalDespesas,
+      monthlyRecurring: mrr,
+      pendingPayments: defaultSummary.pendingPayments,
+      overduePayments: defaultSummary.overduePayments,
+      averageTicket: avgTicket,
+      churnRate: defaultSummary.churnRate,
+      revenueGrowth: defaultSummary.revenueGrowth,
     };
   }
 
@@ -56,6 +75,33 @@ export class PersonalFinancialService {
       date: expense.date,
       category: expense.category || "",
     }));
+  }
+
+  static async getPayments(personalId: string) {
+    return [];
+  }
+
+  static async getMembershipPlans(personalId: string) {
+    const plans = await (db as any).personalMembershipPlan.findMany({
+      where: { personalId },
+      orderBy: { price: "asc" },
+    });
+    return (plans as any[]).map((p: any) => {
+      let benefits: string[] = [];
+      if (typeof p.benefits === "string") {
+        try {
+          benefits = JSON.parse(p.benefits);
+        } catch {
+          benefits = [];
+        }
+      } else if (Array.isArray(p.benefits)) {
+        benefits = p.benefits;
+      }
+      return {
+        ...p,
+        benefits,
+      };
+    });
   }
 
   static async getCoupons(personalId: string): Promise<Coupon[]> {

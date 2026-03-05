@@ -398,6 +398,7 @@ model Personal {
   phone                 String?
   avatar                String?
   bio                   String?
+  cref                  String?  @unique
   address               String? // Opcional; não visível publicamente como academia
   latitude              Float?
   longitude             Float?
@@ -405,11 +406,16 @@ model Personal {
   atendimentoRemoto     Boolean  @default(true)
   isActive              Boolean  @default(true)
 
+  // Chave PIX para pagamentos
+  pixKey     String? // CPF, CNPJ, telefone, email ou chave aleatória
+  pixKeyType String? // CPF | CNPJ | PHONE | EMAIL | RANDOM
+
   subscription       PersonalSubscription?
   gymAffiliations    GymPersonalAffiliation[]
   studentAssignments StudentPersonalAssignment[]
   coupons            PersonalCoupon[]
   expenses           PersonalExpense[]
+  membershipPlans    PersonalMembershipPlan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1139,6 +1145,24 @@ model PersonalExpense {
 
   @@index([personalId])
   @@map("personal_expenses")
+}
+
+model PersonalMembershipPlan {
+  id         String   @id @default(cuid())
+  personalId String
+  personal   Personal @relation(fields: [personalId], references: [id], onDelete: Cascade)
+  name       String
+  type       String   // monthly, quarterly, semi-annual, annual, trial
+  price      Float
+  duration   Int      // dias
+  benefits   String?  // JSON array
+  isActive   Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([personalId])
+  @@map("personal_membership_plans")
 }
 
 model PaymentMethod {

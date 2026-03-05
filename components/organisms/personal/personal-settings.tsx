@@ -20,19 +20,25 @@ export interface PersonalProfileDisplay {
   phone?: string | null;
   bio?: string | null;
   address?: string | null;
+  cref?: string | null;
   pixKey?: string | null;
   pixKeyType?: string | null;
   atendimentoPresencial?: boolean;
   atendimentoRemoto?: boolean;
 }
 
+import type { PersonalMembershipPlan } from "@/app/personal/actions";
+import { PersonalMembershipPlansPage } from "./personal-membership-plans-page";
+
 export interface PersonalSettingsPageProps {
   profile: PersonalProfileDisplay | null;
+  plans?: PersonalMembershipPlan[];
   onRefresh?: () => Promise<void>;
 }
 
 export function PersonalSettingsPage({
   profile: initialProfile,
+  plans = [],
   onRefresh,
 }: PersonalSettingsPageProps) {
   const router = useRouter();
@@ -49,6 +55,7 @@ export function PersonalSettingsPage({
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [address, setAddress] = useState(profile?.address ?? "");
+  const [cref, setCref] = useState(profile?.cref ?? "");
   const [pixKeyType, setPixKeyType] = useState<string>(profile?.pixKeyType ?? "");
   const [pixKey, setPixKey] = useState(profile?.pixKey ?? "");
   const [atendimentoPresencial, setAtendimentoPresencial] = useState(
@@ -64,6 +71,7 @@ export function PersonalSettingsPage({
     setPhone(profile?.phone ?? "");
     setBio(profile?.bio ?? "");
     setAddress(profile?.address ?? "");
+    setCref(profile?.cref ?? "");
     setPixKeyType(profile?.pixKeyType ?? "");
     setPixKey(profile?.pixKey ?? "");
     setAtendimentoPresencial(profile?.atendimentoPresencial ?? true);
@@ -90,10 +98,11 @@ export function PersonalSettingsPage({
   const onSave = async () => {
     await handleSave({
       name,
-      email,
+      email, // Read only now, but kept in payload just in case
       phone: phone || null,
       bio: bio || null,
       address: address || null,
+      cref: cref || null,
       pixKey: pixKey || null,
       pixKeyType: pixKeyType || null,
       atendimentoPresencial,
@@ -127,12 +136,22 @@ export function PersonalSettingsPage({
               onChange={(e) => setName(e.target.value)}
               placeholder="Seu nome"
             />
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-[var(--duo-fg)]">
+                E-mail
+              </label>
+              <div className="px-3 py-2 text-sm text-[var(--duo-fg-muted)] bg-[var(--duo-bg-elevated)] rounded-xl border border-[var(--duo-border)] select-none">
+                {email}
+              </div>
+              <p className="text-xs text-[var(--duo-fg-muted)]">
+                Não pode ser alterado aqui
+              </p>
+            </div>
             <DuoInput.Simple
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
+              label="CREF"
+              value={cref}
+              onChange={(e) => setCref(e.target.value)}
+              placeholder="000000-G/XX"
             />
             <DuoInput.Simple
               label="Telefone"
@@ -300,25 +319,10 @@ export function PersonalSettingsPage({
       </SlideIn>
 
       <SlideIn delay={0.25}>
-        <PersonalSettingsAccountCard
-          canSwitchToStudent={!!canSwitchToStudent}
-          onSwitchToStudent={handleSwitchToStudent}
-          onLogout={handleLogout}
-        />
-      </SlideIn>
-
-      {saveError && (
-        <div className="rounded-lg border border-duo-danger/40 bg-duo-danger/10 px-4 py-3 text-sm text-duo-danger">
-          {saveError}
-        </div>
-      )}
-
-      <SlideIn delay={0.3}>
         <DuoButton
           onClick={onSave}
           disabled={saving}
-          variant="primary"
-          className="w-full sm:w-auto"
+          className="w-full"
         >
           {saving ? (
             <>
@@ -326,9 +330,30 @@ export function PersonalSettingsPage({
               Salvando...
             </>
           ) : (
-            "Salvar alterações"
+            "Salvar perfil"
           )}
         </DuoButton>
+      </SlideIn>
+
+      {saveError && (
+        <SlideIn delay={0.3}>
+          <p className="text-sm font-medium text-red-600 text-center">
+            {saveError}
+          </p>
+        </SlideIn>
+      )}
+
+      <SlideIn delay={0.35}>
+        <PersonalMembershipPlansPage plans={plans} onRefresh={onRefresh} />
+      </SlideIn>
+
+      <SlideIn delay={0.4}>
+        <PersonalSettingsAccountCard
+          onSwitchToStudent={
+            canSwitchToStudent ? handleSwitchToStudent : undefined
+          }
+          onLogout={handleLogout}
+        />
       </SlideIn>
     </div>
   );

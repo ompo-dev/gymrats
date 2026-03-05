@@ -28,6 +28,7 @@ export interface PersonalUnifiedState {
     phone?: string | null;
     bio?: string | null;
     address?: string | null;
+    cref?: string | null;
     pixKey?: string | null;
     pixKeyType?: string | null;
     atendimentoPresencial?: boolean;

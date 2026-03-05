@@ -20,13 +20,28 @@ import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 import { getPersonalStudentsAsStudentData } from "./actions";
-import type { StudentData } from "@/lib/types";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  MembershipPlan,
+  Payment,
+  StudentData,
+} from "@/lib/types";
+import { PersonalMembershipPlan } from "./actions";
 
 interface PersonalHomeProps {
   initialProfile: PersonalProfile | null;
   initialAffiliations: PersonalAffiliation[];
   initialStudents: PersonalStudentAssignment[];
   initialSubscription: PersonalSubscriptionData | null;
+  initialFinancialSummary: FinancialSummary | null;
+  initialPayments: Payment[];
+  initialCoupons: Coupon[];
+  initialExpenses: Expense[];
+  initialCampaigns: BoostCampaign[];
+  initialPlans: PersonalMembershipPlan[];
 }
 
 function PersonalHomeContent({
@@ -34,6 +49,12 @@ function PersonalHomeContent({
   initialAffiliations,
   initialStudents,
   initialSubscription,
+  initialFinancialSummary,
+  initialPayments,
+  initialCoupons,
+  initialExpenses,
+  initialCampaigns,
+  initialPlans,
 }: PersonalHomeProps) {
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
   const hydrateInitial = usePersonalUnifiedStore((state) => state.hydrateInitial);
@@ -50,6 +71,8 @@ function PersonalHomeContent({
       affiliations: initialAffiliations,
       students: initialStudents,
       subscription: initialSubscription,
+      financialSummary: initialFinancialSummary,
+      expenses: initialExpenses,
     });
   }, [
     hydrateInitial,
@@ -57,6 +80,8 @@ function PersonalHomeContent({
     initialAffiliations,
     initialStudents,
     initialSubscription,
+    initialFinancialSummary,
+    initialExpenses,
   ]);
 
   // Load StudentData[] when students tab is active
@@ -131,11 +156,19 @@ function PersonalHomeContent({
           subscription={subscription}
           financialSummary={financialSummary}
           expenses={storeExpenses}
+          payments={initialPayments}
+          coupons={initialCoupons}
+          campaigns={initialCampaigns}
+          plans={initialPlans as unknown as MembershipPlan[]}
           onRefresh={load}
         />
       )}
       {tab === "settings" && (
-        <PersonalSettingsPageContent profile={profile} onRefresh={load} />
+        <PersonalSettingsPageContent
+          profile={profile}
+          plans={initialPlans}
+          onRefresh={load}
+        />
       )}
       {tab === "stats" && (
         <PersonalStatsPageContent
@@ -155,6 +188,12 @@ export default function PersonalHome({
   initialAffiliations,
   initialStudents,
   initialSubscription,
+  initialFinancialSummary,
+  initialPayments,
+  initialCoupons,
+  initialExpenses,
+  initialCampaigns,
+  initialPlans,
 }: PersonalHomeProps) {
   return (
     <Suspense
@@ -169,6 +208,12 @@ export default function PersonalHome({
         initialAffiliations={initialAffiliations}
         initialStudents={initialStudents}
         initialSubscription={initialSubscription}
+        initialFinancialSummary={initialFinancialSummary}
+        initialPayments={initialPayments}
+        initialCoupons={initialCoupons}
+        initialExpenses={initialExpenses}
+        initialCampaigns={initialCampaigns}
+        initialPlans={initialPlans}
       />
     </Suspense>
   );
