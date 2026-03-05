@@ -25,7 +25,7 @@ export interface SubscriptionPlan {
 }
 
 export interface SubscriptionSectionProps {
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
 
   /** Subscription do student ou gym; datas e id podem ser opcionais (ex.: virtual enterprise). Gym pode passar activeStudents/totalAmount. */
   subscription?:
@@ -256,9 +256,12 @@ function SubscriptionSectionSimple({
     isCanceledAndTrialExpired;
 
   // Trial só uma vez: ocultar oferta se já usou trial ou já assinou (canStartTrial === false)
+  // Personal não tem trial
   const canStartTrial =
-    subscription == null ||
-    ("canStartTrial" in subscription && subscription.canStartTrial !== false);
+    userType === "personal"
+      ? false
+      : subscription == null ||
+        ("canStartTrial" in subscription && subscription.canStartTrial !== false);
 
   const daysRemaining = subscription?.daysRemaining ?? null;
   const isTrialEnding =
@@ -279,6 +282,13 @@ function SubscriptionSectionSimple({
       if (
         userType === "gym" &&
         String(subscription.plan).toLowerCase().includes("enterprise")
+      ) {
+        return false;
+      }
+      // Personal com Pro AI ativo: não mostrar planos (já está no melhor plano)
+      if (
+        userType === "personal" &&
+        String(subscription.plan).toLowerCase().includes("pro_ai")
       ) {
         return false;
       }
@@ -334,11 +344,13 @@ function SubscriptionSectionSimple({
   // Calcular desconto anual baseado no plano
   const getAnnualDiscount = (planId: string): number => {
     const discounts: Record<string, number> = {
-      basic: 5, // 5% desconto
-      premium: 10, // 10% desconto
-      enterprise: 15, // 15% desconto
+      basic: 5,
+      premium: 10,
+      enterprise: 15,
+      standard: 5,
+      pro_ai: 10,
     };
-    return discounts[planId] || 10; // Default 10% se não encontrar
+    return discounts[planId] || 10;
   };
 
   const annualDiscount = selectedPlanData

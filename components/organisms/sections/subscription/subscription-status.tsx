@@ -23,7 +23,7 @@ interface SubscriptionStatusProps {
     source?: "OWN" | "GYM_ENTERPRISE";
     enterpriseGymName?: string;
   };
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   texts: {
     subscriptionStatusTitle: string;
     trialDaysRemaining: string;

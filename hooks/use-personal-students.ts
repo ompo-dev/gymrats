@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,7 +43,10 @@ export function usePersonalStudents({
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
-  const [filter, setFilter] = useState<string>(FILTER_ALL);
+  const [filter, setFilter] = useQueryState(
+    "status",
+    parseAsString.withDefault(FILTER_ALL),
+  );
   const [gymIdFilter, setGymIdFilter] = useState<string>("");
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
@@ -144,21 +147,22 @@ export function usePersonalStudents({
 
   const setFilterAll = useCallback(() => {
     setFilter(FILTER_ALL);
-  }, []);
+  }, [setFilter]);
 
   const setFilterIndependent = useCallback(() => {
     setFilter(FILTER_INDEPENDENT);
     setGymIdFilter("");
-  }, []);
+  }, [setFilter]);
 
   const setFilterViaGym = useCallback(() => {
     setFilter(FILTER_VIA_GYM);
-  }, []);
+  }, [setFilter]);
 
   return {
     searchQuery,
     setSearchQuery,
     filter,
+    setFilter,
     gymIdFilter,
     setGymIdFilter,
     setFilterAll,

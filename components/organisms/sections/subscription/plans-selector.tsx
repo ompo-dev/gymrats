@@ -9,7 +9,7 @@ import { PlanCard } from "./plan-card";
 import { PlanFeatures } from "./plan-features";
 
 interface PlansSelectorProps {
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   plans: SubscriptionPlan[];
   selectedPlan: string;
   onSelectPlan: (planId: string) => void;

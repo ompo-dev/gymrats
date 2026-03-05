@@ -10,7 +10,7 @@ interface PlanCardProps {
   isSelected: boolean;
   onSelect: () => void;
   billingPeriod: "monthly" | "annual";
-  userType: "student" | "gym";
+  userType: "student" | "gym" | "personal";
   plansCount: number;
   texts: {
     perMonth: string;

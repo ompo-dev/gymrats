@@ -42,11 +42,9 @@ export function PersonalStudentsPage({
     searchQuery,
     setSearchQuery,
     filter,
+    setFilter,
     gymIdFilter,
     setGymIdFilter,
-    setFilterAll,
-    setFilterIndependent,
-    setFilterViaGym,
     assignModalOpen,
     setAssignModalOpen,
     removingId,
@@ -138,46 +136,21 @@ export function PersonalStudentsPage({
               leftIcon={<Search className="h-5 w-5" />}
               className="h-12"
             />
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={setFilterAll}
-                className={cn(
-                  "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                  filter === FILTER_ALL
-                    ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-                    : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-                )}
-              >
-                Todos
-              </button>
-              <button
-                type="button"
-                onClick={setFilterIndependent}
-                className={cn(
-                  "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                  filter === FILTER_INDEPENDENT
-                    ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-                    : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-                )}
-              >
-                Independentes
-              </button>
-              {affiliations.length > 0 && (
-                <button
-                  type="button"
-                  onClick={setFilterViaGym}
-                  className={cn(
-                    "rounded-xl border-2 px-3 py-1.5 text-sm font-semibold",
-                    filter === FILTER_VIA_GYM
-                      ? "border-duo-primary bg-duo-primary/10 text-duo-primary"
-                      : "border-duo-border text-duo-fg-muted hover:border-duo-fg-muted",
-                  )}
-                >
-                  Via academia
-                </button>
-              )}
-            </div>
+            <DuoSelect.Simple
+              options={[
+                { value: FILTER_ALL, label: "Todos" },
+                { value: FILTER_INDEPENDENT, label: "Independentes" },
+                ...(affiliations.length > 0
+                  ? [{ value: FILTER_VIA_GYM, label: "Via academia" }]
+                  : []),
+              ]}
+              value={filter ?? FILTER_ALL}
+              onChange={(v) => {
+                setFilter(v ?? FILTER_ALL);
+                if (v !== FILTER_VIA_GYM) setGymIdFilter("");
+              }}
+              placeholder="Filtro"
+            />
             {filter === FILTER_VIA_GYM && affiliations.length > 0 && (
               <DuoSelect.Simple
                 label="Academia"

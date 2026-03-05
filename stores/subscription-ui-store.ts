@@ -15,7 +15,7 @@ interface SubscriptionUIState {
     plans: SubscriptionPlan[],
     currentPlan?: string,
     currentBillingPeriod?: "monthly" | "annual",
-    userType?: "student" | "gym",
+    userType?: "student" | "gym" | "personal",
   ) => void;
   reset: () => void;
 }
@@ -63,22 +63,33 @@ export const useSubscriptionUIStore = create<SubscriptionUIState>((set) => ({
       const currentPlanIndex = planHierarchy.indexOf(currentPlan.toLowerCase());
 
       if (currentPlanIndex === 2) {
-        // Enterprise: selecionar Basic (downgrade)
         defaultPlanId = "basic";
       } else if (currentPlanIndex === 1) {
-        // Premium: selecionar Basic (downgrade)
         defaultPlanId = "basic";
       } else if (currentPlanIndex === 0) {
-        // Basic: selecionar Premium (upgrade)
         defaultPlanId = "premium";
       } else {
-        // Fallback: premium ou primeiro disponível
         defaultPlanId =
           plans.find((p) => p.id === "premium")?.id || plans[0]?.id || "";
       }
+    } else if (userType === "personal" && currentPlan && currentBillingPeriod) {
+      defaultBillingPeriod = currentBillingPeriod;
+      const planHierarchy = ["standard", "pro_ai"];
+      const currentPlanIndex = planHierarchy.indexOf(
+        currentPlan.toLowerCase().replace(/\s+/g, "_"),
+      );
+      if (currentPlanIndex === 1) {
+        defaultPlanId = "standard";
+      } else {
+        defaultPlanId =
+          plans.find((p) => p.id === "pro_ai")?.id || plans[0]?.id || "";
+      }
     } else {
-      // Sem subscription ou outros casos: usar premium ou primeiro disponível
-      const defaultPlan = plans.find((p) => p.id === "premium") || plans[0];
+      // Sem subscription ou outros casos
+      const defaultPlan =
+        userType === "personal"
+          ? plans.find((p) => p.id === "standard") || plans[0]
+          : plans.find((p) => p.id === "premium") || plans[0];
       defaultPlanId = defaultPlan?.id || "";
     }
 
