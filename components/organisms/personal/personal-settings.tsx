@@ -1,15 +1,17 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { CreditCard, Loader2, MapPin } from "lucide-react";
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
+import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import { useToast } from "@/hooks/use-toast";
 import { usePersonalSettings } from "@/hooks/use-personal-settings";
 import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
+import { cn } from "@/lib/utils";
 
 export interface PersonalProfileDisplay {
   id?: string;
@@ -17,6 +19,9 @@ export interface PersonalProfileDisplay {
   email?: string | null;
   phone?: string | null;
   bio?: string | null;
+  address?: string | null;
+  pixKey?: string | null;
+  pixKeyType?: string | null;
   atendimentoPresencial?: boolean;
   atendimentoRemoto?: boolean;
 }
@@ -43,6 +48,9 @@ export function PersonalSettingsPage({
   const [email, setEmail] = useState(profile?.email ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [bio, setBio] = useState(profile?.bio ?? "");
+  const [address, setAddress] = useState(profile?.address ?? "");
+  const [pixKeyType, setPixKeyType] = useState<string>(profile?.pixKeyType ?? "");
+  const [pixKey, setPixKey] = useState(profile?.pixKey ?? "");
   const [atendimentoPresencial, setAtendimentoPresencial] = useState(
     profile?.atendimentoPresencial ?? true,
   );
@@ -55,6 +63,9 @@ export function PersonalSettingsPage({
     setEmail(profile?.email ?? "");
     setPhone(profile?.phone ?? "");
     setBio(profile?.bio ?? "");
+    setAddress(profile?.address ?? "");
+    setPixKeyType(profile?.pixKeyType ?? "");
+    setPixKey(profile?.pixKey ?? "");
     setAtendimentoPresencial(profile?.atendimentoPresencial ?? true);
     setAtendimentoRemoto(profile?.atendimentoRemoto ?? true);
   }, [profile]);
@@ -82,6 +93,9 @@ export function PersonalSettingsPage({
       email,
       phone: phone || null,
       bio: bio || null,
+      address: address || null,
+      pixKey: pixKey || null,
+      pixKeyType: pixKeyType || null,
       atendimentoPresencial,
       atendimentoRemoto,
     });
@@ -96,7 +110,7 @@ export function PersonalSettingsPage({
             Configurações
           </h1>
           <p className="text-sm text-duo-fg-muted">
-            Gerencie seu perfil e modalidades de atendimento
+            Gerencie seu perfil, endereço e dados financeiros
           </p>
         </div>
       </FadeIn>
@@ -138,6 +152,115 @@ export function PersonalSettingsPage({
                 className="w-full rounded-xl border border-duo-border bg-duo-bg px-4 py-3 text-duo-fg placeholder:text-duo-fg-muted focus:border-duo-primary focus:outline-none focus:ring-1 focus:ring-duo-primary"
               />
             </div>
+          </div>
+        </DuoCard.Root>
+      </SlideIn>
+
+      {/* Address & PIX Cards matching gym layout */}
+      <SlideIn delay={0.15}>
+        <DuoCard.Root variant="default" padding="md">
+          <DuoCard.Header>
+            <h2 className="font-bold text-duo-fg">Endereço e Financeiro</h2>
+          </DuoCard.Header>
+          <div className="space-y-3">
+            {[
+              {
+                title: "Endereço",
+                description: "Onde você atende presencialmente",
+                iconBg: "bg-duo-green/10",
+                Icon: MapPin,
+                iconClass: "text-duo-green",
+                content: (
+                  <DuoInput.Simple
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Opcional"
+                    className="mt-2"
+                  />
+                ),
+              },
+              {
+                title: "Chave PIX para Recebimentos",
+                description:
+                  "Os pagamentos dos alunos podem ser transferidos para esta chave",
+                iconBg: "bg-duo-yellow/10",
+                Icon: CreditCard,
+                iconClass: "text-duo-yellow",
+                content: (
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <DuoSelect.Simple
+                      options={[
+                        { value: "CPF", label: "CPF" },
+                        { value: "CNPJ", label: "CNPJ" },
+                        { value: "PHONE", label: "Telefone" },
+                        { value: "EMAIL", label: "E-mail" },
+                        { value: "RANDOM", label: "Chave aleatória" },
+                      ]}
+                      value={pixKeyType || undefined}
+                      onChange={setPixKeyType}
+                      placeholder="Tipo de chave"
+                      className="min-w-[180px] sm:min-w-0 sm:flex-1"
+                    />
+                    <DuoInput.Simple
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      placeholder={
+                        pixKeyType === "CPF"
+                          ? "000.000.000-00"
+                          : pixKeyType === "CNPJ"
+                            ? "00.000.000/0001-00"
+                            : pixKeyType === "PHONE"
+                              ? "(00) 00000-0000"
+                              : pixKeyType === "EMAIL"
+                                ? "email@exemplo.com"
+                                : pixKeyType === "RANDOM"
+                                  ? "Chave aleatória"
+                                  : "Selecione o tipo primeiro"
+                      }
+                      className="flex-1"
+                    />
+                  </div>
+                ),
+              },
+            ].map((field, index) => (
+              <motion.div
+                key={field.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05, duration: 0.4 }}
+              >
+                <DuoCard.Root
+                  variant="default"
+                  size="default"
+                  className="border-2 border-duo-border"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl p-3",
+                          field.iconBg,
+                        )}
+                      >
+                        <field.Icon
+                          className={cn("h-5 w-5", field.iconClass)}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-bold text-duo-fg">
+                          {field.title}
+                        </div>
+                        <div className="text-xs text-duo-fg-muted">
+                          {field.description}
+                        </div>
+                      </div>
+                    </div>
+                    <div>{field.content}</div>
+                  </div>
+                </DuoCard.Root>
+              </motion.div>
+            ))}
           </div>
         </DuoCard.Root>
       </SlideIn>
@@ -210,3 +333,4 @@ export function PersonalSettingsPage({
     </div>
   );
 }
+

@@ -9,6 +9,9 @@ export interface PersonalProfile {
   email: string;
   bio?: string | null;
   phone?: string | null;
+  address?: string | null;
+  pixKey?: string | null;
+  pixKeyType?: string | null;
   atendimentoPresencial?: boolean;
   atendimentoRemoto?: boolean;
 }

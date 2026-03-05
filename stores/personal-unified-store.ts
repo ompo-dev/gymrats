@@ -27,6 +27,9 @@ export interface PersonalUnifiedState {
     email?: string;
     phone?: string | null;
     bio?: string | null;
+    address?: string | null;
+    pixKey?: string | null;
+    pixKeyType?: string | null;
     atendimentoPresencial?: boolean;
     atendimentoRemoto?: boolean;
   }) => Promise<void>;

@@ -113,6 +113,17 @@ export async function getPersonalStudentAssignments(
   }
 }
 
+export async function getPersonalStudentsAsStudentData(): Promise<StudentData[]> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx) return [];
+    return StudentPersonalService.listStudentsAsStudentData(ctx.personalId);
+  } catch (error) {
+    console.error("[getPersonalStudentsAsStudentData] Erro:", error);
+    return [];
+  }
+}
+
 export async function getPersonalStudentById(
   studentId: string,
 ): Promise<StudentData | null> {

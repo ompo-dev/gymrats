@@ -10,6 +10,9 @@ export interface UsePersonalSettingsProps {
     email?: string | null;
     phone?: string | null;
     bio?: string | null;
+    address?: string | null;
+    pixKey?: string | null;
+    pixKeyType?: string | null;
     atendimentoPresencial?: boolean;
     atendimentoRemoto?: boolean;
   } | null;
@@ -29,6 +32,9 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
       email: string;
       phone?: string | null;
       bio?: string | null;
+      address?: string | null;
+      pixKey?: string | null;
+      pixKeyType?: string | null;
       atendimentoPresencial?: boolean;
       atendimentoRemoto?: boolean;
     }) => {
@@ -44,6 +50,9 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
           email: data.email.trim(),
           phone: data.phone?.trim() || null,
           bio: data.bio?.trim() || null,
+          address: data.address?.trim() || null,
+          pixKey: data.pixKey?.trim() || null,
+          pixKeyType: data.pixKeyType || null,
           atendimentoPresencial: data.atendimentoPresencial,
           atendimentoRemoto: data.atendimentoRemoto,
         });
@@ -60,7 +69,7 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
             : err instanceof Error
               ? err.message
               : "Erro ao salvar. Tente novamente.";
-        setSaveError(msg);
+        setSaveError(msg ?? "Erro ao salvar.");
         toast({
           variant: "destructive",
           title: "Erro",

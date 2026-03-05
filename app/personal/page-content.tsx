@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import type {
   PersonalAffiliation,
   PersonalProfile,
@@ -19,6 +19,8 @@ import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-mor
 import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
+import { getPersonalStudentsAsStudentData } from "./actions";
+import type { StudentData } from "@/lib/types";
 
 interface PersonalHomeProps {
   initialProfile: PersonalProfile | null;
@@ -39,6 +41,9 @@ function PersonalHomeContent({
   usePersonalInitializer();
   useLoadPrioritizedPersonal({ onlyPriorities: true });
 
+  const [studentsData, setStudentsData] = useState<StudentData[]>([]);
+  const [studentsLoaded, setStudentsLoaded] = useState(false);
+
   useEffect(() => {
     hydrateInitial({
       profile: initialProfile,
@@ -54,6 +59,16 @@ function PersonalHomeContent({
     initialSubscription,
   ]);
 
+  // Load StudentData[] when students tab is active
+  useEffect(() => {
+    if (tab === "students" && !studentsLoaded) {
+      getPersonalStudentsAsStudentData().then((data) => {
+        setStudentsData(data);
+        setStudentsLoaded(true);
+      });
+    }
+  }, [tab, studentsLoaded]);
+
   const store = usePersonalUnifiedStore((state) => state.data);
   const profile = store.profile ?? initialProfile;
   const affiliations =
@@ -67,6 +82,7 @@ function PersonalHomeContent({
 
   const load = useCallback(async () => {
     await loadAll();
+    setStudentsLoaded(false); // Force reload on next visit
   }, [loadAll]);
 
   const stats = useMemo(() => {
@@ -100,9 +116,8 @@ function PersonalHomeContent({
       )}
       {tab === "students" && (
         <PersonalStudentsPageContent
-          students={students}
+          students={studentsData}
           affiliations={affiliations}
-          onRefresh={load}
         />
       )}
       {tab === "gyms" && (
@@ -158,3 +173,4 @@ export default function PersonalHome({
     </Suspense>
   );
 }
+

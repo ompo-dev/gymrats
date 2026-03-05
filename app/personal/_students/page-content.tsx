@@ -1,24 +1,29 @@
 "use client";
 
-import { PersonalStudentsPage } from "@/components/organisms/personal";
-import type { PersonalAffiliation, PersonalStudentAssignment } from "../types";
+import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
+import type { StudentData } from "@/lib/types";
+import type { PersonalAffiliation } from "../types";
 
 interface PersonalStudentsPageContentProps {
-  students: PersonalStudentAssignment[];
+  students: StudentData[];
   affiliations: PersonalAffiliation[];
-  onRefresh: () => Promise<void>;
 }
 
 export function PersonalStudentsPageContent({
   students,
   affiliations,
-  onRefresh,
 }: PersonalStudentsPageContentProps) {
+  const personalAffiliations = affiliations.map((a) => ({
+    id: a.id,
+    gym: { id: a.gym.id, name: a.gym.name },
+  }));
+
   return (
-    <PersonalStudentsPage
+    <GymStudentsPage
       students={students}
-      affiliations={affiliations}
-      onRefresh={onRefresh}
+      variant="personal"
+      personalAffiliations={personalAffiliations}
     />
   );
 }
+
