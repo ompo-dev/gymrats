@@ -5,6 +5,7 @@ import { authMacro } from "./plugins/auth-macro";
 import { authRolesMacro } from "./plugins/auth-roles";
 import { corsPlugin } from "./plugins/cors";
 import { dbPlugin } from "./plugins/db";
+import { rateLimitPlugin } from "./plugins/rate-limit";
 import { requestLoggerPlugin } from "./plugins/request-logger";
 import { authRoutes } from "./routes/auth";
 import { exercisesRoutes } from "./routes/exercises";
@@ -21,6 +22,7 @@ import { usersRoutes } from "./routes/users";
 import { workoutsRoutes } from "./routes/workouts";
 
 export const apiApp = new Elysia()
+  .use(rateLimitPlugin)
   .use(corsPlugin)
   .use(dbPlugin)
   .use(betterAuthPlugin)

@@ -7,6 +7,7 @@
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import { toast } from "sonner";
 import { clearAuthToken, getAuthToken } from "@/lib/auth/token-client";
 
 const API_BASE_URL =
@@ -103,6 +104,13 @@ function createAxiosClient(): AxiosInstance {
           error._isHandled = true;
           error._isSilent = true;
         }
+      }
+
+      if (status === 429 && typeof window !== "undefined") {
+        toast.error("Muitas requisições. Por favor, aguarde um momento.", {
+          id: "rate-limit-toast", // Evita toasts duplicados rapidamente
+        });
+        error._isHandled = true;
       }
 
       return Promise.reject(error);

@@ -74,6 +74,7 @@
     "csv-parse": "^6.1.0",
     "date-fns": "4.1.0",
     "elysia": "^1.4.22",
+    "elysia-rate-limit": "^4.5.0",
     "embla-carousel-react": "8.5.1",
     "eslint-config-next": "^16.0.7",
     "idb": "^8.0.3",
