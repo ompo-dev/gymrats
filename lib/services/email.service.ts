@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { log } from "@/lib/observability";
+import { emailQueue } from "@/lib/queue/queues";
 
 // Configuração do transporter usando Gmail com senha de aplicativo
 // Nota: Para usar OAuth2, seria necessário configurar refresh tokens
@@ -28,22 +29,25 @@ export async function sendWelcomeEmail({
   name,
 }: SendWelcomeEmailParams): Promise<void> {
   try {
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: '"Gym Rats" <gym.rats.workout@gmail.com>',
-      to,
-      subject: "🎉 Bem-vindo ao Gym Rats!",
-      html: getWelcomeEmailTemplate(name),
-    };
-
-    await transporter.sendMail(mailOptions);
-    log.info("Email de boas-vindas enviado", { to });
+    // Ao invés de enviar o email de forma síncrona (1~3s), enfileira no Redis via BullMQ
+    await emailQueue.add("send-welcome", { to, name });
+    log.info("Email de boas-vindas enfileirado", { to });
   } catch (error) {
-    log.error("Erro ao enviar email de boas-vindas", { to, error });
+    log.error("Erro ao enfileirar email de boas-vindas", { to, error });
     // Não lançar erro para não interromper o fluxo de registro
-    // O email é opcional
   }
+}
+
+// Usado exclusivamente pelo Worker (Background Job)
+export async function processWelcomeEmailSync(to: string, name: string): Promise<void> {
+  const transporter = createTransporter();
+  const mailOptions = {
+    from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+    to,
+    subject: "🎉 Bem-vindo ao Gym Rats!",
+    html: getWelcomeEmailTemplate(name),
+  };
+  await transporter.sendMail(mailOptions);
 }
 
 function getWelcomeEmailTemplate(userName: string): string {
@@ -254,21 +258,25 @@ export async function sendResetPasswordEmail({
   code,
 }: SendResetPasswordEmailParams): Promise<void> {
   try {
-    const transporter = createTransporter();
-
-    const mailOptions = {
-      from: '"Gym Rats" <gym.rats.workout@gmail.com>',
-      to,
-      subject: "🔐 Código de recuperação de senha - Gym Rats",
-      html: getResetPasswordEmailTemplate(name, code),
-    };
-
-    await transporter.sendMail(mailOptions);
-    log.info("Email de recuperação de senha enviado", { to });
+    // Ao invés de enviar de forma síncrona, enfileira
+    await emailQueue.add("send-reset-password", { to, name, code });
+    log.info("Email de recuperação de senha enfileirado", { to });
   } catch (error) {
-    log.error("Erro ao enviar email de recuperação de senha", { to, error });
+    log.error("Erro ao enfileirar email de recuperação de senha", { to, error });
     throw error;
   }
+}
+
+// Usado exclusivamente pelo Worker (Background Job)
+export async function processResetPasswordEmailSync(to: string, name: string, code: string): Promise<void> {
+  const transporter = createTransporter();
+  const mailOptions = {
+    from: '"Gym Rats" <gym.rats.workout@gmail.com>',
+    to,
+    subject: "🔐 Código de recuperação de senha - Gym Rats",
+    html: getResetPasswordEmailTemplate(name, code),
+  };
+  await transporter.sendMail(mailOptions);
 }
 
 function getResetPasswordEmailTemplate(userName: string, code: string): string {

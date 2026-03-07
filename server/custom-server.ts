@@ -2,6 +2,10 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import { apiApp } from "./app";
 
+// Inicializa os Workers do BullMQ assim que o servidor iniciar
+import "./workers/email.worker";
+import "./workers/webhook.worker";
+
 const nodeEnv = process.env.NODE_ENV || "development";
 const dev = nodeEnv !== "production";
 const hostname = process.env.HOST || (dev ? "localhost" : "0.0.0.0");
