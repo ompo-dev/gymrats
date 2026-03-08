@@ -14,11 +14,17 @@ import {
   DuoAlert,
   DuoButton,
   DuoCard,
+  DuoInput,
   DuoStatCard,
   DuoStatsGrid,
 } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { FinancialSummary, Payment } from "@/lib/types";
+import {
+  formatCurrencyBR,
+  formatCurrencyInput,
+  parseCurrencyBR,
+} from "@/lib/utils/currency";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 
 interface WithdrawItem {
@@ -68,14 +74,11 @@ export function FinancialOverviewTab({
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
-  const formatCurrency = (value: number | undefined | null) => {
-    if (value == null || Number.isNaN(value)) return "R$ 0,00";
-    return `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
+  const formatCurrency = formatCurrencyBR;
 
   const handleWithdraw = async () => {
-    const reais = Number.parseFloat(withdrawAmount.replace(",", "."));
-    if (Number.isNaN(reais) || reais < 3.5) {
+    const reais = parseCurrencyBR(withdrawAmount);
+    if (reais < 3.5) {
       toast({ variant: "destructive", title: "Valor mínimo: R$ 3,50" });
       return;
     }
@@ -185,16 +188,15 @@ export function FinancialOverviewTab({
               <h3 className="font-bold">Sacar</h3>
             </DuoCard.Header>
             <div className="space-y-3">
-              <label className="block text-sm font-medium text-duo-text">
-                Valor (R$)
-              </label>
-              <input
+              <DuoInput.Simple
+                label="Valor (R$)"
                 type="text"
                 inputMode="decimal"
                 placeholder="0,00"
                 value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                className="w-full rounded-lg border border-duo-border px-3 py-2 text-duo-text"
+                onChange={(e) =>
+                  setWithdrawAmount(formatCurrencyInput(e.target.value))
+                }
               />
               <p className="text-xs text-duo-gray-dark">
                 Disponível: {formatCurrency(balanceReais)} • Mín. R$ 3,50

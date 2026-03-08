@@ -23,6 +23,7 @@ interface PersonalDashboardPageContentProps {
   students: PersonalStudentAssignment[];
   subscription: PersonalSubscriptionData | null;
   financialSummary?: FinancialSummary | null;
+  onViewGym?: (gymId: string) => void;
 }
 
 export function PersonalDashboardPageContent({
@@ -32,6 +33,7 @@ export function PersonalDashboardPageContent({
   students,
   subscription,
   financialSummary,
+  onViewGym,
 }: PersonalDashboardPageContentProps) {
   return (
     <PersonalDashboardPage
@@ -41,6 +43,7 @@ export function PersonalDashboardPageContent({
       students={students}
       subscription={subscription}
       financialSummary={financialSummary}
+      onViewGym={onViewGym}
     />
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, ChevronRight, Search, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Search, Trash2, UserPlus, Users } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
+import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
 
 type TeamPersonal = {
@@ -297,44 +298,28 @@ export function GymSettingsTeamCard() {
             </p>
           ) : null}
           {personals.map((item) => (
-            <div
+            <PersonalListItemCard
               key={item.id}
-              className="flex items-center justify-between rounded-lg border border-duo-border p-3 cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.99]"
+              image={item.personal.avatar || "/placeholder.svg"}
+              name={item.personal.name}
               onClick={() => setViewPersonalId(item.personal.id)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-duo-border">
-                  <Image
-                    src={item.personal.avatar || "/placeholder.svg"}
-                    alt={item.personal.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-duo-fg">
-                    {item.personal.name}
-                  </p>
-                  <p className="text-xs text-duo-fg-muted">
-                    {item.personal.email}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
+              email={item.personal.email}
+              hoverColor="duo-primary"
+              trailingAction={
                 <DuoButton
                   type="button"
-                  variant="destructive"
+                  variant="ghost"
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemovePersonal(item.personal.id);
                   }}
+                  className="text-duo-red hover:bg-duo-red/10 hover:text-duo-red"
                 >
-                  Remover
+                  <Trash2 className="h-4 w-4" />
                 </DuoButton>
-                <ChevronRight className="h-4 w-4 text-duo-fg-muted" />
-              </div>
-            </div>
+              }
+            />
           ))}
         </div>
       </div>

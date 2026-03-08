@@ -1,12 +1,11 @@
 "use client";
 
-import { Building2, ChevronRight, MapPin } from "lucide-react";
+import { Building2, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DuoButton, DuoCard } from "@/components/duo";
+import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
-import { cn } from "@/lib/utils";
 
 type MembershipData = {
   id: string;
@@ -41,7 +40,15 @@ export function MyAcademiasCard() {
       .get<{ memberships: MembershipData[] }>("/api/students/memberships")
       .then((res) => {
         if (!cancelled) {
-          setMemberships(res.data.memberships || []);
+          const raw = res.data.memberships || [];
+          // Deduplica por academia (mantém apenas a mais recente de cada)
+          const seen = new Set<string>();
+          const unique = raw.filter((m) => {
+            if (seen.has(m.gym.id)) return false;
+            seen.add(m.gym.id);
+            return true;
+          });
+          setMemberships(unique);
         }
       })
       .catch(() => {
@@ -108,47 +115,18 @@ export function MyAcademiasCard() {
       </DuoCard.Header>
       <div className="space-y-3">
         {memberships.map((m) => (
-          <div
+          <AcademyListItemCard
             key={m.id}
-            className="flex items-center gap-3 rounded-lg border border-duo-border p-3"
-          >
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-duo-border">
-              <Image
-                src={m.gym.logo || m.gym.image || "/placeholder.svg"}
-                alt={m.gym.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-duo-fg truncate">
-                {m.gym.name}
-              </p>
-              {m.gym.address && (
-                <p className="text-xs text-duo-fg-muted truncate flex items-center gap-1">
-                  <MapPin className="h-3 w-3 shrink-0" />
-                  {m.gym.address}
-                </p>
-              )}
-              <div className="mt-1 flex items-center gap-2">
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-xs font-bold",
-                    m.status === "active"
-                      ? "bg-duo-green/10 text-duo-green"
-                      : "bg-duo-yellow/10 text-duo-yellow",
-                  )}
-                >
-                  {m.status === "active" ? "Ativa" : "Pendente"}
-                </span>
-                {m.plan && (
-                  <span className="text-xs text-duo-fg-muted">
-                    {m.plan.name}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+            image={m.gym.logo || m.gym.image || "/placeholder.svg"}
+            name={m.gym.name}
+            onClick={handleViewAcademias}
+            badge={{
+              label: m.status === "active" ? "ATIVA" : "PENDENTE",
+              variant: m.status === "active" ? "green" : "yellow",
+            }}
+            planName={m.plan?.name}
+            address={m.gym.address ?? undefined}
+          />
         ))}
       </div>
     </DuoCard.Root>

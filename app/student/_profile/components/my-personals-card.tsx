@@ -2,9 +2,9 @@
 
 import { ChevronRight, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DuoButton, DuoCard } from "@/components/duo";
+import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
 
 type PersonalAssignment = {
@@ -74,7 +74,11 @@ export function MyPersonalsCard() {
             <Users className="h-5 w-5 text-duo-purple" />
             <h2 className="font-bold text-duo-fg">Meus Personais</h2>
           </div>
-          <DuoButton size="sm" variant="outline" onClick={handleDiscoverPersonals}>
+          <DuoButton
+            size="sm"
+            variant="outline"
+            onClick={handleDiscoverPersonals}
+          >
             Encontrar personais
             <ChevronRight className="h-4 w-4" />
           </DuoButton>
@@ -94,39 +98,26 @@ export function MyPersonalsCard() {
           <Users className="h-5 w-5 text-duo-purple" />
           <h2 className="font-bold text-duo-fg">Meus Personais</h2>
         </div>
-        <DuoButton size="sm" variant="outline" onClick={handleDiscoverPersonals}>
-          Encontrar mais
+        <DuoButton
+          size="sm"
+          variant="outline"
+          onClick={handleDiscoverPersonals}
+        >
+          Personais
           <ChevronRight className="h-4 w-4" />
         </DuoButton>
       </DuoCard.Header>
       <div className="space-y-3">
         {assignments.map((a) => (
-          <div
+          <PersonalListItemCard
             key={a.id}
-            className="flex items-center gap-3 rounded-lg border border-duo-border p-3"
-          >
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
-              <Image
-                src={a.personal.avatar || "/placeholder.svg"}
-                alt={a.personal.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-duo-fg truncate">
-                {a.personal.name}
-              </p>
-              <p className="text-xs text-duo-fg-muted truncate">
-                {a.personal.email}
-              </p>
-              {a.gym && (
-                <p className="text-xs text-duo-fg-muted mt-0.5">
-                  via {a.gym.name}
-                </p>
-              )}
-            </div>
-          </div>
+            image={a.personal.avatar || "/placeholder.svg"}
+            name={a.personal.name}
+            onClick={handleDiscoverPersonals}
+            badge={{ label: "Atribuído" }}
+            email={a.personal.email}
+            subtitle={a.gym ? `via ${a.gym.name}` : undefined}
+          />
         ))}
       </div>
     </DuoCard.Root>

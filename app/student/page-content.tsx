@@ -693,6 +693,11 @@ function StudentHomeContent() {
               setPreSelectedCoupon(null);
             }}
             onCancelAssignment={handleCancelPersonalAssignment}
+            onViewGym={(id) => {
+              setTab("gyms");
+              setGymId(id);
+              setPersonalId(null);
+            }}
             profileRefreshKey={profileRefreshKey}
             onSubscribe={handleSubscribePersonal}
             preSelectedPlan={preSelectedPlan}

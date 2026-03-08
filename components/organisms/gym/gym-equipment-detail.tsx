@@ -184,7 +184,7 @@ export function GymEquipmentDetail({
                   onClick={() => setIsMaintenanceModalOpen(true)}
                 >
                   <Wrench className="h-4 w-4" />
-                  <span className="hidden sm:inline">Registrar Manutenção</span>
+                  <span className="hidden sm:inline">Manutenção</span>
                   <span className="sm:hidden">Manutenção</span>
                 </DuoButton>
               </div>
@@ -486,7 +486,13 @@ export function GymEquipmentDetail({
                 <p className="text-sm text-duo-gray-dark">
                   Esse equipamento ainda não teve manutenções registradas
                 </p>
-                <DuoButton variant="primary" onClick={() => setIsMaintenanceModalOpen(true)} className="mt-4">Registrar Manutenção</DuoButton>
+                <DuoButton
+                  variant="primary"
+                  onClick={() => setIsMaintenanceModalOpen(true)}
+                  className="mt-4"
+                >
+                  Manutenção
+                </DuoButton>
               </DuoCard.Root>
             )}
           </DuoCard.Root>

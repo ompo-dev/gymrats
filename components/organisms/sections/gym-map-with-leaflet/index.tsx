@@ -16,6 +16,7 @@ import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
+import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import { useGymMapStore, type GymMapFilter } from "@/hooks/use-gym-map-state";
 import { useStudent } from "@/hooks/use-student";
@@ -285,60 +286,19 @@ export function GymMapWithLeaflet({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.4 }}
                 >
-                  <DuoCard.Root
-                    variant="default"
-                    size="default"
+                  <AcademyListItemCard
+                    image={gym.logo || gym.photos?.[0] || "/placeholder.svg"}
+                    name={gym.name}
                     onClick={() =>
                       setSelectedGym(selectedGym?.id === gym.id ? null : gym.id)
                     }
-                    className="cursor-pointer transition-all hover:border-duo-blue active:scale-[0.98]"
+                    badge={gym.openNow ? { label: "ABERTA", variant: "green" } : undefined}
+                    rating={gym.rating}
+                    totalReviews={gym.totalReviews}
+                    distance={gym.distance}
+                    address={gym.address}
+                    isSelected={selectedGym?.id === gym.id}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
-                        <img
-                          src={
-                            gym.logo || gym.photos?.[0] || "/placeholder.svg"
-                          }
-                          alt={gym.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-duo-text">
-                            {gym.name}
-                          </h3>
-                          {gym.openNow && (
-                            <span className="rounded-full bg-duo-green px-2 py-0.5 text-[10px] font-bold text-white">
-                              ABERTA
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-duo-gray-dark">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 fill-duo-yellow text-duo-yellow" />
-                            <span className="font-bold">{gym.rating}</span>
-                            <span>({gym.totalReviews})</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span className="font-bold">
-                              {gym.distance?.toFixed(1)} km
-                            </span>
-                          </div>
-                        </div>
-                        <p className="mt-1 text-xs text-duo-gray-dark">
-                          {gym.address}
-                        </p>
-                      </div>
-                      <ChevronRight
-                        className={cn(
-                          "h-5 w-5 shrink-0 text-duo-gray-dark transition-transform",
-                          selectedGym?.id === gym.id && "rotate-90",
-                        )}
-                      />
-                    </div>
-
                     {selectedGym?.id === gym.id && (
                       <div className="mt-4 space-y-4 border-t-2 border-duo-border pt-4">
                         {gym.openingHours && (
@@ -656,7 +616,7 @@ export function GymMapWithLeaflet({
                         </div>
                       </div>
                     )}
-                  </DuoCard.Root>
+                  </AcademyListItemCard>
                 </motion.div>
               );
             })}

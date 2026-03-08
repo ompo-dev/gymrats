@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
+import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -23,7 +24,13 @@ interface PersonalProfileData {
   bio: string | null;
   atendimentoPresencial: boolean;
   atendimentoRemoto: boolean;
-  gyms: { id: string; name: string; address?: string }[];
+  gyms: {
+    id: string;
+    name: string;
+    address?: string;
+    logo?: string | null;
+    image?: string | null;
+  }[];
   plans: {
     id: string;
     name: string;
@@ -51,6 +58,7 @@ interface PersonalProfileViewProps {
   personalId: string;
   onBack: () => void;
   onCancelAssignment?: (assignmentId: string) => void | Promise<void>;
+  onViewGym?: (gymId: string) => void;
   profileRefreshKey?: number;
   onSubscribe: (
     personalId: string,
@@ -75,6 +83,7 @@ export function PersonalProfileView({
   personalId,
   onBack,
   onCancelAssignment,
+  onViewGym,
   profileRefreshKey,
   onSubscribe,
   preSelectedPlan,
@@ -269,18 +278,16 @@ export function PersonalProfileView({
               <h2 className="font-bold text-duo-fg">Academias</h2>
             </div>
           </DuoCard.Header>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {profile.gyms.map((g) => (
-              <div
+              <AcademyListItemCard
                 key={g.id}
-                className="flex items-center gap-2 text-sm text-duo-gray-dark"
-              >
-                <MapPin className="h-4 w-4 shrink-0" />
-                {g.name}
-                {g.address && (
-                  <span className="text-duo-gray-dark"> • {g.address}</span>
-                )}
-              </div>
+                image={g.logo || g.image || "/placeholder.svg"}
+                name={g.name}
+                onClick={() => onViewGym?.(g.id)}
+                address={g.address}
+                hoverColor="duo-blue"
+              />
             ))}
           </div>
         </DuoCard.Root>

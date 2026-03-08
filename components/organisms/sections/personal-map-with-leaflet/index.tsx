@@ -2,17 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import {
-  ChevronRight,
-  MapPin,
-  Monitor,
-  Navigation,
-  Users,
-} from "lucide-react";
+import { MapPin, Navigation, Users } from "lucide-react";
 import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
+import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import {
@@ -20,8 +15,6 @@ import {
   type PersonalMapFilter,
 } from "@/hooks/use-personal-map-state";
 import type { PersonalLocation } from "@/lib/types";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 const PersonalMapContainerComponent = dynamic(
   () =>
@@ -211,70 +204,24 @@ export function PersonalMapWithLeaflet({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.4 }}
                 >
-                  <DuoCard.Root
-                    variant="default"
-                    size="default"
+                  <PersonalListItemCard
+                    image={p.avatar || "/placeholder.svg"}
+                    name={p.name}
                     onClick={() => onViewPersonal(p.id)}
-                    className={cn(
-                      "cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]",
-                      selectedPersonal?.id === p.id && "ring-2 ring-duo-primary",
-                    )}
-                  >
-                      <div className="flex items-start gap-3">
-                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
-                          <Image
-                            src={p.avatar || "/placeholder.svg"}
-                            alt={p.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-duo-text truncate">
-                              {p.name}
-                            </h3>
-                            {p.isSubscribed && (
-                              <span className="rounded-full bg-duo-green px-2 py-0.5 text-[10px] font-bold text-white">
-                                Inscrito
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 flex flex-wrap gap-2 text-xs text-duo-gray-dark">
-                            {p.atendimentoPresencial && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-duo-blue/10 px-2 py-0.5 font-bold text-duo-blue">
-                                <MapPin className="h-3 w-3" />
-                                Presencial
-                              </span>
-                            )}
-                            {p.atendimentoRemoto && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-duo-purple/10 px-2 py-0.5 font-bold text-duo-purple">
-                                <Monitor className="h-3 w-3" />
-                                Remoto
-                              </span>
-                            )}
-                            {p.distance != null && (
-                              <span className="font-bold">
-                                {p.distance.toFixed(1)} km
-                              </span>
-                            )}
-                          </div>
-                          {p.gyms?.length > 0 && (
-                            <p className="mt-1 text-xs text-duo-gray-dark">
-                              {p.gyms.map((g) => g.name).join(", ")}
-                            </p>
-                          )}
-                        </div>
-                        <ChevronRight
-                          className={cn(
-                            "h-5 w-5 shrink-0 text-duo-gray-dark transition-transform",
-                            selectedPersonal?.id === p.id && "rotate-90",
-                          )}
-                        />
-                      </div>
-                    </DuoCard.Root>
-                  </motion.div>
-                ))}
+                    badge={p.isSubscribed ? { label: "Inscrito" } : undefined}
+                    atendimentoPresencial={p.atendimentoPresencial}
+                    atendimentoRemoto={p.atendimentoRemoto}
+                    distance={p.distance}
+                    subtitle={
+                      p.gyms?.length
+                        ? p.gyms.map((g) => g.name).join(", ")
+                        : undefined
+                    }
+                    isSelected={selectedPersonal?.id === p.id}
+                    hoverColor="duo-primary"
+                  />
+                </motion.div>
+              ))}
             </div>
           )}
         </DuoCard.Root>

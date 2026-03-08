@@ -4,6 +4,10 @@ import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import type { MaintenanceRecord } from "@/lib/types";
+import {
+  formatCurrencyInput,
+  parseCurrencyBR,
+} from "@/lib/utils/currency";
 
 interface MaintenanceModalProps {
   isOpen: boolean;
@@ -44,11 +48,12 @@ export function MaintenanceModal({
     setError("");
 
     try {
+      const costNum = form.cost ? parseCurrencyBR(form.cost) : undefined;
       await actions.createMaintenance(equipmentId, {
         type: form.type,
         description: form.description,
         performedBy: form.performedBy,
-        cost: form.cost,
+        cost: costNum != null && costNum > 0 ? costNum : undefined,
         nextScheduled: form.nextScheduled,
       });
       await loaders.loadSection("equipment");
@@ -58,7 +63,7 @@ export function MaintenanceModal({
         type: form.type,
         description: form.description,
         performedBy: form.performedBy,
-        cost: form.cost ? Number(form.cost) : undefined,
+        cost: form.cost ? parseCurrencyBR(form.cost) : undefined,
         nextScheduled: form.nextScheduled ? new Date(form.nextScheduled) : null,
       } as MaintenanceRecord);
       onClose();
@@ -127,10 +132,16 @@ export function MaintenanceModal({
           <div className="flex gap-2">
             <DuoInput.Simple
               label="Custo (R$)"
-              type="number"
-              placeholder="0.00"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
               value={form.cost}
-              onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  cost: formatCurrencyInput(e.target.value),
+                }))
+              }
               className="flex-1"
             />
             <DuoInput.Simple

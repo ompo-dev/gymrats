@@ -5,7 +5,6 @@ import {
   Check,
   Clock,
   CreditCard,
-  ChevronRight,
   Dumbbell,
   MapPin,
   Phone,
@@ -13,10 +12,10 @@ import {
   UserMinus,
   Users,
 } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
+import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
 import { apiClient } from "@/lib/api/client";
 import { cn } from "@/lib/utils";
 
@@ -338,28 +337,13 @@ export function GymProfileView({
             </DuoCard.Header>
             <div className="space-y-3">
               {profile.personals.map((p) => (
-                <DuoCard.Root
+                <PersonalListItemCard
                   key={p.id}
-                  variant="default"
-                  size="default"
+                  image={p.avatar || "/placeholder.svg"}
+                  name={p.name}
                   onClick={() => onViewPersonal(p.id)}
-                  className="cursor-pointer transition-all hover:border-duo-primary/40 active:scale-[0.98]"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border-2 border-duo-border bg-gray-100">
-                        <Image
-                          src={p.avatar || "/placeholder.svg"}
-                          alt={p.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <p className="font-bold text-duo-text">{p.name}</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-duo-gray-dark" />
-                  </div>
-                </DuoCard.Root>
+                  hoverColor="duo-primary"
+                />
               ))}
             </div>
           </DuoCard.Root>

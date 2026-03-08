@@ -5,12 +5,9 @@ import {
   DollarSign,
   TrendingDown,
   TrendingUp,
-  UserPlus,
   Users,
 } from "lucide-react";
 import { motion } from "motion/react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import {
@@ -20,7 +17,12 @@ import {
   DuoStatCard,
   DuoStatsGrid,
 } from "@/components/duo";
+import {
+  AcademyListItemCard,
+  StudentListItemCard,
+} from "@/components/organisms/sections/list-item-cards";
 import type { FinancialSummary } from "@/lib/types";
+import { formatCurrencyBR } from "@/lib/utils/currency";
 
 export interface PersonalDashboardStats {
   gyms: number;
@@ -60,6 +62,7 @@ export interface PersonalDashboardProps {
     currentPeriodEnd?: Date;
   } | null;
   financialSummary?: FinancialSummary | null;
+  onViewGym?: (gymId: string) => void;
 }
 
 export function PersonalDashboardPage({
@@ -69,8 +72,8 @@ export function PersonalDashboardPage({
   students = [],
   subscription,
   financialSummary,
+  onViewGym,
 }: PersonalDashboardProps) {
-  const router = useRouter();
   const studentName = (s: PersonalStudentItem) =>
     s.student?.user?.name ?? "Aluno";
 
@@ -88,11 +91,7 @@ export function PersonalDashboardPage({
 
   const topStudents = students.slice(0, 5);
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+  const formatCurrency = formatCurrencyBR;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -249,26 +248,13 @@ export function PersonalDashboardPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.4 }}
                 >
-                  <DuoCard.Root variant="default" size="sm">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-duo-bg">
-                        <Image
-                          src="/placeholder.svg"
-                          alt={studentName(item)}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-duo-text truncate">
-                          {studentName(item)}
-                        </p>
-                        <p className="text-xs text-duo-gray-dark truncate">
-                          {item.gym ? `via ${item.gym.name}` : "Independente"}
-                        </p>
-                      </div>
-                    </div>
-                  </DuoCard.Root>
+                  <StudentListItemCard
+                    image="/placeholder.svg"
+                    name={studentName(item)}
+                    subtitle={
+                      item.gym ? `via ${item.gym.name}` : "Independente"
+                    }
+                  />
                 </motion.div>
               ))}
             </div>
@@ -302,26 +288,13 @@ export function PersonalDashboardPage({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05, duration: 0.4 }}
                 >
-                  <DuoCard.Root variant="blue" size="sm">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-duo-bg">
-                        <Image
-                          src={a.gym.logo || a.gym.image || "/placeholder.svg"}
-                          alt={a.gym.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-duo-text truncate">
-                          {a.gym.name}
-                        </p>
-                        <p className="text-xs text-duo-gray-dark">
-                          {studentsByGym[a.gym.name]?.length ?? 0} alunos
-                        </p>
-                      </div>
-                    </div>
-                  </DuoCard.Root>
+                  <AcademyListItemCard
+                    image={a.gym.logo || a.gym.image || "/placeholder.svg"}
+                    name={a.gym.name}
+                    onClick={() => onViewGym?.(a.gym.id)}
+                    planName={`${studentsByGym[a.gym.name]?.length ?? 0} alunos`}
+                    hoverColor="duo-blue"
+                  />
                 </motion.div>
               ))}
             </div>

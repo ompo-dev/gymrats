@@ -4,6 +4,7 @@ import { DollarSign, Dumbbell, Target, UserPlus, Users } from "lucide-react";
 import { DuoCard } from "@/components/duo";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import type { StudentData } from "@/lib/types";
+import { formatCurrencyBR } from "@/lib/utils/currency";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 
 export interface OverviewTabProps {
@@ -49,7 +50,7 @@ export function OverviewTab({ student }: OverviewTabProps) {
               <div className="flex justify-between items-center">
                 <span className="font-bold text-duo-gray-dark">Valor</span>
                 <span className="text-duo-green font-bold">
-                  R$ {student.gymMembership.amount?.toFixed(2) ?? "0,00"}/mês
+                  {formatCurrencyBR(student.gymMembership.amount)}/mês
                 </span>
               </div>
             </DuoCard.Root>

@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/dialog";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
+import {
+  formatCurrencyInput,
+  parseCurrencyBR,
+} from "@/lib/utils/currency";
 
 const EXPENSE_TYPES = [
   { value: "maintenance", label: "Manutenção" },
@@ -67,8 +71,8 @@ export function AddExpenseModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amount = parseFloat(form.amount.replace(",", "."));
-    if (Number.isNaN(amount) || amount <= 0) {
+    const amount = parseCurrencyBR(form.amount);
+    if (amount <= 0) {
       setError("Valor deve ser maior que zero");
       return;
     }
@@ -150,7 +154,7 @@ export function AddExpenseModal({
             onChange={(e) =>
               setForm((f) => ({
                 ...f,
-                amount: e.target.value.replace(/[^\d,.-]/g, ""),
+                amount: formatCurrencyInput(e.target.value),
               }))
             }
             placeholder="0,00"

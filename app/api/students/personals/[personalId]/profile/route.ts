@@ -23,7 +23,15 @@ export const GET = createSafeHandler(
           gymAffiliations: {
             where: { status: "active" },
             include: {
-              gym: { select: { id: true, name: true, address: true } },
+              gym: {
+              select: {
+                id: true,
+                name: true,
+                address: true,
+                logo: true,
+                image: true,
+              },
+            },
             },
           },
           membershipPlans: {
@@ -94,6 +102,8 @@ export const GET = createSafeHandler(
         id: a.gym.id,
         name: a.gym.name,
         address: a.gym.address,
+        logo: a.gym.logo,
+        image: a.gym.image,
       })),
       plans,
       isSubscribed,
