@@ -236,14 +236,14 @@ export function FinancialAdsTab({
           : deleteBoostCampaign;
       const result = await deleteFn(campaignId);
       if (result.success) {
-        toast({ title: "Campanha cancelada." });
+        toast({ title: "Campanha exclu\u00edda." });
         setConfirmDeleteId(null);
         router.refresh();
       } else {
         toast({ variant: "destructive", title: result.error });
       }
     } catch {
-      toast({ variant: "destructive", title: "Erro ao cancelar campanha." });
+      toast({ variant: "destructive", title: "Erro ao excluir campanha." });
     } finally {
       setDeletingId(null);
     }
@@ -628,7 +628,9 @@ export function FinancialAdsTab({
                     onChange={(val) => setLinkedCouponId(val)}
                     options={[
                       { value: "", label: "Nenhum cupom" },
-                      ...coupons.map((c) => ({
+                      ...coupons
+                        .filter((c) => c.isActive)
+                        .map((c) => ({
                         value: c.id,
                         label: `${c.code} (${c.type === "percentage" ? `${c.value}%` : `R$ ${c.value}`})`,
                       })),

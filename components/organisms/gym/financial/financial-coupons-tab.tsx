@@ -1,17 +1,17 @@
 "use client";
 
-import { Gift, Plus } from "lucide-react";
+import { Calendar, Gift, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { createGymCoupon } from "@/app/gym/actions";
-import { createPersonalCoupon } from "@/app/personal/actions";
+import { createGymCoupon, deleteGymCoupon } from "@/app/gym/actions";
+import {
+  createPersonalCoupon,
+  deletePersonalCoupon,
+} from "@/app/personal/actions";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
-import {
-  formatCurrencyInput,
-  parseCurrencyBR,
-} from "@/lib/utils/currency";
+import { formatCurrencyInput, parseCurrencyBR } from "@/lib/utils/currency";
 import { toValidDate } from "@/lib/utils/date-safe";
 
 interface FinancialCouponsTabProps {
@@ -32,6 +32,7 @@ export function FinancialCouponsTab({
     "PERCENTAGE",
   );
   const [discount, setDiscount] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
 
   const handleDiscountChange = useCallback(
     (value: string) => {
@@ -48,6 +49,7 @@ export function FinancialCouponsTab({
   );
   const [maxRedeems, setMaxRedeems] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
 
   const discountNum =
     discountKind === "FIXED"
@@ -68,6 +70,19 @@ export function FinancialCouponsTab({
       toast({ variant: "destructive", title: "Porcentagem deve ser até 100%" });
       return;
     }
+    let parsedExpiresAt: Date | undefined;
+    if (expiryDate) {
+      const parsed = new Date(`${expiryDate}T23:59:59.999`);
+      if (Number.isNaN(parsed.getTime())) {
+        toast({
+          variant: "destructive",
+          title: "Data de validade inv\u00e1lida",
+        });
+        return;
+      }
+      parsedExpiresAt = parsed;
+    }
+
     setIsSubmitting(true);
     try {
       const createFn =
@@ -76,10 +91,12 @@ export function FinancialCouponsTab({
         code: codeTrim,
         notes: notes.trim() || codeTrim,
         discountKind,
-        discount: discountKind === "FIXED" ? parseCurrencyBR(discount) : discountNum,
+        discount:
+          discountKind === "FIXED" ? parseCurrencyBR(discount) : discountNum,
         maxRedeems: maxRedeems.trim()
           ? Math.max(-1, Math.floor(Number(maxRedeems)))
           : undefined,
+        expiresAt: parsedExpiresAt ?? null,
       });
       if (result.success) {
         toast({
@@ -91,6 +108,7 @@ export function FinancialCouponsTab({
         setNotes("");
         setDiscount("");
         setMaxRedeems("");
+        setExpiryDate("");
         router.refresh();
       } else {
         toast({ variant: "destructive", title: result.error });
@@ -102,6 +120,27 @@ export function FinancialCouponsTab({
 
   const maxUsesDisplay = (c: Coupon) =>
     c.maxUses >= 999999 ? "Ilimitado" : c.maxUses;
+
+  const handleDeleteCoupon = async (couponId: string) => {
+    const shouldDelete = window.confirm("Deseja excluir este cupom?");
+    if (!shouldDelete) return;
+
+    setDeletingCouponId(couponId);
+    try {
+      const deleteFn =
+        variant === "personal" ? deletePersonalCoupon : deleteGymCoupon;
+      const result = await deleteFn(couponId);
+      if (result.success) {
+        toast({ title: "Cupom exclu\u00eddo" });
+        router.refresh();
+      } else {
+        toast({ variant: "destructive", title: result.error });
+      }
+    } finally {
+      setDeletingCouponId(null);
+    }
+  };
+
   const usagePercent = (c: Coupon) =>
     c.maxUses >= 999999 ? 0 : Math.min(100, (c.currentUses / c.maxUses) * 100);
 
@@ -142,11 +181,26 @@ export function FinancialCouponsTab({
                     {coupon.code}
                   </div>
                 </div>
-                {coupon.isActive && (
-                  <div className="rounded-lg bg-duo-green/20 px-2 py-1 text-xs font-bold text-duo-green">
-                    Ativo
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {coupon.isActive ? (
+                    <div className="rounded-lg bg-duo-green/20 px-2 py-1 text-xs font-bold text-duo-green">
+                      Ativo
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-red-500/20 px-2 py-1 text-xs font-bold text-red-400">
+                      Inativo
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCoupon(coupon.id)}
+                    disabled={deletingCouponId === coupon.id}
+                    className="rounded-lg p-1 text-duo-gray-dark transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                    title="Excluir cupom"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="mb-3 grid grid-cols-3 gap-3">
@@ -165,7 +219,7 @@ export function FinancialCouponsTab({
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-duo-gray-dark">Atualizado</div>
+                  <div className="text-xs text-duo-gray-dark">Validade</div>
                   <div className="text-sm font-bold text-duo-text">
                     {toValidDate(coupon.expiryDate)?.toLocaleDateString(
                       "pt-BR",
@@ -235,14 +289,13 @@ export function FinancialCouponsTab({
                 inputMode={discountKind === "FIXED" ? "decimal" : "numeric"}
                 placeholder={discountKind === "PERCENTAGE" ? "20" : "R$ 0,00"}
                 value={discount}
-                onChange={(e) =>
-                  handleDiscountChange(e.target.value)
-                }
-                {...(discountKind === "PERCENTAGE" && {
-                  min: 0,
-                  max: 100,
-                  step: 0.01,
-                } as React.InputHTMLAttributes<HTMLInputElement>)}
+                onChange={(e) => handleDiscountChange(e.target.value)}
+                {...(discountKind === "PERCENTAGE" &&
+                  ({
+                    min: 0,
+                    max: 100,
+                    step: 0.01,
+                  } as React.InputHTMLAttributes<HTMLInputElement>))}
               />
               <DuoInput.Simple
                 label="Máximo de usos (vazio = ilimitado)"
@@ -251,6 +304,13 @@ export function FinancialCouponsTab({
                 placeholder="Ilimitado"
                 value={maxRedeems}
                 onChange={(e) => setMaxRedeems(e.target.value)}
+              />
+              <DuoInput.Simple
+                label="Data limite de uso (opcional)"
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                leftIcon={<Calendar className="h-4 w-4" />}
               />
               <div className="flex gap-2">
                 <DuoButton

@@ -25,7 +25,24 @@ export const GET = createSafeHandler(
       );
     }
 
-    return NextResponse.json({ status: campaign.status });
+    const now = new Date();
+    const status =
+      campaign.status === "active"
+        ? (
+            await db.boostCampaign.updateMany({
+              where: {
+                id: campaign.id,
+                status: "active",
+                endsAt: { lte: now },
+              },
+              data: { status: "expired" },
+            })
+          ).count > 0
+          ? "expired"
+          : campaign.status
+        : campaign.status;
+
+    return NextResponse.json({ status });
   },
   { auth: "personal", schema: { params: paramsSchema } },
 );

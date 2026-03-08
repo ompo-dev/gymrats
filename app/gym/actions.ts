@@ -204,6 +204,34 @@ export async function getGymCoupons(): Promise<import("@/lib/types").Coupon[]> {
   try {
     const { ctx, errorResponse } = await getGymContext();
     if (errorResponse || !ctx) return [];
+    const now = new Date();
+
+    await db.gymCoupon.updateMany({
+      where: {
+        gymId: ctx.gymId,
+        isActive: true,
+        expiresAt: { lt: now },
+      },
+      data: { isActive: false },
+    });
+
+    const limitedCoupons = await db.gymCoupon.findMany({
+      where: {
+        gymId: ctx.gymId,
+        isActive: true,
+        maxUses: { not: -1 },
+      },
+      select: { id: true, currentUses: true, maxUses: true },
+    });
+    const maxedCouponIds = limitedCoupons
+      .filter((coupon) => coupon.currentUses >= coupon.maxUses)
+      .map((coupon) => coupon.id);
+    if (maxedCouponIds.length > 0) {
+      await db.gymCoupon.updateMany({
+        where: { id: { in: maxedCouponIds } },
+        data: { isActive: false },
+      });
+    }
 
     const dbCoupons = await db.gymCoupon.findMany({
       where: { gymId: ctx.gymId },
@@ -232,6 +260,7 @@ export async function createGymCoupon(data: {
   discountKind: "PERCENTAGE" | "FIXED";
   discount: number;
   maxRedeems?: number;
+  expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const { ctx, errorResponse } = await getGymContext();
@@ -240,6 +269,10 @@ export async function createGymCoupon(data: {
 
     const code = data.code.trim().toUpperCase();
     const discountType = data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
+    const parsedExpiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+    if (parsedExpiresAt && Number.isNaN(parsedExpiresAt.getTime())) {
+      return { success: false, error: "Data de validade inv\u00e1lida" };
+    }
 
     // Verifica duplicação no DB
     const existing = await db.gymCoupon.findFirst({
@@ -275,6 +308,7 @@ export async function createGymCoupon(data: {
         discountValue: data.discount,
         maxUses: data.maxRedeems ?? -1,
         isActive: true,
+        expiresAt: parsedExpiresAt,
         abacatePayId,
       },
     });
@@ -297,6 +331,16 @@ export async function getGymBoostCampaigns() {
   try {
     const { ctx, errorResponse } = await getGymContext();
     if (errorResponse || !ctx) return [];
+    const now = new Date();
+
+    await db.boostCampaign.updateMany({
+      where: {
+        gymId: ctx.gymId,
+        status: "active",
+        endsAt: { lte: now },
+      },
+      data: { status: "expired" },
+    });
 
     return await db.boostCampaign.findMany({
       where: { gymId: ctx.gymId },
@@ -400,6 +444,29 @@ export async function getGymReferrals() {
   return [];
 }
 
+export async function deleteGymCoupon(
+  couponId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const { ctx, errorResponse } = await getGymContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "N\u00e3o autenticado" };
+
+    const deleted = await db.gymCoupon.deleteMany({
+      where: { id: couponId, gymId: ctx.gymId },
+    });
+
+    if (deleted.count === 0) {
+      return { success: false, error: "Cupom n\u00e3o encontrado" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("[deleteGymCoupon] Erro:", error);
+    return { success: false, error: "Erro ao excluir cupom" };
+  }
+}
+
 /** Cancela/deleta uma campanha da academia. Só é possível se não estiver ativa ou pagamento pendente.*/
 export async function deleteBoostCampaign(
   campaignId: string,
@@ -407,26 +474,21 @@ export async function deleteBoostCampaign(
   try {
     const { ctx, errorResponse } = await getGymContext();
     if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
+      return { success: false, error: "N\u00e3o autenticado" };
 
-    const campaign = await db.boostCampaign.findFirst({
+    const deleted = await db.boostCampaign.deleteMany({
       where: { id: campaignId, gymId: ctx.gymId },
     });
 
-    if (!campaign) return { success: false, error: "Campanha não encontrada" };
-
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { status: "canceled" },
-    });
+    if (deleted.count === 0)
+      return { success: false, error: "Campanha n\u00e3o encontrada" };
 
     return { success: true };
   } catch (error) {
     console.error("[deleteBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro ao cancelar campanha" };
+    return { success: false, error: "Erro ao excluir campanha" };
   }
 }
-
 
 export async function getBoostCampaignPix(
   campaignId: string,
@@ -708,3 +770,4 @@ export async function syncGymSubscriptionPrices() {
     return { error: "Erro ao sincronizar preços" };
   }
 }
+

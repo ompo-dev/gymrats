@@ -83,6 +83,15 @@ export const POST = createSafeHandler(
         where: { id: couponId, personalId, isActive: true },
       });
       if (coupon) {
+        const now = new Date();
+        const isExpired = !!coupon.expiresAt && coupon.expiresAt <= now;
+        const isMaxed = coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
+        if (isExpired || isMaxed) {
+          await db.personalCoupon.update({
+            where: { id: coupon.id },
+            data: { isActive: false },
+          });
+        } else {
         if (coupon.discountType === "percentage") {
           finalPrice = finalPrice * (1 - coupon.discountValue / 100);
           appliedCouponInfo = {
@@ -97,10 +106,21 @@ export const POST = createSafeHandler(
           };
         }
         if (finalPrice < 3.5) finalPrice = 3.5;
-        await db.personalCoupon.update({
-          where: { id: coupon.id },
-          data: { currentUses: { increment: 1 } },
-        });
+          const updatedCoupon = await db.personalCoupon.update({
+            where: { id: coupon.id },
+            data: { currentUses: { increment: 1 } },
+            select: { currentUses: true, maxUses: true },
+          });
+          if (
+            updatedCoupon.maxUses !== -1 &&
+            updatedCoupon.currentUses >= updatedCoupon.maxUses
+          ) {
+            await db.personalCoupon.update({
+              where: { id: coupon.id },
+              data: { isActive: false },
+            });
+          }
+        }
       }
     }
 

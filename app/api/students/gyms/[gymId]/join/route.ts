@@ -56,6 +56,15 @@ export const POST = createSafeHandler(
         where: { id: couponId, gymId, isActive: true },
       });
       if (coupon) {
+        const now = new Date();
+        const isExpired = !!coupon.expiresAt && coupon.expiresAt <= now;
+        const isMaxed = coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
+        if (isExpired || isMaxed) {
+          await db.gymCoupon.update({
+            where: { id: coupon.id },
+            data: { isActive: false },
+          });
+        } else {
         if (coupon.discountType === "percentage") {
           finalPrice = finalPrice * (1 - coupon.discountValue / 100);
           appliedCouponInfo = { code: coupon.code, discountString: `${coupon.discountValue}%` };
@@ -64,11 +73,22 @@ export const POST = createSafeHandler(
           appliedCouponInfo = { code: coupon.code, discountString: `R$ ${coupon.discountValue.toFixed(2)}` };
         }
         if (finalPrice < 3.5) finalPrice = 3.5;
-        // Incrementa uso do cupom
-        await db.gymCoupon.update({
-          where: { id: coupon.id },
-          data: { currentUses: { increment: 1 } },
-        });
+          // Incrementa uso e inativa automaticamente se atingiu o limite
+          const updatedCoupon = await db.gymCoupon.update({
+            where: { id: coupon.id },
+            data: { currentUses: { increment: 1 } },
+            select: { currentUses: true, maxUses: true },
+          });
+          if (
+            updatedCoupon.maxUses !== -1 &&
+            updatedCoupon.currentUses >= updatedCoupon.maxUses
+          ) {
+            await db.gymCoupon.update({
+              where: { id: coupon.id },
+              data: { isActive: false },
+            });
+          }
+        }
       }
     }
 

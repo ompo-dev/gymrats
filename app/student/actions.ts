@@ -137,9 +137,19 @@ export async function getGymLocations() {
 
 export async function getActiveBoostCampaigns() {
   try {
+    const now = new Date();
+    await db.boostCampaign.updateMany({
+      where: {
+        status: "active",
+        endsAt: { lte: now },
+      },
+      data: { status: "expired" },
+    });
+
     const campaigns = await db.boostCampaign.findMany({
       where: {
         status: "active",
+        OR: [{ endsAt: null }, { endsAt: { gt: now } }],
       },
       include: {
         personal: {

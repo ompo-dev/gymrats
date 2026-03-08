@@ -210,6 +210,7 @@ export async function createPersonalCoupon(data: {
   discountKind: "PERCENTAGE" | "FIXED";
   discount: number;
   maxRedeems?: number;
+  expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const { ctx, errorResponse } = await getPersonalContext();
@@ -219,6 +220,10 @@ export async function createPersonalCoupon(data: {
     const code = data.code.trim().toUpperCase();
     const discountType =
       data.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
+    const parsedExpiresAt = data.expiresAt ? new Date(data.expiresAt) : null;
+    if (parsedExpiresAt && Number.isNaN(parsedExpiresAt.getTime())) {
+      return { success: false, error: "Data de validade inv\u00e1lida" };
+    }
 
     const existing = await db.personalCoupon.findFirst({
       where: { personalId: ctx.personalId, code },
@@ -235,6 +240,7 @@ export async function createPersonalCoupon(data: {
         discountValue: data.discount,
         maxUses: data.maxRedeems ?? -1,
         isActive: true,
+        expiresAt: parsedExpiresAt,
       },
     });
 
@@ -257,6 +263,28 @@ export async function getPersonalPayments(): Promise<Payment[]> {
   } catch (error) {
     console.error("[getPersonalPayments] Erro:", error);
     return [];
+  }
+}
+
+export async function deletePersonalCoupon(
+  couponId: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext();
+    if (errorResponse || !ctx)
+      return { success: false, error: "N\u00e3o autenticado" };
+
+    const deleted = await db.personalCoupon.deleteMany({
+      where: { id: couponId, personalId: ctx.personalId },
+    });
+
+    if (deleted.count === 0)
+      return { success: false, error: "Cupom n\u00e3o encontrado" };
+
+    return { success: true };
+  } catch (error) {
+    console.error("[deletePersonalCoupon] Erro:", error);
+    return { success: false, error: "Erro ao excluir cupom" };
   }
 }
 
@@ -364,23 +392,19 @@ export async function deletePersonalBoostCampaign(
   try {
     const { ctx, errorResponse } = await getPersonalContext();
     if (errorResponse || !ctx)
-      return { success: false, error: "Não autenticado" };
+      return { success: false, error: "N\u00e3o autenticado" };
 
-    const campaign = await db.boostCampaign.findFirst({
+    const deleted = await db.boostCampaign.deleteMany({
       where: { id: campaignId, personalId: ctx.personalId },
     });
 
-    if (!campaign) return { success: false, error: "Campanha não encontrada" };
-
-    await db.boostCampaign.update({
-      where: { id: campaign.id },
-      data: { status: "canceled" },
-    });
+    if (deleted.count === 0)
+      return { success: false, error: "Campanha n\u00e3o encontrada" };
 
     return { success: true };
   } catch (error) {
     console.error("[deletePersonalBoostCampaign] Erro:", error);
-    return { success: false, error: "Erro ao cancelar campanha" };
+    return { success: false, error: "Erro ao excluir campanha" };
   }
 }
 
@@ -550,3 +574,4 @@ export async function getPersonalSubscription(): Promise<PersonalSubscriptionDat
     return null;
   }
 }
+

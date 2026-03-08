@@ -45,11 +45,20 @@ export const GET = createSafeHandler(
 
     const lat = parseFloat(query.lat);
     const lng = parseFloat(query.lng);
+    const now = new Date();
+
+    await db.boostCampaign.updateMany({
+      where: {
+        status: "active",
+        endsAt: { lte: now },
+      },
+      data: { status: "expired" },
+    });
 
     const campaigns = await db.boostCampaign.findMany({
       where: {
         status: "active",
-        endsAt: { gt: new Date() },
+        endsAt: { gt: now },
       },
       include: {
         gym: {
