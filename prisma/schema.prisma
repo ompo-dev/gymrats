@@ -525,7 +525,9 @@ model WeeklyPlan {
   isLibraryTemplate Boolean @default(false)
   createdById       String?
   creatorType       String? // "GYM" | "PERSONAL" | "STUDENT"
-  
+  /** ID do plano da biblioteca do qual este foi clonado (quando isLibraryTemplate=false) */
+  sourceLibraryPlanId String?
+
   activeForStudent  Student? @relation("ActivePlan")
 
   slots PlanSlot[]

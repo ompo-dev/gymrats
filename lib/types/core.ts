@@ -149,6 +149,8 @@ export interface WeeklyPlanData {
   isLibraryTemplate?: boolean;
   createdById?: string | null;
   creatorType?: string | null;
+  /** ID do plano da biblioteca do qual este foi clonado (plano ativo) */
+  sourceLibraryPlanId?: string | null;
 }
 
 export interface Achievement {

@@ -195,6 +195,7 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
       title: weeklyPlan.title,
       description: weeklyPlan.description ?? null,
       slots: formattedSlots,
+      sourceLibraryPlanId: (weeklyPlan as { sourceLibraryPlanId?: string | null }).sourceLibraryPlanId ?? null,
     },
     weekStart,
   };

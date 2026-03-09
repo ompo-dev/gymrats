@@ -26,10 +26,12 @@ import { EditUnitModal } from "./edit-unit-modal";
 
 export function TrainingLibraryModal() {
   const { isOpen, close } = useModalState("training-library");
-  // @ts-ignore - Zustand types might complain about array vs object, ignoring for now
   const libraryPlans = useStudent("libraryPlans") as unknown as WeeklyPlanData[] | null;
+  const weeklyPlan = (
+    useStudent("weeklyPlan") as unknown
+  ) as WeeklyPlanData | null;
   const actions = useStudent("actions");
-  const { loadLibraryPlans } = useStudent("loaders");
+  const { loadLibraryPlans, loadWeeklyPlan } = useStudent("loaders");
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
@@ -37,9 +39,14 @@ export function TrainingLibraryModal() {
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [deleteConfirmPlanId, setDeleteConfirmPlanId] = useState<string | null>(null);
 
+  const activeSourcePlanId = weeklyPlan?.sourceLibraryPlanId ?? null;
+
   useEffect(() => {
-    if (isOpen) loadLibraryPlans();
-  }, [isOpen, loadLibraryPlans]);
+    if (isOpen) {
+      void loadLibraryPlans();
+      void loadWeeklyPlan(true);
+    }
+  }, [isOpen, loadLibraryPlans, loadWeeklyPlan]);
 
   const confirmDelete = async () => {
     if (!deleteConfirmPlanId) return;
@@ -243,25 +250,37 @@ export function TrainingLibraryModal() {
                               <Trash2 className="size-4" />
                             )}
                           </DuoButton>
-                          <DuoButton
-                            variant="secondary"
-                            size="sm"
-                            className="ml-2 font-bold gap-1.5 bg-duo-green/20 text-duo-green hover:bg-duo-green hover:text-white border-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleActivate(plan.id);
-                            }}
-                            disabled={activatingId === plan.id}
-                          >
-                            {activatingId === plan.id ? (
-                              <Loader2 className="size-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Check className="size-4" />
-                                Usar
-                              </>
-                            )}
-                          </DuoButton>
+                          {plan.id === activeSourcePlanId ? (
+                            <span
+                              className={cn(
+                                "ml-2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-bold",
+                                "bg-duo-green/20 text-duo-green border border-duo-green/40 cursor-default",
+                              )}
+                            >
+                              <Check className="size-4" />
+                              EM USO
+                            </span>
+                          ) : (
+                            <DuoButton
+                              variant="secondary"
+                              size="sm"
+                              className="ml-2 font-bold gap-1.5 bg-duo-green/20 text-duo-green hover:bg-duo-green hover:text-white border-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleActivate(plan.id);
+                              }}
+                              disabled={activatingId === plan.id}
+                            >
+                              {activatingId === plan.id ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="size-4" />
+                                  Usar
+                                </>
+                              )}
+                            </DuoButton>
+                          )}
                         </div>
                       </div>
                     </DuoCard.Root>

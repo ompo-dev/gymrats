@@ -392,6 +392,7 @@ export async function activateLibraryPlanHandler(
             isLibraryTemplate: false,
             createdById: (masterPlan as any).createdById,
             creatorType: (masterPlan as any).creatorType,
+            sourceLibraryPlanId: libraryPlanId,
           } as any)
         }
       });
