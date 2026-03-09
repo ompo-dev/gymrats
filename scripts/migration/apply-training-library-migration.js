@@ -12,7 +12,8 @@ async function applyTrainingLibraryMigration() {
       ALTER TABLE "weekly_plans" 
       ADD COLUMN IF NOT EXISTS "isLibraryTemplate" BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS "createdById" TEXT,
-      ADD COLUMN IF NOT EXISTS "creatorType" TEXT;
+      ADD COLUMN IF NOT EXISTS "creatorType" TEXT,
+      ADD COLUMN IF NOT EXISTS "sourceLibraryPlanId" TEXT;
     `);
 
     // 2. Adicionar activeWeeklyPlanId na tabela students
@@ -75,7 +76,7 @@ async function applyTrainingLibraryMigration() {
     }
 
     console.log("✅ Migração da Training Library concluída com sucesso!");
-    console.log("⚠️ Rode 'npx prisma generate' e 'npm run db:push' para finalizar o sync de schema.\n");
+    console.log("⚠️ Rode 'npx prisma generate' após aplicar as migrações.\n");
   } catch (error) {
     console.error("❌ Erro ao rodar migração:", error);
     process.exit(1);

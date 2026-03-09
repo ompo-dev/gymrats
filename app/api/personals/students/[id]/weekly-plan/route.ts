@@ -8,12 +8,13 @@ import {
 import { createWeeklyPlanSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
-import { addDays, getWeekStart } from "@/lib/utils/week";
+import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
 
 /**
  * GET /api/personals/students/[id]/weekly-plan
  * Retorna o plano semanal do aluno para visualização pelo personal.
  * Requer: usuário logado como personal; aluno deve estar atribuído ao personal.
+ * Usa activeWeeklyPlanId (Training Library) - não findUnique por studentId.
  */
 export async function GET(
   _request: NextRequest,
@@ -45,101 +46,24 @@ export async function GET(
       select: { weekOverride: true },
     });
 
-    const weekStart = getWeekStart(student?.weekOverride ?? null);
-    const weekEnd = addDays(weekStart, 7);
-
-    const weeklyPlan = await db.weeklyPlan.findUnique({
-      where: { studentId },
-      include: {
-        slots: {
-          orderBy: { dayOfWeek: "asc" },
-          include: {
-            workout: {
-              include: {
-                exercises: {
-                  orderBy: { order: "asc" },
-                  include: {
-                    alternatives: { orderBy: { order: "asc" } },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+    const result = await getWeeklyPlanUseCase({
+      studentId,
+      weekOverride: student?.weekOverride ?? null,
     });
 
-    if (!weeklyPlan) {
+    if (!result.weeklyPlan) {
       return successResponse({
         success: true,
         weeklyPlan: null,
-        weekStart: weekStart.toISOString(),
+        weekStart: result.weekStart.toISOString(),
         message: "Aluno ainda não possui plano semanal.",
       });
     }
 
-    const completionsThisWeek = await db.workoutHistory.findMany({
-      where: {
-        studentId,
-        date: { gte: weekStart, lt: weekEnd },
-        workoutId: { not: null },
-      },
-      select: { workoutId: true, overallFeedback: true, date: true },
-    });
-
-    const completedByWorkoutId = new Map(
-      completionsThisWeek.map((c) => [
-        c.workoutId!,
-        { feedback: c.overallFeedback, date: c.date },
-      ]),
-    );
-
-    const formattedSlots = weeklyPlan.slots.map((slot, index) => {
-      const isRest = slot.type === "rest";
-      const completed = isRest
-        ? true
-        : slot.workoutId
-          ? completedByWorkoutId.has(slot.workoutId)
-          : false;
-
-      const prevSlot = index > 0 ? weeklyPlan?.slots[index - 1] : null;
-      const prevCompleted =
-        !prevSlot || prevSlot.type === "rest"
-          ? true
-          : prevSlot.workoutId
-            ? completedByWorkoutId.has(prevSlot.workoutId)
-            : false;
-
-      const locked = isRest ? false : !prevCompleted;
-
-      const completion = slot.workoutId
-        ? completedByWorkoutId.get(slot.workoutId)
-        : null;
-      let stars: number | undefined;
-      if (completion?.feedback) {
-        stars =
-          completion.feedback === "excelente"
-            ? 3
-            : completion.feedback === "bom"
-              ? 2
-              : 1;
-      }
-
-      return {
-        ...slot,
-        completed,
-        locked,
-        stars,
-      };
-    });
-
     return successResponse({
       success: true,
-      weeklyPlan: {
-        ...weeklyPlan,
-        slots: formattedSlots,
-      },
-      weekStart: weekStart.toISOString(),
+      weeklyPlan: result.weeklyPlan,
+      weekStart: result.weekStart.toISOString(),
     });
   } catch (error) {
     console.error("[personals/students/[id]/weekly-plan] Erro:", error);
@@ -180,18 +104,28 @@ export async function POST(
     const validation = createWeeklyPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error);
+      return badRequestResponse(
+        "Dados inválidos",
+        validation.error.flatten() as Record<string, string | number | boolean | object | null>,
+      );
     }
 
-    const existing = await db.weeklyPlan.findUnique({
-      where: { studentId },
+    const studentData = await db.student.findUnique({
+      where: { id: studentId },
+      select: { activeWeeklyPlanId: true },
     });
 
-    if (existing) {
-      return successResponse({
-        data: existing,
-        message: "Plano semanal já existe",
+    if (studentData?.activeWeeklyPlanId) {
+      const existing = await db.weeklyPlan.findUnique({
+        where: { id: studentData.activeWeeklyPlanId },
+        include: { slots: { orderBy: { dayOfWeek: "asc" } } },
       });
+      if (existing) {
+        return successResponse({
+          data: existing,
+          message: "Plano semanal já existe",
+        });
+      }
     }
 
     const { title } = validation.data;
@@ -200,6 +134,7 @@ export async function POST(
       data: {
         studentId,
         title: title || "Meu Plano Semanal",
+        isLibraryTemplate: false,
         slots: {
           create: Array.from({ length: 7 }, (_, i) => ({
             dayOfWeek: i,
@@ -209,6 +144,11 @@ export async function POST(
         },
       },
       include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    });
+
+    await db.student.update({
+      where: { id: studentId },
+      data: { activeWeeklyPlanId: weeklyPlan.id },
     });
 
     return successResponse(

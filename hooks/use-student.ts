@@ -161,10 +161,18 @@ export function useStudent<T extends StudentSelector>(
   const addDayPass = useStudentUnifiedStore((state) => state.addDayPass);
 
   // Workout Management Actions
-  const createLibraryPlan = useStudentUnifiedStore((state) => state.createLibraryPlan);
-  const updateLibraryPlan = useStudentUnifiedStore((state) => state.updateLibraryPlan);
-  const deleteLibraryPlan = useStudentUnifiedStore((state) => state.deleteLibraryPlan);
-  const activateLibraryPlan = useStudentUnifiedStore((state) => state.activateLibraryPlan);
+  const createLibraryPlan = useStudentUnifiedStore(
+    (state) => state.createLibraryPlan,
+  );
+  const updateLibraryPlan = useStudentUnifiedStore(
+    (state) => state.updateLibraryPlan,
+  );
+  const deleteLibraryPlan = useStudentUnifiedStore(
+    (state) => state.deleteLibraryPlan,
+  );
+  const activateLibraryPlan = useStudentUnifiedStore(
+    (state) => state.activateLibraryPlan,
+  );
 
   const createUnit = useStudentUnifiedStore((state) => state.createUnit);
   const updateUnit = useStudentUnifiedStore((state) => state.updateUnit);
@@ -246,7 +254,7 @@ export function useStudent<T extends StudentSelector>(
   // para centralizar a lógica de inicialização. Use useStudentInitializer
   // em layouts ou providers para carregar dados automaticamente.
 
-  // Se nenhum seletor, retorna tudo
+  //  nhum seletor, retorna tudo
   if (selectors.length === 0) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return data as any;
@@ -289,7 +297,7 @@ export function useStudent<T extends StudentSelector>(
         syncNutrition,
         reset,
         clearCache,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any;
     }
 
@@ -317,7 +325,7 @@ export function useStudent<T extends StudentSelector>(
         loadGymLocations,
         loadGymLocationsWithPosition,
         loadFoodDatabase,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any;
     }
 
