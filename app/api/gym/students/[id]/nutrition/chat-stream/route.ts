@@ -152,7 +152,11 @@ export async function POST(
           enhancedSystemPrompt += `\n\n⚠️ IMPORTANTE - REFEIÇÃO PADRÃO:\nO usuário abriu o chat para adicionar alimentos à refeição "${selectedMeal.name}" (tipo: "${selectedMeal.type}").\n\nSe o usuário NÃO especificar explicitamente qual refeição (ex: "café da manhã", "almoço", "jantar", etc.), você DEVE usar "${selectedMeal.type}" como o mealType padrão para TODOS os alimentos mencionados.\n\nApenas se o usuário mencionar explicitamente uma refeição diferente (ex: "isso foi no almoço" ou "quero adicionar no café da manhã"), você deve usar a refeição mencionada pelo usuário.`;
         }
 
-        const limitedHistory = limitHistory(conversationHistory, MAX_HISTORY);
+        const typedHistory = (conversationHistory || []).map((msg: any) => ({
+          role: msg.role as "user" | "assistant",
+          content: String(msg.content)
+        }));
+        const limitedHistory = limitHistory(typedHistory, MAX_HISTORY);
         const messages = [
           ...limitedHistory,
           { role: "user" as const, content: message },

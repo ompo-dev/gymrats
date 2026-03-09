@@ -33,20 +33,10 @@ export async function getLibraryPlansHandler(
     const url = new URL(request.url);
     const studentIdParam = url.searchParams.get("studentId");
     
-    let studentId = "";
-
-    if (auth.user.role === "STUDENT") {
-      studentId = auth.user.student?.id || "";
-    } else {
-      if (!studentIdParam) {
-        return badRequestResponse("studentId é obrigatório para Personais/Academias");
-      }
-      studentId = studentIdParam;
-      // Validar se tem permissao? Fica focado na listagem onde já devem estar vendo o student profile deles.
-    }
+    let studentId = studentIdParam || auth.user.student?.id || "";
 
     if (!studentId) {
-      return badRequestResponse("studentId não identificado");
+      return badRequestResponse("studentId não identificado ou ausente para este usuário");
     }
 
     const libraryPlans = await db.weeklyPlan.findMany({
@@ -91,35 +81,31 @@ export async function createLibraryPlanHandler(
     const { title, isLibraryTemplate, studentId: bodyStudentId, sourceWeeklyPlanId } = validation.data;
     const isLibrary = isLibraryTemplate ?? true;
 
-    let targetStudentId = bodyStudentId;
+    let targetStudentId = bodyStudentId || auth.user.student?.id;
     let createdById: string | null = null;
-    let creatorType: string | null = null;
+    let creatorType: string | null = ("STUDENT" as string | null);
 
-    if (auth.user.role === "STUDENT") {
-      targetStudentId = auth.user.student?.id;
-      createdById = auth.user.student?.id ?? null;
-      creatorType = "STUDENT";
-    } else if (auth.user.role === "GYM") {
-      if (!targetStudentId) return badRequestResponse("studentId é obrigatório.");
-      createdById = auth.user.gyms?.[0]?.id ?? null; // Simplificação
+    if (!targetStudentId) {
+       return badRequestResponse("Destino não identificado");
+    }
+
+    if (bodyStudentId && auth.user.role === "GYM") {
+      createdById = auth.user.gyms?.[0]?.id ?? null;
       creatorType = "GYM";
-      // Verificar se já tem 1 na lib
       const hasPlan = await db.weeklyPlan.findFirst({
         where: { studentId: targetStudentId, ...({ createdById, isLibraryTemplate: true } as any) },
       });
       if (hasPlan) return badRequestResponse("A academia só pode ter 1 treino na biblioteca deste aluno.");
-    } else if (auth.user.role === "PERSONAL") {
-      if (!targetStudentId) return badRequestResponse("studentId é obrigatório.");
+    } else if (bodyStudentId && auth.user.role === "PERSONAL") {
       createdById = auth.user.personal?.id ?? null;
       creatorType = "PERSONAL";
       const hasPlan = await db.weeklyPlan.findFirst({
         where: { studentId: targetStudentId, ...({ createdById, isLibraryTemplate: true } as any) },
       });
       if (hasPlan) return badRequestResponse("O personal só pode ter 1 treino na biblioteca deste aluno.");
-    }
-
-    if (!targetStudentId) {
-       return badRequestResponse("Destino não identificado");
+    } else {
+      createdById = auth.user.student?.id ?? null;
+      creatorType = "STUDENT";
     }
 
     if (sourceWeeklyPlanId) {
