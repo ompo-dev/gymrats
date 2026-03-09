@@ -92,6 +92,7 @@ export function useEditUnitModal({
   const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
   const [chatSlotId, setChatSlotId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -322,8 +323,9 @@ export function useEditUnitModal({
   ]);
 
   const handleSaveUnit = useCallback(async () => {
-    if (isWeeklyPlanMode) {
-      try {
+    setSaving(true);
+    try {
+      if (isWeeklyPlanMode) {
         await apiClient.patch(weeklyPlanUrl, {
           title,
           description,
@@ -331,19 +333,16 @@ export function useEditUnitModal({
         await loadWeeklyPlan?.(true);
         onPlanUpdated?.();
         toast.success("Plano atualizado com sucesso!");
-      } catch (err) {
-        console.error(err);
-        toast.error("Erro ao atualizar plano");
+        return;
       }
-      return;
-    }
-    if (!unitId) return;
-    try {
+      if (!unitId) return;
       await actions.updateUnit(unitId, { title, description });
       toast.success("Treino atualizado com sucesso!");
     } catch (err) {
       console.error(err);
-      toast.error("Erro ao atualizar treino");
+      toast.error(isWeeklyPlanMode ? "Erro ao atualizar plano" : "Erro ao atualizar treino");
+    } finally {
+      setSaving(false);
     }
   }, [
     isWeeklyPlanMode,
@@ -681,6 +680,7 @@ export function useEditUnitModal({
     chatSlotId,
     setChatSlotId,
     resetting,
+    saving,
     savingTemplate,
     weeklyPlanSlotsKey,
 

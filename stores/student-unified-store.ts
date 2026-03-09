@@ -506,8 +506,37 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       activateLibraryPlan: async (planId: string) => {
-        await apiClient.post("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
-        await get().loadWeeklyPlan(true); 
+        const state = get();
+        const libraryPlan = state.data.libraryPlans?.find((p) => p.id === planId);
+
+        if (libraryPlan) {
+          const optimisticSlots = (libraryPlan.slots ?? []).map((slot) => ({
+            ...slot,
+            locked: false,
+            completed: slot.type === "rest",
+          }));
+          set((s) => ({
+            data: {
+              ...s.data,
+              weeklyPlan: {
+                id: libraryPlan.id,
+                title: libraryPlan.title,
+                description: libraryPlan.description,
+                slots: optimisticSlots,
+              },
+            },
+          }));
+        }
+
+        try {
+          await apiClient.post("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+          await get().loadWeeklyPlan(true);
+        } catch (error) {
+          if (libraryPlan) {
+            await get().loadWeeklyPlan(true);
+          }
+          throw error;
+        }
       },
 
       // === ACTIONS - ATUALIZAR DADOS ===

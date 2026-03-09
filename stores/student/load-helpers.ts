@@ -112,7 +112,9 @@ function transformSectionResponse(
     case "weeklyPlan":
       return { weeklyPlan: d?.weeklyPlan ?? null };
     case "libraryPlans":
-      return { libraryPlans: Array.isArray(d) ? d : d.libraryPlans || [] };
+      return {
+        libraryPlans: Array.isArray(d) ? d : (d.libraryPlans || d.data || []) as StudentData["libraryPlans"],
+      };
     case "workoutHistory":
       if (Array.isArray(d)) return { workoutHistory: d };
       if (d.history && Array.isArray(d.history))

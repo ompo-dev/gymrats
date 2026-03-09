@@ -310,7 +310,7 @@ export function WorkoutChat({
         if (isGymMode) {
           await loaders.loadWeeklyPlan?.(true);
         } else {
-          await loaders.loadWorkouts(true);
+          await loaders.loadWorkouts?.(true);
         }
         const currentUnits = getLatestUnits();
         const currentUnit = currentUnits.find((u: Unit) => u.id === unitId);
@@ -401,7 +401,7 @@ export function WorkoutChat({
           if (planSlotId || isGymMode) {
             await loaders.loadWeeklyPlan?.(true);
           } else {
-            await loaders.loadWorkouts(true);
+            await loaders.loadWorkouts?.(true);
           }
           const updatedUnits = getLatestUnits();
           const updatedWeeklyPlan = getLatestWeeklyPlan();
@@ -517,7 +517,7 @@ export function WorkoutChat({
       if (planSlotId || isGymMode) {
         await loaders.loadWeeklyPlan?.(true);
       } else {
-        await loaders.loadWorkouts(true);
+        await loaders.loadWorkouts?.(true);
       }
       onPlanUpdated?.();
 

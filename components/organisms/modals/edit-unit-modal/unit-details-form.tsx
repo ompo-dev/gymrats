@@ -16,6 +16,7 @@ export interface UnitDetailsFormProps {
   isWeeklyPlanMode?: boolean;
   onResetWeek?: () => void;
   resetting?: boolean;
+  saving?: boolean;
   onSaveAsTemplate?: () => void;
   savingTemplate?: boolean;
 }
@@ -33,6 +34,7 @@ export function UnitDetailsForm({
   isWeeklyPlanMode,
   onResetWeek,
   resetting = false,
+  saving = false,
   onSaveAsTemplate,
   savingTemplate = false,
 }: UnitDetailsFormProps) {
@@ -84,9 +86,14 @@ export function UnitDetailsForm({
           )}
           <DuoButton
             onClick={onSave}
+            disabled={saving}
             className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 w-full"
           >
-            <Save className="h-4 w-4" />
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             Salvar
           </DuoButton>
         </div>

@@ -64,6 +64,7 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     calculatedEstimatedTime,
     deleteConfirmationId,
     deleteWorkoutConfirmationId,
+    saving,
     savingTemplate,
     handleSaveAsTemplate,
     handleSaveUnit,
@@ -118,6 +119,7 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 isWeeklyPlanMode={isWeeklyPlanMode}
                 onResetWeek={handleResetWeek}
                 resetting={resetting}
+                saving={saving}
                 savingTemplate={savingTemplate}
                 onSaveAsTemplate={handleSaveAsTemplate}
               />
