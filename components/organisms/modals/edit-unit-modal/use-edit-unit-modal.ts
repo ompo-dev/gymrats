@@ -56,10 +56,21 @@ export function useEditUnitModal({
   const actions = useStudent("actions");
   const storeWeeklyPlan = useStudent("weeklyPlan");
   const storeLoaders = useStudent("loaders");
-  const weeklyPlan = isGymMode || isLibraryMode ? weeklyPlanOverride : storeWeeklyPlan;
+  const storeLibraryPlan = useStudentUnifiedStore((state) =>
+    isLibraryMode && weeklyPlanOverride?.id
+      ? state.data.libraryPlans?.find((p) => p.id === weeklyPlanOverride.id) ?? null
+      : null,
+  );
+  const weeklyPlan =
+    isGymMode
+      ? weeklyPlanOverride
+      : isLibraryMode
+        ? (storeLibraryPlan ?? weeklyPlanOverride)
+        : storeWeeklyPlan;
   const loadWeeklyPlan = isGymMode || isLibraryMode
     ? loadWeeklyPlanOverride
     : storeLoaders.loadWeeklyPlan;
+  const loadLibraryPlans = storeLoaders.loadLibraryPlans;
   
   let weeklyPlanUrl = "/api/workouts/weekly-plan";
   if (isGymMode && studentId) {
@@ -460,7 +471,11 @@ export function useEditUnitModal({
       setLoadingSlotId(slotId);
       try {
         await apiClient.delete(`${workoutsManageUrl}/${slot.workout.id}`);
-        await loadWeeklyPlan?.(true);
+        if (isLibraryMode) {
+          await loadLibraryPlans();
+        } else {
+          await loadWeeklyPlan?.(true);
+        }
         onPlanUpdated?.();
         toast.success("Treino removido. O dia foi marcado como descanso.");
       } catch {
@@ -469,7 +484,7 @@ export function useEditUnitModal({
         setLoadingSlotId(null);
       }
     },
-    [planSlots, loadWeeklyPlan, onPlanUpdated, workoutsManageUrl],
+    [planSlots, isLibraryMode, loadLibraryPlans, loadWeeklyPlan, onPlanUpdated, workoutsManageUrl],
   );
 
   const handleAddWorkoutToSlot = useCallback(
@@ -485,7 +500,11 @@ export function useEditUnitModal({
           difficulty: "iniciante",
           estimatedTime: 0,
         });
-        await loadWeeklyPlan?.(true);
+        if (isLibraryMode) {
+          await loadLibraryPlans();
+        } else {
+          await loadWeeklyPlan?.(true);
+        }
         onPlanUpdated?.();
         toast.success(
           "Treino adicionado. Adicione exercícios ou use o Chat IA.",
@@ -496,7 +515,7 @@ export function useEditUnitModal({
         setLoadingSlotId(null);
       }
     },
-    [loadWeeklyPlan, onPlanUpdated],
+    [isLibraryMode, loadLibraryPlans, loadWeeklyPlan, onPlanUpdated],
   );
 
   const handleReorderWorkouts = useCallback(

@@ -100,7 +100,7 @@ export function WeeklyPlanSlotRow({
             </div>
             <div
               className="flex-1 min-w-0 cursor-pointer"
-              onClick={() => onEditWorkout(slot.workout?.id)}
+              onClick={() => slot.workout?.id && onEditWorkout(slot.workout.id)}
             >
               <h4 className="font-bold text-duo-text truncate text-lg">
                 {slot.workout.title}

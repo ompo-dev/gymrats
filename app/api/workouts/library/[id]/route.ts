@@ -11,8 +11,16 @@ export async function PUT(
   return updateLibraryPlanHandler(request, { params });
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return updateLibraryPlanHandler(request, { params });
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  return deleteLibraryPlanHandler(request, { params });
 }
