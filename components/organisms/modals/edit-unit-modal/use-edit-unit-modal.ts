@@ -93,7 +93,6 @@ export function useEditUnitModal({
   const [chatSlotId, setChatSlotId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isEditingUnitInputs, setIsEditingUnitInputs] = useState(false);
@@ -352,32 +351,6 @@ export function useEditUnitModal({
     actions,
     loadWeeklyPlan,
     onPlanUpdated,
-  ]);
-
-  const handleSaveAsTemplate = useCallback(async () => {
-    if (!isWeeklyPlanMode || !weeklyPlan) return;
-    setSavingTemplate(true);
-    try {
-      await actions.createLibraryPlan({
-        title: title || weeklyPlan.title || "Novo Modelo",
-        description: description || weeklyPlan.description || "",
-        difficulty: "iniciante", // Default values since WeeklyPlanData doesn't have them
-        goals: [],
-        sourceWeeklyPlanId: weeklyPlan.id,
-      });
-      toast.success("Plano salvo na biblioteca de treinos!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao salvar como modelo na biblioteca");
-    } finally {
-      setSavingTemplate(false);
-    }
-  }, [
-    isWeeklyPlanMode,
-    weeklyPlan,
-    title,
-    description,
-    actions,
   ]);
 
   const handleCreateWorkout = useCallback(async () => {
@@ -681,7 +654,6 @@ export function useEditUnitModal({
     setChatSlotId,
     resetting,
     saving,
-    savingTemplate,
     weeklyPlanSlotsKey,
 
     calculatedEstimatedTime,
@@ -690,7 +662,6 @@ export function useEditUnitModal({
     deleteWorkoutConfirmationId,
 
     handleSaveUnit,
-    handleSaveAsTemplate,
     handleResetWeek,
     handleCreateWorkout,
     handleDeleteWorkoutClick,

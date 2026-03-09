@@ -17,8 +17,6 @@ export interface UnitDetailsFormProps {
   onResetWeek?: () => void;
   resetting?: boolean;
   saving?: boolean;
-  onSaveAsTemplate?: () => void;
-  savingTemplate?: boolean;
 }
 
 export function UnitDetailsForm({
@@ -35,8 +33,6 @@ export function UnitDetailsForm({
   onResetWeek,
   resetting = false,
   saving = false,
-  onSaveAsTemplate,
-  savingTemplate = false,
 }: UnitDetailsFormProps) {
   return (
     <div className="space-y-4 bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border">
@@ -97,22 +93,6 @@ export function UnitDetailsForm({
             Salvar
           </DuoButton>
         </div>
-        
-        {isWeeklyPlanMode && onSaveAsTemplate && (
-          <DuoButton
-            variant="ghost"
-            onClick={onSaveAsTemplate}
-            disabled={savingTemplate}
-            className="font-bold flex items-center justify-center gap-2 w-full border border-dashed border-duo-green text-duo-green hover:bg-duo-green/10"
-          >
-            {savingTemplate ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Salvar como Modelo na Biblioteca
-          </DuoButton>
-        )}
       </div>
     </div>
   );

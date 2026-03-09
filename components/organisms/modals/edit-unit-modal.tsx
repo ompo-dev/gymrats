@@ -65,8 +65,6 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     deleteConfirmationId,
     deleteWorkoutConfirmationId,
     saving,
-    savingTemplate,
-    handleSaveAsTemplate,
     handleSaveUnit,
     handleResetWeek,
     handleCreateWorkout,
@@ -120,8 +118,6 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 onResetWeek={handleResetWeek}
                 resetting={resetting}
                 saving={saving}
-                savingTemplate={savingTemplate}
-                onSaveAsTemplate={handleSaveAsTemplate}
               />
               <WorkoutsListSection
                 key={
