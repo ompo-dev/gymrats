@@ -11,7 +11,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { EditUnitModal } from "@/components/organisms/modals";
+import { EditUnitModal, TrainingLibraryModal } from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
 import {
   AppLayout,
@@ -52,7 +52,7 @@ export function StudentLayoutContent({
   });
 
   // Buscar progresso do store para atualizar header dinamicamente
-  const { progress: storeProgress } = useStudent("progress");
+  const storeProgress = (useStudent("progress") as unknown) as import("@/lib/types").UserProgress | undefined;
   const { loadWeeklyPlan } = useStudent("loaders");
   const editPlanModal = useModalState("edit-plan");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
@@ -128,6 +128,7 @@ export function StudentLayoutContent({
         <>
           <WorkoutModal.Simple />
           <EditUnitModal />
+          <TrainingLibraryModal />
           {editPlanModal.isOpen && (
             <EditUnitModal
               isWeeklyPlanMode

@@ -26,6 +26,7 @@ export const DAY_NAMES = [
 
 export interface UseEditUnitModalProps {
   isWeeklyPlanMode?: boolean;
+  isLibraryMode?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
   onPlanUpdated?: () => void;
@@ -37,6 +38,7 @@ export interface UseEditUnitModalProps {
 
 export function useEditUnitModal({
   isWeeklyPlanMode = false,
+  isLibraryMode = false,
   isOpen: isOpenProp,
   onClose: onCloseProp,
   onPlanUpdated,
@@ -54,14 +56,17 @@ export function useEditUnitModal({
   const actions = useStudent("actions");
   const storeWeeklyPlan = useStudent("weeklyPlan");
   const storeLoaders = useStudent("loaders");
-  const weeklyPlan = isGymMode ? weeklyPlanOverride : storeWeeklyPlan;
-  const loadWeeklyPlan = isGymMode
+  const weeklyPlan = isGymMode || isLibraryMode ? weeklyPlanOverride : storeWeeklyPlan;
+  const loadWeeklyPlan = isGymMode || isLibraryMode
     ? loadWeeklyPlanOverride
     : storeLoaders.loadWeeklyPlan;
-  const weeklyPlanUrl =
-    isGymMode && studentId
-      ? `/api/gym/students/${studentId}/weekly-plan`
-      : "/api/workouts/weekly-plan";
+  
+  let weeklyPlanUrl = "/api/workouts/weekly-plan";
+  if (isGymMode && studentId) {
+    weeklyPlanUrl = `/api/gym/students/${studentId}/weekly-plan`;
+  } else if (isLibraryMode && weeklyPlan?.id) {
+    weeklyPlanUrl = `/api/workouts/library/${weeklyPlan.id}`;
+  }
   const workoutsManageUrl =
     isGymMode && studentId
       ? `/api/gym/students/${studentId}/workouts/manage`
@@ -87,6 +92,7 @@ export function useEditUnitModal({
   const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
   const [chatSlotId, setChatSlotId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isEditingUnitInputs, setIsEditingUnitInputs] = useState(false);
@@ -349,6 +355,32 @@ export function useEditUnitModal({
     onPlanUpdated,
   ]);
 
+  const handleSaveAsTemplate = useCallback(async () => {
+    if (!isWeeklyPlanMode || !weeklyPlan) return;
+    setSavingTemplate(true);
+    try {
+      await actions.createLibraryPlan({
+        title: title || weeklyPlan.title || "Novo Modelo",
+        description: description || weeklyPlan.description || "",
+        difficulty: "iniciante", // Default values since WeeklyPlanData doesn't have them
+        goals: [],
+        sourceWeeklyPlanId: weeklyPlan.id,
+      });
+      toast.success("Plano salvo na biblioteca de treinos!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao salvar como modelo na biblioteca");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }, [
+    isWeeklyPlanMode,
+    weeklyPlan,
+    title,
+    description,
+    actions,
+  ]);
+
   const handleCreateWorkout = useCallback(async () => {
     if (!unitId) return;
     try {
@@ -366,7 +398,7 @@ export function useEditUnitModal({
           estimatedTime: 0,
           type: "strength",
         });
-        const workoutId = response.data?.data?.id as string | undefined;
+        const workoutId = (response as any).data?.data?.id as string | undefined;
         if (workoutId) {
           setEditingWorkoutId(workoutId);
         }
@@ -649,6 +681,7 @@ export function useEditUnitModal({
     chatSlotId,
     setChatSlotId,
     resetting,
+    savingTemplate,
     weeklyPlanSlotsKey,
 
     calculatedEstimatedTime,
@@ -657,6 +690,7 @@ export function useEditUnitModal({
     deleteWorkoutConfirmationId,
 
     handleSaveUnit,
+    handleSaveAsTemplate,
     handleResetWeek,
     handleCreateWorkout,
     handleDeleteWorkoutClick,

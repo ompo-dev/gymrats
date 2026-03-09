@@ -1,6 +1,6 @@
 "use client";
 
-import { Dumbbell, Plus } from "lucide-react";
+import { BookOpen, Dumbbell, Plus } from "lucide-react";
 import { motion } from "motion/react";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useEffect } from "react";
@@ -24,6 +24,7 @@ interface LearningPathProps {
 export function LearningPath({ onLessonSelect }: LearningPathProps) {
   const workoutModal = useModalStateWithParam("workout", "workoutId");
   const editPlanModal = useModalState("edit-plan");
+  const libraryModal = useModalState("training-library");
   const [, setExerciseIndexParam] = useQueryState(
     "exerciseIndex",
     parseAsInteger,
@@ -135,6 +136,17 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
               : "Plano Semanal"
           }
           onButtonClick={() => editPlanModal.open()}
+          additionalAction={
+            <DuoButton
+              variant="white"
+              size="icon-lg"
+              className="h-10 w-10 cursor-pointer flex items-center justify-center text-duo-green"
+              onClick={() => libraryModal.open()}
+              title="Biblioteca de Treinos"
+            >
+              <BookOpen className="h-5 w-5" />
+            </DuoButton>
+          }
         />
       </div>
 

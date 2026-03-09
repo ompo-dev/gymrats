@@ -211,6 +211,7 @@ export interface StudentData {
   // === WORKOUTS ===
   units: Unit[]; // Units (legado)
   weeklyPlan: WeeklyPlanData | null; // Plano semanal 7 slots
+  libraryPlans: WeeklyPlanData[]; // Planos da biblioteca
   workoutHistory: WorkoutHistory[]; // Histórico de workouts completados
   personalRecords: PersonalRecord[]; // Recordes pessoais
 
@@ -275,6 +276,7 @@ export const initialStudentData: StudentData = {
   weightGain: null,
   units: [],
   weeklyPlan: null,
+  libraryPlans: [],
   workoutHistory: [],
   personalRecords: [],
   dailyNutrition: {
@@ -324,6 +326,7 @@ export type StudentDataSection =
   | "weightHistory"
   | "units"
   | "weeklyPlan"
+  | "libraryPlans"
   | "workoutHistory"
   | "personalRecords"
   | "dailyNutrition"

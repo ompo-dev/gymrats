@@ -159,6 +159,11 @@ export function useStudent<T extends StudentSelector>(
   const addDayPass = useStudentUnifiedStore((state) => state.addDayPass);
 
   // Workout Management Actions
+  const createLibraryPlan = useStudentUnifiedStore((state) => state.createLibraryPlan);
+  const updateLibraryPlan = useStudentUnifiedStore((state) => state.updateLibraryPlan);
+  const deleteLibraryPlan = useStudentUnifiedStore((state) => state.deleteLibraryPlan);
+  const activateLibraryPlan = useStudentUnifiedStore((state) => state.activateLibraryPlan);
+
   const createUnit = useStudentUnifiedStore((state) => state.createUnit);
   const updateUnit = useStudentUnifiedStore((state) => state.updateUnit);
   const deleteUnit = useStudentUnifiedStore((state) => state.deleteUnit);
@@ -202,6 +207,9 @@ export function useStudent<T extends StudentSelector>(
   const loadWorkouts = useStudentUnifiedStore((state) => state.loadWorkouts);
   const loadWeeklyPlan = useStudentUnifiedStore(
     (state) => state.loadWeeklyPlan,
+  );
+  const loadLibraryPlans = useStudentUnifiedStore(
+    (state) => state.loadLibraryPlans,
   );
   const loadWorkoutHistory = useStudentUnifiedStore(
     (state) => state.loadWorkoutHistory,
@@ -256,6 +264,10 @@ export function useStudent<T extends StudentSelector>(
         updateNutrition,
         updateSubscription,
         addDayPass,
+        createLibraryPlan,
+        updateLibraryPlan,
+        deleteLibraryPlan,
+        activateLibraryPlan,
         createUnit,
         updateUnit,
         deleteUnit,
@@ -288,6 +300,7 @@ export function useStudent<T extends StudentSelector>(
         loadWeightHistory,
         loadWorkouts,
         loadWeeklyPlan,
+        loadLibraryPlans,
         loadWorkoutHistory,
         loadPersonalRecords,
         loadNutrition,
@@ -333,6 +346,10 @@ export function useStudent<T extends StudentSelector>(
         updateNutrition,
         updateSubscription,
         addDayPass,
+        createLibraryPlan,
+        updateLibraryPlan,
+        deleteLibraryPlan,
+        activateLibraryPlan,
         createUnit,
         updateUnit,
         deleteUnit,
@@ -362,6 +379,7 @@ export function useStudent<T extends StudentSelector>(
         loadWeightHistory,
         loadWorkouts,
         loadWeeklyPlan,
+        loadLibraryPlans,
         loadWorkoutHistory,
         loadPersonalRecords,
         loadNutrition,
@@ -415,6 +433,10 @@ function getActions(actions: {
   updateNutrition: StudentUnifiedState["updateNutrition"];
   updateSubscription: StudentUnifiedState["updateSubscription"];
   addDayPass: StudentUnifiedState["addDayPass"];
+  createLibraryPlan: StudentUnifiedState["createLibraryPlan"];
+  updateLibraryPlan: StudentUnifiedState["updateLibraryPlan"];
+  deleteLibraryPlan: StudentUnifiedState["deleteLibraryPlan"];
+  activateLibraryPlan: StudentUnifiedState["activateLibraryPlan"];
   createUnit: StudentUnifiedState["createUnit"];
   updateUnit: StudentUnifiedState["updateUnit"];
   deleteUnit: StudentUnifiedState["deleteUnit"];
@@ -443,6 +465,10 @@ function getActions(actions: {
     updateNutrition: actions.updateNutrition,
     updateSubscription: actions.updateSubscription,
     addDayPass: actions.addDayPass,
+    createLibraryPlan: actions.createLibraryPlan,
+    updateLibraryPlan: actions.updateLibraryPlan,
+    deleteLibraryPlan: actions.deleteLibraryPlan,
+    activateLibraryPlan: actions.activateLibraryPlan,
     createUnit: actions.createUnit,
     updateUnit: actions.updateUnit,
     deleteUnit: actions.deleteUnit,
@@ -476,6 +502,7 @@ function getLoaders(actions: {
   loadWeightHistory: StudentUnifiedState["loadWeightHistory"];
   loadWorkouts: StudentUnifiedState["loadWorkouts"];
   loadWeeklyPlan: StudentUnifiedState["loadWeeklyPlan"];
+  loadLibraryPlans: StudentUnifiedState["loadLibraryPlans"];
   loadWorkoutHistory: StudentUnifiedState["loadWorkoutHistory"];
   loadPersonalRecords: StudentUnifiedState["loadPersonalRecords"];
   loadNutrition: StudentUnifiedState["loadNutrition"];
@@ -498,6 +525,7 @@ function getLoaders(actions: {
     loadWeightHistory: actions.loadWeightHistory,
     loadWorkouts: actions.loadWorkouts,
     loadWeeklyPlan: actions.loadWeeklyPlan,
+    loadLibraryPlans: actions.loadLibraryPlans,
     loadWorkoutHistory: actions.loadWorkoutHistory,
     loadPersonalRecords: actions.loadPersonalRecords,
     loadNutrition: actions.loadNutrition,

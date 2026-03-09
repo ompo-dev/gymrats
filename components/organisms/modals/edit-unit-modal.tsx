@@ -15,6 +15,7 @@ import { WorkoutChat } from "./workout-chat";
 
 interface EditUnitModalProps {
   isWeeklyPlanMode?: boolean;
+  isLibraryMode?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
   onPlanUpdated?: () => void;
@@ -63,6 +64,8 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
     calculatedEstimatedTime,
     deleteConfirmationId,
     deleteWorkoutConfirmationId,
+    savingTemplate,
+    handleSaveAsTemplate,
     handleSaveUnit,
     handleResetWeek,
     handleCreateWorkout,
@@ -115,6 +118,8 @@ export function EditUnitModal(props: EditUnitModalProps = {}) {
                 isWeeklyPlanMode={isWeeklyPlanMode}
                 onResetWeek={handleResetWeek}
                 resetting={resetting}
+                savingTemplate={savingTemplate}
+                onSaveAsTemplate={handleSaveAsTemplate}
               />
               <WorkoutsListSection
                 key={

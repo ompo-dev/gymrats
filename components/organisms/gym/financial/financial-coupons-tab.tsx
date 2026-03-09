@@ -8,6 +8,7 @@ import {
   createPersonalCoupon,
   deletePersonalCoupon,
 } from "@/app/personal/actions";
+import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
@@ -50,6 +51,9 @@ export function FinancialCouponsTab({
   const [maxRedeems, setMaxRedeems] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
+  const [confirmDeleteCouponId, setConfirmDeleteCouponId] = useState<
+    string | null
+  >(null);
 
   const discountNum =
     discountKind === "FIXED"
@@ -121,11 +125,12 @@ export function FinancialCouponsTab({
   const maxUsesDisplay = (c: Coupon) =>
     c.maxUses >= 999999 ? "Ilimitado" : c.maxUses;
 
-  const handleDeleteCoupon = async (couponId: string) => {
-    const shouldDelete = window.confirm("Deseja excluir este cupom?");
-    if (!shouldDelete) return;
+  const handleConfirmDeleteCoupon = async () => {
+    if (!confirmDeleteCouponId) return;
 
+    const couponId = confirmDeleteCouponId;
     setDeletingCouponId(couponId);
+    setConfirmDeleteCouponId(null);
     try {
       const deleteFn =
         variant === "personal" ? deletePersonalCoupon : deleteGymCoupon;
@@ -139,6 +144,10 @@ export function FinancialCouponsTab({
     } finally {
       setDeletingCouponId(null);
     }
+  };
+
+  const handleDeleteCoupon = (couponId: string) => {
+    setConfirmDeleteCouponId(couponId);
   };
 
   const usagePercent = (c: Coupon) =>
@@ -194,7 +203,10 @@ export function FinancialCouponsTab({
                   <button
                     type="button"
                     onClick={() => handleDeleteCoupon(coupon.id)}
-                    disabled={deletingCouponId === coupon.id}
+                    disabled={
+                      deletingCouponId === coupon.id ||
+                      confirmDeleteCouponId === coupon.id
+                    }
                     className="rounded-lg p-1 text-duo-gray-dark transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
                     title="Excluir cupom"
                   >
@@ -333,6 +345,14 @@ export function FinancialCouponsTab({
           </DuoCard.Root>
         </div>
       )}
+
+      <DeleteConfirmationModal
+        isOpen={confirmDeleteCouponId !== null}
+        onConfirm={handleConfirmDeleteCoupon}
+        onCancel={() => setConfirmDeleteCouponId(null)}
+        title="Excluir cupom?"
+        message="Deseja excluir este cupom? Esta ação não pode ser desfeita."
+      />
     </>
   );
 }

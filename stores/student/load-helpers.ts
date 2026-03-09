@@ -46,6 +46,7 @@ export const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
   weightHistory: "/api/students/weight",
   units: "/api/workouts/units",
   weeklyPlan: "/api/workouts/weekly-plan",
+  libraryPlans: "/api/workouts/library",
   workoutHistory: "/api/workouts/history",
   personalRecords: "/api/students/personal-records",
   subscription: "/api/subscriptions/current",
@@ -110,6 +111,8 @@ function transformSectionResponse(
       return { units: Array.isArray(d) ? d : d.units || [] };
     case "weeklyPlan":
       return { weeklyPlan: d?.weeklyPlan ?? null };
+    case "libraryPlans":
+      return { libraryPlans: Array.isArray(d) ? d : d.libraryPlans || [] };
     case "workoutHistory":
       if (Array.isArray(d)) return { workoutHistory: d };
       if (d.history && Array.isArray(d.history))
@@ -219,6 +222,8 @@ function updateStoreWithSection(
     if (sectionData.units !== undefined) newState.units = sectionData.units;
     if (sectionData.weeklyPlan !== undefined)
       newState.weeklyPlan = sectionData.weeklyPlan;
+    if (sectionData.libraryPlans !== undefined)
+      newState.libraryPlans = sectionData.libraryPlans;
     if (sectionData.workoutHistory !== undefined)
       newState.workoutHistory = sectionData.workoutHistory;
     if (sectionData.personalRecords !== undefined)
@@ -359,6 +364,7 @@ const ALL_SECTIONS: StudentDataSection[] = [
   "progress",
   "units",
   "weeklyPlan",
+  "libraryPlans",
   "profile",
   "weightHistory",
   "workoutHistory",

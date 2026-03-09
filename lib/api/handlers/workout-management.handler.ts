@@ -225,10 +225,17 @@ export async function updateWeeklyPlanHandler(
 
     const studentId = auth.user.student.id;
 
-    let weeklyPlan = await db.weeklyPlan.findUnique({
-      where: { studentId },
-      include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    const studentData = await db.student.findUnique({
+      where: { id: studentId },
+      select: { activeWeeklyPlanId: true },
     });
+
+    let activePlanId = studentData?.activeWeeklyPlanId;
+
+    let weeklyPlan = activePlanId ? await db.weeklyPlan.findUnique({
+      where: { id: activePlanId },
+      include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    }) : null;
 
     if (!weeklyPlan) {
       weeklyPlan = await db.weeklyPlan.create({
@@ -526,16 +533,17 @@ export async function createExerciseHandler(
     // Check if workout exists and belongs to student
     const workout = await db.workout.findUnique({
       where: { id: workoutId },
-      include: { unit: true },
+      include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
     });
 
     if (!workout) return notFoundResponse("Treino não encontrado");
 
-    if (!workout.unit) {
-      return internalErrorResponse("Treino sem unidade vinculada");
-    }
+    const ownsWorkout =
+      (workout.unit && workout.unit.studentId === auth.user.student.id) ||
+      (workout.planSlot &&
+        workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
 
-    if (workout.unit.studentId !== auth.user.student.id) {
+    if (!ownsWorkout) {
       return unauthorizedResponse(
         "Você não pode adicionar exercícios a este treino",
       );
@@ -1074,16 +1082,21 @@ export async function updateExerciseHandler(
 
     const exercise = await db.workoutExercise.findUnique({
       where: { id },
-      include: { workout: { include: { unit: true } } },
+      include: { workout: { include: { unit: true, planSlot: { include: { weeklyPlan: true } } } } },
     });
 
     if (!exercise) return notFoundResponse("Exercício não encontrado");
 
-    if (!exercise.workout?.unit) {
-      return internalErrorResponse("Exercício sem treino ou unidade vinculada");
+    if (!exercise.workout) {
+      return internalErrorResponse("Exercício sem treino vinculado");
     }
 
-    if (exercise.workout.unit.studentId !== auth.user.student.id) {
+    const ownsWorkout =
+      (exercise.workout.unit && exercise.workout.unit.studentId === auth.user.student.id) ||
+      (exercise.workout.planSlot &&
+        exercise.workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+
+    if (!ownsWorkout) {
       return unauthorizedResponse("Você não pode editar este exercício");
     }
 

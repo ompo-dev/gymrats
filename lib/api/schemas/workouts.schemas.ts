@@ -123,6 +123,13 @@ export const planSlotSchema = z.object({
 
 export const createWeeklyPlanSchema = z.object({
   title: z.string().optional().default("Meu Plano Semanal"),
+  isLibraryTemplate: z.boolean().optional().default(false),
+  studentId: z.string().optional(), // Quando Gym/Personal cria
+  sourceWeeklyPlanId: z.string().optional(), // Para clonar um plano existente
+});
+
+export const activateLibraryPlanSchema = z.object({
+  libraryPlanId: z.string().min(1, "O ID do plano da biblioteca é obrigatório"),
 });
 
 export const updateWeeklyPlanSchema = z.object({

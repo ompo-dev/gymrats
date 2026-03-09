@@ -16,8 +16,17 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
   const weekStart = getWeekStart(weekOverride ?? null);
   const weekEnd = addDays(weekStart, 7);
 
+  const studentData = await db.student.findUnique({
+    where: { id: studentId },
+    select: { activeWeeklyPlanId: true },
+  });
+
+  if (!studentData?.activeWeeklyPlanId) {
+    return { weeklyPlan: null, weekStart };
+  }
+
   const weeklyPlan = await db.weeklyPlan.findUnique({
-    where: { studentId },
+    where: { id: studentData.activeWeeklyPlanId },
     include: {
       slots: {
         orderBy: { dayOfWeek: "asc" },

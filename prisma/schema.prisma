@@ -153,8 +153,11 @@ model Student {
   // Treinos personalizados (legado - migrar para weeklyPlan)
   units Unit[]
 
-  // Plano semanal (7 slots: Seg-Dom)
-  weeklyPlan   WeeklyPlan?
+  // Plano semanal (Biblioteca e Ativo)
+  activeWeeklyPlanId String?      @unique
+  activeWeeklyPlan   WeeklyPlan?  @relation("ActivePlan", fields: [activeWeeklyPlanId], references: [id])
+  weeklyPlans        WeeklyPlan[] @relation("LibraryPlans")
+
   weekOverride DateTime? // Override para reset manual (início da "semana atual" do user)
 
   // Academias
@@ -513,17 +516,24 @@ model StudentPersonalAssignment {
 // ============================================
 
 model WeeklyPlan {
-  id          String  @id @default(cuid())
-  studentId   String  @unique
-  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  title       String  @default("Meu Plano Semanal")
-  description String? // Subtítulo editável (ex: "7 dias • Segunda a Domingo")
+  id                String  @id @default(cuid())
+  studentId         String
+  student           Student @relation("LibraryPlans", fields: [studentId], references: [id], onDelete: Cascade)
+  title             String  @default("Meu Plano Semanal")
+  description       String? // Subtítulo editável (ex: "7 dias • Segunda a Domingo")
+  
+  isLibraryTemplate Boolean @default(false)
+  createdById       String?
+  creatorType       String? // "GYM" | "PERSONAL" | "STUDENT"
+  
+  activeForStudent  Student? @relation("ActivePlan")
 
   slots PlanSlot[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([studentId])
   @@map("weekly_plans")
 }
 

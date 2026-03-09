@@ -93,6 +93,13 @@ export interface StudentUnifiedState {
   ) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
 
+  // === ACTIONS - LIBRARY ===
+  loadLibraryPlans: () => Promise<void>;
+  createLibraryPlan: (data: any) => Promise<string>;
+  updateLibraryPlan: (planId: string, data: any) => Promise<void>;
+  deleteLibraryPlan: (planId: string) => Promise<void>;
+  activateLibraryPlan: (planId: string) => Promise<void>;
+
   // === ACTIONS - WORKOUT MANAGEMENT ===
   createUnit: (data: { title: string; description?: string }) => Promise<void>;
   updateUnit: (
@@ -468,6 +475,39 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             weeklyPlan: section.weeklyPlan ?? state.data.weeklyPlan,
           },
         }));
+      },
+
+      // === ACTIONS - LIBRARY ===
+      loadLibraryPlans: async () => {
+        const section = await loadSection("libraryPlans", true);
+        set((state) => ({
+          data: {
+            ...state.data,
+            libraryPlans: section.libraryPlans || state.data.libraryPlans,
+          },
+        }));
+      },
+
+      createLibraryPlan: async (data: any) => {
+        const response = await apiClient.post("/api/workouts/library", data);
+        await get().loadLibraryPlans();
+        const apiData = (response as { data?: { id?: string } }).data;
+        return apiData?.id || "";
+      },
+
+      updateLibraryPlan: async (planId: string, data: any) => {
+        await apiClient.put(`/api/workouts/library/${planId}`, data);
+        await get().loadLibraryPlans();
+      },
+
+      deleteLibraryPlan: async (planId: string) => {
+        await apiClient.delete(`/api/workouts/library/${planId}`);
+        await get().loadLibraryPlans();
+      },
+
+      activateLibraryPlan: async (planId: string) => {
+        await apiClient.post("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+        await get().loadWeeklyPlan(true); 
       },
 
       // === ACTIONS - ATUALIZAR DADOS ===

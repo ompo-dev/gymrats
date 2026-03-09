@@ -16,6 +16,8 @@ export interface UnitDetailsFormProps {
   isWeeklyPlanMode?: boolean;
   onResetWeek?: () => void;
   resetting?: boolean;
+  onSaveAsTemplate?: () => void;
+  savingTemplate?: boolean;
 }
 
 export function UnitDetailsForm({
@@ -31,6 +33,8 @@ export function UnitDetailsForm({
   isWeeklyPlanMode,
   onResetWeek,
   resetting = false,
+  onSaveAsTemplate,
+  savingTemplate = false,
 }: UnitDetailsFormProps) {
   return (
     <div className="space-y-4 bg-duo-bg-card p-6 rounded-2xl shadow-sm border border-duo-border">
@@ -61,29 +65,47 @@ export function UnitDetailsForm({
           placeholder="Descreva o objetivo deste plano..."
         />
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        {isWeeklyPlanMode && onResetWeek && (
+      <div className="flex flex-col gap-2 pt-2">
+        <div className="flex justify-end gap-2">
+          {isWeeklyPlanMode && onResetWeek && (
+            <DuoButton
+              variant="outline"
+              onClick={onResetWeek}
+              disabled={resetting}
+              className="font-bold flex items-center gap-2 w-full"
+            >
+              {resetting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
+              Resetar
+            </DuoButton>
+          )}
           <DuoButton
-            variant="outline"
-            onClick={onResetWeek}
-            disabled={resetting}
-            className="font-bold flex items-center gap-2 w-full"
+            onClick={onSave}
+            className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 w-full"
           >
-            {resetting ? (
+            <Save className="h-4 w-4" />
+            Salvar
+          </DuoButton>
+        </div>
+        
+        {isWeeklyPlanMode && onSaveAsTemplate && (
+          <DuoButton
+            variant="ghost"
+            onClick={onSaveAsTemplate}
+            disabled={savingTemplate}
+            className="font-bold flex items-center justify-center gap-2 w-full border border-dashed border-duo-green text-duo-green hover:bg-duo-green/10"
+          >
+            {savingTemplate ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <RotateCcw className="h-4 w-4" />
+              <Save className="h-4 w-4" />
             )}
-            Resetar
+            Salvar como Modelo na Biblioteca
           </DuoButton>
         )}
-        <DuoButton
-          onClick={onSave}
-          className="bg-duo-green hover:bg-duo-green-dark text-white font-bold flex items-center gap-2 w-full"
-        >
-          <Save className="h-4 w-4" />
-          Salvar
-        </DuoButton>
       </div>
     </div>
   );

@@ -146,6 +146,9 @@ export interface WeeklyPlanData {
   title: string;
   description?: string | null;
   slots: PlanSlotData[];
+  isLibraryTemplate?: boolean;
+  createdById?: string | null;
+  creatorType?: string | null;
 }
 
 export interface Achievement {
