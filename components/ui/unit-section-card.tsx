@@ -10,6 +10,7 @@ export interface UnitSectionCardProps
   title: string;
   icon?: LucideIcon;
   buttonHref?: string;
+  buttonIcon?: LucideIcon;
   onButtonClick?: () => void;
   additionalAction?: React.ReactNode;
   isLoading?: boolean;
@@ -21,6 +22,7 @@ export function UnitSectionCard({
   title,
   icon: Icon,
   buttonHref,
+  buttonIcon: ButtonIcon,
   onButtonClick,
   additionalAction,
   isLoading,
@@ -84,10 +86,10 @@ export function UnitSectionCard({
               <Loader2 className="h-6 w-6 animate-spin text-duo-green" />
             ) : buttonHref ? (
               <Link href={buttonHref}>
-                <Pencil className="h-6 w-6" />
+                {ButtonIcon ? <ButtonIcon className="h-6 w-6" /> : <Pencil className="h-6 w-6" />}
               </Link>
             ) : (
-              <Pencil className="h-6 w-6" />
+              ButtonIcon ? <ButtonIcon className="h-6 w-6" /> : <Pencil className="h-6 w-6" />
             )}
           </DuoButton>
         </div>
