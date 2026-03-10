@@ -1,33 +1,20 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "target": "ES2020",
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@gymrats/access-control": ["./packages/access-control/src/index.ts"],
+      "@gymrats/access-control/*": ["./packages/access-control/src/*"],
+      "@gymrats/auth": ["./packages/auth/src/index.ts"],
+      "@gymrats/config": ["./packages/config/src/index.ts"],
+      "@gymrats/db": ["./packages/db/src/index.ts"],
+      "@gymrats/env": ["./packages/env/src/index.ts"],
+      "@gymrats/schemas": ["./packages/schemas/src/index.ts"],
+      "@gymrats/schemas/*": ["./packages/schemas/src/*"],
+      "@gymrats/types": ["./packages/types/src/index.ts"],
+      "@gymrats/types/*": ["./packages/types/src/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "apps/**/*.ts", "apps/**/*.tsx"],
+  "exclude": ["node_modules", ".next"]
 }

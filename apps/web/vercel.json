@@ -1,0 +1,9 @@
+{
+  "bunVersion": "1.x",
+  "crons": [
+    {
+      "path": "/api/cron/week-reset",
+      "schedule": "0 6 * * 1"
+    }
+  ]
+}

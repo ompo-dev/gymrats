@@ -18,6 +18,7 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   experimental: {
+    externalDir: true,
     optimizePackageImports: [
       "@radix-ui/react-accordion",
       "@radix-ui/react-alert-dialog",
