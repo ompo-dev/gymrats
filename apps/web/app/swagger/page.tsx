@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 
 interface SwaggerTag {
   name: string;
@@ -27,9 +28,10 @@ interface SwaggerSpec {
 export default function SwaggerPage() {
   const [spec, setSpec] = useState<SwaggerSpec | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const swaggerJsonUrl = `${resolveApiBaseUrl()}/api/swagger`;
 
   useEffect(() => {
-    fetch("/api/swagger")
+    fetch(swaggerJsonUrl)
       .then((res) => res.json())
       .then((data) => {
         setSpec(data);
@@ -37,7 +39,7 @@ export default function SwaggerPage() {
       .catch((err) => {
         setError(err.message);
       });
-  }, []);
+  }, [swaggerJsonUrl]);
 
   if (error) {
     return (
@@ -79,7 +81,7 @@ export default function SwaggerPage() {
               Abrir no Swagger Editor
             </a>
             <a
-              href="/api/swagger"
+              href={swaggerJsonUrl}
               target="_blank"
               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               rel="noopener"
@@ -169,7 +171,7 @@ export default function SwaggerPage() {
           <p className="text-sm text-blue-800">
             <strong>💡 Dica:</strong> Para uma visualização interativa completa,
             copie o JSON de{" "}
-            <code className="bg-blue-100 px-1 rounded">/api/swagger</code> e
+            <code className="bg-blue-100 px-1 rounded">{swaggerJsonUrl}</code> e
             cole no{" "}
             <a
               href="https://editor.swagger.io/"

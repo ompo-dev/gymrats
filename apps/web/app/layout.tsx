@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
 import AppUpdatingScreenWrapper from "@/components/organisms/pwa/app-updating-screen-wrapper";
 import PWAUpdateBanner from "@/components/organisms/pwa/pwa-update-banner";
+import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { PWAProtection } from "./pwa-protection";
 import "./globals.css";
@@ -73,14 +74,16 @@ export default function RootLayout({
           <ErrorBoundary>
             <DuoThemeProvider>
               <QueryProvider>
-                <PerformanceOptimizer />
-                {children}
-                <Suspense fallback={null}>
-                  <AppUpdatingScreenWrapper />
-                  <PWAUpdateBanner />
-                </Suspense>
-                <PWAProtection />
-                <Analytics />
+                <AuthSessionProvider>
+                  <PerformanceOptimizer />
+                  {children}
+                  <Suspense fallback={null}>
+                    <AppUpdatingScreenWrapper />
+                    <PWAUpdateBanner />
+                  </Suspense>
+                  <PWAProtection />
+                  <Analytics />
+                </AuthSessionProvider>
               </QueryProvider>
             </DuoThemeProvider>
           </ErrorBoundary>

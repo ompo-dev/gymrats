@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 
 interface SwaggerUIConfig {
   url: string;
@@ -39,6 +40,7 @@ declare global {
 export default function ApiDocsPage() {
   const swaggerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
+  const swaggerJsonUrl = `${resolveApiBaseUrl()}/api/swagger`;
 
   useEffect(() => {
     if (typeof window === "undefined" || !swaggerRef.current) return;
@@ -51,7 +53,7 @@ export default function ApiDocsPage() {
         swaggerRef.current.innerHTML = "";
 
         SwaggerUIBundle({
-          url: "/api/swagger",
+          url: swaggerJsonUrl,
           dom_id: "#swagger-ui",
           presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
           layout: "StandaloneLayout",
@@ -128,7 +130,7 @@ export default function ApiDocsPage() {
     };
 
     document.body.appendChild(bundleScript);
-  }, []);
+  }, [swaggerJsonUrl]);
 
   return (
     <div className="min-h-screen bg-white">

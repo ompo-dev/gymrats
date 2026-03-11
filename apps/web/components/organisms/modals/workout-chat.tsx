@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Features } from "@/lib/access-control/features";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
 import { apiClient } from "@/lib/api/client";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 import { getAuthToken } from "@/lib/auth/token-client";
 import type {
   PlanSlotData,
@@ -819,16 +820,12 @@ export function WorkoutChat({
         })),
       }));
 
-      // Usar SSE (Server-Sent Events) para streaming da resposta
-      // No browser, sempre usar mesma origem (URL relativa) para evitar drift de porta
-      const API_BASE_URL =
-        typeof window !== "undefined"
-          ? ""
-          : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      // Usar URL absoluta da API para suportar frontend em Vercel e backend no Railway.
+      const apiBaseUrl = resolveApiBaseUrl();
       const token = getAuthToken();
 
       // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
-      const response = await fetch(`${API_BASE_URL}${chatStreamUrl}`, {
+      const response = await fetch(`${apiBaseUrl}${chatStreamUrl}`, {
         method: "POST",
         cache: "no-store",
         credentials: "include",

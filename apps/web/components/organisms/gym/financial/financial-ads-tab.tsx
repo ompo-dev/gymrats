@@ -14,15 +14,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  createBoostCampaign,
-  deleteBoostCampaign,
-  getBoostCampaignPix,
-} from "@/app/gym/actions";
+  createGymBoostCampaignRequest,
+  deleteGymBoostCampaignRequest,
+  getGymBoostCampaignPixRequest,
+} from "@/lib/api/gym-client";
 import {
-  createPersonalBoostCampaign,
-  deletePersonalBoostCampaign,
-  getPersonalBoostCampaignPix,
-} from "@/app/personal/actions";
+  createPersonalBoostCampaignRequest,
+  deletePersonalBoostCampaignRequest,
+  getPersonalBoostCampaignPixRequest,
+} from "@/lib/api/personal-client";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -159,7 +159,9 @@ export function FinancialAdsTab({
     setIsSubmitting(true);
     try {
       const createFn =
-        variant === "personal" ? createPersonalBoostCampaign : createBoostCampaign;
+        variant === "personal"
+          ? createPersonalBoostCampaignRequest
+          : createGymBoostCampaignRequest;
       const result = await createFn({
         title,
         description,
@@ -205,8 +207,8 @@ export function FinancialAdsTab({
     try {
       const getPixFn =
         variant === "personal"
-          ? getPersonalBoostCampaignPix
-          : getBoostCampaignPix;
+          ? getPersonalBoostCampaignPixRequest
+          : getGymBoostCampaignPixRequest;
       const result = await getPixFn(campaign.id);
       if (result.success) {
         setPixModal({
@@ -232,8 +234,8 @@ export function FinancialAdsTab({
     try {
       const deleteFn =
         variant === "personal"
-          ? deletePersonalBoostCampaign
-          : deleteBoostCampaign;
+          ? deletePersonalBoostCampaignRequest
+          : deleteGymBoostCampaignRequest;
       const result = await deleteFn(campaignId);
       if (result.success) {
         toast({ title: "Campanha exclu\u00edda." });
@@ -697,8 +699,8 @@ export function FinancialAdsTab({
           onCancelPayment={async () => {
             const deleteFn =
               variant === "personal"
-                ? deletePersonalBoostCampaign
-                : deleteBoostCampaign;
+                ? deletePersonalBoostCampaignRequest
+                : deleteGymBoostCampaignRequest;
             await deleteFn(pixModal.campaignId);
           }}
           title="Pagar Anúncio"

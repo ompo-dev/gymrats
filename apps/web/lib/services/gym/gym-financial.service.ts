@@ -259,7 +259,7 @@ export class GymFinancialService {
       };
     }
 
-    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { abacatePay } = await import("../../../../api/src/lib/api/abacatepay");
     const pixType = gym.pixKeyType.toUpperCase() as
       | "CPF"
       | "CNPJ"

@@ -3,7 +3,7 @@ import type {
   PersonalProfile,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
-} from "@/app/personal/types";
+} from "@gymrats/types/personal-module";
 import type { Expense, FinancialSummary } from "@/lib/types";
 
 export interface PersonalMetadata {

@@ -4,6 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient } from "@/lib/api/client";
 
 const FILTER_ALL = "all";
 const FILTER_INDEPENDENT = "independent";
@@ -74,12 +75,14 @@ export function usePersonalStudents({
     let cancelled = false;
     setIsLoadingAssignment(true);
     setFetchedAssignment(null);
-    fetch(`/api/personals/students/${studentId}`)
-      .then((res) => res.json())
-      .then((data) => {
+    apiClient
+      .get<{ assignment?: PersonalStudentItem }>(
+        `/api/personals/students/${studentId}`,
+      )
+      .then((response) => {
         if (cancelled) return;
-        if (data.assignment) {
-          setFetchedAssignment(data.assignment as PersonalStudentItem);
+        if (response.data.assignment) {
+          setFetchedAssignment(response.data.assignment);
         }
       })
       .finally(() => {

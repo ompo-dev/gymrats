@@ -3,37 +3,27 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { authApi } from "@/lib/api/auth";
+import { setAuthToken } from "@/lib/auth/token-client";
 import { authClient } from "@/lib/auth-client";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
 
-/**
- * Página de callback do OAuth
- *
- * Esta página processa o callback do Google OAuth e:
- * - Se estiver em PWA e aberta em popup: comunica com a janela pai via postMessage
- * - Se estiver em navegador normal: redireciona normalmente
- */
 function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<"processing" | "success" | "error">(
     "processing",
   );
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState("");
 
-  // Detectar se foi aberta em popup (PWA) - window.opener não é null quando aberta via window.open()
-  // IMPORTANTE: window.opener pode ser perdido após redirects, então também verificamos sessionStorage
   const [isInPopup] = useState(() => {
     if (typeof window === "undefined") return false;
-    // Verificar window.opener primeiro (mais confiável)
     if (window.opener !== null && window.opener !== window) {
       return true;
     }
-    // Fallback: verificar sessionStorage (setado antes de abrir popup)
+
     return sessionStorage.getItem("pwa_oauth_popup") === "true";
   });
   const _isPWA = typeof window !== "undefined" ? isStandaloneMode() : false;
 
-  // Limpar flag do sessionStorage após detectar
   useEffect(() => {
     if (isInPopup && typeof window !== "undefined") {
       sessionStorage.removeItem("pwa_oauth_popup");
@@ -41,85 +31,6 @@ function AuthCallbackPageContent() {
   }, [isInPopup]);
 
   useEffect(() => {
-    const processCallback = async () => {
-      try {
-        // Verificar se há erro na URL
-        const errorParam = searchParams.get("error");
-        if (errorParam) {
-          throw new Error("Erro durante autenticação. Tente novamente.");
-        }
-
-        // Aguardar um pouco para o Better Auth processar o callback
-        // O Better Auth processa o callback via `/api/auth/callback/google`
-        // e então redireciona para esta página (/auth/callback)
-        // Aguardar mais tempo para garantir que o Better Auth terminou de processar
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Buscar sessão do Better Auth diretamente
-        const { data: session } = await authClient.getSession();
-
-        if (!session?.user) {
-          // Tentar buscar via API também (fallback)
-          const sessionResponse = await authApi.getSession();
-          if (!sessionResponse?.user) {
-            // Se ainda não tem sessão, aguardar mais um pouco
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            const { data: retrySession } = await authClient.getSession();
-            if (!retrySession?.user) {
-              throw new Error(
-                "Sessão não encontrada após login. Por favor, tente novamente.",
-              );
-            }
-            // Processar com retrySession
-            const sessionResponse2 = await authApi.getSession();
-            if (!sessionResponse2?.user) {
-              throw new Error("Erro ao buscar dados da sessão");
-            }
-            processSuccess(sessionResponse2);
-            return;
-          }
-          processSuccess(sessionResponse);
-          return;
-        }
-
-        // Buscar dados completos via nossa API de session
-        const sessionResponse = await authApi.getSession();
-
-        if (!sessionResponse) {
-          throw new Error("Erro ao buscar dados da sessão");
-        }
-
-        processSuccess(sessionResponse);
-      } catch (err) {
-        console.error("Erro ao processar callback:", err);
-        const msg =
-          err instanceof Error ? err.message : "Erro ao processar login";
-        setError(msg);
-
-        // Se está em popup, enviar mensagem de erro
-        if (isInPopup && window.opener) {
-          window.opener.postMessage(
-            {
-              type: "OAUTH_ERROR",
-              error: msg,
-            },
-            window.location.origin,
-          );
-
-          setTimeout(() => {
-            window.close();
-          }, 2000);
-        } else {
-          // Se não está em popup, redirecionar para welcome com erro
-          setTimeout(() => {
-            window.location.href = "/welcome?error=google";
-          }, 2000);
-        }
-
-        setStatus("error");
-      }
-    };
-
     const processSuccess = (sessionResponse: {
       user: {
         id: string;
@@ -129,11 +40,13 @@ function AuthCallbackPageContent() {
       };
       session?: { token?: string };
     }) => {
+      if (sessionResponse.session?.token) {
+        setAuthToken(sessionResponse.session.token);
+      }
+
       const userRole = (sessionResponse.user as { role?: string }).role;
 
-      // Se está em popup (PWA), comunicar com janela pai
       if (isInPopup && window.opener) {
-        // Enviar mensagem para a janela pai (PWA)
         window.opener.postMessage(
           {
             type: "OAUTH_SUCCESS",
@@ -152,19 +65,92 @@ function AuthCallbackPageContent() {
 
         setStatus("success");
 
-        // Fechar a popup após um pequeno delay
         setTimeout(() => {
           window.close();
         }, 1000);
-      } else {
-        // Navegador normal - redirecionar conforme role
-        const redirectURL =
-          userRole === "PENDING"
-            ? "/auth/register/user-type"
-            : userRole === "GYM"
-              ? "/gym"
+
+        return;
+      }
+
+      const redirectURL =
+        userRole === "PENDING"
+          ? "/auth/register/user-type"
+          : userRole === "GYM"
+            ? "/gym"
+            : userRole === "PERSONAL"
+              ? "/personal"
               : "/student";
-        window.location.href = redirectURL;
+
+      window.location.href = redirectURL;
+    };
+
+    const processCallback = async () => {
+      try {
+        const errorParam = searchParams.get("error");
+        if (errorParam) {
+          throw new Error("Erro durante autenticacao. Tente novamente.");
+        }
+
+        const urlToken =
+          searchParams.get("token") || searchParams.get("oneTimeToken");
+
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        let sessionResponse =
+          urlToken != null
+            ? await authApi.exchangeOneTimeToken(urlToken)
+            : null;
+
+        if (!sessionResponse) {
+          try {
+            const generated = await authClient.oneTimeToken.generate();
+            if (generated?.data?.token) {
+              sessionResponse = await authApi.exchangeOneTimeToken(
+                generated.data.token,
+              );
+            }
+          } catch (generateError) {
+            console.warn(
+              "Falha ao gerar one-time token, tentando fallback de sessao:",
+              generateError,
+            );
+          }
+        }
+
+        if (!sessionResponse) {
+          sessionResponse = await authApi.getSession();
+        }
+
+        if (!sessionResponse?.user) {
+          throw new Error("Erro ao buscar dados da sessao");
+        }
+
+        processSuccess(sessionResponse);
+      } catch (err) {
+        console.error("Erro ao processar callback:", err);
+        const message =
+          err instanceof Error ? err.message : "Erro ao processar login";
+        setError(message);
+
+        if (isInPopup && window.opener) {
+          window.opener.postMessage(
+            {
+              type: "OAUTH_ERROR",
+              error: message,
+            },
+            window.location.origin,
+          );
+
+          setTimeout(() => {
+            window.close();
+          }, 2000);
+        } else {
+          setTimeout(() => {
+            window.location.href = "/welcome?error=google";
+          }, 2000);
+        }
+
+        setStatus("error");
       }
     };
 
@@ -202,7 +188,7 @@ function AuthCallbackPageContent() {
             <p className="text-gray-600">Login realizado com sucesso!</p>
             {isInPopup && (
               <p className="text-sm text-gray-500 mt-2">
-                Esta janela será fechada automaticamente...
+                Esta janela sera fechada automaticamente...
               </p>
             )}
           </>
@@ -230,7 +216,7 @@ function AuthCallbackPageContent() {
             <p className="text-sm text-gray-600">{error}</p>
             {isInPopup && (
               <p className="text-sm text-gray-500 mt-2">
-                Esta janela será fechada automaticamente...
+                Esta janela sera fechada automaticamente...
               </p>
             )}
           </>
@@ -240,9 +226,6 @@ function AuthCallbackPageContent() {
   );
 }
 
-/**
- * Wrapper com Suspense para useSearchParams
- */
 export default function AuthCallbackPage() {
   return (
     <Suspense

@@ -1,3 +1,38 @@
+function toOrigin(value) {
+  if (!value) return null;
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
+}
+
+const cspConnectSrc = [
+  "'self'",
+  "wss:",
+  "https:",
+  toOrigin(process.env.NEXT_PUBLIC_APP_URL),
+  toOrigin(process.env.NEXT_PUBLIC_API_URL),
+  toOrigin(process.env.BETTER_AUTH_URL),
+  toOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL),
+].filter(Boolean);
+
+if (process.env.NODE_ENV !== "production") {
+  cspConnectSrc.push("ws:");
+}
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "img-src 'self' blob: data: https:",
+  "font-src 'self' data: https:",
+  `connect-src ${[...new Set(cspConnectSrc)].join(" ")}`,
+  "frame-src 'self' https:",
+  "media-src 'self' https:",
+].join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -126,8 +161,7 @@ const nextConfig = {
           },
           {
             key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' blob: data: https:; font-src 'self' data: https:; connect-src 'self' wss: https:; frame-src 'self' https:; media-src 'self' https:;",
+            value: contentSecurityPolicy,
           },
         ],
       },

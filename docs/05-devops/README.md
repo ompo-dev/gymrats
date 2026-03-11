@@ -1,45 +1,18 @@
 # 05-devops
 
 - Caminho: `docs/05-devops`
-- Finalidade: documentação técnica e funcional organizada por domínio.
+- Finalidade: documentacao tecnica e operacional do stack local, split Vercel + Railway e suporte de ambiente.
 
-## Subpastas
-- Nenhuma subpasta.
+## Arquivos principais
 
-## Arquivos
-- `DOCKER.md`: Arquivo da camada local.
-- `SEED_DATABASE.md`: Arquivo da camada local.
-- `SEGURANCA_LOCALSTORAGE.md`: Arquivo da camada local.
+- `DOCKER.md`: operacao do stack Docker local com `web`, `api`, `worker`, `cron`, `redis` e `db` opcional.
+- `ENV_SPLIT.md`: divisao das variaveis de ambiente entre frontend, backend e compose local.
+- `MIGRATIONS.md`: fluxo operacional de migrations custom em `apps/web/scripts/migration` e comandos auxiliares de Prisma.
+- `STACK_COMMANDS.md`: referencia operacional dos comandos `npm run stack:*`.
+- `VERCEL_RAILWAY_SPLIT_RUNBOOK.md`: runbook operacional do split frontend Vercel + backend Railway.
 
-## Detalhamento técnico por arquivo
+## Observacoes
 
-### `DOCKER.md`
-- O que faz: documenta decisões e operação referentes a `docs/05-devops/DOCKER.md`.
-- Como: organiza instruções, contexto de arquitetura e referências de manutenção para o time.
-- Por que: reduz custo de onboarding e evita conhecimento implícito disperso.
-- Importa principalmente: sem imports relevantes detectados.
-- Expõe: sem exports nomeados (ou apenas default).
-- Comunica com: Runtime Elysia
-- Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
-
-### `SEED_DATABASE.md`
-- O que faz: documenta decisões e operação referentes a `docs/05-devops/SEED_DATABASE.md`.
-- Como: organiza instruções, contexto de arquitetura e referências de manutenção para o time.
-- Por que: reduz custo de onboarding e evita conhecimento implícito disperso.
-- Importa principalmente: sem imports relevantes detectados.
-- Expõe: sem exports nomeados (ou apenas default).
-- Comunica com: Banco de dados (Prisma)
-- Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
-
-### `SEGURANCA_LOCALSTORAGE.md`
-- O que faz: documenta decisões e operação referentes a `docs/05-devops/SEGURANCA_LOCALSTORAGE.md`.
-- Como: organiza instruções, contexto de arquitetura e referências de manutenção para o time.
-- Por que: reduz custo de onboarding e evita conhecimento implícito disperso.
-- Importa principalmente: sem imports relevantes detectados.
-- Expõe: sem exports nomeados (ou apenas default).
-- Comunica com: Autenticação/sessão, HTTP interno/externo
-- Onde é usado/importado: nenhuma referência direta detectada (pode ser uso dinâmico/entrypoint/framework).
-
-## Observações
-- Leitura gerada por análise estática de símbolos, chamadas e imports do diretório e vizinhança de uso.
-- Para operação em produção, complementar com contratos de payload, códigos de erro, invariantes e cenários de falha.
+- O stack local atual usa `.env.docker` como ambiente padrao.
+- `stack:migrate` e explicito e nao roda automaticamente no `stack:up`.
+- O caminho canonico de migrations do projeto permanece em `apps/web/scripts/migration`.

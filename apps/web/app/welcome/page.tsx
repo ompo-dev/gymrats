@@ -13,6 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 import { setAuthToken } from "@/lib/auth/token-client";
 import { authClient } from "@/lib/auth-client";
 import { isStandaloneMode } from "@/lib/utils/pwa-detection";
@@ -274,9 +275,10 @@ function WelcomePageContent() {
     try {
       // Se está em PWA, abrir OAuth em popup para voltar ao app após login
       if (isPWA) {
-        const baseURL =
+        const appBaseURL =
           process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const callbackURL = `${baseURL}/auth/callback`;
+        const apiBaseURL = resolveApiBaseUrl() || appBaseURL;
+        const callbackURL = `${appBaseURL}/auth/callback`;
 
         // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
         sessionStorage.setItem("pwa_oauth_popup", "true");
@@ -303,7 +305,7 @@ function WelcomePageContent() {
         try {
           // Fazer requisição POST com JSON (não form-urlencoded) para o Better Auth
           // Usar redirect: "manual" para controlar o redirect manualmente na popup
-          const response = await fetch(`${baseURL}/api/auth/sign-in/social`, {
+          const response = await fetch(`${apiBaseURL}/api/auth/sign-in/social`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -388,9 +390,9 @@ function WelcomePageContent() {
         // Navegador normal - usar redirecionamento padrão do Better Auth
         await authClient.signIn.social({
           provider: "google",
-          callbackURL: "/welcome?callback=google",
-          errorCallbackURL: "/welcome?error=google",
-          newUserCallbackURL: "/welcome?callback=google",
+          callbackURL: `${window.location.origin}/auth/callback`,
+          errorCallbackURL: `${window.location.origin}/welcome?error=google`,
+          newUserCallbackURL: `${window.location.origin}/auth/callback`,
         });
         // O redirecionamento para Google será automático
       }

@@ -103,6 +103,62 @@
         "typescript": "^5",
       },
     },
+    "apps/api": {
+      "name": "@gymrats/api-app",
+      "version": "36.0.0",
+    },
+    "apps/cron": {
+      "name": "@gymrats/cron",
+      "version": "36.0.0",
+    },
+    "apps/web": {
+      "name": "@gymrats/web",
+      "version": "36.0.0",
+    },
+    "apps/worker": {
+      "name": "@gymrats/worker",
+      "version": "36.0.0",
+    },
+    "packages/access-control": {
+      "name": "@gymrats/access-control",
+      "version": "36.0.0",
+    },
+    "packages/api": {
+      "name": "@gymrats/api",
+      "version": "36.0.0",
+    },
+    "packages/auth": {
+      "name": "@gymrats/auth",
+      "version": "36.0.0",
+    },
+    "packages/cache": {
+      "name": "@gymrats/cache",
+      "version": "36.0.0",
+    },
+    "packages/config": {
+      "name": "@gymrats/config",
+      "version": "36.0.0",
+    },
+    "packages/db": {
+      "name": "@gymrats/db",
+      "version": "36.0.0",
+    },
+    "packages/env": {
+      "name": "@gymrats/env",
+      "version": "36.0.0",
+    },
+    "packages/schemas": {
+      "name": "@gymrats/schemas",
+      "version": "36.0.0",
+    },
+    "packages/types": {
+      "name": "@gymrats/types",
+      "version": "36.0.0",
+    },
+    "packages/workflows": {
+      "name": "@gymrats/workflows",
+      "version": "36.0.0",
+    },
   },
   "packages": {
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
@@ -328,6 +384,34 @@
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
     "@gerrit0/mini-shiki": ["@gerrit0/mini-shiki@3.23.0", "", { "dependencies": { "@shikijs/engine-oniguruma": "^3.23.0", "@shikijs/langs": "^3.23.0", "@shikijs/themes": "^3.23.0", "@shikijs/types": "^3.23.0", "@shikijs/vscode-textmate": "^10.0.2" } }, "sha512-bEMORlG0cqdjVyCEuU0cDQbORWX+kYCeo0kV1lbxF5bt4r7SID2l9bqsxJEM0zndaxpOUT7riCyIVEuqq/Ynxg=="],
+
+    "@gymrats/access-control": ["@gymrats/access-control@workspace:packages/access-control"],
+
+    "@gymrats/api": ["@gymrats/api@workspace:packages/api"],
+
+    "@gymrats/api-app": ["@gymrats/api-app@workspace:apps/api"],
+
+    "@gymrats/auth": ["@gymrats/auth@workspace:packages/auth"],
+
+    "@gymrats/cache": ["@gymrats/cache@workspace:packages/cache"],
+
+    "@gymrats/config": ["@gymrats/config@workspace:packages/config"],
+
+    "@gymrats/cron": ["@gymrats/cron@workspace:apps/cron"],
+
+    "@gymrats/db": ["@gymrats/db@workspace:packages/db"],
+
+    "@gymrats/env": ["@gymrats/env@workspace:packages/env"],
+
+    "@gymrats/schemas": ["@gymrats/schemas@workspace:packages/schemas"],
+
+    "@gymrats/types": ["@gymrats/types@workspace:packages/types"],
+
+    "@gymrats/web": ["@gymrats/web@workspace:apps/web"],
+
+    "@gymrats/worker": ["@gymrats/worker@workspace:apps/worker"],
+
+    "@gymrats/workflows": ["@gymrats/workflows@workspace:packages/workflows"],
 
     "@hookform/resolvers": ["@hookform/resolvers@3.10.0", "", { "peerDependencies": { "react-hook-form": "^7.0.0" } }, "sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag=="],
 

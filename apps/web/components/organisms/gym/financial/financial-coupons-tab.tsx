@@ -3,11 +3,14 @@
 import { Calendar, Gift, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import { createGymCoupon, deleteGymCoupon } from "@/app/gym/actions";
 import {
-  createPersonalCoupon,
-  deletePersonalCoupon,
-} from "@/app/personal/actions";
+  createGymCouponRequest,
+  deleteGymCouponRequest,
+} from "@/lib/api/gym-client";
+import {
+  createPersonalCouponRequest,
+  deletePersonalCouponRequest,
+} from "@/lib/api/personal-client";
 import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useToast } from "@/hooks/use-toast";
@@ -90,7 +93,9 @@ export function FinancialCouponsTab({
     setIsSubmitting(true);
     try {
       const createFn =
-        variant === "personal" ? createPersonalCoupon : createGymCoupon;
+        variant === "personal"
+          ? createPersonalCouponRequest
+          : createGymCouponRequest;
       const result = await createFn({
         code: codeTrim,
         notes: notes.trim() || codeTrim,
@@ -133,7 +138,9 @@ export function FinancialCouponsTab({
     setConfirmDeleteCouponId(null);
     try {
       const deleteFn =
-        variant === "personal" ? deletePersonalCoupon : deleteGymCoupon;
+        variant === "personal"
+          ? deletePersonalCouponRequest
+          : deleteGymCouponRequest;
       const result = await deleteFn(couponId);
       if (result.success) {
         toast({ title: "Cupom exclu\u00eddo" });

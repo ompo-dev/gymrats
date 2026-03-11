@@ -5,9 +5,12 @@
 
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getSwaggerSpec } from "../lib/api/swagger-spec";
+import { getSwaggerSpec } from "../../api/src/lib/api/swagger-spec";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const baseUrl =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.BETTER_AUTH_URL ||
+  "http://localhost:4000";
 const spec = getSwaggerSpec(baseUrl);
 const outputPath = resolve(process.cwd(), "openapi.json");
 

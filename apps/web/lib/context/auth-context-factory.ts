@@ -1,14 +1,7 @@
-/**
- * Factory unificada para contexto de autenticação (gym e student).
- *
- * Centraliza: Better Auth primeiro, fallback para token manual via getSessionToken.
- * gym-context e student-context delegam para esta factory.
- */
-
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
-import { getSessionToken } from "@/lib/utils/get-session-token";
 import { getSession } from "@/lib/utils/session";
 
 export type AuthSession = {
@@ -19,6 +12,8 @@ export type AuthSession = {
     gyms?: { id: string }[];
     role?: string;
     activeGymId?: string;
+    name?: string;
+    email?: string;
     [key: string]: string | number | boolean | object | null | undefined;
   };
 };
@@ -63,14 +58,42 @@ export type UserOnlyContextResult =
   | { ctx: UserOnlyContext; error?: undefined }
   | { ctx?: undefined; error: string };
 
-async function getAuthSession(): Promise<AuthSession | null> {
-  const headerList = await import("next/headers").then((m) => m.headers());
+async function getRequestHeaders() {
+  const headerList = await headers();
+  return new Headers(headerList);
+}
 
-  // 1. Tentar Better Auth primeiro
+async function getSessionToken(): Promise<string | null> {
+  const requestHeaders = await getRequestHeaders();
+  const cookieHeader = requestHeaders.get("cookie");
+
+  if (cookieHeader) {
+    for (const cookie of cookieHeader.split(";")) {
+      const [rawKey, ...rest] = cookie.trim().split("=");
+      if (
+        rawKey === "auth_token" ||
+        rawKey === "better-auth.session_token"
+      ) {
+        return decodeURIComponent(rest.join("="));
+      }
+    }
+  }
+
+  const authHeader = requestHeaders.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
+
+  return null;
+}
+
+async function getAuthSession(): Promise<AuthSession | null> {
+  const requestHeaders = await getRequestHeaders();
+
   try {
     const { auth } = await import("@/lib/auth-config");
     const betterAuthSession = await auth.api.getSession({
-      headers: headerList,
+      headers: requestHeaders,
     });
 
     if (betterAuthSession?.user) {
@@ -91,17 +114,20 @@ async function getAuthSession(): Promise<AuthSession | null> {
       }
     }
   } catch (err) {
-    log.debug("[auth-context-factory] Better Auth não encontrou sessão", {
+    log.debug("[auth-context-factory] Better Auth nao encontrou sessao", {
       error: err instanceof Error ? err.message : String(err),
     });
   }
 
-  // 2. Fallback: token manual
   const sessionToken = await getSessionToken();
-  if (!sessionToken) return null;
+  if (!sessionToken) {
+    return null;
+  }
 
   const session = await getSession(sessionToken);
-  if (!session?.user) return null;
+  if (!session?.user) {
+    return null;
+  }
 
   return {
     session,
@@ -126,12 +152,13 @@ export async function getAuthContext(options: {
     if (options.type === "gym" || options.type === "personal") {
       return {
         errorResponse: NextResponse.json(
-          { error: "Não autenticado" },
+          { error: "Nao autenticado" },
           { status: 401 },
         ),
       };
     }
-    return { error: "Não autenticado." };
+
+    return { error: "Nao autenticado." };
   }
 
   const { session, user } = auth;
@@ -142,15 +169,17 @@ export async function getAuthContext(options: {
     if (!isAdmin && !isPersonalRole) {
       return {
         errorResponse: NextResponse.json(
-          { error: "Usuário não é um personal" },
+          { error: "Usuario nao e um personal" },
           { status: 403 },
         ),
       };
     }
+
     const userWithPersonal = await db.user.findUnique({
       where: { id: user.id },
       include: { personal: { select: { id: true } } },
     });
+
     let personalId = (userWithPersonal?.personal as { id: string } | null)?.id;
     if (!personalId && (isAdmin || isPersonalRole)) {
       const existing = await db.personal.findUnique({
@@ -163,22 +192,24 @@ export async function getAuthContext(options: {
         const created = await db.personal.create({
           data: {
             userId: user.id,
-            name: (user.name as string) || "Personal",
-            email: (user.email as string) || "",
+            name: user.name || "Personal",
+            email: user.email || "",
           },
           select: { id: true },
         });
         personalId = created.id;
       }
     }
+
     if (!personalId) {
       return {
         errorResponse: NextResponse.json(
-          { error: "Personal ID não encontrado" },
+          { error: "Personal ID nao encontrado" },
           { status: 500 },
         ),
       };
     }
+
     return {
       ctx: { personalId, session, user },
     };
@@ -192,6 +223,7 @@ export async function getAuthContext(options: {
       const existingGym = await db.gym.findFirst({
         where: { userId: user.id },
       });
+
       if (existingGym) {
         gymId = existingGym.id;
       } else {
@@ -201,7 +233,7 @@ export async function getAuthContext(options: {
             name: user.name || "Admin Gym",
             address: "",
             phone: "",
-            email: user.email,
+            email: user.email || "",
             isActive: true,
           },
         });
@@ -216,7 +248,7 @@ export async function getAuthContext(options: {
     if (!gymId) {
       return {
         errorResponse: NextResponse.json(
-          { error: "Academia não encontrada" },
+          { error: "Academia nao encontrada" },
           { status: 403 },
         ),
       };
@@ -227,7 +259,6 @@ export async function getAuthContext(options: {
     };
   }
 
-  // type === "student"
   const isAdmin = user.role === "ADMIN";
   let student = user.student;
 
@@ -239,12 +270,12 @@ export async function getAuthContext(options: {
   }
 
   if (!student) {
-    return { error: "Perfil de aluno não encontrado." };
+    return { error: "Perfil de aluno nao encontrado." };
   }
 
   return {
     ctx: {
-      studentId: student.id,
+      studentId: String(student.id),
       session,
       user,
       student,
@@ -252,9 +283,11 @@ export async function getAuthContext(options: {
   };
 }
 
-/** Retorna apenas o usuário autenticado, sem exigir student/gym. Útil para PENDING. */
 export async function getUserContext(): Promise<UserOnlyContextResult> {
   const auth = await getAuthSession();
-  if (!auth) return { error: "Não autenticado." };
+  if (!auth) {
+    return { error: "Nao autenticado." };
+  }
+
   return { ctx: { user: auth.user, session: auth.session } };
 }

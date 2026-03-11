@@ -9,7 +9,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useState } from "react";
-import { createGymWithdraw } from "@/app/gym/actions";
+import { createGymWithdrawRequest } from "@/lib/api/gym-client";
 import {
   DuoAlert,
   DuoButton,
@@ -89,7 +89,7 @@ export function FinancialOverviewTab({
     }
     setIsWithdrawing(true);
     try {
-      const result = await createGymWithdraw({
+      const result = await createGymWithdrawRequest({
         amountCents,
         fake: fakeWithdraw,
       });

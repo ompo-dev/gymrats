@@ -1,7 +1,22 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware } from "better-auth/api";
+import { bearer } from "better-auth/plugins/bearer";
+import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { db } from "@gymrats/db";
+
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const apiUrl =
+  process.env.BETTER_AUTH_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  appUrl;
+const extraTrustedOrigins = (process.env.TRUSTED_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const trustedOrigins = Array.from(
+  new Set([appUrl, apiUrl, ...extraTrustedOrigins]),
+);
 
 if (!process.env.BETTER_AUTH_SECRET) {
   throw new Error("BETTER_AUTH_SECRET não está configurado no .env");
@@ -42,12 +57,15 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     },
   },
-  baseURL:
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "http://localhost:3000",
+  plugins: [
+    bearer(),
+    oneTimeToken({
+      expiresIn: 3,
+    }),
+  ],
+  baseURL: apiUrl,
   basePath: "/api/auth",
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"],
+  trustedOrigins,
   // Configurar mapeamento de campos para Session
   session: {
     fields: {

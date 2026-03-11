@@ -13,12 +13,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { PersonalMembershipPlan } from "@/app/personal/actions";
 import {
-  createPersonalMembershipPlan,
-  updatePersonalMembershipPlan,
-  deletePersonalMembershipPlan,
-} from "@/app/personal/actions";
+  createPersonalMembershipPlanRequest,
+  deletePersonalMembershipPlanRequest,
+  updatePersonalMembershipPlanRequest,
+} from "@/lib/api/personal-client";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
 interface PlanFormData {
   name: string;
@@ -85,9 +85,9 @@ export function PersonalMembershipPlansPage({
         };
 
         if (editingId) {
-          await updatePersonalMembershipPlan(editingId, payload);
+          await updatePersonalMembershipPlanRequest(editingId, payload);
         } else {
-          await createPersonalMembershipPlan(payload);
+          await createPersonalMembershipPlanRequest(payload);
         }
         await onRefresh?.();
         resetForm();
@@ -104,7 +104,7 @@ export function PersonalMembershipPlansPage({
     if (!planToDelete) return;
     startTransition(async () => {
       try {
-        await deletePersonalMembershipPlan(planToDelete);
+        await deletePersonalMembershipPlanRequest(planToDelete);
         await onRefresh?.();
       } catch (error) {
         console.error("Erro ao deletar plano:", error);

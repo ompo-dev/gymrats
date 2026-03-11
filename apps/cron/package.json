@@ -1,0 +1,11 @@
+{
+  "name": "@gymrats/cron",
+  "version": "36.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --target bun --outdir dist",
+    "start": "bun --bun src/index.ts",
+    "week-reset": "bun --bun src/index.ts"
+  }
+}

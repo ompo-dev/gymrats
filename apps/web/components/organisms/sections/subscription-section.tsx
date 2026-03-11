@@ -7,7 +7,6 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import {
   confirmAbacatePayment,
-  createAbacateBilling,
 } from "@/lib/actions/payments/abacate-pay";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
@@ -360,30 +359,9 @@ function SubscriptionSectionSimple({
   const handleSubscribe = async () => {
     if (!selectedPlanData) return;
 
-    // Se o componente pai forneceu um callback, usar ele (mantém consistência)
-    if (onSubscribe) {
-      await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
-      return;
-    }
-
-    // Fallback para comportamento padrão (checkout direto)
     setIsProcessingPayment(true);
     try {
-      console.log(
-        "[Subscription] Iniciando checkout direto para:",
-        selectedPlanData.id,
-        selectedBillingPeriod,
-      );
-      const result = await createAbacateBilling(
-        selectedPlanData.id,
-        selectedBillingPeriod,
-      );
-
-      if (result?.url) {
-        window.location.href = result.url;
-      } else {
-        throw new Error("URL de checkout não recebida do servidor.");
-      }
+      await onSubscribe(selectedPlanData.id, selectedBillingPeriod, null);
     } catch (error) {
       console.error("[Subscription] Erro no checkout:", error);
       const message =
@@ -510,3 +488,4 @@ function SubscriptionSectionSimple({
 export const SubscriptionSection = {
   Simple: SubscriptionSectionSimple,
 };
+

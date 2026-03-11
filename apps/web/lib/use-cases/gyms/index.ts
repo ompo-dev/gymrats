@@ -4,7 +4,7 @@
  */
 
 import { db } from "@/lib/db";
-import { parseJsonArray, parseJsonSafe } from "@/server/utils/json";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 
 /* ─── List Gyms ─────────────────────────────────────────────────────────── */
 
@@ -86,9 +86,9 @@ export async function createGymUseCase(input: CreateGymInput) {
     data: {
       userId,
       name,
-      address,
-      phone,
-      email,
+      address: address ?? "",
+      phone: phone ?? "",
+      email: email ?? "",
       cnpj: cnpj ?? null,
       plan: "basic",
       isActive: true,

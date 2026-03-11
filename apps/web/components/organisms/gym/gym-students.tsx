@@ -6,11 +6,14 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
-import { getGymStudentById, getGymStudentPayments } from "@/app/gym/actions";
 import {
-  getPersonalStudentById,
-  getPersonalStudentPayments,
-} from "@/app/personal/actions";
+  getGymStudentByIdRequest,
+  getGymStudentPaymentsRequest,
+} from "@/lib/api/gym-client";
+import {
+  getPersonalStudentByIdRequest,
+  getPersonalStudentPaymentsRequest,
+} from "@/lib/api/personal-client";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -39,9 +42,13 @@ function StudentDetailLoader({
   const [isLoading, setIsLoading] = useState(true);
 
   const getStudentById =
-    variant === "personal" ? getPersonalStudentById : getGymStudentById;
+    variant === "personal"
+      ? getPersonalStudentByIdRequest
+      : getGymStudentByIdRequest;
   const getStudentPayments =
-    variant === "personal" ? getPersonalStudentPayments : getGymStudentPayments;
+    variant === "personal"
+      ? getPersonalStudentPaymentsRequest
+      : getGymStudentPaymentsRequest;
 
   useEffect(() => {
     let cancelled = false;

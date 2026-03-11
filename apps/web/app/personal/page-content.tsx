@@ -18,8 +18,8 @@ import { PersonalStudentsPageContent } from "./_students/page-content";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
 import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
+import { getPersonalStudentsAsStudentDataRequest } from "@/lib/api/personal-client";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
-import { getPersonalStudentsAsStudentData } from "./actions";
 import type {
   BoostCampaign,
   Coupon,
@@ -29,7 +29,7 @@ import type {
   Payment,
   StudentData,
 } from "@/lib/types";
-import { PersonalMembershipPlan } from "./actions";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
 interface PersonalHomeProps {
   initialProfile: PersonalProfile | null;
@@ -88,7 +88,7 @@ function PersonalHomeContent({
   // Load StudentData[] when students tab is active
   useEffect(() => {
     if (tab === "students" && !studentsLoaded) {
-      getPersonalStudentsAsStudentData().then((data) => {
+      getPersonalStudentsAsStudentDataRequest().then((data) => {
         setStudentsData(data);
         setStudentsLoaded(true);
       });
@@ -226,4 +226,3 @@ export default function PersonalHome({
     </Suspense>
   );
 }
-

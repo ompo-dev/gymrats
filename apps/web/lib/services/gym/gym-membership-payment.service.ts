@@ -1,4 +1,4 @@
-import { abacatePay } from "@/lib/api/abacatepay";
+import { abacatePay } from "../../../../api/src/lib/api/abacatepay";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";

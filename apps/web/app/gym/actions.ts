@@ -283,7 +283,7 @@ export async function createGymCoupon(data: {
     // Tenta sincronizar com AbacatePay (opcional — não bloqueia se falhar)
     let abacatePayId: string | undefined;
     try {
-      const { abacatePay } = await import("@/lib/api/abacatepay");
+      const { abacatePay } = await import("../../../api/src/lib/api/abacatepay");
       const res = await abacatePay.createCoupon({
         code,
         notes: data.notes || code,
@@ -391,7 +391,7 @@ export async function createBoostCampaign(data: {
     });
 
     // Gera PIX direto (igual ao fluxo de alunos — não exige taxId)
-    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { abacatePay } = await import("../../../api/src/lib/api/abacatepay");
     const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
     const pixResponse = await abacatePay.createPixQrCode({
       amount: data.amountCents,
@@ -515,7 +515,7 @@ export async function getBoostCampaignPix(
 
     if (!campaign) return { success: false, error: "Campanha não encontrada ou já paga" };
 
-    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { abacatePay } = await import("../../../api/src/lib/api/abacatepay");
 
     // Se já tem PIX e ainda não expirou, retorna o existente
     if (campaign.abacatePayBillingId) {

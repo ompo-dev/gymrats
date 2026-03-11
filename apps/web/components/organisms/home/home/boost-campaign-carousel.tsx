@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Dumbbell } from "lucide-react";
 import { motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
-import { getActiveBoostCampaigns } from "@/app/student/actions";
 import { apiClient } from "@/lib/api/client";
+import { getActiveBoostCampaignsRequest } from "@/lib/api/student-client";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
 
@@ -217,19 +217,19 @@ export function BoostCampaignCarousel({
           });
           if (next.length === 0) {
             try {
-              const fallback = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+              const fallback = await getActiveBoostCampaignsRequest();
               if (fallback.length > 0) setCampaigns(fallback);
             } catch {
               // mantém prev ou []
             }
           }
         } else {
-          const activeCampaigns = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+          const activeCampaigns = await getActiveBoostCampaignsRequest();
           setCampaigns(activeCampaigns);
         }
       } catch (error) {
         try {
-          const fallback = (await getActiveBoostCampaigns()) as unknown as BoostCampaign[];
+          const fallback = await getActiveBoostCampaignsRequest();
           setCampaigns(fallback);
         } catch {
           setCampaigns((prev) => prev);

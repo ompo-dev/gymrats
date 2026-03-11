@@ -21,6 +21,10 @@ db.json
 .env.development.local
 .env.test.local
 .env.production.local
+.env.docker
+apps/*/dist/
+apps/*/tsconfig.tsbuildinfo
+.codex-build/
 
 # Logs
 logs

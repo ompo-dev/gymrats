@@ -10,6 +10,8 @@ import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useUserSession } from "@/hooks/use-user-session";
 import { useToast } from "@/hooks/use-toast";
 import { usePersonalSettings } from "@/hooks/use-personal-settings";
+import { authApi } from "@/lib/api/auth";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
 import { cn } from "@/lib/utils";
 
@@ -26,8 +28,6 @@ export interface PersonalProfileDisplay {
   atendimentoPresencial?: boolean;
   atendimentoRemoto?: boolean;
 }
-
-import type { PersonalMembershipPlan } from "@/app/personal/actions";
 import { PersonalMembershipPlansPage } from "./personal-membership-plans-page";
 
 export interface PersonalSettingsPageProps {
@@ -80,7 +80,7 @@ export function PersonalSettingsPage({
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/sign-out", { method: "POST" });
+      await authApi.logout();
       router.push("/welcome");
     } catch {
       toast({
@@ -389,4 +389,3 @@ export function PersonalSettingsPage({
     </div>
   );
 }
-

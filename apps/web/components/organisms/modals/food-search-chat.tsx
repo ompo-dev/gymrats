@@ -7,6 +7,7 @@ import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
+import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 import { getAuthToken } from "@/lib/auth/token-client";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -271,13 +272,10 @@ export function FoodSearchChat({
         },
       ]);
 
-      const API_BASE =
-        typeof window !== "undefined"
-          ? ""
-          : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      const apiBaseUrl = resolveApiBaseUrl();
       const token = getAuthToken();
 
-      const response = await fetch(`${API_BASE}${chatStreamUrl}`, {
+      const response = await fetch(`${apiBaseUrl}${chatStreamUrl}`, {
         method: "POST",
         cache: "no-store",
         credentials: "include",

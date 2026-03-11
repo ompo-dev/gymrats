@@ -7,6 +7,7 @@
 
 - `ANALISE_COMPLETA_PROJETO.md`: visao geral funcional e tecnica do produto.
 - `ARQUITETURA_COMPLETA_SISTEMA.md`: documentacao ampla da arquitetura existente.
+- `FILE_TREE_RUNTIME_MAP.md`: mapa da arvore de apps/pacotes e como os runtimes se conectam.
 - `MONOREPO_VERCEL_ARQUITETURA_ALVO.md`: diagnostico do estado atual e arquitetura-alvo em monorepo compativel com a Vercel.
 - `plan.md`: notas e planos de evolucao da camada de arquitetura.
 
