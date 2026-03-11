@@ -5,7 +5,6 @@ import { Suspense, useEffect, useState } from "react";
 import { authApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth/token-client";
 import { authClient } from "@/lib/auth-client";
-import { isStandaloneMode } from "@/lib/utils/pwa-detection";
 
 function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
@@ -14,28 +13,10 @@ function AuthCallbackPageContent() {
   );
   const [error, setError] = useState("");
 
-  const [isInPopup] = useState(() => {
-    if (typeof window === "undefined") return false;
-    if (window.opener !== null && window.opener !== window) {
-      return true;
-    }
-
-    return sessionStorage.getItem("pwa_oauth_popup") === "true";
-  });
-  const _isPWA = typeof window !== "undefined" ? isStandaloneMode() : false;
-
-  useEffect(() => {
-    if (isInPopup && typeof window !== "undefined") {
-      sessionStorage.removeItem("pwa_oauth_popup");
-    }
-  }, [isInPopup]);
-
   useEffect(() => {
     const processSuccess = (sessionResponse: {
       user: {
         id: string;
-        email?: string | null;
-        name?: string | null;
         role?: string;
       };
       session?: { token?: string };
@@ -44,33 +25,8 @@ function AuthCallbackPageContent() {
         setAuthToken(sessionResponse.session.token);
       }
 
-      const userRole = (sessionResponse.user as { role?: string }).role;
-
-      if (isInPopup && window.opener) {
-        window.opener.postMessage(
-          {
-            type: "OAUTH_SUCCESS",
-            user: {
-              id: sessionResponse.user.id,
-              email: sessionResponse.user.email,
-              name: sessionResponse.user.name,
-              role: userRole,
-            },
-            session: {
-              token: sessionResponse.session?.token,
-            },
-          },
-          window.location.origin,
-        );
-
-        setStatus("success");
-
-        setTimeout(() => {
-          window.close();
-        }, 1000);
-
-        return;
-      }
+      const userRole = sessionResponse.user.role;
+      setStatus("success");
 
       const redirectURL =
         userRole === "PENDING"
@@ -131,31 +87,16 @@ function AuthCallbackPageContent() {
         const message =
           err instanceof Error ? err.message : "Erro ao processar login";
         setError(message);
-
-        if (isInPopup && window.opener) {
-          window.opener.postMessage(
-            {
-              type: "OAUTH_ERROR",
-              error: message,
-            },
-            window.location.origin,
-          );
-
-          setTimeout(() => {
-            window.close();
-          }, 2000);
-        } else {
-          setTimeout(() => {
-            window.location.href = "/welcome?error=google";
-          }, 2000);
-        }
-
         setStatus("error");
+
+        setTimeout(() => {
+          window.location.href = "/welcome?error=google";
+        }, 2000);
       }
     };
 
     processCallback();
-  }, [searchParams, isInPopup]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
@@ -186,11 +127,6 @@ function AuthCallbackPageContent() {
               </svg>
             </div>
             <p className="text-gray-600">Login realizado com sucesso!</p>
-            {isInPopup && (
-              <p className="text-sm text-gray-500 mt-2">
-                Esta janela sera fechada automaticamente...
-              </p>
-            )}
           </>
         )}
         {status === "error" && (
@@ -214,11 +150,6 @@ function AuthCallbackPageContent() {
             </div>
             <p className="text-red-600 font-bold mb-2">Erro ao fazer login</p>
             <p className="text-sm text-gray-600">{error}</p>
-            {isInPopup && (
-              <p className="text-sm text-gray-500 mt-2">
-                Esta janela sera fechada automaticamente...
-              </p>
-            )}
           </>
         )}
       </div>

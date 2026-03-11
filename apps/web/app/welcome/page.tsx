@@ -10,13 +10,12 @@ import {
 import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { authApi } from "@/lib/api/auth";
 import { resolveApiBaseUrl } from "@/lib/api/client-factory";
 import { setAuthToken } from "@/lib/auth/token-client";
 import { authClient } from "@/lib/auth-client";
-import { isStandaloneMode } from "@/lib/utils/pwa-detection";
 import { useAuthStore } from "@/stores";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
@@ -27,8 +26,6 @@ function WelcomePageContent() {
   const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const oauthWindowRef = useRef<Window | null>(null);
-  const isPWA = typeof window !== "undefined" ? isStandaloneMode() : false;
 
   const buildGoogleStartUrl = () => {
     const appBaseURL =
@@ -45,122 +42,7 @@ function WelcomePageContent() {
     return startUrl.toString();
   };
 
-  // Listener para mensagens do OAuth popup (PWA)
   useEffect(() => {
-    const handleOAuthMessage = async (event: MessageEvent) => {
-      // Verificar origem da mensagem por segurança
-      if (event.origin !== window.location.origin) {
-        return;
-      }
-
-      if (event.data.type === "OAUTH_SUCCESS") {
-        try {
-          const { user, session } = event.data;
-
-          // ⚠️ SEGURANÇA: Salvar apenas token no localStorage para compatibilidade
-          // NÃO salvar userRole e isAdmin - sempre validar no servidor
-          if (session?.token) {
-            setAuthToken(session.token);
-          }
-          localStorage.setItem("isAuthenticated", "true");
-          localStorage.setItem("userEmail", user.email);
-          localStorage.setItem("userId", user.id);
-          // ⚠️ NÃO salvar userRole e isAdmin no localStorage - inseguro!
-
-          syncSession({
-            user: user as any,
-            session: session
-              ? {
-                  id: session.id ?? "",
-                  token: session.token ?? null,
-                }
-              : null,
-          });
-          setUserProfile({
-            id: user.id,
-            name: user.name,
-            age: 25,
-            gender: "prefer-not-to-say",
-            height: 170,
-            weight: 70,
-            fitnessLevel: "iniciante",
-            weeklyWorkoutFrequency: 3,
-            workoutDuration: 60,
-            goals: [],
-            availableEquipment: [],
-            gymType: "academia-completa",
-            preferredWorkoutTime: "manha",
-            preferredSets: 3,
-            preferredRepRange: "hipertrofia",
-            restTime: "medio",
-          });
-
-          // PENDING: novo usuário precisa escolher tipo (aluno ou academia)
-          if (user.role === "PENDING") {
-            router.push("/auth/register/user-type");
-            setIsLoading(false);
-            return;
-          }
-
-          // Verificar se há indicação pendente para redirecionar para assinatura
-          const hasReferral = document.cookie.includes("gymrats_referral");
-
-          if (user.role === "STUDENT" || user.role === "ADMIN") {
-            loadAll().catch((err) => {
-              console.error(
-                "Erro ao carregar dados do student após login:",
-                err,
-              );
-            });
-            router.push(
-              hasReferral
-                ? "/student?tab=payments&subTab=subscription"
-                : "/student",
-            );
-          } else if (user.role === "GYM") {
-            router.push(
-              hasReferral ? "/gym?tab=financial&subTab=subscription" : "/gym",
-            );
-          } else if (user.role === "PERSONAL") {
-            router.push("/personal");
-          } else {
-            router.push("/welcome");
-          }
-
-          setIsLoading(false);
-        } catch (err) {
-          console.error("Erro ao processar OAuth success:", err);
-          setError(
-            err instanceof Error ? err.message : "Erro ao processar login",
-          );
-          setIsLoading(false);
-        }
-      } else if (event.data.type === "OAUTH_ERROR") {
-        console.error("Erro do OAuth popup:", event.data.error);
-        setError(event.data.error || "Erro ao fazer login com Google");
-        setIsLoading(false);
-      }
-    };
-
-    window.addEventListener("message", handleOAuthMessage);
-
-    return () => {
-      window.removeEventListener("message", handleOAuthMessage);
-    };
-  }, [
-    router,
-    setUserProfile,
-    syncSession,
-    loadAll,
-  ]);
-
-  // Verificar se há callback do Google OAuth (modo navegador normal)
-  useEffect(() => {
-    // Se está em PWA, não processar callbacks normais (usar postMessage)
-    if (isPWA) {
-      return;
-    }
-
     const checkCallback = async () => {
       const callbackParam = searchParams.get("callback");
       const errorParam = searchParams.get("error");
@@ -173,35 +55,27 @@ function WelcomePageContent() {
 
       if (callbackParam === "google") {
         try {
-          // Aguardar um pouco para o Better Auth processar o callback
           await new Promise((resolve) => setTimeout(resolve, 500));
 
-          // Buscar sessão do Better Auth
           const { data: session } = await authClient.getSession();
 
           if (session?.user) {
-            // Buscar dados completos via nossa API de session
             const sessionResponse = await authApi.getSession();
 
             if (sessionResponse) {
               const userRole =
                 (sessionResponse.user as {
                   role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
-                })
-                  .role || sessionResponse.user.role;
+                }).role || sessionResponse.user.role;
 
-              // ⚠️ SEGURANÇA: Salvar apenas token no localStorage para compatibilidade
-              // NÃO salvar userRole e isAdmin - sempre validar no servidor
               if (sessionResponse.session?.token) {
                 setAuthToken(sessionResponse.session.token);
               }
               localStorage.setItem("isAuthenticated", "true");
               localStorage.setItem("userEmail", sessionResponse.user.email);
               localStorage.setItem("userId", sessionResponse.user.id);
-              // ⚠️ NÃO salvar userRole e isAdmin no localStorage - inseguro!
-              // Estes valores devem ser sempre obtidos do servidor via useUserSession()
 
-              syncSession(sessionResponse as any);
+              syncSession(sessionResponse as never);
               setUserProfile({
                 id: sessionResponse.user.id,
                 name: sessionResponse.user.name,
@@ -221,19 +95,17 @@ function WelcomePageContent() {
                 restTime: "medio",
               });
 
-              // PENDING: novo usuário precisa escolher tipo (aluno ou academia)
               if ((userRole as string) === "PENDING") {
                 router.push("/auth/register/user-type");
                 return;
               }
 
-              // Verificar se há indicação pendente para redirecionar para assinatura
               const hasReferral = document.cookie.includes("gymrats_referral");
 
               if (userRole === "STUDENT" || userRole === "ADMIN") {
                 loadAll().catch((err) => {
                   console.error(
-                    "Erro ao carregar dados do student após login:",
+                    "Erro ao carregar dados do student apos login:",
                     err,
                   );
                 });
@@ -268,14 +140,7 @@ function WelcomePageContent() {
     };
 
     checkCallback();
-  }, [
-    searchParams,
-    router,
-    setUserProfile,
-    syncSession,
-    loadAll,
-    isPWA,
-  ]);
+  }, [searchParams, router, setUserProfile, syncSession, loadAll]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -283,55 +148,7 @@ function WelcomePageContent() {
 
     try {
       const startUrl = buildGoogleStartUrl();
-
-      // Se está em PWA, abrir OAuth em popup para voltar ao app após login
-      if (isPWA) {
-        // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
-        sessionStorage.setItem("pwa_oauth_popup", "true");
-
-        const popup = window.open(
-          startUrl,
-          "google-oauth-popup",
-          "width=500,height=600,scrollbars=yes,resizable=yes,left=" +
-            (window.screen.width / 2 - 250) +
-            ",top=" +
-            (window.screen.height / 2 - 300),
-        );
-
-        if (!popup) {
-          sessionStorage.removeItem("pwa_oauth_popup");
-          throw new Error(
-            "Não foi possível abrir a janela de login. Verifique se os pop-ups estão habilitados.",
-          );
-        }
-
-        oauthWindowRef.current = popup;
-
-        // Monitorar se a popup foi fechada manualmente
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            sessionStorage.removeItem("pwa_oauth_popup");
-            // Se fechou sem sucesso, pode ter sido cancelado
-            if (isLoading) {
-              setIsLoading(false);
-              setError("Login cancelado pelo usuário");
-            }
-          }
-        }, 500);
-
-        // Limpar flag após um tempo (caso callback não seja chamado)
-        setTimeout(
-          () => {
-            sessionStorage.removeItem("pwa_oauth_popup");
-            clearInterval(checkClosed);
-          },
-          5 * 60 * 1000,
-        ); // 5 minutos máximo
-      } else {
-        window.location.assign(startUrl);
-        return;
-      }
+      window.location.assign(startUrl);
     } catch (err) {
       console.error("Erro ao iniciar login com Google:", err);
       setError(
@@ -346,34 +163,32 @@ function WelcomePageContent() {
       icon: Dumbbell,
       title: "Controle de Treinos",
       description:
-        "Treinos personalizados baseados em seus objetivos e nível de experiência",
+        "Treinos personalizados baseados em seus objetivos e nivel de experiencia",
     },
     {
       icon: UtensilsCrossed,
-      title: "Dieta e Nutrição",
+      title: "Dieta e Nutricao",
       description:
-        "Acompanhe sua alimentação e receba recomendações nutricionais personalizadas",
+        "Acompanhe sua alimentacao e receba recomendacoes nutricionais personalizadas",
     },
     {
       icon: TrendingUp,
-      title: "Progressão",
+      title: "Progressao",
       description:
-        "Monitore seu progresso com métricas detalhadas e gráficos de evolução",
+        "Monitore seu progresso com metricas detalhadas e graficos de evolucao",
     },
     {
       icon: BookOpen,
       title: "Aprendizado",
       description:
-        "Aprenda técnicas avançadas de musculação com conteúdo educativo completo",
+        "Aprenda tecnicas avancadas de musculacao com conteudo educativo completo",
     },
   ];
 
   return (
     <div className="flex min-h-screen flex-col bg-duo-bg">
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12 pb-32">
         <div className="w-full max-w-md">
-          {/* Logo Card - Muito Maior */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -399,7 +214,6 @@ function WelcomePageContent() {
             </DuoCard.Root>
           </motion.div>
 
-          {/* App Name */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -411,7 +225,6 @@ function WelcomePageContent() {
             </h1>
           </motion.div>
 
-          {/* Features Description Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -420,7 +233,6 @@ function WelcomePageContent() {
           >
             <DuoCard.Root variant="default" size="lg">
               <div className="space-y-6">
-                {/* Features Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   {features.map((feature, index) => {
                     const Icon = feature.icon;
@@ -449,7 +261,6 @@ function WelcomePageContent() {
             </DuoCard.Root>
           </motion.div>
 
-          {/* Error Message */}
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -460,7 +271,6 @@ function WelcomePageContent() {
             </motion.div>
           )}
 
-          {/* CTA Button */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -488,7 +298,6 @@ function WelcomePageContent() {
             </DuoButton>
           </motion.div>
 
-          {/* Footer */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -496,7 +305,7 @@ function WelcomePageContent() {
             className="text-center"
           >
             <p className="text-sm text-duo-fg-muted">
-              Ao continuar, você concorda com nossos{" "}
+              Ao continuar, voce concorda com nossos{" "}
               <a
                 href="/terms"
                 className="text-duo-primary underline hover:text-duo-primary-dark"
@@ -508,7 +317,7 @@ function WelcomePageContent() {
                 href="/privacy"
                 className="text-duo-primary underline hover:text-duo-primary-dark"
               >
-                Política de Privacidade
+                Politica de Privacidade
               </a>
             </p>
           </motion.div>

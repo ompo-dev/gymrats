@@ -73,25 +73,6 @@ export class ErrorBoundary extends Component<
         ? error
         : new Error(String(error || "Erro desconhecido"));
 
-    // Ignora erros relacionados à atualização do Service Worker
-    const errorMessage = safeError.message || "";
-    const errorStack = safeError.stack || "";
-
-    if (
-      errorMessage.includes("ServiceWorker") ||
-      errorMessage.includes("service worker") ||
-      errorMessage.includes("SW_UPDATED") ||
-      errorStack.includes("sw.js") ||
-      errorStack.includes("ServiceWorker")
-    ) {
-      // Durante atualização do SW, apenas loga e não mostra tela de erro
-      console.log(
-        "ℹ️ Erro relacionado à atualização do Service Worker (ignorado):",
-        safeError.message,
-      );
-      return;
-    }
-
     // Log completo do erro - serializar de forma segura
     try {
       const errorDetails = {

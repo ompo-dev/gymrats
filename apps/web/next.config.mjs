@@ -83,38 +83,11 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: "/sw.js",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-          {
-            key: "Service-Worker-Allowed",
-            value: "/",
-          },
-        ],
-      },
-      {
-        source: "/manifest.json",
-        headers: [
-          {
-            key: "Content-Type",
-            value: "application/manifest+json",
-          },
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
-      {
         source: "/student/:path*",
         headers: [
           {
             key: "Cache-Control",
-            value:
-              "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+            value: "private, no-store, no-cache, must-revalidate",
           },
           {
             key: "X-DNS-Prefetch-Control",
@@ -127,8 +100,20 @@ const nextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value:
-              "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
+            value: "private, no-store, no-cache, must-revalidate",
+          },
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+        ],
+      },
+      {
+        source: "/personal/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-store, no-cache, must-revalidate",
           },
           {
             key: "X-DNS-Prefetch-Control",

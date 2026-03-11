@@ -3,15 +3,11 @@ import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type React from "react";
-import { Suspense } from "react";
 import { DuoThemeProvider } from "@/components/duo/theme-provider";
 import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
-import AppUpdatingScreenWrapper from "@/components/organisms/pwa/app-updating-screen-wrapper";
-import PWAUpdateBanner from "@/components/organisms/pwa/pwa-update-banner";
 import { AuthSessionProvider } from "@/components/providers/auth-session-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
-import { PWAProtection } from "./pwa-protection";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -26,7 +22,6 @@ export const metadata: Metadata = {
     "Domine técnicas de musculação com lições interativas, gamificação e conquistas. O Duolingo da academia.",
   generator: "v0.app",
   keywords: ["musculação", "treino", "fitness", "gamificação", "aprendizado"],
-  manifest: "/manifest.json",
   icons: {
     icon: [
       {
@@ -43,11 +38,6 @@ export const metadata: Metadata = {
       },
     ],
     apple: "/apple-icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "GymRats",
   },
 };
 
@@ -94,11 +84,6 @@ export default function RootLayout({
                 <AuthSessionProvider>
                   <PerformanceOptimizer />
                   {children}
-                  <Suspense fallback={null}>
-                    <AppUpdatingScreenWrapper />
-                    <PWAUpdateBanner />
-                  </Suspense>
-                  <PWAProtection />
                   <Analytics />
                 </AuthSessionProvider>
               </QueryProvider>
