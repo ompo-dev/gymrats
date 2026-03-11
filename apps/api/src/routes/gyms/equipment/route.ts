@@ -27,7 +27,22 @@ export const GET = createSafeHandler(
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {
     const { gymId } = gymContext!;
-    const { name, type, brand, model, serialNumber, purchaseDate } = body;
+    const { name, type, brand, model, purchaseDate } = body;
+    const serialNumber = body.serialNumber?.trim() || null;
+
+    if (serialNumber) {
+      const duplicatedEquipment = await db.equipment.findFirst({
+        where: { serialNumber },
+        select: { id: true },
+      });
+
+      if (duplicatedEquipment) {
+        return NextResponse.json(
+          { error: "Numero de serie ja esta em uso." },
+          { status: 409 },
+        );
+      }
+    }
 
     const equipment = await db.equipment.create({
       data: {

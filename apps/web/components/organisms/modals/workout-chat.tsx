@@ -1013,6 +1013,25 @@ export function WorkoutChat({
 
       // Se recebeu dados completos, atualizar estado
       if (parsedData) {
+        if (previewWorkouts.length === 0 && parsedData.workouts.length > 0) {
+          setPreviewWorkouts(parsedData.workouts);
+          setMessages((prev) => {
+            if (prev.some((msg) => msg.workoutPreview)) {
+              return prev;
+            }
+
+            return [
+              ...prev,
+              ...parsedData.workouts.map((workout, index) => ({
+                role: "assistant" as const,
+                content: "",
+                timestamp: new Date(),
+                workoutPreview: workout,
+                workoutPreviewIndex: index,
+              })),
+            ];
+          });
+        }
         // add_exercise: mesclar novos exercícios no workout existente (não substituir)
         // O workout_progress pode ter substituído o preview com só os novos - usar workouts do store como base
         if (

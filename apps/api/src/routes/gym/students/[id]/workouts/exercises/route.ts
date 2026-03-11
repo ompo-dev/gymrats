@@ -76,16 +76,16 @@ export async function POST(
     // Check if workout exists and belongs to student
     const workout = await db.workout.findUnique({
       where: { id: workoutId },
-      include: { unit: true },
+      include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
     });
 
     if (!workout) return notFoundResponse("Treino não encontrado");
 
-    if (!workout.unit) {
-      return internalErrorResponse("Treino sem unidade vinculada");
-    }
+    const ownsViaUnit = workout.unit && workout.unit.studentId === studentId;
+    const ownsViaPlanSlot =
+      workout.planSlot && workout.planSlot.weeklyPlan.studentId === studentId;
 
-    if (workout.unit.studentId !== studentId) {
+    if (!ownsViaUnit && !ownsViaPlanSlot) {
       return unauthorizedResponse(
         "Você não pode adicionar exercícios a este treino",
       );

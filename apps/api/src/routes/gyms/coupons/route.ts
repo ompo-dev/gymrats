@@ -1,15 +1,18 @@
 import { NextResponse } from "@/runtime/next-server";
+import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 
-type CreateGymCouponBody = {
-  code: string;
-  notes?: string;
-  discountKind: "PERCENTAGE" | "FIXED";
-  discount: number;
-  maxRedeems?: number;
-  expiresAt?: string | null;
-};
+const createGymCouponSchema = z.object({
+  code: z.string().min(1, "Codigo do cupom e obrigatorio"),
+  notes: z.string().optional(),
+  discountKind: z.enum(["PERCENTAGE", "FIXED"]),
+  discount: z
+    .number({ invalid_type_error: "discount deve ser um numero" })
+    .positive("Valor do desconto deve ser maior que zero"),
+  maxRedeems: z.number().int().optional(),
+  expiresAt: z.string().nullable().optional(),
+});
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {
@@ -69,7 +72,7 @@ export const GET = createSafeHandler(
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {
     const gymId = gymContext!.gymId;
-    const payload = body as CreateGymCouponBody;
+    const payload = body;
     const code = payload.code.trim().toUpperCase();
     const discountType =
       payload.discountKind === "PERCENTAGE" ? "percentage" : "fixed";
@@ -131,7 +134,7 @@ export const POST = createSafeHandler(
 
     return NextResponse.json({ success: true }, { status: 201 });
   },
-  { auth: "gym" },
+  { auth: "gym", schema: { body: createGymCouponSchema } },
 );
 
 export const DELETE = createSafeHandler(

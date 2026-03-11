@@ -981,7 +981,10 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         });
 
         if (!found) {
-          throw new Error("Workout não encontrado");
+          console.warn(
+            "[addWorkoutExercise] Workout nao encontrado no cache local, seguindo com refresh do backend.",
+            { workoutId },
+          );
         }
 
         try {
@@ -1104,9 +1107,106 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                     return workout;
                   }),
                 })),
+                weeklyPlan: state.data.weeklyPlan?.slots
+                  ? {
+                      ...state.data.weeklyPlan,
+                      slots: state.data.weeklyPlan.slots.map((slot) => {
+                        if (
+                          slot.type !== "workout" ||
+                          !slot.workout ||
+                          slot.workout.id !== workoutId
+                        ) {
+                          return slot;
+                        }
+
+                        return {
+                          ...slot,
+                          workout: {
+                            ...slot.workout,
+                            exercises: slot.workout.exercises.map((exercise) =>
+                              exercise.id === tempId
+                                ? {
+                                    ...exercise,
+                                    id: exerciseId,
+                                    name:
+                                      (exerciseData.name as string) ??
+                                      exercise.name,
+                                    sets:
+                                      typeof exerciseData.sets === "number"
+                                        ? exerciseData.sets
+                                        : exercise.sets,
+                                    reps:
+                                      typeof exerciseData.reps === "string"
+                                        ? exerciseData.reps
+                                        : exercise.reps,
+                                    rest:
+                                      typeof exerciseData.rest === "number"
+                                        ? exerciseData.rest
+                                        : exercise.rest,
+                                    notes:
+                                      (exerciseData.notes as
+                                        | string
+                                        | undefined) ?? exercise.notes,
+                                    videoUrl:
+                                      (exerciseData.videoUrl as
+                                        | string
+                                        | undefined) ?? exercise.videoUrl,
+                                    educationalId:
+                                      (exerciseData.educationalId as
+                                        | string
+                                        | undefined) ?? exercise.educationalId,
+                                    primaryMuscles:
+                                      safeParse(exerciseData.primaryMuscles) ??
+                                      exercise.primaryMuscles,
+                                    secondaryMuscles:
+                                      safeParse(
+                                        exerciseData.secondaryMuscles,
+                                      ) ?? exercise.secondaryMuscles,
+                                    equipment:
+                                      safeParse(exerciseData.equipment) ??
+                                      exercise.equipment,
+                                    instructions:
+                                      safeParse(exerciseData.instructions) ??
+                                      exercise.instructions,
+                                    tips:
+                                      safeParse(exerciseData.tips) ??
+                                      exercise.tips,
+                                    commonMistakes:
+                                      safeParse(
+                                        exerciseData.commonMistakes,
+                                      ) ?? exercise.commonMistakes,
+                                    benefits:
+                                      safeParse(exerciseData.benefits) ??
+                                      exercise.benefits,
+                                    difficulty:
+                                      (exerciseData.difficulty as WorkoutExercise["difficulty"]) ??
+                                      exercise.difficulty,
+                                    scientificEvidence:
+                                      (exerciseData.scientificEvidence as
+                                        | string
+                                        | undefined) ??
+                                      exercise.scientificEvidence,
+                                    alternatives: Array.isArray(
+                                      exerciseData.alternatives,
+                                    )
+                                      ? (exerciseData.alternatives as WorkoutExercise["alternatives"])
+                                      : (exercise.alternatives ?? []),
+                                  }
+                                : exercise,
+                            ),
+                          },
+                        };
+                      }),
+                    }
+                  : state.data.weeklyPlan,
               },
             }));
           }
+
+          await Promise.allSettled([
+            get().loadWorkouts(true),
+            get().loadWeeklyPlan(true),
+          ]);
         } catch (error) {
           console.error("Erro ao adicionar exercício:", error);
           // Reverter optimistic update
@@ -1124,6 +1224,30 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                     : w,
                 ),
               })),
+              weeklyPlan: state.data.weeklyPlan?.slots
+                ? {
+                    ...state.data.weeklyPlan,
+                    slots: state.data.weeklyPlan.slots.map((slot) => {
+                      if (
+                        slot.type !== "workout" ||
+                        !slot.workout ||
+                        slot.workout.id !== workoutId
+                      ) {
+                        return slot;
+                      }
+
+                      return {
+                        ...slot,
+                        workout: {
+                          ...slot.workout,
+                          exercises: slot.workout.exercises.filter(
+                            (e) => e.id !== tempId,
+                          ),
+                        },
+                      };
+                    }),
+                  }
+                : state.data.weeklyPlan,
             },
           }));
         }

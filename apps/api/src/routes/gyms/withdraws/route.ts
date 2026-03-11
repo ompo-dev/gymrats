@@ -1,11 +1,15 @@
 import { NextResponse } from "@/runtime/next-server";
+import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 
-type CreateWithdrawBody = {
-  amountCents: number;
-  fake?: boolean;
-};
+const createWithdrawSchema = z.object({
+  amountCents: z
+    .number({ invalid_type_error: "amountCents deve ser um numero" })
+    .int("amountCents deve ser inteiro")
+    .min(350, "Valor minimo para saque e R$ 3,50"),
+  fake: z.boolean().optional(),
+});
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {
@@ -19,9 +23,10 @@ export const GET = createSafeHandler(
 
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {
+    const isDev = process.env.NODE_ENV !== "production";
     const result = await GymFinancialService.createWithdraw(gymContext!.gymId, {
-      amountCents: (body as CreateWithdrawBody).amountCents,
-      fake: (body as CreateWithdrawBody).fake ?? true,
+      amountCents: body.amountCents,
+      fake: body.fake ?? isDev,
     });
 
     if (!result.ok) {
@@ -33,5 +38,5 @@ export const POST = createSafeHandler(
       withdraw: result.withdraw,
     });
   },
-  { auth: "gym" },
+  { auth: "gym", schema: { body: createWithdrawSchema } },
 );

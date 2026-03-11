@@ -316,7 +316,7 @@ export async function POST(
               continue;
             }
 
-            await db.nutritionFood.create({
+            await db.nutritionFoodItem.create({
               data: {
                 nutritionMealId: nutritionMeal.id,
                 foodId: food.foodId || null,

@@ -18,6 +18,7 @@ import {
   updateWeeklyPlanSchema,
   activateLibraryPlanSchema,
 } from "../schemas/workouts.schemas";
+import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 
 // ==========================================
 // LIBRARY (CRUD)
@@ -281,6 +282,8 @@ export async function updateLibraryPlanHandler(
       },
       include: { slots: { orderBy: { dayOfWeek: "asc" } } },
     });
+
+    await syncActiveWeeklyPlanFromLibrary(id);
 
     return successResponse({ data: updatedPlan, message: "Plano editado com sucesso" });
   } catch (error) {

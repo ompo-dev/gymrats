@@ -9,6 +9,7 @@ import {
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
+import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   createUnitSchema,
@@ -333,6 +334,7 @@ export async function createWorkoutHandler(
     const studentId = auth.user.student.id;
 
     let order = 0;
+    let libraryPlanToSyncId: string | null = null;
 
     if (planSlotId) {
       const planSlot = await db.planSlot.findUnique({
@@ -348,6 +350,9 @@ export async function createWorkoutHandler(
       }
 
       order = planSlot.dayOfWeek;
+      if ((planSlot.weeklyPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate) {
+        libraryPlanToSyncId = planSlot.weeklyPlan.id;
+      }
     } else if (unitId) {
       const unit = await db.unit.findUnique({
         where: { id: unitId },
@@ -383,6 +388,10 @@ export async function createWorkoutHandler(
         where: { id: planSlotId },
         data: { type: "workout", workoutId: workout.id },
       });
+    }
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
     }
 
     return successResponse(
@@ -432,6 +441,16 @@ export async function updateWorkoutHandler(
       data: validation.data,
     });
 
+    const libraryPlanToSyncId =
+      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
+        ?.isLibraryTemplate
+        ? workout.planSlot?.weeklyPlan.id ?? null
+        : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
     return successResponse({
       data: updatedWorkout,
       message: "Treino atualizado com sucesso",
@@ -475,9 +494,19 @@ export async function deleteWorkoutHandler(
       });
     }
 
+    const libraryPlanToSyncId =
+      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
+        ?.isLibraryTemplate
+        ? workout.planSlot?.weeklyPlan.id ?? null
+        : null;
+
     await db.workout.delete({
       where: { id },
     });
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
 
     return successResponse({ message: "Treino excluído com sucesso" });
   } catch (error) {
@@ -1051,6 +1080,16 @@ export async function createExerciseHandler(
         }
       : null;
 
+    const libraryPlanToSyncId =
+      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
+        ?.isLibraryTemplate
+        ? workout.planSlot?.weeklyPlan.id ?? null
+        : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
     return successResponse(
       {
         data: transformedExercise,
@@ -1108,6 +1147,17 @@ export async function updateExerciseHandler(
       data: normalizedData,
     });
 
+    const libraryPlanToSyncId =
+      (exercise.workout.planSlot?.weeklyPlan as {
+        isLibraryTemplate?: boolean;
+      } | null)?.isLibraryTemplate
+        ? exercise.workout.planSlot?.weeklyPlan.id ?? null
+        : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
+
     return successResponse({
       data: updatedExercise,
       message: "Exercício atualizado com sucesso",
@@ -1164,6 +1214,16 @@ export async function deleteExerciseHandler(
     await db.workoutExercise.delete({
       where: { id },
     });
+
+    const libraryPlanToSyncId =
+      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
+        ?.isLibraryTemplate
+        ? workout.planSlot?.weeklyPlan.id ?? null
+        : null;
+
+    if (libraryPlanToSyncId) {
+      await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
+    }
 
     return successResponse({ message: "Exercício excluído com sucesso" });
   } catch (error) {

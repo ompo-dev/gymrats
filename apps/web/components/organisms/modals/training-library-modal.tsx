@@ -298,8 +298,25 @@ export function TrainingLibraryModal() {
           isLibraryMode
           isOpen={!!editingPlan}
           onClose={() => {
+            const editedPlanId = editingPlan.id;
             setEditingPlan(null);
-            loadLibraryPlans();
+            void (async () => {
+              await loadLibraryPlans();
+              if (activeSourcePlanId === editedPlanId) {
+                try {
+                  await actions.activateLibraryPlan(editedPlanId);
+                  await loadWeeklyPlan(true);
+                } catch (error) {
+                  console.error(
+                    "[TrainingLibraryModal] Erro ao sincronizar plano ativo:",
+                    error,
+                  );
+                  toast.error(
+                    "O treino da semana nao foi sincronizado automaticamente.",
+                  );
+                }
+              }
+            })();
           }}
           onPlanUpdated={() => loadLibraryPlans()}
           weeklyPlan={editingPlan}

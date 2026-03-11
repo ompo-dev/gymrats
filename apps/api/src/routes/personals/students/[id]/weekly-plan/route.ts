@@ -17,7 +17,7 @@ import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
  * Usa activeWeeklyPlanId (Training Library) - não findUnique por studentId.
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {

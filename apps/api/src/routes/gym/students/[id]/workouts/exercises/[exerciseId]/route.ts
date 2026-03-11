@@ -95,7 +95,7 @@ export async function PUT(
  * Remove exercício do treino do aluno.
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   {
     params,
   }: { params: Promise<{ id: string; exerciseId: string }> },

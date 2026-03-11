@@ -1,19 +1,26 @@
 import { NextResponse } from "@/runtime/next-server";
+import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
 
-type CreateBoostCampaignBody = {
-  title: string;
-  description: string;
-  primaryColor: string;
-  linkedCouponId: string | null;
-  linkedPlanId: string | null;
-  durationHours: number;
-  amountCents: number;
-  radiusKm?: number;
-};
+const createBoostCampaignSchema = z.object({
+  title: z.string().min(1, "Titulo e obrigatorio"),
+  description: z.string().min(1, "Descricao e obrigatoria"),
+  primaryColor: z.string().min(1, "Cor principal e obrigatoria"),
+  linkedCouponId: z.string().nullable().optional(),
+  linkedPlanId: z.string().nullable().optional(),
+  durationHours: z
+    .number({ invalid_type_error: "durationHours deve ser um numero" })
+    .int("durationHours deve ser inteiro")
+    .positive("durationHours deve ser maior que zero"),
+  amountCents: z
+    .number({ invalid_type_error: "amountCents deve ser um numero" })
+    .int("amountCents deve ser inteiro")
+    .positive("amountCents deve ser maior que zero"),
+  radiusKm: z.number().positive().optional(),
+});
 
 export const GET = createSafeHandler(
   async ({ personalContext }) => {
@@ -42,7 +49,7 @@ export const GET = createSafeHandler(
 export const POST = createSafeHandler(
   async ({ body, personalContext }) => {
     const personalId = personalContext!.personalId;
-    const payload = body as CreateBoostCampaignBody;
+    const payload = body;
     const personal = await db.personal.findUnique({
       where: { id: personalId },
       select: { name: true, email: true },
@@ -107,7 +114,7 @@ export const POST = createSafeHandler(
       { status: 201 },
     );
   },
-  { auth: "personal" },
+  { auth: "personal", schema: { body: createBoostCampaignSchema } },
 );
 
 export const DELETE = createSafeHandler(

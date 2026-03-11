@@ -65,6 +65,29 @@ type SafeHandlerContext<
   params?: Record<string, string>;
 };
 
+async function parseRequestBody(
+  req: NextRequest,
+): Promise<Record<string, unknown>> {
+  const method = req.method.toUpperCase();
+  if (method === "GET" || method === "HEAD") {
+    return {};
+  }
+
+  const contentType = req.headers.get("content-type")?.toLowerCase() || "";
+  if (!contentType.includes("application/json")) {
+    return {};
+  }
+
+  try {
+    const parsed = await req.clone().json();
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Creates a safe API handler with built-in auth, validation, and error handling
  */
@@ -135,8 +158,10 @@ export function createSafeHandler<
       // 2. Validation
       let body: TBody = {} as TBody;
       if (options.schema?.body) {
-        const rawBody = await req.json();
+        const rawBody = await parseRequestBody(req);
         body = options.schema.body.parse(rawBody);
+      } else {
+        body = (await parseRequestBody(req)) as TBody;
       }
 
       let query: TQuery = {} as TQuery;
@@ -284,9 +309,15 @@ export function createSafeHandler<
       const err = error as {
         name?: string;
         message?: string;
+        status?: number;
         errors?: Array<{ path?: string[]; message?: string }>;
       };
-      const status = err?.name === "ZodError" ? 400 : 500;
+      const status =
+        typeof err?.status === "number"
+          ? err.status
+          : err?.name === "ZodError"
+            ? 400
+            : 500;
       const latencyMs = Date.now() - startedAt;
       log.error("[SafeHandler] Error", { error: err?.message, ...logMetaBase });
       recordApiRequest({
@@ -306,7 +337,7 @@ export function createSafeHandler<
 
       return NextResponse.json(
         { error: err?.message || "Erro interno do servidor" },
-        { status: 500 },
+        { status },
       );
     }
   };
