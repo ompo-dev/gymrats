@@ -1,7 +1,7 @@
 /**
  * Factory unificada para contexto de autenticação (gym e student).
  *
- * Centraliza: Better Auth primeiro, fallback para token manual via getSessionToken.
+ * Centraliza: token explicito primeiro, com fallback para Better Auth.
  * gym-context e student-context delegam para esta factory.
  */
 
@@ -66,8 +66,20 @@ export type UserOnlyContextResult =
 
 async function getAuthSession(): Promise<AuthSession | null> {
   const headerList = getRequestContextHeaders() ?? new Headers();
+  const explicitSessionToken = await getSessionToken();
 
-  // 1. Tentar Better Auth primeiro
+  if (explicitSessionToken) {
+    const sessionFromToken = await getSession(explicitSessionToken);
+
+    if (sessionFromToken?.user) {
+      return {
+        session: sessionFromToken,
+        user: sessionFromToken.user,
+      };
+    }
+  }
+
+  // 1. Fallback para Better Auth
   try {
     const { auth } = await import("@/lib/auth-config");
     const betterAuthSession = await auth.api.getSession({
@@ -97,17 +109,7 @@ async function getAuthSession(): Promise<AuthSession | null> {
     });
   }
 
-  // 2. Fallback: token manual
-  const sessionToken = await getSessionToken();
-  if (!sessionToken) return null;
-
-  const session = await getSession(sessionToken);
-  if (!session?.user) return null;
-
-  return {
-    session,
-    user: session.user,
-  };
+  return null;
 }
 
 export async function getAuthContext(options: {

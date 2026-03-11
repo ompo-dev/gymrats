@@ -3,7 +3,11 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { authApi } from "@/lib/api/auth";
-import { clearAuthToken, getAuthToken } from "@/lib/auth/token-client";
+import {
+  clearAuthToken,
+  getAuthToken,
+  setAuthToken,
+} from "@/lib/auth/token-client";
 import { useAuthStore } from "@/stores";
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
@@ -24,6 +28,10 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
         }
 
         if (cancelled) return;
+
+        if (session.session?.token) {
+          setAuthToken(session.session.token);
+        }
 
         setAuthenticated(true);
         setUserId(session.user.id);

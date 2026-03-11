@@ -433,16 +433,15 @@ export async function getSessionUseCase(
         const hasStudent = isAdmin || !!user.student;
 
         const headerToken = input.authHeaderToken || null;
-        const cookieToken = input.cookieBetterAuthToken || null;
+        const cookieToken =
+          input.cookieAuthToken || input.cookieBetterAuthToken || null;
         let sessionToken = cookieToken || headerToken;
 
         const sessionId = betterAuthSession.session?.id || "";
         if (!sessionToken && sessionId) {
           sessionToken = (await deps.getSessionTokenById(sessionId)) || "";
         }
-        if (!sessionToken) {
-          sessionToken = sessionId || "";
-        }
+        const resolvedSessionToken = sessionToken || "";
 
         return ok({
           user: {
@@ -456,10 +455,10 @@ export async function getSessionUseCase(
           },
           session: {
             id: sessionId,
-            token: sessionToken,
+            token: resolvedSessionToken,
           },
-          sessionToken,
-          shouldSyncAuthToken: Boolean(sessionToken),
+          sessionToken: resolvedSessionToken,
+          shouldSyncAuthToken: Boolean(resolvedSessionToken),
         });
       }
     }

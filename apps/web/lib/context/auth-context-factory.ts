@@ -89,6 +89,18 @@ async function getSessionToken(): Promise<string | null> {
 
 async function getAuthSession(): Promise<AuthSession | null> {
   const requestHeaders = await getRequestHeaders();
+  const explicitSessionToken = await getSessionToken();
+
+  if (explicitSessionToken) {
+    const sessionFromToken = await getSession(explicitSessionToken);
+
+    if (sessionFromToken?.user) {
+      return {
+        session: sessionFromToken,
+        user: sessionFromToken.user,
+      };
+    }
+  }
 
   try {
     const { auth } = await import("@/lib/auth-config");
@@ -119,20 +131,7 @@ async function getAuthSession(): Promise<AuthSession | null> {
     });
   }
 
-  const sessionToken = await getSessionToken();
-  if (!sessionToken) {
-    return null;
-  }
-
-  const session = await getSession(sessionToken);
-  if (!session?.user) {
-    return null;
-  }
-
-  return {
-    session,
-    user: session.user,
-  };
+  return null;
 }
 
 export async function getAuthContext(options: {

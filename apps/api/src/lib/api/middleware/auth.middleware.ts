@@ -1,7 +1,7 @@
 /**
- * Middleware de Autenticação
+ * Middleware de Autenticacao
  *
- * Centraliza a lógica de autenticação para todas as rotas da API
+ * Centraliza a logica de autenticacao para todas as rotas da API
  */
 
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
@@ -27,17 +27,14 @@ export interface AuthError {
 }
 
 /**
- * Extrai o token de autenticação do request
+ * Extrai o token de autenticacao do request
  */
 export function extractAuthToken(request: NextRequest): string | null {
-  // Tentar pegar do cookie primeiro
-  // Verificar ambos os cookies: auth_token (legacy) e better-auth.session_token (Better Auth)
   const cookieToken =
     request.cookies.get("auth_token")?.value ||
     request.cookies.get("better-auth.session_token")?.value;
   if (cookieToken) return cookieToken;
 
-  // Tentar pegar do header Authorization
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.replace("Bearer ", "");
@@ -47,13 +44,32 @@ export function extractAuthToken(request: NextRequest): string | null {
 }
 
 /**
- * Valida a autenticação e retorna os dados do usuário
+ * Valida a autenticacao e retorna os dados do usuario
  */
 export async function requireAuth(
   request: NextRequest,
 ): Promise<AuthResult | AuthError> {
   try {
-    // Primeiro tentar validar via Better Auth (prioridade)
+    let sessionToken = extractAuthToken(request);
+
+    if (!sessionToken) {
+      sessionToken =
+        getRequestContextCookie("auth_token") ||
+        getRequestContextCookie("better-auth.session_token");
+    }
+
+    if (sessionToken) {
+      const session = await getSession(sessionToken);
+
+      if (session) {
+        return {
+          userId: session.userId,
+          session,
+          user: session.user,
+        };
+      }
+    }
+
     try {
       const { auth } = await import("@/lib/auth-config");
       const betterAuthSession = await auth.api.getSession({
@@ -61,7 +77,6 @@ export async function requireAuth(
       });
 
       if (betterAuthSession?.user) {
-        // Sessão do Better Auth encontrada - buscar dados completos do usuário
         const { db } = await import("@/lib/db");
         const user = await db.user.findUnique({
           where: { id: betterAuthSession.user.id },
@@ -73,25 +88,13 @@ export async function requireAuth(
         });
 
         if (user) {
-          // Buscar sessão do banco para compatibilidade
-          const sessionToken =
-            request.cookies.get("better-auth.session_token")?.value ||
-            request.cookies.get("auth_token")?.value;
-
-          let session = null;
-          if (sessionToken) {
-            session = await getSession(sessionToken);
-          }
-
           return {
             userId: user.id,
-            session:
-              session ||
-              ({
-                id: betterAuthSession.session?.id || "",
-                userId: user.id,
-                user,
-              } as Record<string, string | number | boolean | object | null>),
+            session: {
+              id: betterAuthSession.session?.id || "",
+              userId: user.id,
+              user,
+            } as Record<string, string | number | boolean | object | null>,
             user: {
               ...user,
               student: user.student || undefined,
@@ -102,55 +105,33 @@ export async function requireAuth(
         }
       }
     } catch (_betterAuthError) {
-      // Se falhar com Better Auth, continuar com método antigo
       console.log(
-        "[requireAuth] Better Auth não encontrou sessão, tentando método antigo",
+        "[requireAuth] Better Auth nao encontrou sessao, tentando metodo antigo",
       );
     }
 
-    // Fallback: método antigo (compatibilidade)
-    // Tentar pegar token do request primeiro
-    let sessionToken = extractAuthToken(request);
-
-    // Se não encontrou no request, tentar do contexto HTTP da API
-    if (!sessionToken) {
-      sessionToken =
-        getRequestContextCookie("auth_token") ||
-        getRequestContextCookie("better-auth.session_token");
-    }
-
-    if (!sessionToken) {
+    if (sessionToken) {
       return {
         response: NextResponse.json(
-          { error: "Não autenticado" },
+          { error: "Sessao invalida" },
           { status: 401 },
         ),
-        error: "Token não fornecido",
-      };
-    }
-
-    const session = await getSession(sessionToken);
-
-    if (!session) {
-      return {
-        response: NextResponse.json(
-          { error: "Sessão inválida" },
-          { status: 401 },
-        ),
-        error: "Sessão inválida ou expirada",
+        error: "Sessao invalida ou expirada",
       };
     }
 
     return {
-      userId: session.userId,
-      session,
-      user: session.user,
+      response: NextResponse.json(
+        { error: "Nao autenticado" },
+        { status: 401 },
+      ),
+      error: "Token nao fornecido",
     };
   } catch (error) {
     console.error("[requireAuth] Erro:", error);
     return {
       response: NextResponse.json(
-        { error: "Erro ao validar autenticação" },
+        { error: "Erro ao validar autenticacao" },
         { status: 500 },
       ),
       error: (error as Error).message || "Erro desconhecido",
@@ -159,8 +140,8 @@ export async function requireAuth(
 }
 
 /**
- * Valida se o usuário é um student
- * ADMIN tem acesso completo, então também passa por aqui
+ * Valida se o usuario e um student
+ * ADMIN tem acesso completo, entao tambem passa por aqui
  */
 export async function requireStudent(
   request: NextRequest,
@@ -171,21 +152,19 @@ export async function requireStudent(
     return auth;
   }
 
-  // ADMIN e GYM têm acesso completo para alternar
   const isAdmin = auth.user?.role === "ADMIN";
   const isGym = auth.user?.role === "GYM";
 
   if (!isAdmin && !isGym && !auth.user?.student) {
     return {
       response: NextResponse.json(
-        { error: "Usuário não é um aluno" },
+        { error: "Usuario nao e um aluno" },
         { status: 403 },
       ),
       error: "Acesso negado: requer role STUDENT, GYM ou ADMIN",
     };
   }
 
-  // Para ADMIN e GYM, garantir que student existe (criar se não existir)
   let studentId = auth.user?.student?.id;
   let student = auth.user?.student;
 
@@ -212,10 +191,10 @@ export async function requireStudent(
   if (!studentId) {
     return {
       response: NextResponse.json(
-        { error: "Student ID não encontrado" },
+        { error: "Student ID nao encontrado" },
         { status: 500 },
       ),
-      error: "Student ID não disponível",
+      error: "Student ID nao disponivel",
     };
   }
 
@@ -223,16 +202,15 @@ export async function requireStudent(
     ...auth,
     user: {
       ...auth.user,
-      studentId: studentId,
-      // Garantir que student esteja disponível para handlers que usam auth.user.student.id
+      studentId,
       student: student || { id: studentId },
     },
   };
 }
 
 /**
- * Valida se o usuário é uma gym
- * ADMIN tem acesso completo, então também passa por aqui
+ * Valida se o usuario e uma gym
+ * ADMIN tem acesso completo, entao tambem passa por aqui
  */
 export async function requireGym(
   request: NextRequest,
@@ -243,13 +221,12 @@ export async function requireGym(
     return auth;
   }
 
-  // ADMIN tem acesso completo a tudo
   const isAdmin = auth.user?.role === "ADMIN";
 
   if (!isAdmin && (!auth.user?.gyms || auth.user.gyms.length === 0)) {
     return {
       response: NextResponse.json(
-        { error: "Usuário não possui academias" },
+        { error: "Usuario nao possui academias" },
         { status: 403 },
       ),
       error: "Acesso negado: requer role GYM ou ADMIN",
@@ -260,8 +237,8 @@ export async function requireGym(
 }
 
 /**
- * Valida se o usuário é um personal
- * ADMIN tem acesso completo, então também passa por aqui
+ * Valida se o usuario e um personal
+ * ADMIN tem acesso completo, entao tambem passa por aqui
  */
 export async function requirePersonal(
   request: NextRequest,
@@ -278,7 +255,7 @@ export async function requirePersonal(
   if (!isAdmin && !isPersonalRole) {
     return {
       response: NextResponse.json(
-        { error: "Usuário não é um personal" },
+        { error: "Usuario nao e um personal" },
         { status: 403 },
       ),
       error: "Acesso negado: requer role PERSONAL ou ADMIN",
@@ -319,10 +296,10 @@ export async function requirePersonal(
   if (!personalId) {
     return {
       response: NextResponse.json(
-        { error: "Personal ID não encontrado" },
+        { error: "Personal ID nao encontrado" },
         { status: 500 },
       ),
-      error: "Personal ID não disponível",
+      error: "Personal ID nao disponivel",
     };
   }
 
@@ -337,8 +314,8 @@ export async function requirePersonal(
 }
 
 /**
- * Valida se o usuário é um ADMIN
- * Apenas usuários com role ADMIN têm acesso
+ * Valida se o usuario e um ADMIN
+ * Apenas usuarios com role ADMIN tem acesso
  */
 export async function requireAdmin(
   request: NextRequest,

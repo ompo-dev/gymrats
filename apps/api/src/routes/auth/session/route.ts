@@ -34,9 +34,9 @@ export async function GET(request: NextRequest) {
         getSessionTokenById: async (sessionId) => {
           const sessionFromDb = await db.session.findUnique({
             where: { id: sessionId },
-            select: { token: true },
+            select: { token: true, sessionToken: true },
           });
-          return sessionFromDb?.token || null;
+          return sessionFromDb?.token || sessionFromDb?.sessionToken || null;
         },
         getSessionByToken: getSession,
       },
