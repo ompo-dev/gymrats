@@ -1,0 +1,111 @@
+"use client";
+
+import { ArrowLeft, BookOpen, CheckCircle, Clock, Zap } from "lucide-react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { SlideIn } from "@/components/animations/slide-in";
+import { DuoButton, DuoCard } from "@/components/duo";
+import { useScrollToTop } from "@/hooks/use-scroll-to-top";
+import type { EducationalLesson } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { MarkdownRenderer } from "./markdown-renderer";
+
+interface LessonDetailProps {
+  lesson: EducationalLesson;
+  onBack: () => void;
+  onComplete: () => void;
+  getCategoryIcon: (category: string) => string;
+  getCategoryLabel: (category: string) => string;
+  getCategoryColor: (category: string) => {
+    bg: string;
+    text: string;
+    border: string;
+  };
+}
+
+export function LessonDetail({
+  lesson,
+  onBack,
+  onComplete,
+  getCategoryIcon,
+  getCategoryLabel,
+  getCategoryColor,
+}: LessonDetailProps) {
+  useScrollToTop([lesson]);
+
+  const colors = getCategoryColor(lesson.category);
+
+  return (
+    <div className="mx-auto max-w-4xl space-y-6  ">
+      <FadeIn>
+        <DuoButton
+          type="button"
+          variant="link"
+          size="sm"
+          onClick={onBack}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          Voltar
+        </DuoButton>
+      </FadeIn>
+
+      <SlideIn delay={0.1}>
+        <DuoCard.Root variant="blue" padding="md">
+          <DuoCard.Header>
+            <div className="flex items-center gap-2">
+              <BookOpen
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-[var(--duo-fg)]">{lesson.title}</h2>
+            </div>
+          </DuoCard.Header>
+          <div className="mb-4 text-4xl">
+            {getCategoryIcon(lesson.category)}
+          </div>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-sm font-bold text-duo-gray-dark">
+            <span className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {lesson.duration} min
+            </span>
+            <span className="flex items-center gap-1">
+              <Zap className="h-4 w-4 text-duo-yellow" />
+              {lesson.xpReward} XP
+            </span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-xs font-bold",
+                colors.bg,
+                colors.text,
+              )}
+            >
+              {getCategoryLabel(lesson.category)}
+            </span>
+          </div>
+          <MarkdownRenderer content={lesson.content} />
+        </DuoCard.Root>
+      </SlideIn>
+
+      <SlideIn delay={0.2}>
+        <DuoCard.Root variant="highlighted" size="default">
+          <h3 className="mb-3 text-lg font-bold text-duo-text">Pontos-Chave</h3>
+          <ul className="space-y-2">
+            {lesson.keyPoints.map((point) => (
+              <li key={point} className="flex items-start gap-2">
+                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-duo-green" />
+                <span className="text-duo-text">{point}</span>
+              </li>
+            ))}
+          </ul>
+        </DuoCard.Root>
+      </SlideIn>
+
+      <SlideIn delay={0.3}>
+        <DuoButton onClick={onComplete} variant="primary" fullWidth>
+          {lesson.quiz ? "FAZER QUIZ" : "CONCLUIR LIÇÃO"}
+        </DuoButton>
+      </SlideIn>
+    </div>
+  );
+}

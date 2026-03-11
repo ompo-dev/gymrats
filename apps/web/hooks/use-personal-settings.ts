@@ -1,0 +1,96 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { usePersonal } from "@/hooks/use-personal";
+import { useToast } from "@/hooks/use-toast";
+
+export interface UsePersonalSettingsProps {
+  initialProfile: {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    bio?: string | null;
+    address?: string | null;
+    cref?: string | null;
+    pixKey?: string | null;
+    pixKeyType?: string | null;
+    atendimentoPresencial?: boolean;
+    atendimentoRemoto?: boolean;
+  } | null;
+}
+
+export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps) {
+  const { profile, actions, loaders } = usePersonal("profile", "actions", "loaders");
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  const effectiveProfile = profile ?? initialProfile;
+
+  const handleSave = useCallback(
+    async (data: {
+      name: string;
+      email: string;
+      phone?: string | null;
+      bio?: string | null;
+      address?: string | null;
+      cref?: string | null;
+      pixKey?: string | null;
+      pixKeyType?: string | null;
+      atendimentoPresencial?: boolean;
+      atendimentoRemoto?: boolean;
+    }) => {
+      setSaveError("");
+      if (!data.name.trim() || !data.email.trim()) {
+        setSaveError("Nome e email são obrigatórios.");
+        return;
+      }
+      setSaving(true);
+      try {
+        await actions.updateProfile({
+          name: data.name.trim(),
+          email: data.email.trim(),
+          phone: data.phone?.trim() || null,
+          bio: data.bio?.trim() || null,
+          address: data.address?.trim() || null,
+          cref: data.cref?.trim() || null,
+          pixKey: data.pixKey?.trim() || null,
+          pixKeyType: data.pixKeyType || null,
+          atendimentoPresencial: data.atendimentoPresencial,
+          atendimentoRemoto: data.atendimentoRemoto,
+        });
+        toast({
+          title: "Perfil atualizado",
+          description: "Suas alterações foram salvas.",
+        });
+        setSaveError("");
+      } catch (err) {
+        const msg =
+          err && typeof err === "object" && "response" in err
+            ? (err as { response?: { data?: { error?: string } } }).response?.data
+                ?.error
+            : err instanceof Error
+              ? err.message
+              : "Erro ao salvar. Tente novamente.";
+        setSaveError(msg ?? "Erro ao salvar.");
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: msg,
+        });
+        throw err;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [actions, toast],
+  );
+
+  return {
+    profile: effectiveProfile,
+    saving,
+    saveError,
+    handleSave,
+    loadSection: loaders.loadSection,
+  };
+}

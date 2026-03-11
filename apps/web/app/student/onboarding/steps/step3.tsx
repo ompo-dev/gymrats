@@ -1,0 +1,145 @@
+"use client";
+
+import { motion } from "motion/react";
+import { useEffect, useState } from "react";
+import type { z } from "zod";
+import { DuoCard, DuoSelect } from "@/components/duo";
+import { type step3Schema, validateStep3 } from "../schemas";
+import type { OnboardingData, StepProps } from "./types";
+
+export function Step3({ formData, setFormData, forceValidation }: StepProps) {
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof z.infer<typeof step3Schema>, string>>
+  >({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof z.infer<typeof step3Schema>, boolean>>
+  >({});
+
+  // Marca todos os campos como touched quando forceValidation é true
+  useEffect(() => {
+    if (forceValidation) {
+      setTouched({
+        preferredSets: true,
+        preferredRepRange: true,
+        restTime: true,
+      });
+    }
+  }, [forceValidation]);
+
+  // Valida apenas campos que foram tocados
+  useEffect(() => {
+    if (Object.keys(touched).length > 0) {
+      const validation = validateStep3({
+        preferredSets: formData.preferredSets,
+        preferredRepRange: formData.preferredRepRange,
+        restTime: formData.restTime,
+      });
+
+      if (!validation.success) {
+        const fieldErrors: typeof errors = {};
+        validation.error.errors.forEach((err) => {
+          const path = err.path[0] as keyof typeof fieldErrors;
+          if (path && touched[path]) {
+            fieldErrors[path] = err.message;
+          }
+        });
+        setErrors(fieldErrors);
+      } else {
+        setErrors({});
+      }
+    }
+  }, [
+    formData.preferredSets,
+    formData.preferredRepRange,
+    formData.restTime,
+    touched,
+  ]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 50, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: -50, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+    >
+      <DuoCard.Root
+        variant="outlined"
+        padding="lg"
+        className="border-2 border-duo-border bg-duo-bg-card shadow-2xl backdrop-blur-md"
+      >
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-2xl font-bold text-duo-fg">Preferências</h2>
+          <p className="text-sm text-duo-fg-muted">
+            Como você gosta de treinar?
+          </p>
+        </div>
+        <div className="space-y-6">
+          <DuoSelect.Simple
+            options={[2, 3, 4, 5].map((num) => ({
+              value: String(num),
+              label: `${num}x`,
+            }))}
+            value={String(formData.preferredSets)}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                preferredSets: parseInt(value, 10),
+              });
+              setTouched((prev) => ({ ...prev, preferredSets: true }));
+            }}
+            label="Número de séries por exercício"
+            placeholder="Selecione"
+          />
+
+          <DuoSelect.Simple
+            options={[
+              {
+                value: "forca",
+                label: "Força (1-5 reps)",
+                description: "Peso muito alto",
+              },
+              {
+                value: "hipertrofia",
+                label: "Hipertrofia (8-12 reps)",
+                description: "Crescimento muscular",
+              },
+              {
+                value: "resistencia",
+                label: "Resistência (15+ reps)",
+                description: "Definição e tônus",
+              },
+            ]}
+            value={formData.preferredRepRange}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                preferredRepRange: value as OnboardingData["preferredRepRange"],
+              });
+              setTouched((prev) => ({ ...prev, preferredRepRange: true }));
+            }}
+            label="Faixa de repetições"
+            placeholder="Selecione"
+          />
+
+          <DuoSelect.Simple
+            options={[
+              { value: "curto", label: "Curto", description: "30-45s" },
+              { value: "medio", label: "Médio", description: "60-90s" },
+              { value: "longo", label: "Longo", description: "2-3min" },
+            ]}
+            value={formData.restTime}
+            onChange={(value) => {
+              setFormData({
+                ...formData,
+                restTime: value as OnboardingData["restTime"],
+              });
+              setTouched((prev) => ({ ...prev, restTime: true }));
+            }}
+            label="Tempo de descanso entre séries"
+            placeholder="Selecione"
+          />
+        </div>
+      </DuoCard.Root>
+    </motion.div>
+  );
+}

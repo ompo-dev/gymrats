@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "boost_campaigns" ADD COLUMN IF NOT EXISTS "radiusKm" INTEGER NOT NULL DEFAULT 5;
