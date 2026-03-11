@@ -26,6 +26,6 @@
       "@gymrats/workflows/*": ["../../packages/workflows/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "../../packages/**/*.ts"],
+  "include": ["src/**/*.ts", "../api/src/**/*.ts", "../../packages/**/*.ts"],
   "exclude": ["node_modules"]
 }

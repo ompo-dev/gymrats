@@ -1,6 +1,45 @@
 process.env.GYMRATS_RUNTIME_ROLE ??= "worker";
 
-import "../../api/src/server/workers/email.worker";
-import "../../api/src/server/workers/webhook.worker";
+import { redisConnection } from "@gymrats/cache";
+import { log } from "@/lib/observability/logger";
+import { emailWorker } from "./email.worker";
+import { webhookWorker } from "./webhook.worker";
 
-console.log("[worker] Email and webhook workers are running");
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  log.info("[worker] shutting down", { signal });
+
+  try {
+    await Promise.all([emailWorker.close(), webhookWorker.close()]);
+    await redisConnection.quit();
+    log.info("[worker] shutdown complete", { signal });
+  } catch (error) {
+    log.error("[worker] shutdown failed", {
+      signal,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    process.exitCode = 1;
+  }
+}
+
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => {
+    void shutdown(signal);
+  });
+}
+
+try {
+  await Promise.all([emailWorker.waitUntilReady(), webhookWorker.waitUntilReady()]);
+  log.info("[worker] Email and webhook workers are running");
+} catch (error) {
+  log.error("[worker] startup failed", {
+    error: error instanceof Error ? error.message : String(error),
+  });
+  process.exit(1);
+}
