@@ -12,14 +12,19 @@ import { getRequestContextHeaders } from "../runtime/request-context";
 import { getSessionToken } from "../utils/get-session-token";
 import { getSession } from "@/lib/utils/session";
 
+type AuthRecord = Record<string, string | number | boolean | object | null>;
+type AuthStudentRecord = AuthRecord & { id: string };
+
 export type AuthSession = {
-  session: Record<string, string | number | boolean | object | null>;
+  session: AuthRecord;
   user: {
     id: string;
-    student?: Record<string, string | number | boolean | object | null>;
+    student?: AuthStudentRecord | null;
     gyms?: { id: string }[];
     role?: string;
     activeGymId?: string;
+    name?: string;
+    email?: string;
     [key: string]: string | number | boolean | object | null | undefined;
   };
 };
@@ -34,7 +39,7 @@ export type StudentContext = {
   studentId: string;
   session: AuthSession["session"];
   user: AuthSession["user"];
-  student: Record<string, string | number | boolean | object | null>;
+  student: AuthStudentRecord;
 };
 
 export type PersonalContext = {
@@ -74,7 +79,7 @@ async function getAuthSession(): Promise<AuthSession | null> {
     if (sessionFromToken?.user) {
       return {
         session: sessionFromToken,
-        user: sessionFromToken.user,
+        user: sessionFromToken.user as unknown as AuthSession["user"],
       };
     }
   }
@@ -204,7 +209,7 @@ export async function getAuthContext(options: {
             name: user.name || "Admin Gym",
             address: "",
             phone: "",
-            email: user.email,
+            email: user.email || "",
             isActive: true,
           },
         });

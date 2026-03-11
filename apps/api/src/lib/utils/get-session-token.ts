@@ -9,16 +9,16 @@ import {
  * Verifica cookies (auth_token, better-auth.session_token) e o header Authorization
  */
 export async function getSessionToken(): Promise<string | null> {
+  const authHeader = getRequestContextHeaders()?.get("authorization") ?? null;
   const cookieToken =
     getRequestContextCookie("auth_token") ||
     getRequestContextCookie("better-auth.session_token");
-  const authHeader = getRequestContextHeaders()?.get("authorization") ?? null;
-
-  if (cookieToken) return cookieToken;
 
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.replace("Bearer ", "").trim();
   }
+
+  if (cookieToken) return cookieToken;
 
   return null;
 }
@@ -29,16 +29,16 @@ export async function getSessionToken(): Promise<string | null> {
 export function getSessionTokenFromRequest(
   request: NextRequest,
 ): string | null {
+  const authHeader = request.headers.get("authorization");
   const cookieToken =
     request.cookies.get("auth_token")?.value ||
     request.cookies.get("better-auth.session_token")?.value;
 
-  if (cookieToken) return cookieToken;
-
-  const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.replace("Bearer ", "").trim();
   }
+
+  if (cookieToken) return cookieToken;
 
   return null;
 }

@@ -30,15 +30,15 @@ export interface AuthError {
  * Extrai o token de autenticacao do request
  */
 export function extractAuthToken(request: NextRequest): string | null {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
+
   const cookieToken =
     request.cookies.get("auth_token")?.value ||
     request.cookies.get("better-auth.session_token")?.value;
   if (cookieToken) return cookieToken;
-
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.replace("Bearer ", "");
-  }
 
   return null;
 }

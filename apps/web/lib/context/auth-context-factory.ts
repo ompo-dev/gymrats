@@ -4,11 +4,14 @@ import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { getSession } from "@/lib/utils/session";
 
+type AuthRecord = Record<string, string | number | boolean | object | null>;
+type AuthStudentRecord = AuthRecord & { id: string };
+
 export type AuthSession = {
-  session: Record<string, string | number | boolean | object | null>;
+  session: AuthRecord;
   user: {
     id: string;
-    student?: Record<string, string | number | boolean | object | null>;
+    student?: AuthStudentRecord | null;
     gyms?: { id: string }[];
     role?: string;
     activeGymId?: string;
@@ -28,7 +31,7 @@ export type StudentContext = {
   studentId: string;
   session: AuthSession["session"];
   user: AuthSession["user"];
-  student: Record<string, string | number | boolean | object | null>;
+  student: AuthStudentRecord;
 };
 
 export type PersonalContext = {
@@ -65,7 +68,12 @@ async function getRequestHeaders() {
 
 async function getSessionToken(): Promise<string | null> {
   const requestHeaders = await getRequestHeaders();
+  const authHeader = requestHeaders.get("authorization");
   const cookieHeader = requestHeaders.get("cookie");
+
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.replace("Bearer ", "").trim();
+  }
 
   if (cookieHeader) {
     for (const cookie of cookieHeader.split(";")) {
@@ -77,11 +85,6 @@ async function getSessionToken(): Promise<string | null> {
         return decodeURIComponent(rest.join("="));
       }
     }
-  }
-
-  const authHeader = requestHeaders.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.replace("Bearer ", "").trim();
   }
 
   return null;
@@ -97,7 +100,7 @@ async function getAuthSession(): Promise<AuthSession | null> {
     if (sessionFromToken?.user) {
       return {
         session: sessionFromToken,
-        user: sessionFromToken.user,
+        user: sessionFromToken.user as unknown as AuthSession["user"],
       };
     }
   }

@@ -435,7 +435,7 @@ export async function getSessionUseCase(
         const headerToken = input.authHeaderToken || null;
         const cookieToken =
           input.cookieAuthToken || input.cookieBetterAuthToken || null;
-        let sessionToken = cookieToken || headerToken;
+        let sessionToken = headerToken || cookieToken;
 
         const sessionId = betterAuthSession.session?.id || "";
         if (!sessionToken && sessionId) {
