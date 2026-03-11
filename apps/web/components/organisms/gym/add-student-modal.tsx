@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
+import { browserApiFetch } from "@/lib/api/browser-fetch";
 import { useToast } from "@/hooks/use-toast";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -61,7 +62,7 @@ export function AddStudentModal({
       const searchQuery = normalizedIdentifier.startsWith("@")
         ? normalizedIdentifier
         : `@${normalizedIdentifier}`;
-      const res = await fetch(
+      const res = await browserApiFetch(
         `/api/gyms/students/search?email=${encodeURIComponent(searchQuery)}`,
       );
       const data = await res.json();

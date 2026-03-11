@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
+import { browserApiFetch } from "@/lib/api/browser-fetch";
 import type {
   DailyNutrition,
   FoodItem,
@@ -65,7 +66,7 @@ export function useGymStudentDetail({
     if (!student?.id) return;
     setIsLoadingWeeklyPlan(true);
     try {
-      const res = await fetch(`${apiBase}/${student.id}/weekly-plan`);
+      const res = await browserApiFetch(`${apiBase}/${student.id}/weekly-plan`);
       const data = await res.json();
       if (data.success && data.weeklyPlan) {
         setWeeklyPlan(data.weeklyPlan);
@@ -85,7 +86,7 @@ export function useGymStudentDetail({
       const d = date ?? nutritionDate;
       setIsLoadingNutrition(true);
       try {
-        const res = await fetch(
+        const res = await browserApiFetch(
           `${apiBase}/${student.id}/nutrition?date=${d}`,
         );
         const data = await res.json();
@@ -160,7 +161,7 @@ export function useGymStudentDetail({
       };
       setDailyNutrition(nextNutrition);
       try {
-        await fetch(`${apiBase}/${student.id}/nutrition`, {
+        await browserApiFetch(`${apiBase}/${student.id}/nutrition`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -181,7 +182,7 @@ export function useGymStudentDetail({
       if (!student?.id) return;
       const normalized = Math.max(0, Math.round(targetWater));
       try {
-        await fetch(`${apiBase}/${student.id}/nutrition`, {
+        await browserApiFetch(`${apiBase}/${student.id}/nutrition`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ targetWater: normalized }),
@@ -398,7 +399,7 @@ export function useGymStudentDetail({
     if (!student?.id || !personalId.trim() || variant === "personal") return;
     setIsAssigningPersonal(true);
     try {
-      const response = await fetch(
+      const response = await browserApiFetch(
         `/api/gym/students/${student.id}/assign-personal`,
         {
           method: "POST",
@@ -434,7 +435,7 @@ export function useGymStudentDetail({
 
   const createWeeklyPlan = useCallback(async () => {
     if (!student?.id) return;
-    const res = await fetch(`${apiBase}/${student.id}/weekly-plan`, {
+    const res = await browserApiFetch(`${apiBase}/${student.id}/weekly-plan`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),

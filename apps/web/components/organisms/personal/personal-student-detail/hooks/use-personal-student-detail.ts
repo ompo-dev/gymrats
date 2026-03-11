@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
+import { browserApiFetch } from "@/lib/api/browser-fetch";
 import { useToast } from "@/hooks/use-toast";
 import type {
   DailyNutrition,
@@ -76,7 +77,7 @@ export function usePersonalStudentDetail({
     if (!studentId) return;
     setIsLoadingWeeklyPlan(true);
     try {
-      const res = await fetch(
+      const res = await browserApiFetch(
         `/api/personals/students/${studentId}/weekly-plan`,
       );
       const data = await res.json();
@@ -98,7 +99,7 @@ export function usePersonalStudentDetail({
       const d = date ?? nutritionDate;
       setIsLoadingNutrition(true);
       try {
-        const res = await fetch(
+        const res = await browserApiFetch(
           `/api/personals/students/${studentId}/nutrition?date=${d}`,
         );
         const data = await res.json();

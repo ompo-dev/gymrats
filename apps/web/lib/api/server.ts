@@ -19,6 +19,25 @@ function buildUrl(path: string): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+function extractSessionTokenFromCookie(cookieHeader: string | null): string | null {
+  if (!cookieHeader) {
+    return null;
+  }
+
+  for (const cookieChunk of cookieHeader.split(";")) {
+    const [rawName, ...rawValueParts] = cookieChunk.trim().split("=");
+    if (
+      rawName === "auth_token" ||
+      rawName === "better-auth.session_token"
+    ) {
+      const rawValue = rawValueParts.join("=");
+      return rawValue ? decodeURIComponent(rawValue) : null;
+    }
+  }
+
+  return null;
+}
+
 async function buildForwardHeaders(
   initHeaders?: HeadersInit,
 ): Promise<Headers> {
@@ -28,6 +47,11 @@ async function buildForwardHeaders(
   const cookie = incomingHeaders.get("cookie");
   if (cookie && !outgoingHeaders.has("cookie")) {
     outgoingHeaders.set("cookie", cookie);
+  }
+
+  const sessionToken = extractSessionTokenFromCookie(cookie);
+  if (sessionToken && !outgoingHeaders.has("authorization")) {
+    outgoingHeaders.set("authorization", `Bearer ${sessionToken}`);
   }
 
   const authorization = incomingHeaders.get("authorization");

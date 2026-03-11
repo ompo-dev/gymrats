@@ -26,15 +26,47 @@ function normalizeBaseUrl(url: string | undefined): string {
   return url.replace(/\/$/, "");
 }
 
+function resolveRuntimePublicApiUrl(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const runtimeWindow = window as Window & {
+    __GYMRATS_API_URL__?: string;
+  };
+  const windowUrl = normalizeBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
+
+  if (windowUrl) {
+    return windowUrl;
+  }
+
+  const datasetUrl = normalizeBaseUrl(
+    document.body?.dataset.apiBaseUrl || document.documentElement?.dataset.apiBaseUrl,
+  );
+
+  if (datasetUrl) {
+    return datasetUrl;
+  }
+
+  const metaUrl = normalizeBaseUrl(
+    document
+      .querySelector('meta[name="gymrats-api-base-url"]')
+      ?.getAttribute("content") || undefined,
+  );
+
+  return metaUrl;
+}
+
 export function resolveApiBaseUrl(): string {
   const publicUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
   const internalUrl = normalizeBaseUrl(process.env.API_INTERNAL_URL);
+  const authUrl = normalizeBaseUrl(process.env.BETTER_AUTH_URL);
 
   if (typeof window !== "undefined") {
-    return publicUrl || "";
+    return resolveRuntimePublicApiUrl() || publicUrl || authUrl || "";
   }
 
-  return internalUrl || publicUrl || "http://localhost:4000";
+  return internalUrl || publicUrl || authUrl || "http://localhost:4000";
 }
 
 export function getAxiosInstance(): AxiosInstance {
@@ -47,13 +79,17 @@ export function getAxiosInstance(): AxiosInstance {
 
 function createAxiosClient(): AxiosInstance {
   const client = axios.create({
-    baseURL: resolveApiBaseUrl(),
     withCredentials: true,
     headers: { "Content-Type": "application/json" },
   });
 
   client.interceptors.request.use(
     (config) => {
+      const baseUrl = resolveApiBaseUrl();
+      if (baseUrl) {
+        config.baseURL = baseUrl;
+      }
+
       const token = getAuthToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

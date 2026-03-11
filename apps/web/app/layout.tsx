@@ -64,12 +64,29 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const runtimeApiBaseUrl = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.BETTER_AUTH_URL ||
+    ""
+  ).replace(/\/$/, "");
+
   return (
     <html lang="pt-BR" className={nunito.variable}>
+      <head>
+        {runtimeApiBaseUrl ? (
+          <meta name="gymrats-api-base-url" content={runtimeApiBaseUrl} />
+        ) : null}
+      </head>
       <body
+        data-api-base-url={runtimeApiBaseUrl || undefined}
         className="font-sans antialiased bg-duo-bg text-duo-fg"
         suppressHydrationWarning
       >
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__GYMRATS_API_URL__ = ${JSON.stringify(runtimeApiBaseUrl)};`,
+          }}
+        />
         <NuqsAdapter>
           <ErrorBoundary>
             <DuoThemeProvider>

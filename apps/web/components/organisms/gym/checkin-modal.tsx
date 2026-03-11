@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
+import { browserApiFetch } from "@/lib/api/browser-fetch";
 
 interface ActiveMember {
   id: string;
@@ -43,7 +44,7 @@ export function CheckInModal({
     timerRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(
+        const res = await browserApiFetch(
           `/api/gyms/members?status=active&search=${encodeURIComponent(search)}`,
         );
         const data = await res.json();
