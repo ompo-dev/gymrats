@@ -6,6 +6,7 @@ import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { db } from "@gymrats/db";
 
 type AuthInstance = ReturnType<typeof betterAuth>;
+type AuthHandler = AuthInstance & ((request: Request) => Promise<Response>);
 
 let authInstance: AuthInstance | null = null;
 
@@ -26,28 +27,26 @@ function getTrustedOrigins() {
   return Array.from(new Set([getAppUrl(), getApiUrl(), ...extraTrustedOrigins]));
 }
 
-function assertRequiredEnv() {
-  if (!process.env.BETTER_AUTH_SECRET) {
-    throw new Error("BETTER_AUTH_SECRET is not configured in the environment");
+function getRequiredEnv(name: "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET"): string {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`${name} is not configured in the environment`);
   }
 
-  if (!process.env.GOOGLE_CLIENT_ID) {
-    throw new Error("GOOGLE_CLIENT_ID is not configured in the environment");
-  }
-
-  if (!process.env.GOOGLE_CLIENT_SECRET) {
-    throw new Error("GOOGLE_CLIENT_SECRET is not configured in the environment");
-  }
+  return value;
 }
 
 function createAuth() {
-  assertRequiredEnv();
+  const betterAuthSecret = getRequiredEnv("BETTER_AUTH_SECRET");
+  const googleClientId = getRequiredEnv("GOOGLE_CLIENT_ID");
+  const googleClientSecret = getRequiredEnv("GOOGLE_CLIENT_SECRET");
 
   return betterAuth({
     database: prismaAdapter(db, {
       provider: "postgresql",
     }),
-    secret: process.env.BETTER_AUTH_SECRET,
+    secret: betterAuthSecret,
     emailAndPassword: {
       enabled: false,
     },
@@ -59,8 +58,8 @@ function createAuth() {
     },
     socialProviders: {
       google: {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
       },
     },
     plugins: [
@@ -341,18 +340,53 @@ function getAuth() {
   return authInstance;
 }
 
-export const auth = new Proxy({} as AuthInstance, {
+const authTarget = (async (request: Request) => {
+  const instance = getAuth() as unknown as AuthHandler | { handler: AuthHandler };
+
+  if (typeof instance === "function") {
+    return instance(request);
+  }
+
+  return instance.handler(request);
+}) as AuthHandler;
+
+export const auth = new Proxy(authTarget, {
+  apply(_target, _thisArg, argArray) {
+    const [request] = argArray as [Request];
+    return authTarget(request);
+  },
   get(_target, prop) {
-    const instance = getAuth();
+    const instance = getAuth() as AuthHandler;
     const value = Reflect.get(instance, prop, instance);
 
     return typeof value === "function" ? value.bind(instance) : value;
   },
   set(_target, prop, value) {
-    const instance = getAuth();
+    const instance = getAuth() as AuthHandler;
 
     return Reflect.set(instance, prop, value, instance);
   },
-}) as AuthInstance;
+  has(_target, prop) {
+    const instance = getAuth() as AuthHandler;
+    return prop in instance;
+  },
+  ownKeys() {
+    const instance = getAuth() as AuthHandler;
+    return Reflect.ownKeys(instance);
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    const instance = getAuth() as AuthHandler;
+    const descriptor = Reflect.getOwnPropertyDescriptor(instance, prop);
+
+    if (!descriptor) {
+      return undefined;
+    }
+
+    return {
+      ...descriptor,
+      configurable: true,
+    };
+  },
+}) as AuthHandler;
 
 export type Session = AuthInstance["$Infer"]["Session"];
