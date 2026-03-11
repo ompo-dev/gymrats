@@ -1,7 +1,7 @@
 import { webhookQueue } from "@gymrats/cache";
 import { resetStudentWeeklyOverride } from "@gymrats/workflows";
 import { apiApp as baseApiApp } from "./server/app";
-import { abacatePay } from "@/lib/api/abacatepay";
+import { abacatePay } from "@gymrats/api/abacatepay";
 import { log } from "@/lib/observability";
 
 export const apiApp = baseApiApp

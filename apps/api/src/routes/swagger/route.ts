@@ -1,5 +1,5 @@
 import { NextResponse } from "@/runtime/next-server";
-import { getSwaggerSpec } from "@/lib/api/swagger-spec";
+import { getSwaggerSpec } from "@gymrats/api/swagger-spec";
 
 export async function GET() {
   const baseUrl =

@@ -1,6 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-import type { ApiError } from "@/lib/types";
-import type { JsonValue } from "@/lib/types/api-error";
+import type { ApiError, JsonValue } from "@gymrats/types/api-error";
 
 const ABACATEPAY_API_URL = "https://api.abacatepay.com/v1";
 

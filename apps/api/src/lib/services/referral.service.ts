@@ -269,7 +269,7 @@ export class ReferralService {
       };
     }
 
-    const { abacatePay } = await import("@/lib/api/abacatepay");
+    const { abacatePay } = await import("@gymrats/api/abacatepay");
     const res = await abacatePay.createWithdraw({
       externalId,
       amount: data.amountCents,

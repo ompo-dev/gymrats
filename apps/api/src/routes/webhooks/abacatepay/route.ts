@@ -1,5 +1,5 @@
 import type { NextRequest } from "@/runtime/next-server";
-import { abacatePay } from "@/lib/api/abacatepay";
+import { abacatePay } from "@gymrats/api/abacatepay";
 import {
   badRequestResponse,
   internalErrorResponse,

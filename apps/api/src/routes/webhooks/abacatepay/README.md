@@ -16,7 +16,7 @@
 - O que faz: implementa o endpoint `/api/webhooks/abacatepay` com método(s) `POST`.
 - Como: lê request, aplica validações/autorização e delega para handlers/casos de uso (ex.: `POST`, `get`, `text`, `verifyWebhookSignature`, `URL`), serializando resposta HTTP.
 - Por que: isola a borda HTTP do núcleo de negócio e facilita evolução de contrato por rota.
-- Importa principalmente: `next/server`, `@/lib/api/utils/response.utils`, `@/lib/db`, `@/lib/api/abacatepay`
+- Importa principalmente: `next/server`, `@/lib/api/utils/response.utils`, `@/lib/db`, `@gymrats/api/abacatepay`
 - Expõe: `POST`
 - Comunica com: Banco de dados (Prisma), HTTP interno/externo
 - Onde é usado/importado: resolvido automaticamente pelo App Router no path da pasta (sem import manual).

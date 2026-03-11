@@ -5,7 +5,7 @@
 
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getSwaggerSpec } from "../../api/src/lib/api/swagger-spec";
+import { getSwaggerSpec } from "@gymrats/api/swagger-spec";
 
 const baseUrl =
   process.env.NEXT_PUBLIC_API_URL ||

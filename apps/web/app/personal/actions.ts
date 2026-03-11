@@ -338,7 +338,7 @@ export async function createPersonalBoostCampaign(data: {
       },
     });
 
-    const { abacatePay } = await import("../../../api/src/lib/api/abacatepay");
+    const { abacatePay } = await import("@gymrats/api/abacatepay");
     const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
     const pixResponse = await abacatePay.createPixQrCode({
       amount: data.amountCents,
@@ -438,7 +438,7 @@ export async function getPersonalBoostCampaignPix(
     if (!campaign)
       return { success: false, error: "Campanha não encontrada ou já paga" };
 
-    const { abacatePay } = await import("../../../api/src/lib/api/abacatepay");
+    const { abacatePay } = await import("@gymrats/api/abacatepay");
     const { PIX_EXPIRES_IN_SECONDS } = await import("@/lib/utils/subscription");
     const pixResponse = await abacatePay.createPixQrCode({
       amount: campaign.amountCents,

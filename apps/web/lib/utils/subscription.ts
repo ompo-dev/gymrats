@@ -6,8 +6,8 @@ import {
   getPersonalPlanConfig,
   getStudentPlanConfig,
 } from "@/lib/access-control/plans-config";
-import type { CreateBillingRequest } from "../../../api/src/lib/api/abacatepay";
-import { abacatePay } from "../../../api/src/lib/api/abacatepay";
+import type { CreateBillingRequest } from "@gymrats/api/abacatepay";
+import { abacatePay } from "@gymrats/api/abacatepay";
 import { db } from "@/lib/db";
 
 /** Tempo de expiração do PIX em segundos (4 minutos) */

@@ -1,6 +1,6 @@
 import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
-import { abacatePay } from "@/lib/api/abacatepay";
+import { abacatePay } from "@gymrats/api/abacatepay";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 

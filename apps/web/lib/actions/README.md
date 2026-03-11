@@ -15,7 +15,7 @@
 - O que faz: implementa o módulo `abacate-pay.ts` da camada `actions`.
 - Como: declara tipos, funções e contratos utilizados por outras partes do sistema.
 - Por que: mantém coesão técnica e facilita evolução segura do código.
-- Importa principalmente: `@/lib/db`, `@/lib/api/abacatepay`, `@/lib/utils/student-context`
+- Importa principalmente: `@/lib/db`, `@gymrats/api/abacatepay`, `@/lib/utils/student-context`
 - Expõe: `createAbacateBilling`, `confirmAbacatePayment`
 - Comunica com: Banco de dados (Prisma), HTTP interno/externo
 - Onde é usado/importado: `app/student/payments/student-payments-page.tsx`, `components/organisms/sections/subscription-section.tsx`
