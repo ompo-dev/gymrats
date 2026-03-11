@@ -191,10 +191,7 @@ function WelcomePageContent() {
               // ⚠️ SEGURANÇA: Salvar apenas token no localStorage para compatibilidade
               // NÃO salvar userRole e isAdmin - sempre validar no servidor
               if (sessionResponse.session?.token) {
-                localStorage.setItem(
-                  "auth_token",
-                  sessionResponse.session.token,
-                );
+                setAuthToken(sessionResponse.session.token);
               }
               localStorage.setItem("isAuthenticated", "true");
               localStorage.setItem("userEmail", sessionResponse.user.email);

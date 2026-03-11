@@ -41,17 +41,19 @@ function clearCookieToken(): void {
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
 
-  const localStorageToken = window.localStorage.getItem(AUTH_TOKEN_KEY);
-  if (localStorageToken) {
-    return localStorageToken;
-  }
-
   const cookieToken = getCookieToken();
+  const localStorageToken = window.localStorage.getItem(AUTH_TOKEN_KEY);
+
+  // O cookie e' a fonte mais confiavel porque ele tambem alimenta o SSR.
+  // Se os dois divergirem, sincronizamos o localStorage com o valor atual.
   if (cookieToken) {
-    window.localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+    if (localStorageToken !== cookieToken) {
+      window.localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+    }
+    return cookieToken;
   }
 
-  return cookieToken;
+  return localStorageToken;
 }
 
 export function setAuthToken(token: string): void {
