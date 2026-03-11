@@ -31,6 +31,21 @@ function WelcomePageContent() {
   const oauthWindowRef = useRef<Window | null>(null);
   const isPWA = typeof window !== "undefined" ? isStandaloneMode() : false;
 
+  const buildGoogleStartUrl = () => {
+    const appBaseURL =
+      process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+    const apiBaseURL = resolveApiBaseUrl() || appBaseURL;
+    const startUrl = new URL("/api/auth/google/start", apiBaseURL);
+
+    startUrl.searchParams.set("redirectTo", `${appBaseURL}/auth/callback`);
+    startUrl.searchParams.set(
+      "errorRedirectTo",
+      `${appBaseURL}/auth/callback?error=true`,
+    );
+
+    return startUrl.toString();
+  };
+
   // Listener para mensagens do OAuth popup (PWA)
   useEffect(() => {
     const handleOAuthMessage = async (event: MessageEvent) => {
@@ -273,19 +288,15 @@ function WelcomePageContent() {
     setError("");
 
     try {
+      const startUrl = buildGoogleStartUrl();
+
       // Se está em PWA, abrir OAuth em popup para voltar ao app após login
       if (isPWA) {
-        const appBaseURL =
-          process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-        const apiBaseURL = resolveApiBaseUrl() || appBaseURL;
-        const callbackURL = `${appBaseURL}/auth/callback`;
-
         // Marcar no sessionStorage que estamos abrindo popup (para callback detectar)
         sessionStorage.setItem("pwa_oauth_popup", "true");
 
-        // Abrir popup primeiro para garantir que não seja bloqueado
         const popup = window.open(
-          "",
+          startUrl,
           "google-oauth-popup",
           "width=500,height=600,scrollbars=yes,resizable=yes,left=" +
             (window.screen.width / 2 - 250) +
@@ -301,69 +312,6 @@ function WelcomePageContent() {
         }
 
         oauthWindowRef.current = popup;
-
-        try {
-          // Fazer requisição POST com JSON (não form-urlencoded) para o Better Auth
-          // Usar redirect: "manual" para controlar o redirect manualmente na popup
-          const response = await fetch(`${apiBaseURL}/api/auth/sign-in/social`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              provider: "google",
-              callbackURL,
-              errorCallbackURL: `${callbackURL}?error=true`,
-              newUserCallbackURL: callbackURL,
-            }),
-            credentials: "include", // Importante para cookies
-            redirect: "manual", // Não seguir redirects automaticamente
-          });
-
-          // Verificar se há um redirect (status 301, 302, 307, 308)
-          if (response.status >= 300 && response.status < 400) {
-            const location = response.headers.get("Location");
-            if (location) {
-              // Redirecionar a popup para a URL de autorização do Google
-              popup.location.href = location;
-            } else {
-              throw new Error("Redirect recebido mas sem header Location");
-            }
-          } else if (response.ok) {
-            // Se retornar JSON com URL, usar essa URL
-            try {
-              const data = await response.json();
-              if (data.url) {
-                popup.location.href = data.url;
-              } else {
-                throw new Error("Resposta não contém URL de autorização");
-              }
-            } catch (_jsonError) {
-              // Se não for JSON, pode ser HTML ou outro formato
-              throw new Error("Resposta inesperada do servidor");
-            }
-          } else {
-            // Se houver erro, tentar ler a mensagem
-            let errorMessage = "Erro ao iniciar login";
-            try {
-              const errorData = await response.json();
-              errorMessage =
-                errorData.message || errorData.error || errorMessage;
-            } catch {
-              // Se não conseguir ler JSON, usar status text
-              errorMessage = response.statusText || errorMessage;
-            }
-            throw new Error(errorMessage);
-          }
-        } catch (fetchError) {
-          console.error("Erro ao fazer requisição OAuth:", fetchError);
-          popup.close();
-          throw new Error(
-            fetchError instanceof Error
-              ? fetchError.message
-              : "Erro ao iniciar login com Google",
-          );
-        }
 
         // Monitorar se a popup foi fechada manualmente
         const checkClosed = setInterval(() => {
@@ -387,14 +335,8 @@ function WelcomePageContent() {
           5 * 60 * 1000,
         ); // 5 minutos máximo
       } else {
-        // Navegador normal - usar redirecionamento padrão do Better Auth
-        await authClient.signIn.social({
-          provider: "google",
-          callbackURL: `${window.location.origin}/auth/callback`,
-          errorCallbackURL: `${window.location.origin}/welcome?error=google`,
-          newUserCallbackURL: `${window.location.origin}/auth/callback`,
-        });
-        // O redirecionamento para Google será automático
+        window.location.assign(startUrl);
+        return;
       }
     } catch (err) {
       console.error("Erro ao iniciar login com Google:", err);
