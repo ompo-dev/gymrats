@@ -21,7 +21,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }
@@ -80,7 +80,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }

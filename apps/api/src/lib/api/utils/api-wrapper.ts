@@ -108,7 +108,7 @@ export function createSafeHandler<
         // Ensure gymId is set (middleware should have it or user should have activeGymId)
         if (!nextGymContext.gymId) {
           const { getGymContext } = await import("@/lib/utils/gym/gym-context");
-          const ctxResult = await getGymContext();
+          const ctxResult = await getGymContext(req);
           if (ctxResult.ctx) nextGymContext.gymId = ctxResult.ctx.gymId;
         }
         gymContext = nextGymContext;

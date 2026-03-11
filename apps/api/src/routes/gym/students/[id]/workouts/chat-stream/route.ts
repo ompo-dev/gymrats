@@ -38,7 +38,7 @@ export async function POST(
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        const { ctx, errorResponse } = await getGymContext();
+        const { ctx, errorResponse } = await getGymContext(request);
         if (errorResponse || !ctx) {
           sendSSE(controller, "error", { error: "Não autorizado" });
           controller.close();

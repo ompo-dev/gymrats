@@ -1,3 +1,4 @@
+import type { NextRequest } from "@/runtime/next-server";
 import { getAuthContext } from "@/lib/context/auth-context-factory";
 import { log } from "@/lib/observability";
 
@@ -10,9 +11,14 @@ type StudentContextResult =
     }
   | { ctx?: undefined; error: string };
 
-export async function getStudentContext(): Promise<StudentContextResult> {
+export async function getStudentContext(
+  request?: Pick<NextRequest, "headers"> | Request | null,
+): Promise<StudentContextResult> {
   try {
-    const result = await getAuthContext({ type: "student" });
+    const result = await getAuthContext(
+      { type: "student" },
+      request?.headers ?? null,
+    );
     return result;
   } catch (error) {
     log.error("[getStudentContext] Erro", {

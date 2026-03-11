@@ -64,6 +64,12 @@ function getCookieToken(): string | null {
   return rawValue ? decodeURIComponent(rawValue) : null;
 }
 
+function getLocalStorageToken(): string | null {
+  if (typeof window === "undefined") return null;
+
+  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
 function setCookieToken(token: string): void {
   if (typeof document === "undefined") return;
 
@@ -90,18 +96,23 @@ export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
 
   const cookieToken = getCookieToken();
-  const localStorageToken = window.localStorage.getItem(AUTH_TOKEN_KEY);
+  const localStorageToken = getLocalStorageToken();
 
-  // O cookie e' a fonte mais confiavel porque ele tambem alimenta o SSR.
-  // Se os dois divergirem, sincronizamos o localStorage com o valor atual.
-  if (cookieToken) {
-    if (localStorageToken !== cookieToken) {
-      window.localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
+  // No browser, priorizamos localStorage porque ele e' o estado mais estavel
+  // para requests client-side. Se houver divergencia, sincronizamos o cookie.
+  if (localStorageToken) {
+    if (cookieToken !== localStorageToken) {
+      setCookieToken(localStorageToken);
     }
+    return localStorageToken;
+  }
+
+  if (cookieToken) {
+    window.localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
     return cookieToken;
   }
 
-  return localStorageToken;
+  return null;
 }
 
 export function setAuthToken(token: string): void {
@@ -125,14 +136,10 @@ type SessionResponse = {
 async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
-  if (!forceRefresh) {
-    const existingToken = getAuthToken();
-    if (existingToken) {
-      return existingToken;
-    }
-  } else {
-    window.localStorage.removeItem(AUTH_TOKEN_KEY);
-    clearCookieToken();
+  const existingToken = getAuthToken();
+
+  if (!forceRefresh && existingToken) {
+    return existingToken;
   }
 
   if (authTokenSyncPromise) {
@@ -147,11 +154,14 @@ async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
         credentials: "include",
         headers: {
           Accept: "application/json",
+          ...(existingToken
+            ? { Authorization: `Bearer ${existingToken}` }
+            : {}),
         },
       });
 
       if (!response.ok) {
-        return null;
+        return existingToken;
       }
 
       const data = (await response.json()) as SessionResponse;
@@ -162,9 +172,9 @@ async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
         return sessionToken;
       }
 
-      return getAuthToken();
+      return existingToken;
     } catch {
-      return null;
+      return existingToken;
     } finally {
       authTokenSyncPromise = null;
     }

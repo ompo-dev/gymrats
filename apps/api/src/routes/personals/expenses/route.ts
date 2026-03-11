@@ -3,9 +3,9 @@ import { db } from "@/lib/db";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }

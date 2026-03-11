@@ -4,27 +4,38 @@ import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { authApi } from "@/lib/api/auth";
 import {
-  clearAuthToken,
+  ensureAuthToken,
   getAuthToken,
+  refreshAuthToken,
   setAuthToken,
 } from "@/lib/auth/token-client";
 import { useAuthStore } from "@/stores";
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
-  const { setAuthenticated, setUserId, setUserRole, logout } = useAuthStore();
+  const { setAuthenticated, setUserId, setUserRole } = useAuthStore();
 
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrapSession() {
-      const token = getAuthToken();
+      const token = getAuthToken() || (await ensureAuthToken());
       if (!token) return;
 
       try {
-        const session = await authApi.getSession();
+        let session = await authApi.getSession();
 
         if (!session?.user) {
-          throw new Error("Sessao nao encontrada");
+          const refreshedToken = await refreshAuthToken();
+
+          if (cancelled || !refreshedToken) {
+            return;
+          }
+
+          session = await authApi.getSession();
+        }
+
+        if (!session?.user) {
+          return;
         }
 
         if (cancelled) return;
@@ -38,9 +49,6 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
         setUserRole(session.user.role);
       } catch (error) {
         if (cancelled) return;
-
-        clearAuthToken();
-        logout();
         console.error("[AuthSessionProvider] Erro ao reidratar sessao:", error);
       }
     }
@@ -50,7 +58,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [logout, setAuthenticated, setUserId, setUserRole]);
+  }, [setAuthenticated, setUserId, setUserRole]);
 
   return children;
 }

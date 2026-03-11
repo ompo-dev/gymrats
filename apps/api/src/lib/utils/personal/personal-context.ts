@@ -1,4 +1,4 @@
-import { NextResponse } from "@/runtime/next-server";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { getAuthContext } from "@/lib/context/auth-context-factory";
 import { log } from "@/lib/observability";
 
@@ -11,9 +11,14 @@ type PersonalContextResult =
     }
   | { ctx?: undefined; errorResponse: NextResponse };
 
-export async function getPersonalContext(): Promise<PersonalContextResult> {
+export async function getPersonalContext(
+  request?: Pick<NextRequest, "headers"> | Request | null,
+): Promise<PersonalContextResult> {
   try {
-    const result = await getAuthContext({ type: "personal" });
+    const result = await getAuthContext(
+      { type: "personal" },
+      request?.headers ?? null,
+    );
     return result;
   } catch (error) {
     log.error("[getPersonalContext] Erro", {

@@ -25,6 +25,8 @@ async function fetchSessionSingleFlight(): Promise<UserSession | null> {
   if (!sessionPromise) {
     sessionPromise = (async () => {
       const { apiClient } = await import("@/lib/api/client");
+      const { ensureAuthToken } = await import("@/lib/auth/token-client");
+      await ensureAuthToken();
       const response = await apiClient.get<{ user: UserSession | null }>(
         "/api/auth/session",
         { timeout: 30000 },

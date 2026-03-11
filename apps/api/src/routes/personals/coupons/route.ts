@@ -2,9 +2,9 @@ import { NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return (
         errorResponse ??
@@ -65,7 +65,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return (
         errorResponse ??
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { ctx, errorResponse } = await getPersonalContext();
+    const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
       return (
         errorResponse ??

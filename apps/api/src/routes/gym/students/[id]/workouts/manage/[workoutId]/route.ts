@@ -22,7 +22,7 @@ export async function PUT(
   }: { params: Promise<{ id: string; workoutId: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
+    const { ctx, errorResponse } = await getGymContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }
@@ -86,7 +86,7 @@ export async function DELETE(
   }: { params: Promise<{ id: string; workoutId: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
+    const { ctx, errorResponse } = await getGymContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }

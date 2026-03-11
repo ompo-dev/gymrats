@@ -9,7 +9,7 @@ import { NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { getRequestContextHeaders } from "../runtime/request-context";
-import { getSessionToken } from "../utils/get-session-token";
+import { getSessionTokenFromRequest } from "../utils/get-session-token";
 import { getSession } from "@/lib/utils/session";
 
 type AuthRecord = Record<string, string | number | boolean | object | null>;
@@ -70,8 +70,34 @@ export type UserOnlyContextResult =
   | { ctx?: undefined; error: string };
 
 async function getAuthSession(): Promise<AuthSession | null> {
-  const headerList = getRequestContextHeaders() ?? new Headers();
-  const explicitSessionToken = await getSessionToken();
+  return getAuthSessionFromHeaders(getRequestContextHeaders());
+}
+
+async function getAuthSessionFromHeaders(
+  headers: Headers | null | undefined,
+): Promise<AuthSession | null> {
+  const headerList = headers ? new Headers(headers) : new Headers();
+  const explicitSessionToken = getSessionTokenFromRequest({
+    headers: headerList,
+    cookies: {
+      get(name: string) {
+        const cookieHeader = headerList.get("cookie");
+        if (!cookieHeader) return undefined;
+
+        for (const chunk of cookieHeader.split(";")) {
+          const [rawName, ...rest] = chunk.trim().split("=");
+          if (rawName === name) {
+            return {
+              name,
+              value: decodeURIComponent(rest.join("=")),
+            };
+          }
+        }
+
+        return undefined;
+      },
+    },
+  } as Parameters<typeof getSessionTokenFromRequest>[0]);
 
   if (explicitSessionToken) {
     const sessionFromToken = await getSession(explicitSessionToken);
@@ -119,17 +145,17 @@ async function getAuthSession(): Promise<AuthSession | null> {
 
 export async function getAuthContext(options: {
   type: "gym";
-}): Promise<GymContextResult>;
+}, headers?: Headers | null): Promise<GymContextResult>;
 export async function getAuthContext(options: {
   type: "student";
-}): Promise<StudentContextResult>;
+}, headers?: Headers | null): Promise<StudentContextResult>;
 export async function getAuthContext(options: {
   type: "personal";
-}): Promise<PersonalContextResult>;
+}, headers?: Headers | null): Promise<PersonalContextResult>;
 export async function getAuthContext(options: {
   type: "gym" | "student" | "personal";
-}): Promise<GymContextResult | StudentContextResult | PersonalContextResult> {
-  const auth = await getAuthSession();
+}, headers?: Headers | null): Promise<GymContextResult | StudentContextResult | PersonalContextResult> {
+  const auth = await getAuthSessionFromHeaders(headers ?? getRequestContextHeaders());
   if (!auth) {
     if (options.type === "gym" || options.type === "personal") {
       return {

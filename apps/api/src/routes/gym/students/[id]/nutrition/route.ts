@@ -25,7 +25,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
+    const { ctx, errorResponse } = await getGymContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }
@@ -200,7 +200,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { ctx, errorResponse } = await getGymContext();
+    const { ctx, errorResponse } = await getGymContext(request);
     if (errorResponse || !ctx) {
       return errorResponse ?? internalErrorResponse("Não autenticado");
     }

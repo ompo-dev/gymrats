@@ -1,4 +1,4 @@
-import { NextResponse } from "@/runtime/next-server";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { getAuthContext } from "@/lib/context/auth-context-factory";
 import { log } from "@/lib/observability";
 
@@ -11,9 +11,14 @@ type GymContextResult =
     }
   | { ctx?: undefined; errorResponse: NextResponse };
 
-export async function getGymContext(): Promise<GymContextResult> {
+export async function getGymContext(
+  request?: Pick<NextRequest, "headers"> | Request | null,
+): Promise<GymContextResult> {
   try {
-    const result = await getAuthContext({ type: "gym" });
+    const result = await getAuthContext(
+      { type: "gym" },
+      request?.headers ?? null,
+    );
     return result;
   } catch (error) {
     log.error("[getGymContext] Erro", {

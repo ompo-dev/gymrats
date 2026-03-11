@@ -431,11 +431,23 @@ export async function getSessionUseCase(
         const isAdmin = user.role === "ADMIN";
         const hasGym = isAdmin || (user.gyms?.length ?? 0) > 0;
         const hasStudent = isAdmin || !!user.student;
+        const tokenCandidates = [
+          input.authHeaderToken,
+          input.cookieAuthToken,
+          input.cookieBetterAuthToken,
+        ]
+          .map((token) => token?.trim() || null)
+          .filter((token): token is string => Boolean(token));
+        let sessionToken: string | null = null;
 
-        const headerToken = input.authHeaderToken || null;
-        const cookieToken =
-          input.cookieAuthToken || input.cookieBetterAuthToken || null;
-        let sessionToken = headerToken || cookieToken;
+        for (const candidateToken of tokenCandidates) {
+          const tokenSession = await deps.getSessionByToken(candidateToken);
+
+          if (tokenSession?.userId === user.id) {
+            sessionToken = candidateToken;
+            break;
+          }
+        }
 
         const sessionId = betterAuthSession.session?.id || "";
         if (!sessionToken && sessionId) {

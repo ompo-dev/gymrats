@@ -1,7 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import {
-  clearAuthToken,
   ensureAuthToken,
   getAuthToken,
   refreshAuthToken,
@@ -135,8 +134,7 @@ function createAxiosClient(): AxiosInstance {
           }
         }
 
-        clearAuthToken();
-        window.location.href = "/welcome";
+        return Promise.reject(error);
       }
 
       if (status === 500 && typeof url === "string") {
