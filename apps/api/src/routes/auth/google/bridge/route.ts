@@ -11,8 +11,18 @@ const bridgeQuerySchema = z.object({
 function getAppUrl(request: NextRequest) {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
-    `${request.nextUrl.protocol}//${request.nextUrl.host}`
+    getRequestOrigin(request)
   );
+}
+
+function getRequestOrigin(request: NextRequest) {
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto") ||
+    request.nextUrl.protocol.replace(":", "");
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") || request.nextUrl.host;
+
+  return `${forwardedProto}://${forwardedHost}`;
 }
 
 export async function GET(request: NextRequest) {

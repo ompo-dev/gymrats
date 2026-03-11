@@ -5,11 +5,6 @@ import { bearer } from "better-auth/plugins/bearer";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { db } from "@gymrats/db";
 
-type AuthInstance = ReturnType<typeof betterAuth>;
-type AuthHandler = AuthInstance & ((request: Request) => Promise<Response>);
-
-let authInstance: AuthInstance | null = null;
-
 function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 }
@@ -342,6 +337,11 @@ function createAuth() {
     },
   });
 }
+
+type AuthInstance = ReturnType<typeof createAuth>;
+type AuthHandler = AuthInstance & ((request: Request) => Promise<Response>);
+
+let authInstance: AuthInstance | null = null;
 
 function getAuth() {
   authInstance ??= createAuth();

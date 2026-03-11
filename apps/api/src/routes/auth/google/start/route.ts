@@ -10,12 +10,26 @@ const startQuerySchema = z.object({
 function getAppUrl(request: NextRequest) {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
-    `${request.nextUrl.protocol}//${request.nextUrl.host}`
+    getRequestOrigin(request)
   );
 }
 
 function getApiOrigin(request: NextRequest) {
-  return `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+  return (
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    getRequestOrigin(request)
+  );
+}
+
+function getRequestOrigin(request: NextRequest) {
+  const forwardedProto =
+    request.headers.get("x-forwarded-proto") ||
+    request.nextUrl.protocol.replace(":", "");
+  const forwardedHost =
+    request.headers.get("x-forwarded-host") || request.nextUrl.host;
+
+  return `${forwardedProto}://${forwardedHost}`;
 }
 
 function escapeHtml(value: string) {
