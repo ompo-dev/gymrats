@@ -1,62 +1,27 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { StudentProfileService } from "@/lib/services/student/student-profile.service";
-import { StudentProgressService } from "@/lib/services/student/student-progress.service";
-import { StudentWorkoutService } from "@/lib/services/student/student-workout.service";
-import { getStudentContext } from "@/lib/utils/student/student-context";
-import { getStudentSubscriptionSource } from "@/lib/utils/subscription";
+import type { BoostCampaign, GymLocation } from "@/lib/types";
+import { serverApiGet, serverApiPost } from "@/lib/api/server";
+import {
+  getApiErrorMessage,
+  reviveDate,
+} from "@/lib/api/server-action-utils";
 
-// ============================================
-// INFORMAÇÕES DO USUÁRIO
-// ============================================
+type SessionPayload = {
+  user?: {
+    role?: string | null;
+  };
+};
 
-export async function getCurrentUserInfo() {
-  try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return { isAdmin: false, role: null };
+type StudentProfilePayload = {
+  hasProfile: boolean;
+  profile: Record<string, unknown> | null;
+};
 
-    return {
-      isAdmin: ctx.user.role === "ADMIN",
-      role: ctx.user.role,
-    };
-  } catch (error) {
-    console.error("[getCurrentUserInfo] Erro:", error);
-    return { isAdmin: false, role: null };
-  }
-}
-
-// ============================================
-// PROCESSO E PROGRESSO
-// ============================================
-
-export async function getStudentProfile() {
-  try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return { hasProfile: false, profile: null };
-
-    const profile = await StudentProfileService.getProfile(ctx.studentId);
-    return {
-      hasProfile: !!profile,
-      profile,
-    };
-  } catch (error) {
-    console.error("[getStudentProfile] Erro:", error);
-    return { hasProfile: false, profile: null };
-  }
-}
-
-export async function getStudentProgress() {
-  try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return getNeutralProgress();
-
-    return StudentProgressService.getProgress(ctx.studentId);
-  } catch (error) {
-    console.error("[getStudentProgress] Erro:", error);
-    return getNeutralProgress();
-  }
-}
+type StudentSubscriptionPayload = {
+  subscription: Record<string, unknown> | null;
+  isFirstPayment?: boolean;
+};
 
 function getNeutralProgress() {
   return {
@@ -74,61 +39,103 @@ function getNeutralProgress() {
   };
 }
 
-// ============================================
-// TREINOS (StudentWorkoutService)
-// ============================================
+function reviveCampaigns(campaigns: BoostCampaign[]): BoostCampaign[] {
+  return campaigns.map((campaign) => ({
+    ...campaign,
+    startsAt: (reviveDate(campaign.startsAt) as Date | null) ?? null,
+    endsAt: (reviveDate(campaign.endsAt) as Date | null) ?? null,
+    createdAt: reviveDate(campaign.createdAt) as Date,
+    updatedAt: reviveDate(campaign.updatedAt) as Date,
+  }));
+}
+
+function reviveSubscription(
+  subscription: Record<string, unknown> | null,
+  isFirstPayment?: boolean,
+) {
+  if (!subscription) {
+    return null;
+  }
+
+  return {
+    ...subscription,
+    currentPeriodStart: reviveDate(
+      subscription.currentPeriodStart as string | Date | null | undefined,
+    ),
+    currentPeriodEnd: reviveDate(
+      subscription.currentPeriodEnd as string | Date | null | undefined,
+    ),
+    trialStart: reviveDate(
+      subscription.trialStart as string | Date | null | undefined,
+    ),
+    trialEnd: reviveDate(
+      subscription.trialEnd as string | Date | null | undefined,
+    ),
+    canceledAt: reviveDate(
+      subscription.canceledAt as string | Date | null | undefined,
+    ),
+    isFirstPayment:
+      (subscription.isFirstPayment as boolean | undefined) ?? isFirstPayment,
+  };
+}
+
+export async function getCurrentUserInfo() {
+  try {
+    const payload = await serverApiGet<SessionPayload>("/api/auth/session");
+
+    return {
+      isAdmin: payload.user?.role === "ADMIN",
+      role: payload.user?.role ?? null,
+    };
+  } catch (error) {
+    console.error("[getCurrentUserInfo] Erro:", error);
+    return { isAdmin: false, role: null };
+  }
+}
+
+export async function getStudentProfile() {
+  try {
+    const payload = await serverApiGet<StudentProfilePayload>(
+      "/api/students/profile",
+    );
+
+    return {
+      hasProfile: payload.hasProfile,
+      profile: payload.profile,
+    };
+  } catch (error) {
+    console.error("[getStudentProfile] Erro:", error);
+    return { hasProfile: false, profile: null };
+  }
+}
+
+export async function getStudentProgress() {
+  try {
+    return await serverApiGet<ReturnType<typeof getNeutralProgress>>(
+      "/api/students/progress",
+    );
+  } catch (error) {
+    console.error("[getStudentProgress] Erro:", error);
+    return getNeutralProgress();
+  }
+}
 
 export async function getStudentUnits() {
   try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return [];
-
-    return StudentWorkoutService.getUnitsWithWorkouts(ctx.studentId);
+    const payload = await serverApiGet<{ units: unknown[] }>("/api/workouts/units");
+    return payload.units;
   } catch (error) {
     console.error("[getStudentUnits] Erro:", error);
     return [];
   }
 }
 
-// ============================================
-// ACADEMIAS E ASSINATURAS
-// ============================================
-
-export async function getGymLocations() {
+export async function getGymLocations(): Promise<GymLocation[]> {
   try {
-    const gyms = await db.gym.findMany({
-      where: { isActive: true, isPartner: true },
-      include: { plans: { where: { isActive: true } } },
-      orderBy: { rating: "desc" },
-    });
-
-    return gyms.map((gym) => {
-      const amenities = gym.amenities ? JSON.parse(gym.amenities) : [];
-      const openingHours = gym.openingHours
-        ? JSON.parse(gym.openingHours)
-        : null;
-      const photos = gym.photos ? JSON.parse(gym.photos) : [];
-
-      return {
-        id: gym.id,
-        name: gym.name,
-        logo: gym.logo || undefined,
-        address: gym.address,
-        coordinates: { lat: gym.latitude || 0, lng: gym.longitude || 0 },
-        rating: gym.rating || 0,
-        totalReviews: gym.totalReviews || 0,
-        plans: {
-          daily: gym.plans.find((p) => p.type === "daily")?.price ?? 0,
-          weekly: gym.plans.find((p) => p.type === "weekly")?.price ?? 0,
-          monthly: gym.plans.find((p) => p.type === "monthly")?.price ?? 0,
-        },
-        amenities,
-        openNow: true, // Simplificado
-        openingHours,
-        photos: photos.length > 0 ? photos : undefined,
-        isPartner: gym.isPartner,
-      };
-    });
+    const payload = await serverApiGet<{ gyms: GymLocation[] }>(
+      "/api/gyms/locations",
+    );
+    return payload.gyms;
   } catch (error) {
     console.error("[getGymLocations] Erro:", error);
     return [];
@@ -137,33 +144,10 @@ export async function getGymLocations() {
 
 export async function getActiveBoostCampaigns() {
   try {
-    const now = new Date();
-    await db.boostCampaign.updateMany({
-      where: {
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
-    });
-
-    const campaigns = await db.boostCampaign.findMany({
-      where: {
-        status: "active",
-        OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-      },
-      include: {
-        personal: {
-          select: { id: true, name: true, avatar: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    return campaigns.map((c) => ({
-      ...c,
-      personal: c.personal
-        ? { id: c.personal.id, name: c.personal.name, avatar: c.personal.avatar }
-        : null,
-    }));
+    const payload = await serverApiGet<{ campaigns: BoostCampaign[] }>(
+      "/api/boost-campaigns/nearby",
+    );
+    return reviveCampaigns(payload.campaigns);
   } catch (error) {
     console.error("[getActiveBoostCampaigns] Erro:", error);
     return [];
@@ -172,57 +156,10 @@ export async function getActiveBoostCampaigns() {
 
 export async function getStudentSubscription() {
   try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return null;
-
-    const subInfo = await getStudentSubscriptionSource(ctx.studentId);
-    if (subInfo.source === null) {
-      return null;
-    }
-
-    const sub = await db.subscription.findUnique({
-      where: { studentId: ctx.studentId },
-    });
-    const now = new Date();
-    const trialEnd = sub?.trialEnd ? new Date(sub.trialEnd) : null;
-    const isTrialActive = trialEnd ? trialEnd > now : false;
-
-    let enterpriseGymName: string | undefined;
-    if (subInfo.source === "GYM_ENTERPRISE" && subInfo.gymId) {
-      const gym = await db.gym.findUnique({ where: { id: subInfo.gymId } });
-      enterpriseGymName = gym?.name;
-    }
-
-    const isVirtualEnterprise = !sub && subInfo.source === "GYM_ENTERPRISE";
-    const virtualPeriodEnd = new Date(now);
-    virtualPeriodEnd.setFullYear(virtualPeriodEnd.getFullYear() + 1);
-
-    // Trial só pode ser ativado uma vez: sem assinatura ou (plan free e nunca usou trial)
-    const canStartTrial = !sub || (sub.plan === "free" && !sub.trialStart);
-
-    return {
-      id:
-        sub?.id ?? (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
-      ...subInfo,
-      abacatePayBillingId: sub?.abacatePayBillingId,
-      currentPeriodEnd:
-        sub?.currentPeriodEnd ??
-        (isVirtualEnterprise ? virtualPeriodEnd : undefined),
-      currentPeriodStart:
-        sub?.currentPeriodStart ?? (isVirtualEnterprise ? now : undefined),
-      cancelAtPeriodEnd: sub?.cancelAtPeriodEnd ?? false,
-      isTrial: isTrialActive,
-      daysRemaining: trialEnd
-        ? Math.max(
-            0,
-            Math.ceil(
-              (trialEnd.getTime() - now.getTime()) / (1000 * 3600 * 24),
-            ),
-          )
-        : null,
-      enterpriseGymName,
-      canStartTrial,
-    };
+    const payload = await serverApiGet<StudentSubscriptionPayload>(
+      "/api/students/subscription",
+    );
+    return reviveSubscription(payload.subscription, payload.isFirstPayment);
   } catch (error) {
     console.error("[getStudentSubscription] Erro:", error);
     return null;
@@ -231,59 +168,14 @@ export async function getStudentSubscription() {
 
 export async function startStudentTrial() {
   try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return { error: "Não autenticado" };
-
-    const existing = await db.subscription.findUnique({
-      where: { studentId: ctx.studentId },
-    });
-    // Trial só uma vez: já usou trial ou já assinou plano pago
-    if (existing?.trialStart) {
-      return {
-        error:
-          "Você já utilizou o trial anteriormente. Trial só pode ser ativado uma vez.",
-      };
-    }
-    if (existing && existing.plan !== "free") {
-      return {
-        error:
-          "Você já possui uma assinatura. Renove ou escolha um plano para continuar.",
-      };
-    }
-
-    const now = new Date();
-    const trialEnd = new Date(now);
-    trialEnd.setDate(trialEnd.getDate() + 14);
-
-    const subscription = existing
-      ? await db.subscription.update({
-          where: { id: existing.id },
-          data: {
-            plan: "premium",
-            status: "trialing",
-            currentPeriodStart: now,
-            currentPeriodEnd: trialEnd,
-            trialStart: now,
-            trialEnd: trialEnd,
-            canceledAt: null,
-            cancelAtPeriodEnd: false,
-          },
-        })
-      : await db.subscription.create({
-          data: {
-            studentId: ctx.studentId,
-            plan: "premium",
-            status: "trialing",
-            currentPeriodStart: now,
-            currentPeriodEnd: trialEnd,
-            trialStart: now,
-            trialEnd: trialEnd,
-          },
-        });
-
-    return { success: true, subscription };
+    const payload = await serverApiPost<{ message?: string }>(
+      "/api/subscriptions/start-trial",
+    );
+    return { success: true, ...payload };
   } catch (error) {
     console.error("[startStudentTrial] Erro:", error);
-    return { error: "Erro ao iniciar trial" };
+    return {
+      error: getApiErrorMessage(error, "Erro ao iniciar trial"),
+    };
   }
 }

@@ -1,16 +1,10 @@
 "use server";
 
-import { getUserContext } from "@/lib/context/auth-context-factory";
-import { db } from "@/lib/db";
-import { sendWelcomeEmail } from "@/lib/services/email.service";
-import { StudentProfileService } from "@/lib/services/student/student-profile.service";
-import { initializeStudentTrial } from "@/lib/utils/auto-trial";
-import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
-import { getStudentContext } from "@/lib/utils/student/student-context";
+import { serverApiPost } from "@/lib/api/server";
+import { getApiErrorMessage } from "@/lib/api/server-action-utils";
 import { validateOnboarding } from "./schemas";
 import type { OnboardingData } from "./steps/types";
 
-/** Dados aplicados antes da validação para onboarding simplificado (3 etapas) */
 const ONBOARDING_DEFAULTS = {
   gymType: "academia-completa" as const,
   preferredSets: 3,
@@ -20,7 +14,6 @@ const ONBOARDING_DEFAULTS = {
 
 export async function submitOnboarding(formData: OnboardingData) {
   try {
-    // Aplica defaults para dados opcionais (Etapa 3 pode ser pulada)
     const normalizedData = {
       ...formData,
       gymType: formData.gymType || ONBOARDING_DEFAULTS.gymType,
@@ -31,7 +24,6 @@ export async function submitOnboarding(formData: OnboardingData) {
       restTime: formData.restTime || ONBOARDING_DEFAULTS.restTime,
     };
 
-    // Valida dados com Zod antes de processar
     const validation = validateOnboarding({
       age:
         typeof normalizedData.age === "number" ? normalizedData.age : undefined,
@@ -76,95 +68,19 @@ export async function submitOnboarding(formData: OnboardingData) {
       const firstError = validation.error.errors[0];
       return {
         success: false,
-        error: firstError?.message || "Dados inválidos",
+        error: firstError?.message || "Dados invalidos",
       };
     }
 
-    let ctx = (await getStudentContext()).ctx;
-
-    // Se PENDING, cadastra agora (apenas ao concluir onboarding)
-    if (!ctx) {
-      const { ctx: userCtx, error: userError } = await getUserContext();
-      if (userError || !userCtx) {
-        return { success: false, error: userError || "Sessão inválida" };
-      }
-      if (userCtx.user.role !== "PENDING") {
-        return { success: false, error: "Fluxo inválido" };
-      }
-      const ensure = await ensureStudentRole(userCtx.user.id);
-      if (!ensure.ok) {
-        return { success: false, error: ensure.error };
-      }
-      ctx = (await getStudentContext()).ctx;
-      if (!ctx) {
-        return {
-          success: false,
-          error: "Erro ao obter contexto após cadastro",
-        };
-      }
-    }
-
-    const _userId = ctx.user.id;
-    const user = ctx.user;
-
-    if (user.role !== "STUDENT") {
-      return { success: false, error: "Usuário não é um aluno" };
-    }
-
-    // Salvar ou atualizar dados do aluno
-    const studentData = {
-      age: typeof normalizedData.age === "number" ? normalizedData.age : null,
-      gender: normalizedData.gender || null,
-      isTrans: normalizedData.isTrans || false,
-      usesHormones: normalizedData.usesHormones || false,
-      hormoneType: normalizedData.hormoneType || null,
-    };
-
-    const student = await db.student.upsert({
-      where: { id: ctx.studentId || "" },
-      create: { ...studentData, userId: ctx.user.id },
-      update: studentData,
-    });
-
-    // Salvar perfil via serviço
-    await StudentProfileService.saveOnboardingData(
-      student.id,
-      normalizedData as Parameters<
-        typeof StudentProfileService.saveOnboardingData
-      >[1],
+    return await serverApiPost<{ success: boolean; error?: string }>(
+      "/api/students/onboarding",
+      normalizedData,
     );
-
-    // Se houver peso, registrar no histórico (lógica do serviço poderia ser usada aqui também)
-    if (normalizedData.weight) {
-      await db.weightHistory
-        .create({
-          data: {
-            studentId: student.id,
-            weight: normalizedData.weight,
-            notes: "Peso inicial do onboarding",
-          },
-        })
-        .catch(() => {}); // Ignorar erros silenciosamente
-    }
-
-    // Apenas garante que StudentProgress existe
-    await db.studentProgress.upsert({
-      where: { studentId: student.id },
-      update: {},
-      create: { studentId: student.id },
-    });
-
-    // Enviar email em background
-    sendWelcomeEmail({
-      to: typeof ctx.user.email === "string" ? ctx.user.email : "",
-      name: typeof ctx.user.name === "string" ? ctx.user.name : "",
-    }).catch(console.error);
-
-    return { success: true };
   } catch (error) {
     console.error("Erro no onboarding:", error);
-    const message =
-      error instanceof Error ? error.message : "Erro ao salvar perfil";
-    return { success: false, error: message };
+    return {
+      success: false,
+      error: getApiErrorMessage(error, "Erro ao salvar perfil"),
+    };
   }
 }

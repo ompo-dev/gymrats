@@ -1,59 +1,21 @@
-/**
- * Server Actions Unificadas para Student
- *
- * Esta função agora delega a lógica para o StudentDomainService,
- * centralizando as queries e facilitando a manutenção.
- */
-
 "use server";
 
-import { StudentDomainService } from "@/lib/services/student-domain.service";
-import { getStudentContext } from "@/lib/utils/student/student-context";
+import { serverApiGet } from "@/lib/api/server";
+import { buildApiPath } from "@/lib/api/server-action-utils";
 
-/**
- * HELPER: Obter Student ID e User ID da sessão atual
- */
-async function getStudentId(): Promise<{
-  studentId: string | null;
-  userId: string | null;
-}> {
-  try {
-    const { ctx, error } = await getStudentContext();
-
-    if (error || !ctx) return { studentId: null, userId: null };
-
-    return {
-      studentId: ctx.studentId,
-      userId: ctx.user.id,
-    };
-  } catch (error) {
-    console.error("[getStudentId] Erro:", error);
-    return { studentId: null, userId: null };
-  }
-}
-
-/**
- * FUNÇÃO PRINCIPAL: Buscar Todos os Dados
- * Delega para o StudentDomainService.getAllData
- */
 export async function getAllStudentData(sections?: string[]) {
   try {
-    const { studentId, userId } = await getStudentId();
+    const path = buildApiPath("/api/students/all", {
+      sections: sections?.length ? sections.join(",") : undefined,
+    });
 
-    if (!studentId || !userId) {
-      return getNeutralData();
-    }
-
-    return StudentDomainService.getAllData(studentId, userId, sections);
+    return await serverApiGet<Record<string, unknown>>(path);
   } catch (error) {
     console.error("[getAllStudentData] Erro:", error);
     return getNeutralData();
   }
 }
 
-/**
- * HELPER: Dados neutros para fallback
- */
 function getNeutralData() {
   return {
     user: null,

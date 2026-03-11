@@ -1,47 +1,58 @@
+import { serverApiGet } from "@/lib/api/server";
+import { buildApiPath } from "@/lib/api/server-action-utils";
 import type { UserProgress } from "@/lib/types";
-import { StudentProfileService } from "@/lib/services/student/student-profile.service";
-import { StudentProgressService } from "@/lib/services/student/student-progress.service";
-import { StudentWorkoutService } from "@/lib/services/student/student-workout.service";
-import { getStudentContext } from "@/lib/utils/student/student-context";
 
 export async function getStudentProfileData() {
   try {
-    const { ctx, error } = await getStudentContext();
-    if (error || !ctx) return getNeutralProfileData();
-
-    const studentId = ctx.studentId!;
-
-    const [profile, progress, workoutHistory, personalRecords, weightData] =
-      await Promise.all([
-        StudentProfileService.getProfile(studentId),
-        StudentProgressService.getProgress(studentId),
-        StudentWorkoutService.getWorkoutHistory(studentId, 3),
-        StudentWorkoutService.getPersonalRecords(studentId),
-        StudentProfileService.getWeightHistory(studentId),
-      ]);
-
-    const ranking = await StudentProgressService.getRanking(
-      studentId,
-      progress.totalXP,
+    const payload = await serverApiGet<Record<string, unknown>>(
+      buildApiPath("/api/students/all", {
+        sections: [
+          "user",
+          "progress",
+          "profile",
+          "workoutHistory",
+          "personalRecords",
+          "weightHistory",
+        ].join(","),
+      }),
     );
+
+    const user = payload.user as
+      | { name?: string | null; email?: string | null; createdAt?: string | Date }
+      | undefined;
+    const workoutHistory = Array.isArray(payload.workoutHistory)
+      ? payload.workoutHistory
+      : [];
+    const weightHistory = Array.isArray(payload.weightHistory)
+      ? payload.weightHistory
+      : [];
+    const progress = (payload.progress as UserProgress | undefined) ?? getNeutralUserProgress();
+    const profile = (payload.profile as { weight?: number | null; hasWeightLossGoal?: boolean } | null) ?? null;
 
     return {
       progress,
       workoutHistory,
-      personalRecords,
-      weightHistory: weightData.history,
-      userInfo: {
-        name: ctx.user.name || "Usuário",
-        username: `@${ctx.user.email.split("@")[0].toLowerCase()}`,
-        memberSince: new Intl.DateTimeFormat("pt-BR", {
-          month: "short",
-          year: "numeric",
-        }).format(ctx.user.createdAt),
-      },
+      personalRecords: Array.isArray(payload.personalRecords)
+        ? payload.personalRecords
+        : [],
+      weightHistory,
+      userInfo: user?.email
+        ? {
+            name: user.name || "Usuario",
+            username: `@${user.email.split("@")[0].toLowerCase()}`,
+            memberSince: user.createdAt
+              ? new Intl.DateTimeFormat("pt-BR", {
+                  month: "short",
+                  year: "numeric",
+                }).format(new Date(user.createdAt))
+              : "",
+          }
+        : null,
       currentWeight: profile?.weight || null,
-      weightGain: weightData.weightGain,
-      weeklyWorkouts: workoutHistory.length, // Simplificado
-      ranking: ranking,
+      weightGain:
+        typeof payload.weightGain === "number" ? payload.weightGain : null,
+      weeklyWorkouts: workoutHistory.length,
+      ranking: null,
       hasWeightLossGoal: profile?.hasWeightLossGoal || false,
     };
   } catch (error) {

@@ -5,6 +5,31 @@ import {
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
+
+export const GET = createSafeHandler(
+  async ({ gymContext, params }) => {
+    const equipment = await GymInventoryService.getEquipmentById(
+      gymContext?.gymId,
+      params.equipId,
+    );
+
+    if (!equipment) {
+      return NextResponse.json(
+        { error: "Equipamento não encontrado" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ equipment });
+  },
+  {
+    auth: "gym",
+    schema: {
+      params: gymEquipmentIdParamsSchema,
+    },
+  },
+);
 
 export const PATCH = createSafeHandler(
   async ({ gymContext, params, body }) => {
