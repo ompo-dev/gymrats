@@ -8,13 +8,16 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
 import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import {
   usePersonalMapStore,
   type PersonalMapFilter,
 } from "@/hooks/use-personal-map-state";
 import type { PersonalLocation } from "@/lib/types";
+import {
+  getPersonalDirectoryCacheKey,
+  useStudentDiscoveryStore,
+} from "@/stores/student-discovery-store";
 
 const PersonalMapContainerComponent = dynamic(
   () =>
@@ -55,8 +58,13 @@ export function PersonalMapWithLeaflet({
   } = usePersonalMapStore();
 
   const [mounted, setMounted] = useState(false);
-  const [personals, setPersonals] = useState<PersonalLocation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const personalDirectory = useStudentDiscoveryStore(
+    (state) => state.personalDirectory,
+  );
+  const resources = useStudentDiscoveryStore((state) => state.resources);
+  const loadPersonalDirectory = useStudentDiscoveryStore(
+    (state) => state.loadPersonalDirectory,
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -73,31 +81,31 @@ export function PersonalMapWithLeaflet({
   }, [position, setMapCenter]);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const params = new URLSearchParams();
-    params.set("filter", filter);
-    if (position && (filter === "all" || filter === "near")) {
-      params.set("lat", String(position.lat));
-      params.set("lng", String(position.lng));
-    }
-    apiClient
-      .get<{ personals: PersonalLocation[] }>(
-        `/api/students/personals/nearby?${params}`,
-      )
-      .then((res) => {
-        if (!cancelled) setPersonals(res.data.personals ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPersonals([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+    void loadPersonalDirectory({
+      filter,
+      lat: position && (filter === "all" || filter === "near")
+        ? position.lat
+        : undefined,
+      lng: position && (filter === "all" || filter === "near")
+        ? position.lng
+        : undefined,
+    });
   }, [filter, position?.lat, position?.lng]);
+
+  const cacheKey = getPersonalDirectoryCacheKey({
+    filter,
+    lat:
+      position && (filter === "all" || filter === "near")
+        ? position.lat
+        : undefined,
+    lng:
+      position && (filter === "all" || filter === "near")
+        ? position.lng
+        : undefined,
+  });
+
+  const personals = (personalDirectory[cacheKey] ?? []) as PersonalLocation[];
+  const loading = resources[cacheKey]?.status === "loading";
 
   const personalsWithCoords = personals.filter(
     (p) =>

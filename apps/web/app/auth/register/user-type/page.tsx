@@ -13,81 +13,63 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoCard } from "@/components/duo";
+import { useUserSession } from "@/hooks/use-user-session";
 import { useAuthStore } from "@/stores";
 
 /**
- * Página de seleção de tipo de usuário após primeiro login com Google.
- * Usuários com role PENDING são redirecionados aqui para escolher: Aluno ou Academia.
+ * Pagina de selecao de tipo de usuario apos primeiro login com Google.
+ * Usuarios com role PENDING sao redirecionados aqui para escolher: Aluno, Academia ou Personal.
  */
 export default function UserTypePage() {
   const router = useRouter();
   const { setUserRole } = useAuthStore();
+  const { userSession, role, isLoading: isChecking } = useUserSession();
   const [selectedType, setSelectedType] = useState<
     "student" | "gym" | "personal" | null
   >(null);
-  const [isChecking, setIsChecking] = useState(true);
 
-  // Se já tem role definido (STUDENT/GYM), redirecionar para área correspondente
   useEffect(() => {
-    const checkAndRedirect = async () => {
-      try {
-        const { apiClient } = await import("@/lib/api/client");
-        const sessionResponse = await apiClient.get<{
-          user: { role: string } | null;
-        }>("/api/auth/session");
+    if (isChecking) return;
 
-        const role = sessionResponse.data.user?.role;
+    if (!userSession) {
+      router.replace("/welcome");
+      return;
+    }
 
-        // Sem sessão: ir para welcome
-        if (!sessionResponse.data.user) {
-          router.replace("/welcome");
-          return;
-        }
+    if (role === "STUDENT" || role === "ADMIN") {
+      setUserRole("STUDENT");
+      router.replace("/student");
+      return;
+    }
 
-        // Já escolheu: redirecionar
-        if (role === "STUDENT" || role === "ADMIN") {
-          setUserRole("STUDENT");
-          router.replace("/student");
-          return;
-        }
-        if (role === "GYM") {
-          setUserRole("GYM");
-          router.replace("/gym");
-          return;
-        }
-        if (role === "PERSONAL") {
-          setUserRole("PERSONAL");
-          router.replace("/personal");
-          return;
-        }
+    if (role === "GYM") {
+      setUserRole("GYM");
+      router.replace("/gym");
+      return;
+    }
 
-        // PENDING: permanecer na página para escolher
-      } catch (error) {
-        console.error("Erro ao verificar sessão:", error);
-        router.replace("/welcome");
-      } finally {
-        setIsChecking(false);
-      }
-    };
-
-    checkAndRedirect();
-  }, [router, setUserRole]);
+    if (role === "PERSONAL") {
+      setUserRole("PERSONAL");
+      router.replace("/personal");
+    }
+  }, [isChecking, role, router, setUserRole, userSession]);
 
   const handleSelectType = (type: "student" | "gym" | "personal") => {
     setSelectedType(type);
-    // Armazena intenção localmente - cadastro só ocorre ao concluir onboarding
     if (typeof window !== "undefined") {
       sessionStorage.setItem("gymrats:onboarding-intent", type);
     }
-    // Navega para onboarding sem cadastrar no banco
+
     if (type === "student") {
       router.push("/student/onboarding");
       return;
     }
+
     if (type === "gym") {
       router.push("/gym/onboarding");
       return;
     }
+
     router.push("/personal/onboarding");
   };
 
@@ -103,29 +85,29 @@ export default function UserTypePage() {
   }
 
   const studentFeatures = [
-    "Sistema de gamificação",
+    "Sistema de gamificacao",
     "Treinos personalizados",
-    "Análise de postura com IA",
-    "Competição com amigos",
+    "Analise de postura com IA",
+    "Competicao com amigos",
   ];
 
   const gymFeatures = [
-    "Gestão completa de alunos",
+    "Gestao completa de alunos",
     "Controle de equipamentos",
-    "Gestão financeira",
-    "Gamificação para academias",
+    "Gestao financeira",
+    "Gamificacao para academias",
   ];
 
   const personalFeatures = [
     "Atendimento presencial e remoto",
-    "Gestão de alunos próprios",
-    "Vínculo com academias",
+    "Gestao de alunos proprios",
+    "Vinculo com academias",
     "Acompanhamento com IA (Pro AI)",
   ];
 
   return (
     <div className="flex min-h-screen flex-col bg-duo-bg">
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute left-4 top-4 z-10">
         <Link
           href="/welcome"
           className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-duo-fg-muted transition-colors hover:bg-duo-bg-elevated hover:text-duo-fg"
@@ -134,6 +116,7 @@ export default function UserTypePage() {
           Voltar
         </Link>
       </div>
+
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -141,7 +124,6 @@ export default function UserTypePage() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-4xl"
         >
-          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -163,16 +145,14 @@ export default function UserTypePage() {
               </div>
             </motion.div>
             <h1 className="mb-3 text-3xl font-bold text-duo-fg md:text-4xl">
-              Como você vai usar o GymRats?
+              Como voce vai usar o GymRats?
             </h1>
             <p className="text-lg text-duo-fg-muted">
-              Escolha a opção que melhor descreve você
+              Escolha a opcao que melhor descreve voce
             </p>
           </motion.div>
 
-          {/* Cards */}
           <div className="grid gap-6 md:grid-cols-3">
-            {/* Aluno */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -255,7 +235,6 @@ export default function UserTypePage() {
               </DuoCard.Root>
             </motion.div>
 
-            {/* Academia */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -338,7 +317,6 @@ export default function UserTypePage() {
               </DuoCard.Root>
             </motion.div>
 
-            {/* Personal */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

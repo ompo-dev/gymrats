@@ -4,7 +4,6 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 
 const FILTER_ALL = "all";
 const FILTER_INDEPENDENT = "independent";
@@ -40,7 +39,11 @@ export function usePersonalStudents({
   onRefresh,
 }: UsePersonalStudentsProps) {
   const { toast } = useToast();
-  const { actions, loaders } = usePersonal("actions", "loaders");
+  const { actions, loaders, studentDetails } = usePersonal(
+    "actions",
+    "loaders",
+    "studentDetails",
+  );
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
@@ -52,8 +55,6 @@ export function usePersonalStudents({
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [studentId, setStudentId] = useQueryState("studentId", parseAsString);
-  const [fetchedAssignment, setFetchedAssignment] =
-    useState<PersonalStudentItem | null>(null);
   const [isLoadingAssignment, setIsLoadingAssignment] = useState(false);
 
   const selectedAssignmentFromList = useMemo(
@@ -65,33 +66,37 @@ export function usePersonalStudents({
   );
 
   const selectedAssignment =
-    selectedAssignmentFromList ?? (studentId ? fetchedAssignment : null);
+    selectedAssignmentFromList ??
+    (studentId
+      ? ((
+          studentDetails as unknown as Record<
+            string,
+            PersonalStudentItem | undefined
+          >
+        )[studentId] ?? null)
+      : null);
 
   useEffect(() => {
     if (!studentId || selectedAssignmentFromList) {
-      setFetchedAssignment(null);
+      setIsLoadingAssignment(false);
       return;
     }
+
     let cancelled = false;
     setIsLoadingAssignment(true);
-    setFetchedAssignment(null);
-    apiClient
-      .get<{ assignment?: PersonalStudentItem }>(
-        `/api/personals/students/${studentId}`,
-      )
-      .then((response) => {
-        if (cancelled) return;
-        if (response.data.assignment) {
-          setFetchedAssignment(response.data.assignment);
-        }
-      })
+
+    loaders
+      .loadStudentDetail(studentId, true)
       .finally(() => {
-        if (!cancelled) setIsLoadingAssignment(false);
+        if (!cancelled) {
+          setIsLoadingAssignment(false);
+        }
       });
+
     return () => {
       cancelled = true;
     };
-  }, [studentId, selectedAssignmentFromList]);
+  }, [loaders, selectedAssignmentFromList, studentDetails, studentId]);
 
   const filteredStudents = useMemo(
     () =>

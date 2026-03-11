@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoButton } from "@/components/duo";
+import { usePersonal } from "@/hooks/use-personal";
 import { submitPersonalOnboarding } from "./actions";
 import { Step1 } from "./steps/step1";
 import { Step2 } from "./steps/step2";
@@ -48,6 +49,7 @@ function Confetti() {
 
 export default function PersonalOnboardingPage() {
   const router = useRouter();
+  const { profile, loaders } = usePersonal("profile", "loaders");
   const [step, setStep] = useState(1);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -77,11 +79,8 @@ export default function PersonalOnboardingPage() {
 
       isChecking = true;
       try {
-        const { apiClient } = await import("@/lib/api/client");
-        const response = await apiClient.get<{ personal: { id: string } | null }>(
-          "/api/personals",
-        );
-        if (response.data?.personal?.id) {
+        await loaders.loadSection("profile");
+        if (profile?.id) {
           window.location.href = "/personal";
           return;
         }
@@ -98,7 +97,7 @@ export default function PersonalOnboardingPage() {
       clearTimeout(timeoutId);
       isChecking = false;
     };
-  }, [isMounted, loading]);
+  }, [isMounted, loading, loaders, profile?.id]);
 
   const canProceed = () => {
     if (step === 1) return formData.name.trim().length >= 2;

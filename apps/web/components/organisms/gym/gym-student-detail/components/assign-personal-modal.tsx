@@ -1,17 +1,9 @@
 "use client";
 
 import { Search, UserPlus } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoInput, DuoModal } from "@/components/duo";
-import { apiClient } from "@/lib/api/client";
-
-type SearchResult = {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string | null;
-  alreadyLinked: boolean;
-};
+import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 
 export interface AssignPersonalModalProps {
   isOpen: boolean;
@@ -26,46 +18,34 @@ export function AssignPersonalModal({
   onAssign,
   isAssigning,
 }: AssignPersonalModalProps) {
+  const searchResults = useGymDirectoryStore(
+    (state) => state.linkedPersonalSearchResults,
+  );
+  const searching = useGymDirectoryStore(
+    (state) => state.isSearchingLinkedPersonals,
+  );
+  const searchLinkedTeamPersonals = useGymDirectoryStore(
+    (state) => state.searchLinkedTeamPersonals,
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-
-  const doSearch = useCallback(async (q: string) => {
-    setSearching(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("linkedOnly", "true");
-      params.set("limit", "12");
-      if (q.trim()) params.set("q", q.trim());
-      const res = await apiClient.get<{ personals: SearchResult[] }>(
-        `/api/gym/personals/search?${params.toString()}`,
-      );
-      setSearchResults(res.data.personals || []);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
     const timer = setTimeout(() => {
-      doSearch(searchQuery);
+      searchLinkedTeamPersonals(searchQuery).catch(() => undefined);
     }, searchQuery.trim() ? 300 : 0);
     return () => clearTimeout(timer);
-  }, [isOpen, searchQuery, doSearch]);
+  }, [isOpen, searchQuery, searchLinkedTeamPersonals]);
 
   useEffect(() => {
     if (isOpen && !searchQuery.trim()) {
-      doSearch("");
+      searchLinkedTeamPersonals("").catch(() => undefined);
     }
-  }, [isOpen, searchQuery, doSearch]);
+  }, [isOpen, searchQuery, searchLinkedTeamPersonals]);
 
   async function handleSelect(personalId: string) {
     await onAssign(personalId);
     setSearchQuery("");
-    setSearchResults([]);
     onClose();
   }
 

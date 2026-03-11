@@ -13,46 +13,16 @@ import { useCallback, useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
+import { useStudent } from "@/hooks/use-student";
+import { useToast } from "@/hooks/use-toast";
+import type { DiscoveryPersonalProfile } from "@/lib/types/discovery-profiles";
+import type { StudentPixPaymentPayload } from "@/lib/types/student-unified";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-
-interface PersonalProfileData {
-  id: string;
-  name: string;
-  avatar: string | null;
-  bio: string | null;
-  atendimentoPresencial: boolean;
-  atendimentoRemoto: boolean;
-  gyms: {
-    id: string;
-    name: string;
-    address?: string;
-    logo?: string | null;
-    image?: string | null;
-  }[];
-  plans: {
-    id: string;
-    name: string;
-    type: string;
-    price: number;
-    duration: number;
-    benefits?: string[];
-  }[];
-  isSubscribed: boolean;
-  myAssignment?: {
-    id: string;
-    status: string;
-    activePlan?: {
-      id: string;
-      name: string;
-      type: string;
-      price: number;
-      duration: number;
-    } | null;
-  } | null;
-  studentsCount?: number;
-}
+import {
+  getPersonalProfileCacheKey,
+  useDiscoveryProfilesStore,
+} from "@/stores/discovery-profiles-store";
 
 interface PersonalProfileViewProps {
   personalId: string;
@@ -63,17 +33,7 @@ interface PersonalProfileViewProps {
   onSubscribe: (
     personalId: string,
     planId: string,
-    paymentData: {
-      brCode: string;
-      brCodeBase64: string;
-      amount: number;
-      paymentId: string;
-      pixId: string;
-      expiresAt?: string;
-      planName: string;
-      originalPrice: number;
-      appliedCoupon?: { code: string; discountString: string };
-    },
+    paymentData: StudentPixPaymentPayload,
   ) => void;
   preSelectedPlan?: string | null;
   preSelectedCoupon?: string | null;
@@ -89,70 +49,56 @@ export function PersonalProfileView({
   preSelectedPlan,
   preSelectedCoupon,
 }: PersonalProfileViewProps) {
-  const [profile, setProfile] = useState<PersonalProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [subscribingPlanId, setSubscribingPlanId] = useState<string | null>(
     null,
   );
   const [autoStarted, setAutoStarted] = useState(false);
+  const { subscribeToPersonal } = useStudent("actions");
+  const { toast } = useToast();
+  const cacheKey = getPersonalProfileCacheKey(personalId);
+  const profile = useDiscoveryProfilesStore(
+    (state) => state.personalProfiles[cacheKey] as DiscoveryPersonalProfile | null,
+  );
+  const resource = useDiscoveryProfilesStore((state) => state.resources[cacheKey]);
+  const loadPersonalProfile = useDiscoveryProfilesStore(
+    (state) => state.loadPersonalProfile,
+  );
+  const loading = !profile && (!resource || resource.status === "loading");
+  const error = resource?.error ?? null;
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    apiClient
-      .get<PersonalProfileData>(`/api/students/personals/${personalId}/profile`)
-      .then((res) => {
-        if (!cancelled) {
-          setProfile(res.data);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err?.response?.data?.error || "Erro ao carregar perfil");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [personalId, profileRefreshKey]);
+    void loadPersonalProfile(personalId, profileRefreshKey !== undefined);
+  }, [loadPersonalProfile, personalId, profileRefreshKey]);
 
   const handleSubscribe = useCallback(
     async (planId: string, couponId?: string | null) => {
       if (!profile) return;
       setSubscribingPlanId(planId);
       try {
-        const res = await apiClient.post<{
-          brCode: string;
-          brCodeBase64: string;
-          amount: number;
-          paymentId: string;
-          pixId: string;
-          expiresAt?: string;
-          planName: string;
-          originalPrice: number;
-          appliedCoupon?: { code: string; discountString: string };
-        }>(`/api/students/personals/${personalId}/subscribe`, {
+        const paymentData = await subscribeToPersonal({
+          personalId,
           planId,
           couponId: couponId || null,
         });
-        onSubscribe(personalId, planId, res.data);
+        onSubscribe(personalId, planId, paymentData);
       } catch (err: unknown) {
         const msg =
           err && typeof err === "object" && "response" in err
             ? (err as { response?: { data?: { error?: string } } }).response
                 ?.data?.error
-            : "Erro ao assinar";
-        alert(msg);
+            : err instanceof Error
+              ? err.message
+              : "Erro ao assinar";
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: String(msg),
+        });
       } finally {
         setSubscribingPlanId(null);
       }
     },
-    [profile, personalId, onSubscribe],
+    [personalId, profile, onSubscribe, subscribeToPersonal, toast],
   );
 
   useEffect(() => {

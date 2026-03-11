@@ -7,10 +7,10 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { useAuthStore } from "@/stores/auth-store";
 import { useUserSession } from "@/hooks/use-user-session";
 import { useToast } from "@/hooks/use-toast";
 import { usePersonalSettings } from "@/hooks/use-personal-settings";
-import { authApi } from "@/lib/api/auth";
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
 import { cn } from "@/lib/utils";
@@ -80,7 +80,7 @@ export function PersonalSettingsPage({
 
   const handleLogout = async () => {
     try {
-      await authApi.logout();
+      await useAuthStore.getState().signOut();
       router.push("/welcome");
     } catch {
       toast({

@@ -11,9 +11,11 @@
 
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
+import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useUserSession } from "@/hooks/use-user-session";
 import { isAdmin, isStudent } from "@/lib/utils/role";
+import { useStudentDiscoveryStore } from "@/stores/student-discovery-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 /**
@@ -53,10 +55,9 @@ export function useStudentInitializer(options?: {
     (state) => state.data.metadata.isLoading,
   );
   const errors = useStudentUnifiedStore((state) => state.data.metadata.errors);
-
-  // Ref para evitar múltiplas chamadas simultâneas
-  const hasInitialized = useRef(false);
-  const isInitializing = useRef(false);
+  const preloadDiscovery = useStudentDiscoveryStore(
+    (state) => state.preloadDefault,
+  );
 
   // Memoizar callbacks para evitar mudanças desnecessárias
   const memoizedOnLoadStart = useCallback(() => {
@@ -74,82 +75,32 @@ export function useStudentInitializer(options?: {
     [onLoadError],
   );
 
-  useEffect(() => {
-    // Não fazer nada se:
-    // - autoLoad está desabilitado
-    // - Ainda está carregando a sessão
-    // - Não há sessão válida
-    // - O usuário não é STUDENT ou ADMIN
-    // - Já inicializou ou está inicializando
-    if (
-      !autoLoad ||
-      sessionLoading ||
-      !userSession ||
-      !role ||
-      (!isStudent(role) && !isAdmin(role)) ||
-      hasInitialized.current ||
-      isInitializing.current
-    ) {
-      return;
-    }
-
-    // Verificar se já está inicializado (dados já foram carregados)
-    if (isInitialized && lastSync) {
-      // Verificar se os dados não estão muito antigos (mais de 5 minutos)
-      const lastSyncDate = new Date(lastSync);
-      const now = new Date();
-      const diffMinutes =
-        (now.getTime() - lastSyncDate.getTime()) / (1000 * 60);
-
-      // Se os dados são recentes (menos de 5 minutos), não recarregar
-      if (diffMinutes < 5) {
-        hasInitialized.current = true;
-        return;
-      }
-    }
-
-    // Marcar como inicializando para evitar chamadas duplicadas
-    isInitializing.current = true;
-    memoizedOnLoadStart();
-
-    // Carregar todos os dados
-    loadAll()
-      .then(() => {
-        hasInitialized.current = true;
-        isInitializing.current = false;
-        memoizedOnLoadComplete();
-      })
-      .catch((error) => {
-        isInitializing.current = false;
-        const err = error instanceof Error ? error : new Error(String(error));
-        memoizedOnLoadError(err);
-        console.error("[useStudentInitializer] Erro ao carregar dados:", err);
-      });
-  }, [
+  const initializer = useDomainInitializer({
     autoLoad,
     sessionLoading,
-    userSession,
+    hasSession: !!userSession,
     role,
-    loadAll,
+    canInitializeRole: (currentRole) =>
+      isStudent(currentRole as string) || isAdmin(currentRole as string),
+    loadAll: async () => {
+      memoizedOnLoadStart();
+      await loadAll();
+      await preloadDiscovery();
+      memoizedOnLoadComplete();
+    },
     isInitialized,
     lastSync,
-    memoizedOnLoadStart,
-    memoizedOnLoadComplete,
-    memoizedOnLoadError,
-  ]);
-
-  // Reset do flag quando o usuário muda (logout/login)
-  useEffect(() => {
-    if (!userSession || !role || (!isStudent(role) && !isAdmin(role))) {
-      hasInitialized.current = false;
-      isInitializing.current = false;
-    }
-  }, [userSession, role]);
+    isLoading,
+    onError: (error) => {
+      memoizedOnLoadError(error);
+      console.error("[useStudentInitializer] Erro ao carregar dados:", error);
+    },
+  });
 
   return {
-    isInitialized: hasInitialized.current,
-    isInitializing: isInitializing.current,
-    isLoading,
+    isInitialized: initializer.isInitialized,
+    isInitializing: initializer.isInitializing,
+    isLoading: initializer.isLoading,
     hasError: Object.keys(errors).length > 0,
     errors,
   };

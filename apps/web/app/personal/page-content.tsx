@@ -2,13 +2,7 @@
 
 import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import type {
-  PersonalAffiliation,
-  PersonalProfile,
-  PersonalStudentAssignment,
-  PersonalSubscriptionData,
-} from "./types";
+import { Suspense, useCallback, useMemo } from "react";
 import { PersonalDashboardPageContent } from "./_dashboard/page-content";
 import { PersonalFinancialPageContent } from "./_financial/page-content";
 import { PersonalGymsPageContent } from "./_gyms/page-content";
@@ -18,97 +12,32 @@ import { PersonalStudentsPageContent } from "./_students/page-content";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
 import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
-import { getPersonalStudentsAsStudentDataRequest } from "@/lib/api/personal-client";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
-import type {
-  BoostCampaign,
-  Coupon,
-  Expense,
-  FinancialSummary,
-  MembershipPlan,
-  Payment,
-  StudentData,
-} from "@/lib/types";
+import type { MembershipPlan, StudentData } from "@/lib/types";
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
-interface PersonalHomeProps {
-  initialProfile: PersonalProfile | null;
-  initialAffiliations: PersonalAffiliation[];
-  initialStudents: PersonalStudentAssignment[];
-  initialSubscription: PersonalSubscriptionData | null;
-  initialFinancialSummary: FinancialSummary | null;
-  initialPayments: Payment[];
-  initialCoupons: Coupon[];
-  initialExpenses: Expense[];
-  initialCampaigns: BoostCampaign[];
-  initialPlans: PersonalMembershipPlan[];
-}
-
-function PersonalHomeContent({
-  initialProfile,
-  initialAffiliations,
-  initialStudents,
-  initialSubscription,
-  initialFinancialSummary,
-  initialPayments,
-  initialCoupons,
-  initialExpenses,
-  initialCampaigns,
-  initialPlans,
-}: PersonalHomeProps) {
+function PersonalHomeContent() {
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  const hydrateInitial = usePersonalUnifiedStore((state) => state.hydrateInitial);
   const loadAll = usePersonalUnifiedStore((state) => state.loadAll);
   usePersonalInitializer();
   useLoadPrioritizedPersonal({ onlyPriorities: true });
 
-  const [studentsData, setStudentsData] = useState<StudentData[]>([]);
-  const [studentsLoaded, setStudentsLoaded] = useState(false);
-
-  useEffect(() => {
-    hydrateInitial({
-      profile: initialProfile,
-      affiliations: initialAffiliations,
-      students: initialStudents,
-      subscription: initialSubscription,
-      financialSummary: initialFinancialSummary,
-      expenses: initialExpenses,
-    });
-  }, [
-    hydrateInitial,
-    initialProfile,
-    initialAffiliations,
-    initialStudents,
-    initialSubscription,
-    initialFinancialSummary,
-    initialExpenses,
-  ]);
-
-  // Load StudentData[] when students tab is active
-  useEffect(() => {
-    if (tab === "students" && !studentsLoaded) {
-      getPersonalStudentsAsStudentDataRequest().then((data) => {
-        setStudentsData(data);
-        setStudentsLoaded(true);
-      });
-    }
-  }, [tab, studentsLoaded]);
-
   const store = usePersonalUnifiedStore((state) => state.data);
-  const profile = store.profile ?? initialProfile;
-  const affiliations =
-    store.affiliations.length > 0 ? store.affiliations : initialAffiliations;
-  const students =
-    store.students.length > 0 ? store.students : initialStudents;
-  const subscription = store.subscription ?? initialSubscription;
-
+  const profile = store.profile;
+  const affiliations = store.affiliations;
+  const students = store.students;
+  const studentDirectory = store.studentDirectory;
+  const subscription = store.subscription;
   const financialSummary = store.financialSummary ?? null;
   const storeExpenses = store.expenses ?? [];
+  const storePayments = store.payments ?? [];
+  const storeCoupons = store.coupons ?? [];
+  const storeCampaigns = store.campaigns ?? [];
+  const storePlans = store.membershipPlans ?? [];
 
   const load = useCallback(async () => {
     await loadAll();
-    setStudentsLoaded(false); // Force reload on next visit
   }, [loadAll]);
 
   const stats = useMemo(() => {
@@ -146,7 +75,7 @@ function PersonalHomeContent({
       )}
       {tab === "students" && (
         <PersonalStudentsPageContent
-          students={studentsData}
+          students={studentDirectory as unknown as StudentData[]}
           affiliations={affiliations}
         />
       )}
@@ -164,17 +93,17 @@ function PersonalHomeContent({
           subscription={subscription}
           financialSummary={financialSummary}
           expenses={storeExpenses}
-          payments={initialPayments}
-          coupons={initialCoupons}
-          campaigns={initialCampaigns}
-          plans={initialPlans as unknown as MembershipPlan[]}
+          payments={storePayments}
+          coupons={storeCoupons}
+          campaigns={storeCampaigns}
+          plans={storePlans as unknown as MembershipPlan[]}
           onRefresh={load}
         />
       )}
       {tab === "settings" && (
         <PersonalSettingsPageContent
           profile={profile}
-          plans={initialPlans}
+          plans={storePlans}
           onRefresh={load}
         />
       )}
@@ -191,18 +120,9 @@ function PersonalHomeContent({
   );
 }
 
-export default function PersonalHome({
-  initialProfile,
-  initialAffiliations,
-  initialStudents,
-  initialSubscription,
-  initialFinancialSummary,
-  initialPayments,
-  initialCoupons,
-  initialExpenses,
-  initialCampaigns,
-  initialPlans,
-}: PersonalHomeProps) {
+export default function PersonalHome(
+  _props: { initialPlans?: PersonalMembershipPlan[] } = {},
+) {
   return (
     <Suspense
       fallback={
@@ -211,18 +131,7 @@ export default function PersonalHome({
         </div>
       }
     >
-      <PersonalHomeContent
-        initialProfile={initialProfile}
-        initialAffiliations={initialAffiliations}
-        initialStudents={initialStudents}
-        initialSubscription={initialSubscription}
-        initialFinancialSummary={initialFinancialSummary}
-        initialPayments={initialPayments}
-        initialCoupons={initialCoupons}
-        initialExpenses={initialExpenses}
-        initialCampaigns={initialCampaigns}
-        initialPlans={initialPlans}
-      />
+      <PersonalHomeContent />
     </Suspense>
   );
 }

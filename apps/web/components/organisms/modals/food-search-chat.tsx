@@ -7,10 +7,9 @@ import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
-import { getAuthToken } from "@/lib/auth/token-client";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 interface FoodSearchChatProps {
@@ -224,6 +223,7 @@ export function FoodSearchChat({
     if (!inputMessage.trim() || isProcessing) return;
 
     const userMessage = inputMessage.trim();
+    const streamRequestKey = `nutrition-chat:${localSelectedMealId ?? "all"}`;
     setInputMessage("");
 
     // Adicionar mensagem do usuário
@@ -272,24 +272,15 @@ export function FoodSearchChat({
         },
       ]);
 
-      const apiBaseUrl = resolveApiBaseUrl();
-      const token = getAuthToken();
-
-      const response = await fetch(`${apiBaseUrl}${chatStreamUrl}`, {
-        method: "POST",
-        cache: "no-store",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
+      const response = await useAssistantTransportStore.getState().openSse({
+        key: streamRequestKey,
+        url: chatStreamUrl,
+        body: {
           message: userMessage,
           conversationHistory,
           existingMeals,
           selectedMeal: selectedMealInfo,
-        }),
+        },
       });
 
       if (!response.ok) {
@@ -427,6 +418,7 @@ export function FoodSearchChat({
         ];
       });
     } finally {
+      useAssistantTransportStore.getState().finishRequest(streamRequestKey);
       setIsProcessing(false);
     }
   };

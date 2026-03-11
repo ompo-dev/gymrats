@@ -7,7 +7,6 @@ import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
 import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
@@ -42,14 +41,18 @@ import type {
   GymLocation,
   PlanSlotData,
   StudentGymMembership,
-  SubscriptionData,
   Unit,
   UserProgress,
   WeeklyPlanData,
-  WeightHistoryItem,
   WorkoutHistory,
 } from "@/lib/types";
-import type { StudentProfileData, UserInfo } from "@/lib/types/student-unified";
+import type {
+  StudentProfileData,
+  StudentPixPaymentPayload,
+  SubscriptionData,
+  UserInfo,
+  WeightHistoryItem,
+} from "@/lib/types/student-unified";
 
 /**
  * Componente de Conteúdo da Home do Student
@@ -152,8 +155,17 @@ function StudentHomeContent() {
     "role",
   );
 
-  const { addDayPass } = useStudent("actions");
-  const { loadSubscription, loadMemberships, loadPayments } =
+  const {
+    addDayPass,
+    joinGym,
+    changeMembershipPlan,
+    cancelMembership,
+    cancelPersonalAssignment,
+    cancelStudentPayment,
+    getStudentPaymentStatus,
+    getPersonalPaymentStatus,
+  } = useStudent("actions");
+  const { loadSubscription, loadMemberships, loadPayments, loadReferral } =
     useStudent("loaders");
   const { toast } = useToast();
 
@@ -235,23 +247,11 @@ function StudentHomeContent() {
     couponId?: string,
   ) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const res = await apiClient.post<{
-        brCode?: string;
-        brCodeBase64?: string;
-        amount?: number;
-        paymentId?: string;
-        expiresAt?: string;
-        membershipId?: string;
-        success?: boolean;
-        planName?: string;
-        originalPrice?: number;
-        appliedCoupon?: { code: string; discountString: string };
-      }>(`/api/students/gyms/${gymId}/join`, {
+      const data = await joinGym({
+        gymId,
         planId,
         couponId: couponId || null,
       });
-      const data = res?.data ?? {};
       const hasPixData =
         data.paymentId &&
         data.brCode != null &&
@@ -296,21 +296,14 @@ function StudentHomeContent() {
 
   const handleChangePlan = async (membershipId: string, planId: string) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const res = await apiClient.post<{
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        paymentId: string;
-        expiresAt?: string;
-      }>(`/api/students/memberships/${membershipId}/change-plan`, { planId });
+      const res = await changeMembershipPlan({ membershipId, planId });
       setPixModal({
         open: true,
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: res.paymentId,
+        brCode: res.brCode,
+        brCodeBase64: res.brCodeBase64,
+        amount: res.amount,
+        expiresAt: res.expiresAt,
       });
     } catch (err) {
       const msg =
@@ -363,16 +356,11 @@ function StudentHomeContent() {
 
   const handleCancelMembership = async (membershipId: string) => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post(
-        `/api/students/memberships/${membershipId}/cancel`,
-        {},
-      );
+      await cancelMembership(membershipId);
       toast({
         title: "Assinatura cancelada",
         description: "Sua matrícula nesta academia foi cancelada.",
       });
-      await loadMemberships();
       setProfileRefreshKey((k) => k + 1);
     } catch (err) {
       const msg =
@@ -391,24 +379,14 @@ function StudentHomeContent() {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([loadMemberships(), loadPayments()]);
+    await Promise.all([loadMemberships(), loadPayments(), loadReferral()]);
     setProfileRefreshKey((k) => k + 1);
   };
 
   const handleSubscribePersonal = (
     _personalId: string,
     _planId: string,
-    paymentData: {
-      brCode: string;
-      brCodeBase64: string;
-      amount: number;
-      paymentId: string;
-      pixId: string;
-      expiresAt?: string;
-      planName: string;
-      originalPrice: number;
-      appliedCoupon?: { code: string; discountString: string };
-    },
+    paymentData: StudentPixPaymentPayload,
   ) => {
     setPersonalPixModal({
       open: true,
@@ -430,10 +408,7 @@ function StudentHomeContent() {
 
   const handleCancelPersonalAssignment = async (assignmentId: string) => {
     try {
-      await apiClient.post(
-        `/api/students/personals/assignments/${assignmentId}/cancel`,
-        {},
-      );
+      await cancelPersonalAssignment(assignmentId);
       toast({
         title: "Desvinculado",
         description: "Você foi desvinculado deste personal.",
@@ -666,20 +641,6 @@ function StudentHomeContent() {
             (currentSubscription ??
               undefined) as StudentPaymentsPageProps["subscription"]
           }
-          startTrial={async () => {
-            // Usar axios client (API → syncManager → Store)
-            // syncManager gerencia offline/online automaticamente
-            const { apiClient } = await import("@/lib/api/client");
-            const response = await apiClient.post<{
-              error?: string;
-              success?: boolean;
-            }>("/api/subscriptions/start-trial");
-            // Após sucesso, recarregar subscription do store
-            if (response.data.success) {
-              await loadSubscription();
-            }
-            return response.data;
-          }}
         />
       )}
 
@@ -746,11 +707,7 @@ function StudentHomeContent() {
         <PixQrModal
           isOpen={pixModal.open}
           onClose={() => setPixModal(null)}
-          onCancelPayment={async () => {
-            await apiClient.patch(`/api/payments/${pixModal.paymentId}`, {
-              status: "canceled",
-            });
-          }}
+          onCancelPayment={() => cancelStudentPayment(pixModal.paymentId)}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
@@ -768,12 +725,8 @@ function StudentHomeContent() {
           onSimulateSuccess={handlePixConfirmed}
           pollConfig={{
             type: "check",
-            check: async () => {
-              const res = await apiClient.get<{ status: string }>(
-                `/api/payments/${pixModal.paymentId}`,
-              );
-              return res.data.status === "paid";
-            },
+            check: async () =>
+              (await getStudentPaymentStatus(pixModal.paymentId)) === "paid",
           }}
           onPaymentConfirmed={handlePixConfirmed}
           paymentConfirmedToast={{
@@ -804,12 +757,9 @@ function StudentHomeContent() {
           onSimulateSuccess={handlePersonalPixConfirmed}
           pollConfig={{
             type: "check",
-            check: async () => {
-              const res = await apiClient.get<{ status: string }>(
-                `/api/students/personals/payments/${personalPixModal.paymentId}`,
-              );
-              return res.data.status === "paid";
-            },
+            check: async () =>
+              (await getPersonalPaymentStatus(personalPixModal.paymentId)) ===
+              "paid",
           }}
           onPaymentConfirmed={handlePersonalPixConfirmed}
           paymentConfirmedToast={{

@@ -293,32 +293,6 @@ export function useWorkoutExecution() {
   }, [isRunning]);
 
   // Helpers
-  const convertExerciseLogsForAPI = useCallback((logs: ExerciseLog[]) => {
-    return logs
-      .filter((log) => log?.exerciseId && log.exerciseName)
-      .map((log) => {
-        let difficulty: string | null = null;
-        if (log.difficulty) {
-          const normalized = log.difficulty.replace(/-/g, "_");
-          difficulty = normalized === "ideal" ? "medio" : normalized;
-        }
-        return {
-          exerciseId: log.exerciseId,
-          exerciseName: log.exerciseName,
-          sets:
-            log.sets?.map((set) => ({
-              weight: set.weight ?? null,
-              reps: set.reps ?? null,
-              completed: set.completed ?? false,
-              notes: set.notes ?? null,
-            })) ?? [],
-          notes: log.notes ?? null,
-          formCheckScore: log.formCheckScore ?? null,
-          difficulty: difficulty,
-        };
-      });
-  }, []);
-
   const handleSaveProgress = useCallback(
     async (log: ExerciseLog) => {
       const existingLogIndex = activeWorkout?.exerciseLogs.findIndex(
@@ -375,32 +349,12 @@ export function useWorkoutExecution() {
           skippedExercises: finalActiveWorkout.skippedExercises || [],
         });
 
-        const { apiClient } = await import("@/lib/api/client");
         const workoutDuration = finalActiveWorkout.startTime
           ? Math.round(
               (Date.now() - new Date(finalActiveWorkout.startTime).getTime()) /
                 60000,
             )
           : workout.estimatedTime;
-
-        try {
-          await apiClient.post(`/api/workouts/${workout.id}/complete`, {
-            exerciseLogs: convertExerciseLogsForAPI(finalLogs),
-            duration: workoutDuration,
-            totalVolume: finalActiveWorkout.totalVolume || 0,
-            overallFeedback: "bom",
-            xpEarned: finalActiveWorkout.xpEarned || workout.xpReward,
-            startTime: new Date(
-              finalActiveWorkout.startTime || Date.now(),
-            ).toISOString(),
-          });
-        } catch (err) {
-          console.error(
-            "[useWorkoutExecution] Erro ao salvar conclusão no servidor:",
-            err,
-          );
-          // Continua para atualizar UI local; loadWeeklyPlan trará estado real do backend
-        }
 
         if (completeStudentWorkout) {
           await completeStudentWorkout({
@@ -430,7 +384,6 @@ export function useWorkoutExecution() {
       setExerciseIndexParam,
       setCurrentExerciseIndex,
       saveWorkoutProgress,
-      convertExerciseLogsForAPI,
       completeStudentWorkout,
       completeWorkout,
     ],

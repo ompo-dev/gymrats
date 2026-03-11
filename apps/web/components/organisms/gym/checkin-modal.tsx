@@ -5,13 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
-import { browserApiFetch } from "@/lib/api/browser-fetch";
-
-interface ActiveMember {
-  id: string;
-  name: string;
-  avatar?: string | null;
-}
+import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 
 interface CheckInModalProps {
   isOpen: boolean;
@@ -25,9 +19,17 @@ export function CheckInModal({
   onSuccess,
 }: CheckInModalProps) {
   const actions = useGym("actions");
+  const members = useGymDirectoryStore((state) => state.activeMembers);
+  const isLoading = useGymDirectoryStore(
+    (state) => state.isSearchingActiveMembers,
+  );
+  const searchActiveMembers = useGymDirectoryStore(
+    (state) => state.searchActiveMembers,
+  );
+  const clearActiveMembers = useGymDirectoryStore(
+    (state) => state.clearActiveMembers,
+  );
   const [search, setSearch] = useState("");
-  const [members, setMembers] = useState<ActiveMember[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [checking, setChecking] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -38,34 +40,13 @@ export function CheckInModal({
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (search.length < 2) {
-      setMembers([]);
+      clearActiveMembers();
       return;
     }
     timerRef.current = setTimeout(async () => {
-      setIsLoading(true);
-      try {
-        const res = await browserApiFetch(
-          `/api/gyms/members?status=active&search=${encodeURIComponent(search)}`,
-        );
-        const data = await res.json();
-        interface MemberItem {
-          student: { id: string; avatar?: string; user?: { name?: string } };
-          studentName?: string;
-        }
-        setMembers(
-          ((data.members ?? []) as MemberItem[]).map((m) => ({
-            id: m.student.id,
-            name: m.student.user?.name ?? m.studentName ?? "Aluno",
-            avatar: m.student.avatar,
-          })),
-        );
-      } catch {
-        setMembers([]);
-      } finally {
-        setIsLoading(false);
-      }
+      await searchActiveMembers(search);
     }, 400);
-  }, [search]);
+  }, [search, searchActiveMembers, clearActiveMembers]);
 
   // Focar no input ao abrir
   useEffect(() => {
@@ -91,7 +72,7 @@ export function CheckInModal({
 
   const handleClose = () => {
     setSearch("");
-    setMembers([]);
+    clearActiveMembers();
     setSuccess(null);
     setError("");
     onClose();

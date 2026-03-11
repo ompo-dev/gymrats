@@ -5,9 +5,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { clearAuthToken } from "@/lib/auth/token-client";
-import type { Unit, WorkoutHistory, WorkoutSession } from "@/lib/types";
-import type { WeightHistoryItem } from "@/lib/types/student-unified";
+import type {
+  PersonalRecord,
+  Unit,
+  UserProgress,
+  WorkoutHistory,
+  WorkoutSession,
+} from "@/lib/types";
+import type {
+  StudentProfileData,
+  UserInfo,
+  WeightHistoryItem,
+} from "@/lib/types/student-unified";
+import { useAuthStore } from "@/stores";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { useWorkoutStore } from "@/stores/workout-store";
 
@@ -56,8 +66,8 @@ export function useProfilePage() {
     progress: storeProgress,
     weightHistory: storeWeightHistory,
     weightGain: storeWeightGain,
-    profile: storeProfile,
-    user: storeUser,
+    profile: storeProfileRaw,
+    user: storeUserRaw,
     workoutHistory: storeWorkoutHistory,
     personalRecords: storePersonalRecords,
     units: storeUnits,
@@ -78,7 +88,8 @@ export function useProfilePage() {
 
   const { addWeight } = useStudent("actions");
 
-  const displayProgress = storeProgress || {
+  const progress = (storeProgress as UserProgress | null) ?? null;
+  const displayProgress: UserProgress = progress || {
     currentStreak: 0,
     longestStreak: 0,
     totalXP: 0,
@@ -92,14 +103,20 @@ export function useProfilePage() {
     weeklyXP: [0, 0, 0, 0, 0, 0, 0],
   };
 
-  const weightHistoryLocal = storeWeightHistory || [];
+  const weightHistoryLocal = Array.isArray(storeWeightHistory)
+    ? (storeWeightHistory as WeightHistoryItem[])
+    : [];
+  const storeProfile = (storeProfileRaw as StudentProfileData | null) ?? null;
+  const storeUser = (storeUserRaw as UserInfo | null) ?? null;
+  const profile = storeProfile;
+  const user = storeUser;
 
   const currentWeight =
     weightHistoryLocal.length > 0
       ? weightHistoryLocal[0].weight
-      : (storeProfile?.weight ?? null);
+      : (profile?.weight ?? null);
 
-  let weightGain = storeWeightGain ?? null;
+  let weightGain = typeof storeWeightGain === "number" ? storeWeightGain : null;
   if (weightGain === null && weightHistoryLocal.length > 0) {
     const currentWeightFromHistory = weightHistoryLocal[0]?.weight;
     const oneMonthAgo = new Date();
@@ -120,9 +137,13 @@ export function useProfilePage() {
     }
   }
 
-  const workoutHistory = storeWorkoutHistory || [];
-  const personalRecords = storePersonalRecords || [];
-  const units = storeUnits || [];
+  const workoutHistory = Array.isArray(storeWorkoutHistory)
+    ? (storeWorkoutHistory as WorkoutHistory[])
+    : [];
+  const personalRecords = Array.isArray(storePersonalRecords)
+    ? (storePersonalRecords as PersonalRecord[])
+    : [];
+  const units = Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
 
   const totalWorkoutsCompleted = useMemo(
     () =>
@@ -212,22 +233,22 @@ export function useProfilePage() {
     return workoutHistory.slice(0, 1);
   }, [lastInProgressWorkout, workoutHistory]);
 
-  const getUsernameFromEmail = (user: typeof storeUser): string => {
-    if (!user) return "@usuario";
-    if (user.username?.startsWith("@")) return user.username;
-    if (user.email) return `@${user.email.split("@")[0]}`;
+  const getUsernameFromEmail = (currentUser: UserInfo | null): string => {
+    if (!currentUser) return "@usuario";
+    if (currentUser.username?.startsWith("@")) return currentUser.username;
+    if (currentUser.email) return `@${currentUser.email.split("@")[0]}`;
     return "@usuario";
   };
 
-  const profileUserInfo = storeUser
+  const profileUserInfo = user
     ? {
         name: storeUser.name || "Usuário",
-        username: getUsernameFromEmail(storeUser),
-        memberSince: storeUser.memberSince || "Jan 2025",
+        username: getUsernameFromEmail(user),
+        memberSince: user.memberSince || "Jan 2025",
       }
     : null;
 
-  const isAdmin = storeIsAdmin || storeRole === "ADMIN";
+  const isAdmin = Boolean(storeIsAdmin || storeRole === "ADMIN");
 
   const firstWorkout =
     units.length > 0 && units[0]?.workouts?.length > 0
@@ -244,28 +265,11 @@ export function useProfilePage() {
     (w: WorkoutHistory) => new Date(w.date) >= oneWeekAgo,
   ).length;
 
-  const hasWeightLossGoal = storeProfile?.hasWeightLossGoal || false;
+  const hasWeightLossGoal = Boolean(storeProfile?.hasWeightLossGoal);
 
   const handleLogout = async () => {
     try {
-      const { useAuthStore } = await import("@/stores");
-      useAuthStore.getState().logout();
-
-      if (typeof window !== "undefined") {
-        clearAuthToken();
-        localStorage.removeItem("isAuthenticated");
-        localStorage.removeItem("userEmail");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("isAdmin");
-      }
-
-      try {
-        const { apiClient } = await import("@/lib/api/client");
-        await apiClient.post("/api/auth/sign-out");
-      } catch {
-        // Continuar mesmo se falhar
-      }
+      await useAuthStore.getState().signOut();
 
       if (typeof window !== "undefined") {
         window.location.href = "/welcome";

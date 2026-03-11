@@ -40,11 +40,23 @@ export function usePersonal<T extends PersonalSelector>(
     (state) => state.loadAllPrioritized,
   );
   const loadSection = usePersonalUnifiedStore((state) => state.loadSection);
+  const loadStudentDetail = usePersonalUnifiedStore(
+    (state) => state.loadStudentDetail,
+  );
+  const loadStudentPayments = usePersonalUnifiedStore(
+    (state) => state.loadStudentPayments,
+  );
   const hydrateInitial = usePersonalUnifiedStore(
     (state) => state.hydrateInitial,
   );
   const updateProfile = usePersonalUnifiedStore(
     (state) => state.updateProfile,
+  );
+  const linkAffiliation = usePersonalUnifiedStore(
+    (state) => state.linkAffiliation,
+  );
+  const unlinkAffiliation = usePersonalUnifiedStore(
+    (state) => state.unlinkAffiliation,
   );
   const assignStudent = usePersonalUnifiedStore(
     (state) => state.assignStudent,
@@ -55,11 +67,34 @@ export function usePersonal<T extends PersonalSelector>(
   const createExpense = usePersonalUnifiedStore(
     (state) => state.createExpense,
   );
+  const createCoupon = usePersonalUnifiedStore((state) => state.createCoupon);
+  const deleteCoupon = usePersonalUnifiedStore((state) => state.deleteCoupon);
+  const createBoostCampaign = usePersonalUnifiedStore(
+    (state) => state.createBoostCampaign,
+  );
+  const deleteBoostCampaign = usePersonalUnifiedStore(
+    (state) => state.deleteBoostCampaign,
+  );
+  const getBoostCampaignPix = usePersonalUnifiedStore(
+    (state) => state.getBoostCampaignPix,
+  );
+  const createMembershipPlan = usePersonalUnifiedStore(
+    (state) => state.createMembershipPlan,
+  );
+  const updateMembershipPlan = usePersonalUnifiedStore(
+    (state) => state.updateMembershipPlan,
+  );
+  const deleteMembershipPlan = usePersonalUnifiedStore(
+    (state) => state.deleteMembershipPlan,
+  );
   const createPersonalSubscription = usePersonalUnifiedStore(
     (state) => state.createPersonalSubscription,
   );
   const cancelPersonalSubscription = usePersonalUnifiedStore(
     (state) => state.cancelPersonalSubscription,
+  );
+  const checkBoostCampaignActive = usePersonalUnifiedStore(
+    (state) => state.checkBoostCampaignActive,
   );
 
   if (selectors.length === 0) {
@@ -71,20 +106,35 @@ export function usePersonal<T extends PersonalSelector>(
     if (selector === "actions") {
       return {
         updateProfile,
+        linkAffiliation,
+        unlinkAffiliation,
         assignStudent,
         removeStudent,
         createExpense,
+        createCoupon,
+        deleteCoupon,
+        createBoostCampaign,
+        deleteBoostCampaign,
+        getBoostCampaignPix,
+        createMembershipPlan,
+        updateMembershipPlan,
+        deleteMembershipPlan,
         createPersonalSubscription,
         cancelPersonalSubscription,
+        checkBoostCampaignActive,
+        loadStudentDetail,
+        loadStudentPayments,
         hydrateInitial,
-      } as unknown as PersonalSelectorReturnMap["actions"];
+      } as unknown as PersonalSelectorReturnMap[T];
     }
     if (selector === "loaders") {
       return {
         loadAll,
         loadAllPrioritized,
         loadSection,
-      } as unknown as PersonalSelectorReturnMap["loaders"];
+        loadStudentDetail,
+        loadStudentPayments,
+      } as unknown as PersonalSelectorReturnMap[T];
     }
     return dataSelector(
       selector,
@@ -97,11 +147,24 @@ export function usePersonal<T extends PersonalSelector>(
     if (selector === "actions") {
       result.actions = {
         updateProfile,
+        linkAffiliation,
+        unlinkAffiliation,
         assignStudent,
         removeStudent,
         createExpense,
+        createCoupon,
+        deleteCoupon,
+        createBoostCampaign,
+        deleteBoostCampaign,
+        getBoostCampaignPix,
+        createMembershipPlan,
+        updateMembershipPlan,
+        deleteMembershipPlan,
         createPersonalSubscription,
         cancelPersonalSubscription,
+        checkBoostCampaignActive,
+        loadStudentDetail,
+        loadStudentPayments,
         hydrateInitial,
       };
     } else if (selector === "loaders") {
@@ -109,6 +172,8 @@ export function usePersonal<T extends PersonalSelector>(
         loadAll,
         loadAllPrioritized,
         loadSection,
+        loadStudentDetail,
+        loadStudentPayments,
       };
     } else {
       result[selector] = dataSelector(selector, data);

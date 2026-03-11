@@ -18,9 +18,14 @@ export const SECTION_ROUTES: Record<PersonalDataSection, string> = {
   profile: "/api/personals",
   affiliations: "/api/personals/affiliations",
   students: "/api/personals/students",
+  studentDirectory: "/api/personals/students/student-data",
   subscription: "/api/personals/subscription",
   financialSummary: "/api/personals/financial-summary",
   expenses: "/api/personals/expenses",
+  payments: "/api/personals/payments",
+  coupons: "/api/personals/coupons",
+  campaigns: "/api/personals/boost-campaigns",
+  membershipPlans: "/api/personals/membership-plans",
 };
 
 const loadingSections = new Set<PersonalDataSection>();
@@ -62,6 +67,12 @@ export async function loadSection(
         }>(route);
         return { students: res.data.students || [] };
       }
+      if (section === "studentDirectory") {
+        const res = await apiClient.get<{
+          students: PersonalUnifiedData["studentDirectory"];
+        }>(route);
+        return { studentDirectory: res.data.students || [] };
+      }
       if (section === "subscription") {
         const res = await apiClient.get<{
           subscription: PersonalSubscriptionData | null;
@@ -79,6 +90,30 @@ export async function loadSection(
           expenses: Expense[];
         }>(route).catch(() => ({ data: { expenses: [] } }));
         return { expenses: res.data.expenses || [] };
+      }
+      if (section === "payments") {
+        const res = await apiClient.get<{
+          payments: PersonalUnifiedData["payments"];
+        }>(route).catch(() => ({ data: { payments: [] } }));
+        return { payments: res.data.payments || [] };
+      }
+      if (section === "coupons") {
+        const res = await apiClient.get<{
+          coupons: PersonalUnifiedData["coupons"];
+        }>(route).catch(() => ({ data: { coupons: [] } }));
+        return { coupons: res.data.coupons || [] };
+      }
+      if (section === "campaigns") {
+        const res = await apiClient.get<{
+          campaigns: PersonalUnifiedData["campaigns"];
+        }>(route).catch(() => ({ data: { campaigns: [] } }));
+        return { campaigns: res.data.campaigns || [] };
+      }
+      if (section === "membershipPlans") {
+        const res = await apiClient.get<{
+          plans: PersonalUnifiedData["membershipPlans"];
+        }>(route).catch(() => ({ data: { plans: [] } }));
+        return { membershipPlans: res.data.plans || [] };
       }
       return {};
     } finally {

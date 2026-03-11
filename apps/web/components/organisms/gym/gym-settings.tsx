@@ -15,9 +15,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { useGym } from "@/hooks/use-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import type { GymProfile, MembershipPlan } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
 import {
   GymSettingsAccountCard,
   GymSettingsHeader,
@@ -52,6 +54,7 @@ export function GymSettingsPage({
   userInfo = { isAdmin: false, role: null },
 }: GymSettingsPageProps) {
   const router = useRouter();
+  const actions = useGym("actions");
   const [profile, setProfile] = useState(initialProfile);
   const [address, setAddress] = useState(initialProfile.address ?? "");
   const [phone, setPhone] = useState(initialProfile.phone ?? "");
@@ -101,7 +104,7 @@ export function GymSettingsPage({
     setPixKeyType(initialProfile.pixKeyType ?? "");
     setPixKey(initialProfile.pixKey ?? "");
     setDaySchedules(parseInitialSchedules());
-  }, [initialProfile.id, parseInitialSchedules]);
+  }, [initialProfile, parseInitialSchedules]);
 
   const {
     isAdmin: serverIsAdmin,
@@ -185,14 +188,8 @@ export function GymSettingsPage({
     if (Object.keys(payload).length === 0) return;
     setSaving(true);
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const { data } = await apiClient.patch<{ profile: GymProfile }>(
-        "/api/gyms/profile",
-        payload,
-      );
-      if (data.profile) setProfile(data.profile);
+      await actions.updateProfile(payload);
       setSaveError("");
-      router.refresh();
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -239,14 +236,8 @@ export function GymSettingsPage({
     if (Object.keys(payload).length === 0) return;
     setSaving(true);
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      const { data } = await apiClient.patch<{ profile: GymProfile }>(
-        "/api/gyms/profile",
-        payload,
-      );
-      if (data.profile) setProfile(data.profile);
+      await actions.updateProfile(payload);
       setSaveError("");
-      router.refresh();
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -316,9 +307,7 @@ export function GymSettingsPage({
 
   const handleLogout = async () => {
     try {
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/auth/sign-out");
-
+      await useAuthStore.getState().signOut();
       router.push("/welcome");
       router.refresh();
     } catch (error) {

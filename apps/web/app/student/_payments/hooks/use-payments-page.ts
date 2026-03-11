@@ -7,13 +7,13 @@ import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import {
   STUDENT_PLANS_CONFIG,
   centsToReais,
 } from "@/lib/access-control/plans-config";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export type PaymentsTab =
   | "memberships"
@@ -163,12 +163,21 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   }, [subscription?.trialEnd, subscription?.daysRemaining]);
 
   const loaders = useStudent("loaders");
+  const actions = useStudent("actions");
   const {
     loadSubscription,
     loadPaymentMethods,
     loadMemberships,
     loadPayments,
+    loadReferral,
   } = loaders;
+  const {
+    cancelMembership: cancelMembershipAction,
+    loadGymPlans,
+    changeMembershipPlan,
+    payStudentPayment,
+    applyReferralToSubscription,
+  } = actions;
 
   // Ao abrir a aba Assinatura, refetch para ter source/enterpriseGymName atualizados
   useEffect(() => {
@@ -244,16 +253,12 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleCancelMembership = async (membershipId: string) => {
     try {
-      await apiClient.post(
-        `/api/students/memberships/${membershipId}/cancel`,
-        {},
-      );
+      await cancelMembershipAction(membershipId);
       toast({
         title: "Plano cancelado",
         description: "Sua mensalidade na academia foi cancelada.",
       });
       setExpandedMembershipId(null);
-      await loadMemberships();
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -272,16 +277,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
 
   const handleTrocarPlanoClick = async (membership: StudentGymMembership) => {
     try {
-      const res = await apiClient.get<{
-        plans: Array<{
-          id: string;
-          name: string;
-          type: string;
-          price: number;
-          duration: number;
-        }>;
-      }>(`/api/students/gyms/${membership.gymId}/plans`);
-      const otherPlans = (res.data.plans || []).filter(
+      const otherPlans = (await loadGymPlans(membership.gymId)).filter(
         (p) => p.id !== membership.planId,
       );
       if (otherPlans.length === 0) {
@@ -312,25 +308,19 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const handleSelectChangePlan = async (planId: string) => {
     if (!changePlanMembershipId) return;
     try {
-      const res = await apiClient.post<{
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        paymentId: string;
-        expiresAt?: string;
-      }>(`/api/students/memberships/${changePlanMembershipId}/change-plan`, {
+      const res = await changeMembershipPlan({
+        membershipId: changePlanMembershipId,
         planId,
       });
       setPixModal({
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: res.paymentId,
+        brCode: res.brCode,
+        brCodeBase64: res.brCodeBase64,
+        amount: res.amount,
+        expiresAt: res.expiresAt,
       });
       setChangePlanPlans([]);
       setChangePlanMembershipId(null);
-      await Promise.all([loadMemberships(), loadPayments()]);
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -348,24 +338,18 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([loadMemberships(), loadPayments()]);
+    await Promise.all([loadMemberships(), loadPayments(), loadReferral()]);
   };
 
   const handlePayNowClick = async (payment: StudentPayment) => {
     try {
-      const res = await apiClient.post<{
-        paymentId: string;
-        brCode: string;
-        brCodeBase64: string;
-        amount: number;
-        expiresAt?: string;
-      }>(`/api/students/payments/${payment.id}/pay-now`, {});
+      const res = await payStudentPayment(payment.id);
       setPixModal({
-        paymentId: res.data.paymentId,
-        brCode: res.data.brCode,
-        brCodeBase64: res.data.brCodeBase64,
-        amount: res.data.amount,
-        expiresAt: res.data.expiresAt,
+        paymentId: res.paymentId,
+        brCode: res.brCode,
+        brCodeBase64: res.brCodeBase64,
+        amount: res.amount,
+        expiresAt: res.expiresAt,
       });
     } catch (err) {
       const msg =
@@ -499,19 +483,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handleApplyReferralStudent = useCallback(async (referralCode: string) => {
-    const res = await apiClient.post<{
-      pixId?: string;
-      brCode?: string;
-      brCodeBase64?: string;
-      amount?: number;
-      expiresAt?: string;
-      originalAmount?: number;
-      error?: string;
-      referralCodeInvalid?: boolean;
-    }>("/api/subscriptions/apply-referral", {
-      referralCode: referralCode.trim(),
-    });
-    const data = res.data;
+    const data = await applyReferralToSubscription(referralCode);
     if (data.error) {
       return {
         error: data.error,
@@ -530,13 +502,19 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         brCodeBase64: data.brCodeBase64,
         amount: data.amount,
         expiresAt: data.expiresAt,
-        originalAmount: data.originalAmount,
+        originalAmount: data.originalPrice,
       };
       setSubscriptionPixModal(newPix);
       return newPix;
     }
     return { error: "Resposta inválida" };
-  }, []);
+  }, [applyReferralToSubscription]);
+
+  const checkSubscriptionIsActive = useCallback(async () => {
+    await Promise.all([refetchSubscription(), loadSubscription()]);
+    const latestSubscription = useStudentUnifiedStore.getState().data.subscription;
+    return latestSubscription?.status === "active";
+  }, [loadSubscription, refetchSubscription]);
 
   const handleCancelConfirm = async () => {
     cancelDialogModal.close();
@@ -620,6 +598,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     handleStartTrial,
     handleUpgrade,
     handleApplyReferralStudent,
+    checkSubscriptionIsActive,
     handleCancelConfirm,
   };
 }

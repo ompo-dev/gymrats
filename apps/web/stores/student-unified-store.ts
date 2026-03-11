@@ -14,6 +14,7 @@ import type {
   DailyNutrition,
   DifficultyLevel,
   MuscleGroup,
+  PlanSlotData,
   PersonalRecord,
   Unit,
   UserProgress,
@@ -24,6 +25,10 @@ import type {
 import type {
   StudentData,
   StudentDataSection,
+  StudentJoinGymResult,
+  StudentPaymentPlanOption,
+  StudentPixPaymentPayload,
+  StudentReferralApplyResult,
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
 import { initialStudentData } from "@/lib/types/student-unified";
@@ -62,6 +67,21 @@ export interface StudentUnifiedState {
   loadStudentCore: () => Promise<void>; // Profile + Weight
   loadWorkouts: (force?: boolean) => Promise<void>; // Units (legado)
   loadWeeklyPlan: (force?: boolean) => Promise<void>; // Plano semanal 7 slots
+  createWeeklyPlan: () => Promise<void>;
+  updateWeeklyPlan: (payload: {
+    title?: string;
+    description?: string;
+  }) => Promise<void>;
+  resetWeeklyPlan: () => Promise<void>;
+  addWeeklyPlanWorkout: (payload: {
+    planSlotId: string;
+    title: string;
+    description?: string;
+    muscleGroup?: string;
+    difficulty?: string;
+    estimatedTime?: number;
+    type?: string;
+  }) => Promise<string>;
   loadNutrition: () => Promise<void>; // Nutrition
   loadFinancial: () => Promise<void>; // Subscription + Payments
   // Métodos individuais (mantidos para compatibilidade)
@@ -75,6 +95,7 @@ export interface StudentUnifiedState {
   loadMemberships: () => Promise<void>;
   loadPayments: () => Promise<void>;
   loadPaymentMethods: () => Promise<void>;
+  loadReferral: () => Promise<void>;
   loadDayPasses: () => Promise<void>;
   loadFriends: () => Promise<void>;
   loadGymLocations: () => Promise<void>;
@@ -91,7 +112,36 @@ export interface StudentUnifiedState {
   updateSubscription: (
     subscription: Partial<StudentData["subscription"]> | null,
   ) => Promise<void>;
+  updateReferralPixKey: (payload: {
+    pixKey: string;
+    pixKeyType: string;
+  }) => Promise<void>;
+  requestReferralWithdraw: (amountCents: number) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
+  joinGym: (payload: {
+    gymId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentJoinGymResult>;
+  loadGymPlans: (gymId: string) => Promise<StudentPaymentPlanOption[]>;
+  changeMembershipPlan: (payload: {
+    membershipId: string;
+    planId: string;
+  }) => Promise<StudentPixPaymentPayload>;
+  cancelMembership: (membershipId: string) => Promise<void>;
+  cancelPersonalAssignment: (assignmentId: string) => Promise<void>;
+  subscribeToPersonal: (payload: {
+    personalId: string;
+    planId: string;
+    couponId?: string | null;
+  }) => Promise<StudentPixPaymentPayload>;
+  payStudentPayment: (paymentId: string) => Promise<StudentPixPaymentPayload>;
+  cancelStudentPayment: (paymentId: string) => Promise<void>;
+  getStudentPaymentStatus: (paymentId: string) => Promise<string>;
+  getPersonalPaymentStatus: (paymentId: string) => Promise<string>;
+  applyReferralToSubscription: (
+    referralCode: string,
+  ) => Promise<StudentReferralApplyResult>;
 
   // === ACTIONS - LIBRARY ===
   loadLibraryPlans: () => Promise<void>;
@@ -337,6 +387,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             "memberships",
             "payments",
             "paymentMethods",
+            "referral",
             "dayPasses",
             "friends",
             "gymLocations",
@@ -436,6 +487,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             get().loadPayments(),
             get().loadMemberships(),
             get().loadPaymentMethods(),
+            get().loadReferral(),
             get().loadDayPasses(),
           ]);
         } catch (error) {
@@ -475,6 +527,170 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             weeklyPlan: section.weeklyPlan ?? state.data.weeklyPlan,
           },
         }));
+      },
+
+      createWeeklyPlan: async () => {
+        await apiClient.post("/api/workouts/weekly-plan", {});
+        await get().loadWeeklyPlan(true);
+      },
+
+      updateWeeklyPlan: async (payload) => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  ...payload,
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          await apiClient.patch("/api/workouts/weekly-plan", payload);
+          await get().loadWeeklyPlan(true);
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
+      },
+
+      resetWeeklyPlan: async () => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => ({
+                    ...slot,
+                    locked: false,
+                    completed: slot.type === "rest",
+                    completedAt:
+                      slot.type === "rest" ? slot.completedAt : undefined,
+                  })),
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          await apiClient.patch("/api/students/week-reset");
+          await get().loadWeeklyPlan(true);
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
+      },
+
+      addWeeklyPlanWorkout: async (payload) => {
+        const previousWeeklyPlan = get().data.weeklyPlan;
+        const targetSlot = previousWeeklyPlan?.slots.find(
+          (slot) => slot.id === payload.planSlotId,
+        );
+
+        if (!previousWeeklyPlan || !targetSlot) {
+          throw new Error("Dia do plano semanal nao encontrado.");
+        }
+
+        const tempId = `temp-weekly-workout-${Date.now()}`;
+        const optimisticWorkout: WorkoutSession = {
+          id: tempId,
+          title: payload.title,
+          description: payload.description || "",
+          type: (payload.type as WorkoutType) || "strength",
+          muscleGroup: (payload.muscleGroup as MuscleGroup) || "peito",
+          difficulty: (payload.difficulty as DifficultyLevel) || "iniciante",
+          exercises: [],
+          xpReward: 50,
+          estimatedTime: payload.estimatedTime || 0,
+          locked: false,
+          completed: false,
+        };
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            weeklyPlan: state.data.weeklyPlan
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) =>
+                    slot.id === payload.planSlotId
+                      ? {
+                          ...slot,
+                          type: "workout",
+                          workout: optimisticWorkout,
+                          locked: false,
+                          completed: false,
+                          completedAt: undefined,
+                        }
+                      : slot,
+                  ),
+                }
+              : state.data.weeklyPlan,
+          },
+        }));
+
+        try {
+          const response = await apiClient.post(
+            "/api/workouts/manage",
+            payload as Record<string, unknown>,
+          );
+          const workoutData = (
+            response as { data?: { data?: { id?: string }; id?: string } }
+          ).data;
+          const realId = workoutData?.data?.id ?? workoutData?.id ?? tempId;
+
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: state.data.weeklyPlan
+                ? {
+                    ...state.data.weeklyPlan,
+                    slots: state.data.weeklyPlan.slots.map((slot) =>
+                      slot.id === payload.planSlotId &&
+                      slot.type === "workout" &&
+                      slot.workout?.id === tempId
+                        ? {
+                            ...slot,
+                            workout: {
+                              ...slot.workout,
+                              id: realId,
+                            },
+                          }
+                        : slot,
+                    ),
+                  }
+                : state.data.weeklyPlan,
+            },
+          }));
+
+          await get().loadWeeklyPlan(true);
+          return realId;
+        } catch (error) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
+          throw error;
+        }
       },
 
       // === ACTIONS - LIBRARY ===
@@ -809,6 +1025,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       updateWorkout: async (workoutId, data) => {
         const previousUnits = get().data.units;
+        const previousWeeklyPlan = get().data.weeklyPlan;
         set((state) => ({
           data: {
             ...state.data,
@@ -818,6 +1035,28 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                 workout.id === workoutId ? { ...workout, ...data } : workout,
               ),
             })),
+            weeklyPlan: state.data.weeklyPlan?.slots
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => {
+                    if (
+                      slot.type !== "workout" ||
+                      !slot.workout ||
+                      slot.workout.id !== workoutId
+                    ) {
+                      return slot;
+                    }
+
+                    return {
+                      ...slot,
+                      workout: {
+                        ...slot.workout,
+                        ...data,
+                      },
+                    };
+                  }),
+                }
+              : state.data.weeklyPlan,
           },
         }));
 
@@ -829,6 +1068,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             data: {
               ...state.data,
               units: previousUnits,
+              weeklyPlan: previousWeeklyPlan,
             },
           }));
         }
@@ -836,6 +1076,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       deleteWorkout: async (workoutId) => {
         const previousUnits = get().data.units;
+        const previousWeeklyPlan = get().data.weeklyPlan;
         let workoutToDelete: WorkoutSession | null = null;
         let unitId: string | undefined;
 
@@ -856,6 +1097,28 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
               ...unit,
               workouts: unit.workouts.filter((w) => w.id !== workoutId),
             })),
+            weeklyPlan: state.data.weeklyPlan?.slots
+              ? {
+                  ...state.data.weeklyPlan,
+                  slots: state.data.weeklyPlan.slots.map((slot) => {
+                    if (
+                      slot.type !== "workout" ||
+                      !slot.workout ||
+                      slot.workout.id !== workoutId
+                    ) {
+                      return slot;
+                    }
+
+                    return {
+                      ...slot,
+                      type: "rest",
+                      workout: undefined,
+                      completed: false,
+                      completedAt: undefined,
+                    };
+                  }),
+                }
+              : state.data.weeklyPlan,
           },
         }));
 
@@ -864,21 +1127,23 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         } catch (error) {
           console.error("Erro ao deletar workout:", error);
           // Reverter optimistic update
-          if (workoutToDelete && unitId) {
-            set((state) => ({
-              data: {
-                ...state.data,
-                units: state.data.units.map((unit) =>
-                  unit.id === unitId
-                    ? {
-                        ...unit,
-                        workouts: [...unit.workouts, workoutToDelete!],
-                      }
-                    : unit,
-                ),
-              },
-            }));
-          }
+          set((state) => ({
+            data: {
+              ...state.data,
+              units:
+                workoutToDelete && unitId
+                  ? state.data.units.map((unit) =>
+                      unit.id === unitId
+                        ? {
+                            ...unit,
+                            workouts: [...unit.workouts, workoutToDelete!],
+                          }
+                        : unit,
+                    )
+                  : previousUnits,
+              weeklyPlan: previousWeeklyPlan,
+            },
+          }));
         }
       },
 

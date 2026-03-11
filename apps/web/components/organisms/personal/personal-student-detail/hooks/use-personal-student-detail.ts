@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
-import { browserApiFetch } from "@/lib/api/browser-fetch";
+import {
+  createStudentDetailKey,
+  useStudentDetailStore,
+} from "@/stores/student-detail-store";
 import { useToast } from "@/hooks/use-toast";
-import type {
-  DailyNutrition,
-  WeeklyPlanData,
-} from "@/lib/types";
 
 export type PersonalStudentDetailTab =
   | "overview"
@@ -28,6 +27,11 @@ export interface PersonalStudentAssignmentForDetail {
       fitnessLevel?: string | null;
       weeklyWorkoutFrequency?: number | null;
       goals?: string | null;
+      targetCalories?: number | null;
+      targetProtein?: number | null;
+      targetCarbs?: number | null;
+      targetFats?: number | null;
+      targetWater?: number | null;
     } | null;
     progress?: {
       totalXP?: number;
@@ -61,73 +65,50 @@ export function usePersonalStudentDetail({
   const [isRemovingAssignment, setIsRemovingAssignment] = useState(false);
   const [activeTab, setActiveTab] =
     useState<PersonalStudentDetailTab>("overview");
-  const [weeklyPlan, setWeeklyPlan] = useState<
-    WeeklyPlanData | null | undefined
-  >(undefined);
-  const [dailyNutrition, setDailyNutrition] = useState<DailyNutrition | null>(
-    null,
-  );
   const [nutritionDate, setNutritionDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
   );
-  const [isLoadingWeeklyPlan, setIsLoadingWeeklyPlan] = useState(false);
-  const [isLoadingNutrition, setIsLoadingNutrition] = useState(false);
+  const detailKey = studentId
+    ? createStudentDetailKey("personal", studentId)
+    : null;
+  const weeklyPlan = useStudentDetailStore((state) =>
+    detailKey ? state.weeklyPlans[detailKey] : undefined,
+  );
+  const dailyNutrition = useStudentDetailStore((state) =>
+    detailKey ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null) : null,
+  );
+  const isLoadingWeeklyPlan = useStudentDetailStore((state) =>
+    detailKey ? Boolean(state.weeklyPlanLoading[detailKey]) : false,
+  );
+  const isLoadingNutrition = useStudentDetailStore((state) =>
+    detailKey ? Boolean(state.nutritionLoading[detailKey]) : false,
+  );
+  const loadWeeklyPlan = useStudentDetailStore((state) => state.loadWeeklyPlan);
+  const loadNutrition = useStudentDetailStore((state) => state.loadNutrition);
+
+  const getTargets = useCallback(() => {
+    const profile = assignment?.student?.profile;
+    return {
+      targetCalories: profile?.targetCalories ?? 2000,
+      targetProtein: profile?.targetProtein ?? 150,
+      targetCarbs: profile?.targetCarbs ?? 250,
+      targetFats: profile?.targetFats ?? 65,
+      targetWater: dailyNutrition?.targetWater ?? profile?.targetWater ?? 3000,
+    };
+  }, [assignment?.student?.profile, dailyNutrition?.targetWater]);
 
   const fetchWeeklyPlan = useCallback(async () => {
     if (!studentId) return;
-    setIsLoadingWeeklyPlan(true);
-    try {
-      const res = await browserApiFetch(
-        `/api/personals/students/${studentId}/weekly-plan`,
-      );
-      const data = await res.json();
-      if (data.success && data.weeklyPlan) {
-        setWeeklyPlan(data.weeklyPlan);
-      } else {
-        setWeeklyPlan(null);
-      }
-    } catch {
-      setWeeklyPlan(null);
-    } finally {
-      setIsLoadingWeeklyPlan(false);
-    }
-  }, [studentId]);
+    await loadWeeklyPlan("personal", studentId);
+  }, [studentId, loadWeeklyPlan]);
 
   const fetchNutrition = useCallback(
     async (date?: string) => {
       if (!studentId) return;
-      const d = date ?? nutritionDate;
-      setIsLoadingNutrition(true);
-      try {
-        const res = await browserApiFetch(
-          `/api/personals/students/${studentId}/nutrition?date=${d}`,
-        );
-        const data = await res.json();
-        if (data.success) {
-          setDailyNutrition({
-            date: data.date,
-            meals: data.meals ?? [],
-            totalCalories: data.totalCalories ?? 0,
-            totalProtein: data.totalProtein ?? 0,
-            totalCarbs: data.totalCarbs ?? 0,
-            totalFats: data.totalFats ?? 0,
-            waterIntake: data.waterIntake ?? 0,
-            targetCalories: data.targetCalories ?? 2000,
-            targetProtein: data.targetProtein ?? 150,
-            targetCarbs: data.targetCarbs ?? 250,
-            targetFats: data.targetFats ?? 65,
-            targetWater: data.targetWater ?? 3000,
-          });
-        } else {
-          setDailyNutrition(null);
-        }
-      } catch {
-        setDailyNutrition(null);
-      } finally {
-        setIsLoadingNutrition(false);
-      }
+      const resolvedDate = date ?? nutritionDate;
+      await loadNutrition("personal", studentId, resolvedDate, getTargets());
     },
-    [studentId, nutritionDate],
+    [studentId, nutritionDate, loadNutrition, getTargets],
   );
 
   useEffect(() => {

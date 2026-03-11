@@ -6,12 +6,12 @@ import {
   centsToReais,
 } from "@/lib/access-control/plans-config";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
+import { useGym } from "@/hooks/use-gym";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useSubscriptionStore } from "@/stores/subscription-store";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 
 interface FinancialSubscriptionTabProps {
   subscription?: {
@@ -106,6 +106,7 @@ export function FinancialSubscriptionTab({
   subscription: initialSubscription,
 }: FinancialSubscriptionTabProps) {
   const { toast } = useToast();
+  const gymActions = useGym("actions");
   const { gymSubscription: storeSubscription } = useSubscriptionStore();
   const [pendingPix, setPendingPix] = useState<{
     pixId: string;
@@ -285,19 +286,7 @@ export function FinancialSubscriptionTab({
 
   const handleApplyReferral = useCallback(
     async (referralCode: string) => {
-      const res = await apiClient.post<{
-        pixId?: string;
-        brCode?: string;
-        brCodeBase64?: string;
-        amount?: number;
-        expiresAt?: string;
-        originalAmount?: number;
-        error?: string;
-        referralCodeInvalid?: boolean;
-      }>("/api/gym-subscriptions/apply-referral", {
-        referralCode: referralCode.trim(),
-      });
-      const data = res.data;
+      const data = await gymActions.applySubscriptionReferral(referralCode);
       if (data.error) {
         return {
           error: data.error,
@@ -324,7 +313,7 @@ export function FinancialSubscriptionTab({
       }
       return { error: "Resposta inválida" };
     },
-    []
+    [gymActions]
   );
 
   const handleCancel = async () => {
@@ -460,10 +449,7 @@ export function FinancialSubscriptionTab({
             type: "check",
             check: async () => {
               await refetchSubscription();
-              const res = await apiClient.get<{
-                subscription?: { status?: string } | null;
-              }>("/api/gym-subscriptions/current");
-              return res.data.subscription?.status === "active";
+              return gymActions.checkCurrentSubscriptionActive();
             },
             intervalMs: 3000,
           }}

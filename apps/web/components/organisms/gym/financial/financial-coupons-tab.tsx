@@ -1,18 +1,11 @@
 "use client";
 
 import { Calendar, Gift, Plus, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-import {
-  createGymCouponRequest,
-  deleteGymCouponRequest,
-} from "@/lib/api/gym-client";
-import {
-  createPersonalCouponRequest,
-  deletePersonalCouponRequest,
-} from "@/lib/api/personal-client";
 import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 import type { Coupon } from "@/lib/types";
 import { formatCurrencyInput, parseCurrencyBR } from "@/lib/utils/currency";
@@ -27,8 +20,13 @@ export function FinancialCouponsTab({
   coupons = [],
   variant = "gym",
 }: FinancialCouponsTabProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const gymData = useGym("coupons", "actions");
+  const personalData = usePersonal("coupons", "actions");
+  const selectedStore = variant === "personal" ? personalData : gymData;
+  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
+  const actions = selectedStore.actions;
+
   const [modalOpen, setModalOpen] = useState(false);
   const [code, setCode] = useState("");
   const [notes, setNotes] = useState("");
@@ -37,26 +35,27 @@ export function FinancialCouponsTab({
   );
   const [discount, setDiscount] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
-
-  const handleDiscountChange = useCallback(
-    (value: string) => {
-      if (discountKind === "FIXED") {
-        setDiscount(formatCurrencyInput(value));
-      } else {
-        const num = Number.parseFloat(value.replace(",", "."));
-        if (value === "" || (!Number.isNaN(num) && num >= 0 && num <= 100)) {
-          setDiscount(value);
-        }
-      }
-    },
-    [discountKind],
-  );
   const [maxRedeems, setMaxRedeems] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
   const [confirmDeleteCouponId, setConfirmDeleteCouponId] = useState<
     string | null
   >(null);
+
+  const handleDiscountChange = useCallback(
+    (value: string) => {
+      if (discountKind === "FIXED") {
+        setDiscount(formatCurrencyInput(value));
+        return;
+      }
+
+      const num = Number.parseFloat(value.replace(",", "."));
+      if (value === "" || (!Number.isNaN(num) && num >= 0 && num <= 100)) {
+        setDiscount(value);
+      }
+    },
+    [discountKind],
+  );
 
   const discountNum =
     discountKind === "FIXED"
@@ -77,13 +76,14 @@ export function FinancialCouponsTab({
       toast({ variant: "destructive", title: "Porcentagem deve ser até 100%" });
       return;
     }
+
     let parsedExpiresAt: Date | undefined;
     if (expiryDate) {
       const parsed = new Date(`${expiryDate}T23:59:59.999`);
       if (Number.isNaN(parsed.getTime())) {
         toast({
           variant: "destructive",
-          title: "Data de validade inv\u00e1lida",
+          title: "Data de validade inválida",
         });
         return;
       }
@@ -92,11 +92,7 @@ export function FinancialCouponsTab({
 
     setIsSubmitting(true);
     try {
-      const createFn =
-        variant === "personal"
-          ? createPersonalCouponRequest
-          : createGymCouponRequest;
-      const result = await createFn({
+      await actions.createCoupon({
         code: codeTrim,
         notes: notes.trim() || codeTrim,
         discountKind,
@@ -107,28 +103,25 @@ export function FinancialCouponsTab({
           : undefined,
         expiresAt: parsedExpiresAt ?? null,
       });
-      if (result.success) {
-        toast({
-          title: "Cupom criado",
-          description: `${codeTrim} disponível para uso.`,
-        });
-        setModalOpen(false);
-        setCode("");
-        setNotes("");
-        setDiscount("");
-        setMaxRedeems("");
-        setExpiryDate("");
-        router.refresh();
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
+      toast({
+        title: "Cupom criado",
+        description: `${codeTrim} disponível para uso.`,
+      });
+      setModalOpen(false);
+      setCode("");
+      setNotes("");
+      setDiscount("");
+      setMaxRedeems("");
+      setExpiryDate("");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Erro ao criar cupom",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const maxUsesDisplay = (c: Coupon) =>
-    c.maxUses >= 999999 ? "Ilimitado" : c.maxUses;
 
   const handleConfirmDeleteCoupon = async () => {
     if (!confirmDeleteCouponId) return;
@@ -137,28 +130,25 @@ export function FinancialCouponsTab({
     setDeletingCouponId(couponId);
     setConfirmDeleteCouponId(null);
     try {
-      const deleteFn =
-        variant === "personal"
-          ? deletePersonalCouponRequest
-          : deleteGymCouponRequest;
-      const result = await deleteFn(couponId);
-      if (result.success) {
-        toast({ title: "Cupom exclu\u00eddo" });
-        router.refresh();
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
+      await actions.deleteCoupon(couponId);
+      toast({ title: "Cupom excluído" });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Erro ao excluir cupom",
+      });
     } finally {
       setDeletingCouponId(null);
     }
   };
 
-  const handleDeleteCoupon = (couponId: string) => {
-    setConfirmDeleteCouponId(couponId);
-  };
+  const maxUsesDisplay = (coupon: Coupon) =>
+    coupon.maxUses >= 999999 ? "Ilimitado" : coupon.maxUses;
 
-  const usagePercent = (c: Coupon) =>
-    c.maxUses >= 999999 ? 0 : Math.min(100, (c.currentUses / c.maxUses) * 100);
+  const usagePercent = (coupon: Coupon) =>
+    coupon.maxUses >= 999999
+      ? 0
+      : Math.min(100, (coupon.currentUses / coupon.maxUses) * 100);
 
   return (
     <>
@@ -178,12 +168,12 @@ export function FinancialCouponsTab({
           </DuoButton>
         </DuoCard.Header>
         <div className="space-y-3">
-          {(coupons ?? []).length === 0 && (
+          {couponsList.length === 0 && (
             <p className="py-8 text-center text-sm text-duo-gray-dark">
               Nenhum cupom cadastrado. Crie um para oferecer descontos.
             </p>
           )}
-          {(coupons ?? []).map((coupon) => (
+          {couponsList.map((coupon) => (
             <DuoCard.Root
               key={coupon.id}
               variant="yellow"
@@ -209,7 +199,7 @@ export function FinancialCouponsTab({
                   )}
                   <button
                     type="button"
-                    onClick={() => handleDeleteCoupon(coupon.id)}
+                    onClick={() => setConfirmDeleteCouponId(coupon.id)}
                     disabled={
                       deletingCouponId === coupon.id ||
                       confirmDeleteCouponId === coupon.id
@@ -267,7 +257,9 @@ export function FinancialCouponsTab({
       {modalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={(e) => e.target === e.currentTarget && setModalOpen(false)}
+          onClick={(event) =>
+            event.target === event.currentTarget && setModalOpen(false)
+          }
         >
           <DuoCard.Root className="w-full max-w-sm">
             <DuoCard.Header>
@@ -278,13 +270,13 @@ export function FinancialCouponsTab({
                 label="Código"
                 placeholder="EX: PROMO20"
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(event) => setCode(event.target.value.toUpperCase())}
               />
               <DuoInput.Simple
                 label="Descrição (opcional)"
                 placeholder="Ex: Desconto para campanha"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(event) => setNotes(event.target.value)}
               />
               <DuoSelect.Simple
                 label="Tipo de desconto"
@@ -293,8 +285,8 @@ export function FinancialCouponsTab({
                   { value: "FIXED", label: "Valor fixo (R$)" },
                 ]}
                 value={discountKind}
-                onChange={(v) => {
-                  setDiscountKind(v as "PERCENTAGE" | "FIXED");
+                onChange={(value) => {
+                  setDiscountKind(value as "PERCENTAGE" | "FIXED");
                   setDiscount("");
                 }}
               />
@@ -308,7 +300,7 @@ export function FinancialCouponsTab({
                 inputMode={discountKind === "FIXED" ? "decimal" : "numeric"}
                 placeholder={discountKind === "PERCENTAGE" ? "20" : "R$ 0,00"}
                 value={discount}
-                onChange={(e) => handleDiscountChange(e.target.value)}
+                onChange={(event) => handleDiscountChange(event.target.value)}
                 {...(discountKind === "PERCENTAGE" &&
                   ({
                     min: 0,
@@ -322,13 +314,13 @@ export function FinancialCouponsTab({
                 inputMode="numeric"
                 placeholder="Ilimitado"
                 value={maxRedeems}
-                onChange={(e) => setMaxRedeems(e.target.value)}
+                onChange={(event) => setMaxRedeems(event.target.value)}
               />
               <DuoInput.Simple
                 label="Data limite de uso (opcional)"
                 type="date"
                 value={expiryDate}
-                onChange={(e) => setExpiryDate(e.target.value)}
+                onChange={(event) => setExpiryDate(event.target.value)}
                 leftIcon={<Calendar className="h-4 w-4" />}
               />
               <div className="flex gap-2">

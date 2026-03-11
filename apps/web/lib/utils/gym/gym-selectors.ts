@@ -3,7 +3,9 @@
  */
 
 import type {
+  BoostCampaign,
   CheckIn,
+  Coupon,
   Equipment,
   Expense,
   FinancialSummary,
@@ -32,15 +34,31 @@ export type GymActions = Pick<
   | "createMembershipPlan"
   | "updateMembershipPlan"
   | "deleteMembershipPlan"
+  | "createCoupon"
+  | "deleteCoupon"
+  | "createBoostCampaign"
+  | "deleteBoostCampaign"
+  | "getBoostCampaignPix"
+  | "createWithdraw"
   | "enrollStudent"
   | "createGymSubscription"
   | "cancelGymSubscription"
+  | "applySubscriptionReferral"
+  | "checkCurrentSubscriptionActive"
+  | "checkBoostCampaignActive"
+  | "loadStudentDetail"
+  | "loadStudentPayments"
   | "hydrateInitial"
+  | "updateProfile"
 >;
 
 export type GymLoaders = Pick<
   import("@/stores/gym-unified-store").GymUnifiedState,
-  "loadAll" | "loadAllPrioritized" | "loadSection"
+  | "loadAll"
+  | "loadAllPrioritized"
+  | "loadSection"
+  | "loadStudentDetail"
+  | "loadStudentPayments"
 >;
 
 export interface GymSelectorReturnMap {
@@ -53,6 +71,11 @@ export interface GymSelectorReturnMap {
   membershipPlans: MembershipPlan[];
   payments: Payment[];
   expenses: Expense[];
+  coupons: Coupon[];
+  campaigns: BoostCampaign[];
+  balanceWithdraws: import("@/lib/types/gym-unified").BalanceWithdrawSnapshot;
+  studentDetails: Record<string, StudentData | null>;
+  studentPayments: Record<string, Payment[]>;
   subscription: GymSubscriptionSnapshot | null;
   metadata: GymMetadata;
   actions: GymActions;

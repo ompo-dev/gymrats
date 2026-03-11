@@ -18,8 +18,8 @@ import { Modal } from "./modal";
 
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { apiClient } from "@/lib/api/client";
 import type { WeeklyPlanData } from "@/lib/types";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { EditUnitModal } from "./edit-unit-modal";
@@ -79,18 +79,19 @@ export function TrainingLibraryModal() {
   const handleCreateNewPlan = async () => {
     setCreatingPlan(true);
     try {
-      const response = await apiClient.post("/api/workouts/library", {
+      const planId = await actions.createLibraryPlan({
         title: "Novo Plano Semanal",
         isLibraryTemplate: true,
       });
-      const body = (response as { data?: { data?: WeeklyPlanData } }).data;
-      const newPlan = body?.data;
+      await loadLibraryPlans();
+      const newPlan =
+        useStudentUnifiedStore
+          .getState()
+          .data.libraryPlans?.find((plan) => plan.id === planId) ?? null;
       if (!newPlan?.id) {
         toast.error("Plano criado, mas não foi possível abrir a edição.");
-        await loadLibraryPlans();
         return;
       }
-      await loadLibraryPlans();
       setEditingPlan(newPlan);
       toast.success("Plano criado! Preencha os dias da semana.");
     } catch (error) {

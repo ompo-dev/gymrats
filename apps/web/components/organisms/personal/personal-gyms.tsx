@@ -6,7 +6,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
+import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
 export interface PersonalGymItem {
@@ -27,10 +27,11 @@ export interface PersonalGymsPageProps {
 
 export function PersonalGymsPage({
   affiliations,
-  onRefresh,
+  onRefresh: _onRefresh,
   onViewGym,
 }: PersonalGymsPageProps) {
   const { toast } = useToast();
+  const actions = usePersonal("actions");
   const [gymHandleInput, setGymHandleInput] = useState("");
   const [isLinking, setIsLinking] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
@@ -48,13 +49,12 @@ export function PersonalGymsPage({
     const gymId = handle.startsWith("@") ? handle : `@${handle}`;
     setIsLinking(true);
     try {
-      await apiClient.post("/api/personals/affiliations", { gymId });
+      await actions.linkAffiliation(gymId);
       toast({
         title: "Academia vinculada",
         description: "Você foi vinculado à academia.",
       });
       setGymHandleInput("");
-      await onRefresh();
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err
@@ -76,14 +76,11 @@ export function PersonalGymsPage({
   const handleUnlink = async (gymId: string) => {
     setUnlinkingId(gymId);
     try {
-      await apiClient.delete("/api/personals/affiliations", {
-        data: { gymId },
-      });
+      await actions.unlinkAffiliation(gymId);
       toast({
         title: "Academia desvinculada",
         description: "O vínculo com a academia foi removido.",
       });
-      await onRefresh();
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "response" in err

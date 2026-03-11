@@ -6,28 +6,21 @@ import {
   Monitor,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
-import { apiClient } from "@/lib/api/client";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
+import type {
+  PersonalFilter,
+  StudentPersonalListItem,
+} from "@/lib/types/student-discovery";
 import { cn } from "@/lib/utils";
+import {
+  getPersonalDirectoryCacheKey,
+  useStudentDiscoveryStore,
+} from "@/stores/student-discovery-store";
 import Image from "next/image";
-
-export type PersonalFilter = "all" | "subscribed" | "near" | "remote";
-
-export interface PersonalListItem {
-  id: string;
-  name: string;
-  avatar: string | null;
-  bio: string | null;
-  atendimentoPresencial: boolean;
-  atendimentoRemoto: boolean;
-  distance: number | null;
-  gyms: { id: string; name: string }[];
-  isSubscribed: boolean;
-}
 
 interface PersonalListWithFiltersProps {
   onViewPersonal: (personalId: string) => void;
@@ -45,40 +38,49 @@ export function PersonalListWithFilters({
   onViewPersonal,
 }: PersonalListWithFiltersProps) {
   const [filter, setFilter] = useState<PersonalFilter>("all");
-  const [personals, setPersonals] = useState<PersonalListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const { position, requestPermission } = useUserGeolocation();
+  const cacheKey = useMemo(
+    () =>
+      getPersonalDirectoryCacheKey({
+        filter,
+        lat:
+          position && (filter === "all" || filter === "near")
+            ? position.lat
+            : undefined,
+        lng:
+          position && (filter === "all" || filter === "near")
+            ? position.lng
+            : undefined,
+      }),
+    [filter, position, position?.lat, position?.lng],
+  );
+  const personals = useStudentDiscoveryStore(
+    (state) =>
+      state.personalDirectory[cacheKey] as StudentPersonalListItem[] | undefined,
+  );
+  const resource = useStudentDiscoveryStore((state) => state.resources[cacheKey]);
+  const loadPersonalDirectory = useStudentDiscoveryStore(
+    (state) => state.loadPersonalDirectory,
+  );
+  const loading = !personals && (!resource || resource.status === "loading");
 
   useEffect(() => {
     requestPermission();
   }, [requestPermission]);
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    const params = new URLSearchParams();
-    params.set("filter", filter);
-    if (position && (filter === "all" || filter === "near")) {
-      params.set("lat", String(position.lat));
-      params.set("lng", String(position.lng));
-    }
-    apiClient
-      .get<{ personals: PersonalListItem[] }>(
-        `/api/students/personals/nearby?${params}`,
-      )
-      .then((res) => {
-        if (!cancelled) setPersonals(res.data.personals ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setPersonals([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filter, position?.lat, position?.lng]);
+    void loadPersonalDirectory({
+      filter,
+      lat:
+        position && (filter === "all" || filter === "near")
+          ? position.lat
+          : undefined,
+      lng:
+        position && (filter === "all" || filter === "near")
+          ? position.lng
+          : undefined,
+    });
+  }, [filter, loadPersonalDirectory, position, position?.lat, position?.lng]);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -123,13 +125,13 @@ export function PersonalListWithFilters({
             <div className="py-12 text-center text-duo-gray-dark">
               Carregando...
             </div>
-          ) : personals.length === 0 ? (
+          ) : (personals ?? []).length === 0 ? (
             <div className="py-12 text-center text-duo-gray-dark">
               Nenhum personal encontrado com os filtros selecionados.
             </div>
           ) : (
             <div className="space-y-3">
-              {personals.map((p) => (
+              {(personals ?? []).map((p) => (
                 <div
                   key={p.id}
                   className={cn(

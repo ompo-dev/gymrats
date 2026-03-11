@@ -44,13 +44,13 @@ export default async function FinancialPageWrapper() {
       coupons={coupons}
       balanceReais={balanceWithdraws.balanceReais}
       balanceCents={balanceWithdraws.balanceCents}
-      withdraws={balanceWithdraws.withdraws}
+      withdraws={balanceWithdraws.withdraws as any}
       fakeWithdraw={FAKE_WITHDRAW}
       expenses={expenses}
-      subscription={subscription}
+      subscription={subscription as any}
       startTrial={startGymTrial}
       campaigns={campaigns}
-      plans={plans}
+      plans={plans as any}
     />
   );
 }

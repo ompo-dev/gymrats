@@ -17,9 +17,6 @@ import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
 import { Features } from "@/lib/access-control/features";
 import { WORKOUT_INITIAL_MESSAGE } from "@/lib/ai/prompts/workout";
-import { apiClient } from "@/lib/api/client";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
-import { getAuthToken } from "@/lib/auth/token-client";
 import type {
   PlanSlotData,
   Unit,
@@ -28,6 +25,7 @@ import type {
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
+import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { WorkoutPreviewCard } from "./workout-preview-card";
 
@@ -371,9 +369,10 @@ export function WorkoutChat({
 
           for (const preview of workoutsToCreate) {
             try {
-              await apiClient.post(
-                processUrl,
-                {
+              await useAssistantTransportStore.getState().postJson({
+                key: `workout-process-create:${preview.title}`,
+                url: processUrl,
+                body: {
                   parsedPlan: {
                     intent: "create",
                     action: "create_workouts",
@@ -382,10 +381,8 @@ export function WorkoutChat({
                   },
                   unitId: unitId ?? null,
                 },
-                {
-                  timeout: 120000,
-                },
-              );
+                timeoutMs: 120000,
+              });
               console.log(
                 `[handleApprove] ✅ Workout criado: ${preview.title}`,
               );
@@ -501,17 +498,16 @@ export function WorkoutChat({
         processPayload.unitId = unitId;
       }
 
-      const processResponse = await apiClient.post(
-        processUrl,
-        processPayload,
-        {
-          timeout: 120000,
-        },
-      );
+      const processResponse = await useAssistantTransportStore.getState().postJson({
+        key: `workout-process:${planSlotId ?? unitId ?? "root"}`,
+        url: processUrl,
+        body: processPayload,
+        timeoutMs: 120000,
+      });
 
       console.log(
         "[WorkoutChat] ✅ Treino processado com sucesso:",
-        processResponse.data,
+        processResponse,
       );
 
       // Recarregar dados do store após processamento
@@ -753,6 +749,7 @@ export function WorkoutChat({
 
     const userMessage = inputMessage.trim();
     const currentReference = reference; // Guardar referência antes de limpar
+    const streamRequestKey = `workout-chat:${planSlotId ?? unitId ?? "root"}`;
     setInputMessage("");
     setReference(null); // Limpar referência após enviar
 
@@ -821,20 +818,10 @@ export function WorkoutChat({
       }));
 
       // Usar URL absoluta da API para suportar frontend em Vercel e backend no Railway.
-      const apiBaseUrl = resolveApiBaseUrl();
-      const token = getAuthToken();
-
-      // Criar URL com parâmetros (SSE não suporta POST body, então usamos query params ou headers)
-      const response = await fetch(`${apiBaseUrl}${chatStreamUrl}`, {
-        method: "POST",
-        cache: "no-store",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({
+      const response = await useAssistantTransportStore.getState().openSse({
+        key: streamRequestKey,
+        url: chatStreamUrl,
+        body: {
           message: messageForAI,
           conversationHistory,
           unitId: unitId ?? undefined,
@@ -845,9 +832,8 @@ export function WorkoutChat({
           reference: currentReference || undefined,
           previewWorkouts:
             previewWorkouts.length > 0 ? previewWorkouts : undefined,
-        }),
+        },
       });
-
       if (!response.ok) {
         const fallbackText = await response.text();
         throw new Error(
@@ -1308,6 +1294,7 @@ export function WorkoutChat({
         setMessages((prev) => [...prev, errorMessage]);
       }
     } finally {
+      useAssistantTransportStore.getState().finishRequest(streamRequestKey);
       setIsProcessing(false);
     }
   };
@@ -1684,3 +1671,7 @@ export function WorkoutChat({
     </AnimatePresence>
   );
 }
+
+
+
+

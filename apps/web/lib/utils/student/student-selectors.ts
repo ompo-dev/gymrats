@@ -53,6 +53,9 @@ export function selectPayments(d: StudentData) {
 export function selectPaymentMethods(d: StudentData) {
   return d.paymentMethods;
 }
+export function selectReferral(d: StudentData) {
+  return d.referral;
+}
 export function selectDayPasses(d: StudentData) {
   return d.dayPasses;
 }
@@ -151,10 +154,7 @@ export function selectRole(d: StudentData) {
   return d.user.role;
 }
 
-export const selectorMap: Record<
-  string,
-  (data: StudentData) => import("@/lib/types/api-error").JsonValue
-> = {
+export const selectorMap: Record<string, (data: StudentData) => unknown> = {
   user: selectUser,
   student: selectStudent,
   progress: selectProgress,
@@ -171,6 +171,7 @@ export const selectorMap: Record<
   memberships: selectMemberships,
   payments: selectPayments,
   paymentMethods: selectPaymentMethods,
+  referral: selectReferral,
   dayPasses: selectDayPasses,
   friends: selectFriends,
   gymLocations: selectGymLocations,
@@ -212,10 +213,18 @@ export function selectFromData(
   selector: string,
 ): string | number | boolean | object | null | undefined {
   const selectFn = selectorMap[selector];
-  if (selectFn) return selectFn(data);
+  if (selectFn) {
+    return selectFn(data) as
+      | string
+      | number
+      | boolean
+      | object
+      | null
+      | undefined;
+  }
   if (selector in data)
     return (
-      data as Record<
+      data as unknown as Record<
         string,
         string | number | boolean | object | null | undefined
       >

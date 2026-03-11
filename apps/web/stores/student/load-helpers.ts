@@ -53,6 +53,7 @@ export const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
   memberships: "/api/memberships",
   payments: "/api/payments",
   paymentMethods: "/api/payment-methods",
+  referral: "/api/students/referrals",
   dayPasses: "/api/students/day-passes",
   friends: "/api/students/friends",
   gymLocations: "/api/gyms/locations",
@@ -67,15 +68,12 @@ const loadingPromises = new Map<
 
 function transformSectionResponse(
   section: StudentDataSection,
-  data: Record<string, string | number | boolean | object | null>,
+  data: Record<string, unknown>,
 ): Partial<StudentData> {
-  const d = data as Record<string, import("@/lib/types/api-error").JsonValue>;
+  const d = data as Record<string, unknown>;
   switch (section) {
     case "user": {
-      const userData = (d.user || d) as Record<
-        string,
-        import("@/lib/types/api-error").JsonValue
-      >;
+      const userData = (d.user || d) as Record<string, unknown>;
       const username =
         (userData.username as string) ||
         (userData.email
@@ -89,7 +87,9 @@ function transformSectionResponse(
           username,
           memberSince:
             (userData.memberSince as string) ||
-            formatMemberSince(userData.createdAt as Date),
+            formatMemberSince(
+              userData.createdAt as Date | string | null | undefined,
+            ),
           avatar: (userData.avatar || userData.image) as string | undefined,
           role: (userData.role as "STUDENT" | "ADMIN" | "GYM") || "STUDENT",
           isAdmin: userData.role === "ADMIN" || (userData.isAdmin as boolean),
@@ -97,29 +97,53 @@ function transformSectionResponse(
       };
     }
     case "student":
-      return { student: d as StudentData["student"] };
+      return { student: d as unknown as StudentData["student"] };
     case "profile":
-      return { profile: (d.profile || d) as StudentData["profile"] };
+      return { profile: (d.profile || d) as unknown as StudentData["profile"] };
     case "progress":
-      return { progress: d as StudentData["progress"] };
+      return { progress: d as unknown as StudentData["progress"] };
     case "weightHistory":
-      if (Array.isArray(d)) return { weightHistory: d };
+      if (Array.isArray(d)) {
+        return { weightHistory: d as unknown as WeightHistoryItem[] };
+      }
       if (d.history && Array.isArray(d.history))
-        return { weightHistory: d.history };
-      return { weightHistory: (d.weightHistory as WeightHistoryItem[]) || [] };
+        return { weightHistory: d.history as unknown as WeightHistoryItem[] };
+      return {
+        weightHistory:
+          (d.weightHistory as unknown as WeightHistoryItem[] | undefined) || [],
+      };
     case "units":
-      return { units: Array.isArray(d) ? d : d.units || [] };
+      return {
+        units: Array.isArray(d)
+          ? (d as unknown as StudentData["units"])
+          : ((d.units as unknown as StudentData["units"]) || []),
+      };
     case "weeklyPlan":
-      return { weeklyPlan: d?.weeklyPlan ?? null };
+      return {
+        weeklyPlan:
+          (d.weeklyPlan as unknown as StudentData["weeklyPlan"] | undefined) ??
+          null,
+      };
     case "libraryPlans":
       return {
-        libraryPlans: Array.isArray(d) ? d : (d.libraryPlans || d.data || []) as StudentData["libraryPlans"],
+        libraryPlans: Array.isArray(d)
+          ? (d as unknown as StudentData["libraryPlans"])
+          : (((d.libraryPlans as unknown) ||
+              (d.data as unknown) ||
+              []) as StudentData["libraryPlans"]),
       };
     case "workoutHistory":
-      if (Array.isArray(d)) return { workoutHistory: d };
+      if (Array.isArray(d)) {
+        return { workoutHistory: d as unknown as StudentData["workoutHistory"] };
+      }
       if (d.history && Array.isArray(d.history))
-        return { workoutHistory: d.history };
-      return { workoutHistory: d.workoutHistory || [] };
+        return {
+          workoutHistory: d.history as unknown as StudentData["workoutHistory"],
+        };
+      return {
+        workoutHistory:
+          (d.workoutHistory as unknown as StudentData["workoutHistory"]) || [],
+      };
     case "personalRecords":
       return {
         personalRecords: (d.records ||
@@ -136,32 +160,56 @@ function transformSectionResponse(
         const isFirstPayment = payload.isFirstPayment ?? true;
         return {
           subscription: sub
-            ? ({ ...sub, isFirstPayment } as StudentData["subscription"])
+            ? ({
+                ...sub,
+                isFirstPayment,
+              } as unknown as StudentData["subscription"])
             : null,
         };
       }
-      return { subscription: (d as StudentData["subscription"]) || null };
+      return {
+        subscription: (d as unknown as StudentData["subscription"]) || null,
+      };
     }
     case "memberships":
       return {
-        memberships: Array.isArray(d) ? d : d.memberships || [],
+        memberships: Array.isArray(d)
+          ? (d as unknown as StudentData["memberships"])
+          : ((d.memberships as unknown as StudentData["memberships"]) || []),
       };
     case "payments":
-      return { payments: Array.isArray(d) ? d : d.payments || [] };
+      return {
+        payments: Array.isArray(d)
+          ? (d as unknown as StudentData["payments"])
+          : ((d.payments as unknown as StudentData["payments"]) || []),
+      };
     case "paymentMethods":
       return {
-        paymentMethods: Array.isArray(d) ? d : d.paymentMethods || [],
+        paymentMethods: Array.isArray(d)
+          ? (d as unknown as StudentData["paymentMethods"])
+          : ((d.paymentMethods as unknown as StudentData["paymentMethods"]) ||
+              []),
+      };
+    case "referral":
+      return {
+        referral: (d.referral || d) as unknown as StudentData["referral"],
       };
     case "dayPasses":
-      return { dayPasses: (d.dayPasses || []) as StudentData["dayPasses"] };
+      return {
+        dayPasses: ((d.dayPasses as unknown) || []) as StudentData["dayPasses"],
+      };
     case "friends":
-      return { friends: d as StudentData["friends"] };
+      return { friends: d as unknown as StudentData["friends"] };
     case "gymLocations":
       return {
-        gymLocations: Array.isArray(d) ? d : d.gymLocations || d.gyms || [],
+        gymLocations: Array.isArray(d)
+          ? (d as unknown as StudentData["gymLocations"])
+          : (((d.gymLocations as unknown) ||
+              (d.gyms as unknown) ||
+              []) as StudentData["gymLocations"]),
       };
     default:
-      return { [section]: d } as Partial<StudentData>;
+      return { [section]: d } as unknown as Partial<StudentData>;
   }
 }
 
@@ -238,6 +286,8 @@ function updateStoreWithSection(
       newState.payments = sectionData.payments;
     if (sectionData.paymentMethods !== undefined)
       newState.paymentMethods = sectionData.paymentMethods;
+    if (sectionData.referral !== undefined)
+      newState.referral = sectionData.referral;
     if (sectionData.dayPasses !== undefined)
       newState.dayPasses = sectionData.dayPasses;
     if (sectionData.friends !== undefined)
@@ -375,6 +425,7 @@ const ALL_SECTIONS: StudentDataSection[] = [
   "memberships",
   "payments",
   "paymentMethods",
+  "referral",
   "dayPasses",
   "friends",
   "gymLocations",

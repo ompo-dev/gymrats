@@ -20,6 +20,9 @@ export const SECTION_ROUTES: Record<GymDataSection, string> = {
   membershipPlans: "/api/gyms/plans",
   payments: "/api/gyms/payments",
   expenses: "/api/gyms/expenses",
+  coupons: "/api/gyms/coupons",
+  campaigns: "/api/gyms/boost-campaigns",
+  balanceWithdraws: "/api/gyms/withdraws",
   subscription: "/api/gym-subscriptions/current",
 };
 
@@ -213,6 +216,28 @@ export function transformSectionResponse(
           (data.expenses as unknown as GymUnifiedData["expenses"]) || [],
       };
       break;
+    case "coupons":
+      result = {
+        coupons: (data.coupons as unknown as GymUnifiedData["coupons"]) || [],
+      };
+      break;
+    case "campaigns":
+      result = {
+        campaigns:
+          (data.campaigns as unknown as GymUnifiedData["campaigns"]) || [],
+      };
+      break;
+    case "balanceWithdraws":
+      result = {
+        balanceWithdraws: {
+          balanceReais: Number(data.balanceReais ?? 0),
+          balanceCents: Number(data.balanceCents ?? 0),
+          withdraws:
+            (data.withdraws as GymUnifiedData["balanceWithdraws"]["withdraws"]) ||
+            [],
+        },
+      };
+      break;
     case "subscription":
       result = {
         subscription:
@@ -231,7 +256,12 @@ export type SetStateFn = (
 
 export async function loadSection(
   section: GymDataSection,
+  force = false,
 ): Promise<Partial<GymUnifiedData>> {
+  if (force) {
+    loadingSections.delete(section);
+    loadingPromises.delete(section);
+  }
   if (loadingSections.has(section) && loadingPromises.has(section)) {
     return loadingPromises.get(section)!;
   }

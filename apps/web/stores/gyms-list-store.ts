@@ -52,10 +52,19 @@ interface GymsDataState {
 
   // Estado de carregamento
   isLoading: boolean;
+  isCreating: boolean;
+  createError: string;
 
   // Actions
   setActiveGymId: (gymId: string) => Promise<void>;
   loadAllGyms: () => Promise<void>;
+  createGym: (data: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    cnpj: string;
+  }) => Promise<void>;
 }
 
 export const useGymsDataStore = create<GymsDataState>((set, get) => ({
@@ -63,6 +72,8 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
   activeGymId: null,
   canCreateMultipleGyms: false,
   isLoading: true,
+  isCreating: false,
+  createError: "",
 
   // Mudar academia ativa
   setActiveGymId: async (gymId: string) => {
@@ -128,6 +139,31 @@ export const useGymsDataStore = create<GymsDataState>((set, get) => ({
       console.error("Erro ao carregar academias:", error);
     } finally {
       set({ isLoading: false });
+    }
+  },
+
+  createGym: async (data) => {
+    set({ isCreating: true, createError: "" });
+    try {
+      const { apiClient } = await import("@/lib/api/client");
+      const response = await apiClient.post<{ error?: string }>(
+        "/api/gyms/create",
+        data,
+      );
+
+      if (response.data.error) {
+        throw new Error(response.data.error || "Erro ao criar academia");
+      }
+
+      await get().loadAllGyms();
+    } catch (error) {
+      set({
+        createError:
+          error instanceof Error ? error.message : "Erro ao criar academia",
+      });
+      throw error;
+    } finally {
+      set({ isCreating: false });
     }
   },
 }));

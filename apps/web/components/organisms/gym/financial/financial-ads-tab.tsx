@@ -11,21 +11,11 @@ import {
   Trash2,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  createGymBoostCampaignRequest,
-  deleteGymBoostCampaignRequest,
-  getGymBoostCampaignPixRequest,
-} from "@/lib/api/gym-client";
-import {
-  createPersonalBoostCampaignRequest,
-  deletePersonalBoostCampaignRequest,
-  getPersonalBoostCampaignPixRequest,
-} from "@/lib/api/personal-client";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
 
@@ -105,8 +95,28 @@ export function FinancialAdsTab({
   plans = [],
   variant = "gym",
 }: FinancialAdsTabProps) {
-  const router = useRouter();
   const { toast } = useToast();
+  const gymData = useGym(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+    "loaders",
+  );
+  const personalData = usePersonal(
+    "campaigns",
+    "coupons",
+    "membershipPlans",
+    "actions",
+    "loaders",
+  );
+  const selectedStore = variant === "personal" ? personalData : gymData;
+  const actions = selectedStore.actions;
+  const loaders = selectedStore.loaders;
+  const campaignsList =
+    campaigns.length > 0 ? campaigns : selectedStore.campaigns;
+  const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
+  const plansList = plans.length > 0 ? plans : selectedStore.membershipPlans;
 
   // creation modal
   const [modalOpen, setModalOpen] = useState(false);
@@ -148,8 +158,8 @@ export function FinancialAdsTab({
 
   const filteredCampaigns =
     statusFilter === "all"
-      ? campaigns
-      : campaigns.filter((c) => c.status === statusFilter);
+      ? campaignsList
+      : campaignsList.filter((c) => c.status === statusFilter);
 
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
@@ -158,11 +168,7 @@ export function FinancialAdsTab({
     }
     setIsSubmitting(true);
     try {
-      const createFn =
-        variant === "personal"
-          ? createPersonalBoostCampaignRequest
-          : createGymBoostCampaignRequest;
-      const result = await createFn({
+      const result = await actions.createBoostCampaign({
         title,
         description,
         primaryColor,
@@ -172,58 +178,49 @@ export function FinancialAdsTab({
         amountCents: totalPrice * 100,
         radiusKm,
       });
-
-      if (result.success && result.brCode) {
-        setModalOpen(false);
-        setPixModal({
-          brCode: result.brCode,
-          brCodeBase64: result.brCodeBase64 ?? "",
-          amount: result.amount ?? totalPrice * 100,
-          campaignId: result.campaignId ?? "",
-          campaignTitle: title,
-          expiresAt: result.expiresAt,
-        });
-        setTitle("");
-        setDescription("");
-        setPrimaryColor("#E2FF38");
-        setDurationHours(12);
-        setRadiusKm(5);
-        router.refresh();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "error" in result ? result.error : "Erro ao criar campanha",
-        });
-        setIsSubmitting(false);
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao criar campanha." });
+      setModalOpen(false);
+      setPixModal({
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64 ?? "",
+        amount: result.amount ?? totalPrice * 100,
+        campaignId: result.campaignId ?? "",
+        campaignTitle: title,
+        expiresAt: result.expiresAt,
+      });
+      setTitle("");
+      setDescription("");
+      setPrimaryColor("#E2FF38");
+      setDurationHours(12);
+      setRadiusKm(5);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title:
+          error instanceof Error ? error.message : "Erro ao criar campanha.",
+      });
       setIsSubmitting(false);
+      return;
     }
+    setIsSubmitting(false);
   };
 
   const handlePayCampaign = async (campaign: BoostCampaign) => {
     setPayingId(campaign.id);
     try {
-      const getPixFn =
-        variant === "personal"
-          ? getPersonalBoostCampaignPixRequest
-          : getGymBoostCampaignPixRequest;
-      const result = await getPixFn(campaign.id);
-      if (result.success) {
-        setPixModal({
-          brCode: result.brCode,
-          brCodeBase64: result.brCodeBase64,
-          amount: result.amount,
-          campaignId: campaign.id,
-          campaignTitle: campaign.title,
-          expiresAt: result.expiresAt,
-        });
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao gerar PIX." });
+      const result = await actions.getBoostCampaignPix(campaign.id);
+      setPixModal({
+        brCode: result.brCode,
+        brCodeBase64: result.brCodeBase64,
+        amount: result.amount,
+        campaignId: campaign.id,
+        campaignTitle: campaign.title,
+        expiresAt: result.expiresAt,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Erro ao gerar PIX.",
+      });
     } finally {
       setPayingId(null);
     }
@@ -232,20 +229,15 @@ export function FinancialAdsTab({
   const handleDelete = async (campaignId: string) => {
     setDeletingId(campaignId);
     try {
-      const deleteFn =
-        variant === "personal"
-          ? deletePersonalBoostCampaignRequest
-          : deleteGymBoostCampaignRequest;
-      const result = await deleteFn(campaignId);
-      if (result.success) {
-        toast({ title: "Campanha exclu\u00edda." });
-        setConfirmDeleteId(null);
-        router.refresh();
-      } else {
-        toast({ variant: "destructive", title: result.error });
-      }
-    } catch {
-      toast({ variant: "destructive", title: "Erro ao excluir campanha." });
+      await actions.deleteBoostCampaign(campaignId);
+      toast({ title: "Campanha excluída." });
+      setConfirmDeleteId(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title:
+          error instanceof Error ? error.message : "Erro ao excluir campanha.",
+      });
     } finally {
       setDeletingId(null);
     }
@@ -291,7 +283,7 @@ export function FinancialAdsTab({
           </DuoCard.Root>
 
           {/* Filtros */}
-          {campaigns.length > 0 && (
+          {campaignsList.length > 0 && (
             <div className="flex gap-2 flex-wrap">
               {STATUS_FILTERS.map((f) => (
                 <button
@@ -306,7 +298,7 @@ export function FinancialAdsTab({
                   {f.label}
                   {f.value !== "all" && (
                     <span className="ml-1 opacity-60">
-                      ({campaigns.filter((c) => c.status === f.value).length})
+                      ({campaignsList.filter((c) => c.status === f.value).length})
                     </span>
                   )}
                 </button>
@@ -630,7 +622,7 @@ export function FinancialAdsTab({
                     onChange={(val) => setLinkedCouponId(val)}
                     options={[
                       { value: "", label: "Nenhum cupom" },
-                      ...coupons
+                      ...couponsList
                         .filter((c) => c.isActive)
                         .map((c) => ({
                         value: c.id,
@@ -645,7 +637,7 @@ export function FinancialAdsTab({
                     onChange={(val) => setLinkedPlanId(val)}
                     options={[
                       { value: "", label: "Levar para o perfil da academia" },
-                      ...plans.map((p) => ({ value: p.id, label: p.name })),
+                      ...plansList.map((p) => ({ value: p.id, label: p.name })),
                     ]}
                   />
                 </div>
@@ -694,14 +686,9 @@ export function FinancialAdsTab({
           isOpen={!!pixModal}
           onClose={() => {
             setPixModal(null);
-            router.refresh();
           }}
           onCancelPayment={async () => {
-            const deleteFn =
-              variant === "personal"
-                ? deletePersonalBoostCampaignRequest
-                : deleteGymBoostCampaignRequest;
-            await deleteFn(pixModal.campaignId);
+            await actions.deleteBoostCampaign(pixModal.campaignId);
           }}
           title="Pagar Anúncio"
           brCode={pixModal.brCode}
@@ -714,24 +701,19 @@ export function FinancialAdsTab({
               : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
           }
           onSimulateSuccess={async () => {
-            router.refresh();
+            await loaders.loadSection("campaigns");
           }}
           pollConfig={{
             type: "check",
             check: async () => {
-              const base =
-                variant === "personal"
-                  ? "/api/personals/boost-campaigns"
-                  : "/api/gym/boost-campaigns";
-              const res = await apiClient.get<{ status: string }>(
-                `${base}/${pixModal.campaignId}`,
+              return selectedStore.actions.checkBoostCampaignActive(
+                pixModal.campaignId,
               );
-              return res.data.status === "active";
             },
           }}
           onPaymentConfirmed={() => {
             setPixModal(null);
-            router.refresh();
+            loaders.loadSection("campaigns");
           }}
           paymentConfirmedToast={{
             title: "Campanha ativada!",

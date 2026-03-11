@@ -43,6 +43,7 @@ type StudentSelector =
   | "memberships"
   | "payments"
   | "paymentMethods"
+  | "referral"
   | "dayPasses"
   | "friends"
   | "gymLocations"
@@ -139,6 +140,18 @@ export function useStudent<T extends StudentSelector>(
   const loadAllPrioritized = useStudentUnifiedStore(
     (state) => state.loadAllPrioritized,
   );
+  const createWeeklyPlan = useStudentUnifiedStore(
+    (state) => state.createWeeklyPlan,
+  );
+  const updateWeeklyPlan = useStudentUnifiedStore(
+    (state) => state.updateWeeklyPlan,
+  );
+  const resetWeeklyPlan = useStudentUnifiedStore(
+    (state) => state.resetWeeklyPlan,
+  );
+  const addWeeklyPlanWorkout = useStudentUnifiedStore(
+    (state) => state.addWeeklyPlanWorkout,
+  );
 
   // Extrair actions usando seletores para garantir reatividade
   const updateProgress = useStudentUnifiedStore(
@@ -158,7 +171,42 @@ export function useStudent<T extends StudentSelector>(
   const updateSubscription = useStudentUnifiedStore(
     (state) => state.updateSubscription,
   );
+  const updateReferralPixKey = useStudentUnifiedStore(
+    (state) => state.updateReferralPixKey,
+  );
+  const requestReferralWithdraw = useStudentUnifiedStore(
+    (state) => state.requestReferralWithdraw,
+  );
   const addDayPass = useStudentUnifiedStore((state) => state.addDayPass);
+  const joinGym = useStudentUnifiedStore((state) => state.joinGym);
+  const loadGymPlans = useStudentUnifiedStore((state) => state.loadGymPlans);
+  const changeMembershipPlan = useStudentUnifiedStore(
+    (state) => state.changeMembershipPlan,
+  );
+  const cancelMembership = useStudentUnifiedStore(
+    (state) => state.cancelMembership,
+  );
+  const cancelPersonalAssignment = useStudentUnifiedStore(
+    (state) => state.cancelPersonalAssignment,
+  );
+  const subscribeToPersonal = useStudentUnifiedStore(
+    (state) => state.subscribeToPersonal,
+  );
+  const payStudentPayment = useStudentUnifiedStore(
+    (state) => state.payStudentPayment,
+  );
+  const cancelStudentPayment = useStudentUnifiedStore(
+    (state) => state.cancelStudentPayment,
+  );
+  const getStudentPaymentStatus = useStudentUnifiedStore(
+    (state) => state.getStudentPaymentStatus,
+  );
+  const getPersonalPaymentStatus = useStudentUnifiedStore(
+    (state) => state.getPersonalPaymentStatus,
+  );
+  const applyReferralToSubscription = useStudentUnifiedStore(
+    (state) => state.applyReferralToSubscription,
+  );
 
   // Workout Management Actions
   const createLibraryPlan = useStudentUnifiedStore(
@@ -238,6 +286,7 @@ export function useStudent<T extends StudentSelector>(
   const loadPaymentMethods = useStudentUnifiedStore(
     (state) => state.loadPaymentMethods,
   );
+  const loadReferral = useStudentUnifiedStore((state) => state.loadReferral);
   const loadDayPasses = useStudentUnifiedStore((state) => state.loadDayPasses);
   const loadFriends = useStudentUnifiedStore((state) => state.loadFriends);
   const loadGymLocations = useStudentUnifiedStore(
@@ -274,7 +323,24 @@ export function useStudent<T extends StudentSelector>(
         addPersonalRecord,
         updateNutrition,
         updateSubscription,
+        updateReferralPixKey,
+        requestReferralWithdraw,
         addDayPass,
+        joinGym,
+        loadGymPlans,
+        changeMembershipPlan,
+        cancelMembership,
+        cancelPersonalAssignment,
+        subscribeToPersonal,
+        payStudentPayment,
+        cancelStudentPayment,
+        getStudentPaymentStatus,
+        getPersonalPaymentStatus,
+        applyReferralToSubscription,
+        createWeeklyPlan,
+        updateWeeklyPlan,
+        resetWeeklyPlan,
+        addWeeklyPlanWorkout,
         createLibraryPlan,
         updateLibraryPlan,
         deleteLibraryPlan,
@@ -320,6 +386,7 @@ export function useStudent<T extends StudentSelector>(
         loadMemberships,
         loadPayments,
         loadPaymentMethods,
+        loadReferral,
         loadDayPasses,
         loadFriends,
         loadGymLocations,
@@ -362,7 +429,24 @@ export function useStudent<T extends StudentSelector>(
         addPersonalRecord,
         updateNutrition,
         updateSubscription,
+        updateReferralPixKey,
+        requestReferralWithdraw,
         addDayPass,
+        joinGym,
+        loadGymPlans,
+        changeMembershipPlan,
+        cancelMembership,
+        cancelPersonalAssignment,
+        subscribeToPersonal,
+        payStudentPayment,
+        cancelStudentPayment,
+        getStudentPaymentStatus,
+        getPersonalPaymentStatus,
+        applyReferralToSubscription,
+        createWeeklyPlan,
+        updateWeeklyPlan,
+        resetWeeklyPlan,
+        addWeeklyPlanWorkout,
         createLibraryPlan,
         updateLibraryPlan,
         deleteLibraryPlan,
@@ -404,6 +488,7 @@ export function useStudent<T extends StudentSelector>(
         loadMemberships,
         loadPayments,
         loadPaymentMethods,
+        loadReferral,
         loadDayPasses,
         loadFriends,
         loadGymLocations,
@@ -444,7 +529,24 @@ function getActions(actions: {
   addPersonalRecord: StudentUnifiedState["addPersonalRecord"];
   updateNutrition: StudentUnifiedState["updateNutrition"];
   updateSubscription: StudentUnifiedState["updateSubscription"];
+  updateReferralPixKey: StudentUnifiedState["updateReferralPixKey"];
+  requestReferralWithdraw: StudentUnifiedState["requestReferralWithdraw"];
   addDayPass: StudentUnifiedState["addDayPass"];
+  joinGym: StudentUnifiedState["joinGym"];
+  loadGymPlans: StudentUnifiedState["loadGymPlans"];
+  changeMembershipPlan: StudentUnifiedState["changeMembershipPlan"];
+  cancelMembership: StudentUnifiedState["cancelMembership"];
+  cancelPersonalAssignment: StudentUnifiedState["cancelPersonalAssignment"];
+  subscribeToPersonal: StudentUnifiedState["subscribeToPersonal"];
+  payStudentPayment: StudentUnifiedState["payStudentPayment"];
+  cancelStudentPayment: StudentUnifiedState["cancelStudentPayment"];
+  getStudentPaymentStatus: StudentUnifiedState["getStudentPaymentStatus"];
+  getPersonalPaymentStatus: StudentUnifiedState["getPersonalPaymentStatus"];
+  applyReferralToSubscription: StudentUnifiedState["applyReferralToSubscription"];
+  createWeeklyPlan: StudentUnifiedState["createWeeklyPlan"];
+  updateWeeklyPlan: StudentUnifiedState["updateWeeklyPlan"];
+  resetWeeklyPlan: StudentUnifiedState["resetWeeklyPlan"];
+  addWeeklyPlanWorkout: StudentUnifiedState["addWeeklyPlanWorkout"];
   createLibraryPlan: StudentUnifiedState["createLibraryPlan"];
   updateLibraryPlan: StudentUnifiedState["updateLibraryPlan"];
   deleteLibraryPlan: StudentUnifiedState["deleteLibraryPlan"];
@@ -476,7 +578,24 @@ function getActions(actions: {
     addPersonalRecord: actions.addPersonalRecord,
     updateNutrition: actions.updateNutrition,
     updateSubscription: actions.updateSubscription,
+    updateReferralPixKey: actions.updateReferralPixKey,
+    requestReferralWithdraw: actions.requestReferralWithdraw,
     addDayPass: actions.addDayPass,
+    joinGym: actions.joinGym,
+    loadGymPlans: actions.loadGymPlans,
+    changeMembershipPlan: actions.changeMembershipPlan,
+    cancelMembership: actions.cancelMembership,
+    cancelPersonalAssignment: actions.cancelPersonalAssignment,
+    subscribeToPersonal: actions.subscribeToPersonal,
+    payStudentPayment: actions.payStudentPayment,
+    cancelStudentPayment: actions.cancelStudentPayment,
+    getStudentPaymentStatus: actions.getStudentPaymentStatus,
+    getPersonalPaymentStatus: actions.getPersonalPaymentStatus,
+    applyReferralToSubscription: actions.applyReferralToSubscription,
+    createWeeklyPlan: actions.createWeeklyPlan,
+    updateWeeklyPlan: actions.updateWeeklyPlan,
+    resetWeeklyPlan: actions.resetWeeklyPlan,
+    addWeeklyPlanWorkout: actions.addWeeklyPlanWorkout,
     createLibraryPlan: actions.createLibraryPlan,
     updateLibraryPlan: actions.updateLibraryPlan,
     deleteLibraryPlan: actions.deleteLibraryPlan,
@@ -522,6 +641,7 @@ function getLoaders(actions: {
   loadMemberships: StudentUnifiedState["loadMemberships"];
   loadPayments: StudentUnifiedState["loadPayments"];
   loadPaymentMethods: StudentUnifiedState["loadPaymentMethods"];
+  loadReferral: StudentUnifiedState["loadReferral"];
   loadDayPasses: StudentUnifiedState["loadDayPasses"];
   loadFriends: StudentUnifiedState["loadFriends"];
   loadGymLocations: StudentUnifiedState["loadGymLocations"];
@@ -545,6 +665,7 @@ function getLoaders(actions: {
     loadMemberships: actions.loadMemberships,
     loadPayments: actions.loadPayments,
     loadPaymentMethods: actions.loadPaymentMethods,
+    loadReferral: actions.loadReferral,
     loadDayPasses: actions.loadDayPasses,
     loadFriends: actions.loadFriends,
     loadGymLocations: actions.loadGymLocations,

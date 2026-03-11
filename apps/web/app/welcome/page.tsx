@@ -23,8 +23,7 @@ import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 function WelcomePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setAuthenticated, setUserId, setUserProfile, setUserRole } =
-    useAuthStore();
+  const { syncSession, setUserProfile } = useAuthStore();
   const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -68,10 +67,15 @@ function WelcomePageContent() {
           localStorage.setItem("userId", user.id);
           // ⚠️ NÃO salvar userRole e isAdmin no localStorage - inseguro!
 
-          // Atualizar store
-          setAuthenticated(true);
-          setUserId(user.id);
-          setUserRole(user.role || null);
+          syncSession({
+            user: user as any,
+            session: session
+              ? {
+                  id: session.id ?? "",
+                  token: session.token ?? null,
+                }
+              : null,
+          });
           setUserProfile({
             id: user.id,
             name: user.name,
@@ -145,10 +149,8 @@ function WelcomePageContent() {
     };
   }, [
     router,
-    setAuthenticated,
-    setUserId,
     setUserProfile,
-    setUserRole,
+    syncSession,
     loadAll,
   ]);
 
@@ -199,10 +201,7 @@ function WelcomePageContent() {
               // ⚠️ NÃO salvar userRole e isAdmin no localStorage - inseguro!
               // Estes valores devem ser sempre obtidos do servidor via useUserSession()
 
-              // Atualizar store
-              setAuthenticated(true);
-              setUserId(sessionResponse.user.id);
-              setUserRole(userRole || null);
+              syncSession(sessionResponse as any);
               setUserProfile({
                 id: sessionResponse.user.id,
                 name: sessionResponse.user.name,
@@ -272,10 +271,8 @@ function WelcomePageContent() {
   }, [
     searchParams,
     router,
-    setAuthenticated,
-    setUserId,
     setUserProfile,
-    setUserRole,
+    syncSession,
     loadAll,
     isPWA,
   ]);

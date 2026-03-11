@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DuoButton, DuoInput } from "@/components/duo";
 import { Modal } from "@/components/organisms/modals/modal";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
+import { usePaymentsStore } from "@/stores/payments-store";
 
 /** Config para detecção via check assíncrono (payment, boost) */
 export interface PixQrModalPollCheckConfig {
@@ -132,7 +132,10 @@ export function PixQrBlock({
   expiresAt,
 }: PixQrBlockProps) {
   const { toast } = useToast();
-  const [isSimulating, setIsSimulating] = useState(false);
+  const simulatePix = usePaymentsStore((state) => state.simulatePix);
+  const isSimulating = usePaymentsStore((state) =>
+    simulatePixUrl ? !!state.simulatingByUrl[simulatePixUrl] : false,
+  );
   const { secondsRemaining, isExpired } = usePixCountdown(expiresAt);
   const valueReais = (amount / 100).toFixed(2);
 
@@ -147,9 +150,8 @@ export function PixQrBlock({
 
   const simulatePayment = useCallback(async () => {
     if (!simulatePixUrl) return;
-    setIsSimulating(true);
     try {
-      await apiClient.post(simulatePixUrl, {});
+      await simulatePix(simulatePixUrl);
       toast({
         title: "Pagamento simulado!",
         description: "Aguardando confirmação...",
@@ -168,10 +170,8 @@ export function PixQrBlock({
         title: "Erro ao simular",
         description: String(msg),
       });
-    } finally {
-      setIsSimulating(false);
     }
-  }, [simulatePixUrl, onSimulateSuccess, toast]);
+  }, [onSimulateSuccess, simulatePix, simulatePixUrl, toast]);
 
   return (
     <>

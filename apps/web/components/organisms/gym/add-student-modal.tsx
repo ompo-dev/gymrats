@@ -5,27 +5,9 @@ import Image from "next/image";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
-import { browserApiFetch } from "@/lib/api/browser-fetch";
 import { useToast } from "@/hooks/use-toast";
+import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 import type { MembershipPlan } from "@/lib/types";
-
-interface StudentSearchResult {
-  found: boolean;
-  isAlreadyMember?: boolean;
-  existingStatus?: string;
-  student?: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string | null;
-    age?: number | null;
-    gender?: string | null;
-    fitnessLevel?: string | null;
-    goals?: string[];
-    currentLevel?: number;
-    currentStreak?: number;
-  };
-}
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -42,11 +24,15 @@ export function AddStudentModal({
 }: AddStudentModalProps) {
   const { actions, loaders } = useGym("actions", "loaders");
   const { toast } = useToast();
-  const [identifier, setIdentifier] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResult, setSearchResult] = useState<StudentSearchResult | null>(
-    null,
+  const searchResult = useGymDirectoryStore((state) => state.studentSearchResult);
+  const isSearching = useGymDirectoryStore((state) => state.isSearchingStudents);
+  const searchStudentByIdentifier = useGymDirectoryStore(
+    (state) => state.searchStudentByIdentifier,
   );
+  const clearStudentSearchResult = useGymDirectoryStore(
+    (state) => state.clearStudentSearchResult,
+  );
+  const [identifier, setIdentifier] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [customAmount, setCustomAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -55,22 +41,12 @@ export function AddStudentModal({
   const handleSearch = async () => {
     const normalizedIdentifier = identifier.trim();
     if (!normalizedIdentifier || normalizedIdentifier.length < 3) return;
-    setIsSearching(true);
-    setSearchResult(null);
+    clearStudentSearchResult();
     setError("");
     try {
-      const searchQuery = normalizedIdentifier.startsWith("@")
-        ? normalizedIdentifier
-        : `@${normalizedIdentifier}`;
-      const res = await browserApiFetch(
-        `/api/gyms/students/search?email=${encodeURIComponent(searchQuery)}`,
-      );
-      const data = await res.json();
-      setSearchResult(data);
+      await searchStudentByIdentifier(normalizedIdentifier);
     } catch {
       setError("Erro ao buscar aluno. Tente novamente.");
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -123,7 +99,7 @@ export function AddStudentModal({
 
   const handleClose = () => {
     setIdentifier("");
-    setSearchResult(null);
+    clearStudentSearchResult();
     setSelectedPlanId("");
     setCustomAmount("");
     setError("");

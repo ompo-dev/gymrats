@@ -133,6 +133,63 @@ export interface SubscriptionData {
   enterpriseGymName?: string;
 }
 
+export interface StudentReferralWithdraw {
+  id: string;
+  amount: number;
+  status: string;
+  createdAt: Date | string;
+  completedAt: Date | string | null;
+}
+
+export interface StudentReferralData {
+  referralCode: string;
+  pixKey: string | null;
+  pixKeyType: string | null;
+  balanceReais: number;
+  balanceCents: number;
+  totalEarnedCents: number;
+  withdraws: StudentReferralWithdraw[];
+}
+
+export interface AppliedCouponSummary {
+  code: string;
+  discountString: string;
+}
+
+export interface StudentPixPaymentPayload {
+  paymentId: string;
+  brCode: string;
+  brCodeBase64: string;
+  amount: number;
+  expiresAt?: string;
+  pixId?: string;
+  planName?: string;
+  originalPrice?: number;
+  appliedCoupon?: AppliedCouponSummary;
+  canApplyReferral?: boolean;
+}
+
+export interface StudentJoinGymResult
+  extends Partial<StudentPixPaymentPayload> {
+  success?: boolean;
+  membershipId?: string;
+}
+
+export interface StudentPaymentPlanOption {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  duration: number;
+  benefits?: string[];
+}
+
+export interface StudentReferralApplyResult
+  extends Partial<StudentPixPaymentPayload> {
+  error?: string;
+  referralCodeInvalid?: boolean;
+}
+
 // ============================================
 // ACTIVE WORKOUT
 // ============================================
@@ -179,12 +236,20 @@ export interface PendingAction {
   retries: number;
 }
 
+export interface ResourceSnapshot {
+  status: "idle" | "loading" | "ready" | "error";
+  lastStartedAt: Date | null;
+  lastFetchedAt: Date | null;
+  error: string | null;
+}
+
 export interface StudentMetadata {
   lastSync: Date | null;
   isLoading: boolean;
   isInitialized: boolean;
   errors: Record<string, string | null>;
   pendingActions: PendingAction[]; // Ações pendentes de sincronização
+  resources: Record<string, ResourceSnapshot>;
 }
 
 // ============================================
@@ -230,6 +295,7 @@ export interface StudentData {
   // === PAYMENTS ===
   payments: StudentPayment[]; // Histórico de pagamentos
   paymentMethods: PaymentMethod[]; // Métodos de pagamento salvos
+  referral: StudentReferralData | null;
 
   // === SOCIAL ===
   friends: FriendsData;
@@ -300,6 +366,7 @@ export const initialStudentData: StudentData = {
   dayPasses: [],
   payments: [],
   paymentMethods: [],
+  referral: null,
   friends: {
     count: 0,
     list: [],
@@ -311,6 +378,7 @@ export const initialStudentData: StudentData = {
     isInitialized: false,
     errors: {},
     pendingActions: [],
+    resources: {},
   },
 };
 
@@ -334,6 +402,7 @@ export type StudentDataSection =
   | "memberships"
   | "payments"
   | "paymentMethods"
+  | "referral"
   | "dayPasses"
   | "friends"
   | "gymLocations";

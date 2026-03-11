@@ -16,40 +16,15 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
+import type {
+  DiscoveryGymProfile,
+  DiscoveryGymProfileVariant,
+} from "@/lib/types/discovery-profiles";
 import { cn } from "@/lib/utils";
-
-interface GymProfileData {
-  id: string;
-  name: string;
-  address: string;
-  phone?: string;
-  email?: string;
-  logo?: string;
-  photos?: string[];
-  rating: number;
-  totalReviews: number;
-  openingHours?: { open?: string; close?: string };
-  amenities: string[];
-  equipmentCount: number;
-  totalStudents: number;
-  activeStudents: number;
-  equipment: Array<{ id: string; name: string; type: string; status: string }>;
-  plans: Array<{
-    id: string;
-    name: string;
-    type: string;
-    price: number;
-    duration: number;
-    benefits?: string[];
-  }>;
-  myMembership?: {
-    id: string;
-    status: string;
-    planId: string | null;
-  } | null;
-  personals?: Array<{ id: string; name: string; avatar: string | null }>;
-}
+import {
+  getGymProfileCacheKey,
+  useDiscoveryProfilesStore,
+} from "@/stores/discovery-profiles-store";
 
 interface GymProfileViewProps {
   gymId: string;
@@ -62,7 +37,7 @@ interface GymProfileViewProps {
   preSelectedPlan?: string | null;
   preSelectedCoupon?: string | null;
   /** "student" usa /api/students/gyms, "personal" usa /api/personals/gyms */
-  variant?: "student" | "personal";
+  variant?: DiscoveryGymProfileVariant;
 }
 
 export function GymProfileView({
@@ -77,38 +52,19 @@ export function GymProfileView({
   preSelectedCoupon,
   variant = "student",
 }: GymProfileViewProps) {
-  const profileUrl =
-    variant === "personal"
-      ? `/api/personals/gyms/${gymId}/profile`
-      : `/api/students/gyms/${gymId}/profile`;
-  const [profile, setProfile] = useState<GymProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [autoStarted, setAutoStarted] = useState(false);
+  const cacheKey = getGymProfileCacheKey(gymId, variant);
+  const profile = useDiscoveryProfilesStore(
+    (state) => state.gymProfiles[cacheKey] as DiscoveryGymProfile | null,
+  );
+  const resource = useDiscoveryProfilesStore((state) => state.resources[cacheKey]);
+  const loadGymProfile = useDiscoveryProfilesStore((state) => state.loadGymProfile);
+  const loading = !profile && (!resource || resource.status === "loading");
+  const error = resource?.error ?? null;
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    apiClient
-      .get<GymProfileData>(profileUrl)
-      .then((res) => {
-        if (!cancelled) {
-          setProfile(res.data);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err?.response?.data?.error || "Erro ao carregar perfil");
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [profileUrl, profileRefreshKey]);
+    void loadGymProfile(gymId, variant, profileRefreshKey !== undefined);
+  }, [gymId, loadGymProfile, profileRefreshKey, variant]);
 
   useEffect(() => {
     if (

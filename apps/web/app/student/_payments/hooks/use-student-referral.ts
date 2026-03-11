@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
-import { apiClient } from "@/lib/api/client";
+import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
+import type { StudentReferralData } from "@/lib/types/student-unified";
 import { parseCurrencyBR } from "@/lib/utils/currency";
 
 const withdrawAmountSchema = (balanceReais: number) =>
@@ -11,29 +12,21 @@ const withdrawAmountSchema = (balanceReais: number) =>
     .string()
     .min(1, "Informe o valor")
     .transform(parseCurrencyBR)
-    .refine((n) => !Number.isNaN(n), "Valor inválido")
-    .refine((n) => n >= 3.5, "Valor mínimo: R$ 3,50")
+    .refine((n) => !Number.isNaN(n), "Valor invalido")
+    .refine((n) => n >= 3.5, "Valor minimo: R$ 3,50")
     .refine((n) => n <= balanceReais, "Saldo insuficiente");
 
-export interface ReferralData {
-  referralCode: string;
-  pixKey: string | null;
-  pixKeyType: string | null;
-  balanceReais: number;
-  balanceCents: number;
-  totalEarnedCents: number;
-  withdraws: {
-    id: string;
-    amount: number;
-    status: string;
-    createdAt: Date;
-    completedAt: Date | null;
-  }[];
-}
+export type ReferralData = StudentReferralData;
 
 export function useStudentReferral() {
   const { toast } = useToast();
-  const [data, setData] = useState<ReferralData | null>(null);
+  const referralData = useStudent("referral") as unknown as
+    | StudentReferralData
+    | null;
+  const { loadReferral } = useStudent("loaders");
+  const { updateReferralPixKey, requestReferralWithdraw } =
+    useStudent("actions");
+
   const [isLoading, setIsLoading] = useState(true);
   const [pixKey, setPixKey] = useState("");
   const [pixKeyType, setPixKeyType] = useState("CPF");
@@ -45,33 +38,43 @@ export function useStudentReferral() {
   const loadData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await apiClient.get<ReferralData>("/api/students/referrals");
-      setData(res.data);
-      if (res.data.pixKey) setPixKey(res.data.pixKey);
-      if (res.data.pixKeyType) setPixKeyType(res.data.pixKeyType);
+      await loadReferral();
     } catch {
       toast({
         variant: "destructive",
-        title: "Erro ao carregar indicações",
-        description: "Não foi possível carregar o histórico de indicações.",
+        title: "Erro ao carregar indicacoes",
+        description: "Nao foi possivel carregar o historico de indicacoes.",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [loadReferral, toast]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
-  // Refetch ao voltar para a página (ex.: após pagar PIX e retornar)
   useEffect(() => {
-    const onFocus = () => loadData();
+    if (referralData?.pixKey) {
+      setPixKey(referralData.pixKey);
+    }
+    if (referralData?.pixKeyType) {
+      setPixKeyType(referralData.pixKeyType);
+    }
+    if (referralData) {
+      setIsLoading(false);
+    }
+  }, [referralData]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      void loadData();
+    };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [loadData]);
 
-  const referralCode = data?.referralCode ?? "";
+  const referralCode = referralData?.referralCode ?? "";
 
   const copyCode = useCallback(() => {
     if (!referralCode) return;
@@ -83,49 +86,45 @@ export function useStudentReferral() {
   const handleUpdatePix = useCallback(async () => {
     try {
       setIsUpdatingPix(true);
-      await apiClient.post("/api/students/referrals/pix-key", {
+      await updateReferralPixKey({
         pixKey,
         pixKeyType,
       });
       toast({
         title: "Chave PIX atualizada!",
-        description: "Agora você pode realizar saques de suas comissões.",
+        description: "Agora voce pode realizar saques de suas comissoes.",
       });
     } catch {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Não foi possível atualizar a chave PIX.",
+        description: "Nao foi possivel atualizar a chave PIX.",
       });
     } finally {
       setIsUpdatingPix(false);
     }
-  }, [pixKey, pixKeyType, toast]);
+  }, [pixKey, pixKeyType, toast, updateReferralPixKey]);
 
   const handleWithdraw = useCallback(async () => {
-    const balanceReais = data?.balanceReais ?? 0;
+    const balanceReais = referralData?.balanceReais ?? 0;
     const parsed = withdrawAmountSchema(balanceReais).safeParse(withdrawAmount);
     if (!parsed.success) {
       toast({
         variant: "destructive",
-        title: "Valor inválido",
+        title: "Valor invalido",
         description: parsed.error.errors[0]?.message ?? "Verifique o valor.",
       });
       return;
     }
-    const amount = parsed.data;
 
     try {
       setIsWithdrawing(true);
-      await apiClient.post("/api/students/referrals/withdraw", {
-        amountCents: Math.floor(amount * 100),
-      });
+      await requestReferralWithdraw(Math.floor(parsed.data * 100));
       toast({
         title: "Saque solicitado!",
-        description: "O valor será transferido para sua chave PIX.",
+        description: "O valor sera transferido para sua chave PIX.",
       });
       setWithdrawAmount("");
-      await loadData();
     } catch (err: unknown) {
       const errorMsg =
         err &&
@@ -136,15 +135,17 @@ export function useStudentReferral() {
       toast({
         variant: "destructive",
         title: "Erro ao sacar",
-        description: (typeof errorMsg === "string" ? errorMsg : undefined) ?? "Verifique sua chave PIX ou saldo.",
+        description:
+          (typeof errorMsg === "string" ? errorMsg : undefined) ??
+          "Verifique sua chave PIX ou saldo.",
       });
     } finally {
       setIsWithdrawing(false);
     }
-  }, [withdrawAmount, loadData, toast]);
+  }, [referralData?.balanceReais, requestReferralWithdraw, toast, withdrawAmount]);
 
   return {
-    data,
+    data: referralData,
     isLoading,
     referralCode,
     copyCode,

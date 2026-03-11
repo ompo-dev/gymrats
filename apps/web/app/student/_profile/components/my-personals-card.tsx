@@ -1,56 +1,35 @@
 "use client";
 
 import { ChevronRight, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
-
-type PersonalAssignment = {
-  id: string;
-  personal: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string | null;
-  };
-  gym: {
-    id: string;
-    name: string;
-    image?: string | null;
-    logo?: string | null;
-  } | null;
-};
+import type { StudentPersonalAssignment } from "@/lib/types/student-discovery";
+import { useStudentDiscoveryStore } from "@/stores/student-discovery-store";
 
 export function MyPersonalsCard() {
   const router = useRouter();
-  const [assignments, setAssignments] = useState<PersonalAssignment[]>([]);
-  const [loading, setLoading] = useState(true);
+  const assignments = useStudentDiscoveryStore(
+    (state) => state.assignedPersonals as StudentPersonalAssignment[],
+  );
+  const resource = useStudentDiscoveryStore(
+    (state) => state.resources["student:assigned-personals"],
+  );
+  const loadAssignedPersonals = useStudentDiscoveryStore(
+    (state) => state.loadAssignedPersonals,
+  );
+  const loading = assignments.length === 0 && (!resource || resource.status === "loading");
 
   const handleDiscoverPersonals = () => {
     router.push("/student?tab=personals");
   };
 
   useEffect(() => {
-    let cancelled = false;
-    apiClient
-      .get<{ personals: PersonalAssignment[] }>("/api/students/personals")
-      .then((res) => {
-        if (!cancelled) {
-          setAssignments(res.data.personals || []);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setAssignments([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    if (!resource) {
+      void loadAssignedPersonals();
+    }
+  }, [loadAssignedPersonals, resource]);
 
   if (loading) {
     return (

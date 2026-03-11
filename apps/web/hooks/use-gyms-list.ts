@@ -13,8 +13,11 @@ export function useGymsList() {
     (state) => state.canCreateMultipleGyms,
   );
   const isLoading = useGymsDataStore((state) => state.isLoading);
+  const isCreating = useGymsDataStore((state) => state.isCreating);
+  const createError = useGymsDataStore((state) => state.createError);
   const setActiveGymId = useGymsDataStore((state) => state.setActiveGymId);
   const loadAllGyms = useGymsDataStore((state) => state.loadAllGyms);
+  const createGym = useGymsDataStore((state) => state.createGym);
 
   // Carregar TODAS as academias ao montar (UMA VEZ SÓ)
   useEffect(() => {
@@ -48,9 +51,12 @@ export function useGymsList() {
     // Permissões e estado
     canCreateMultipleGyms,
     isLoading,
+    isCreating,
+    createError,
 
     // Actions
     setActiveGymId, // ← INSTANTÂNEO! Só muda o ID
     refreshGyms: loadAllGyms, // ← Recarregar tudo (raro)
+    createGym,
   };
 }

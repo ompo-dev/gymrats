@@ -10,10 +10,10 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { apiClient } from "@/lib/api/client";
 import { DuoButton, DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
+import { useStudent } from "@/hooks/use-student";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import {
   MembershipCard,
@@ -80,12 +80,15 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleStartTrial,
     handleUpgrade,
     handleApplyReferralStudent,
+    checkSubscriptionIsActive,
     handleCancelConfirm,
     isFirstPayment,
     refetchSubscription,
     subscriptionPixModal,
     setSubscriptionPixModal,
   } = usePaymentsPage(props as UsePaymentsPageProps);
+  const { cancelStudentPayment, getStudentPaymentStatus } =
+    useStudent("actions");
 
   const [expandedGymIdMemberships, setExpandedGymIdMemberships] = useState<
     string | null
@@ -378,11 +381,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
         <PixQrModal
           isOpen={true}
           onClose={() => setPixModal(null)}
-          onCancelPayment={async () => {
-            await apiClient.patch(`/api/payments/${pixModal.paymentId}`, {
-              status: "canceled",
-            });
-          }}
+          onCancelPayment={() => cancelStudentPayment(pixModal.paymentId)}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
@@ -392,12 +391,8 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           onSimulateSuccess={handlePixConfirmed}
           pollConfig={{
             type: "check",
-            check: async () => {
-              const res = await apiClient.get<{ status: string }>(
-                `/api/payments/${pixModal.paymentId}`,
-              );
-              return res.data.status === "paid";
-            },
+            check: async () =>
+              (await getStudentPaymentStatus(pixModal.paymentId)) === "paid",
           }}
           onPaymentConfirmed={handlePixConfirmed}
           paymentConfirmedToast={{
@@ -434,13 +429,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
           onSimulateSuccess={() => refetchSubscription().then(() => undefined)}
           pollConfig={{
             type: "check",
-            check: async () => {
-              await refetchSubscription();
-              const res = await apiClient.get<{
-                subscription?: { status?: string } | null;
-              }>("/api/subscriptions/current");
-              return res.data.subscription?.status === "active";
-            },
+            check: checkSubscriptionIsActive,
             intervalMs: 3000,
           }}
           onPaymentConfirmed={() => {

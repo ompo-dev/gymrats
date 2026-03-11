@@ -2,140 +2,78 @@
 
 import { ArrowLeft, Search, Trash2, UserPlus, Users } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { apiClient } from "@/lib/api/client";
-
-type TeamPersonal = {
-  id: string;
-  personal: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string | null;
-  };
-};
-
-type SearchResult = {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string | null;
-  alreadyLinked: boolean;
-};
-
-type PersonalProfileForGym = {
-  id: string;
-  name: string;
-  avatar: string | null;
-  bio: string | null;
-  atendimentoPresencial: boolean;
-  atendimentoRemoto: boolean;
-  email?: string;
-  phone?: string | null;
-  cref?: string | null;
-  gyms: { id: string; name: string; address?: string }[];
-  studentsCount?: number;
-};
+import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 
 export function GymSettingsTeamCard() {
-  const [personals, setPersonals] = useState<TeamPersonal[]>([]);
-  const [loading, setLoading] = useState(false);
+  const personals = useGymDirectoryStore((state) => state.teamPersonals);
+  const loading = useGymDirectoryStore((state) => state.isLoadingTeam);
+  const searchResults = useGymDirectoryStore((state) => state.teamSearchResults);
+  const searching = useGymDirectoryStore((state) => state.isSearchingTeam);
+  const error = useGymDirectoryStore((state) => state.teamError);
+  const personalProfilesById = useGymDirectoryStore(
+    (state) => state.personalProfilesById,
+  );
+  const loadingPersonalProfileIds = useGymDirectoryStore(
+    (state) => state.loadingPersonalProfileIds,
+  );
+  const loadTeamPersonals = useGymDirectoryStore(
+    (state) => state.loadTeamPersonals,
+  );
+  const searchTeamPersonals = useGymDirectoryStore(
+    (state) => state.searchTeamPersonals,
+  );
+  const loadPersonalProfile = useGymDirectoryStore(
+    (state) => state.loadPersonalProfile,
+  );
+  const linkTeamPersonal = useGymDirectoryStore((state) => state.linkTeamPersonal);
+  const unlinkTeamPersonal = useGymDirectoryStore(
+    (state) => state.unlinkTeamPersonal,
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState("");
   const [viewPersonalId, setViewPersonalId] = useState<string | null>(null);
-  const [personalProfile, setPersonalProfile] =
-    useState<PersonalProfileForGym | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-
-  const loadTeam = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get<{ personals: TeamPersonal[] }>(
-        "/api/gym/personals",
-      );
-      setPersonals(response.data.personals || []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    loadTeam().catch(() => undefined);
-  }, [loadTeam]);
+    loadTeamPersonals().catch(() => undefined);
+  }, [loadTeamPersonals]);
 
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults([]);
+      searchTeamPersonals("").catch(() => undefined);
       return;
     }
     const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await apiClient.get<{ personals: SearchResult[] }>(
-          `/api/gym/personals/search?q=${encodeURIComponent(searchQuery.trim())}&limit=8`,
-        );
-        setSearchResults(res.data.personals || []);
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
+      await searchTeamPersonals(searchQuery);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const loadPersonalProfile = useCallback(async (personalId: string) => {
-    setLoadingProfile(true);
-    try {
-      const res = await apiClient.get<PersonalProfileForGym>(
-        `/api/gym/personals/${personalId}/profile`,
-      );
-      setPersonalProfile(res.data);
-    } catch {
-      setPersonalProfile(null);
-    } finally {
-      setLoadingProfile(false);
-    }
-  }, []);
+  }, [searchQuery, searchTeamPersonals]);
 
   useEffect(() => {
     if (viewPersonalId) {
-      loadPersonalProfile(viewPersonalId);
-    } else {
-      setPersonalProfile(null);
+      loadPersonalProfile(viewPersonalId).catch(() => undefined);
     }
   }, [viewPersonalId, loadPersonalProfile]);
 
+  const personalProfile = viewPersonalId
+    ? (personalProfilesById[viewPersonalId] ?? null)
+    : null;
+  const loadingProfile = viewPersonalId
+    ? Boolean(loadingPersonalProfileIds[viewPersonalId])
+    : false;
+
   async function handleAddPersonal(personalId: string) {
-    setError("");
     try {
-      await apiClient.post("/api/gym/personals", { personalId });
+      await linkTeamPersonal(personalId);
       setSearchQuery("");
-      setSearchResults([]);
-      await loadTeam();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erro ao adicionar personal",
-      );
-    }
+    } catch {}
   }
 
   async function handleRemovePersonal(id: string) {
-    setError("");
     try {
-      await apiClient.delete("/api/gym/personals", {
-        data: { personalId: id },
-      });
-      await loadTeam();
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erro ao remover personal",
-      );
-    }
+      await unlinkTeamPersonal(id);
+    } catch {}
   }
 
   if (viewPersonalId) {

@@ -5,7 +5,6 @@ import { useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import type { PlanSlotData } from "@/lib/types";
 import { Modal } from "./modal";
 import { WorkoutChat } from "./workout-chat";
@@ -41,6 +40,8 @@ export function EditWeeklyPlanModal({
   const planTitle =
     typeof weeklyPlan?.title === "string" ? weeklyPlan.title : "Plano semanal";
   const { loadWeeklyPlan } = useStudent("loaders");
+  const { resetWeeklyPlan, deleteWorkout, addWeeklyPlanWorkout } =
+    useStudent("actions");
   const [loadingSlotId, setLoadingSlotId] = useState<string | null>(null);
   const [chatSlotId, setChatSlotId] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
@@ -49,8 +50,7 @@ export function EditWeeklyPlanModal({
   const handleResetWeek = async () => {
     setResetting(true);
     try {
-      await apiClient.patch("/api/students/week-reset");
-      await loadWeeklyPlan(true);
+      await resetWeeklyPlan();
       onPlanUpdated?.();
       toast({
         title: "Semana resetada",
@@ -73,7 +73,7 @@ export function EditWeeklyPlanModal({
 
     setLoadingSlotId(slotId);
     try {
-      await apiClient.delete(`/api/workouts/manage/${slot.workout.id}`);
+      await deleteWorkout(slot.workout.id);
       await loadWeeklyPlan(true);
       onPlanUpdated?.();
       toast({
@@ -100,7 +100,7 @@ export function EditWeeklyPlanModal({
 
     setLoadingSlotId(slotId);
     try {
-      await apiClient.post("/api/workouts/manage", {
+      await addWeeklyPlanWorkout({
         planSlotId: slotId,
         title: `Treino ${dayName}`,
         description: "",
@@ -109,7 +109,6 @@ export function EditWeeklyPlanModal({
         difficulty: "iniciante",
         estimatedTime: 0,
       });
-      await loadWeeklyPlan(true);
       onPlanUpdated?.();
       toast({
         title: "Treino adicionado",

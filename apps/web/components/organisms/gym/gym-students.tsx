@@ -3,21 +3,13 @@
 import { Flame, Loader2, Search, UserPlus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
-import {
-  getGymStudentByIdRequest,
-  getGymStudentPaymentsRequest,
-} from "@/lib/api/gym-client";
-import {
-  getPersonalStudentByIdRequest,
-  getPersonalStudentPaymentsRequest,
-} from "@/lib/api/personal-client";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
+import { usePersonal } from "@/hooks/use-personal";
 import type { Payment, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { AddPersonalStudentModal } from "@/components/organisms/personal/add-personal-student-modal";
@@ -37,34 +29,42 @@ function StudentDetailLoader({
   onBack,
   variant = "gym",
 }: StudentDetailLoaderProps) {
-  const [student, setStudent] = useState<StudentData | null>(fallbackStudent);
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const gymStudentDetails = useGym("studentDetails");
+  const gymStudentPayments = useGym("studentPayments");
+  const gymLoaders = useGym("loaders");
+  const personalStudentDetails = usePersonal("studentDetails");
+  const personalStudentPayments = usePersonal("studentPayments");
+  const personalLoaders = usePersonal("loaders");
+  const selectedStudentDetails =
+    variant === "personal" ? personalStudentDetails : gymStudentDetails;
+  const selectedStudentPayments =
+    variant === "personal" ? personalStudentPayments : gymStudentPayments;
+  const loadStudentDetail =
+    variant === "personal"
+      ? personalLoaders.loadStudentDetail
+      : gymLoaders.loadStudentDetail;
+  const loadStudentPayments =
+    variant === "personal"
+      ? personalLoaders.loadStudentPayments
+      : gymLoaders.loadStudentPayments;
+  const student =
+    (selectedStudentDetails[studentId] as StudentData | null) ??
+    fallbackStudent;
+  const payments =
+    (selectedStudentPayments[studentId] as Payment[] | undefined) ?? [];
   const [isLoading, setIsLoading] = useState(true);
-
-  const getStudentById =
-    variant === "personal"
-      ? getPersonalStudentByIdRequest
-      : getGymStudentByIdRequest;
-  const getStudentPayments =
-    variant === "personal"
-      ? getPersonalStudentPaymentsRequest
-      : getGymStudentPaymentsRequest;
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setIsLoading(true);
       try {
-        const [fullStudent, studentPayments] = await Promise.all([
-          getStudentById(studentId),
-          getStudentPayments(studentId),
+        await Promise.all([
+          loadStudentDetail(studentId, true),
+          loadStudentPayments(studentId, true),
         ]);
-        if (!cancelled) {
-          setStudent(fullStudent ?? fallbackStudent);
-          setPayments(studentPayments ?? []);
-        }
       } catch {
-        if (!cancelled) setStudent(fallbackStudent);
+        // fallback já vem do store ou prop
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -73,7 +73,7 @@ function StudentDetailLoader({
     return () => {
       cancelled = true;
     };
-  }, [studentId, fallbackStudent, getStudentById, getStudentPayments]);
+  }, [studentId, loadStudentDetail, loadStudentPayments]);
 
   if (isLoading && !student) {
     return (
@@ -110,8 +110,15 @@ export function GymStudentsPage({
   personalAffiliations = [],
 }: GymStudentsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const router = useRouter();
   const membershipPlans = useGym("membershipPlans");
+  const storeStudents = useGym("students");
+  const personalStoreStudents = usePersonal("studentDirectory");
+  const effectiveStudents =
+    students.length > 0
+      ? students
+      : variant === "personal"
+        ? (personalStoreStudents as unknown as StudentData[])
+        : storeStudents;
 
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
@@ -128,7 +135,7 @@ export function GymStudentsPage({
   });
   const [studentId, setStudentId] = useQueryState("studentId");
 
-  const safeStudents = Array.isArray(students) ? students : [];
+  const safeStudents = Array.isArray(effectiveStudents) ? effectiveStudents : [];
   const filteredStudents = safeStudents.filter((student) => {
     const s = student as {
       name?: string;
@@ -479,7 +486,6 @@ export function GymStudentsPage({
           onClose={() => setIsModalOpen(false)}
           onSuccess={() => {
             setIsModalOpen(false);
-            router.refresh();
           }}
           affiliations={personalAffiliations}
         />

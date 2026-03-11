@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useRef } from "react";
+import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
 import type { GymDataSection } from "@/lib/types/gym-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
@@ -19,9 +19,18 @@ const CONTEXT_PRIORITIES: Record<GymContextType, GymDataSection[]> = {
   dashboard: ["stats", "recentCheckIns", "students", "equipment"],
   students: ["students", "membershipPlans"],
   equipment: ["equipment", "stats"],
-  financial: ["financialSummary", "payments", "expenses", "subscription"],
+  financial: [
+    "financialSummary",
+    "payments",
+    "expenses",
+    "coupons",
+    "campaigns",
+    "balanceWithdraws",
+    "subscription",
+    "membershipPlans",
+  ],
   stats: ["stats", "equipment", "students"],
-  settings: ["profile", "membershipPlans", "subscription"],
+  settings: ["profile", "membershipPlans", "subscription", "coupons"],
   default: ["stats", "students", "profile"],
 };
 
@@ -49,50 +58,14 @@ export function useLoadPrioritizedGym(options?: {
     (state) => state.loadAllPrioritized,
   );
 
-  const hasCalledRef = useRef(false);
-  const lastKeyRef = useRef("");
-  const lastLoadTimeRef = useRef(0);
-  const isLoadingRef = useRef(false);
-
-  useEffect(() => {
-    const context = options?.context ?? detectGymContext(pathname, tab);
-    const base = options?.sections?.length
-      ? options.sections
-      : CONTEXT_PRIORITIES[context];
-    const priorities = Array.from(new Set(base));
-    const key = priorities.slice().sort().join(",");
-    const now = Date.now();
-
-    if (isLoadingRef.current) return;
-    if (
-      lastKeyRef.current === key &&
-      hasCalledRef.current &&
-      now - lastLoadTimeRef.current < 5000
-    ) {
-      return;
-    }
-
-    lastKeyRef.current = key;
-    lastLoadTimeRef.current = now;
-    hasCalledRef.current = true;
-    isLoadingRef.current = true;
-
-    loadAllPrioritized(priorities, options?.onlyPriorities ?? true)
-      .catch((error) => {
-        console.error(
-          "[useLoadPrioritizedGym] Erro ao carregar prioridades:",
-          error,
-        );
-      })
-      .finally(() => {
-        isLoadingRef.current = false;
-      });
-  }, [
+  usePrioritizedResourceLoader({
+    context: options?.context,
+    sections: options?.sections,
+    onlyPriorities: options?.onlyPriorities ?? true,
     pathname,
     tab,
-    options?.context,
-    options?.sections,
-    options?.onlyPriorities,
-    loadAllPrioritized,
-  ]);
+    contextPriorities: CONTEXT_PRIORITIES,
+    detectContext: detectGymContext,
+    loadPrioritized: loadAllPrioritized,
+  });
 }

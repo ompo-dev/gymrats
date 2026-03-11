@@ -5,21 +5,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { usePersonal } from "@/hooks/use-personal";
-import { browserApiFetch } from "@/lib/api/browser-fetch";
 import { useToast } from "@/hooks/use-toast";
-
-interface StudentSearchResult {
-  found: boolean;
-  assignedGymIds?: string[];
-  student?: {
-    id: string;
-    name: string;
-    email: string;
-    avatar?: string | null;
-    currentLevel?: number;
-    currentStreak?: number;
-  };
-}
+import { usePersonalDirectoryStore } from "@/stores/personal-directory-store";
 
 interface PersonalAffiliationOption {
   id: string;
@@ -41,11 +28,19 @@ export function AddPersonalStudentModal({
 }: AddPersonalStudentModalProps) {
   const { actions, loaders } = usePersonal("actions", "loaders");
   const { toast } = useToast();
-  const [identifier, setIdentifier] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResult, setSearchResult] = useState<StudentSearchResult | null>(
-    null,
+  const searchResult = usePersonalDirectoryStore(
+    (state) => state.studentSearchResult,
   );
+  const isSearching = usePersonalDirectoryStore(
+    (state) => state.isSearchingStudents,
+  );
+  const searchStudentByIdentifier = usePersonalDirectoryStore(
+    (state) => state.searchStudentByIdentifier,
+  );
+  const clearStudentSearchResult = usePersonalDirectoryStore(
+    (state) => state.clearStudentSearchResult,
+  );
+  const [identifier, setIdentifier] = useState("");
   const [selectedGymId, setSelectedGymId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -55,22 +50,12 @@ export function AddPersonalStudentModal({
     if (!trimmed) return;
     const normalizedIdentifier = trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
     if (normalizedIdentifier.length < 3) return; // @ + pelo menos 2 caracteres
-    setIsSearching(true);
-    setSearchResult(null);
+    clearStudentSearchResult();
     setError("");
     try {
-      const searchQuery = normalizedIdentifier.startsWith("@")
-        ? normalizedIdentifier
-        : `@${normalizedIdentifier}`;
-      const res = await browserApiFetch(
-        `/api/personals/students/search?email=${encodeURIComponent(searchQuery)}`,
-      );
-      const data = await res.json();
-      setSearchResult(data);
+      await searchStudentByIdentifier(normalizedIdentifier);
     } catch {
       setError("Erro ao buscar aluno. Tente novamente.");
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -100,7 +85,7 @@ export function AddPersonalStudentModal({
 
   const handleClose = () => {
     setIdentifier("");
-    setSearchResult(null);
+    clearStudentSearchResult();
     setSelectedGymId("");
     setError("");
     onClose();

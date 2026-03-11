@@ -19,8 +19,11 @@
 
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useRef } from "react";
-import type { StudentDataSection } from "@/lib/types/student-unified";
+import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
+import type {
+  StudentData,
+  StudentDataSection,
+} from "@/lib/types/student-unified";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 // ============================================
@@ -73,7 +76,13 @@ const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
   learn: ["weeklyPlan", "progress", "workoutHistory"],
   diet: ["dailyNutrition", "progress"],
   profile: ["profile", "weightHistory", "progress", "personalRecords"],
-  payments: ["subscription", "payments", "paymentMethods", "memberships"],
+  payments: [
+    "subscription",
+    "payments",
+    "paymentMethods",
+    "memberships",
+    "referral",
+  ],
   gyms: ["gymLocations"],
   home: [
     "progress",
@@ -123,7 +132,7 @@ function detectContextFromPath(
  */
 function hasSectionData(
   section: StudentDataSection,
-  storeData: Record<string, string | number | boolean | object | null>,
+  storeData: Partial<StudentData>,
 ): boolean {
   switch (section) {
     case "user":
@@ -165,6 +174,8 @@ function hasSectionData(
       return !!(
         storeData.paymentMethods && storeData.paymentMethods.length >= 0
       );
+    case "referral":
+      return !!storeData.referral?.referralCode;
     case "dayPasses":
       return !!(storeData.dayPasses && storeData.dayPasses.length >= 0);
     case "friends":
@@ -184,7 +195,7 @@ function hasSectionData(
  */
 function _filterMissingSections(
   sections: StudentDataSection[],
-  storeData: Record<string, string | number | boolean | object | null>,
+  storeData: Partial<StudentData>,
 ): StudentDataSection[] {
   return sections.filter((section) => !hasSectionData(section, storeData));
 }
@@ -215,9 +226,7 @@ function _filterMissingSections(
 export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
   const pathname = usePathname();
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
-  const loadAllPrioritized = useStudentUnifiedStore(
-    (state) => state.loadAllPrioritized,
-  );
+  const loadAllPrioritized = useStudentUnifiedStore((state) => state.loadAllPrioritized);
 
   // Usar seletores específicos para evitar re-renders desnecessários
   // Verificar apenas as seções que precisamos, não todo o store
@@ -257,29 +266,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     (state) => state.data.gymLocations,
   );
 
-  // Criar objeto storeData apenas quando necessário (dentro do useEffect)
-  const storeDataRef = useRef({
-    user: getUser,
-    student: getStudent,
-    progress: getProgress,
-    profile: getProfile,
-    weightHistory: getWeightHistory,
-    units: getUnits,
-    weeklyPlan: getWeeklyPlan,
-    workoutHistory: getWorkoutHistory,
-    personalRecords: getPersonalRecords,
-    dailyNutrition: getDailyNutrition,
-    subscription: getSubscription,
-    memberships: getMemberships,
-    payments: getPayments,
-    paymentMethods: getPaymentMethods,
-    dayPasses: getDayPasses,
-    friends: getFriends,
-    gymLocations: getGymLocations,
-  });
-
-  // Atualizar ref quando dados mudarem
-  storeDataRef.current = {
+  const storeData = {
     user: getUser,
     student: getStudent,
     progress: getProgress,
@@ -298,122 +285,19 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     friends: getFriends,
     gymLocations: getGymLocations,
   };
-
-  // Ref para evitar múltiplas chamadas durante re-renders
-  const hasCalledRef = useRef(false);
-  const lastTabRef = useRef<string | null>(null);
-  const lastPrioritiesRef = useRef<string>("");
-  const lastLoadTimeRef = useRef<number>(0);
-  const isLoadingRef = useRef(false);
-
-  useEffect(() => {
-    // Reset ref se tab mudou
-    if (lastTabRef.current !== tab) {
-      hasCalledRef.current = false;
-      lastTabRef.current = tab;
-      lastPrioritiesRef.current = "";
-      lastLoadTimeRef.current = 0;
-      isLoadingRef.current = false;
-    }
-
-    // Detectar contexto se não fornecido
-    const detectedContext = options.context
-      ? options.context
-      : detectContextFromPath(pathname, tab);
-
-    // Determinar prioridades
-    let priorities: StudentDataSection[];
-
-    if (options.sections) {
-      if (options.combineWithContext && !options.context) {
-        // Combinar seções fornecidas com prioridades do contexto detectado
-        const contextPriorities = CONTEXT_PRIORITIES[detectedContext];
-        priorities = [...new Set([...options.sections, ...contextPriorities])];
-      } else if (options.context) {
-        // Combinar com contexto específico fornecido
-        const contextPriorities = CONTEXT_PRIORITIES[options.context];
-        priorities = [...new Set([...options.sections, ...contextPriorities])];
-      } else {
-        // Usar apenas seções fornecidas
-        priorities = options.sections;
-      }
-    } else {
-      // Usar prioridades do contexto
-      priorities = CONTEXT_PRIORITIES[detectedContext];
-    }
-
-    // Verificar se as prioridades mudaram
-    const prioritiesKey = priorities.sort().join(",");
-    const now = Date.now();
-    const timeSinceLastLoad = now - lastLoadTimeRef.current;
-    const MIN_TIME_BETWEEN_LOADS = 5000; // 5 segundos mínimo entre carregamentos
-
-    // Se já está carregando, não iniciar novo carregamento
-    if (isLoadingRef.current) {
-      return;
-    }
-
-    // Se são as mesmas prioridades e já carregou recentemente, não carregar novamente
-    if (
-      lastPrioritiesRef.current === prioritiesKey &&
-      hasCalledRef.current &&
-      timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS
-    ) {
-      return; // Mesmas prioridades, já chamou recentemente
-    }
-
-    // Verificar se dados já existem no store antes de fazer refetch
-    const storeData = storeDataRef.current;
-    const allSectionsHaveData = priorities.every((section) =>
-      hasSectionData(section, storeData),
-    );
-
-    // Se todas as seções já têm dados e carregou recentemente, não refetch
-    if (allSectionsHaveData && timeSinceLastLoad < MIN_TIME_BETWEEN_LOADS) {
-      return;
-    }
-
-    lastPrioritiesRef.current = prioritiesKey;
-    lastLoadTimeRef.current = now;
-    isLoadingRef.current = true;
-
-    console.log(
-      `[useLoadPrioritized] Carregando prioridades: ${priorities.join(", ")} (context: ${detectedContext})`,
-    );
-
-    hasCalledRef.current = true;
-    // IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
-    // Isso evita recarregar tudo quando navegar entre páginas
-    // O Zustand já tem os dados, só precisamos atualizar as prioridades
-    loadAllPrioritized(priorities, options.onlyPriorities ?? true)
-      .then(() => {
-        isLoadingRef.current = false;
-        // Sucesso - não resetar hasCalledRef aqui para evitar loops
-      })
-      .catch((error) => {
-        console.error(
-          "[useLoadPrioritized] Erro ao carregar prioridades:",
-          error,
-        );
-        isLoadingRef.current = false;
-        // Resetar apenas após um delay para permitir retry em caso de erro real
-        setTimeout(() => {
-          hasCalledRef.current = false;
-        }, 10000); // Reset após 10 segundos
-      });
-  }, [
+  usePrioritizedResourceLoader({
+    context: options.context,
+    sections: options.sections,
+    combineWithContext: options.combineWithContext,
+    onlyPriorities: options.onlyPriorities ?? true,
     pathname,
     tab,
-    options.context,
-    options.combineWithContext,
-    options.onlyPriorities, // IMPORTANTE: Por padrão, carregar APENAS prioridades (onlyPriorities = true)
-    // Isso evita recarregar tudo quando navegar entre páginas
-    // O Zustand já tem os dados, só precisamos atualizar as prioridades
-    loadAllPrioritized,
-    options.sections,
-    // Remover loadAllPrioritized das dependências para evitar loops
-    // loadAllPrioritized é estável e não deve causar re-execução
-  ]);
+    contextPriorities: CONTEXT_PRIORITIES,
+    detectContext: detectContextFromPath,
+    loadPrioritized: loadAllPrioritized,
+    getStoreSnapshot: () => storeData,
+    hasSectionData,
+  });
 }
 
 // ============================================

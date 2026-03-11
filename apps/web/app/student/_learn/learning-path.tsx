@@ -11,7 +11,6 @@ import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/api/client";
 import type { PlanSlotData } from "@/lib/types";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
@@ -35,6 +34,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
 
   const weeklyPlan = useStudent("weeklyPlan");
   const { loadWeeklyPlan } = useStudent("loaders");
+  const { createWeeklyPlan } = useStudent("actions");
 
   useEffect(() => {
     const handleWorkoutCompleted = async (event: Event) => {
@@ -96,8 +96,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
       <EmptyWorkoutState
         onCreatePlan={async () => {
           try {
-            await apiClient.post("/api/workouts/weekly-plan", {});
-            await loadWeeklyPlan(true);
+            await createWeeklyPlan();
             editPlanModal.open();
           } catch (_error) {
             toast({

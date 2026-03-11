@@ -1,13 +1,8 @@
 "use client";
 
 import type React from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
+import { useGymsDataStore } from "@/stores/gyms-list-store";
 
 export interface GymInfo {
   id: string;
@@ -35,87 +30,43 @@ const ActiveGymContext = createContext<ActiveGymContextType | undefined>(
 );
 
 export function ActiveGymProvider({ children }: { children: React.ReactNode }) {
-  const [activeGymId, setActiveGymIdState] = useState<string | null>(null);
-  const [gyms, setGyms] = useState<GymInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [canCreateMultipleGyms, setCanCreateMultipleGyms] = useState(false);
+  const gymsData = useGymsDataStore((state) => state.gymsData);
+  const activeGymId = useGymsDataStore((state) => state.activeGymId);
+  const isLoading = useGymsDataStore((state) => state.isLoading);
+  const canCreateMultipleGyms = useGymsDataStore(
+    (state) => state.canCreateMultipleGyms,
+  );
+  const setActiveGymId = useGymsDataStore((state) => state.setActiveGymId);
+  const refreshGyms = useGymsDataStore((state) => state.loadAllGyms);
 
-  // Carregar lista de academias do usuário
-  const refreshGyms = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      // Usar axios client (API → Zustand → Component)
-      const { apiClient } = await import("@/lib/api/client");
-      const response = await apiClient.get<{
-        gyms: GymInfo[];
-        canCreateMultipleGyms?: boolean;
-      }>("/api/gyms/list", {
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      });
-      const data = response.data;
-
-      if (data.gyms) {
-        setGyms(data.gyms);
-        setCanCreateMultipleGyms(data.canCreateMultipleGyms || false);
-
-        // Se não tem activeGymId definido, usar a primeira academia
-        if (!activeGymId && data.gyms.length > 0) {
-          setActiveGymIdState(data.gyms[0].id);
-        }
-
-        // Se o activeGymId não existe mais na lista, usar a primeira
-        if (
-          activeGymId &&
-          !data.gyms.find((g: GymInfo) => g.id === activeGymId)
-        ) {
-          setActiveGymIdState(data.gyms[0]?.id || null);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao carregar academias:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeGymId]);
-
-  // Carregar academias ao montar
   useEffect(() => {
-    refreshGyms();
+    void refreshGyms();
   }, [refreshGyms]);
 
-  // Função para alterar academia ativa
-  const setActiveGymId = async (gymId: string) => {
-    try {
-      // Atualizar no backend usando axios (API → Zustand → Component)
-      const { apiClient } = await import("@/lib/api/client");
-      await apiClient.post("/api/gyms/set-active", { gymId });
+  const value = useMemo<ActiveGymContextType>(() => {
+    const gyms = Object.values(gymsData) as GymInfo[];
+    const activeGym = activeGymId ? gymsData[activeGymId] ?? null : null;
 
-      // Atualizar estado local
-      setActiveGymIdState(gymId);
-
-      // Recarregar dados
-      await refreshGyms();
-    } catch (error) {
-      console.error("Erro ao alterar academia:", error);
-    }
-  };
-
-  const activeGym = gyms.find((g) => g.id === activeGymId) || null;
+    return {
+      activeGymId,
+      setActiveGymId,
+      gyms,
+      activeGym,
+      isLoading,
+      canCreateMultipleGyms,
+      refreshGyms,
+    };
+  }, [
+    activeGymId,
+    canCreateMultipleGyms,
+    gymsData,
+    isLoading,
+    refreshGyms,
+    setActiveGymId,
+  ]);
 
   return (
-    <ActiveGymContext.Provider
-      value={{
-        activeGymId,
-        setActiveGymId,
-        gyms,
-        activeGym,
-        isLoading,
-        canCreateMultipleGyms,
-        refreshGyms,
-      }}
-    >
+    <ActiveGymContext.Provider value={value}>
       {children}
     </ActiveGymContext.Provider>
   );
