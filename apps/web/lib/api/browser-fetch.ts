@@ -1,6 +1,10 @@
 "use client";
 
-import { getAuthToken } from "@/lib/auth/token-client";
+import {
+  ensureAuthToken,
+  getAuthToken,
+  refreshAuthToken,
+} from "@/lib/auth/token-client";
 import { resolveApiBaseUrl } from "./client-factory";
 
 function buildApiUrl(path: string): string {
@@ -19,18 +23,39 @@ export async function browserApiFetch(
   init: RequestInit = {},
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  const token = getAuthToken();
+  const requestUrl = buildApiUrl(path);
+  const isSessionRequest = requestUrl.includes("/api/auth/session");
+  const token =
+    getAuthToken() || (isSessionRequest ? null : await ensureAuthToken());
 
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  return fetch(buildApiUrl(path), {
+  let response = await fetch(requestUrl, {
     cache: "no-store",
     credentials: "include",
     ...init,
     headers,
   });
+
+  if (response.status === 401 && !isSessionRequest) {
+    const refreshedToken = await refreshAuthToken();
+
+    if (refreshedToken) {
+      const retryHeaders = new Headers(init.headers);
+      retryHeaders.set("Authorization", `Bearer ${refreshedToken}`);
+
+      response = await fetch(requestUrl, {
+        cache: "no-store",
+        credentials: "include",
+        ...init,
+        headers: retryHeaders,
+      });
+    }
+  }
+
+  return response;
 }
 
 export function getBrowserApiUrl(path: string): string {

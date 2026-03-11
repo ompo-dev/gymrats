@@ -1,1 +1,7 @@
-export { clearAuthToken, getAuthToken, setAuthToken } from "@gymrats/api";
+export {
+  clearAuthToken,
+  ensureAuthToken,
+  getAuthToken,
+  refreshAuthToken,
+  setAuthToken,
+} from "@gymrats/api";

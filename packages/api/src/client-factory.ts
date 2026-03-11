@@ -1,6 +1,11 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
-import { clearAuthToken, getAuthToken } from "./token-client";
+import {
+  clearAuthToken,
+  ensureAuthToken,
+  getAuthToken,
+  refreshAuthToken,
+} from "./token-client";
 
 const SILENT_500_ROUTES = [
   "/api/students/",
@@ -84,13 +89,17 @@ function createAxiosClient(): AxiosInstance {
   });
 
   client.interceptors.request.use(
-    (config) => {
+    async (config) => {
       const baseUrl = resolveApiBaseUrl();
       if (baseUrl) {
         config.baseURL = baseUrl;
       }
 
-      const token = getAuthToken();
+      const requestUrl = typeof config.url === "string" ? config.url : "";
+      const isSessionRequest = requestUrl.includes("/api/auth/session");
+      const token =
+        getAuthToken() || (isSessionRequest ? null : await ensureAuthToken());
+
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -102,13 +111,28 @@ function createAxiosClient(): AxiosInstance {
 
   client.interceptors.response.use(
     (response) => response,
-    (error) => {
+    async (error) => {
       const status = error?.response?.status;
       const url = error?.config?.url;
 
       if (status === 401 && typeof window !== "undefined") {
         if (url?.includes("/api/auth/session")) {
           return Promise.reject(error);
+        }
+
+        const originalConfig = error?.config as
+          | (AxiosRequestConfig & { _authRetried?: boolean })
+          | undefined;
+
+        if (originalConfig && !originalConfig._authRetried) {
+          originalConfig._authRetried = true;
+          const refreshedToken = await refreshAuthToken();
+
+          if (refreshedToken) {
+            originalConfig.headers = originalConfig.headers ?? {};
+            originalConfig.headers.Authorization = `Bearer ${refreshedToken}`;
+            return client.request(originalConfig);
+          }
         }
 
         clearAuthToken();

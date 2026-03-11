@@ -1,4 +1,52 @@
 const AUTH_TOKEN_KEY = "auth_token";
+let authTokenSyncPromise: Promise<string | null> | null = null;
+
+function normalizeBaseUrl(url: string | undefined): string {
+  if (!url) return "";
+  return url.replace(/\/$/, "");
+}
+
+function resolveRuntimePublicApiUrl(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const runtimeWindow = window as Window & {
+    __GYMRATS_API_URL__?: string;
+  };
+  const windowUrl = normalizeBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
+
+  if (windowUrl) {
+    return windowUrl;
+  }
+
+  const datasetUrl = normalizeBaseUrl(
+    document.body?.dataset.apiBaseUrl ||
+      document.documentElement?.dataset.apiBaseUrl ||
+      undefined,
+  );
+
+  if (datasetUrl) {
+    return datasetUrl;
+  }
+
+  const metaUrl = normalizeBaseUrl(
+    document
+      .querySelector('meta[name="gymrats-api-base-url"]')
+      ?.getAttribute("content") || undefined,
+  );
+
+  return metaUrl;
+}
+
+function resolveSessionEndpointUrl(): string {
+  const runtimeUrl = resolveRuntimePublicApiUrl();
+  const publicUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+  const authUrl = normalizeBaseUrl(process.env.BETTER_AUTH_URL);
+  const baseUrl = runtimeUrl || publicUrl || authUrl;
+
+  return baseUrl ? `${baseUrl}/api/auth/session` : "/api/auth/session";
+}
 
 function getCookieToken(): string | null {
   if (typeof document === "undefined") return null;
@@ -66,4 +114,69 @@ export function clearAuthToken(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(AUTH_TOKEN_KEY);
   clearCookieToken();
+}
+
+type SessionResponse = {
+  session?: {
+    token?: string | null;
+  } | null;
+};
+
+async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+
+  if (!forceRefresh) {
+    const existingToken = getAuthToken();
+    if (existingToken) {
+      return existingToken;
+    }
+  } else {
+    window.localStorage.removeItem(AUTH_TOKEN_KEY);
+    clearCookieToken();
+  }
+
+  if (authTokenSyncPromise) {
+    return authTokenSyncPromise;
+  }
+
+  authTokenSyncPromise = (async () => {
+    try {
+      const response = await fetch(resolveSessionEndpointUrl(), {
+        method: "GET",
+        cache: "no-store",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const data = (await response.json()) as SessionResponse;
+      const sessionToken = data.session?.token?.trim();
+
+      if (sessionToken) {
+        setAuthToken(sessionToken);
+        return sessionToken;
+      }
+
+      return getAuthToken();
+    } catch {
+      return null;
+    } finally {
+      authTokenSyncPromise = null;
+    }
+  })();
+
+  return authTokenSyncPromise;
+}
+
+export async function ensureAuthToken(): Promise<string | null> {
+  return syncAuthToken(false);
+}
+
+export async function refreshAuthToken(): Promise<string | null> {
+  return syncAuthToken(true);
 }

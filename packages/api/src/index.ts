@@ -4,7 +4,13 @@ export {
   resolveApiBaseUrl,
   type ApiClient,
 } from "./client-factory";
-export { clearAuthToken, getAuthToken, setAuthToken } from "./token-client";
+export {
+  clearAuthToken,
+  ensureAuthToken,
+  getAuthToken,
+  refreshAuthToken,
+  setAuthToken,
+} from "./token-client";
 export { abacatePay } from "./abacatepay";
 export type {
   Billing,
