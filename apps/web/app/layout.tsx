@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type React from "react";
+import { LegacyCacheCleanup } from "@/app/legacy-cache-cleanup";
 import { DuoThemeProvider } from "@/components/duo/theme-provider";
 import { ErrorBoundary } from "@/components/organisms/error-boundary";
 import { PerformanceOptimizer } from "@/components/organisms/performance-optimizer";
@@ -82,6 +83,7 @@ export default function RootLayout({
             <DuoThemeProvider>
               <QueryProvider>
                 <AuthSessionProvider>
+                  <LegacyCacheCleanup />
                   <PerformanceOptimizer />
                   {children}
                   <Analytics />
