@@ -27,6 +27,10 @@ function getTrustedOrigins() {
   return Array.from(new Set([getAppUrl(), getApiUrl(), ...extraTrustedOrigins]));
 }
 
+function getAuthErrorUrl() {
+  return `${getAppUrl()}/auth/callback`;
+}
+
 function getRequiredEnv(name: "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET"): string {
   const value = process.env[name];
 
@@ -51,6 +55,7 @@ function createAuth() {
       enabled: false,
     },
     account: {
+      storeStateStrategy: "cookie",
       accountLinking: {
         enabled: true,
         trustedProviders: ["google"],
@@ -71,6 +76,9 @@ function createAuth() {
     baseURL: getApiUrl(),
     basePath: "/api/auth",
     trustedOrigins: getTrustedOrigins(),
+    onAPIError: {
+      errorURL: getAuthErrorUrl(),
+    },
     session: {
       fields: {
         token: "token",
