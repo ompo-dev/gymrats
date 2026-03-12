@@ -4,7 +4,7 @@ import { rateLimit } from "elysia-rate-limit";
 // Baseado na arquitetura Elysia In-Memory conforme aprovação do usuário
 export const rateLimitPlugin = rateLimit({
   duration: 60000, // 60 segundos
-  max: 100, // limite de chamadas por duration
+  max: 300, // limite de chamadas por duration
   generator: (req: Request) => {
     // Tenta pegar o IP real caso esteja atrás de proxy/Vercel
     const forwardedFor = req.headers.get("x-forwarded-for");
@@ -17,6 +17,14 @@ export const rateLimitPlugin = rateLimit({
     }
     // Fallback caso não venha IP no header (loopback)
     return "127.0.0.1";
+  },
+  skip: (req: Request) => {
+    if (req.method === "OPTIONS") {
+      return true;
+    }
+
+    const pathname = new URL(req.url).pathname;
+    return pathname === "/health" || pathname === "/healthz";
   },
   errorResponse: new Response("Too Many Requests", {
     status: 429,

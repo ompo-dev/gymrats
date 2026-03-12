@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
@@ -30,15 +30,39 @@ export function NutritionLibraryModal({
 }: NutritionLibraryModalProps = {}) {
   const resolvedOpen = isOpen ?? false;
   const resolvedClose = onClose ?? (() => {});
-  const studentActions = useStudent("actions");
-  const {
-    loadNutritionLibraryPlans: loadStudentNutritionLibraryPlans,
-    loadActiveNutritionPlan: loadStudentActiveNutritionPlan,
-  } = useStudent("loaders");
+  const loadStudentNutritionLibraryPlans = useStudentUnifiedStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
+  const loadStudentActiveNutritionPlan = useStudentUnifiedStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const createStudentNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.createNutritionLibraryPlan,
+  );
+  const deleteStudentNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.deleteNutritionLibraryPlan,
+  );
+  const activateStudentNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.activateNutritionLibraryPlan,
+  );
   const studentPlans = useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[];
   const activeStudentPlan =
     useStudent("activeNutritionPlan") as unknown as NutritionPlanData | null;
-  const detailStore = useStudentDetailStore();
+  const loadDetailNutritionLibraryPlans = useStudentDetailStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
+  const loadDetailActiveNutritionPlan = useStudentDetailStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const createDetailNutritionLibraryPlan = useStudentDetailStore(
+    (state) => state.createNutritionLibraryPlan,
+  );
+  const deleteDetailNutritionLibraryPlan = useStudentDetailStore(
+    (state) => state.deleteNutritionLibraryPlan,
+  );
+  const activateDetailNutritionLibraryPlan = useStudentDetailStore(
+    (state) => state.activateNutritionLibraryPlan,
+  );
   const detailKey =
     apiMode !== "student" && studentId
       ? `${apiMode}:${studentId}` as const
@@ -57,6 +81,8 @@ export function NutritionLibraryModal({
   const [editingPlan, setEditingPlan] = useState<NutritionPlanData | null>(null);
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+  const hasLoadedForOpenRef = useRef(false);
+  const lastOpenKeyRef = useRef<string | null>(null);
 
   const activeSourcePlanId = activePlan?.sourceLibraryPlanId ?? null;
 
@@ -71,32 +97,48 @@ export function NutritionLibraryModal({
 
     if (!studentId) return;
     await Promise.all([
-      detailStore.loadNutritionLibraryPlans(apiMode, studentId),
-      detailStore.loadActiveNutritionPlan(apiMode, studentId),
+      loadDetailNutritionLibraryPlans(apiMode, studentId),
+      loadDetailActiveNutritionPlan(apiMode, studentId),
     ]);
   }, [
     apiMode,
-    detailStore,
+    loadDetailActiveNutritionPlan,
+    loadDetailNutritionLibraryPlans,
     loadStudentActiveNutritionPlan,
     loadStudentNutritionLibraryPlans,
     studentId,
   ]);
 
   useEffect(() => {
-    if (!resolvedOpen) return;
+    if (!resolvedOpen) {
+      hasLoadedForOpenRef.current = false;
+      lastOpenKeyRef.current = null;
+      return;
+    }
+
+    const openKey = `${apiMode}:${studentId ?? "self"}`;
+    if (
+      hasLoadedForOpenRef.current &&
+      lastOpenKeyRef.current === openKey
+    ) {
+      return;
+    }
+
+    hasLoadedForOpenRef.current = true;
+    lastOpenKeyRef.current = openKey;
     void loadData();
-  }, [loadData, resolvedOpen]);
+  }, [apiMode, loadData, resolvedOpen, studentId]);
 
   const handleCreate = async () => {
     setCreatingPlan(true);
     try {
       const planId =
         apiMode === "student"
-          ? await studentActions.createNutritionLibraryPlan({
+          ? await createStudentNutritionLibraryPlan({
               title: "Novo Plano Alimentar",
             })
           : studentId
-            ? await detailStore.createNutritionLibraryPlan({
+            ? await createDetailNutritionLibraryPlan({
                 scope: apiMode,
                 studentId,
                 payload: {
@@ -135,9 +177,9 @@ export function NutritionLibraryModal({
 
     try {
       if (apiMode === "student") {
-        await studentActions.deleteNutritionLibraryPlan(planId);
+        await deleteStudentNutritionLibraryPlan(planId);
       } else if (studentId) {
-        await detailStore.deleteNutritionLibraryPlan({
+        await deleteDetailNutritionLibraryPlan({
           scope: apiMode,
           studentId,
           planId,
@@ -157,9 +199,9 @@ export function NutritionLibraryModal({
     setActivatingId(planId);
     try {
       if (apiMode === "student") {
-        await studentActions.activateNutritionLibraryPlan(planId);
+        await activateStudentNutritionLibraryPlan(planId);
       } else if (studentId) {
-        await detailStore.activateNutritionLibraryPlan({
+        await activateDetailNutritionLibraryPlan({
           scope: apiMode,
           studentId,
           planId,

@@ -12,7 +12,7 @@
 "use client";
 
 import { Calendar, TrendingUp } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
@@ -23,6 +23,7 @@ import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 import { useStudent } from "@/hooks/use-student";
 import type { FoodItem } from "@/lib/types";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export function DietPage() {
   // Carregamento prioritizado: dailyNutrition e progress aparecem primeiro
@@ -39,7 +40,14 @@ export function DietPage() {
   // - Usa rotas específicas otimizadas (3-5x mais rápido)
 
   const foodDatabase = useStudent("foodDatabase");
-  const { loadFoodDatabase, loadNutrition } = useStudent("loaders");
+  const resolvedFoodDatabase = Array.isArray(foodDatabase)
+    ? (foodDatabase as FoodItem[])
+    : [];
+  const loadFoodDatabase = useStudentUnifiedStore(
+    (state) => state.loadFoodDatabase,
+  );
+  const loadNutrition = useStudentUnifiedStore((state) => state.loadNutrition);
+  const hasRequestedFoodDatabaseRef = useRef(false);
 
   // Modais controlados por search params
   const addMealModal = useModalState("add-meal");
@@ -67,13 +75,20 @@ export function DietPage() {
   // O useStudentInitializer já carrega a maioria dos dados, mas foodDatabase
   // pode não ser carregado automaticamente (é grande e opcional)
   useEffect(() => {
-    if (!foodDatabase || foodDatabase.length === 0) {
-      loadFoodDatabase().catch((error) => {
-        console.error("[DietPage] Erro ao carregar foodDatabase:", error);
-      });
+    if (resolvedFoodDatabase.length > 0) {
+      hasRequestedFoodDatabaseRef.current = true;
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foodDatabase, loadFoodDatabase]);
+
+    if (hasRequestedFoodDatabaseRef.current) {
+      return;
+    }
+
+    hasRequestedFoodDatabaseRef.current = true;
+    loadFoodDatabase().catch((error) => {
+      console.error("[DietPage] Erro ao carregar foodDatabase:", error);
+    });
+  }, [loadFoodDatabase, resolvedFoodDatabase.length]);
   const {
     dailyNutrition,
     selectedMealId,
@@ -168,9 +183,7 @@ export function DietPage() {
           onClose={handleCloseFoodSearch}
           selectedMealId={foodSearchMealId || selectedMealId}
           meals={dailyNutrition.meals}
-          foodDatabase={
-            (Array.isArray(foodDatabase) ? foodDatabase : []) as FoodItem[]
-          }
+          foodDatabase={resolvedFoodDatabase}
           onSelectMeal={(mealId) => {
             setSelectedMealId(mealId);
             setFoodSearchMealId(mealId);

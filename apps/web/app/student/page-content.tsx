@@ -54,6 +54,11 @@ import type {
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
 
+function HomeTabPrioritizedLoader() {
+  useLoadPrioritized({ context: "home" });
+  return null;
+}
+
 /**
  * Componente de Conteúdo da Home do Student
  *
@@ -67,8 +72,6 @@ import type {
 function StudentHomeContent() {
   // Carregamento prioritizado: progress, workoutHistory, profile aparecem primeiro
   // Se dados já existem no store, só carrega o que falta
-  useLoadPrioritized({ context: "home" });
-
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
@@ -464,6 +467,7 @@ function StudentHomeContent() {
     >
       {tab === "home" && (
         <div className="mx-auto max-w-2xl space-y-6">
+          <HomeTabPrioritizedLoader />
           <FadeIn>
             <div className="text-center">
               <h1 className="mb-2 text-3xl font-bold text-duo-text">

@@ -9,6 +9,7 @@ import { Modal } from "@/components/organisms/modals/modal";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useStudent } from "@/hooks/use-student";
 import type { Meal, NutritionPlanData } from "@/lib/types";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { useStudentDetailStore } from "@/stores/student-detail-store";
 
 interface EditNutritionPlanModalProps {
@@ -66,16 +67,24 @@ export function EditNutritionPlanModal({
   apiMode = "student",
   studentId,
 }: EditNutritionPlanModalProps) {
-  const studentActions = useStudent("actions");
-  const {
-    loadNutritionLibraryPlans: loadStudentNutritionLibraryPlans,
-    loadActiveNutritionPlan: loadStudentActiveNutritionPlan,
-    loadNutrition: loadStudentNutrition,
-  } = useStudent("loaders");
+  const updateStudentNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.updateNutritionLibraryPlan,
+  );
+  const loadStudentNutritionLibraryPlans = useStudentUnifiedStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
+  const loadStudentActiveNutritionPlan = useStudentUnifiedStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const loadStudentNutrition = useStudentUnifiedStore(
+    (state) => state.loadNutrition,
+  );
   const studentFoodDatabase = useStudent("foodDatabase");
   const studentPlans =
     useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[];
-  const detailStore = useStudentDetailStore();
+  const updateDetailNutritionLibraryPlan = useStudentDetailStore(
+    (state) => state.updateNutritionLibraryPlan,
+  );
   const detailKey =
     apiMode !== "student" && studentId
       ? `${apiMode}:${studentId}` as const
@@ -114,12 +123,12 @@ export function EditNutritionPlanModal({
     meals?: Meal[];
   }) => {
     if (apiMode === "student") {
-      await studentActions.updateNutritionLibraryPlan(currentPlan.id, payload);
+      await updateStudentNutritionLibraryPlan(currentPlan.id, payload);
       await loadStudentNutritionLibraryPlans();
       await loadStudentActiveNutritionPlan();
       await loadStudentNutrition();
     } else if (studentId) {
-      await detailStore.updateNutritionLibraryPlan({
+      await updateDetailNutritionLibraryPlan({
         scope: apiMode,
         studentId,
         planId: currentPlan.id,
