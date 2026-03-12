@@ -475,6 +475,7 @@ export function FoodSearchChat({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const approveInFlightRef = useRef(false);
 
   const selectedMeal = localSelectedMealId
     ? meals.find((meal) => meal.id === localSelectedMealId) ?? null
@@ -779,10 +780,15 @@ export function FoodSearchChat({
   };
 
   const handleApprove = async () => {
-    if (!pendingNutritionPlan || pendingNutritionPlan.meals.length === 0) {
+    if (
+      approveInFlightRef.current ||
+      !pendingNutritionPlan ||
+      pendingNutritionPlan.meals.length === 0
+    ) {
       return;
     }
 
+    approveInFlightRef.current = true;
     setIsApproving(true);
 
     try {
@@ -821,6 +827,7 @@ export function FoodSearchChat({
         },
       ]);
     } finally {
+      approveInFlightRef.current = false;
       setIsApproving(false);
     }
   };

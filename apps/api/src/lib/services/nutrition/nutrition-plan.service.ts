@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   getBrazilNutritionDateKey,
@@ -103,6 +103,40 @@ class NutritionDomainError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+function isRetryableNutritionTransactionError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2028"
+  );
+}
+
+async function retryNutritionWrite<T>(
+  operation: () => Promise<T>,
+  label: string,
+  maxAttempts: number = 2,
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (!isRetryableNutritionTransactionError(error) || attempt >= maxAttempts) {
+        throw error;
+      }
+
+      console.warn(
+        `[nutrition] Retry ${attempt}/${maxAttempts - 1} for ${label} after Prisma transaction race`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+    }
+  }
+
+  throw lastError;
 }
 
 function normalizeFoods(
@@ -693,23 +727,25 @@ export async function updateNutritionLibraryPlan(
     meals?: NutritionMealInput[];
   },
 ) {
-  await db.$transaction(async (tx) => {
-    if (updates.title !== undefined || updates.description !== undefined) {
-      await tx.nutritionPlan.update({
-        where: { id: planId },
-        data: {
-          ...(updates.title !== undefined && { title: updates.title }),
-          ...(updates.description !== undefined && {
-            description: updates.description,
-          }),
-        },
-      });
-    }
+  await retryNutritionWrite(async () => {
+    await db.$transaction(async (tx) => {
+      if (updates.title !== undefined || updates.description !== undefined) {
+        await tx.nutritionPlan.update({
+          where: { id: planId },
+          data: {
+            ...(updates.title !== undefined && { title: updates.title }),
+            ...(updates.description !== undefined && {
+              description: updates.description,
+            }),
+          },
+        });
+      }
 
-    if (updates.meals !== undefined) {
-      await replaceNutritionPlanMeals(tx, planId, updates.meals);
-    }
-  });
+      if (updates.meals !== undefined) {
+        await replaceNutritionPlanMeals(tx, planId, updates.meals);
+      }
+    });
+  }, `updateNutritionLibraryPlan:${planId}`);
 
   await syncActiveNutritionPlanFromLibrary(planId);
 

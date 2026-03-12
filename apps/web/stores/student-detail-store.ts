@@ -15,6 +15,8 @@ import {
 } from "@/lib/utils/nutrition/nutrition-plan";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
+const pendingDetailNutritionLibraryUpdates = new Map<string, Promise<void>>();
+
 export type StudentDetailScope = "gym" | "personal";
 
 type DetailKey = `${StudentDetailScope}:${string}`;
@@ -747,6 +749,14 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
 
   updateNutritionLibraryPlan: async ({ scope, studentId, planId, payload }) => {
     const key = createStudentDetailKey(scope, studentId);
+    const requestKey = `${scope}:${studentId}:${planId}`;
+    const pendingRequest =
+      pendingDetailNutritionLibraryUpdates.get(requestKey);
+    if (pendingRequest) {
+      await pendingRequest;
+      return;
+    }
+
     const previousPlans = get().nutritionLibraryPlans[key] ?? [];
     const currentDate = getBrazilNutritionDateKey();
     const previousActivePlan = get().activeNutritionPlans[key] ?? null;
@@ -779,64 +789,74 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
       }));
     }
 
-    try {
-      const response = await apiClient.patch<{
-        data?: NutritionPlanData;
-      }>(`${getNutritionLibraryBase(scope, studentId)}/${planId}`, {
-        ...(payload.title !== undefined && { title: payload.title }),
-        ...(payload.description !== undefined && {
-          description: payload.description,
-        }),
-        ...(payload.meals && { meals: toApiMeals(payload.meals) }),
-      });
-
-      const updatedPlan = response.data.data ?? null;
-      if (updatedPlan) {
-        const syncedState = syncLinkedNutritionState({
-          currentActivePlan: get().activeNutritionPlans[key] ?? null,
-          updatedLibraryPlan: updatedPlan,
-          currentNutrition: get().nutritionByDate[key]?.[currentDate] ?? null,
-          currentDate,
+    const request = (async () => {
+      try {
+        const response = await apiClient.patch<{
+          data?: NutritionPlanData;
+        }>(`${getNutritionLibraryBase(scope, studentId)}/${planId}`, {
+          ...(payload.title !== undefined && { title: payload.title }),
+          ...(payload.description !== undefined && {
+            description: payload.description,
+          }),
+          ...(payload.meals && { meals: toApiMeals(payload.meals) }),
         });
 
+        const updatedPlan = response.data.data ?? null;
+        if (updatedPlan) {
+          const syncedState = syncLinkedNutritionState({
+            currentActivePlan: get().activeNutritionPlans[key] ?? null,
+            updatedLibraryPlan: updatedPlan,
+            currentNutrition: get().nutritionByDate[key]?.[currentDate] ?? null,
+            currentDate,
+          });
+
+          set((state) => ({
+            nutritionLibraryPlans: {
+              ...state.nutritionLibraryPlans,
+              [key]: upsertLibraryPlan(
+                state.nutritionLibraryPlans[key] ?? [],
+                updatedPlan,
+              ),
+            },
+            activeNutritionPlans: {
+              ...state.activeNutritionPlans,
+              [key]: syncedState.activeNutritionPlan,
+            },
+            nutritionByDate: {
+              ...state.nutritionByDate,
+              [key]: {
+                ...(state.nutritionByDate[key] ?? {}),
+                [currentDate]: syncedState.dailyNutrition,
+              },
+            },
+          }));
+        }
+      } catch (error) {
         set((state) => ({
           nutritionLibraryPlans: {
             ...state.nutritionLibraryPlans,
-            [key]: upsertLibraryPlan(state.nutritionLibraryPlans[key] ?? [], updatedPlan),
+            [key]: previousPlans,
           },
           activeNutritionPlans: {
             ...state.activeNutritionPlans,
-            [key]: syncedState.activeNutritionPlan,
+            [key]: previousActivePlan,
           },
           nutritionByDate: {
             ...state.nutritionByDate,
             [key]: {
               ...(state.nutritionByDate[key] ?? {}),
-              [currentDate]: syncedState.dailyNutrition,
+              [currentDate]: previousNutrition,
             },
           },
         }));
+        throw error;
+      } finally {
+        pendingDetailNutritionLibraryUpdates.delete(requestKey);
       }
-    } catch (error) {
-      set((state) => ({
-        nutritionLibraryPlans: {
-          ...state.nutritionLibraryPlans,
-          [key]: previousPlans,
-        },
-        activeNutritionPlans: {
-          ...state.activeNutritionPlans,
-          [key]: previousActivePlan,
-        },
-        nutritionByDate: {
-          ...state.nutritionByDate,
-          [key]: {
-            ...(state.nutritionByDate[key] ?? {}),
-            [currentDate]: previousNutrition,
-          },
-        },
-      }));
-      throw error;
-    }
+    })();
+
+    pendingDetailNutritionLibraryUpdates.set(requestKey, request);
+    await request;
   },
 
   deleteNutritionLibraryPlan: async ({ scope, studentId, planId }) => {

@@ -13,6 +13,8 @@ import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { deduplicateMeals, loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
 
+const pendingNutritionLibraryUpdates = new Map<string, Promise<void>>();
+
 function toApiMeals(meals: Meal[]) {
   return meals.map((meal, index) => ({
     name: meal.name || "Refeicao",
@@ -297,6 +299,13 @@ export function createNutritionSlice(
     },
 
     updateNutritionLibraryPlan: async (planId, data) => {
+      const requestKey = `student:${planId}`;
+      const pendingRequest = pendingNutritionLibraryUpdates.get(requestKey);
+      if (pendingRequest) {
+        await pendingRequest;
+        return;
+      }
+
       const previousPlans = get().data.nutritionLibraryPlans;
       const previousActiveNutritionPlan = get().data.activeNutritionPlan;
       const previousNutrition = get().data.dailyNutrition;
@@ -332,48 +341,55 @@ export function createNutritionSlice(
         }));
       }
 
-      try {
-        const response = await apiClient.patch<{
-          data?: NutritionPlanData;
-        }>(`/api/nutrition/library/${planId}`, {
-          ...(data.title !== undefined && { title: data.title }),
-          ...(data.description !== undefined && {
-            description: data.description,
-          }),
-          ...(data.meals && { meals: toApiMeals(data.meals) }),
-        });
-
-        const updatedPlan = response.data.data ?? null;
-        if (updatedPlan) {
-          const syncedState = syncLinkedActivePlan({
-            currentActivePlan: get().data.activeNutritionPlan,
-            updatedLibraryPlan: updatedPlan,
-            currentNutrition: get().data.dailyNutrition,
+      const request = (async () => {
+        try {
+          const response = await apiClient.patch<{
+            data?: NutritionPlanData;
+          }>(`/api/nutrition/library/${planId}`, {
+            ...(data.title !== undefined && { title: data.title }),
+            ...(data.description !== undefined && {
+              description: data.description,
+            }),
+            ...(data.meals && { meals: toApiMeals(data.meals) }),
           });
 
+          const updatedPlan = response.data.data ?? null;
+          if (updatedPlan) {
+            const syncedState = syncLinkedActivePlan({
+              currentActivePlan: get().data.activeNutritionPlan,
+              updatedLibraryPlan: updatedPlan,
+              currentNutrition: get().data.dailyNutrition,
+            });
+
+            set((state) => ({
+              data: {
+                ...state.data,
+                nutritionLibraryPlans: upsertNutritionLibraryPlan(
+                  state.data.nutritionLibraryPlans,
+                  updatedPlan,
+                ),
+                activeNutritionPlan: syncedState.activeNutritionPlan,
+                dailyNutrition: syncedState.dailyNutrition,
+              },
+            }));
+          }
+        } catch (error) {
           set((state) => ({
             data: {
               ...state.data,
-              nutritionLibraryPlans: upsertNutritionLibraryPlan(
-                state.data.nutritionLibraryPlans,
-                updatedPlan,
-              ),
-              activeNutritionPlan: syncedState.activeNutritionPlan,
-              dailyNutrition: syncedState.dailyNutrition,
+              nutritionLibraryPlans: previousPlans,
+              activeNutritionPlan: previousActiveNutritionPlan,
+              dailyNutrition: previousNutrition,
             },
           }));
+          throw error;
+        } finally {
+          pendingNutritionLibraryUpdates.delete(requestKey);
         }
-      } catch (error) {
-        set((state) => ({
-          data: {
-            ...state.data,
-            nutritionLibraryPlans: previousPlans,
-            activeNutritionPlan: previousActiveNutritionPlan,
-            dailyNutrition: previousNutrition,
-          },
-        }));
-        throw error;
-      }
+      })();
+
+      pendingNutritionLibraryUpdates.set(requestKey, request);
+      await request;
     },
 
     deleteNutritionLibraryPlan: async (planId) => {
