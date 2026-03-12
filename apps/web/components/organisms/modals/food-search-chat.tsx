@@ -1,16 +1,30 @@
 "use client";
 
-import { Loader2, Send, Sparkles } from "lucide-react";
+import {
+  Check,
+  Loader2,
+  RotateCcw,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
-import { parsedFoodToFoodItem } from "@/lib/ai/parsers/nutrition-parser";
+import {
+  buildNutritionPreviewPlan,
+  getNutritionMealName,
+  getNutritionMealTime,
+  parsedFoodToFoodItem,
+  type NutritionPreviewMeal,
+  type NutritionPreviewPlan,
+} from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
 import type { DietType, FoodItem, Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import { NutritionPreviewCard } from "./nutrition-preview-card";
 
 interface FoodSearchChatProps {
   onAddFood: (
@@ -46,49 +60,79 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  nutritionPreview?: NutritionPreviewMeal;
+  nutritionPreviewIndex?: number;
 }
 
-interface ExtractedFood {
-  name: string;
-  servings: number;
-  mealType: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-  servingSize: string;
-  category:
-    | "protein"
-    | "carbs"
-    | "vegetables"
-    | "fruits"
-    | "fats"
-    | "dairy"
-    | "snacks";
-  confidence: number;
+const EMPTY_MEALS: Meal[] = [];
+
+function replacePreviewMessages(
+  messages: ChatMessage[],
+  previewMeals: NutritionPreviewMeal[],
+): ChatMessage[] {
+  const baseMessages = messages.filter((message) => !message.nutritionPreview);
+
+  return [
+    ...baseMessages,
+    ...previewMeals.map((meal, index) => ({
+      id: `nutrition-preview-${meal.type}-${index}`,
+      role: "assistant" as const,
+      content: "",
+      timestamp: new Date(),
+      nutritionPreview: meal,
+      nutritionPreviewIndex: index,
+    })),
+  ];
+}
+
+function cloneMeal(meal: Meal): Meal {
+  return {
+    ...meal,
+    foods: [...(meal.foods || [])],
+  };
+}
+
+function buildDailyTotals(meals: Meal[]) {
+  const completedMeals = meals.filter((meal) => meal.completed);
+
+  return {
+    totalCalories: completedMeals.reduce(
+      (sum, meal) => sum + (meal.calories || 0),
+      0,
+    ),
+    totalProtein: completedMeals.reduce(
+      (sum, meal) => sum + (meal.protein || 0),
+      0,
+    ),
+    totalCarbs: completedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0),
+    totalFats: completedMeals.reduce((sum, meal) => sum + (meal.fats || 0), 0),
+  };
 }
 
 export function FoodSearchChat({
-  onAddFood,
+  onAddFood: _onAddFood,
   onAddMeal: _onAddMeal,
   onClose,
   selectedMealId,
-  meals: initialMeals = [],
+  meals: initialMeals = EMPTY_MEALS,
   onSelectMeal,
   chatStreamUrl = "/api/nutrition/chat-stream",
   onApplyNutrition,
   contextMode = "student",
 }: FoodSearchChatProps) {
-  // Buscar meals atualizados do store para ter dados sempre atualizados
-  const storeMeals =
-    (useStudent("dailyNutrition") as { meals?: Meal[] } | null)?.meals || [];
+  const studentDailyNutrition =
+    (useStudent("dailyNutrition") as { meals?: Meal[] } | null) ?? null;
+  const storeMeals = Array.isArray(studentDailyNutrition?.meals)
+    ? studentDailyNutrition.meals
+    : EMPTY_MEALS;
   const meals =
     contextMode === "student" && storeMeals.length > 0
       ? storeMeals
       : initialMeals;
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: "init",
+      id: "nutrition-chat-init",
       role: "assistant",
       content: NUTRITION_INITIAL_MESSAGE,
       timestamp: new Date(),
@@ -96,7 +140,11 @@ export function FoodSearchChat({
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [extractedFoods, setExtractedFoods] = useState<ExtractedFood[]>([]);
+  const [isApproving, setIsApproving] = useState(false);
+  const [previewMeals, setPreviewMeals] = useState<NutritionPreviewMeal[]>([]);
+  const [pendingNutritionPlan, setPendingNutritionPlan] =
+    useState<NutritionPreviewPlan | null>(null);
+  const [allPreviewComplete, setAllPreviewComplete] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       role: "user" | "assistant";
@@ -106,185 +154,98 @@ export function FoodSearchChat({
   const [remainingMessages, setRemainingMessages] = useState<number | null>(
     null,
   );
-  const [pendingFoodsToAdd, setPendingFoodsToAdd] = useState<{
-    foodsByMealType: Record<
-      string,
-      Array<{ food: FoodItem; servings: number }>
-    >;
-    mealsToCreate: Array<{ name: string; type: string; time?: string }>;
-  } | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [localSelectedMealId, setLocalSelectedMealId] = useState<string | null>(
     selectedMealId ?? null,
   );
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selectedMeal = localSelectedMealId
+    ? meals.find((meal) => meal.id === localSelectedMealId) ?? null
+    : null;
 
   useEffect(() => {
     setLocalSelectedMealId(selectedMealId ?? null);
   }, [selectedMealId]);
 
-  // Scroll para última mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  }, [messages, isProcessing]);
 
-  // Focus no input ao montar
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Observar mudanças nos meals para adicionar alimentos após criação de refeições
-  useEffect(() => {
-    if (!pendingFoodsToAdd) return;
-
-    const { foodsByMealType, mealsToCreate } = pendingFoodsToAdd;
-
-    console.log("[FoodSearchChat] Verificando se refeições foram criadas:", {
-      mealsCount: meals.length,
-      mealsToCreate: mealsToCreate.length,
-      currentMeals: meals.map((m: Meal) => ({
-        id: m.id,
-        type: m.type,
-        name: m.name,
-      })),
-      mealsToCreateTypes: mealsToCreate.map((m) => m.type),
-    });
-
-    // Verificar se todas as refeições foram criadas
-    const allMealsCreated = mealsToCreate.every((mealToCreate) =>
-      meals.some((m: Meal) => m.type === mealToCreate.type),
+  const buildPreviewPlan = (foods: Array<Record<string, unknown>>) =>
+    buildNutritionPreviewPlan(
+      foods as unknown as Parameters<typeof buildNutritionPreviewPlan>[0],
+      {
+        fallbackMealType: selectedMeal?.type ?? null,
+        existingMeals: meals.map((meal) => ({
+          type: meal.type,
+          name: meal.name,
+          time: meal.time,
+        })),
+      },
     );
-
-    if (allMealsCreated && meals.length > 0) {
-      console.log(
-        "[FoodSearchChat] ✅ Todas as refeições foram criadas, adicionando alimentos agora",
-      );
-
-      // Adicionar alimentos nas refeições criadas
-      let allFoodsAdded = true;
-      Object.entries(foodsByMealType).forEach(([mealType, foods]) => {
-        const meal = meals.find((m: Meal) => m.type === mealType);
-        if (meal) {
-          console.log(
-            `[FoodSearchChat] Adicionando ${foods.length} alimento(s) na refeição ${meal.name} (${meal.id})`,
-          );
-          onAddFood(foods, [meal.id]);
-        } else {
-          console.error(
-            `[FoodSearchChat] ❌ ERRO: Refeição do tipo ${mealType} não encontrada após criação`,
-          );
-          allFoodsAdded = false;
-        }
-      });
-
-      if (allFoodsAdded) {
-        // Limpar estado pendente apenas se todos os alimentos foram adicionados
-        setPendingFoodsToAdd(null);
-        console.log(
-          "[FoodSearchChat] ✅ Todos os alimentos foram adicionados, fechando modal",
-        );
-        onClose();
-      } else {
-        console.error("[FoodSearchChat] ❌ Erro ao adicionar alguns alimentos");
-      }
-    } else {
-      const missingMeals = mealsToCreate.filter(
-        (mealToCreate) =>
-          !meals.some((m: Meal) => m.type === mealToCreate.type),
-      );
-      console.log(
-        "[FoodSearchChat] ⏳ Ainda aguardando criação de refeições...",
-        {
-          allMealsCreated,
-          mealsLength: meals.length,
-          missingMeals: missingMeals.map((m) => m.type),
-        },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meals, pendingFoodsToAdd, onAddFood, onClose]);
-
-  // Timeout de segurança: se após 5 segundos ainda não adicionou, fechar
-  useEffect(() => {
-    if (!pendingFoodsToAdd) return;
-
-    const timeoutId = setTimeout(() => {
-      console.warn(
-        "[FoodSearchChat] Timeout ao aguardar criação de refeições após 5 segundos",
-      );
-      console.warn("[FoodSearchChat] Estado pendente:", pendingFoodsToAdd);
-      console.warn(
-        "[FoodSearchChat] Meals atuais:",
-        meals.map((m: Meal) => ({ id: m.id, type: m.type, name: m.name })),
-      );
-      setPendingFoodsToAdd(null);
-      onClose();
-    }, 5000); // Aumentado para 5 segundos para dar mais tempo
-
-    return () => clearTimeout(timeoutId);
-  }, [pendingFoodsToAdd, onClose, meals]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isProcessing) return;
 
     const userMessage = inputMessage.trim();
+    const assistantMessageId = `nutrition-assistant-${Date.now()}`;
     const streamRequestKey = `nutrition-chat:${localSelectedMealId ?? "all"}`;
-    setInputMessage("");
 
-    // Adicionar mensagem do usuário
-    const newUserMessage: ChatMessage = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: userMessage,
-      timestamp: new Date(),
-    };
-    setMessages((prev) => [...prev, newUserMessage]);
+    setInputMessage("");
+    setAllPreviewComplete(false);
+    setPreviewMeals([]);
+    setPendingNutritionPlan(null);
+
+    const nextMessages = replacePreviewMessages(
+      [
+        ...messages,
+        {
+          id: `nutrition-user-${Date.now()}`,
+          role: "user",
+          content: userMessage,
+          timestamp: new Date(),
+        },
+        {
+          id: assistantMessageId,
+          role: "assistant",
+          content: "Montando refeicoes...",
+          timestamp: new Date(),
+        },
+      ],
+      [],
+    );
+
+    setMessages(nextMessages);
     setConversationHistory((prev) => [
       ...prev,
       { role: "user", content: userMessage },
     ]);
-
     setIsProcessing(true);
 
     try {
-      const existingMeals = meals.map((m: Meal) => ({
-        type: m.type,
-        name: m.name,
-      }));
-
-      let selectedMealInfo = null;
-      if (localSelectedMealId) {
-        const selectedMeal = meals.find(
-          (m: Meal) => m.id === localSelectedMealId,
-        );
-        if (selectedMeal) {
-          selectedMealInfo = {
-            id: selectedMeal.id,
-            type: selectedMeal.type,
-            name: selectedMeal.name,
-          };
-        }
-      }
-
-      // Placeholder — igual ao workout: status atualiza; tokens ignorados (resposta é JSON); alimentos via food_progress
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: "Identificando alimentos...",
-          timestamp: new Date(),
-        },
-      ]);
-
       const response = await useAssistantTransportStore.getState().openSse({
         key: streamRequestKey,
         url: chatStreamUrl,
         body: {
           message: userMessage,
           conversationHistory,
-          existingMeals,
-          selectedMeal: selectedMealInfo,
+          existingMeals: meals.map((meal) => ({
+            type: meal.type,
+            name: meal.name,
+          })),
+          selectedMeal: selectedMeal
+            ? {
+                id: selectedMeal.id,
+                type: selectedMeal.type,
+                name: selectedMeal.name,
+              }
+            : null,
         },
       });
 
@@ -296,14 +257,13 @@ export function FoodSearchChat({
       const contentType = response.headers.get("content-type") || "";
       if (!contentType.includes("text/event-stream")) {
         const fallbackText = await response.text();
-        throw new Error(fallbackText || "Resposta inválida do servidor.");
+        throw new Error(fallbackText || "Resposta invalida do servidor.");
       }
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       if (!reader) {
-        const fallbackText = await response.text();
-        throw new Error(fallbackText || "Stream não disponível");
+        throw new Error("Stream nao disponivel");
       }
 
       let buffer = "";
@@ -314,440 +274,247 @@ export function FoodSearchChat({
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() || "";
 
-        for (const block of lines) {
+        for (const block of chunks) {
           if (!block.trim()) continue;
+
           const eventMatch = block.match(/event: (\w+)/);
           const dataLine = block
             .split("\n")
-            .find((l) => l.startsWith("data: "));
+            .find((line) => line.startsWith("data: "));
           const event = eventMatch?.[1];
-          const dataStr = dataLine?.slice(6); // "data: ".length
+          const dataStr = dataLine?.slice(6);
+
           if (!event || !dataStr) continue;
 
-          try {
-            const data = JSON.parse(dataStr);
-            if (event === "status" && data.message) {
-              setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last?.role === "assistant") {
-                  next[next.length - 1] = {
-                    ...last,
-                    content: data.message,
-                  };
-                }
-                return next;
-              });
-            } else if (event === "token" && data.delta) {
-              fullMessage += data.delta;
-              // Não exibir tokens no chat — resposta é JSON; alimentos vêm via food_progress
-            } else if (event === "food_progress" && data.foods) {
-              setExtractedFoods(data.foods);
-            } else if (event === "complete") {
-              const finalMessage = data.message || fullMessage;
-              setMessages((prev) => {
-                const next = [...prev];
-                const last = next[next.length - 1];
-                if (last?.role === "assistant") {
-                  next[next.length - 1] = {
-                    ...last,
-                    content: finalMessage || "Alimentos identificados.",
-                  };
-                }
-                return next;
-              });
-              setConversationHistory((prev) => [
-                ...prev,
-                { role: "assistant", content: finalMessage },
-              ]);
-              if (data.foods?.length > 0) setExtractedFoods(data.foods);
-              if (data.remainingMessages != null)
-                setRemainingMessages(data.remainingMessages);
-            } else if (event === "error") {
-              throw new Error(data.error || "Erro ao processar");
-            }
-          } catch (e) {
-            if (e instanceof Error && event === "error") throw e;
+          const data = JSON.parse(dataStr) as {
+            error?: string;
+            message?: string;
+            delta?: string;
+            foods?: Array<Record<string, unknown>>;
+            remainingMessages?: number | null;
+          };
+
+          if (event === "status" && data.message) {
+            setMessages((prev) =>
+              prev.map((message) =>
+                message.id === assistantMessageId
+                  ? { ...message, content: data.message ?? message.content }
+                  : message,
+              ),
+            );
+            continue;
+          }
+
+          if (event === "token" && data.delta) {
+            fullMessage += data.delta;
+            continue;
+          }
+
+          if (event === "food_progress" && Array.isArray(data.foods)) {
+            const previewPlan = buildPreviewPlan(data.foods);
+            setPreviewMeals(previewPlan.meals);
+            setMessages((prev) =>
+              replacePreviewMessages(prev, previewPlan.meals),
+            );
+            continue;
+          }
+
+          if (event === "complete") {
+            const finalMessage =
+              data.message || fullMessage || "Plano alimentar montado.";
+            const previewPlan = buildPreviewPlan(data.foods || []);
+
+            setPreviewMeals(previewPlan.meals);
+            setPendingNutritionPlan(
+              previewPlan.meals.length > 0 ? previewPlan : null,
+            );
+            setAllPreviewComplete(previewPlan.meals.length > 0);
+            setRemainingMessages(data.remainingMessages ?? null);
+            setConversationHistory((prev) => [
+              ...prev,
+              { role: "assistant", content: finalMessage },
+            ]);
+            setMessages((prev) =>
+              replacePreviewMessages(
+                prev.map((message) =>
+                  message.id === assistantMessageId
+                    ? { ...message, content: finalMessage }
+                    : message,
+                ),
+                previewPlan.meals,
+              ),
+            );
+            continue;
+          }
+
+          if (event === "error") {
+            throw new Error(data.error || "Erro ao processar mensagem");
           }
         }
       }
-
-      // Garantir que a mensagem final está no histórico
-      setConversationHistory((prev) => {
-        if (prev[prev.length - 1]?.role !== "assistant") {
-          return [
-            ...prev,
-            { role: "assistant" as const, content: fullMessage },
-          ];
-        }
-        return prev;
-      });
     } catch (error) {
       console.error("[FoodSearchChat] Erro:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Desculpe, ocorreu um erro. Tente novamente.";
 
-      const err = error instanceof Error ? error : new Error(String(error));
-      const errorContent =
-        (err as { response?: { data?: { message?: string }; status?: number } })
-          ?.response?.data?.message ||
-        err.message ||
-        "Desculpe, ocorreu um erro. Tente novamente.";
-      const is429 =
-        (err as { response?: { status?: number } })?.response?.status === 429;
-
-      setMessages((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last?.role === "assistant" && last.content === "") {
-          next[next.length - 1] = {
-            ...last,
-            content: is429
-              ? "Você atingiu o limite de 20 mensagens por dia. Tente novamente amanhã."
-              : errorContent,
-            timestamp: new Date(),
-          };
-          return next;
-        }
-        return [
-          ...prev,
-          {
-            id: `assistant-error-${Date.now()}`,
-            role: "assistant" as const,
-            content: is429
-              ? "Você atingiu o limite de 20 mensagens por dia. Tente novamente amanhã."
-              : errorContent,
-            timestamp: new Date(),
-          },
-        ];
-      });
+      setMessages((prev) =>
+        replacePreviewMessages(
+          prev.map((chatMessage) =>
+            chatMessage.id === assistantMessageId
+              ? { ...chatMessage, content: message }
+              : chatMessage,
+          ),
+          [],
+        ),
+      );
     } finally {
       useAssistantTransportStore.getState().finishRequest(streamRequestKey);
       setIsProcessing(false);
     }
   };
 
-  const handleConfirmAdd = async () => {
-    if (extractedFoods.length === 0) return;
+  const handleRefazer = () => {
+    const refazerMessage =
+      "O que voce quer ajustar? Posso trocar alimentos, distribuir melhor os macros ou reorganizar as refeicoes.";
 
-    console.log("[FoodSearchChat] Iniciando adição de alimentos:", {
-      extractedFoodsCount: extractedFoods.length,
-      currentMealsCount: meals.length,
-      selectedMealId: localSelectedMealId,
-      currentMeals: meals.map((m: Meal) => ({
-        id: m.id,
-        type: m.type,
-        name: m.name,
-      })),
-    });
-
-    // Buscar refeição selecionada para usar como fallback
-    const selectedMeal = localSelectedMealId
-      ? meals.find((m: Meal) => m.id === localSelectedMealId)
-      : null;
-
-    // Se houver refeição selecionada e algum alimento não especificar mealType,
-    // usar a refeição selecionada como padrão
-    const processedFoods = extractedFoods.map((extracted) => {
-      // Se o mealType não foi especificado ou está vazio, usar a refeição selecionada
-      if (!extracted.mealType && selectedMeal && selectedMeal.type) {
-        console.log(
-          `[FoodSearchChat] Alimento "${extracted.name}" não especificou refeição, usando refeição selecionada: ${selectedMeal.name} (${selectedMeal.type})`,
-        );
-        return {
-          ...extracted,
-          mealType: selectedMeal.type,
-        };
-      }
-      return extracted;
-    });
-
-    // Agrupar alimentos por tipo de refeição
-    const foodsByMealType = processedFoods.reduce(
-      (acc, extracted) => {
-        const mealType = extracted.mealType || (selectedMeal?.type ?? "snack");
-        if (!acc[mealType]) {
-          acc[mealType] = [];
-        }
-        acc[mealType].push(extracted);
-        return acc;
-      },
-      {} as Record<string, ExtractedFood[]>,
+    setPreviewMeals([]);
+    setPendingNutritionPlan(null);
+    setAllPreviewComplete(false);
+    setMessages((prev) =>
+      replacePreviewMessages(
+        [
+          ...prev,
+          {
+            id: `nutrition-refazer-${Date.now()}`,
+            role: "assistant",
+            content: refazerMessage,
+            timestamp: new Date(),
+          },
+        ],
+        [],
+      ),
     );
+    setConversationHistory((prev) => [
+      ...prev,
+      { role: "assistant", content: refazerMessage },
+    ]);
+  };
 
-    const mealsToCreate: Array<{
-      name: string;
-      type: string;
-      time?: string;
-    }> = [];
-    const foodsToAddByMealType: Record<
-      string,
-      Array<{
-        food: FoodItem;
-        servings: number;
-      }>
-    > = {};
+  const handleApprove = async () => {
+    if (!pendingNutritionPlan || pendingNutritionPlan.meals.length === 0) {
+      return;
+    }
 
-    // Processar cada tipo de refeição
-    Object.entries(foodsByMealType).forEach(([mealType, foods]) => {
-      // Verificar se refeição existe
-      const existingMeal = meals.find((m: Meal) => m.type === mealType);
+    setIsApproving(true);
 
-      if (!existingMeal) {
-        // Criar refeição
-        const mealNames: Record<string, string> = {
-          breakfast: "Café da Manhã",
-          lunch: "Almoço",
-          dinner: "Jantar",
-          snack: "Lanche",
-          "afternoon-snack": "Café da Tarde",
-          "pre-workout": "Pré Treino",
-          "post-workout": "Pós Treino",
-        };
+    try {
+      const nextMeals = meals.map(cloneMeal);
 
-        mealsToCreate.push({
-          name: mealNames[mealType] || mealType,
-          type: mealType,
-          time: getDefaultTime(mealType),
-        });
-        console.log(
-          `[FoodSearchChat] Refeição ${mealType} não existe, será criada`,
-        );
-      } else {
-        console.log(
-          `[FoodSearchChat] Refeição ${mealType} já existe: ${existingMeal.name} (${existingMeal.id})`,
-        );
-      }
+      pendingNutritionPlan.meals.forEach((previewMeal, mealIndex) => {
+        let targetMealIndex = -1;
 
-      // Converter alimentos extraídos para FoodItem (IA já retorna dados completos)
-      if (!foodsToAddByMealType[mealType]) {
-        foodsToAddByMealType[mealType] = [];
-      }
-
-      foods.forEach((extracted, idx) => {
-        const foodItem = parsedFoodToFoodItem(extracted, idx);
-        foodsToAddByMealType[mealType].push({
-          food: foodItem,
-          servings: extracted.servings,
-        });
-      });
-    });
-
-    // IMPORTANTE: Criar refeições COM alimentos já dentro, tudo de uma vez
-    // Isso evita problemas de timing e garante que tudo seja feito em uma única operação
-    if (mealsToCreate.length > 0) {
-      console.log(
-        "[FoodSearchChat] Criando refeições com alimentos já dentro:",
-        {
-          mealsToCreate: mealsToCreate.length,
-          foodsToAdd: Object.values(foodsToAddByMealType).flat().length,
-        },
-      );
-
-      // Buscar store atual para pegar meals existentes
-      const storeState = useStudentUnifiedStore.getState();
-      const currentNutrition = storeState.data.dailyNutrition;
-      const currentMeals: Meal[] = [...(currentNutrition?.meals || [])];
-
-      // Criar novas refeições COM alimentos já dentro
-      const newMeals = mealsToCreate.map((mealToCreate) => {
-        const foods = foodsToAddByMealType[mealToCreate.type] || [];
-
-        // Calcular totais dos alimentos
-        const totalCalories = foods.reduce(
-          (sum, { food, servings }) => sum + food.calories * servings,
-          0,
-        );
-        const totalProtein = foods.reduce(
-          (sum, { food, servings }) => sum + food.protein * servings,
-          0,
-        );
-        const totalCarbs = foods.reduce(
-          (sum, { food, servings }) => sum + food.carbs * servings,
-          0,
-        );
-        const totalFats = foods.reduce(
-          (sum, { food, servings }) => sum + food.fats * servings,
-          0,
-        );
-
-        // Criar refeição com alimentos já dentro
-        const meal: Meal = {
-          id: `meal-${Date.now()}-${Math.random()}`,
-          name: mealToCreate.name,
-          type: mealToCreate.type as DietType,
-          calories: totalCalories,
-          protein: totalProtein,
-          carbs: totalCarbs,
-          fats: totalFats,
-          completed: false,
-          time: mealToCreate.time,
-          foods: foods.map(({ food, servings }, idx) => ({
-            id: `food-${Date.now()}-${idx}-${Math.random()}`,
-            foodId: food.id,
-            foodName: food.name,
-            servings,
-            calories: food.calories * servings,
-            protein: food.protein * servings,
-            carbs: food.carbs * servings,
-            fats: food.fats * servings,
-            servingSize: food.servingSize,
-          })),
-        };
-        return meal;
-      });
-
-      // Adicionar refeições existentes que já têm alimentos
-      Object.entries(foodsToAddByMealType).forEach(([mealType, foods]) => {
-        const existingMeal = currentMeals.find(
-          (m: Meal) => m.type === mealType,
-        );
-        if (existingMeal) {
-          // Adicionar alimentos na refeição existente
-          const mealIndex = currentMeals.findIndex(
-            (m: Meal) => m.id === existingMeal.id,
+        if (
+          selectedMeal &&
+          previewMeal.type === selectedMeal.type &&
+          previewMeal.name === selectedMeal.name
+        ) {
+          targetMealIndex = nextMeals.findIndex(
+            (meal) => meal.id === selectedMeal.id,
           );
-          if (mealIndex !== -1) {
-            const newFoods = foods.map(({ food, servings }, idx) => ({
-              id: `food-${Date.now()}-${idx}-${Math.random()}`,
-              foodId: food.id,
-              foodName: food.name,
-              servings,
-              calories: food.calories * servings,
-              protein: food.protein * servings,
-              carbs: food.carbs * servings,
-              fats: food.fats * servings,
-              servingSize: food.servingSize,
-            }));
-
-            const updatedFoods = [...(existingMeal.foods || []), ...newFoods];
-            const totalNewCalories = newFoods.reduce(
-              (sum, f) => sum + f.calories,
-              0,
-            );
-            const totalNewProtein = newFoods.reduce(
-              (sum, f) => sum + f.protein,
-              0,
-            );
-            const totalNewCarbs = newFoods.reduce((sum, f) => sum + f.carbs, 0);
-            const totalNewFats = newFoods.reduce((sum, f) => sum + f.fats, 0);
-
-            const updatedMeal: Meal = {
-              ...existingMeal,
-              foods: updatedFoods,
-              calories: existingMeal.calories + totalNewCalories,
-              protein: existingMeal.protein + totalNewProtein,
-              carbs: existingMeal.carbs + totalNewCarbs,
-              fats: existingMeal.fats + totalNewFats,
-            };
-            currentMeals[mealIndex] = updatedMeal;
-          }
         }
+
+        if (targetMealIndex === -1) {
+          targetMealIndex = nextMeals.findIndex(
+            (meal) =>
+              meal.type === previewMeal.type && meal.name === previewMeal.name,
+          );
+        }
+
+        if (targetMealIndex === -1) {
+          targetMealIndex = nextMeals.findIndex(
+            (meal) => meal.type === previewMeal.type,
+          );
+        }
+
+        if (targetMealIndex === -1) {
+          nextMeals.push({
+            id: `meal-${Date.now()}-${mealIndex}`,
+            name: previewMeal.name || getNutritionMealName(previewMeal.type),
+            type: previewMeal.type as DietType,
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fats: 0,
+            completed: false,
+            time: previewMeal.time || getNutritionMealTime(previewMeal.type),
+            foods: [],
+          });
+          targetMealIndex = nextMeals.length - 1;
+        }
+
+        const meal = nextMeals[targetMealIndex];
+        const newFoods = previewMeal.foods.map((food, foodIndex) => {
+          const parsedFood = parsedFoodToFoodItem(
+            food,
+            meal.foods.length + foodIndex,
+          );
+          return {
+            id: `food-${Date.now()}-${mealIndex}-${foodIndex}`,
+            foodId: parsedFood.id,
+            foodName: parsedFood.name,
+            servings: food.servings,
+            calories: food.calories * food.servings,
+            protein: food.protein * food.servings,
+            carbs: food.carbs * food.servings,
+            fats: food.fats * food.servings,
+            servingSize: food.servingSize,
+          };
+        });
+
+        meal.foods = [...(meal.foods || []), ...newFoods];
+        meal.calories += newFoods.reduce((sum, food) => sum + food.calories, 0);
+        meal.protein += newFoods.reduce((sum, food) => sum + food.protein, 0);
+        meal.carbs += newFoods.reduce((sum, food) => sum + food.carbs, 0);
+        meal.fats += newFoods.reduce((sum, food) => sum + food.fats, 0);
       });
 
-      // Combinar todas as refeições (existentes atualizadas + novas)
-      const allMeals: Meal[] = [...currentMeals, ...newMeals];
-
-      // Calcular totais apenas de refeições completadas
-      const completedMeals = allMeals.filter((m: Meal) => m.completed === true);
-      const totals = {
-        totalCalories: completedMeals.reduce(
-          (sum: number, m: Meal) => sum + (m.calories || 0),
-          0,
-        ),
-        totalProtein: completedMeals.reduce(
-          (sum: number, m: Meal) => sum + (m.protein || 0),
-          0,
-        ),
-        totalCarbs: completedMeals.reduce(
-          (sum: number, m: Meal) => sum + (m.carbs || 0),
-          0,
-        ),
-        totalFats: completedMeals.reduce(
-          (sum: number, m: Meal) => sum + (m.fats || 0),
-          0,
-        ),
-      };
+      const totals = buildDailyTotals(nextMeals);
 
       if (onApplyNutrition) {
-        await onApplyNutrition({ meals: allMeals, totals });
-      } else {
-        // Atualizar store UMA ÚNICA VEZ com tudo
-        const { updateNutrition } = useStudentUnifiedStore.getState();
-        console.log("[FoodSearchChat] Atualizando store com", {
-          totalMeals: allMeals.length,
-          newMeals: newMeals.length,
-          foodsAdded: Object.values(foodsToAddByMealType).flat().length,
-        });
-
-        await updateNutrition({
-          meals: allMeals,
+        await onApplyNutrition({ meals: nextMeals, totals });
+      } else if (contextMode === "student") {
+        await useStudentUnifiedStore.getState().updateNutrition({
+          meals: nextMeals,
           ...totals,
         });
-      }
-
-      console.log(
-        "[FoodSearchChat] ✅ Refeições e alimentos adicionados com sucesso, fechando modal",
-      );
-      onClose();
-    } else {
-      // Todas as refeições já existem, adicionar diretamente
-      console.log(
-        "[FoodSearchChat] Todas as refeições já existem, adicionando alimentos diretamente",
-      );
-      let allFoodsAdded = true;
-
-      Object.entries(foodsToAddByMealType).forEach(([mealType, foods]) => {
-        const meal = meals.find((m: Meal) => m.type === mealType);
-        if (meal) {
-          console.log(
-            `[FoodSearchChat] Adicionando ${foods.length} alimento(s) na refeição ${meal.name} (${meal.id})`,
-          );
-          onAddFood(foods, [meal.id]);
-        } else {
-          console.error(
-            `[FoodSearchChat] ERRO: Refeição do tipo ${mealType} não encontrada mesmo após verificação`,
-          );
-          allFoodsAdded = false;
-        }
-      });
-
-      if (allFoodsAdded) {
-        console.log(
-          "[FoodSearchChat] Todos os alimentos foram adicionados, fechando modal",
-        );
-        onClose();
       } else {
-        console.error("[FoodSearchChat] Erro ao adicionar alguns alimentos");
+        throw new Error("Nao foi possivel aplicar o plano alimentar.");
       }
+
+      onClose();
+    } catch (error) {
+      console.error("[FoodSearchChat] Erro ao aprovar plano:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Erro ao aplicar plano alimentar.";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `nutrition-approve-error-${Date.now()}`,
+          role: "assistant",
+          content: message,
+          timestamp: new Date(),
+        },
+      ]);
+    } finally {
+      setIsApproving(false);
     }
-  };
-
-  const getDefaultTime = (mealType: string): string => {
-    const times: Record<string, string> = {
-      breakfast: "08:00",
-      lunch: "12:30",
-      dinner: "19:30",
-      snack: "15:00",
-      "afternoon-snack": "15:00",
-      "pre-workout": "17:00",
-      "post-workout": "18:30",
-    };
-    return times[mealType] || "12:00";
-  };
-
-  const getMealName = (mealType: string): string => {
-    const names: Record<string, string> = {
-      breakfast: "Café da Manhã",
-      lunch: "Almoço",
-      dinner: "Jantar",
-      snack: "Lanche",
-      "afternoon-snack": "Café da Tarde",
-      "pre-workout": "Pré Treino",
-      "post-workout": "Pós Treino",
-    };
-    return names[mealType] || mealType;
   };
 
   return (
@@ -771,20 +538,19 @@ export function FoodSearchChat({
             duration: 0.3,
           }}
           className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
           style={{
             maxHeight: "90vh",
             display: "flex",
             flexDirection: "column",
           }}
         >
-          {/* Header */}
           <div className="border-b-2 border-duo-border p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-duo-green" />
                 <h2 className="text-2xl font-bold text-duo-text">
-                  Chat IA - Nutrição
+                  Chat IA - Nutricao
                 </h2>
               </div>
               <button
@@ -792,28 +558,30 @@ export function FoodSearchChat({
                 onClick={onClose}
                 className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-duo-bg-elevated"
               >
-                ✕
+                x
               </button>
             </div>
+
             {remainingMessages !== null && remainingMessages >= 0 && (
               <div className="mt-2 text-xs">
                 {remainingMessages > 0 ? (
-                  <span className="text-duo-green font-bold">
+                  <span className="font-bold text-duo-green">
                     {remainingMessages} mensagem
                     {remainingMessages !== 1 ? "s" : ""} restante
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
-                    Limite diário atingido. Tente novamente amanhã.
+                  <span className="font-bold text-red-600">
+                    Limite diario atingido. Tente novamente amanha.
                   </span>
                 )}
               </div>
             )}
+
             {meals.length > 0 && (
               <div className="mt-4">
                 <div className="mb-2 text-xs font-bold text-duo-fg-muted">
-                  Selecionar refeição (opcional)
+                  Refeicao padrao (opcional)
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <DuoButton
@@ -824,7 +592,7 @@ export function FoodSearchChat({
                       onSelectMeal?.(null);
                     }}
                     className={cn(
-                      "rounded-lg border-2 px-3 py-1.5 text-xs min-h-0",
+                      "min-h-0 rounded-lg border-2 px-3 py-1.5 text-xs",
                       !localSelectedMealId
                         ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
                         : "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
@@ -834,6 +602,7 @@ export function FoodSearchChat({
                   </DuoButton>
                   {meals.map((meal) => {
                     const isSelected = localSelectedMealId === meal.id;
+
                     return (
                       <DuoButton
                         key={meal.id}
@@ -844,13 +613,13 @@ export function FoodSearchChat({
                           onSelectMeal?.(meal.id);
                         }}
                         className={cn(
-                          "rounded-lg border-2 px-3 py-1.5 text-xs min-h-0",
+                          "min-h-0 rounded-lg border-2 px-3 py-1.5 text-xs",
                           isSelected
                             ? "border-duo-green bg-duo-green/10 text-duo-green shadow-[0_2px_0_#58A700]"
                             : "border-duo-border bg-duo-bg-card text-duo-text hover:border-duo-green/50",
                         )}
                       >
-                        {getMealName(meal.type)} ({meal.name})
+                        {meal.name}
                       </DuoButton>
                     );
                   })}
@@ -859,35 +628,103 @@ export function FoodSearchChat({
             )}
           </div>
 
-          {/* Messages */}
           <div
-            className="flex-1 overflow-y-auto p-6 space-y-4"
+            className="flex-1 space-y-4 overflow-y-auto p-6"
             style={{ maxHeight: "50vh" }}
           >
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${
-                  msg.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                    msg.role === "user"
-                      ? "bg-duo-green text-white"
-                      : "bg-duo-bg-elevated text-duo-text"
+            {messages.map((message, index) => {
+              if (message.nutritionPreview) {
+                const previewIndex =
+                  typeof message.nutritionPreviewIndex === "number"
+                    ? message.nutritionPreviewIndex
+                    : index;
+
+                return (
+                  <div
+                    key={`${message.id}-${previewIndex}-${message.nutritionPreview.type}`}
+                    className="flex justify-start"
+                  >
+                    <div className="w-full max-w-[92%]">
+                      <NutritionPreviewCard
+                        meal={message.nutritionPreview}
+                        index={previewIndex}
+                        defaultExpanded={
+                          !allPreviewComplete &&
+                          previewIndex === previewMeals.length - 1
+                        }
+                        isStreaming={
+                          !allPreviewComplete &&
+                          previewIndex === previewMeals.length - 1
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              }
+
+              if (!message.content.trim()) return null;
+
+              return (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${
+                    message.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <p className="text-sm">{msg.content}</p>
-                </div>
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      message.role === "user"
+                        ? "bg-duo-primary text-white"
+                        : "bg-duo-bg-elevated text-duo-fg"
+                    }`}
+                  >
+                    <p className="text-sm text-inherit">{message.content}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            {allPreviewComplete && previewMeals.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 flex justify-center gap-3"
+              >
+                <DuoButton
+                  onClick={handleApprove}
+                  disabled={isApproving}
+                  variant="primary"
+                  className="flex items-center gap-2 px-6 py-3"
+                >
+                  {isApproving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Aplicando...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Aprovar
+                    </>
+                  )}
+                </DuoButton>
+                <DuoButton
+                  onClick={handleRefazer}
+                  disabled={isApproving || isProcessing}
+                  variant="outline"
+                  className="flex items-center gap-2 rounded-xl border-2 border-duo-border px-6 py-3 font-bold hover:bg-duo-bg-elevated"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Refazer
+                </DuoButton>
               </motion.div>
-            ))}
+            )}
 
             {isProcessing && (
               <div className="flex justify-start">
-                <div className="bg-duo-bg-elevated rounded-2xl px-4 py-3">
+                <div className="rounded-2xl bg-duo-bg-elevated px-4 py-3">
                   <Loader2 className="h-4 w-4 animate-spin text-duo-green" />
                 </div>
               </div>
@@ -896,83 +733,37 @@ export function FoodSearchChat({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Extracted Foods Preview - em tempo real durante streaming */}
-          {(extractedFoods.length > 0 || isProcessing) && (
-            <div className="border-t-2 border-duo-border p-4 bg-duo-bg-elevated">
-              <h3 className="text-sm font-bold text-duo-text mb-2">
-                Alimentos identificados:
-              </h3>
-              {extractedFoods.length === 0 && isProcessing ? (
-                <div className="flex items-center gap-2 py-4 text-sm text-duo-fg-muted">
-                  <Loader2 className="h-4 w-4 animate-spin text-duo-green" />
-                  Adicionando alimentos...
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {extractedFoods.map((extracted) => (
-                    <div
-                      key={`${extracted.name}-${extracted.mealType}-${extracted.calories}`}
-                      className="flex items-center justify-between text-xs bg-duo-bg-card rounded-lg p-2"
-                    >
-                      <div className="flex-1">
-                        <span className="font-bold text-duo-text">
-                          {extracted.name}
-                        </span>
-                        <span className="text-duo-fg-muted ml-2">
-                          ({extracted.servings} porção
-                          {extracted.servings !== 1 ? "ões" : ""})
-                        </span>
-                        <div className="text-duo-fg-muted mt-0.5">
-                          {extracted.calories} cal • P: {extracted.protein}g •
-                          C: {extracted.carbs}g • G: {extracted.fats}g
-                        </div>
-                        <div className="text-duo-fg-muted text-xs mt-0.5">
-                          {getMealName(extracted.mealType)}
-                        </div>
-                      </div>
-                      {extracted.confidence >= 0.8 ? (
-                        <span className="text-duo-green text-xs">✓</span>
-                      ) : (
-                        <span className="text-duo-orange text-xs">⚠</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Input */}
           <div className="border-t-2 border-duo-border p-4">
             {remainingMessages !== null && remainingMessages >= 0 && (
-              <div className="mb-2 text-xs text-duo-fg-muted text-center">
+              <div className="mb-2 text-center text-xs text-duo-fg-muted">
                 {remainingMessages > 0 ? (
-                  <span className="text-duo-green font-bold">
+                  <span className="font-bold text-duo-green">
                     {remainingMessages} mensagem
                     {remainingMessages !== 1 ? "s" : ""} restante
                     {remainingMessages !== 1 ? "s" : ""} hoje
                   </span>
                 ) : (
-                  <span className="text-red-600 font-bold">
-                    Limite diário atingido. Tente novamente amanhã.
+                  <span className="font-bold text-red-600">
+                    Limite diario atingido. Tente novamente amanha.
                   </span>
                 )}
               </div>
             )}
+
             <div className="flex gap-2">
               <input
                 ref={inputRef}
                 type="text"
                 value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
+                onChange={(event) => setInputMessage(event.target.value)}
+                onKeyPress={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void handleSendMessage();
                   }
                 }}
-                placeholder="Descreva o que você comeu..."
-                className="flex-1 rounded-xl border-2 border-duo-border px-4 py-3 text-sm font-bold text-duo-text placeholder:text-duo-fg-muted focus:border-duo-green focus:outline-none disabled:bg-duo-bg-elevated disabled:cursor-not-allowed"
+                placeholder="Descreva as refeicoes ou o plano que voce quer montar..."
+                className="flex-1 rounded-xl border-2 border-duo-border px-4 py-3 text-sm font-bold text-duo-text placeholder:text-duo-fg-muted focus:border-duo-green focus:outline-none disabled:cursor-not-allowed disabled:bg-duo-bg-elevated"
                 disabled={
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
@@ -980,13 +771,13 @@ export function FoodSearchChat({
               />
               <button
                 type="button"
-                onClick={handleSendMessage}
+                onClick={() => void handleSendMessage()}
                 disabled={
                   !inputMessage.trim() ||
                   isProcessing ||
                   (remainingMessages !== null && remainingMessages <= 0)
                 }
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-green text-white disabled:bg-duo-border disabled:cursor-not-allowed transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-duo-primary text-white transition-colors disabled:cursor-not-allowed disabled:bg-duo-border"
               >
                 {isProcessing ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -996,20 +787,6 @@ export function FoodSearchChat({
               </button>
             </div>
           </div>
-
-          {/* Confirm Button */}
-          {extractedFoods.length > 0 && (
-            <div className="border-t-2 border-duo-border p-4">
-              <DuoButton
-                onClick={handleConfirmAdd}
-                className="w-full"
-                variant="primary"
-              >
-                ADICIONAR {extractedFoods.length} ALIMENTO
-                {extractedFoods.length !== 1 ? "S" : ""}
-              </DuoButton>
-            </div>
-          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
