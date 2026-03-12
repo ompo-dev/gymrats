@@ -1,7 +1,10 @@
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
+import { usePersonalBootstrap } from "@/hooks/use-personal-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { isAdmin, isPersonal } from "@/lib/utils/role";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
@@ -18,6 +21,9 @@ export function usePersonalInitializer(options?: { autoLoad?: boolean }) {
   const isLoading = usePersonalUnifiedStore(
     (state) => state.data.metadata.isLoading,
   );
+  const bootstrapQuery = usePersonalBootstrap(undefined, {
+    enabled: false,
+  });
   const initializer = useDomainInitializer({
     autoLoad,
     sessionLoading,
@@ -25,7 +31,22 @@ export function usePersonalInitializer(options?: { autoLoad?: boolean }) {
     role,
     canInitializeRole: (currentRole) =>
       isPersonal(currentRole as string) || isAdmin(currentRole as string),
-    loadAll,
+    loadAll: async () => {
+      if (
+        featureFlags.perfPersonalBootstrapV2 &&
+        isClientApiCapabilityEnabled("personalBootstrap")
+      ) {
+        const bootstrapData =
+          bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
+
+        if (bootstrapData?.data) {
+          usePersonalUnifiedStore.getState().hydrateInitial(bootstrapData.data);
+          return;
+        }
+      }
+
+      await loadAll();
+    },
     isInitialized,
     lastSync,
     isLoading,

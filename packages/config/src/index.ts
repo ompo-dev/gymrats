@@ -8,7 +8,10 @@ export type FeatureFlags = {
   perfGymBootstrapV2: boolean;
   perfPersonalBootstrapV2: boolean;
   observabilityDashboardEnabled: boolean;
+  observabilityClientEventsEnabled: boolean;
 };
+
+const isProductionRuntime = process.env.NODE_ENV === "production";
 
 export const featureFlags: FeatureFlags = {
   personalEnabled: getEnvBoolean(
@@ -21,12 +24,9 @@ export const featureFlags: FeatureFlags = {
   ),
   perfStudentBootstrapV2: getEnvBoolean(
     process.env.NEXT_PUBLIC_PERF_STUDENT_BOOTSTRAP_V2,
-    true,
+    !isProductionRuntime,
   ),
-  perfPaymentsV2: getEnvBoolean(
-    process.env.NEXT_PUBLIC_PERF_PAYMENTS_V2,
-    true,
-  ),
+  perfPaymentsV2: getEnvBoolean(process.env.NEXT_PUBLIC_PERF_PAYMENTS_V2, true),
   perfGymBootstrapV2: getEnvBoolean(
     process.env.NEXT_PUBLIC_PERF_GYM_BOOTSTRAP_V2,
     false,
@@ -37,7 +37,11 @@ export const featureFlags: FeatureFlags = {
   ),
   observabilityDashboardEnabled: getEnvBoolean(
     process.env.NEXT_PUBLIC_OBSERVABILITY_DASHBOARD_ENABLED,
-    true,
+    !isProductionRuntime,
+  ),
+  observabilityClientEventsEnabled: getEnvBoolean(
+    process.env.NEXT_PUBLIC_OBSERVABILITY_CLIENT_EVENTS_ENABLED,
+    !isProductionRuntime,
   ),
 };
 

@@ -2,7 +2,10 @@
  * Helpers de carregamento para gym-unified-store.
  */
 
+import { featureFlags } from "@gymrats/config";
+import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { apiClient } from "@/lib/api/client";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type {
   GymDataSection,
   GymPendingAction,
@@ -308,6 +311,23 @@ export async function loadSection(
   return promise;
 }
 
+async function loadGymBootstrap(
+  sections: GymDataSection[],
+): Promise<Partial<GymUnifiedData>> {
+  const params = new URLSearchParams();
+  if (sections.length > 0) {
+    params.set("sections", sections.join(","));
+  }
+
+  const response = await apiClient.get<
+    BootstrapResponse<Partial<GymUnifiedData>>
+  >(`/api/gyms/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`, {
+    timeout: 30000,
+  });
+
+  return normalizeGymDates(response.data.data ?? {}) as Partial<GymUnifiedData>;
+}
+
 export function updateStoreWithSection(
   set: SetStateFn,
   sectionData: Partial<GymUnifiedData>,
@@ -336,6 +356,22 @@ export async function loadSectionsIncremental(
   set: SetStateFn,
   sections: GymDataSection[],
 ) {
+  if (
+    featureFlags.perfGymBootstrapV2 &&
+    isClientApiCapabilityEnabled("gymBootstrap") &&
+    sections.length > 1
+  ) {
+    try {
+      const bootstrapData = await loadGymBootstrap(sections);
+      if (Object.keys(bootstrapData).length > 0) {
+        updateStoreWithSection(set, bootstrapData);
+      }
+      return;
+    } catch {
+      // Fallback para o carregamento legado por secao.
+    }
+  }
+
   await Promise.all(
     sections.map(async (section) => {
       const start = Date.now();

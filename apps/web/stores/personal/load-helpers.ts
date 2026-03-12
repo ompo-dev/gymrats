@@ -1,3 +1,5 @@
+import { featureFlags } from "@gymrats/config";
+import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import type {
   PersonalAffiliation,
   PersonalProfile,
@@ -5,10 +7,8 @@ import type {
   PersonalSubscriptionData,
 } from "@gymrats/types/personal-module";
 import { apiClient } from "@/lib/api/client";
-import type {
-  Expense,
-  FinancialSummary,
-} from "@/lib/types";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
+import type { Expense, FinancialSummary } from "@/lib/types";
 import type {
   PersonalDataSection,
   PersonalUnifiedData,
@@ -74,45 +74,59 @@ export async function loadSection(
         return { studentDirectory: res.data.students || [] };
       }
       if (section === "subscription") {
-        const res = await apiClient.get<{
-          subscription: PersonalSubscriptionData | null;
-        }>(route).catch(() => ({ data: { subscription: null } }));
+        const res = await apiClient
+          .get<{
+            subscription: PersonalSubscriptionData | null;
+          }>(route)
+          .catch(() => ({ data: { subscription: null } }));
         return { subscription: res.data.subscription ?? null };
       }
       if (section === "financialSummary") {
-        const res = await apiClient.get<{
-          financialSummary: FinancialSummary | null;
-        }>(route).catch(() => ({ data: { financialSummary: null } }));
+        const res = await apiClient
+          .get<{
+            financialSummary: FinancialSummary | null;
+          }>(route)
+          .catch(() => ({ data: { financialSummary: null } }));
         return { financialSummary: res.data.financialSummary ?? null };
       }
       if (section === "expenses") {
-        const res = await apiClient.get<{
-          expenses: Expense[];
-        }>(route).catch(() => ({ data: { expenses: [] } }));
+        const res = await apiClient
+          .get<{
+            expenses: Expense[];
+          }>(route)
+          .catch(() => ({ data: { expenses: [] } }));
         return { expenses: res.data.expenses || [] };
       }
       if (section === "payments") {
-        const res = await apiClient.get<{
-          payments: PersonalUnifiedData["payments"];
-        }>(route).catch(() => ({ data: { payments: [] } }));
+        const res = await apiClient
+          .get<{
+            payments: PersonalUnifiedData["payments"];
+          }>(route)
+          .catch(() => ({ data: { payments: [] } }));
         return { payments: res.data.payments || [] };
       }
       if (section === "coupons") {
-        const res = await apiClient.get<{
-          coupons: PersonalUnifiedData["coupons"];
-        }>(route).catch(() => ({ data: { coupons: [] } }));
+        const res = await apiClient
+          .get<{
+            coupons: PersonalUnifiedData["coupons"];
+          }>(route)
+          .catch(() => ({ data: { coupons: [] } }));
         return { coupons: res.data.coupons || [] };
       }
       if (section === "campaigns") {
-        const res = await apiClient.get<{
-          campaigns: PersonalUnifiedData["campaigns"];
-        }>(route).catch(() => ({ data: { campaigns: [] } }));
+        const res = await apiClient
+          .get<{
+            campaigns: PersonalUnifiedData["campaigns"];
+          }>(route)
+          .catch(() => ({ data: { campaigns: [] } }));
         return { campaigns: res.data.campaigns || [] };
       }
       if (section === "membershipPlans") {
-        const res = await apiClient.get<{
-          plans: PersonalUnifiedData["membershipPlans"];
-        }>(route).catch(() => ({ data: { plans: [] } }));
+        const res = await apiClient
+          .get<{
+            plans: PersonalUnifiedData["membershipPlans"];
+          }>(route)
+          .catch(() => ({ data: { plans: [] } }));
         return { membershipPlans: res.data.plans || [] };
       }
       return {};
@@ -126,14 +140,48 @@ export async function loadSection(
   return promise;
 }
 
+async function loadPersonalBootstrap(
+  sections: PersonalDataSection[],
+): Promise<Partial<PersonalUnifiedData>> {
+  const params = new URLSearchParams();
+  if (sections.length > 0) {
+    params.set("sections", sections.join(","));
+  }
+
+  const response = await apiClient.get<
+    BootstrapResponse<Partial<PersonalUnifiedData>>
+  >(
+    `/api/personals/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`,
+    {
+      timeout: 30000,
+    },
+  );
+
+  return response.data.data ?? {};
+}
+
 export async function loadSectionsIncremental(
   sections: PersonalDataSection[],
 ): Promise<Partial<PersonalUnifiedData>> {
-  const results: Partial<PersonalUnifiedData> = {};
-  for (const section of sections) {
-    const data = await loadSection(section);
-    Object.assign(results, data);
+  if (
+    featureFlags.perfPersonalBootstrapV2 &&
+    isClientApiCapabilityEnabled("personalBootstrap") &&
+    sections.length > 1
+  ) {
+    try {
+      return await loadPersonalBootstrap(sections);
+    } catch {
+      // Fallback para o carregamento legado por secao.
+    }
   }
+
+  const results: Partial<PersonalUnifiedData> = {};
+  await Promise.all(
+    sections.map(async (section) => {
+      const data = await loadSection(section);
+      Object.assign(results, data);
+    }),
+  );
   return results;
 }
 

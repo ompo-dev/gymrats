@@ -1,7 +1,9 @@
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
+import { useCallback } from "react";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
 import type { GymDataSection } from "@/lib/types/gym-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
@@ -47,6 +49,13 @@ function detectGymContext(
   return "default";
 }
 
+function hasSectionData(
+  section: GymDataSection,
+  resources: Record<string, { status?: string }>,
+) {
+  return resources[section]?.status === "ready";
+}
+
 export function useLoadPrioritizedGym(options?: {
   context?: GymContextType;
   sections?: GymDataSection[];
@@ -57,6 +66,13 @@ export function useLoadPrioritizedGym(options?: {
   const loadAllPrioritized = useGymUnifiedStore(
     (state) => state.loadAllPrioritized,
   );
+  const resources = useGymUnifiedStore(
+    (state) => state.data.metadata.resources,
+  );
+  const isInitialized = useGymUnifiedStore(
+    (state) => state.data.metadata.isInitialized,
+  );
+  const getStoreSnapshot = useCallback(() => resources, [resources]);
 
   usePrioritizedResourceLoader({
     context: options?.context,
@@ -67,5 +83,8 @@ export function useLoadPrioritizedGym(options?: {
     contextPriorities: CONTEXT_PRIORITIES,
     detectContext: detectGymContext,
     loadPrioritized: loadAllPrioritized,
+    getStoreSnapshot,
+    hasSectionData,
+    enabled: !featureFlags.perfGymBootstrapV2 || isInitialized,
   });
 }

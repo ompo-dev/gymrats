@@ -2,6 +2,10 @@
 
 import { featureFlags, releaseInfo } from "@gymrats/config";
 import { browserApiFetch } from "@/lib/api/browser-fetch";
+import {
+  disableClientApiCapability,
+  isClientApiCapabilityEnabled,
+} from "@/lib/api/route-capabilities";
 
 export async function recordClientTelemetryEvent(input: {
   eventType: string;
@@ -12,8 +16,15 @@ export async function recordClientTelemetryEvent(input: {
   status?: string;
   payload?: Record<string, unknown>;
 }) {
+  if (
+    !featureFlags.observabilityClientEventsEnabled ||
+    !isClientApiCapabilityEnabled("observabilityEvents")
+  ) {
+    return;
+  }
+
   try {
-    await browserApiFetch("/api/observability/events", {
+    const response = await browserApiFetch("/api/observability/events", {
       method: "POST",
       keepalive: true,
       headers: {
@@ -27,6 +38,10 @@ export async function recordClientTelemetryEvent(input: {
           .map(([flag]) => flag),
       }),
     });
+
+    if (response.status === 404) {
+      disableClientApiCapability("observabilityEvents");
+    }
   } catch {
     // Telemetria nao deve bloquear UX.
   }

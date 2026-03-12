@@ -1,8 +1,10 @@
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
 import type {
@@ -19,12 +21,19 @@ export function useStudentBootstrap(
   const query = useQuery({
     queryKey: queryKeys.studentBootstrap(sections),
     queryFn: () => getStudentBootstrapRequest(sections),
-    enabled: options?.enabled ?? true,
+    enabled:
+      (options?.enabled ?? true) &&
+      featureFlags.perfStudentBootstrapV2 &&
+      isClientApiCapabilityEnabled("studentBootstrap"),
+    retry: false,
   });
   const lastTrackedRequestId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!query.data?.meta.requestId || query.data.meta.requestId === lastTrackedRequestId.current) {
+    if (
+      !query.data?.meta.requestId ||
+      query.data.meta.requestId === lastTrackedRequestId.current
+    ) {
       return;
     }
 
@@ -63,7 +72,8 @@ export function useStudentMemberships(options?: { enabled?: boolean }) {
   return {
     ...query,
     memberships:
-      (query.data?.data.memberships as Partial<StudentData>["memberships"]) ?? [],
+      (query.data?.data.memberships as Partial<StudentData>["memberships"]) ??
+      [],
   };
 }
 

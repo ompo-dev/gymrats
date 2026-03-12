@@ -17,9 +17,10 @@
 
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { featureFlags } from "@gymrats/config";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useMemo } from "react";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
 import type {
   StudentData,
@@ -231,7 +232,9 @@ function _filterMissingSections(
 export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
   const pathname = usePathname();
   const [tab] = useQueryState("tab", parseAsString.withDefault("home"));
-  const loadAllPrioritized = useStudentUnifiedStore((state) => state.loadAllPrioritized);
+  const loadAllPrioritized = useStudentUnifiedStore(
+    (state) => state.loadAllPrioritized,
+  );
 
   // Usar seletores específicos para evitar re-renders desnecessários
   // Verificar apenas as seções que precisamos, não todo o store
@@ -275,6 +278,9 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
   const getFriends = useStudentUnifiedStore((state) => state.data.friends);
   const getGymLocations = useStudentUnifiedStore(
     (state) => state.data.gymLocations,
+  );
+  const isInitialized = useStudentUnifiedStore(
+    (state) => state.data.metadata.isInitialized,
   );
 
   const storeData = useMemo(
@@ -335,6 +341,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     loadPrioritized: loadAllPrioritized,
     getStoreSnapshot,
     hasSectionData,
+    enabled: !featureFlags.perfStudentBootstrapV2 || isInitialized,
   });
 }
 

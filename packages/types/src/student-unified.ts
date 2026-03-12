@@ -237,7 +237,7 @@ export interface PendingAction {
   retries: number;
 }
 
-export interface ResourceSnapshot {
+export interface StudentResourceSnapshot {
   status: "idle" | "loading" | "ready" | "error";
   lastStartedAt: Date | null;
   lastFetchedAt: Date | null;
@@ -250,14 +250,14 @@ export interface StudentMetadata {
   isInitialized: boolean;
   errors: Record<string, string | null>;
   pendingActions: PendingAction[]; // Ações pendentes de sincronização
-  resources: Record<string, ResourceSnapshot>;
+  resources: Record<string, StudentResourceSnapshot>;
 }
 
 // ============================================
 // STUDENT DATA COMPLETO
 // ============================================
 
-export interface StudentData {
+export interface StudentUnifiedData {
   // === USER INFO ===
   user: UserInfo;
 
@@ -314,7 +314,7 @@ export interface StudentData {
 // DADOS INICIAIS
 // ============================================
 
-export const initialStudentData: StudentData = {
+export const initialStudentData: StudentUnifiedData = {
   user: {
     id: "",
     name: "",
@@ -428,3 +428,5 @@ export interface WorkoutCompletionData {
     heartRate?: number;
   };
 }
+
+export type StudentData = StudentUnifiedData;

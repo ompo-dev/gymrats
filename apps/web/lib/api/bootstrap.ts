@@ -1,5 +1,11 @@
 import type { BootstrapResponse } from "@gymrats/types/bootstrap";
+import type { GymDataSection } from "@gymrats/types/gym-unified";
 import { apiClient } from "@/lib/api/client";
+import {
+  disableClientApiCapability,
+  isClientApiCapabilityEnabled,
+  isRouteNotFoundError,
+} from "@/lib/api/route-capabilities";
 import type { GymUnifiedData } from "@/lib/types/gym-unified";
 import type {
   PersonalDataSection,
@@ -9,7 +15,6 @@ import type {
   StudentData,
   StudentDataSection,
 } from "@/lib/types/student-unified";
-import type { GymDataSection } from "@gymrats/types/gym-unified";
 
 function buildSectionsQuery(sections?: readonly string[]) {
   if (!sections || sections.length === 0) {
@@ -26,28 +31,61 @@ function buildSectionsQuery(sections?: readonly string[]) {
 export async function getStudentBootstrapRequest(
   sections?: readonly StudentDataSection[],
 ) {
-  const response = await apiClient.get<BootstrapResponse<Partial<StudentData>>>(
-    `/api/students/bootstrap${buildSectionsQuery(sections)}`,
-  );
-  return response.data;
+  if (!isClientApiCapabilityEnabled("studentBootstrap")) {
+    throw new Error("student bootstrap disabled");
+  }
+
+  try {
+    const response = await apiClient.get<
+      BootstrapResponse<Partial<StudentData>>
+    >(`/api/students/bootstrap${buildSectionsQuery(sections)}`);
+    return response.data;
+  } catch (error) {
+    if (isRouteNotFoundError(error, "/api/students/bootstrap")) {
+      disableClientApiCapability("studentBootstrap");
+    }
+    throw error;
+  }
 }
 
 export async function getGymBootstrapRequest(
   sections?: readonly GymDataSection[],
 ) {
-  const response = await apiClient.get<BootstrapResponse<Partial<GymUnifiedData>>>(
-    `/api/gyms/bootstrap${buildSectionsQuery(sections)}`,
-  );
-  return response.data;
+  if (!isClientApiCapabilityEnabled("gymBootstrap")) {
+    throw new Error("gym bootstrap disabled");
+  }
+
+  try {
+    const response = await apiClient.get<
+      BootstrapResponse<Partial<GymUnifiedData>>
+    >(`/api/gyms/bootstrap${buildSectionsQuery(sections)}`);
+    return response.data;
+  } catch (error) {
+    if (isRouteNotFoundError(error, "/api/gyms/bootstrap")) {
+      disableClientApiCapability("gymBootstrap");
+    }
+    throw error;
+  }
 }
 
 export async function getPersonalBootstrapRequest(
   sections?: readonly PersonalDataSection[],
 ) {
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<PersonalUnifiedData>>
-  >(`/api/personals/bootstrap${buildSectionsQuery(sections)}`);
-  return response.data;
+  if (!isClientApiCapabilityEnabled("personalBootstrap")) {
+    throw new Error("personal bootstrap disabled");
+  }
+
+  try {
+    const response = await apiClient.get<
+      BootstrapResponse<Partial<PersonalUnifiedData>>
+    >(`/api/personals/bootstrap${buildSectionsQuery(sections)}`);
+    return response.data;
+  } catch (error) {
+    if (isRouteNotFoundError(error, "/api/personals/bootstrap")) {
+      disableClientApiCapability("personalBootstrap");
+    }
+    throw error;
+  }
 }
 
 export async function getPaymentStatusRequest(paymentId: string) {

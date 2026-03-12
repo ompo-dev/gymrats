@@ -7,6 +7,7 @@ interface UsePrioritizedResourceLoaderOptions<
   Context extends string,
   StoreSnapshot,
 > {
+  enabled?: boolean;
   context?: Context;
   sections?: Section[];
   combineWithContext?: boolean;
@@ -15,7 +16,10 @@ interface UsePrioritizedResourceLoaderOptions<
   tab: string | null;
   contextPriorities: Record<Context, readonly Section[]>;
   detectContext: (pathname: string, tab: string | null) => Context;
-  loadPrioritized: (sections: Section[], onlyPriorities?: boolean) => Promise<void>;
+  loadPrioritized: (
+    sections: Section[],
+    onlyPriorities?: boolean,
+  ) => Promise<void>;
   getStoreSnapshot?: () => StoreSnapshot;
   hasSectionData?: (section: Section, snapshot: StoreSnapshot) => boolean;
   minTimeBetweenLoadsMs?: number;
@@ -26,6 +30,7 @@ export function usePrioritizedResourceLoader<
   Context extends string,
   StoreSnapshot,
 >({
+  enabled = true,
   context,
   sections,
   combineWithContext = false,
@@ -46,6 +51,10 @@ export function usePrioritizedResourceLoader<
   const isLoadingRef = useRef(false);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     if (lastTabRef.current !== tab) {
       hasCalledRef.current = false;
       lastTabRef.current = tab;
@@ -116,5 +125,6 @@ export function usePrioritizedResourceLoader<
     getStoreSnapshot,
     hasSectionData,
     minTimeBetweenLoadsMs,
+    enabled,
   ]);
 }

@@ -1,5 +1,11 @@
-import type { StudentData, StudentDataSection } from "@gymrats/types";
-import { createBootstrapResponse, measureBootstrapSection } from "@gymrats/domain";
+import {
+  createBootstrapResponse,
+  measureBootstrapSection,
+} from "@gymrats/domain";
+import type {
+  StudentData,
+  StudentDataSection,
+} from "@gymrats/types/student-unified";
 import { db } from "@/lib/db";
 import { ReferralService } from "@/lib/services/referral.service";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
@@ -40,12 +46,13 @@ export function parseStudentBootstrapSections(
   const sections = sectionsParam
     .split(",")
     .map((section) => section.trim())
-    .filter(
-      (section): section is StudentDataSection =>
-        allowed.has(section as StudentDataSection),
+    .filter((section): section is StudentDataSection =>
+      allowed.has(section as StudentDataSection),
     );
 
-  return sections.length > 0 ? [...new Set(sections)] : DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
+  return sections.length > 0
+    ? [...new Set(sections)]
+    : DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
 }
 
 export async function buildStudentBootstrap(options: {

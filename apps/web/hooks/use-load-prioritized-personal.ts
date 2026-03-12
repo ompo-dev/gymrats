@@ -1,7 +1,9 @@
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
+import { useCallback } from "react";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
 import type { PersonalDataSection } from "@/lib/types/personal-unified";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
@@ -47,6 +49,13 @@ function detectPersonalContext(
   return "default";
 }
 
+function hasSectionData(
+  section: PersonalDataSection,
+  resources: Record<string, { status?: string }>,
+) {
+  return resources[section]?.status === "ready";
+}
+
 export function useLoadPrioritizedPersonal(options?: {
   context?: PersonalContextType;
   sections?: PersonalDataSection[];
@@ -57,6 +66,13 @@ export function useLoadPrioritizedPersonal(options?: {
   const loadAllPrioritized = usePersonalUnifiedStore(
     (state) => state.loadAllPrioritized,
   );
+  const resources = usePersonalUnifiedStore(
+    (state) => state.data.metadata.resources,
+  );
+  const isInitialized = usePersonalUnifiedStore(
+    (state) => state.data.metadata.isInitialized,
+  );
+  const getStoreSnapshot = useCallback(() => resources, [resources]);
 
   usePrioritizedResourceLoader({
     context: options?.context,
@@ -67,5 +83,8 @@ export function useLoadPrioritizedPersonal(options?: {
     contextPriorities: CONTEXT_PRIORITIES,
     detectContext: detectPersonalContext,
     loadPrioritized: loadAllPrioritized,
+    getStoreSnapshot,
+    hasSectionData,
+    enabled: !featureFlags.perfPersonalBootstrapV2 || isInitialized,
   });
 }

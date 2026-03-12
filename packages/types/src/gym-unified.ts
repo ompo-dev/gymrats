@@ -41,7 +41,7 @@ export interface GymPendingAction {
   retries: number;
 }
 
-export interface ResourceSnapshot {
+export interface GymResourceSnapshot {
   status: "idle" | "loading" | "ready" | "error";
   lastStartedAt: Date | null;
   lastFetchedAt: Date | null;
@@ -70,7 +70,7 @@ export interface GymMetadata {
   errors: Record<string, string | null>;
   pendingActions: GymPendingAction[];
   telemetry: Record<string, number>;
-  resources: Record<string, ResourceSnapshot>;
+  resources: Record<string, GymResourceSnapshot>;
 }
 
 export interface GymUnifiedData {

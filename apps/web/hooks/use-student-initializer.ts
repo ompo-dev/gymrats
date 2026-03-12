@@ -16,11 +16,12 @@ import { useCallback } from "react";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useStudentBootstrap } from "@/hooks/use-student-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
+import type { StudentData } from "@/lib/types/student-unified";
 import { isAdmin, isStudent } from "@/lib/utils/role";
 import { hydrateStudentBootstrapData } from "@/stores/student/load-helpers";
 import { useStudentDiscoveryStore } from "@/stores/student-discovery-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
-import type { StudentData } from "@/lib/types/student-unified";
 
 /**
  * Hook que inicializa automaticamente os dados do student
@@ -95,11 +96,12 @@ export function useStudentInitializer(options?: {
       isStudent(currentRole as string) || isAdmin(currentRole as string),
     loadAll: async () => {
       memoizedOnLoadStart();
-      if (featureFlags.perfStudentBootstrapV2) {
+      if (
+        featureFlags.perfStudentBootstrapV2 &&
+        isClientApiCapabilityEnabled("studentBootstrap")
+      ) {
         const bootstrapData =
-          bootstrapQuery.data ??
-          (await bootstrapQuery.refetch()).data ??
-          null;
+          bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
 
         if (bootstrapData?.data) {
           hydrateStudentBootstrapData(

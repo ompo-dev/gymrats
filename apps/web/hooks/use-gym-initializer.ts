@@ -1,7 +1,10 @@
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
+import { useGymBootstrap } from "@/hooks/use-gym-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { isAdmin, isGym } from "@/lib/utils/role";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
@@ -16,6 +19,9 @@ export function useGymInitializer(options?: { autoLoad?: boolean }) {
   const isLoading = useGymUnifiedStore(
     (state) => state.data.metadata.isLoading,
   );
+  const bootstrapQuery = useGymBootstrap(undefined, {
+    enabled: false,
+  });
   const initializer = useDomainInitializer({
     autoLoad,
     sessionLoading,
@@ -23,7 +29,22 @@ export function useGymInitializer(options?: { autoLoad?: boolean }) {
     role,
     canInitializeRole: (currentRole) =>
       isGym(currentRole as string) || isAdmin(currentRole as string),
-    loadAll,
+    loadAll: async () => {
+      if (
+        featureFlags.perfGymBootstrapV2 &&
+        isClientApiCapabilityEnabled("gymBootstrap")
+      ) {
+        const bootstrapData =
+          bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
+
+        if (bootstrapData?.data) {
+          useGymUnifiedStore.getState().hydrateInitial(bootstrapData.data);
+          return;
+        }
+      }
+
+      await loadAll();
+    },
     isInitialized,
     lastSync,
     isLoading,

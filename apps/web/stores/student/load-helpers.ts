@@ -6,6 +6,7 @@
 import { featureFlags } from "@gymrats/config";
 import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { apiClient } from "@/lib/api/client";
+import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { Meal } from "@/lib/types";
 import type {
   StudentData,
@@ -13,7 +14,6 @@ import type {
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
 import { normalizeDailyNutrition } from "@/lib/utils/nutrition/nutrition-plan";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 type SetStateFn = (
   fn: (s: { data: StudentData }) => { data: StudentData },
@@ -121,7 +121,7 @@ function transformSectionResponse(
       return {
         units: Array.isArray(d)
           ? (d as unknown as StudentData["units"])
-          : ((d.units as unknown as StudentData["units"]) || []),
+          : (d.units as unknown as StudentData["units"]) || [],
       };
     case "weeklyPlan":
       return {
@@ -139,7 +139,9 @@ function transformSectionResponse(
       };
     case "workoutHistory":
       if (Array.isArray(d)) {
-        return { workoutHistory: d as unknown as StudentData["workoutHistory"] };
+        return {
+          workoutHistory: d as unknown as StudentData["workoutHistory"],
+        };
       }
       if (d.history && Array.isArray(d.history))
         return {
@@ -157,10 +159,9 @@ function transformSectionResponse(
       };
     case "activeNutritionPlan":
       return {
-        activeNutritionPlan:
-          ((d.data as unknown) ||
-            (d.activeNutritionPlan as unknown) ||
-            null) as StudentData["activeNutritionPlan"],
+        activeNutritionPlan: ((d.data as unknown) ||
+          (d.activeNutritionPlan as unknown) ||
+          null) as StudentData["activeNutritionPlan"],
       };
     case "nutritionLibraryPlans":
       return {
@@ -201,20 +202,20 @@ function transformSectionResponse(
       return {
         memberships: Array.isArray(d)
           ? (d as unknown as StudentData["memberships"])
-          : ((d.memberships as unknown as StudentData["memberships"]) || []),
+          : (d.memberships as unknown as StudentData["memberships"]) || [],
       };
     case "payments":
       return {
         payments: Array.isArray(d)
           ? (d as unknown as StudentData["payments"])
-          : ((d.payments as unknown as StudentData["payments"]) || []),
+          : (d.payments as unknown as StudentData["payments"]) || [],
       };
     case "paymentMethods":
       return {
         paymentMethods: Array.isArray(d)
           ? (d as unknown as StudentData["paymentMethods"])
-          : ((d.paymentMethods as unknown as StudentData["paymentMethods"]) ||
-              []),
+          : (d.paymentMethods as unknown as StudentData["paymentMethods"]) ||
+            [],
       };
     case "referral":
       return {
@@ -419,7 +420,11 @@ export async function loadSectionsIncremental(
   sections: StudentDataSection[],
   _skipNutrition = false,
 ): Promise<void> {
-  if (featureFlags.perfStudentBootstrapV2 && sections.length > 1) {
+  if (
+    featureFlags.perfStudentBootstrapV2 &&
+    isClientApiCapabilityEnabled("studentBootstrap") &&
+    sections.length > 1
+  ) {
     try {
       const bootstrapData = await loadStudentBootstrap(sections);
       if (Object.keys(bootstrapData).length > 0) {
@@ -469,7 +474,10 @@ const ALL_SECTIONS: StudentDataSection[] = [
 ];
 
 export async function loadAllDataIncremental(set: SetStateFn): Promise<void> {
-  if (featureFlags.perfStudentBootstrapV2) {
+  if (
+    featureFlags.perfStudentBootstrapV2 &&
+    isClientApiCapabilityEnabled("studentBootstrap")
+  ) {
     try {
       const bootstrapData = await loadStudentBootstrap(ALL_SECTIONS);
       if (Object.keys(bootstrapData).length > 0) {

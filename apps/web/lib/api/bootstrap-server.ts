@@ -1,5 +1,10 @@
 import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { serverApiGet } from "@/lib/api/server";
+import type { GymDataSection, GymUnifiedData } from "@/lib/types/gym-unified";
+import type {
+  PersonalDataSection,
+  PersonalUnifiedData,
+} from "@/lib/types/personal-unified";
 import type {
   StudentData,
   StudentDataSection,
@@ -22,5 +27,21 @@ export async function getStudentBootstrapServerRequest(
 ) {
   return serverApiGet<BootstrapResponse<Partial<StudentData>>>(
     `/api/students/bootstrap${buildSectionsQuery(sections)}`,
+  );
+}
+
+export async function getGymBootstrapServerRequest(
+  sections?: readonly GymDataSection[],
+) {
+  return serverApiGet<BootstrapResponse<Partial<GymUnifiedData>>>(
+    `/api/gyms/bootstrap${buildSectionsQuery(sections)}`,
+  );
+}
+
+export async function getPersonalBootstrapServerRequest(
+  sections?: readonly PersonalDataSection[],
+) {
+  return serverApiGet<BootstrapResponse<Partial<PersonalUnifiedData>>>(
+    `/api/personals/bootstrap${buildSectionsQuery(sections)}`,
   );
 }
