@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
-import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -25,13 +24,10 @@ interface NutritionLibraryModalProps {
 export function NutritionLibraryModal({
   apiMode = "student",
   studentId,
-  isOpen,
-  onClose,
+  isOpen = false,
+  onClose = () => {},
   onPlansSynced,
 }: NutritionLibraryModalProps = {}) {
-  const internalModal = useModalState("nutrition-library");
-  const resolvedOpen = isOpen ?? internalModal.isOpen;
-  const resolvedClose = onClose ?? internalModal.close;
   const loadStudentNutritionLibraryPlans = useStudentUnifiedStore(
     (state) => state.loadNutritionLibraryPlans,
   );
@@ -112,7 +108,7 @@ export function NutritionLibraryModal({
   ]);
 
   useEffect(() => {
-    if (!resolvedOpen) {
+    if (!isOpen) {
       hasLoadedForOpenRef.current = false;
       lastOpenKeyRef.current = null;
       return;
@@ -129,7 +125,7 @@ export function NutritionLibraryModal({
     hasLoadedForOpenRef.current = true;
     lastOpenKeyRef.current = openKey;
     void loadData();
-  }, [apiMode, loadData, resolvedOpen, studentId]);
+  }, [apiMode, isOpen, loadData, studentId]);
 
   const handleCreate = async () => {
     setCreatingPlan(true);
@@ -212,7 +208,7 @@ export function NutritionLibraryModal({
       await loadData();
       await onPlansSynced?.();
       toast.success("Plano alimentar ativado!");
-      resolvedClose();
+      onClose();
     } catch {
       toast.error("Erro ao ativar o plano alimentar.");
     } finally {
@@ -227,8 +223,8 @@ export function NutritionLibraryModal({
 
   return (
     <>
-      <Modal.Root isOpen={resolvedOpen} onClose={resolvedClose} maxWidth="lg">
-        <Modal.Header title="Biblioteca de Alimentação" onClose={resolvedClose}>
+      <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="lg">
+        <Modal.Header title="Biblioteca de Alimentação" onClose={onClose}>
           <DuoText variant="body-sm" muted>
             Planos salvos para ativar rápido no dia a dia do aluno.
           </DuoText>
