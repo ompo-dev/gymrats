@@ -13,6 +13,7 @@ import {
   mealsToNutritionPlanData,
   normalizeDailyNutrition,
 } from "@/lib/utils/nutrition/nutrition-plan";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 export type StudentDetailScope = "gym" | "personal";
 
@@ -219,6 +220,71 @@ function upsertLibraryPlan(plans: NutritionPlanData[], nextPlan: NutritionPlanDa
   }
 
   return plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan));
+}
+
+function createOptimisticActiveNutritionPlan(
+  sourcePlan: NutritionPlanData,
+  currentActivePlan: NutritionPlanData | null,
+) {
+  const nextPlanId =
+    currentActivePlan?.sourceLibraryPlanId === sourcePlan.id
+      ? currentActivePlan.id
+      : currentActivePlan?.id?.startsWith("temp-active-nutrition-plan")
+        ? currentActivePlan.id
+        : `temp-active-nutrition-plan-${sourcePlan.id}`;
+
+  return {
+    ...sourcePlan,
+    id: nextPlanId,
+    isLibraryTemplate: false,
+    sourceLibraryPlanId: sourcePlan.id,
+  } satisfies NutritionPlanData;
+}
+
+function syncLinkedNutritionState(params: {
+  currentActivePlan: NutritionPlanData | null;
+  updatedLibraryPlan: NutritionPlanData;
+  currentNutrition: DailyNutrition | null;
+  currentDate: string;
+}) {
+  const {
+    currentActivePlan,
+    currentDate,
+    currentNutrition,
+    updatedLibraryPlan,
+  } = params;
+
+  if (
+    !currentActivePlan ||
+    (currentActivePlan.sourceLibraryPlanId !== updatedLibraryPlan.id &&
+      currentActivePlan.id !== updatedLibraryPlan.id)
+  ) {
+    return {
+      activeNutritionPlan: currentActivePlan,
+      dailyNutrition: currentNutrition,
+    };
+  }
+
+  const nextActivePlan =
+    currentActivePlan.id === updatedLibraryPlan.id
+      ? updatedLibraryPlan
+      : {
+          ...updatedLibraryPlan,
+          id: currentActivePlan.id,
+          isLibraryTemplate: false,
+          sourceLibraryPlanId: updatedLibraryPlan.id,
+          createdById: currentActivePlan.createdById ?? updatedLibraryPlan.createdById,
+          creatorType: currentActivePlan.creatorType ?? updatedLibraryPlan.creatorType,
+        };
+
+  return {
+    activeNutritionPlan: nextActivePlan,
+    dailyNutrition: createDailyNutritionFromPlan({
+      plan: nextActivePlan,
+      baseNutrition: currentNutrition,
+      date: currentDate,
+    }),
+  };
 }
 
 export const useStudentDetailStore = create<StudentDetailState>()((set, get) => ({
@@ -682,6 +748,9 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
   updateNutritionLibraryPlan: async ({ scope, studentId, planId, payload }) => {
     const key = createStudentDetailKey(scope, studentId);
     const previousPlans = get().nutritionLibraryPlans[key] ?? [];
+    const currentDate = getBrazilNutritionDateKey();
+    const previousActivePlan = get().activeNutritionPlans[key] ?? null;
+    const previousNutrition = get().nutritionByDate[key]?.[currentDate] ?? null;
     const targetPlan = previousPlans.find((plan) => plan.id === planId) ?? null;
 
     if (targetPlan) {
@@ -711,7 +780,9 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
     }
 
     try {
-      await apiClient.patch(`${getNutritionLibraryBase(scope, studentId)}/${planId}`, {
+      const response = await apiClient.patch<{
+        data?: NutritionPlanData;
+      }>(`${getNutritionLibraryBase(scope, studentId)}/${planId}`, {
         ...(payload.title !== undefined && { title: payload.title }),
         ...(payload.description !== undefined && {
           description: payload.description,
@@ -719,15 +790,49 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
         ...(payload.meals && { meals: toApiMeals(payload.meals) }),
       });
 
-      await Promise.allSettled([
-        get().loadNutritionLibraryPlans(scope, studentId),
-        get().loadActiveNutritionPlan(scope, studentId),
-      ]);
+      const updatedPlan = response.data.data ?? null;
+      if (updatedPlan) {
+        const syncedState = syncLinkedNutritionState({
+          currentActivePlan: get().activeNutritionPlans[key] ?? null,
+          updatedLibraryPlan: updatedPlan,
+          currentNutrition: get().nutritionByDate[key]?.[currentDate] ?? null,
+          currentDate,
+        });
+
+        set((state) => ({
+          nutritionLibraryPlans: {
+            ...state.nutritionLibraryPlans,
+            [key]: upsertLibraryPlan(state.nutritionLibraryPlans[key] ?? [], updatedPlan),
+          },
+          activeNutritionPlans: {
+            ...state.activeNutritionPlans,
+            [key]: syncedState.activeNutritionPlan,
+          },
+          nutritionByDate: {
+            ...state.nutritionByDate,
+            [key]: {
+              ...(state.nutritionByDate[key] ?? {}),
+              [currentDate]: syncedState.dailyNutrition,
+            },
+          },
+        }));
+      }
     } catch (error) {
       set((state) => ({
         nutritionLibraryPlans: {
           ...state.nutritionLibraryPlans,
           [key]: previousPlans,
+        },
+        activeNutritionPlans: {
+          ...state.activeNutritionPlans,
+          [key]: previousActivePlan,
+        },
+        nutritionByDate: {
+          ...state.nutritionByDate,
+          [key]: {
+            ...(state.nutritionByDate[key] ?? {}),
+            [currentDate]: previousNutrition,
+          },
         },
       }));
       throw error;
@@ -760,26 +865,29 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
 
   activateNutritionLibraryPlan: async ({ scope, studentId, planId }) => {
     const key = createStudentDetailKey(scope, studentId);
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const currentDate = getBrazilNutritionDateKey();
     const currentNutrition = get().nutritionByDate[key]?.[currentDate] ?? null;
     const previousActivePlan = get().activeNutritionPlans[key] ?? null;
     const previousNutrition = currentNutrition;
     const sourcePlan =
       (get().nutritionLibraryPlans[key] ?? []).find((plan) => plan.id === planId) ??
       null;
+    const optimisticActivePlan = sourcePlan
+      ? createOptimisticActiveNutritionPlan(sourcePlan, previousActivePlan)
+      : null;
 
-    if (sourcePlan) {
+    if (optimisticActivePlan) {
       set((state) => ({
         activeNutritionPlans: {
           ...state.activeNutritionPlans,
-          [key]: sourcePlan,
+          [key]: optimisticActivePlan,
         },
         nutritionByDate: {
           ...state.nutritionByDate,
           [key]: {
             ...(state.nutritionByDate[key] ?? {}),
             [currentDate]: createDailyNutritionFromPlan({
-              plan: sourcePlan,
+              plan: optimisticActivePlan,
               baseNutrition: currentNutrition,
               date: currentDate,
             }),
@@ -795,18 +903,24 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
         libraryPlanId: planId,
       });
 
+      const activatedPlan = response.data.data ?? optimisticActivePlan;
       set((state) => ({
         activeNutritionPlans: {
           ...state.activeNutritionPlans,
-          [key]: response.data.data ?? state.activeNutritionPlans[key] ?? null,
+          [key]: activatedPlan,
+        },
+        nutritionByDate: {
+          ...state.nutritionByDate,
+          [key]: {
+            ...(state.nutritionByDate[key] ?? {}),
+            [currentDate]: createDailyNutritionFromPlan({
+              plan: activatedPlan,
+              baseNutrition: state.nutritionByDate[key]?.[currentDate] ?? null,
+              date: currentDate,
+            }),
+          },
         },
       }));
-
-      await Promise.allSettled([
-        get().loadActiveNutritionPlan(scope, studentId),
-        get().loadNutrition(scope, studentId, currentDate),
-        get().loadNutritionLibraryPlans(scope, studentId),
-      ]);
     } catch (error) {
       set((state) => ({
         activeNutritionPlans: {

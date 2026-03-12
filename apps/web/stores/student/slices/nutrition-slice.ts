@@ -49,6 +49,68 @@ function upsertNutritionLibraryPlan(
   return plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan));
 }
 
+function createOptimisticActivatedPlan(
+  sourcePlan: NutritionPlanData,
+  currentActivePlan: NutritionPlanData | null,
+): NutritionPlanData {
+  const nextPlanId =
+    currentActivePlan?.sourceLibraryPlanId === sourcePlan.id
+      ? currentActivePlan.id
+      : currentActivePlan?.id?.startsWith("temp-active-nutrition-plan")
+        ? currentActivePlan.id
+        : `temp-active-nutrition-plan-${sourcePlan.id}`;
+
+  return {
+    ...sourcePlan,
+    id: nextPlanId,
+    isLibraryTemplate: false,
+    sourceLibraryPlanId: sourcePlan.id,
+  };
+}
+
+function syncLinkedActivePlan(params: {
+  currentActivePlan: NutritionPlanData | null;
+  updatedLibraryPlan: NutritionPlanData;
+  currentNutrition: DailyNutrition;
+}): {
+  activeNutritionPlan: NutritionPlanData | null;
+  dailyNutrition: DailyNutrition;
+} {
+  const { currentActivePlan, currentNutrition, updatedLibraryPlan } = params;
+
+  if (
+    !currentActivePlan ||
+    (currentActivePlan.sourceLibraryPlanId !== updatedLibraryPlan.id &&
+      currentActivePlan.id !== updatedLibraryPlan.id)
+  ) {
+    return {
+      activeNutritionPlan: currentActivePlan,
+      dailyNutrition: currentNutrition,
+    };
+  }
+
+  const nextActivePlan =
+    currentActivePlan.id === updatedLibraryPlan.id
+      ? updatedLibraryPlan
+      : {
+          ...updatedLibraryPlan,
+          id: currentActivePlan.id,
+          isLibraryTemplate: false,
+          sourceLibraryPlanId: updatedLibraryPlan.id,
+          createdById: currentActivePlan.createdById ?? updatedLibraryPlan.createdById,
+          creatorType: currentActivePlan.creatorType ?? updatedLibraryPlan.creatorType,
+        };
+
+  return {
+    activeNutritionPlan: nextActivePlan,
+    dailyNutrition: createDailyNutritionFromPlan({
+      plan: nextActivePlan,
+      baseNutrition: currentNutrition,
+      date: currentNutrition.date,
+    }),
+  };
+}
+
 export function createNutritionSlice(
   set: StudentSetState,
   get: StudentGetState,
@@ -190,10 +252,6 @@ export function createNutritionSlice(
           },
         }));
 
-        await Promise.allSettled([
-          get().loadActiveNutritionPlan(),
-          isToday ? get().loadNutritionLibraryPlans() : Promise.resolve(),
-        ]);
       } catch (error) {
         console.error("Erro ao atualizar nutricao:", error);
         set((state) => ({
@@ -240,6 +298,8 @@ export function createNutritionSlice(
 
     updateNutritionLibraryPlan: async (planId, data) => {
       const previousPlans = get().data.nutritionLibraryPlans;
+      const previousActiveNutritionPlan = get().data.activeNutritionPlan;
+      const previousNutrition = get().data.dailyNutrition;
       const targetPlan =
         previousPlans.find((plan) => plan.id === planId) ?? null;
 
@@ -273,7 +333,9 @@ export function createNutritionSlice(
       }
 
       try {
-        await apiClient.patch(`/api/nutrition/library/${planId}`, {
+        const response = await apiClient.patch<{
+          data?: NutritionPlanData;
+        }>(`/api/nutrition/library/${planId}`, {
           ...(data.title !== undefined && { title: data.title }),
           ...(data.description !== undefined && {
             description: data.description,
@@ -281,16 +343,33 @@ export function createNutritionSlice(
           ...(data.meals && { meals: toApiMeals(data.meals) }),
         });
 
-        await Promise.allSettled([
-          get().loadNutritionLibraryPlans(),
-          get().loadActiveNutritionPlan(),
-          get().loadNutrition(),
-        ]);
+        const updatedPlan = response.data.data ?? null;
+        if (updatedPlan) {
+          const syncedState = syncLinkedActivePlan({
+            currentActivePlan: get().data.activeNutritionPlan,
+            updatedLibraryPlan: updatedPlan,
+            currentNutrition: get().data.dailyNutrition,
+          });
+
+          set((state) => ({
+            data: {
+              ...state.data,
+              nutritionLibraryPlans: upsertNutritionLibraryPlan(
+                state.data.nutritionLibraryPlans,
+                updatedPlan,
+              ),
+              activeNutritionPlan: syncedState.activeNutritionPlan,
+              dailyNutrition: syncedState.dailyNutrition,
+            },
+          }));
+        }
       } catch (error) {
         set((state) => ({
           data: {
             ...state.data,
             nutritionLibraryPlans: previousPlans,
+            activeNutritionPlan: previousActiveNutritionPlan,
+            dailyNutrition: previousNutrition,
           },
         }));
         throw error;
@@ -328,15 +407,19 @@ export function createNutritionSlice(
         null;
       const previousActiveNutritionPlan = get().data.activeNutritionPlan;
       const previousNutrition = currentNutrition;
+      const optimisticActivePlan = sourcePlan
+        ? createOptimisticActivatedPlan(sourcePlan, previousActiveNutritionPlan)
+        : null;
 
-      if (sourcePlan) {
+      if (optimisticActivePlan) {
         set((state) => ({
           data: {
             ...state.data,
-            activeNutritionPlan: sourcePlan,
+            activeNutritionPlan: optimisticActivePlan,
             dailyNutrition: createDailyNutritionFromPlan({
-              plan: sourcePlan,
+              plan: optimisticActivePlan,
               baseNutrition: currentNutrition,
+              date: currentNutrition.date,
             }),
           },
         }));
@@ -349,19 +432,19 @@ export function createNutritionSlice(
           libraryPlanId: planId,
         });
 
+        const activatedPlan =
+          response.data.data ?? optimisticActivePlan;
         set((state) => ({
           data: {
             ...state.data,
-            activeNutritionPlan:
-              response.data.data ?? state.data.activeNutritionPlan,
+            activeNutritionPlan: activatedPlan,
+            dailyNutrition: createDailyNutritionFromPlan({
+              plan: activatedPlan,
+              baseNutrition: state.data.dailyNutrition,
+              date: state.data.dailyNutrition.date,
+            }),
           },
         }));
-
-        await Promise.allSettled([
-          get().loadActiveNutritionPlan(),
-          get().loadNutrition(),
-          get().loadNutritionLibraryPlans(),
-        ]);
       } catch (error) {
         set((state) => ({
           data: {

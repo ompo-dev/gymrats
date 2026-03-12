@@ -14,6 +14,86 @@ interface NutritionPreviewCardProps {
   isStreaming?: boolean;
 }
 
+interface FoodPreviewItemCardProps {
+  food: NutritionPreviewMeal["foods"][number];
+  index: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+function FoodPreviewItemCard({
+  food,
+  index: _index,
+  isExpanded,
+  onToggle,
+}: FoodPreviewItemCardProps) {
+  return (
+    <div>
+      <div
+        onClick={onToggle}
+        className={cn(
+          "w-full cursor-pointer rounded-xl border p-3 text-left transition-all active:scale-[0.98]",
+          isExpanded
+            ? "border-duo-green bg-duo-green/10 shadow-sm"
+            : "border-duo-border bg-duo-bg-card hover:border-duo-green/50",
+        )}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onToggle();
+          }
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <Salad className="h-4 w-4 shrink-0 text-duo-green" />
+              <div className="truncate font-bold text-duo-fg">{food.name}</div>
+            </div>
+            <div className="text-xs text-duo-fg-muted">
+              {food.servings} porcao{food.servings !== 1 ? "oes" : ""} •{" "}
+              {food.servingSize}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right text-xs text-duo-fg-muted">
+              <div>{Math.round(food.calories * food.servings)} cal</div>
+            </div>
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className="shrink-0 text-duo-fg-muted"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </motion.div>
+          </div>
+        </div>
+
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="mt-3 border-t border-duo-border pt-3 text-xs text-duo-fg-muted">
+                P {Math.round(food.protein * food.servings)}g • C{" "}
+                {Math.round(food.carbs * food.servings)}g • G{" "}
+                {Math.round(food.fats * food.servings)}g
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
 export function NutritionPreviewCard({
   meal,
   index,
@@ -22,6 +102,7 @@ export function NutritionPreviewCard({
 }: NutritionPreviewCardProps) {
   const [userToggled, setUserToggled] = useState(false);
   const [userExpanded, setUserExpanded] = useState(false);
+  const [expandedFoodIndex, setExpandedFoodIndex] = useState<number | null>(null);
   const isExpanded = userToggled ? userExpanded : defaultExpanded;
   const hasFoods = meal.foods.length > 0;
 
@@ -106,33 +187,17 @@ export function NutritionPreviewCard({
                   </div>
                 ) : (
                   meal.foods.map((food, foodIndex) => (
-                    <div
+                    <FoodPreviewItemCard
                       key={`${meal.type}-${food.name}-${foodIndex}`}
-                      className="rounded-xl border border-duo-border bg-duo-bg-card p-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center gap-2">
-                            <Salad className="h-4 w-4 shrink-0 text-duo-green" />
-                            <div className="truncate font-bold text-duo-fg">
-                              {food.name}
-                            </div>
-                          </div>
-                          <div className="text-xs text-duo-fg-muted">
-                            {food.servings} porcao{food.servings !== 1 ? "oes" : ""}
-                            {" "}• {food.servingSize}
-                          </div>
-                        </div>
-                        <div className="text-right text-xs text-duo-fg-muted">
-                          <div>{Math.round(food.calories * food.servings)} cal</div>
-                          <div>
-                            P {Math.round(food.protein * food.servings)}g • C{" "}
-                            {Math.round(food.carbs * food.servings)}g • G{" "}
-                            {Math.round(food.fats * food.servings)}g
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                      food={food}
+                      index={foodIndex}
+                      isExpanded={expandedFoodIndex === foodIndex}
+                      onToggle={() =>
+                        setExpandedFoodIndex(
+                          expandedFoodIndex === foodIndex ? null : foodIndex,
+                        )
+                      }
+                    />
                   ))
                 )}
               </div>

@@ -13,6 +13,7 @@
 
 "use client";
 
+import { useMemo } from "react";
 import type { StudentData } from "@/lib/types/student-unified";
 import { selectFromData } from "@/lib/utils/student/student-selectors";
 import {
@@ -319,23 +320,9 @@ export function useStudent<T extends StudentSelector>(
     (state) => state.loadFoodDatabase,
   );
 
-  // NOTA: O carregamento automático foi movido para useStudentInitializer
-  // para centralizar a lógica de inicialização. Use useStudentInitializer
-  // em layouts ou providers para carregar dados automaticamente.
-
-  //  nhum seletor, retorna tudo
-  if (selectors.length === 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return data as any;
-  }
-
-  // Se apenas um seletor
-  if (selectors.length === 1) {
-    const selector = selectors[0];
-
-    // Se for 'actions', retorna actions
-    if (selector === "actions") {
-      return getActions({
+  const actionsValue = useMemo(
+    () =>
+      getActions({
         updateProgress,
         updateProfile,
         addWeight,
@@ -387,13 +374,65 @@ export function useStudent<T extends StudentSelector>(
         syncNutrition,
         reset,
         clearCache,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any;
-    }
+      }),
+    [
+      updateProgress,
+      updateProfile,
+      addWeight,
+      completeWorkout,
+      addPersonalRecord,
+      updateNutrition,
+      createNutritionLibraryPlan,
+      updateNutritionLibraryPlan,
+      deleteNutritionLibraryPlan,
+      activateNutritionLibraryPlan,
+      updateSubscription,
+      updateReferralPixKey,
+      requestReferralWithdraw,
+      addDayPass,
+      joinGym,
+      loadGymPlans,
+      changeMembershipPlan,
+      cancelMembership,
+      cancelPersonalAssignment,
+      subscribeToPersonal,
+      payStudentPayment,
+      cancelStudentPayment,
+      getStudentPaymentStatus,
+      getPersonalPaymentStatus,
+      applyReferralToSubscription,
+      createWeeklyPlan,
+      updateWeeklyPlan,
+      resetWeeklyPlan,
+      addWeeklyPlanWorkout,
+      createLibraryPlan,
+      updateLibraryPlan,
+      deleteLibraryPlan,
+      activateLibraryPlan,
+      createUnit,
+      updateUnit,
+      deleteUnit,
+      createWorkout,
+      updateWorkout,
+      deleteWorkout,
+      addWorkoutExercise,
+      updateWorkoutExercise,
+      deleteWorkoutExercise,
+      setActiveWorkout,
+      updateActiveWorkout,
+      saveWorkoutProgress,
+      clearActiveWorkout,
+      syncAll,
+      syncProgress,
+      syncNutrition,
+      reset,
+      clearCache,
+    ],
+  );
 
-    // Se for 'loaders', retorna loaders
-    if (selector === "loaders") {
-      return getLoaders({
+  const loadersValue = useMemo(
+    () =>
+      getLoaders({
         loadAll,
         loadAllPrioritized,
         loadUser,
@@ -418,8 +457,57 @@ export function useStudent<T extends StudentSelector>(
         loadGymLocations,
         loadGymLocationsWithPosition,
         loadFoodDatabase,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any;
+      }),
+    [
+      loadAll,
+      loadAllPrioritized,
+      loadUser,
+      loadProgress,
+      loadProfile,
+      loadWeightHistory,
+      loadWorkouts,
+      loadWeeklyPlan,
+      loadActiveNutritionPlan,
+      loadNutritionLibraryPlans,
+      loadLibraryPlans,
+      loadWorkoutHistory,
+      loadPersonalRecords,
+      loadNutrition,
+      loadSubscription,
+      loadMemberships,
+      loadPayments,
+      loadPaymentMethods,
+      loadReferral,
+      loadDayPasses,
+      loadFriends,
+      loadGymLocations,
+      loadGymLocationsWithPosition,
+      loadFoodDatabase,
+    ],
+  );
+
+  // NOTA: O carregamento automático foi movido para useStudentInitializer
+  // para centralizar a lógica de inicialização. Use useStudentInitializer
+  // em layouts ou providers para carregar dados automaticamente.
+
+  //  nhum seletor, retorna tudo
+  if (selectors.length === 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return data as any;
+  }
+
+  // Se apenas um seletor
+  if (selectors.length === 1) {
+    const selector = selectors[0];
+
+    // Se for 'actions', retorna actions
+    if (selector === "actions") {
+      return actionsValue as any;
+    }
+
+    // Se for 'loaders', retorna loaders
+    if (selector === "loaders") {
+      return loadersValue as any;
     }
 
     // Caso contrário, retorna o dado selecionado
@@ -447,86 +535,9 @@ export function useStudent<T extends StudentSelector>(
 
   selectors.forEach((selector) => {
     if (selector === "actions") {
-      result.actions = getActions({
-        updateProgress,
-        updateProfile,
-        addWeight,
-        completeWorkout,
-        addPersonalRecord,
-        updateNutrition,
-        createNutritionLibraryPlan,
-        updateNutritionLibraryPlan,
-        deleteNutritionLibraryPlan,
-        activateNutritionLibraryPlan,
-        updateSubscription,
-        updateReferralPixKey,
-        requestReferralWithdraw,
-        addDayPass,
-        joinGym,
-        loadGymPlans,
-        changeMembershipPlan,
-        cancelMembership,
-        cancelPersonalAssignment,
-        subscribeToPersonal,
-        payStudentPayment,
-        cancelStudentPayment,
-        getStudentPaymentStatus,
-        getPersonalPaymentStatus,
-        applyReferralToSubscription,
-        createWeeklyPlan,
-        updateWeeklyPlan,
-        resetWeeklyPlan,
-        addWeeklyPlanWorkout,
-        createLibraryPlan,
-        updateLibraryPlan,
-        deleteLibraryPlan,
-        activateLibraryPlan,
-        createUnit,
-        updateUnit,
-        deleteUnit,
-        createWorkout,
-        updateWorkout,
-        deleteWorkout,
-        addWorkoutExercise,
-        updateWorkoutExercise,
-        deleteWorkoutExercise,
-        setActiveWorkout,
-        updateActiveWorkout,
-        saveWorkoutProgress,
-        clearActiveWorkout,
-        syncAll,
-        syncProgress,
-        syncNutrition,
-        reset,
-        clearCache,
-      });
+      result.actions = actionsValue;
     } else if (selector === "loaders") {
-      result.loaders = getLoaders({
-        loadAll,
-        loadAllPrioritized,
-        loadUser,
-        loadProgress,
-        loadProfile,
-        loadWeightHistory,
-        loadWorkouts,
-        loadWeeklyPlan,
-        loadActiveNutritionPlan,
-        loadNutritionLibraryPlans,
-        loadLibraryPlans,
-        loadWorkoutHistory,
-        loadPersonalRecords,
-        loadNutrition,
-        loadSubscription,
-        loadMemberships,
-        loadPayments,
-        loadPaymentMethods,
-        loadReferral,
-        loadDayPasses,
-        loadFriends,
-        loadGymLocations,
-        loadGymLocationsWithPosition,
-        loadFoodDatabase,
-      });
+      result.loaders = loadersValue;
     } else if (selector === "dailyNutrition") {
       // Usar valor já selecionado para garantir reatividade
       result[selector] = dailyNutritionData;

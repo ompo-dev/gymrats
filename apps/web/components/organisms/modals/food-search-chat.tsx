@@ -8,7 +8,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import {
@@ -20,7 +20,8 @@ import {
   type NutritionPreviewPlan,
 } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
-import type { DietType, FoodItem, Meal } from "@/lib/types";
+import type { DietType, FoodItem, Meal, NutritionPlanData } from "@/lib/types";
+import { nutritionPlanToMeals } from "@/lib/utils/nutrition/nutrition-plan";
 import { cn } from "@/lib/utils";
 import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -66,23 +67,128 @@ interface ChatMessage {
 
 const EMPTY_MEALS: Meal[] = [];
 
-function replacePreviewMessages(
+function isCompletePlanRequest(message: string): boolean {
+  return /plano|completo|dia todo|todas as refeicoes|todas refeicoes|todas as meals|todas as refei/i.test(
+    message,
+  );
+}
+
+function normalizeMealIdentity(meal: {
+  type?: string | null;
+  name?: string | null;
+}) {
+  return `${meal.type?.trim().toLowerCase() || "snack"}::${meal.name?.trim().toLowerCase() || ""}`;
+}
+
+function findMatchingMealIndex(
+  meals: Meal[],
+  target: { type?: string | null; name?: string | null },
+) {
+  const exactMatchIndex = meals.findIndex(
+    (meal) => normalizeMealIdentity(meal) === normalizeMealIdentity(target),
+  );
+
+  if (exactMatchIndex >= 0) {
+    return exactMatchIndex;
+  }
+
+  return meals.findIndex(
+    (meal) =>
+      meal.type?.trim().toLowerCase() === target.type?.trim().toLowerCase(),
+  );
+}
+
+function createMealSkeletons(meals: Meal[]): NutritionPreviewMeal[] {
+  const seenKeys = new Set<string>();
+
+  return meals.reduce<NutritionPreviewMeal[]>((accumulator, meal) => {
+    const key = `${meal.type}:${meal.name}`;
+    if (seenKeys.has(key)) {
+      return accumulator;
+    }
+
+    seenKeys.add(key);
+    accumulator.push({
+      type: meal.type,
+      name: meal.name || getNutritionMealName(meal.type),
+      time: meal.time || getNutritionMealTime(meal.type),
+      foods: [],
+      totalCalories: 0,
+      totalProtein: 0,
+      totalCarbs: 0,
+      totalFats: 0,
+    });
+
+    return accumulator;
+  }, []);
+}
+
+function mergePreviewMeals(
+  skeletonMeals: NutritionPreviewMeal[],
+  previewMeals: NutritionPreviewMeal[],
+): NutritionPreviewMeal[] {
+  if (skeletonMeals.length === 0) {
+    return previewMeals;
+  }
+
+  const previewByType = new Map(
+    previewMeals.map((meal) => [meal.type, meal] as const),
+  );
+  const mergedMeals = skeletonMeals.map((meal) => previewByType.get(meal.type) ?? meal);
+  const extraMeals = previewMeals.filter(
+    (meal) => !skeletonMeals.some((skeletonMeal) => skeletonMeal.type === meal.type),
+  );
+
+  return [...mergedMeals, ...extraMeals];
+}
+
+function syncPreviewMessages(
   messages: ChatMessage[],
   previewMeals: NutritionPreviewMeal[],
 ): ChatMessage[] {
-  const baseMessages = messages.filter((message) => !message.nutritionPreview);
+  if (previewMeals.length === 0) {
+    return messages.filter((message) => !message.nutritionPreview);
+  }
 
-  return [
-    ...baseMessages,
-    ...previewMeals.map((meal, index) => ({
-      id: `nutrition-preview-${meal.type}-${index}`,
-      role: "assistant" as const,
+  const nextMessages = [...messages];
+  const validIndexes = new Set(previewMeals.map((_, index) => index));
+
+  previewMeals.forEach((meal, index) => {
+    const existingIndex = nextMessages.findIndex(
+      (message) =>
+        message.nutritionPreview &&
+        message.nutritionPreviewIndex === index,
+    );
+    const nextPreviewMessage: ChatMessage = {
+      id: `nutrition-preview-${index}`,
+      role: "assistant",
       content: "",
       timestamp: new Date(),
       nutritionPreview: meal,
       nutritionPreviewIndex: index,
-    })),
-  ];
+    };
+
+    if (existingIndex >= 0) {
+      nextMessages[existingIndex] = {
+        ...nextMessages[existingIndex],
+        ...nextPreviewMessage,
+      };
+      return;
+    }
+
+    nextMessages.push(nextPreviewMessage);
+  });
+
+  return nextMessages.filter((message) => {
+    if (!message.nutritionPreview) {
+      return true;
+    }
+
+    return (
+      typeof message.nutritionPreviewIndex === "number" &&
+      validIndexes.has(message.nutritionPreviewIndex)
+    );
+  });
 }
 
 function cloneMeal(meal: Meal): Meal {
@@ -90,6 +196,60 @@ function cloneMeal(meal: Meal): Meal {
     ...meal,
     foods: [...(meal.foods || [])],
   };
+}
+
+function mergeMealsForChat(baseMeals: Meal[], overlayMeals: Meal[]) {
+  const mergedMeals = baseMeals.map(cloneMeal);
+
+  overlayMeals.forEach((overlayMeal) => {
+    const matchIndex = findMatchingMealIndex(mergedMeals, overlayMeal);
+    const nextOverlayMeal = cloneMeal(overlayMeal);
+
+    if (matchIndex >= 0) {
+      const baseMeal = mergedMeals[matchIndex];
+      mergedMeals[matchIndex] = {
+        ...baseMeal,
+        ...nextOverlayMeal,
+        id: baseMeal.id || nextOverlayMeal.id,
+        name: nextOverlayMeal.name || baseMeal.name,
+        type: nextOverlayMeal.type || baseMeal.type,
+        time: nextOverlayMeal.time || baseMeal.time,
+      };
+      return;
+    }
+
+    mergedMeals.push(nextOverlayMeal);
+  });
+
+  return mergedMeals;
+}
+
+function upsertPreviewMeal(
+  currentMeals: NutritionPreviewMeal[],
+  skeletonMeals: NutritionPreviewMeal[],
+  nextMeal: NutritionPreviewMeal,
+  targetIndex?: number,
+) {
+  const nextMeals =
+    currentMeals.length > 0 ? [...currentMeals] : [...skeletonMeals];
+
+  const resolvedIndex =
+    typeof targetIndex === "number" && targetIndex >= 0
+      ? targetIndex
+      : nextMeals.findIndex(
+          (meal) => normalizeMealIdentity(meal) === normalizeMealIdentity(nextMeal),
+        );
+
+  if (resolvedIndex >= 0) {
+    const previousMeal = nextMeals[resolvedIndex];
+    nextMeals[resolvedIndex] = previousMeal
+      ? { ...previousMeal, ...nextMeal }
+      : nextMeal;
+    return nextMeals;
+  }
+
+  nextMeals.push(nextMeal);
+  return nextMeals;
 }
 
 function buildDailyTotals(meals: Meal[]) {
@@ -109,6 +269,139 @@ function buildDailyTotals(meals: Meal[]) {
   };
 }
 
+function buildFoodsFromPreviewMeal(
+  previewMeal: NutritionPreviewMeal,
+  mealIndex: number,
+  existingFoodsCount: number,
+) {
+  return previewMeal.foods.map((food, foodIndex) => {
+    const parsedFood = parsedFoodToFoodItem(food, existingFoodsCount + foodIndex);
+    return {
+      id: `food-${Date.now()}-${mealIndex}-${foodIndex}`,
+      foodId: parsedFood.id,
+      foodName: parsedFood.name,
+      servings: food.servings,
+      calories: food.calories * food.servings,
+      protein: food.protein * food.servings,
+      carbs: food.carbs * food.servings,
+      fats: food.fats * food.servings,
+      servingSize: food.servingSize,
+    };
+  });
+}
+
+function createMealFromPreview(
+  previewMeal: NutritionPreviewMeal,
+  mealIndex: number,
+  existingMeal?: Meal | null,
+): Meal {
+  const foods = buildFoodsFromPreviewMeal(previewMeal, mealIndex, 0);
+
+  return {
+    id: existingMeal?.id || `meal-${Date.now()}-${mealIndex}`,
+    name:
+      previewMeal.name ||
+      existingMeal?.name ||
+      getNutritionMealName(previewMeal.type),
+    type: previewMeal.type as DietType,
+    calories:
+      foods.reduce((sum, food) => sum + food.calories, 0) ||
+      Math.round(previewMeal.totalCalories),
+    protein:
+      foods.reduce((sum, food) => sum + food.protein, 0) ||
+      Math.round(previewMeal.totalProtein),
+    carbs:
+      foods.reduce((sum, food) => sum + food.carbs, 0) ||
+      Math.round(previewMeal.totalCarbs),
+    fats:
+      foods.reduce((sum, food) => sum + food.fats, 0) ||
+      Math.round(previewMeal.totalFats),
+    completed: existingMeal?.completed ?? false,
+    time:
+      previewMeal.time ||
+      existingMeal?.time ||
+      getNutritionMealTime(previewMeal.type),
+    foods,
+  };
+}
+
+function replaceMealsWithPreviewPlan(
+  baseMeals: Meal[],
+  previewMeals: NutritionPreviewMeal[],
+) {
+  const nextMeals = baseMeals.map(cloneMeal);
+
+  previewMeals.forEach((previewMeal, mealIndex) => {
+    const matchIndex = findMatchingMealIndex(nextMeals, previewMeal);
+    const existingMeal = matchIndex >= 0 ? nextMeals[matchIndex] : null;
+    const nextMeal = createMealFromPreview(previewMeal, mealIndex, existingMeal);
+
+    if (matchIndex >= 0) {
+      nextMeals[matchIndex] = nextMeal;
+      return;
+    }
+
+    nextMeals.push(nextMeal);
+  });
+
+  return nextMeals;
+}
+
+function appendPreviewPlanToMeals(
+  baseMeals: Meal[],
+  previewMeals: NutritionPreviewMeal[],
+  selectedMeal: Meal | null,
+) {
+  const nextMeals = baseMeals.map(cloneMeal);
+
+  previewMeals.forEach((previewMeal, mealIndex) => {
+    let targetMealIndex = -1;
+
+    if (
+      selectedMeal &&
+      previewMeal.type === selectedMeal.type &&
+      previewMeal.name === selectedMeal.name
+    ) {
+      targetMealIndex = nextMeals.findIndex((meal) => meal.id === selectedMeal.id);
+    }
+
+    if (targetMealIndex === -1) {
+      targetMealIndex = findMatchingMealIndex(nextMeals, previewMeal);
+    }
+
+    if (targetMealIndex === -1) {
+      nextMeals.push({
+        id: `meal-${Date.now()}-${mealIndex}`,
+        name: previewMeal.name || getNutritionMealName(previewMeal.type),
+        type: previewMeal.type as DietType,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        completed: false,
+        time: previewMeal.time || getNutritionMealTime(previewMeal.type),
+        foods: [],
+      });
+      targetMealIndex = nextMeals.length - 1;
+    }
+
+    const meal = nextMeals[targetMealIndex];
+    const newFoods = buildFoodsFromPreviewMeal(
+      previewMeal,
+      mealIndex,
+      meal.foods.length,
+    );
+
+    meal.foods = [...(meal.foods || []), ...newFoods];
+    meal.calories += newFoods.reduce((sum, food) => sum + food.calories, 0);
+    meal.protein += newFoods.reduce((sum, food) => sum + food.protein, 0);
+    meal.carbs += newFoods.reduce((sum, food) => sum + food.carbs, 0);
+    meal.fats += newFoods.reduce((sum, food) => sum + food.fats, 0);
+  });
+
+  return nextMeals;
+}
+
 export function FoodSearchChat({
   onAddFood: _onAddFood,
   onAddMeal: _onAddMeal,
@@ -122,13 +415,31 @@ export function FoodSearchChat({
 }: FoodSearchChatProps) {
   const studentDailyNutrition =
     (useStudent("dailyNutrition") as { meals?: Meal[] } | null) ?? null;
+  const studentActiveNutritionPlan =
+    (useStudent("activeNutritionPlan") as unknown as NutritionPlanData | null) ??
+    null;
   const storeMeals = Array.isArray(studentDailyNutrition?.meals)
     ? studentDailyNutrition.meals
     : EMPTY_MEALS;
-  const meals =
-    contextMode === "student" && storeMeals.length > 0
-      ? storeMeals
-      : initialMeals;
+  const activePlanMeals = useMemo(
+    () => nutritionPlanToMeals(studentActiveNutritionPlan),
+    [studentActiveNutritionPlan],
+  );
+  const meals = useMemo(() => {
+    if (contextMode !== "student") {
+      return initialMeals;
+    }
+
+    if (activePlanMeals.length > 0) {
+      return mergeMealsForChat(activePlanMeals, storeMeals);
+    }
+
+    if (storeMeals.length > 0) {
+      return storeMeals;
+    }
+
+    return initialMeals;
+  }, [activePlanMeals, contextMode, initialMeals, storeMeals]);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -144,7 +455,11 @@ export function FoodSearchChat({
   const [previewMeals, setPreviewMeals] = useState<NutritionPreviewMeal[]>([]);
   const [pendingNutritionPlan, setPendingNutritionPlan] =
     useState<NutritionPreviewPlan | null>(null);
+  const [pendingApplyMode, setPendingApplyMode] = useState<
+    "append" | "replace-plan"
+  >("append");
   const [allPreviewComplete, setAllPreviewComplete] = useState(false);
+  const [missingExpectedMeals, setMissingExpectedMeals] = useState<string[]>([]);
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       role: "user" | "assistant";
@@ -177,11 +492,14 @@ export function FoodSearchChat({
     inputRef.current?.focus();
   }, []);
 
-  const buildPreviewPlan = (foods: Array<Record<string, unknown>>) =>
+  const buildPreviewPlan = (
+    foods: Array<Record<string, unknown>>,
+    fallbackMealType: string | null = selectedMeal?.type ?? null,
+  ) =>
     buildNutritionPreviewPlan(
       foods as unknown as Parameters<typeof buildNutritionPreviewPlan>[0],
       {
-        fallbackMealType: selectedMeal?.type ?? null,
+        fallbackMealType,
         existingMeals: meals.map((meal) => ({
           type: meal.type,
           name: meal.name,
@@ -190,19 +508,33 @@ export function FoodSearchChat({
       },
     );
 
+  const canApprove =
+    allPreviewComplete &&
+    previewMeals.some((meal) => meal.foods.length > 0) &&
+    missingExpectedMeals.length === 0;
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isProcessing) return;
 
     const userMessage = inputMessage.trim();
     const assistantMessageId = `nutrition-assistant-${Date.now()}`;
     const streamRequestKey = `nutrition-chat:${localSelectedMealId ?? "all"}`;
+    const shouldCoverAllMeals =
+      isCompletePlanRequest(userMessage) && meals.length > 0;
+    const mealSkeletons = shouldCoverAllMeals ? createMealSkeletons(meals) : [];
+    const applyMode = shouldCoverAllMeals ? "replace-plan" : "append";
+    const fallbackMealTypeForPreview = shouldCoverAllMeals
+      ? null
+      : selectedMeal?.type ?? null;
 
     setInputMessage("");
     setAllPreviewComplete(false);
     setPreviewMeals([]);
     setPendingNutritionPlan(null);
+    setPendingApplyMode(applyMode);
+    setMissingExpectedMeals([]);
 
-    const nextMessages = replacePreviewMessages(
+    const nextMessages = syncPreviewMessages(
       [
         ...messages,
         {
@@ -218,9 +550,10 @@ export function FoodSearchChat({
           timestamp: new Date(),
         },
       ],
-      [],
+      mealSkeletons,
     );
 
+    setPreviewMeals(mealSkeletons);
     setMessages(nextMessages);
     setConversationHistory((prev) => [
       ...prev,
@@ -238,8 +571,11 @@ export function FoodSearchChat({
           existingMeals: meals.map((meal) => ({
             type: meal.type,
             name: meal.name,
+            time: meal.time,
           })),
-          selectedMeal: selectedMeal
+          selectedMeal: shouldCoverAllMeals
+            ? null
+            : selectedMeal
             ? {
                 id: selectedMeal.id,
                 type: selectedMeal.type,
@@ -294,6 +630,7 @@ export function FoodSearchChat({
             message?: string;
             delta?: string;
             foods?: Array<Record<string, unknown>>;
+            meals?: NutritionPreviewMeal[];
             remainingMessages?: number | null;
           };
 
@@ -313,38 +650,73 @@ export function FoodSearchChat({
             continue;
           }
 
+          if (event === "meal_progress" && data.meals) {
+            const streamingMeals = (data.meals as NutritionPreviewMeal[]) ?? [];
+            const mergedMeals = mergePreviewMeals(mealSkeletons, streamingMeals);
+
+            setPreviewMeals(mergedMeals);
+            setMessages((prev) => syncPreviewMessages(prev, mergedMeals));
+            continue;
+          }
+
           if (event === "food_progress" && Array.isArray(data.foods)) {
-            const previewPlan = buildPreviewPlan(data.foods);
-            setPreviewMeals(previewPlan.meals);
-            setMessages((prev) =>
-              replacePreviewMessages(prev, previewPlan.meals),
+            const previewPlan = buildPreviewPlan(
+              data.foods,
+              fallbackMealTypeForPreview,
             );
+            const mergedMeals = mergePreviewMeals(
+              mealSkeletons,
+              previewPlan.meals,
+            );
+
+            setPreviewMeals(mergedMeals);
+            setMessages((prev) => syncPreviewMessages(prev, mergedMeals));
             continue;
           }
 
           if (event === "complete") {
             const finalMessage =
               data.message || fullMessage || "Plano alimentar montado.";
-            const previewPlan = buildPreviewPlan(data.foods || []);
+            const previewPlan = buildPreviewPlan(
+              data.foods || [],
+              fallbackMealTypeForPreview,
+            );
+            const mergedMeals = mergePreviewMeals(
+              mealSkeletons,
+              previewPlan.meals,
+            );
+            const missingMeals = mealSkeletons
+              .filter((meal) => !previewPlan.meals.some((preview) => preview.type === meal.type))
+              .map((meal) => meal.name);
+            const finalAssistantMessage =
+              missingMeals.length > 0
+                ? `${finalMessage} Ainda faltaram: ${missingMeals.join(", ")}.`
+                : finalMessage;
 
-            setPreviewMeals(previewPlan.meals);
+            setPreviewMeals(mergedMeals);
             setPendingNutritionPlan(
-              previewPlan.meals.length > 0 ? previewPlan : null,
+              mergedMeals.length > 0
+                ? {
+                    ...previewPlan,
+                    meals: mergedMeals,
+                  }
+                : null,
             );
             setAllPreviewComplete(previewPlan.meals.length > 0);
+            setMissingExpectedMeals(missingMeals);
             setRemainingMessages(data.remainingMessages ?? null);
             setConversationHistory((prev) => [
               ...prev,
-              { role: "assistant", content: finalMessage },
+              { role: "assistant", content: finalAssistantMessage },
             ]);
             setMessages((prev) =>
-              replacePreviewMessages(
+              syncPreviewMessages(
                 prev.map((message) =>
                   message.id === assistantMessageId
-                    ? { ...message, content: finalMessage }
+                    ? { ...message, content: finalAssistantMessage }
                     : message,
                 ),
-                previewPlan.meals,
+                mergedMeals,
               ),
             );
             continue;
@@ -363,7 +735,7 @@ export function FoodSearchChat({
           : "Desculpe, ocorreu um erro. Tente novamente.";
 
       setMessages((prev) =>
-        replacePreviewMessages(
+        syncPreviewMessages(
           prev.map((chatMessage) =>
             chatMessage.id === assistantMessageId
               ? { ...chatMessage, content: message }
@@ -385,8 +757,9 @@ export function FoodSearchChat({
     setPreviewMeals([]);
     setPendingNutritionPlan(null);
     setAllPreviewComplete(false);
+    setMissingExpectedMeals([]);
     setMessages((prev) =>
-      replacePreviewMessages(
+      syncPreviewMessages(
         [
           ...prev,
           {
@@ -413,75 +786,10 @@ export function FoodSearchChat({
     setIsApproving(true);
 
     try {
-      const nextMeals = meals.map(cloneMeal);
-
-      pendingNutritionPlan.meals.forEach((previewMeal, mealIndex) => {
-        let targetMealIndex = -1;
-
-        if (
-          selectedMeal &&
-          previewMeal.type === selectedMeal.type &&
-          previewMeal.name === selectedMeal.name
-        ) {
-          targetMealIndex = nextMeals.findIndex(
-            (meal) => meal.id === selectedMeal.id,
-          );
-        }
-
-        if (targetMealIndex === -1) {
-          targetMealIndex = nextMeals.findIndex(
-            (meal) =>
-              meal.type === previewMeal.type && meal.name === previewMeal.name,
-          );
-        }
-
-        if (targetMealIndex === -1) {
-          targetMealIndex = nextMeals.findIndex(
-            (meal) => meal.type === previewMeal.type,
-          );
-        }
-
-        if (targetMealIndex === -1) {
-          nextMeals.push({
-            id: `meal-${Date.now()}-${mealIndex}`,
-            name: previewMeal.name || getNutritionMealName(previewMeal.type),
-            type: previewMeal.type as DietType,
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fats: 0,
-            completed: false,
-            time: previewMeal.time || getNutritionMealTime(previewMeal.type),
-            foods: [],
-          });
-          targetMealIndex = nextMeals.length - 1;
-        }
-
-        const meal = nextMeals[targetMealIndex];
-        const newFoods = previewMeal.foods.map((food, foodIndex) => {
-          const parsedFood = parsedFoodToFoodItem(
-            food,
-            meal.foods.length + foodIndex,
-          );
-          return {
-            id: `food-${Date.now()}-${mealIndex}-${foodIndex}`,
-            foodId: parsedFood.id,
-            foodName: parsedFood.name,
-            servings: food.servings,
-            calories: food.calories * food.servings,
-            protein: food.protein * food.servings,
-            carbs: food.carbs * food.servings,
-            fats: food.fats * food.servings,
-            servingSize: food.servingSize,
-          };
-        });
-
-        meal.foods = [...(meal.foods || []), ...newFoods];
-        meal.calories += newFoods.reduce((sum, food) => sum + food.calories, 0);
-        meal.protein += newFoods.reduce((sum, food) => sum + food.protein, 0);
-        meal.carbs += newFoods.reduce((sum, food) => sum + food.carbs, 0);
-        meal.fats += newFoods.reduce((sum, food) => sum + food.fats, 0);
-      });
+      const nextMeals =
+        pendingApplyMode === "replace-plan"
+          ? replaceMealsWithPreviewPlan(meals, pendingNutritionPlan.meals)
+          : appendPreviewPlanToMeals(meals, pendingNutritionPlan.meals, selectedMeal);
 
       const totals = buildDailyTotals(nextMeals);
 
@@ -694,7 +1002,7 @@ export function FoodSearchChat({
               >
                 <DuoButton
                   onClick={handleApprove}
-                  disabled={isApproving}
+                  disabled={isApproving || !canApprove}
                   variant="primary"
                   className="flex items-center gap-2 px-6 py-3"
                 >
@@ -720,6 +1028,13 @@ export function FoodSearchChat({
                   Refazer
                 </DuoButton>
               </motion.div>
+            )}
+
+            {allPreviewComplete && missingExpectedMeals.length > 0 && (
+              <div className="rounded-xl border border-duo-orange bg-duo-orange/10 p-3 text-center text-sm font-bold text-duo-orange">
+                Ainda faltam refeicoes para completar o plano:{" "}
+                {missingExpectedMeals.join(", ")}.
+              </div>
             )}
 
             {isProcessing && (

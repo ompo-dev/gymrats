@@ -83,7 +83,7 @@ export function usePrioritizedResourceLoader<
       const alreadyReady = priorities.every((section) =>
         hasSectionData(section, snapshot),
       );
-      if (alreadyReady && now - lastLoadTimeRef.current < minTimeBetweenLoadsMs) {
+      if (alreadyReady && hasCalledRef.current && lastKeyRef.current === key) {
         return;
       }
     }

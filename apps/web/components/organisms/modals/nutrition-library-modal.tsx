@@ -270,7 +270,6 @@ function StudentNutritionLibraryModal() {
       const planId = await createNutritionLibraryPlan({
         title: "Novo Plano Alimentar",
       });
-      await loadNutritionLibraryPlans();
       const nextPlan =
         useStudentUnifiedStore
           .getState()
@@ -306,7 +305,6 @@ function StudentNutritionLibraryModal() {
     setActivatingId(planId);
     try {
       await activateNutritionLibraryPlan(planId);
-      await syncStudentNutrition();
       toast.success("Plano alimentar ativado!");
       close();
     } catch {
@@ -337,7 +335,6 @@ function StudentNutritionLibraryModal() {
           isOpen={!!editingPlan}
           nutritionPlan={editingPlan}
           onClose={() => setEditingPlan(null)}
-          onPlanUpdated={syncStudentNutrition}
         />
       )}
 
@@ -426,7 +423,6 @@ function ScopedNutritionLibraryModal({
           title: "Novo Plano Alimentar",
         },
       });
-      await loadNutritionLibraryPlans(scope, studentId);
       const nextPlan =
         (useStudentDetailStore.getState().nutritionLibraryPlans[detailKey] ?? []).find(
           (plan) => plan.id === planId,
@@ -470,7 +466,6 @@ function ScopedNutritionLibraryModal({
         studentId,
         planId,
       });
-      await syncScopedPlans();
       toast.success("Plano alimentar ativado!");
       onClose();
     } catch {
@@ -503,7 +498,6 @@ function ScopedNutritionLibraryModal({
           apiMode={scope}
           studentId={studentId}
           onClose={() => setEditingPlan(null)}
-          onPlanUpdated={syncScopedPlans}
         />
       )}
 

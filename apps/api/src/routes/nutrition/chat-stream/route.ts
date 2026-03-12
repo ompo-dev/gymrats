@@ -1,16 +1,16 @@
-/**
- * API Route para Chat de Nutrição com IA - STREAMING (SSE)
- *
- * Usa streaming da DeepSeek para UX instantânea (Time-to-First-Token ~200-500ms)
- * Envia tokens conforme chegam; ao final envia foods parseados
- */
-
 import type { NextRequest } from "@/runtime/next-server";
 
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
 import { chatCompletionStream } from "@/lib/ai/client";
+import {
+  buildNutritionMealProgress,
+  buildNutritionSystemPrompt,
+  isCompleteNutritionPlanRequest,
+  mergeNutritionMealReferences,
+  parseJsonStringArray,
+} from "@/lib/ai/nutrition-chat";
 import {
   extractFoodsAndPartialFromStream,
   parseNutritionResponse,
@@ -20,18 +20,10 @@ import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
 import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
-const MAX_HISTORY = 4; // Últimas 4 mensagens para reduzir tokens
+const MAX_HISTORY = 4;
+const MAX_MESSAGES_PER_DAY = 20;
 
-function parseJsonStringArray(value: string | null | undefined): string[] {
-  if (!value) return [];
-
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
-}
+type ChatMsg = { role: "user" | "assistant"; content: string };
 
 function sendSSE(
   controller: ReadableStreamDefaultController,
@@ -50,22 +42,21 @@ function limitHistory<T>(arr: T[], max: number): T[] {
 }
 
 export async function POST(request: NextRequest) {
-  const requestClone = request.clone();
-  const body = await requestClone.json();
+  const body = await request.clone().json();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
         const auth = await requireStudent(request);
         if ("error" in auth) {
-          sendSSE(controller, "error", { error: "Não autorizado" });
+          sendSSE(controller, "error", { error: "Nao autorizado" });
           controller.close();
           return;
         }
 
         const studentId = auth.user.student?.id;
         if (!studentId) {
-          sendSSE(controller, "error", { error: "Student ID não encontrado" });
+          sendSSE(controller, "error", { error: "Student ID nao encontrado" });
           controller.close();
           return;
         }
@@ -74,17 +65,7 @@ export async function POST(request: NextRequest) {
           where: { studentId },
         });
 
-        if (!subscription) {
-          sendSSE(controller, "error", {
-            error: "Recurso premium",
-            message:
-              "Esta funcionalidade requer assinatura premium ou trial ativo",
-          });
-          controller.close();
-          return;
-        }
-
-        if (!hasActivePremiumStatus(subscription)) {
+        if (!subscription || !hasActivePremiumStatus(subscription)) {
           sendSSE(controller, "error", {
             error: "Recurso premium",
             message:
@@ -98,9 +79,7 @@ export async function POST(request: NextRequest) {
         const dateStr = today.toISOString().split("T")[0];
         const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
         const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
-
         const isAdmin = auth.user?.role === "ADMIN";
-        const MAX_MESSAGES_PER_DAY = 20;
 
         let chatUsage = null;
         if (!isAdmin) {
@@ -119,8 +98,8 @@ export async function POST(request: NextRequest) {
 
           if (chatUsage.messageCount >= MAX_MESSAGES_PER_DAY) {
             sendSSE(controller, "error", {
-              error: "Limite diário atingido",
-              message: `Você atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia.`,
+              error: "Limite diario atingido",
+              message: `Voce atingiu o limite de ${MAX_MESSAGES_PER_DAY} mensagens por dia.`,
             });
             controller.close();
             return;
@@ -135,7 +114,7 @@ export async function POST(request: NextRequest) {
         } = body;
 
         if (!message || typeof message !== "string") {
-          sendSSE(controller, "error", { error: "Mensagem inválida" });
+          sendSSE(controller, "error", { error: "Mensagem invalida" });
           controller.close();
           return;
         }
@@ -156,17 +135,33 @@ export async function POST(request: NextRequest) {
                 goals: true,
               },
             },
+            activeNutritionPlan: {
+              select: {
+                meals: {
+                  orderBy: { order: "asc" },
+                  select: {
+                    type: true,
+                    name: true,
+                    time: true,
+                  },
+                },
+              },
+            },
           },
         });
 
-        let meals = existingMeals;
-        if (!meals || meals.length === 0) {
-          const todayDate = new Date().toISOString().split("T")[0];
+        let dailyMeals: Array<{
+          type: string;
+          name: string;
+          time?: string | null;
+        }> = [];
+
+        if (!existingMeals?.length || isCompleteNutritionPlanRequest(message)) {
           const nutrition = await db.dailyNutrition.findUnique({
             where: {
               studentId_date: {
                 studentId,
-                date: new Date(todayDate),
+                date: new Date(dateStr),
               },
             },
             include: {
@@ -175,82 +170,52 @@ export async function POST(request: NextRequest) {
           });
 
           if (nutrition) {
-            meals = nutrition.meals.map(
-              (m: { type: string; name: string }) => ({
-                type: m.type,
-                name: m.name,
-              }),
-            );
+            dailyMeals = nutrition.meals.map((meal) => ({
+              type: meal.type,
+              name: meal.name,
+              time: meal.time,
+            }));
           }
         }
 
-        let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
-        const profile = student?.profile;
-        const allergies = parseJsonStringArray(profile?.allergies);
-        const goals = parseJsonStringArray(profile?.goals);
-        const studentContext: string[] = [];
+        const meals = mergeNutritionMealReferences(
+          student?.activeNutritionPlan?.meals.map((meal) => ({
+            type: meal.type,
+            name: meal.name,
+            time: meal.time,
+          })),
+          existingMeals,
+          dailyMeals,
+        );
 
-        if (profile?.targetCalories != null) {
-          studentContext.push(
-            `- Meta calórica diária: ${profile.targetCalories} kcal`,
-          );
-        }
-        if (profile?.targetProtein != null) {
-          studentContext.push(
-            `- Meta diária de proteína: ${profile.targetProtein} g`,
-          );
-        }
-        if (profile?.targetCarbs != null) {
-          studentContext.push(
-            `- Meta diária de carboidratos: ${profile.targetCarbs} g`,
-          );
-        }
-        if (profile?.targetFats != null) {
-          studentContext.push(
-            `- Meta diária de gorduras: ${profile.targetFats} g`,
-          );
-        }
-        if (profile?.targetWater != null) {
-          studentContext.push(`- Meta diária de água: ${profile.targetWater} ml`);
-        }
-        if (profile?.mealsPerDay != null) {
-          studentContext.push(
-            `- Preferência de refeições por dia: ${profile.mealsPerDay}`,
-          );
-        }
-        if (profile?.dietType) {
-          studentContext.push(`- Tipo de dieta preferido: ${profile.dietType}`);
-        }
-        if (allergies.length > 0) {
-          studentContext.push(`- Alergias/restrições: ${allergies.join(", ")}`);
-        }
-        if (goals.length > 0) {
-          studentContext.push(`- Objetivos: ${goals.join(", ")}`);
-        }
+        const selectedMealForPrompt = isCompleteNutritionPlanRequest(message)
+          ? null
+          : selectedMeal;
 
-        if (studentContext.length > 0) {
-          enhancedSystemPrompt += `\n\nDADOS FIXOS DO ALUNO (use como fonte de verdade):\n${studentContext.join("\n")}\n\nSe esses dados estiverem presentes, não peça novamente calorias, proteína, carboidratos, gorduras, água, preferências alimentares básicas ou quantidade de refeições. Use esses dados para montar a resposta. Só peça clarificação se faltar uma informação realmente indispensável para executar o pedido.`;
-        }
+        const enhancedSystemPrompt = buildNutritionSystemPrompt({
+          basePrompt: NUTRITION_SYSTEM_PROMPT,
+          userMessage: message,
+          meals,
+          selectedMeal: selectedMealForPrompt,
+          profile: student?.profile
+            ? {
+                targetCalories: student.profile.targetCalories,
+                targetProtein: student.profile.targetProtein,
+                targetCarbs: student.profile.targetCarbs,
+                targetFats: student.profile.targetFats,
+                targetWater: student.profile.targetWater,
+                mealsPerDay: student.profile.mealsPerDay,
+                dietType: student.profile.dietType,
+                allergies: parseJsonStringArray(student.profile.allergies),
+                goals: parseJsonStringArray(student.profile.goals),
+              }
+            : null,
+        });
 
-        if (meals?.length > 0) {
-          const mealsInfo = meals
-            .map(
-              (m: { type: string; name: string }) => `- ${m.name} (${m.type})`,
-            )
-            .join("\n");
-          enhancedSystemPrompt += `\n\nREFEIÇÕES EXISTENTES:\n${mealsInfo}`;
-        }
-
-        if (selectedMeal?.type && selectedMeal.name) {
-          enhancedSystemPrompt += `\n\nREFEIÇÃO PADRÃO: "${selectedMeal.name}" (${selectedMeal.type}). Se usuário não especificar refeição, use mealType: "${selectedMeal.type}".`;
-        }
-
-        type ChatMsg = { role: "user" | "assistant"; content: string };
         const history = (conversationHistory ?? []) as ChatMsg[];
-        const limitedHistory = limitHistory(history, MAX_HISTORY);
         const messages: ChatMsg[] = [
-          ...limitedHistory,
-          { role: "user" as const, content: message },
+          ...limitHistory(history, MAX_HISTORY),
+          { role: "user", content: message },
         ];
 
         sendSSE(controller, "status", {
@@ -260,7 +225,7 @@ export async function POST(request: NextRequest) {
 
         let accumulatedContent = "";
         let lastEmittedFoodCount = -1;
-        const step = 80; // Igual ao workout: checkpoints em deltas grandes para capturar estados parciais
+        const step = 80;
 
         const fullContent = await chatCompletionStream(
           {
@@ -268,7 +233,7 @@ export async function POST(request: NextRequest) {
             systemPrompt: enhancedSystemPrompt,
             temperature: 0.7,
             responseFormat: "json_object",
-            maxTokens: 1024,
+            maxTokens: 1800,
           },
           (delta) => {
             sendSSE(controller, "token", { delta });
@@ -277,16 +242,18 @@ export async function POST(request: NextRequest) {
             const contentLen = accumulatedContent.length;
             const prevLen = contentLen - delta.length;
             const checkpoints: number[] = [];
+
             if (delta.length > step) {
-              for (let i = prevLen; i < contentLen; i += step)
+              for (let i = prevLen; i < contentLen; i += step) {
                 checkpoints.push(i);
+              }
             }
             checkpoints.push(contentLen);
 
             for (const len of checkpoints) {
-              const slice = accumulatedContent.slice(0, len);
-              const { foods: extractedFoods } =
-                extractFoodsAndPartialFromStream(slice);
+              const { foods: extractedFoods } = extractFoodsAndPartialFromStream(
+                accumulatedContent.slice(0, len),
+              );
 
               if (
                 extractedFoods.length > 0 &&
@@ -297,6 +264,12 @@ export async function POST(request: NextRequest) {
                   foods: extractedFoods,
                   index: lastEmittedFoodCount - 1,
                   total: extractedFoods.length,
+                });
+                sendSSE(controller, "meal_progress", {
+                  meals: buildNutritionMealProgress(extractedFoods, {
+                    fallbackMealType: selectedMealForPrompt?.type,
+                    existingMeals: meals,
+                  }),
                 });
               }
             }
@@ -320,7 +293,7 @@ export async function POST(request: NextRequest) {
         sendSSE(controller, "complete", {
           foods: parsed.foods,
           message: parsed.message,
-          needsConfirmation: parsed.foods.some((f) => f.confidence < 0.8),
+          needsConfirmation: parsed.foods.some((food) => food.confidence < 0.8),
           remainingMessages: isAdmin
             ? null
             : MAX_MESSAGES_PER_DAY - (chatUsage?.messageCount ?? 0) - 1,
@@ -329,10 +302,7 @@ export async function POST(request: NextRequest) {
         controller.close();
       } catch (error) {
         console.error("[nutrition/chat-stream] Erro:", error);
-        const err = error instanceof Error ? error : new Error(String(error));
-        sendSSE(controller, "error", {
-          error: err.message || "Erro ao processar mensagem",
-        });
+        sendSSE(controller, "error", { error: "Erro inesperado" });
         controller.close();
       }
     },
@@ -341,7 +311,7 @@ export async function POST(request: NextRequest) {
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },
   });
