@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
+import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,15 +25,22 @@ interface NutritionLibraryModalProps {
 export function NutritionLibraryModal({
   apiMode = "student",
   studentId,
-  isOpen = false,
-  onClose = () => {},
+  isOpen,
+  onClose,
   onPlansSynced,
 }: NutritionLibraryModalProps = {}) {
+  const internalModal = useModalState("nutrition-library");
+  const isControlled = isOpen !== undefined || onClose !== undefined;
+  const resolvedOpen = isControlled ? !!isOpen : internalModal.isOpen;
+  const resolvedClose = isControlled ? (onClose ?? (() => {})) : internalModal.close;
   const loadStudentNutritionLibraryPlans = useStudentUnifiedStore(
     (state) => state.loadNutritionLibraryPlans,
   );
   const loadStudentActiveNutritionPlan = useStudentUnifiedStore(
     (state) => state.loadActiveNutritionPlan,
+  );
+  const loadStudentNutrition = useStudentUnifiedStore(
+    (state) => state.loadNutrition,
   );
   const createStudentNutritionLibraryPlan = useStudentUnifiedStore(
     (state) => state.createNutritionLibraryPlan,
@@ -103,12 +111,21 @@ export function NutritionLibraryModal({
     loadDetailActiveNutritionPlan,
     loadDetailNutritionLibraryPlans,
     loadStudentActiveNutritionPlan,
+    loadStudentNutrition,
     loadStudentNutritionLibraryPlans,
     studentId,
   ]);
 
+  const syncAfterPlanChange = useCallback(async () => {
+    await loadData();
+    if (apiMode === "student") {
+      await loadStudentNutrition();
+    }
+    await onPlansSynced?.();
+  }, [apiMode, loadData, loadStudentNutrition, onPlansSynced]);
+
   useEffect(() => {
-    if (!isOpen) {
+    if (!resolvedOpen) {
       hasLoadedForOpenRef.current = false;
       lastOpenKeyRef.current = null;
       return;
@@ -125,7 +142,7 @@ export function NutritionLibraryModal({
     hasLoadedForOpenRef.current = true;
     lastOpenKeyRef.current = openKey;
     void loadData();
-  }, [apiMode, isOpen, loadData, studentId]);
+  }, [apiMode, loadData, resolvedOpen, studentId]);
 
   const handleCreate = async () => {
     setCreatingPlan(true);
@@ -184,8 +201,7 @@ export function NutritionLibraryModal({
         });
       }
       toast.success("Plano alimentar removido!");
-      await loadData();
-      await onPlansSynced?.();
+      await syncAfterPlanChange();
     } catch {
       toast.error("Erro ao remover plano alimentar.");
     } finally {
@@ -205,10 +221,9 @@ export function NutritionLibraryModal({
           planId,
         });
       }
-      await loadData();
-      await onPlansSynced?.();
+      await syncAfterPlanChange();
       toast.success("Plano alimentar ativado!");
-      onClose();
+      resolvedClose();
     } catch {
       toast.error("Erro ao ativar o plano alimentar.");
     } finally {
@@ -223,8 +238,8 @@ export function NutritionLibraryModal({
 
   return (
     <>
-      <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="lg">
-        <Modal.Header title="Biblioteca de Alimentação" onClose={onClose}>
+      <Modal.Root isOpen={resolvedOpen} onClose={resolvedClose} maxWidth="lg">
+        <Modal.Header title="Biblioteca de Alimentação" onClose={resolvedClose}>
           <DuoText variant="body-sm" muted>
             Planos salvos para ativar rápido no dia a dia do aluno.
           </DuoText>
@@ -391,8 +406,7 @@ export function NutritionLibraryModal({
           studentId={studentId}
           onClose={() => setEditingPlan(null)}
           onPlanUpdated={async () => {
-            await loadData();
-            await onPlansSynced?.();
+            await syncAfterPlanChange();
           }}
         />
       )}

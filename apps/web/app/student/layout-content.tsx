@@ -11,7 +11,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { LoadingScreen } from "@/components/organisms/loading-screen";
-import { EditUnitModal, TrainingLibraryModal } from "@/components/organisms/modals";
+import {
+  EditUnitModal,
+  NutritionLibraryModal,
+  TrainingLibraryModal,
+} from "@/components/organisms/modals";
 import { WorkoutModal } from "@/components/organisms/workout/workout-modal";
 import {
   AppLayout,
@@ -129,6 +133,7 @@ export function StudentLayoutContent({
           <WorkoutModal.Simple />
           <EditUnitModal />
           <TrainingLibraryModal />
+          <NutritionLibraryModal />
           {editPlanModal.isOpen && (
             <EditUnitModal
               isWeeklyPlanMode

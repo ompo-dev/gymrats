@@ -16,7 +16,6 @@ import { useEffect, useRef } from "react";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
-import { NutritionLibraryModal } from "@/components/organisms/modals/nutrition-library-modal";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
@@ -46,7 +45,6 @@ export function DietPage() {
   const loadFoodDatabase = useStudentUnifiedStore(
     (state) => state.loadFoodDatabase,
   );
-  const loadNutrition = useStudentUnifiedStore((state) => state.loadNutrition);
   const hasRequestedFoodDatabaseRef = useRef(false);
 
   // Modais controlados por search params
@@ -66,9 +64,7 @@ export function DietPage() {
     setParamValue: setFoodSearchMealId,
   } = foodSearchModal;
   const {
-    isOpen: isNutritionLibraryOpen,
     open: openNutritionLibrary,
-    close: closeNutritionLibrary,
   } = nutritionLibraryModal;
 
   // Carregar foodDatabase apenas se não estiver no store
@@ -191,15 +187,6 @@ export function DietPage() {
         />
       )}
 
-      {isNutritionLibraryOpen && (
-        <NutritionLibraryModal
-          isOpen={isNutritionLibraryOpen}
-          onClose={closeNutritionLibrary}
-          onPlansSynced={async () => {
-            await loadNutrition();
-          }}
-        />
-      )}
     </div>
   );
 }
