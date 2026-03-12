@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
+import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,9 @@ export function NutritionLibraryModal({
   onClose,
   onPlansSynced,
 }: NutritionLibraryModalProps = {}) {
-  const resolvedOpen = isOpen ?? false;
-  const resolvedClose = onClose ?? (() => {});
+  const internalModal = useModalState("nutrition-library");
+  const resolvedOpen = isOpen ?? internalModal.isOpen;
+  const resolvedClose = onClose ?? internalModal.close;
   const loadStudentNutritionLibraryPlans = useStudentUnifiedStore(
     (state) => state.loadNutritionLibraryPlans,
   );

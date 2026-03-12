@@ -66,9 +66,7 @@ export function DietPage() {
     setParamValue: setFoodSearchMealId,
   } = foodSearchModal;
   const {
-    isOpen: isNutritionLibraryOpen,
     open: openNutritionLibrary,
-    close: closeNutritionLibrary,
   } = nutritionLibraryModal;
 
   // Carregar foodDatabase apenas se não estiver no store
@@ -191,15 +189,11 @@ export function DietPage() {
         />
       )}
 
-      {isNutritionLibraryOpen && (
-        <NutritionLibraryModal
-          isOpen={isNutritionLibraryOpen}
-          onClose={closeNutritionLibrary}
-          onPlansSynced={async () => {
-            await loadNutrition();
-          }}
-        />
-      )}
+      <NutritionLibraryModal
+        onPlansSynced={async () => {
+          await loadNutrition();
+        }}
+      />
     </div>
   );
 }
