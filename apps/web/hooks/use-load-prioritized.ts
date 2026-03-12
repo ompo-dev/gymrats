@@ -17,6 +17,7 @@
 
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
@@ -276,27 +277,52 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     (state) => state.data.gymLocations,
   );
 
-  const storeData = {
-    user: getUser,
-    student: getStudent,
-    progress: getProgress,
-    profile: getProfile,
-    weightHistory: getWeightHistory,
-    units: getUnits,
-    weeklyPlan: getWeeklyPlan,
-    workoutHistory: getWorkoutHistory,
-    personalRecords: getPersonalRecords,
-    activeNutritionPlan: getActiveNutritionPlan,
-    nutritionLibraryPlans: getNutritionLibraryPlans,
-    dailyNutrition: getDailyNutrition,
-    subscription: getSubscription,
-    memberships: getMemberships,
-    payments: getPayments,
-    paymentMethods: getPaymentMethods,
-    dayPasses: getDayPasses,
-    friends: getFriends,
-    gymLocations: getGymLocations,
-  };
+  const storeData = useMemo(
+    () => ({
+      user: getUser,
+      student: getStudent,
+      progress: getProgress,
+      profile: getProfile,
+      weightHistory: getWeightHistory,
+      units: getUnits,
+      weeklyPlan: getWeeklyPlan,
+      workoutHistory: getWorkoutHistory,
+      personalRecords: getPersonalRecords,
+      activeNutritionPlan: getActiveNutritionPlan,
+      nutritionLibraryPlans: getNutritionLibraryPlans,
+      dailyNutrition: getDailyNutrition,
+      subscription: getSubscription,
+      memberships: getMemberships,
+      payments: getPayments,
+      paymentMethods: getPaymentMethods,
+      dayPasses: getDayPasses,
+      friends: getFriends,
+      gymLocations: getGymLocations,
+    }),
+    [
+      getUser,
+      getStudent,
+      getProgress,
+      getProfile,
+      getWeightHistory,
+      getUnits,
+      getWeeklyPlan,
+      getWorkoutHistory,
+      getPersonalRecords,
+      getActiveNutritionPlan,
+      getNutritionLibraryPlans,
+      getDailyNutrition,
+      getSubscription,
+      getMemberships,
+      getPayments,
+      getPaymentMethods,
+      getDayPasses,
+      getFriends,
+      getGymLocations,
+    ],
+  );
+  const getStoreSnapshot = useCallback(() => storeData, [storeData]);
+
   usePrioritizedResourceLoader({
     context: options.context,
     sections: options.sections,
@@ -307,7 +333,7 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     contextPriorities: CONTEXT_PRIORITIES,
     detectContext: detectContextFromPath,
     loadPrioritized: loadAllPrioritized,
-    getStoreSnapshot: () => storeData,
+    getStoreSnapshot,
     hasSectionData,
   });
 }

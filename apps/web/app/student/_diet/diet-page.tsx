@@ -45,6 +45,23 @@ export function DietPage() {
   const addMealModal = useModalState("add-meal");
   const foodSearchModal = useModalStateWithParam("food-search", "mealId");
   const nutritionLibraryModal = useModalState("nutrition-library");
+  const {
+    isOpen: isAddMealOpen,
+    open: openAddMeal,
+    close: closeAddMeal,
+  } = addMealModal;
+  const {
+    isOpen: isFoodSearchOpen,
+    open: openFoodSearchModal,
+    close: closeFoodSearchModal,
+    paramValue: foodSearchMealId,
+    setParamValue: setFoodSearchMealId,
+  } = foodSearchModal;
+  const {
+    isOpen: isNutritionLibraryOpen,
+    open: openNutritionLibrary,
+    close: closeNutritionLibrary,
+  } = nutritionLibraryModal;
 
   // Carregar foodDatabase apenas se não estiver no store
   // O useStudentInitializer já carrega a maioria dos dados, mas foodDatabase
@@ -72,24 +89,24 @@ export function DietPage() {
 
   // Sincronizar selectedMealId com search param
   useEffect(() => {
-    if (selectedMealId && !foodSearchModal.paramValue) {
-      foodSearchModal.setParamValue(selectedMealId);
-    }
-  }, [selectedMealId, foodSearchModal]);
+    if (!selectedMealId) return;
+    if (foodSearchMealId === selectedMealId) return;
+    setFoodSearchMealId(selectedMealId);
+  }, [selectedMealId, foodSearchMealId, setFoodSearchMealId]);
 
   // Handler para abrir food search com mealId
   const handleOpenFoodSearch = (mealId?: string) => {
     if (mealId) {
       setSelectedMealId(mealId);
-      foodSearchModal.open(mealId);
+      openFoodSearchModal(mealId);
     } else {
-      foodSearchModal.open();
+      openFoodSearchModal();
     }
   };
 
   // Handler para fechar food search
   const handleCloseFoodSearch = () => {
-    foodSearchModal.close();
+    closeFoodSearchModal();
     setSelectedMealId(null);
   };
 
@@ -126,46 +143,50 @@ export function DietPage() {
       <NutritionTracker.Simple
         nutrition={dailyNutrition}
         onMealComplete={handleMealComplete}
-        onAddMeal={addMealModal.open}
-        onOpenLibrary={nutritionLibraryModal.open}
+        onAddMeal={openAddMeal}
+        onOpenLibrary={openNutritionLibrary}
         onAddFoodToMeal={handleOpenFoodSearch}
         onDeleteMeal={removeMeal}
         onDeleteFood={removeFoodFromMeal}
         onToggleWaterGlass={handleToggleWaterGlass}
       />
 
-      {addMealModal.isOpen && (
+      {isAddMealOpen && (
         <AddMealModal.Simple
-          onClose={addMealModal.close}
+          onClose={closeAddMeal}
           onAddMeal={(mealsData) => {
             handleAddMealSubmit(mealsData);
-            addMealModal.close();
+            closeAddMeal();
           }}
         />
       )}
 
-      {foodSearchModal.isOpen && (
+      {isFoodSearchOpen && (
         <FoodSearch.Simple
           onAddFood={handleAddFood}
           onAddMeal={handleAddMealSubmit}
           onClose={handleCloseFoodSearch}
-          selectedMealId={foodSearchModal.paramValue || selectedMealId}
+          selectedMealId={foodSearchMealId || selectedMealId}
           meals={dailyNutrition.meals}
           foodDatabase={
             (Array.isArray(foodDatabase) ? foodDatabase : []) as FoodItem[]
           }
           onSelectMeal={(mealId) => {
             setSelectedMealId(mealId);
-            foodSearchModal.setParamValue(mealId);
+            setFoodSearchMealId(mealId);
           }}
         />
       )}
 
-      <NutritionLibraryModal
-        onPlansSynced={async () => {
-          await loadNutrition();
-        }}
-      />
+      {isNutritionLibraryOpen && (
+        <NutritionLibraryModal
+          isOpen={isNutritionLibraryOpen}
+          onClose={closeNutritionLibrary}
+          onPlansSynced={async () => {
+            await loadNutrition();
+          }}
+        />
+      )}
     </div>
   );
 }

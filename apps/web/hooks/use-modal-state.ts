@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Hook utilitário para gerenciar estado de modais usando search parameters (nuqs)
@@ -70,20 +70,35 @@ export function useModalState(modalName: string) {
 export function useModalStateWithParam(modalName: string, paramName: string) {
   const [modal, setModal] = useQueryState("modal", parseAsString);
   const [paramValue, setParamValue] = useQueryState(paramName, parseAsString);
+  const lastAutoOpenedValueRef = useRef<string | null>(null);
   // Modal está aberto se modal === modalName OU se há paramValue (para abrir automaticamente quando há parâmetro na URL)
   const isOpen = modal === modalName || !!paramValue;
 
   // Se há paramValue na URL mas modal não está marcado como aberto, abrir automaticamente
   useEffect(() => {
-    if (paramValue && modal !== modalName) {
-      setModal(modalName);
+    if (!paramValue) {
+      lastAutoOpenedValueRef.current = null;
+      return;
     }
+
+    if (modal === modalName) {
+      lastAutoOpenedValueRef.current = paramValue;
+      return;
+    }
+
+    if (lastAutoOpenedValueRef.current === paramValue) {
+      return;
+    }
+
+    lastAutoOpenedValueRef.current = paramValue;
+    setModal(modalName);
   }, [paramValue, modal, modalName, setModal]);
 
   const open = useCallback(
     (value?: string | null) => {
       setModal(modalName);
       if (value !== undefined) {
+        lastAutoOpenedValueRef.current = value;
         setParamValue(value);
       }
     },
@@ -91,6 +106,7 @@ export function useModalStateWithParam(modalName: string, paramName: string) {
   );
 
   const close = useCallback(() => {
+    lastAutoOpenedValueRef.current = null;
     setModal(null);
     setParamValue(null);
   }, [setModal, setParamValue]);
