@@ -19,7 +19,8 @@ import { useUIStore } from "@/stores";
 
 export function useNutritionHandlers() {
   // Usar hook unificado com seletor direto do Zustand para garantir reatividade
-  const storeNutrition = useStudent("dailyNutrition") as DailyNutrition | null;
+  const storeNutrition =
+    useStudent("dailyNutrition") as unknown as DailyNutrition | null;
   const { updateNutrition } = useStudent("actions");
 
   // Fallback para dados iniciais se store ainda não carregou

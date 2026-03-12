@@ -220,13 +220,15 @@ export function GymStudentDetail({
                 : undefined
             }
           />
-          <NutritionLibraryModal
-            apiMode={variant}
-            studentId={studentData.id}
-            isOpen={isNutritionLibraryOpen}
-            onClose={() => setIsNutritionLibraryOpen(false)}
-            onPlansSynced={handleNutritionPlansSynced}
-          />
+          {isNutritionLibraryOpen && (
+            <NutritionLibraryModal
+              apiMode={variant}
+              studentId={studentData.id}
+              isOpen={isNutritionLibraryOpen}
+              onClose={() => setIsNutritionLibraryOpen(false)}
+              onPlansSynced={handleNutritionPlansSynced}
+            />
+          )}
         </SlideIn>
       )}
 

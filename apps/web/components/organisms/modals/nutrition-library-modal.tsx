@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
-import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -29,13 +28,16 @@ export function NutritionLibraryModal({
   onClose,
   onPlansSynced,
 }: NutritionLibraryModalProps = {}) {
-  const internalModal = useModalState("nutrition-library");
-  const resolvedOpen = isOpen ?? internalModal.isOpen;
-  const resolvedClose = onClose ?? internalModal.close;
+  const resolvedOpen = isOpen ?? false;
+  const resolvedClose = onClose ?? (() => {});
   const studentActions = useStudent("actions");
-  const studentLoaders = useStudent("loaders");
-  const studentPlans = useStudent("nutritionLibraryPlans") as NutritionPlanData[];
-  const activeStudentPlan = useStudent("activeNutritionPlan") as NutritionPlanData | null;
+  const {
+    loadNutritionLibraryPlans: loadStudentNutritionLibraryPlans,
+    loadActiveNutritionPlan: loadStudentActiveNutritionPlan,
+  } = useStudent("loaders");
+  const studentPlans = useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[];
+  const activeStudentPlan =
+    useStudent("activeNutritionPlan") as unknown as NutritionPlanData | null;
   const detailStore = useStudentDetailStore();
   const detailKey =
     apiMode !== "student" && studentId
@@ -58,11 +60,11 @@ export function NutritionLibraryModal({
 
   const activeSourcePlanId = activePlan?.sourceLibraryPlanId ?? null;
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (apiMode === "student") {
       await Promise.all([
-        studentLoaders.loadNutritionLibraryPlans(),
-        studentLoaders.loadActiveNutritionPlan(),
+        loadStudentNutritionLibraryPlans(),
+        loadStudentActiveNutritionPlan(),
       ]);
       return;
     }
@@ -72,13 +74,18 @@ export function NutritionLibraryModal({
       detailStore.loadNutritionLibraryPlans(apiMode, studentId),
       detailStore.loadActiveNutritionPlan(apiMode, studentId),
     ]);
-  };
+  }, [
+    apiMode,
+    detailStore,
+    loadStudentActiveNutritionPlan,
+    loadStudentNutritionLibraryPlans,
+    studentId,
+  ]);
 
   useEffect(() => {
-    if (resolvedOpen) {
-      void loadData();
-    }
-  }, [resolvedOpen]);
+    if (!resolvedOpen) return;
+    void loadData();
+  }, [loadData, resolvedOpen]);
 
   const handleCreate = async () => {
     setCreatingPlan(true);

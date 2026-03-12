@@ -67,8 +67,14 @@ export function EditNutritionPlanModal({
   studentId,
 }: EditNutritionPlanModalProps) {
   const studentActions = useStudent("actions");
+  const {
+    loadNutritionLibraryPlans: loadStudentNutritionLibraryPlans,
+    loadActiveNutritionPlan: loadStudentActiveNutritionPlan,
+    loadNutrition: loadStudentNutrition,
+  } = useStudent("loaders");
   const studentFoodDatabase = useStudent("foodDatabase");
-  const studentPlans = useStudent("nutritionLibraryPlans") as NutritionPlanData[];
+  const studentPlans =
+    useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[];
   const detailStore = useStudentDetailStore();
   const detailKey =
     apiMode !== "student" && studentId
@@ -109,9 +115,9 @@ export function EditNutritionPlanModal({
   }) => {
     if (apiMode === "student") {
       await studentActions.updateNutritionLibraryPlan(currentPlan.id, payload);
-      await studentActions.loadNutritionLibraryPlans();
-      await studentActions.loadActiveNutritionPlan();
-      await studentActions.loadNutrition();
+      await loadStudentNutritionLibraryPlans();
+      await loadStudentActiveNutritionPlan();
+      await loadStudentNutrition();
     } else if (studentId) {
       await detailStore.updateNutritionLibraryPlan({
         scope: apiMode,

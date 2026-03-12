@@ -162,13 +162,15 @@ export function PersonalStudentDetail({
             onOpenLibrary={() => setIsNutritionLibraryOpen(true)}
             chatStreamUrl={`${studentsApiBase}/${studentId}/nutrition/chat-stream`}
           />
-          <NutritionLibraryModal
-            apiMode="personal"
-            studentId={studentId}
-            isOpen={isNutritionLibraryOpen}
-            onClose={() => setIsNutritionLibraryOpen(false)}
-            onPlansSynced={handleNutritionPlansSynced}
-          />
+          {isNutritionLibraryOpen && (
+            <NutritionLibraryModal
+              apiMode="personal"
+              studentId={studentId}
+              isOpen={isNutritionLibraryOpen}
+              onClose={() => setIsNutritionLibraryOpen(false)}
+              onPlansSynced={handleNutritionPlansSynced}
+            />
+          )}
         </SlideIn>
       )}
 
