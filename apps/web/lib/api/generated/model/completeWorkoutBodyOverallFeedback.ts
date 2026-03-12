@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CompleteWorkoutBodyOverallFeedback =
-  (typeof CompleteWorkoutBodyOverallFeedback)[keyof typeof CompleteWorkoutBodyOverallFeedback];
+export type CompleteWorkoutBodyOverallFeedback = typeof CompleteWorkoutBodyOverallFeedback[keyof typeof CompleteWorkoutBodyOverallFeedback];
+
 
 export const CompleteWorkoutBodyOverallFeedback = {
-  excelente: "excelente",
-  bom: "bom",
-  regular: "regular",
-  ruim: "ruim",
+  excelente: 'excelente',
+  bom: 'bom',
+  regular: 'regular',
+  ruim: 'ruim',
 } as const;

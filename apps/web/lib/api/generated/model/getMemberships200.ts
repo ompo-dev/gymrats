@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { Membership } from "./membership";
+import type { Membership } from './membership';
 
 export type GetMemberships200 = {
   memberships?: Membership[];

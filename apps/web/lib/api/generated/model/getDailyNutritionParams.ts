@@ -7,8 +7,8 @@
  */
 
 export type GetDailyNutritionParams = {
-  /**
-   * Data no formato ISO (ex: 2024-01-15). Se não fornecido, usa a data atual
-   */
-  date?: string;
+/**
+ * Data no formato ISO (ex: 2024-01-15). Se não fornecido, usa a data atual
+ */
+date?: string;
 };

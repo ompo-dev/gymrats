@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateWorkoutBodyType =
-  (typeof UpdateWorkoutBodyType)[keyof typeof UpdateWorkoutBodyType];
+export type UpdateWorkoutBodyType = typeof UpdateWorkoutBodyType[keyof typeof UpdateWorkoutBodyType];
+
 
 export const UpdateWorkoutBodyType = {
-  strength: "strength",
-  cardio: "cardio",
-  flexibility: "flexibility",
-  rest: "rest",
+  strength: 'strength',
+  cardio: 'cardio',
+  flexibility: 'flexibility',
+  rest: 'rest',
 } as const;

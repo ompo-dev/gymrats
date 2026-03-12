@@ -113,7 +113,6 @@ async function applyDataMigration() {
 
     const students = await prisma.student.findMany({
       include: {
-        weeklyPlan: { include: { slots: true } },
         units: {
           include: {
             workouts: {
@@ -130,8 +129,13 @@ async function applyDataMigration() {
     let skipped = 0;
 
     for (const student of students) {
+      const existingWeeklyPlan = await prisma.weeklyPlan.findFirst({
+        where: { studentId: student.id },
+        include: { slots: true },
+      });
+
       // Já tem WeeklyPlan com 7 slots? Pular
-      if (student.weeklyPlan && student.weeklyPlan.slots.length >= 7) {
+      if (existingWeeklyPlan && existingWeeklyPlan.slots.length >= 7) {
         console.log(`⏭️  Student ${student.id} já tem WeeklyPlan, ignorando`);
         skipped++;
         continue;
@@ -150,12 +154,12 @@ async function applyDataMigration() {
 
       let weeklyPlan;
 
-      if (student.weeklyPlan && student.weeklyPlan.slots.length < 7) {
+      if (existingWeeklyPlan && existingWeeklyPlan.slots.length < 7) {
         // Plano incompleto - deletar e recriar
         await prisma.planSlot.deleteMany({
-          where: { weeklyPlanId: student.weeklyPlan.id },
+          where: { weeklyPlanId: existingWeeklyPlan.id },
         });
-        weeklyPlan = student.weeklyPlan;
+        weeklyPlan = existingWeeklyPlan;
       } else {
         // Criar novo WeeklyPlan
         weeklyPlan = await prisma.weeklyPlan.create({

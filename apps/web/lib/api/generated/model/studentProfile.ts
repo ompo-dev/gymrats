@@ -5,8 +5,8 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { StudentProfileFitnessLevel } from "./studentProfileFitnessLevel";
-import type { StudentProfileLimitationDetails } from "./studentProfileLimitationDetails";
+import type { StudentProfileFitnessLevel } from './studentProfileFitnessLevel';
+import type { StudentProfileLimitationDetails } from './studentProfileLimitationDetails';
 
 export interface StudentProfile {
   /**

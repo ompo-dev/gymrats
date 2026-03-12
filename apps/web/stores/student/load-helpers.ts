@@ -10,6 +10,7 @@ import type {
   StudentDataSection,
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
+import { normalizeDailyNutrition } from "@/lib/utils/nutrition/nutrition-plan";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 type SetStateFn = (
@@ -47,6 +48,8 @@ export const SECTION_ROUTES: Partial<Record<StudentDataSection, string>> = {
   units: "/api/workouts/units",
   weeklyPlan: "/api/workouts/weekly-plan",
   libraryPlans: "/api/workouts/library",
+  activeNutritionPlan: "/api/nutrition/active",
+  nutritionLibraryPlans: "/api/nutrition/library",
   workoutHistory: "/api/workouts/history",
   personalRecords: "/api/students/personal-records",
   subscription: "/api/subscriptions/current",
@@ -149,6 +152,27 @@ function transformSectionResponse(
         personalRecords: (d.records ||
           d.personalRecords ||
           []) as StudentData["personalRecords"],
+      };
+    case "activeNutritionPlan":
+      return {
+        activeNutritionPlan:
+          ((d.data as unknown) ||
+            (d.activeNutritionPlan as unknown) ||
+            null) as StudentData["activeNutritionPlan"],
+      };
+    case "nutritionLibraryPlans":
+      return {
+        nutritionLibraryPlans: Array.isArray(d)
+          ? (d as unknown as StudentData["nutritionLibraryPlans"])
+          : (((d.nutritionLibraryPlans as unknown) ||
+              (d.data as unknown) ||
+              []) as StudentData["nutritionLibraryPlans"]),
+      };
+    case "dailyNutrition":
+      return {
+        dailyNutrition: normalizeDailyNutrition(
+          d as Partial<StudentData["dailyNutrition"]>,
+        ),
       };
     case "subscription": {
       if (d && typeof d === "object" && "success" in d) {
@@ -278,6 +302,10 @@ function updateStoreWithSection(
       newState.workoutHistory = sectionData.workoutHistory;
     if (sectionData.personalRecords !== undefined)
       newState.personalRecords = sectionData.personalRecords;
+    if (sectionData.activeNutritionPlan !== undefined)
+      newState.activeNutritionPlan = sectionData.activeNutritionPlan;
+    if (sectionData.nutritionLibraryPlans !== undefined)
+      newState.nutritionLibraryPlans = sectionData.nutritionLibraryPlans;
     if (sectionData.subscription !== undefined)
       newState.subscription = sectionData.subscription;
     if (sectionData.memberships !== undefined)
@@ -350,7 +378,7 @@ export async function loadSection(
 export async function loadSectionsIncremental(
   set: SetStateFn,
   sections: StudentDataSection[],
-  skipNutrition = false,
+  _skipNutrition = false,
 ): Promise<void> {
   const sectionPromises = sections.map(async (section) => {
     try {
@@ -364,50 +392,6 @@ export async function loadSectionsIncremental(
     }
   });
   await Promise.all(sectionPromises);
-  if (!skipNutrition && sections.includes("dailyNutrition")) {
-    try {
-      const res = await apiClient.get<{
-        date: string;
-        meals: Meal[];
-        totalCalories?: number;
-        totalProtein?: number;
-        totalCarbs?: number;
-        totalFats?: number;
-        waterIntake?: number;
-        targetCalories?: number;
-        targetProtein?: number;
-        targetCarbs?: number;
-        targetFats?: number;
-        targetWater?: number;
-      }>("/api/nutrition/daily", { timeout: 30000 });
-      const d = res.data;
-      let normalizedDate: string;
-      try {
-        normalizedDate = getBrazilNutritionDateKey(d.date);
-      } catch {
-        normalizedDate = getBrazilNutritionDateKey();
-      }
-      const uniqueMeals = deduplicateMeals(d.meals || []);
-      updateStoreWithSection(set, {
-        dailyNutrition: {
-          date: normalizedDate,
-          meals: uniqueMeals,
-          totalCalories: d.totalCalories ?? 0,
-          totalProtein: d.totalProtein ?? 0,
-          totalCarbs: d.totalCarbs ?? 0,
-          totalFats: d.totalFats ?? 0,
-          waterIntake: d.waterIntake ?? 0,
-          targetCalories: d.targetCalories ?? 2000,
-          targetProtein: d.targetProtein ?? 150,
-          targetCarbs: d.targetCarbs ?? 250,
-          targetFats: d.targetFats ?? 65,
-          targetWater: d.targetWater ?? 3000,
-        },
-      });
-    } catch {
-      // ignore
-    }
-  }
 }
 
 const ALL_SECTIONS: StudentDataSection[] = [
@@ -417,6 +401,8 @@ const ALL_SECTIONS: StudentDataSection[] = [
   "units",
   "weeklyPlan",
   "libraryPlans",
+  "activeNutritionPlan",
+  "nutritionLibraryPlans",
   "profile",
   "weightHistory",
   "workoutHistory",

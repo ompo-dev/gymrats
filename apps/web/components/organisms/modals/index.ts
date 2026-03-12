@@ -3,9 +3,11 @@ export { EditUnitModal } from "./edit-unit-modal";
 export { EditWeeklyPlanModal } from "./edit-weekly-plan-modal";
 export { TrainingLibraryModal } from "./training-library-modal";
 export { EquipmentSearch } from "./equipment-search";
+export { EditNutritionPlanModal } from "./edit-nutrition-plan-modal";
 export { ExerciseAlternativeSelector } from "./exercise-alternative-selector";
 export { FoodSearch } from "./food-search";
 export { Modal } from "./modal";
+export { NutritionLibraryModal } from "./nutrition-library-modal";
 export type {
   PixQrBlockProps,
   PixQrModalPollCheckConfig,

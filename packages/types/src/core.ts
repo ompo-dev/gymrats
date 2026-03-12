@@ -105,6 +105,47 @@ export interface Meal {
   foods?: MealFoodItem[];
 }
 
+export interface NutritionPlanFoodItemData {
+  id: string;
+  foodId?: string;
+  foodName: string;
+  servings: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  servingSize: string;
+  order?: number;
+}
+
+export interface NutritionPlanMealData {
+  id: string;
+  name: string;
+  type: DietType;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  time?: string;
+  order?: number;
+  foods: NutritionPlanFoodItemData[];
+}
+
+export interface NutritionPlanData {
+  id: string;
+  title: string;
+  description?: string | null;
+  totalCalories: number;
+  targetProtein: number;
+  targetCarbs: number;
+  targetFats: number;
+  isLibraryTemplate?: boolean;
+  createdById?: string | null;
+  creatorType?: string | null;
+  sourceLibraryPlanId?: string | null;
+  meals: NutritionPlanMealData[];
+}
+
 export interface DietPlan {
   id: string;
   title: string;
@@ -280,6 +321,9 @@ export interface DailyNutrition {
   targetCarbs: number;
   targetFats: number;
   targetWater: number;
+  sourceNutritionPlanId?: string | null;
+  hasActiveNutritionPlan?: boolean;
+  isLegacyFallback?: boolean;
 }
 
 export interface FoodItem {

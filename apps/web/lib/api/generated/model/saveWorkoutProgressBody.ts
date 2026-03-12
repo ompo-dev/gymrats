@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { SaveWorkoutProgressBodySelectedAlternatives } from "./saveWorkoutProgressBodySelectedAlternatives";
+import type { SaveWorkoutProgressBodySelectedAlternatives } from './saveWorkoutProgressBodySelectedAlternatives';
 
 export type SaveWorkoutProgressBody = {
   currentExerciseIndex?: number;

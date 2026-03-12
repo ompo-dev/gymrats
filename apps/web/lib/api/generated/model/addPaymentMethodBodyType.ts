@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type AddPaymentMethodBodyType =
-  (typeof AddPaymentMethodBodyType)[keyof typeof AddPaymentMethodBodyType];
+export type AddPaymentMethodBodyType = typeof AddPaymentMethodBodyType[keyof typeof AddPaymentMethodBodyType];
+
 
 export const AddPaymentMethodBodyType = {
-  "credit-card": "credit-card",
-  "debit-card": "debit-card",
-  pix: "pix",
+  'credit-card': 'credit-card',
+  'debit-card': 'debit-card',
+  pix: 'pix',
 } as const;

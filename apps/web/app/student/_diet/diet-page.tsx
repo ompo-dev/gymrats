@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
+import { NutritionLibraryModal } from "@/components/organisms/modals/nutrition-library-modal";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
@@ -38,11 +39,12 @@ export function DietPage() {
   // - Usa rotas específicas otimizadas (3-5x mais rápido)
 
   const foodDatabase = useStudent("foodDatabase");
-  const { loadFoodDatabase } = useStudent("loaders");
+  const { loadFoodDatabase, loadNutrition } = useStudent("loaders");
 
   // Modais controlados por search params
   const addMealModal = useModalState("add-meal");
   const foodSearchModal = useModalStateWithParam("food-search", "mealId");
+  const nutritionLibraryModal = useModalState("nutrition-library");
 
   // Carregar foodDatabase apenas se não estiver no store
   // O useStudentInitializer já carrega a maioria dos dados, mas foodDatabase
@@ -125,6 +127,7 @@ export function DietPage() {
         nutrition={dailyNutrition}
         onMealComplete={handleMealComplete}
         onAddMeal={addMealModal.open}
+        onOpenLibrary={nutritionLibraryModal.open}
         onAddFoodToMeal={handleOpenFoodSearch}
         onDeleteMeal={removeMeal}
         onDeleteFood={removeFoodFromMeal}
@@ -157,6 +160,12 @@ export function DietPage() {
           }}
         />
       )}
+
+      <NutritionLibraryModal
+        onPlansSynced={async () => {
+          await loadNutrition();
+        }}
+      />
     </div>
   );
 }

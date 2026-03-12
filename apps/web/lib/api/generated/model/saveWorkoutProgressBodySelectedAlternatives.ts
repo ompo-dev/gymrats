@@ -6,6 +6,4 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type SaveWorkoutProgressBodySelectedAlternatives = {
-  [key: string]: unknown;
-};
+export type SaveWorkoutProgressBodySelectedAlternatives = { [key: string]: unknown };

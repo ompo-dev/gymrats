@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { UpdateRole200UserRole } from "./updateRole200UserRole";
+import type { UpdateRole200UserRole } from './updateRole200UserRole';
 
 export type UpdateRole200User = {
   id?: string;

@@ -38,6 +38,8 @@ interface FoodSearchProps {
       totalFats: number;
     };
   }) => Promise<void> | void;
+  foodDatabase?: FoodItem[];
+  contextMode?: "student" | "external";
 }
 
 const mealIcons: Record<string, string> = {
@@ -82,6 +84,7 @@ function FoodSearchSimple({
   onAddMeal,
   chatStreamUrl,
   onApplyNutrition,
+  contextMode = "student",
 }: FoodSearchProps) {
   // Verificar se é premium/trial
   const { can } = useAbility();
@@ -313,6 +316,7 @@ function FoodSearchSimple({
         onSelectMeal={onSelectMeal}
         chatStreamUrl={chatStreamUrl}
         onApplyNutrition={onApplyNutrition}
+        contextMode={contextMode}
       />
     );
   }

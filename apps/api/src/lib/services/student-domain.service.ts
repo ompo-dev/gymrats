@@ -1,5 +1,11 @@
 import { db } from "@/lib/db";
 import type { JsonValue } from "@/lib/types/api-error";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import {
+  getActiveNutritionPlan as getActiveNutritionPlanForStudent,
+  getDailyNutritionForStudent,
+  listNutritionLibraryPlans,
+} from "@/lib/services/nutrition/nutrition-plan.service";
 
 /**
  * Service to centralize student domain operations and stat updates
@@ -413,6 +419,16 @@ export class StudentDomainService {
         await StudentDomainService.getDailyNutrition(studentId);
     }
 
+    if (!requestedSections || requestedSections.includes("activeNutritionPlan")) {
+      result.activeNutritionPlan =
+        await StudentDomainService.getActiveNutritionPlan(studentId);
+    }
+
+    if (!requestedSections || requestedSections.includes("nutritionLibraryPlans")) {
+      result.nutritionLibraryPlans =
+        await StudentDomainService.getNutritionLibraryPlans(studentId);
+    }
+
     if (!requestedSections || requestedSections.includes("workoutHistory")) {
       result.workoutHistory =
         await StudentDomainService.getWorkoutHistory(studentId);
@@ -587,67 +603,15 @@ export class StudentDomainService {
   }
 
   private static async getDailyNutrition(studentId: string) {
-    const today = new Date();
-    const dateStr = today.toISOString().split("T")[0];
-    const startOfDay = new Date(`${dateStr}T00:00:00.000Z`);
-    const endOfDay = new Date(`${dateStr}T23:59:59.999Z`);
+    return getDailyNutritionForStudent(studentId, getBrazilNutritionDateKey());
+  }
 
-    const profile = await db.studentProfile.findUnique({
-      where: { studentId },
-      select: {
-        targetCalories: true,
-        targetProtein: true,
-        targetCarbs: true,
-        targetFats: true,
-        targetWater: true,
-      },
-    });
+  private static async getActiveNutritionPlan(studentId: string) {
+    return getActiveNutritionPlanForStudent(studentId);
+  }
 
-    const daily = await db.dailyNutrition.findFirst({
-      where: { studentId, date: { gte: startOfDay, lte: endOfDay } },
-      include: {
-        meals: {
-          orderBy: { order: "asc" },
-          include: { foods: { orderBy: { createdAt: "asc" } } },
-        },
-      },
-    });
-
-    if (daily) {
-      const meals = daily.meals.map((m) => ({
-        ...m,
-        foods: m.foods.map((f) => ({ ...f, id: f.id })),
-      }));
-      return {
-        date: dateStr,
-        meals,
-        totalCalories: meals.reduce((sum, m) => sum + m.calories, 0),
-        totalProtein: meals.reduce((sum, m) => sum + m.protein, 0),
-        totalCarbs: meals.reduce((sum, m) => sum + m.carbs, 0),
-        totalFats: meals.reduce((sum, m) => sum + m.fats, 0),
-        waterIntake: daily.waterIntake,
-        targetCalories: profile?.targetCalories || 2000,
-        targetProtein: profile?.targetProtein || 150,
-        targetCarbs: profile?.targetCarbs || 250,
-        targetFats: profile?.targetFats || 65,
-        targetWater: profile?.targetWater ?? 3000,
-      };
-    }
-
-    return {
-      date: dateStr,
-      meals: [],
-      totalCalories: 0,
-      totalProtein: 0,
-      totalCarbs: 0,
-      totalFats: 0,
-      waterIntake: 0,
-      targetCalories: profile?.targetCalories || 2000,
-      targetProtein: profile?.targetProtein || 150,
-      targetCarbs: profile?.targetCarbs || 250,
-      targetFats: profile?.targetFats || 65,
-      targetWater: profile?.targetWater ?? 3000,
-    };
+  private static async getNutritionLibraryPlans(studentId: string) {
+    return listNutritionLibraryPlans(studentId);
   }
 
   private static async getWorkoutHistory(studentId: string) {

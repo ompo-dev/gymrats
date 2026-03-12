@@ -6,11 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GetPersonalRecords200RecordsItemType =
-  (typeof GetPersonalRecords200RecordsItemType)[keyof typeof GetPersonalRecords200RecordsItemType];
+export type GetPersonalRecords200RecordsItemType = typeof GetPersonalRecords200RecordsItemType[keyof typeof GetPersonalRecords200RecordsItemType];
+
 
 export const GetPersonalRecords200RecordsItemType = {
-  "max-weight": "max-weight",
-  "max-reps": "max-reps",
-  "max-volume": "max-volume",
+  'max-weight': 'max-weight',
+  'max-reps': 'max-reps',
+  'max-volume': 'max-volume',
 } as const;

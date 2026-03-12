@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { SuccessResponse } from "./successResponse";
+import type { SuccessResponse } from './successResponse';
 
 /**
  * Operação realizada com sucesso

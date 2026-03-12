@@ -106,7 +106,11 @@
           },
           "role": {
             "type": "string",
-            "enum": ["STUDENT", "GYM", "ADMIN"],
+            "enum": [
+              "STUDENT",
+              "GYM",
+              "ADMIN"
+            ],
             "description": "Role do usuário (fonte da verdade)"
           },
           "hasGym": {
@@ -140,7 +144,10 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -157,7 +164,11 @@
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["name", "email", "password"],
+        "required": [
+          "name",
+          "email",
+          "password"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -178,7 +189,9 @@
       },
       "ForgotPasswordRequest": {
         "type": "object",
-        "required": ["email"],
+        "required": [
+          "email"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -189,7 +202,10 @@
       },
       "VerifyResetCodeRequest": {
         "type": "object",
-        "required": ["email", "code"],
+        "required": [
+          "email",
+          "code"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -206,7 +222,11 @@
       },
       "ResetPasswordRequest": {
         "type": "object",
-        "required": ["email", "code", "newPassword"],
+        "required": [
+          "email",
+          "code",
+          "newPassword"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -229,7 +249,10 @@
       },
       "UpdateRoleRequest": {
         "type": "object",
-        "required": ["userId", "role"],
+        "required": [
+          "userId",
+          "role"
+        ],
         "properties": {
           "userId": {
             "type": "string",
@@ -237,7 +260,11 @@
           },
           "role": {
             "type": "string",
-            "enum": ["STUDENT", "GYM", "ADMIN"],
+            "enum": [
+              "STUDENT",
+              "GYM",
+              "ADMIN"
+            ],
             "description": "Nova role do usuário"
           }
         }
@@ -277,7 +304,11 @@
           },
           "fitnessLevel": {
             "type": "string",
-            "enum": ["iniciante", "intermediario", "avancado"],
+            "enum": [
+              "iniciante",
+              "intermediario",
+              "avancado"
+            ],
             "nullable": true
           },
           "weeklyWorkoutFrequency": {
@@ -433,7 +464,11 @@
           },
           "hormoneType": {
             "type": "string",
-            "enum": ["testosterone", "estrogen", "none"],
+            "enum": [
+              "testosterone",
+              "estrogen",
+              "none"
+            ],
             "description": "Tipo de hormônio usado",
             "nullable": true
           }
@@ -473,7 +508,11 @@
           },
           "plan": {
             "type": "string",
-            "enum": ["basic", "premium", "enterprise"]
+            "enum": [
+              "basic",
+              "premium",
+              "enterprise"
+            ]
           },
           "isActive": {
             "type": "boolean"
@@ -495,7 +534,12 @@
           },
           "type": {
             "type": "string",
-            "enum": ["strength", "cardio", "flexibility", "rest"]
+            "enum": [
+              "strength",
+              "cardio",
+              "flexibility",
+              "rest"
+            ]
           },
           "muscleGroup": {
             "type": "string",
@@ -503,7 +547,11 @@
           },
           "difficulty": {
             "type": "string",
-            "enum": ["iniciante", "intermediario", "avancado"]
+            "enum": [
+              "iniciante",
+              "intermediario",
+              "avancado"
+            ]
           },
           "xpReward": {
             "type": "number"
@@ -581,7 +629,11 @@
           },
           "difficulty": {
             "type": "string",
-            "enum": ["iniciante", "intermediario", "avancado"],
+            "enum": [
+              "iniciante",
+              "intermediario",
+              "avancado"
+            ],
             "nullable": true,
             "description": "Nível de dificuldade"
           },
@@ -679,11 +731,20 @@
           },
           "plan": {
             "type": "string",
-            "enum": ["premium", "monthly", "annual"]
+            "enum": [
+              "premium",
+              "monthly",
+              "annual"
+            ]
           },
           "status": {
             "type": "string",
-            "enum": ["active", "trialing", "canceled", "past_due"]
+            "enum": [
+              "active",
+              "trialing",
+              "canceled",
+              "past_due"
+            ]
           },
           "currentPeriodStart": {
             "type": "string",
@@ -710,11 +771,21 @@
           },
           "status": {
             "type": "string",
-            "enum": ["paid", "pending", "overdue", "canceled"]
+            "enum": [
+              "paid",
+              "pending",
+              "overdue",
+              "canceled"
+            ]
           },
           "paymentMethod": {
             "type": "string",
-            "enum": ["credit-card", "debit-card", "pix", "cash"]
+            "enum": [
+              "credit-card",
+              "debit-card",
+              "pix",
+              "cash"
+            ]
           }
         }
       },
@@ -729,7 +800,12 @@
           },
           "type": {
             "type": "string",
-            "enum": ["breakfast", "lunch", "dinner", "snack"]
+            "enum": [
+              "breakfast",
+              "lunch",
+              "dinner",
+              "snack"
+            ]
           },
           "calories": {
             "type": "number"
@@ -906,7 +982,11 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "expired", "canceled"]
+            "enum": [
+              "active",
+              "expired",
+              "canceled"
+            ]
           },
           "autoRenew": {
             "type": "boolean"
@@ -979,7 +1059,9 @@
   "paths": {
     "/api/students/all": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar todos os dados do student",
         "description": "Retorna todos os dados do student ou seções específicas via query params",
         "operationId": "getAllStudentData",
@@ -1024,7 +1106,9 @@
     },
     "/api/students/profile": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar perfil do student",
         "description": "Verifica se o student tem perfil completo",
         "operationId": "getStudentProfile",
@@ -1064,7 +1148,9 @@
         }
       },
       "post": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Criar/atualizar perfil do student",
         "description": "Cria ou atualiza o perfil completo do student",
         "operationId": "updateStudentProfile",
@@ -1101,7 +1187,9 @@
     },
     "/api/students/weight": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar histórico de peso",
         "description": "Retorna histórico de peso com paginação",
         "operationId": "getWeightHistory",
@@ -1159,7 +1247,9 @@
         }
       },
       "post": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Adicionar peso",
         "description": "Adiciona uma nova entrada de peso",
         "operationId": "addWeight",
@@ -1177,7 +1267,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["weight"],
+                "required": [
+                  "weight"
+                ],
                 "properties": {
                   "weight": {
                     "type": "number",
@@ -1210,7 +1302,9 @@
     },
     "/api/students/progress": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar progresso do student",
         "description": "Retorna progresso completo (XP, streaks, achievements, weeklyXP)",
         "operationId": "getStudentProgress",
@@ -1287,7 +1381,9 @@
     },
     "/api/students/student": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar informações básicas do student",
         "description": "Retorna informações básicas (id, age, gender, phone, avatar)",
         "operationId": "getStudentInfo",
@@ -1338,7 +1434,11 @@
                     },
                     "hormoneType": {
                       "type": "string",
-                      "enum": ["testosterone", "estrogen", "none"],
+                      "enum": [
+                        "testosterone",
+                        "estrogen",
+                        "none"
+                      ],
                       "description": "Tipo de hormônio usado",
                       "nullable": true
                     }
@@ -1358,7 +1458,9 @@
     },
     "/api/students/personal-records": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar personal records",
         "description": "Retorna os personal records do student",
         "operationId": "getPersonalRecords",
@@ -1391,7 +1493,11 @@
                           },
                           "type": {
                             "type": "string",
-                            "enum": ["max-weight", "max-reps", "max-volume"]
+                            "enum": [
+                              "max-weight",
+                              "max-reps",
+                              "max-volume"
+                            ]
                           },
                           "value": {
                             "type": "number"
@@ -1426,7 +1532,9 @@
     },
     "/api/students/day-passes": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar day passes",
         "description": "Retorna os day passes do student",
         "operationId": "getDayPasses",
@@ -1500,7 +1608,9 @@
     },
     "/api/students/friends": {
       "get": {
-        "tags": ["Students"],
+        "tags": [
+          "Students"
+        ],
         "summary": "Buscar amigos",
         "description": "Retorna a lista de amigos do student",
         "operationId": "getFriends",
@@ -1561,7 +1671,9 @@
     },
     "/api/gyms/list": {
       "get": {
-        "tags": ["Gyms"],
+        "tags": [
+          "Gyms"
+        ],
         "summary": "Listar academias do usuário",
         "description": "Retorna todas as academias do usuário autenticado",
         "operationId": "listGyms",
@@ -1606,7 +1718,9 @@
     },
     "/api/gyms/create": {
       "post": {
-        "tags": ["Gyms"],
+        "tags": [
+          "Gyms"
+        ],
         "summary": "Criar nova academia",
         "description": "Cria uma nova academia para o usuário",
         "operationId": "createGym",
@@ -1624,7 +1738,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name", "address", "phone", "email"],
+                "required": [
+                  "name",
+                  "address",
+                  "phone",
+                  "email"
+                ],
                 "properties": {
                   "name": {
                     "type": "string"
@@ -1674,7 +1793,9 @@
     },
     "/api/gyms/profile": {
       "get": {
-        "tags": ["Gyms"],
+        "tags": [
+          "Gyms"
+        ],
         "summary": "Buscar perfil da academia",
         "description": "Retorna o perfil completo da academia do usuário autenticado",
         "operationId": "getGymProfile",
@@ -1739,7 +1860,9 @@
     },
     "/api/gyms/set-active": {
       "post": {
-        "tags": ["Gyms"],
+        "tags": [
+          "Gyms"
+        ],
         "summary": "Definir academia ativa",
         "description": "Define qual academia será usada como ativa para o usuário",
         "operationId": "setActiveGym",
@@ -1757,7 +1880,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["gymId"],
+                "required": [
+                  "gymId"
+                ],
                 "properties": {
                   "gymId": {
                     "type": "string"
@@ -1785,7 +1910,9 @@
     },
     "/api/gyms/locations": {
       "get": {
-        "tags": ["Gyms"],
+        "tags": [
+          "Gyms"
+        ],
         "summary": "Buscar localizações das academias",
         "description": "Retorna as localizações (endereços) de todas as academias do usuário",
         "operationId": "getGymLocations",
@@ -1841,7 +1968,9 @@
     },
     "/api/workouts/units": {
       "get": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Buscar units e workouts",
         "description": "Retorna todas as units com workouts, exercícios e status de conclusão",
         "operationId": "getUnits",
@@ -1904,7 +2033,9 @@
         }
       },
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Criar unit (plano de treino)",
         "description": "Cria um novo plano de treino (unit) para o student",
         "operationId": "createUnit",
@@ -1922,7 +2053,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["title"],
+                "required": [
+                  "title"
+                ],
                 "properties": {
                   "title": {
                     "type": "string",
@@ -1957,7 +2090,9 @@
     },
     "/api/workouts/generate": {
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Gerar treinos personalizados",
         "description": "Gera treinos personalizados para o aluno baseado em seus dados do onboarding. Cria um plano mensal (4 semanas) com workouts personalizados considerando objetivos, limitações, equipamentos disponíveis e preferências.",
         "operationId": "generatePersonalizedWorkouts",
@@ -2018,7 +2153,9 @@
         }
       },
       "patch": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercícios com alternativas",
         "description": "Atualiza exercícios existentes nos treinos do aluno adicionando alternativas. Útil para adicionar alternativas a treinos que foram gerados antes da implementação de alternativas automáticas.",
         "operationId": "updateExercisesWithAlternatives",
@@ -2060,7 +2197,9 @@
     },
     "/api/workouts/{id}/complete": {
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Completar workout",
         "description": "Marca um workout como completado e atualiza progresso",
         "operationId": "completeWorkout",
@@ -2100,7 +2239,12 @@
                   },
                   "overallFeedback": {
                     "type": "string",
-                    "enum": ["excelente", "bom", "regular", "ruim"]
+                    "enum": [
+                      "excelente",
+                      "bom",
+                      "regular",
+                      "ruim"
+                    ]
                   }
                 }
               }
@@ -2125,7 +2269,9 @@
     },
     "/api/workouts/{id}/progress": {
       "get": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Buscar progresso do workout",
         "description": "Retorna o progresso salvo de um workout específico",
         "operationId": "getWorkoutProgress",
@@ -2213,7 +2359,9 @@
         }
       },
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Salvar progresso do workout",
         "description": "Salva o progresso atual de um workout em andamento",
         "operationId": "saveWorkoutProgress",
@@ -2294,7 +2442,9 @@
         }
       },
       "delete": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Deletar progresso do workout",
         "description": "Remove o progresso salvo de um workout",
         "operationId": "deleteWorkoutProgress",
@@ -2334,7 +2484,9 @@
     },
     "/api/workouts/history": {
       "get": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Buscar histórico de workouts",
         "description": "Retorna o histórico de workouts completados pelo student",
         "operationId": "getWorkoutHistory",
@@ -2427,7 +2579,9 @@
     },
     "/api/workouts/units/{id}": {
       "put": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar unit",
         "description": "Atualiza um plano de treino existente",
         "operationId": "updateUnit",
@@ -2489,7 +2643,9 @@
         }
       },
       "delete": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Deletar unit",
         "description": "Remove um plano de treino e todos os seus workouts",
         "operationId": "deleteUnit",
@@ -2526,7 +2682,9 @@
     },
     "/api/workouts/manage": {
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Criar workout",
         "description": "Cria um novo workout (dia de treino) em uma unit",
         "operationId": "createWorkout",
@@ -2563,7 +2721,12 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": ["strength", "cardio", "flexibility", "rest"],
+                    "enum": [
+                      "strength",
+                      "cardio",
+                      "flexibility",
+                      "rest"
+                    ],
                     "default": "strength"
                   },
                   "muscleGroup": {
@@ -2571,7 +2734,11 @@
                   },
                   "difficulty": {
                     "type": "string",
-                    "enum": ["iniciante", "intermediario", "avancado"]
+                    "enum": [
+                      "iniciante",
+                      "intermediario",
+                      "avancado"
+                    ]
                   },
                   "estimatedTime": {
                     "type": "integer",
@@ -2600,7 +2767,9 @@
     },
     "/api/workouts/manage/{id}": {
       "put": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar workout",
         "description": "Atualiza um workout existente",
         "operationId": "updateWorkout",
@@ -2637,14 +2806,23 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": ["strength", "cardio", "flexibility", "rest"]
+                    "enum": [
+                      "strength",
+                      "cardio",
+                      "flexibility",
+                      "rest"
+                    ]
                   },
                   "muscleGroup": {
                     "type": "string"
                   },
                   "difficulty": {
                     "type": "string",
-                    "enum": ["iniciante", "intermediario", "avancado"]
+                    "enum": [
+                      "iniciante",
+                      "intermediario",
+                      "avancado"
+                    ]
                   },
                   "estimatedTime": {
                     "type": "integer",
@@ -2671,7 +2849,9 @@
         }
       },
       "delete": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Deletar workout",
         "description": "Remove um workout e todos os seus exercícios",
         "operationId": "deleteWorkout",
@@ -2708,7 +2888,9 @@
     },
     "/api/workouts/exercises": {
       "post": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Adicionar exercício ao workout",
         "description": "Adiciona um novo exercício a um workout",
         "operationId": "addWorkoutExercise",
@@ -2726,7 +2908,13 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["workoutId", "name", "sets", "reps", "rest"],
+                "required": [
+                  "workoutId",
+                  "name",
+                  "sets",
+                  "reps",
+                  "rest"
+                ],
                 "properties": {
                   "workoutId": {
                     "type": "string"
@@ -2768,7 +2956,11 @@
                   },
                   "difficulty": {
                     "type": "string",
-                    "enum": ["iniciante", "intermediario", "avancado"]
+                    "enum": [
+                      "iniciante",
+                      "intermediario",
+                      "avancado"
+                    ]
                   },
                   "equipment": {
                     "type": "array",
@@ -2826,7 +3018,9 @@
     },
     "/api/workouts/exercises/{id}": {
       "put": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercício",
         "description": "Atualiza um exercício existente em um workout",
         "operationId": "updateWorkoutExercise",
@@ -2892,7 +3086,11 @@
                   },
                   "difficulty": {
                     "type": "string",
-                    "enum": ["iniciante", "intermediario", "avancado"]
+                    "enum": [
+                      "iniciante",
+                      "intermediario",
+                      "avancado"
+                    ]
                   },
                   "equipment": {
                     "type": "array",
@@ -2948,7 +3146,9 @@
         }
       },
       "delete": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Deletar exercício",
         "description": "Remove um exercício de um workout",
         "operationId": "deleteWorkoutExercise",
@@ -2985,7 +3185,9 @@
     },
     "/api/exercises/search": {
       "get": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Buscar exercícios",
         "description": "Busca exercícios do banco educacional com filtros opcionais",
         "operationId": "searchExercises",
@@ -3081,7 +3283,9 @@
     },
     "/api/subscriptions/current": {
       "get": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "Buscar assinatura atual",
         "description": "Retorna a assinatura atual do student",
         "operationId": "getCurrentSubscription",
@@ -3117,7 +3321,9 @@
     },
     "/api/subscriptions/create": {
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "Criar assinatura",
         "description": "Cria uma nova assinatura para o student",
         "operationId": "createSubscription",
@@ -3135,11 +3341,16 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["plan"],
+                "required": [
+                  "plan"
+                ],
                 "properties": {
                   "plan": {
                     "type": "string",
-                    "enum": ["monthly", "annual"]
+                    "enum": [
+                      "monthly",
+                      "annual"
+                    ]
                   }
                 }
               }
@@ -3179,7 +3390,9 @@
     },
     "/api/subscriptions/start-trial": {
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "Iniciar trial",
         "description": "Inicia um período de trial gratuito para o student",
         "operationId": "startTrial",
@@ -3221,7 +3434,9 @@
     },
     "/api/subscriptions/cancel": {
       "post": {
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "summary": "Cancelar assinatura",
         "description": "Cancela a assinatura atual do student",
         "operationId": "cancelSubscription",
@@ -3248,7 +3463,9 @@
     },
     "/api/gym-subscriptions/current": {
       "get": {
-        "tags": ["Gym Subscriptions"],
+        "tags": [
+          "Gym Subscriptions"
+        ],
         "summary": "Buscar assinatura atual da gym",
         "description": "Retorna a assinatura atual da gym autenticada",
         "operationId": "getCurrentGymSubscription",
@@ -3287,7 +3504,9 @@
     },
     "/api/gym-subscriptions/create": {
       "post": {
-        "tags": ["Gym Subscriptions"],
+        "tags": [
+          "Gym Subscriptions"
+        ],
         "summary": "Criar assinatura para gym",
         "description": "Cria uma nova assinatura para a gym autenticada",
         "operationId": "createGymSubscription",
@@ -3305,11 +3524,17 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["plan"],
+                "required": [
+                  "plan"
+                ],
                 "properties": {
                   "plan": {
                     "type": "string",
-                    "enum": ["basic", "premium", "enterprise"]
+                    "enum": [
+                      "basic",
+                      "premium",
+                      "enterprise"
+                    ]
                   }
                 }
               }
@@ -3352,7 +3577,9 @@
     },
     "/api/gym-subscriptions/start-trial": {
       "post": {
-        "tags": ["Gym Subscriptions"],
+        "tags": [
+          "Gym Subscriptions"
+        ],
         "summary": "Iniciar trial para gym",
         "description": "Inicia um período de trial gratuito para a gym",
         "operationId": "startGymTrial",
@@ -3397,7 +3624,9 @@
     },
     "/api/gym-subscriptions/cancel": {
       "post": {
-        "tags": ["Gym Subscriptions"],
+        "tags": [
+          "Gym Subscriptions"
+        ],
         "summary": "Cancelar assinatura da gym",
         "description": "Cancela a assinatura atual da gym",
         "operationId": "cancelGymSubscription",
@@ -3427,7 +3656,9 @@
     },
     "/api/payments": {
       "get": {
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "summary": "Buscar histórico de pagamentos",
         "description": "Retorna histórico de pagamentos do student",
         "operationId": "getPayments",
@@ -3487,7 +3718,9 @@
     },
     "/api/payment-methods": {
       "get": {
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "summary": "Buscar métodos de pagamento",
         "description": "Retorna métodos de pagamento do usuário",
         "operationId": "getPaymentMethods",
@@ -3517,7 +3750,11 @@
                           },
                           "type": {
                             "type": "string",
-                            "enum": ["credit-card", "debit-card", "pix"]
+                            "enum": [
+                              "credit-card",
+                              "debit-card",
+                              "pix"
+                            ]
                           },
                           "isDefault": {
                             "type": "boolean"
@@ -3536,7 +3773,9 @@
         }
       },
       "post": {
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "summary": "Adicionar método de pagamento",
         "description": "Adiciona um novo método de pagamento",
         "operationId": "addPaymentMethod",
@@ -3554,11 +3793,17 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["type"],
+                "required": [
+                  "type"
+                ],
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": ["credit-card", "debit-card", "pix"]
+                    "enum": [
+                      "credit-card",
+                      "debit-card",
+                      "pix"
+                    ]
                   },
                   "isDefault": {
                     "type": "boolean"
@@ -3583,7 +3828,9 @@
     },
     "/api/workouts/history/{historyId}/exercises/{exerciseId}": {
       "put": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercício em workout completado",
         "description": "Atualiza um exercício específico em um workout já completado. Útil para corrigir carga, séries ou outros dados que foram registrados incorretamente.",
         "operationId": "updateExerciseLog",
@@ -3663,7 +3910,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "Dificuldade percebida",
-                    "enum": ["fácil", "médio", "difícil"]
+                    "enum": [
+                      "fácil",
+                      "médio",
+                      "difícil"
+                    ]
                   }
                 }
               },
@@ -3756,7 +4007,9 @@
         }
       },
       "patch": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercício em workout completado (parcial)",
         "description": "Atualiza parcialmente um exercício específico em um workout já completado. Permite atualizar apenas os campos fornecidos.",
         "operationId": "updateExerciseLogPartial",
@@ -3855,7 +4108,9 @@
     },
     "/api/workouts/{id}/progress/exercises/{exerciseId}": {
       "put": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercício no progresso atual",
         "description": "Atualiza um exercício específico no progresso atual de um workout em andamento. Útil para corrigir carga, séries ou outros dados antes de completar o workout.",
         "operationId": "updateWorkoutProgressExercise",
@@ -3935,7 +4190,11 @@
                     "type": "string",
                     "nullable": true,
                     "description": "Dificuldade percebida",
-                    "enum": ["fácil", "médio", "difícil"]
+                    "enum": [
+                      "fácil",
+                      "médio",
+                      "difícil"
+                    ]
                   }
                 }
               },
@@ -3995,7 +4254,9 @@
         }
       },
       "patch": {
-        "tags": ["Workouts"],
+        "tags": [
+          "Workouts"
+        ],
         "summary": "Atualizar exercício no progresso atual (parcial)",
         "description": "Atualiza parcialmente um exercício específico no progresso atual de um workout em andamento. Permite atualizar apenas os campos fornecidos.",
         "operationId": "updateWorkoutProgressExercisePartial",
@@ -4094,7 +4355,9 @@
     },
     "/api/nutrition/daily": {
       "get": {
-        "tags": ["Nutrition"],
+        "tags": [
+          "Nutrition"
+        ],
         "summary": "Buscar nutrição do dia",
         "description": "Retorna a nutrição diária do student, incluindo refeições, totais e metas",
         "operationId": "getDailyNutrition",
@@ -4177,7 +4440,9 @@
         }
       },
       "post": {
-        "tags": ["Nutrition"],
+        "tags": [
+          "Nutrition"
+        ],
         "summary": "Atualizar nutrição do dia",
         "description": "Cria ou atualiza a nutrição diária do student, incluindo refeições e alimentos",
         "operationId": "updateDailyNutrition",
@@ -4210,7 +4475,12 @@
                         },
                         "type": {
                           "type": "string",
-                          "enum": ["breakfast", "lunch", "dinner", "snack"]
+                          "enum": [
+                            "breakfast",
+                            "lunch",
+                            "dinner",
+                            "snack"
+                          ]
                         },
                         "calories": {
                           "type": "number"
@@ -4335,7 +4605,9 @@
         }
       },
       "put": {
-        "tags": ["Nutrition"],
+        "tags": [
+          "Nutrition"
+        ],
         "summary": "Atualizar nutrição do dia (PUT)",
         "description": "Cria ou atualiza completamente a nutrição diária do student. Útil para substituir todos os dados de uma vez.",
         "operationId": "updateDailyNutritionPut",
@@ -4368,7 +4640,12 @@
                         },
                         "type": {
                           "type": "string",
-                          "enum": ["breakfast", "lunch", "dinner", "snack"]
+                          "enum": [
+                            "breakfast",
+                            "lunch",
+                            "dinner",
+                            "snack"
+                          ]
                         },
                         "calories": {
                           "type": "number"
@@ -4464,7 +4741,9 @@
         }
       },
       "patch": {
-        "tags": ["Nutrition"],
+        "tags": [
+          "Nutrition"
+        ],
         "summary": "Atualizar nutrição do dia (PATCH - parcial)",
         "description": "Atualiza parcialmente a nutrição diária do student. Permite atualizar apenas os campos fornecidos (ex: apenas waterIntake ou apenas uma refeição específica).",
         "operationId": "updateDailyNutritionPatch",
@@ -4537,7 +4816,9 @@
     },
     "/api/foods/search": {
       "get": {
-        "tags": ["Foods"],
+        "tags": [
+          "Foods"
+        ],
         "summary": "Buscar alimentos",
         "description": "Busca alimentos no banco de dados por nome e/ou categoria",
         "operationId": "searchFoods",
@@ -4624,7 +4905,9 @@
     },
     "/api/foods/upload": {
       "post": {
-        "tags": ["Foods"],
+        "tags": [
+          "Foods"
+        ],
         "summary": "Upload de alimentos do CSV TACO",
         "description": "Faz upload de alimentos a partir do CSV da Tabela Brasileira de Composição de Alimentos (TACO). Requer autenticação ADMIN. Pode enviar um arquivo CSV ou usar o arquivo padrão (public/alimentos.csv).",
         "operationId": "uploadFoods",
@@ -4732,7 +5015,9 @@
     },
     "/api/foods/{id}": {
       "get": {
-        "tags": ["Foods"],
+        "tags": [
+          "Foods"
+        ],
         "summary": "Buscar detalhes de um alimento",
         "description": "Retorna informações detalhadas de um alimento específico pelo ID",
         "operationId": "getFoodById",
@@ -4792,7 +5077,9 @@
     },
     "/api/memberships": {
       "get": {
-        "tags": ["Memberships"],
+        "tags": [
+          "Memberships"
+        ],
         "summary": "Buscar memberships de academias",
         "description": "Retorna todas as memberships (matrículas) do student em academias",
         "operationId": "getMemberships",
@@ -4848,7 +5135,9 @@
     },
     "/api/auth/sign-up": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Criar nova conta",
         "description": "Registra um novo usuário no sistema. A senha é automaticamente hasheada com bcrypt.",
         "operationId": "signUp",
@@ -4935,7 +5224,9 @@
     },
     "/api/auth/sign-in": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Fazer login",
         "description": "Autentica um usuário e retorna uma sessão. A senha é verificada usando bcrypt.",
         "operationId": "signIn",
@@ -5030,7 +5321,9 @@
     },
     "/api/auth/session": {
       "get": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Verificar sessão",
         "description": "Retorna informações sobre a sessão atual do usuário autenticado.",
         "operationId": "getSession",
@@ -5105,7 +5398,9 @@
     },
     "/api/auth/sign-out": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Fazer logout",
         "description": "Encerra a sessão atual do usuário, removendo o token do banco de dados e o cookie.",
         "operationId": "signOut",
@@ -5159,7 +5454,9 @@
     },
     "/api/auth/forgot-password": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Solicitar recuperação de senha",
         "description": "Envia um código de verificação de 6 dígitos por email para recuperação de senha. O código expira em 15 minutos. Sempre retorna sucesso para não expor se o email está cadastrado ou não.",
         "operationId": "forgotPassword",
@@ -5222,7 +5519,9 @@
     },
     "/api/auth/verify-reset-code": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Verificar código de recuperação",
         "description": "Verifica se o código de 6 dígitos enviado por email é válido e não expirou. O código expira em 15 minutos após o envio.",
         "operationId": "verifyResetCode",
@@ -5312,7 +5611,9 @@
     },
     "/api/auth/reset-password": {
       "post": {
-        "tags": ["Autenticação"],
+        "tags": [
+          "Autenticação"
+        ],
         "summary": "Redefinir senha",
         "description": "Redefine a senha do usuário após verificar o código de recuperação. O código deve ser válido e não expirado. Após redefinir a senha, o código é invalidado.",
         "operationId": "resetPassword",
@@ -5399,7 +5700,9 @@
     },
     "/api/auth/update-role": {
       "post": {
-        "tags": ["Usuários"],
+        "tags": [
+          "Usuários"
+        ],
         "summary": "Atualizar role do usuário",
         "description": "Atualiza o role de um usuário (STUDENT, GYM ou ADMIN). Cria os registros necessários (Student ou Gym) se não existirem.",
         "operationId": "updateRole",
@@ -5455,7 +5758,11 @@
                         },
                         "role": {
                           "type": "string",
-                          "enum": ["STUDENT", "GYM", "ADMIN"],
+                          "enum": [
+                            "STUDENT",
+                            "GYM",
+                            "ADMIN"
+                          ],
                           "description": "Role do usuário (STUDENT, GYM ou ADMIN)"
                         }
                       }

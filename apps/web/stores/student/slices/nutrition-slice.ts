@@ -1,12 +1,53 @@
 /**
- * Slice de nutrição para student-unified-store.
+ * Slice de nutricao para student-unified-store.
  */
 
 import { apiClient } from "@/lib/api/client";
-import type { DailyNutrition, Meal } from "@/lib/types";
+import type { DailyNutrition, Meal, NutritionPlanData } from "@/lib/types";
+import {
+  createDailyNutritionFromPlan,
+  mealsToNutritionPlanData,
+  normalizeDailyNutrition,
+} from "@/lib/utils/nutrition/nutrition-plan";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { deduplicateMeals, loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
+
+function toApiMeals(meals: Meal[]) {
+  return meals.map((meal, index) => ({
+    name: meal.name || "Refeicao",
+    type: meal.type || "snack",
+    calories: meal.calories || 0,
+    protein: meal.protein || 0,
+    carbs: meal.carbs || 0,
+    fats: meal.fats || 0,
+    time: meal.time || null,
+    completed: meal.completed || false,
+    order: index,
+    foods: (meal.foods || []).map((food) => ({
+      foodId: food.foodId || null,
+      foodName: food.foodName || "Alimento",
+      servings: food.servings || 1,
+      calories: food.calories || 0,
+      protein: food.protein || 0,
+      carbs: food.carbs || 0,
+      fats: food.fats || 0,
+      servingSize: food.servingSize || "100g",
+    })),
+  }));
+}
+
+function upsertNutritionLibraryPlan(
+  plans: NutritionPlanData[],
+  nextPlan: NutritionPlanData,
+) {
+  const existingIndex = plans.findIndex((plan) => plan.id === nextPlan.id);
+  if (existingIndex === -1) {
+    return [nextPlan, ...plans];
+  }
+
+  return plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan));
+}
 
 export function createNutritionSlice(
   set: StudentSetState,
@@ -14,16 +55,46 @@ export function createNutritionSlice(
 ) {
   return {
     loadNutrition: async () => {
-      const sectionData = await loadSection("dailyNutrition");
-      if (sectionData?.dailyNutrition) {
+      const [dailySection, activePlanSection] = await Promise.all([
+        loadSection("dailyNutrition"),
+        loadSection("activeNutritionPlan"),
+      ]);
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          dailyNutrition:
+            dailySection.dailyNutrition ?? state.data.dailyNutrition,
+          activeNutritionPlan:
+            activePlanSection.activeNutritionPlan ??
+            state.data.activeNutritionPlan,
+        },
+      }));
+    },
+
+    loadActiveNutritionPlan: async () => {
+      const sectionData = await loadSection("activeNutritionPlan");
+      set((state) => ({
+        data: {
+          ...state.data,
+          activeNutritionPlan:
+            sectionData.activeNutritionPlan ?? state.data.activeNutritionPlan,
+        },
+      }));
+    },
+
+    loadNutritionLibraryPlans: async () => {
+      const sectionData = await loadSection("nutritionLibraryPlans");
+      if (sectionData.nutritionLibraryPlans !== undefined) {
         set((state) => ({
           data: {
             ...state.data,
-            dailyNutrition: sectionData.dailyNutrition!,
+            nutritionLibraryPlans: sectionData.nutritionLibraryPlans!,
           },
         }));
       }
     },
+
     loadFoodDatabase: async () => {
       try {
         const response = await apiClient.get<{
@@ -40,143 +111,266 @@ export function createNutritionSlice(
           response?: { status?: number };
         };
         if (err?.code === "ECONNABORTED" || err?.message?.includes("timeout")) {
-          console.warn(
-            "⚠️ Timeout ao carregar alimentos. Continuando com dados existentes.",
-          );
           return;
         }
         if (
           err?.response?.status === 500 ||
           err?.message?.includes("does not exist")
         ) {
-          console.log(
-            "⚠️ Tabela de alimentos não existe. Execute: node scripts/apply-nutrition-migration.js",
-          );
           return;
         }
         console.error("Erro ao carregar alimentos:", error);
       }
     },
+
     updateNutrition: async (updates: Partial<DailyNutrition>) => {
       const previousNutrition = get().data.dailyNutrition;
-      let updatedNutrition: DailyNutrition | undefined;
-      set((state) => {
-        const currentNutrition = state.data.dailyNutrition;
-        const updatedMeals =
-          updates.meals !== undefined ? updates.meals : currentNutrition.meals;
-        let calculatedTotals = {};
-        if (updates.meals !== undefined) {
-          const completedMeals = updatedMeals.filter(
-            (meal: Meal) => meal.completed === true,
-          );
-          calculatedTotals = {
-            totalCalories: completedMeals.reduce(
-              (sum: number, meal: Meal) => sum + (meal.calories || 0),
-              0,
-            ),
-            totalProtein: completedMeals.reduce(
-              (sum: number, meal: Meal) => sum + (meal.protein || 0),
-              0,
-            ),
-            totalCarbs: completedMeals.reduce(
-              (sum: number, meal: Meal) => sum + (meal.carbs || 0),
-              0,
-            ),
-            totalFats: completedMeals.reduce(
-              (sum: number, meal: Meal) => sum + (meal.fats || 0),
-              0,
-            ),
-          };
+      const previousActiveNutritionPlan = get().data.activeNutritionPlan;
+      const resolvedDate = (() => {
+        try {
+          return getBrazilNutritionDateKey(updates.date || previousNutrition.date);
+        } catch {
+          return getBrazilNutritionDateKey();
         }
-        const finalMeals =
-          updates.meals !== undefined
-            ? deduplicateMeals(updatedMeals)
-            : currentNutrition.meals;
-        updatedNutrition = {
-          ...currentNutrition,
+      })();
+      const isToday = resolvedDate === getBrazilNutritionDateKey();
+
+      const nextMeals =
+        updates.meals !== undefined
+          ? deduplicateMeals(updates.meals)
+          : previousNutrition.meals;
+
+      const nextDailyNutrition = normalizeDailyNutrition(
+        {
+          ...previousNutrition,
           ...updates,
-          meals: finalMeals,
-          ...calculatedTotals,
-        };
-        return {
-          data: { ...state.data, dailyNutrition: updatedNutrition },
-        };
-      });
+          date: resolvedDate,
+          meals: nextMeals,
+        },
+        previousNutrition,
+      );
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          dailyNutrition: nextDailyNutrition,
+          activeNutritionPlan:
+            updates.meals !== undefined && isToday
+              ? mealsToNutritionPlanData({
+                  meals: nextMeals,
+                  basePlan: state.data.activeNutritionPlan,
+                })
+              : state.data.activeNutritionPlan,
+        },
+      }));
 
       try {
-        let resolvedDate: string;
-        try {
-          resolvedDate = getBrazilNutritionDateKey(updatedNutrition?.date);
-        } catch {
-          resolvedDate = getBrazilNutritionDateKey();
-        }
-        const hasMealsUpdate = updates.meals !== undefined;
-        const hasWaterIntakeUpdate = updates.waterIntake !== undefined;
-        const apiPayload: {
-          date: string;
-          meals?: Array<{
-            id?: string;
-            name: string;
-            calories: number;
-            protein: number;
-            carbs: number;
-            fats: number;
-            completed?: boolean;
-            type: string;
-            foods: Array<{
-              foodId: string;
-              foodName: string;
-              servings: number;
-              calories: number;
-              protein: number;
-              carbs: number;
-              fats: number;
-              servingSize: string;
-            }>;
-          }>;
-          waterIntake?: number;
-        } = { date: resolvedDate };
-        if (hasMealsUpdate) {
-          apiPayload.meals = (updatedNutrition?.meals || []).map(
-            (meal: Meal, index: number) => ({
-              name: meal.name || "Refeição",
-              type: meal.type || "snack",
-              calories: meal.calories || 0,
-              protein: meal.protein || 0,
-              carbs: meal.carbs || 0,
-              fats: meal.fats || 0,
-              time: meal.time || null,
-              completed: meal.completed || false,
-              order: index,
-              foods: (meal.foods || []).map(
-                (food: import("@/lib/types").MealFoodItem) => ({
-                  foodId: food.foodId || "",
-                  foodName: food.foodName || "Alimento",
-                  servings: food.servings || 1,
-                  calories: food.calories || 0,
-                  protein: food.protein || 0,
-                  carbs: food.carbs || 0,
-                  fats: food.fats || 0,
-                  servingSize: food.servingSize || "100g",
-                }),
-              ),
-            }),
-          );
-        }
-        if (hasWaterIntakeUpdate) {
-          apiPayload.waterIntake = updatedNutrition?.waterIntake || 0;
-        }
+        const response = await apiClient.post<{
+          data?: Partial<DailyNutrition>;
+        }>("/api/nutrition/daily", {
+          date: resolvedDate,
+          ...(updates.meals !== undefined && { meals: toApiMeals(nextMeals) }),
+          ...(updates.waterIntake !== undefined && {
+            waterIntake: nextDailyNutrition.waterIntake,
+          }),
+          ...(updates.targetWater !== undefined && {
+            targetWater: updates.targetWater,
+          }),
+        });
 
-        await apiClient.post("/api/nutrition/daily", apiPayload as any);
-        await get().loadNutrition();
+        const responseNutrition = normalizeDailyNutrition(
+          response.data.data ?? nextDailyNutrition,
+          nextDailyNutrition,
+        );
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            dailyNutrition: responseNutrition,
+          },
+        }));
+
+        await Promise.allSettled([
+          get().loadActiveNutritionPlan(),
+          isToday ? get().loadNutritionLibraryPlans() : Promise.resolve(),
+        ]);
       } catch (error) {
-        console.error("Erro ao atualizar nutrição:", error);
+        console.error("Erro ao atualizar nutricao:", error);
         set((state) => ({
           data: {
             ...state.data,
             dailyNutrition: previousNutrition,
+            activeNutritionPlan: previousActiveNutritionPlan,
           },
         }));
+        throw error;
+      }
+    },
+
+    createNutritionLibraryPlan: async (data) => {
+      const payload = {
+        title: data.title || "Novo Plano Alimentar",
+        description: data.description ?? null,
+        ...(data.meals && {
+          meals: toApiMeals(data.meals),
+        }),
+      };
+
+      const response = await apiClient.post<{
+        data?: NutritionPlanData;
+      }>("/api/nutrition/library", payload);
+      const nextPlan = response.data.data;
+
+      if (nextPlan) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            nutritionLibraryPlans: upsertNutritionLibraryPlan(
+              state.data.nutritionLibraryPlans,
+              nextPlan,
+            ),
+          },
+        }));
+        return nextPlan.id;
+      }
+
+      await get().loadNutritionLibraryPlans();
+      return "";
+    },
+
+    updateNutritionLibraryPlan: async (planId, data) => {
+      const previousPlans = get().data.nutritionLibraryPlans;
+      const targetPlan =
+        previousPlans.find((plan) => plan.id === planId) ?? null;
+
+      if (targetPlan) {
+        const nextPlan = data.meals
+          ? mealsToNutritionPlanData({
+              meals: data.meals,
+              basePlan: {
+                ...targetPlan,
+                title: data.title ?? targetPlan.title,
+                description: data.description ?? targetPlan.description,
+              },
+            })
+          : {
+              ...targetPlan,
+              ...(data.title !== undefined && { title: data.title }),
+              ...(data.description !== undefined && {
+                description: data.description,
+              }),
+            };
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            nutritionLibraryPlans: upsertNutritionLibraryPlan(
+              state.data.nutritionLibraryPlans,
+              nextPlan,
+            ),
+          },
+        }));
+      }
+
+      try {
+        await apiClient.patch(`/api/nutrition/library/${planId}`, {
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.description !== undefined && {
+            description: data.description,
+          }),
+          ...(data.meals && { meals: toApiMeals(data.meals) }),
+        });
+
+        await Promise.allSettled([
+          get().loadNutritionLibraryPlans(),
+          get().loadActiveNutritionPlan(),
+          get().loadNutrition(),
+        ]);
+      } catch (error) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            nutritionLibraryPlans: previousPlans,
+          },
+        }));
+        throw error;
+      }
+    },
+
+    deleteNutritionLibraryPlan: async (planId) => {
+      const previousPlans = get().data.nutritionLibraryPlans;
+      set((state) => ({
+        data: {
+          ...state.data,
+          nutritionLibraryPlans: state.data.nutritionLibraryPlans.filter(
+            (plan) => plan.id !== planId,
+          ),
+        },
+      }));
+
+      try {
+        await apiClient.delete(`/api/nutrition/library/${planId}`);
+      } catch (error) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            nutritionLibraryPlans: previousPlans,
+          },
+        }));
+        throw error;
+      }
+    },
+
+    activateNutritionLibraryPlan: async (planId) => {
+      const currentNutrition = get().data.dailyNutrition;
+      const sourcePlan =
+        get().data.nutritionLibraryPlans.find((plan) => plan.id === planId) ??
+        null;
+      const previousActiveNutritionPlan = get().data.activeNutritionPlan;
+      const previousNutrition = currentNutrition;
+
+      if (sourcePlan) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            activeNutritionPlan: sourcePlan,
+            dailyNutrition: createDailyNutritionFromPlan({
+              plan: sourcePlan,
+              baseNutrition: currentNutrition,
+            }),
+          },
+        }));
+      }
+
+      try {
+        const response = await apiClient.post<{
+          data?: NutritionPlanData | null;
+        }>("/api/nutrition/activate", {
+          libraryPlanId: planId,
+        });
+
+        set((state) => ({
+          data: {
+            ...state.data,
+            activeNutritionPlan:
+              response.data.data ?? state.data.activeNutritionPlan,
+          },
+        }));
+
+        await Promise.allSettled([
+          get().loadActiveNutritionPlan(),
+          get().loadNutrition(),
+          get().loadNutritionLibraryPlans(),
+        ]);
+      } catch (error) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            activeNutritionPlan: previousActiveNutritionPlan,
+            dailyNutrition: previousNutrition,
+          },
+        }));
+        throw error;
       }
     },
   };

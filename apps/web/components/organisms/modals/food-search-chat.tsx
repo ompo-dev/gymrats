@@ -38,6 +38,7 @@ interface FoodSearchChatProps {
       totalFats: number;
     };
   }) => Promise<void> | void;
+  contextMode?: "student" | "external";
 }
 
 interface ChatMessage {
@@ -76,11 +77,15 @@ export function FoodSearchChat({
   onSelectMeal,
   chatStreamUrl = "/api/nutrition/chat-stream",
   onApplyNutrition,
+  contextMode = "student",
 }: FoodSearchChatProps) {
   // Buscar meals atualizados do store para ter dados sempre atualizados
   const storeMeals =
     (useStudent("dailyNutrition") as { meals?: Meal[] } | null)?.meals || [];
-  const meals = storeMeals.length > 0 ? storeMeals : initialMeals;
+  const meals =
+    contextMode === "student" && storeMeals.length > 0
+      ? storeMeals
+      : initialMeals;
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "init",

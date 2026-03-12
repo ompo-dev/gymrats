@@ -74,7 +74,7 @@ type ContextType =
 
 const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
   learn: ["weeklyPlan", "progress", "workoutHistory"],
-  diet: ["dailyNutrition", "progress"],
+  diet: ["activeNutritionPlan", "dailyNutrition", "progress"],
   profile: ["profile", "weightHistory", "progress", "personalRecords"],
   payments: [
     "subscription",
@@ -162,6 +162,10 @@ function hasSectionData(
       );
     case "dailyNutrition":
       return !!storeData.dailyNutrition?.date;
+    case "activeNutritionPlan":
+      return storeData.activeNutritionPlan !== undefined;
+    case "nutritionLibraryPlans":
+      return !!storeData.nutritionLibraryPlans;
     case "subscription":
       return (
         storeData.subscription !== null && storeData.subscription !== undefined
@@ -250,6 +254,12 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
   const getDailyNutrition = useStudentUnifiedStore(
     (state) => state.data.dailyNutrition,
   );
+  const getActiveNutritionPlan = useStudentUnifiedStore(
+    (state) => state.data.activeNutritionPlan,
+  );
+  const getNutritionLibraryPlans = useStudentUnifiedStore(
+    (state) => state.data.nutritionLibraryPlans,
+  );
   const getSubscription = useStudentUnifiedStore(
     (state) => state.data.subscription,
   );
@@ -276,6 +286,8 @@ export function useLoadPrioritized(options: UseLoadPrioritizedOptions = {}) {
     weeklyPlan: getWeeklyPlan,
     workoutHistory: getWorkoutHistory,
     personalRecords: getPersonalRecords,
+    activeNutritionPlan: getActiveNutritionPlan,
+    nutritionLibraryPlans: getNutritionLibraryPlans,
     dailyNutrition: getDailyNutrition,
     subscription: getSubscription,
     memberships: getMemberships,

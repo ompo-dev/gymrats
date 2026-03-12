@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetGymProfile200Profile } from "./getGymProfile200Profile";
+import type { GetGymProfile200Profile } from './getGymProfile200Profile';
 
 export type GetGymProfile200 = {
   hasProfile?: boolean;

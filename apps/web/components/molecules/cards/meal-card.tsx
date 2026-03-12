@@ -18,6 +18,7 @@ export interface MealCardProps extends React.HTMLAttributes<HTMLDivElement> {
   onToggleFoodExpand?: (foodId: string) => void;
   /** Modo somente leitura: oculta botões de marcar completa e adicionar alimento */
   readOnly?: boolean;
+  showCompletionControls?: boolean;
 }
 
 const mealIcons: Record<string, string> = {
@@ -51,6 +52,7 @@ function MealCardSimple({
   expandedFoodId,
   onToggleFoodExpand,
   readOnly = false,
+  showCompletionControls = true,
   className,
   ...props
 }: MealCardProps) {
@@ -105,7 +107,7 @@ function MealCardSimple({
               </div>
             </div>
           </div>
-          {!readOnly && (
+          {!readOnly && (onAddFood || showCompletionControls) && (
             <div className="flex items-center gap-2">
               {onAddFood && (
                 <DuoButton
@@ -120,33 +122,34 @@ function MealCardSimple({
                   <Plus className="h-4 w-4" />
                 </DuoButton>
               )}
-              {!meal.completed ? (
-                <DuoButton
-                  variant="outline"
-                  size="icon-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onComplete();
-                  }}
-                  className="border-duo-green text-duo-green hover:bg-duo-green hover:text-white"
-                  title="Marcar como completa"
-                >
-                  <Check className="h-5 w-5" />
-                </DuoButton>
-              ) : (
-                <DuoButton
-                  variant="primary"
-                  size="icon-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onComplete();
-                  }}
-                  className="bg-duo-green border-duo-green hover:bg-duo-green/90"
-                  title="Desmarcar"
-                >
-                  <Check className="h-5 w-5 text-white" />
-                </DuoButton>
-              )}
+              {showCompletionControls &&
+                (!meal.completed ? (
+                  <DuoButton
+                    variant="outline"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onComplete();
+                    }}
+                    className="border-duo-green text-duo-green hover:bg-duo-green hover:text-white"
+                    title="Marcar como completa"
+                  >
+                    <Check className="h-5 w-5" />
+                  </DuoButton>
+                ) : (
+                  <DuoButton
+                    variant="primary"
+                    size="icon-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onComplete();
+                    }}
+                    className="bg-duo-green border-duo-green hover:bg-duo-green/90"
+                    title="Desmarcar"
+                  >
+                    <Check className="h-5 w-5 text-white" />
+                  </DuoButton>
+                ))}
             </div>
           )}
         </div>

@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type UpdateDailyNutritionPutBodyMealsItemType =
-  (typeof UpdateDailyNutritionPutBodyMealsItemType)[keyof typeof UpdateDailyNutritionPutBodyMealsItemType];
+export type UpdateDailyNutritionPutBodyMealsItemType = typeof UpdateDailyNutritionPutBodyMealsItemType[keyof typeof UpdateDailyNutritionPutBodyMealsItemType];
+
 
 export const UpdateDailyNutritionPutBodyMealsItemType = {
-  breakfast: "breakfast",
-  lunch: "lunch",
-  dinner: "dinner",
-  snack: "snack",
+  breakfast: 'breakfast',
+  lunch: 'lunch',
+  dinner: 'dinner',
+  snack: 'snack',
 } as const;

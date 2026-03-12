@@ -6,12 +6,12 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PaymentPaymentMethod =
-  (typeof PaymentPaymentMethod)[keyof typeof PaymentPaymentMethod];
+export type PaymentPaymentMethod = typeof PaymentPaymentMethod[keyof typeof PaymentPaymentMethod];
+
 
 export const PaymentPaymentMethod = {
-  "credit-card": "credit-card",
-  "debit-card": "debit-card",
-  pix: "pix",
-  cash: "cash",
+  'credit-card': 'credit-card',
+  'debit-card': 'debit-card',
+  pix: 'pix',
+  cash: 'cash',
 } as const;

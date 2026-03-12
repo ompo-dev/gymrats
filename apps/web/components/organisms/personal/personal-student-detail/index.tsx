@@ -5,6 +5,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { StudentTabSelector } from "@/components/organisms/gym/gym-student-detail/components/student-tab-selector";
+import { NutritionLibraryModal } from "@/components/organisms/modals/nutrition-library-modal";
 import type { PersonalStudentAssignmentForDetail } from "./hooks/use-personal-student-detail";
 import { usePersonalStudentDetail } from "./hooks/use-personal-student-detail";
 import {
@@ -34,14 +35,27 @@ export function PersonalStudentDetail({
     dailyNutrition,
     nutritionDate,
     setNutritionDate,
+    isCurrentNutritionDate,
     isLoadingWeeklyPlan,
     isLoadingNutrition,
     fetchNutrition,
+    handleMealComplete,
+    handleAddMealSubmit,
+    handleAddFood,
+    applyNutrition,
+    updateTargetWater,
+    removeMeal,
+    removeFoodFromMeal,
+    handleToggleWaterGlass,
+    isNutritionLibraryOpen,
+    setIsNutritionLibraryOpen,
+    handleNutritionPlansSynced,
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
     handleRemoveAssignment,
     isRemovingAssignment,
+    studentsApiBase,
   } = usePersonalStudentDetail({
     studentId,
     assignment,
@@ -130,11 +144,30 @@ export function PersonalStudentDetail({
       {activeTab === "diet" && (
         <SlideIn delay={0.2}>
           <PersonalDietTab
+            profile={assignment.student?.profile ?? null}
             dailyNutrition={dailyNutrition}
             nutritionDate={nutritionDate}
+            isCurrentDate={isCurrentNutritionDate}
             isLoadingNutrition={isLoadingNutrition}
             onNutritionDateChange={setNutritionDate}
             onFetchNutrition={fetchNutrition}
+            onMealComplete={handleMealComplete}
+            onAddMeal={handleAddMealSubmit}
+            onAddFood={handleAddFood}
+            onApplyNutrition={applyNutrition}
+            onUpdateTargetWater={updateTargetWater}
+            onRemoveMeal={removeMeal}
+            onRemoveFood={removeFoodFromMeal}
+            onToggleWaterGlass={handleToggleWaterGlass}
+            onOpenLibrary={() => setIsNutritionLibraryOpen(true)}
+            chatStreamUrl={`${studentsApiBase}/${studentId}/nutrition/chat-stream`}
+          />
+          <NutritionLibraryModal
+            apiMode="personal"
+            studentId={studentId}
+            isOpen={isNutritionLibraryOpen}
+            onClose={() => setIsNutritionLibraryOpen(false)}
+            onPlansSynced={handleNutritionPlansSynced}
           />
         </SlideIn>
       )}

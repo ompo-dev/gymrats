@@ -67,6 +67,8 @@ export interface StudentUnifiedState {
   loadStudentCore: () => Promise<void>; // Profile + Weight
   loadWorkouts: (force?: boolean) => Promise<void>; // Units (legado)
   loadWeeklyPlan: (force?: boolean) => Promise<void>; // Plano semanal 7 slots
+  loadActiveNutritionPlan: () => Promise<void>;
+  loadNutritionLibraryPlans: () => Promise<void>;
   createWeeklyPlan: () => Promise<void>;
   updateWeeklyPlan: (payload: {
     title?: string;
@@ -112,6 +114,21 @@ export interface StudentUnifiedState {
   updateSubscription: (
     subscription: Partial<StudentData["subscription"]> | null,
   ) => Promise<void>;
+  createNutritionLibraryPlan: (data: {
+    title?: string;
+    description?: string | null;
+    meals?: import("@/lib/types").Meal[];
+  }) => Promise<string>;
+  updateNutritionLibraryPlan: (
+    planId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      meals?: import("@/lib/types").Meal[];
+    },
+  ) => Promise<void>;
+  deleteNutritionLibraryPlan: (planId: string) => Promise<void>;
+  activateNutritionLibraryPlan: (planId: string) => Promise<void>;
   updateReferralPixKey: (payload: {
     pixKey: string;
     pixKeyType: string;
@@ -379,6 +396,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
             "student",
             "progress",
             "units",
+            "activeNutritionPlan",
+            "nutritionLibraryPlans",
             "profile",
             "weightHistory",
             "workoutHistory",

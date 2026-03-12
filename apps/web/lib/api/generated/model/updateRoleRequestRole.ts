@@ -9,11 +9,11 @@
 /**
  * Nova role do usuário
  */
-export type UpdateRoleRequestRole =
-  (typeof UpdateRoleRequestRole)[keyof typeof UpdateRoleRequestRole];
+export type UpdateRoleRequestRole = typeof UpdateRoleRequestRole[keyof typeof UpdateRoleRequestRole];
+
 
 export const UpdateRoleRequestRole = {
-  STUDENT: "STUDENT",
-  GYM: "GYM",
-  ADMIN: "ADMIN",
+  STUDENT: 'STUDENT',
+  GYM: 'GYM',
+  ADMIN: 'ADMIN',
 } as const;

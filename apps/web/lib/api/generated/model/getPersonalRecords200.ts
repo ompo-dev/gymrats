@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetPersonalRecords200RecordsItem } from "./getPersonalRecords200RecordsItem";
+import type { GetPersonalRecords200RecordsItem } from './getPersonalRecords200RecordsItem';
 
 export type GetPersonalRecords200 = {
   records?: GetPersonalRecords200RecordsItem[];

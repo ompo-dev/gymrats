@@ -6,10 +6,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CreateSubscriptionBodyPlan =
-  (typeof CreateSubscriptionBodyPlan)[keyof typeof CreateSubscriptionBodyPlan];
+export type CreateSubscriptionBodyPlan = typeof CreateSubscriptionBodyPlan[keyof typeof CreateSubscriptionBodyPlan];
+
 
 export const CreateSubscriptionBodyPlan = {
-  monthly: "monthly",
-  annual: "annual",
+  monthly: 'monthly',
+  annual: 'annual',
 } as const;

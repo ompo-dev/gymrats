@@ -5,9 +5,9 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { WorkoutDifficulty } from "./workoutDifficulty";
-import type { WorkoutExercise } from "./workoutExercise";
-import type { WorkoutType } from "./workoutType";
+import type { WorkoutDifficulty } from './workoutDifficulty';
+import type { WorkoutExercise } from './workoutExercise';
+import type { WorkoutType } from './workoutType';
 
 export interface Workout {
   id?: string;

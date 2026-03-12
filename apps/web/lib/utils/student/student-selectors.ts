@@ -38,6 +38,12 @@ export function selectPersonalRecords(d: StudentData) {
 export function selectDailyNutrition(d: StudentData) {
   return d.dailyNutrition;
 }
+export function selectActiveNutritionPlan(d: StudentData) {
+  return d.activeNutritionPlan;
+}
+export function selectNutritionLibraryPlans(d: StudentData) {
+  return d.nutritionLibraryPlans;
+}
 export function selectFoodDatabase(d: StudentData) {
   return d.foodDatabase;
 }
@@ -165,6 +171,8 @@ export const selectorMap: Record<string, (data: StudentData) => unknown> = {
   weeklyPlan: selectWeeklyPlan,
   workoutHistory: selectWorkoutHistory,
   personalRecords: selectPersonalRecords,
+  activeNutritionPlan: selectActiveNutritionPlan,
+  nutritionLibraryPlans: selectNutritionLibraryPlans,
   dailyNutrition: selectDailyNutrition,
   foodDatabase: selectFoodDatabase,
   subscription: selectSubscription,

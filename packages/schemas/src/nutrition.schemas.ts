@@ -44,6 +44,26 @@ const nutritionMealSchema = z.object({
   foods: z.array(nutritionFoodItemSchema).optional(),
 });
 
+export const nutritionPlanMealSchema = nutritionMealSchema;
+
+export const createNutritionLibraryPlanSchema = z.object({
+  title: z.string().optional().default("Novo Plano Alimentar"),
+  description: z.string().optional().nullable(),
+  meals: z.array(nutritionPlanMealSchema).optional(),
+});
+
+export const updateNutritionLibraryPlanSchema = z.object({
+  title: z.string().min(1).optional(),
+  description: z.string().optional().nullable(),
+  meals: z.array(nutritionPlanMealSchema).optional(),
+});
+
+export const activateNutritionLibraryPlanSchema = z.object({
+  libraryPlanId: z
+    .string()
+    .min(1, "O ID do plano de alimentacao da biblioteca e obrigatorio"),
+});
+
 export const updateDailyNutritionSchema = z.object({
   date: z
     .union([

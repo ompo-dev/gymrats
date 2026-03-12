@@ -25,6 +25,8 @@ export interface StudentUnifiedState {
   loadStudentCore: () => Promise<void>;
   loadWorkouts: (force?: boolean) => Promise<void>;
   loadWeeklyPlan: (force?: boolean) => Promise<void>;
+  loadActiveNutritionPlan: () => Promise<void>;
+  loadNutritionLibraryPlans: () => Promise<void>;
   createWeeklyPlan: () => Promise<void>;
   updateWeeklyPlan: (payload: {
     title?: string;
@@ -78,6 +80,21 @@ export interface StudentUnifiedState {
   updateLibraryPlan: (planId: string, data: any) => Promise<void>;
   deleteLibraryPlan: (planId: string) => Promise<void>;
   activateLibraryPlan: (planId: string) => Promise<void>;
+  createNutritionLibraryPlan: (data: {
+    title?: string;
+    description?: string | null;
+    meals?: import("@/lib/types").Meal[];
+  }) => Promise<string>;
+  updateNutritionLibraryPlan: (
+    planId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      meals?: import("@/lib/types").Meal[];
+    },
+  ) => Promise<void>;
+  deleteNutritionLibraryPlan: (planId: string) => Promise<void>;
+  activateNutritionLibraryPlan: (planId: string) => Promise<void>;
   joinGym: (payload: {
     gymId: string;
     planId: string;

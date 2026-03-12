@@ -9,6 +9,4 @@
 /**
  * Exercício atualizado
  */
-export type UpdateWorkoutProgressExercise200ExerciseLog = {
-  [key: string]: unknown;
-};
+export type UpdateWorkoutProgressExercise200ExerciseLog = { [key: string]: unknown };

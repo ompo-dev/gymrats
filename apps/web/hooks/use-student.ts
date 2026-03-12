@@ -37,6 +37,8 @@ type StudentSelector =
   | "libraryPlans"
   | "workoutHistory"
   | "personalRecords"
+  | "activeNutritionPlan"
+  | "nutritionLibraryPlans"
   | "dailyNutrition"
   | "foodDatabase"
   | "subscription"
@@ -168,6 +170,18 @@ export function useStudent<T extends StudentSelector>(
   const updateNutrition = useStudentUnifiedStore(
     (state) => state.updateNutrition,
   );
+  const createNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.createNutritionLibraryPlan,
+  );
+  const updateNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.updateNutritionLibraryPlan,
+  );
+  const deleteNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.deleteNutritionLibraryPlan,
+  );
+  const activateNutritionLibraryPlan = useStudentUnifiedStore(
+    (state) => state.activateNutritionLibraryPlan,
+  );
   const updateSubscription = useStudentUnifiedStore(
     (state) => state.updateSubscription,
   );
@@ -266,6 +280,12 @@ export function useStudent<T extends StudentSelector>(
   const loadWeeklyPlan = useStudentUnifiedStore(
     (state) => state.loadWeeklyPlan,
   );
+  const loadActiveNutritionPlan = useStudentUnifiedStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const loadNutritionLibraryPlans = useStudentUnifiedStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
   const loadLibraryPlans = useStudentUnifiedStore(
     (state) => state.loadLibraryPlans,
   );
@@ -322,6 +342,10 @@ export function useStudent<T extends StudentSelector>(
         completeWorkout,
         addPersonalRecord,
         updateNutrition,
+        createNutritionLibraryPlan,
+        updateNutritionLibraryPlan,
+        deleteNutritionLibraryPlan,
+        activateNutritionLibraryPlan,
         updateSubscription,
         updateReferralPixKey,
         requestReferralWithdraw,
@@ -378,6 +402,8 @@ export function useStudent<T extends StudentSelector>(
         loadWeightHistory,
         loadWorkouts,
         loadWeeklyPlan,
+        loadActiveNutritionPlan,
+        loadNutritionLibraryPlans,
         loadLibraryPlans,
         loadWorkoutHistory,
         loadPersonalRecords,
@@ -428,6 +454,10 @@ export function useStudent<T extends StudentSelector>(
         completeWorkout,
         addPersonalRecord,
         updateNutrition,
+        createNutritionLibraryPlan,
+        updateNutritionLibraryPlan,
+        deleteNutritionLibraryPlan,
+        activateNutritionLibraryPlan,
         updateSubscription,
         updateReferralPixKey,
         requestReferralWithdraw,
@@ -480,6 +510,8 @@ export function useStudent<T extends StudentSelector>(
         loadWeightHistory,
         loadWorkouts,
         loadWeeklyPlan,
+        loadActiveNutritionPlan,
+        loadNutritionLibraryPlans,
         loadLibraryPlans,
         loadWorkoutHistory,
         loadPersonalRecords,
@@ -528,6 +560,10 @@ function getActions(actions: {
   completeWorkout: StudentUnifiedState["completeWorkout"];
   addPersonalRecord: StudentUnifiedState["addPersonalRecord"];
   updateNutrition: StudentUnifiedState["updateNutrition"];
+  createNutritionLibraryPlan: StudentUnifiedState["createNutritionLibraryPlan"];
+  updateNutritionLibraryPlan: StudentUnifiedState["updateNutritionLibraryPlan"];
+  deleteNutritionLibraryPlan: StudentUnifiedState["deleteNutritionLibraryPlan"];
+  activateNutritionLibraryPlan: StudentUnifiedState["activateNutritionLibraryPlan"];
   updateSubscription: StudentUnifiedState["updateSubscription"];
   updateReferralPixKey: StudentUnifiedState["updateReferralPixKey"];
   requestReferralWithdraw: StudentUnifiedState["requestReferralWithdraw"];
@@ -577,6 +613,10 @@ function getActions(actions: {
     completeWorkout: actions.completeWorkout,
     addPersonalRecord: actions.addPersonalRecord,
     updateNutrition: actions.updateNutrition,
+    createNutritionLibraryPlan: actions.createNutritionLibraryPlan,
+    updateNutritionLibraryPlan: actions.updateNutritionLibraryPlan,
+    deleteNutritionLibraryPlan: actions.deleteNutritionLibraryPlan,
+    activateNutritionLibraryPlan: actions.activateNutritionLibraryPlan,
     updateSubscription: actions.updateSubscription,
     updateReferralPixKey: actions.updateReferralPixKey,
     requestReferralWithdraw: actions.requestReferralWithdraw,
@@ -633,6 +673,8 @@ function getLoaders(actions: {
   loadWeightHistory: StudentUnifiedState["loadWeightHistory"];
   loadWorkouts: StudentUnifiedState["loadWorkouts"];
   loadWeeklyPlan: StudentUnifiedState["loadWeeklyPlan"];
+  loadActiveNutritionPlan: StudentUnifiedState["loadActiveNutritionPlan"];
+  loadNutritionLibraryPlans: StudentUnifiedState["loadNutritionLibraryPlans"];
   loadLibraryPlans: StudentUnifiedState["loadLibraryPlans"];
   loadWorkoutHistory: StudentUnifiedState["loadWorkoutHistory"];
   loadPersonalRecords: StudentUnifiedState["loadPersonalRecords"];
@@ -657,6 +699,8 @@ function getLoaders(actions: {
     loadWeightHistory: actions.loadWeightHistory,
     loadWorkouts: actions.loadWorkouts,
     loadWeeklyPlan: actions.loadWeeklyPlan,
+    loadActiveNutritionPlan: actions.loadActiveNutritionPlan,
+    loadNutritionLibraryPlans: actions.loadNutritionLibraryPlans,
     loadLibraryPlans: actions.loadLibraryPlans,
     loadWorkoutHistory: actions.loadWorkoutHistory,
     loadPersonalRecords: actions.loadPersonalRecords,

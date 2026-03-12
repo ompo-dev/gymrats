@@ -10,12 +10,11 @@
  * Tipo de hormônio usado
  * @nullable
  */
-export type GetStudentInfo200HormoneType =
-  | (typeof GetStudentInfo200HormoneType)[keyof typeof GetStudentInfo200HormoneType]
-  | null;
+export type GetStudentInfo200HormoneType = typeof GetStudentInfo200HormoneType[keyof typeof GetStudentInfo200HormoneType] | null;
+
 
 export const GetStudentInfo200HormoneType = {
-  testosterone: "testosterone",
-  estrogen: "estrogen",
-  none: "none",
+  testosterone: 'testosterone',
+  estrogen: 'estrogen',
+  none: 'none',
 } as const;

@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetUnits200UnitsItem } from "./getUnits200UnitsItem";
+import type { GetUnits200UnitsItem } from './getUnits200UnitsItem';
 
 export type GetUnits200 = {
   units?: GetUnits200UnitsItem[];

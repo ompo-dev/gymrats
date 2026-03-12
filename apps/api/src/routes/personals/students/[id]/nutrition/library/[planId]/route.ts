@@ -1,0 +1,87 @@
+import type { NextRequest } from "@/runtime/next-server";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { updateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
+import {
+  forbiddenResponse,
+  internalErrorResponse,
+  successResponse,
+} from "@/lib/api/utils/response.utils";
+import {
+  assertPersonalCanManageNutritionLibraryPlan,
+  assertPersonalStudentAccess,
+} from "@/lib/services/nutrition/nutrition-access.service";
+import {
+  deleteNutritionLibraryPlan,
+  updateNutritionLibraryPlan,
+} from "@/lib/services/nutrition/nutrition-plan.service";
+import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; planId: string }> },
+) {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext(request);
+    if (errorResponse || !ctx) {
+      return errorResponse ?? internalErrorResponse("Nao autenticado");
+    }
+
+    const { id: studentId, planId } = await params;
+    await assertPersonalStudentAccess(ctx.personalId, studentId);
+    const plan = await assertPersonalCanManageNutritionLibraryPlan(
+      ctx.personalId,
+      planId,
+    );
+
+    if (plan.studentId !== studentId) {
+      return forbiddenResponse("Plano alimentar nao pertence a este aluno");
+    }
+
+    const validation = await validateBody(
+      request,
+      updateNutritionLibraryPlanSchema,
+    );
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    const data = await updateNutritionLibraryPlan(planId, validation.data);
+    return successResponse({
+      data,
+      message: "Plano alimentar atualizado com sucesso",
+    });
+  } catch (error) {
+    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro PATCH:", error);
+    return mapNutritionRouteError(error, "Erro ao atualizar plano alimentar");
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; planId: string }> },
+) {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext(request);
+    if (errorResponse || !ctx) {
+      return errorResponse ?? internalErrorResponse("Nao autenticado");
+    }
+
+    const { id: studentId, planId } = await params;
+    await assertPersonalStudentAccess(ctx.personalId, studentId);
+    const plan = await assertPersonalCanManageNutritionLibraryPlan(
+      ctx.personalId,
+      planId,
+    );
+
+    if (plan.studentId !== studentId) {
+      return forbiddenResponse("Plano alimentar nao pertence a este aluno");
+    }
+
+    await deleteNutritionLibraryPlan(planId);
+    return successResponse({ message: "Plano alimentar removido com sucesso" });
+  } catch (error) {
+    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro DELETE:", error);
+    return mapNutritionRouteError(error, "Erro ao remover plano alimentar");
+  }
+}

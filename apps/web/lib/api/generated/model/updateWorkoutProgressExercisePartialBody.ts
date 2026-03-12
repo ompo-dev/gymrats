@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { UpdateWorkoutProgressExercisePartialBodySetsItem } from "./updateWorkoutProgressExercisePartialBodySetsItem";
+import type { UpdateWorkoutProgressExercisePartialBodySetsItem } from './updateWorkoutProgressExercisePartialBodySetsItem';
 
 /**
  * Apenas os campos que deseja atualizar

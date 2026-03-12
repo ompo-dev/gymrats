@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import {
   createStudentDetailKey,
   useStudentDetailStore,
@@ -52,10 +53,11 @@ export function useGymStudentDetail({
     "active" | "inactive" | "suspended" | "canceled"
   >(student?.membershipStatus ?? "inactive");
   const [nutritionDate, setNutritionDate] = useState(() =>
-    new Date().toISOString().slice(0, 10),
+    getBrazilNutritionDateKey(),
   );
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isEditWeeklyPlanOpen, setIsEditWeeklyPlanOpen] = useState(false);
+  const [isNutritionLibraryOpen, setIsNutritionLibraryOpen] = useState(false);
 
   const weeklyPlan = useStudentDetailStore((state) =>
     detailKey ? state.weeklyPlans[detailKey] : undefined,
@@ -81,7 +83,14 @@ export function useGymStudentDetail({
   const saveTargetWater = useStudentDetailStore(
     (state) => state.updateTargetWater,
   );
+  const loadActiveNutritionPlan = useStudentDetailStore(
+    (state) => state.loadActiveNutritionPlan,
+  );
+  const loadNutritionLibraryPlans = useStudentDetailStore(
+    (state) => state.loadNutritionLibraryPlans,
+  );
   const assignPersonal = useStudentDetailStore((state) => state.assignPersonal);
+  const isCurrentNutritionDate = nutritionDate === getBrazilNutritionDateKey();
 
   useEffect(() => {
     setStudentPayments(payments);
@@ -112,13 +121,28 @@ export function useGymStudentDetail({
       if (!student?.id) return;
       const resolvedDate = date ?? nutritionDate;
       await loadNutrition(detailScope, student.id, resolvedDate, getTargets());
+
+      if (resolvedDate === getBrazilNutritionDateKey()) {
+        await Promise.allSettled([
+          loadActiveNutritionPlan(detailScope, student.id),
+          loadNutritionLibraryPlans(detailScope, student.id),
+        ]);
+      }
     },
-    [student?.id, nutritionDate, detailScope, loadNutrition, getTargets],
+    [
+      student?.id,
+      nutritionDate,
+      detailScope,
+      loadNutrition,
+      getTargets,
+      loadActiveNutritionPlan,
+      loadNutritionLibraryPlans,
+    ],
   );
 
   const persistNutrition = useCallback(
     async (nextMeals: Meal[], nextWater: number) => {
-      if (!student?.id) return;
+      if (!student?.id || !isCurrentNutritionDate) return;
       try {
         await saveNutrition({
           scope: detailScope,
@@ -132,12 +156,19 @@ export function useGymStudentDetail({
         console.error("[GymStudentDetail] Erro ao salvar nutrição:", error);
       }
     },
-    [student?.id, detailScope, nutritionDate, saveNutrition, getTargets],
+    [
+      student?.id,
+      isCurrentNutritionDate,
+      detailScope,
+      nutritionDate,
+      saveNutrition,
+      getTargets,
+    ],
   );
 
   const updateTargetWater = useCallback(
     async (targetWater: number) => {
-      if (!student?.id) return;
+      if (!student?.id || !isCurrentNutritionDate) return;
       try {
         await saveTargetWater({
           scope: detailScope,
@@ -149,7 +180,13 @@ export function useGymStudentDetail({
         console.error("[GymStudentDetail] Erro ao salvar meta de água:", error);
       }
     },
-    [student?.id, detailScope, nutritionDate, saveTargetWater],
+    [
+      student?.id,
+      isCurrentNutritionDate,
+      detailScope,
+      nutritionDate,
+      saveTargetWater,
+    ],
   );
 
   const applyNutrition = useCallback(
@@ -308,7 +345,7 @@ export function useGymStudentDetail({
 
   useEffect(() => {
     if (activeTab === "diet" && student?.id) {
-      fetchNutrition();
+      void fetchNutrition();
     }
   }, [activeTab, student?.id, fetchNutrition]);
 
@@ -376,6 +413,22 @@ export function useGymStudentDetail({
     setActiveTab("diet");
   };
 
+  const handleNutritionPlansSynced = useCallback(async () => {
+    if (!student?.id) return;
+    await Promise.all([
+      fetchNutrition(nutritionDate),
+      loadActiveNutritionPlan(detailScope, student.id),
+      loadNutritionLibraryPlans(detailScope, student.id),
+    ]);
+  }, [
+    detailScope,
+    fetchNutrition,
+    loadActiveNutritionPlan,
+    loadNutritionLibraryPlans,
+    nutritionDate,
+    student?.id,
+  ]);
+
   const createWeeklyPlan = useCallback(async () => {
     if (!student?.id) return;
     await createStudentWeeklyPlan(detailScope, student.id);
@@ -414,6 +467,10 @@ export function useGymStudentDetail({
     DAY_NAMES,
     openWorkoutsEditor,
     openDietTab,
+    isNutritionLibraryOpen,
+    setIsNutritionLibraryOpen,
+    isCurrentNutritionDate,
+    handleNutritionPlansSynced,
     createWeeklyPlan,
     studentsApiBase: apiBase,
   };

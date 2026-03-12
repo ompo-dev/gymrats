@@ -11,6 +11,7 @@ import type {
   ExerciseLog,
   FoodItem,
   GymLocation,
+  NutritionPlanData,
   PaymentMethod,
   PersonalRecord,
   StudentGymMembership,
@@ -281,6 +282,8 @@ export interface StudentData {
   personalRecords: PersonalRecord[]; // Recordes pessoais
 
   // === NUTRITION ===
+  activeNutritionPlan: NutritionPlanData | null;
+  nutritionLibraryPlans: NutritionPlanData[];
   dailyNutrition: DailyNutrition; // Nutrição do dia atual
   foodDatabase: FoodItem[]; // Base de dados de alimentos (cache local)
 
@@ -345,6 +348,8 @@ export const initialStudentData: StudentData = {
   libraryPlans: [],
   workoutHistory: [],
   personalRecords: [],
+  activeNutritionPlan: null,
+  nutritionLibraryPlans: [],
   dailyNutrition: {
     date: new Date().toISOString().split("T")[0],
     meals: [],
@@ -397,6 +402,8 @@ export type StudentDataSection =
   | "libraryPlans"
   | "workoutHistory"
   | "personalRecords"
+  | "activeNutritionPlan"
+  | "nutritionLibraryPlans"
   | "dailyNutrition"
   | "subscription"
   | "memberships"

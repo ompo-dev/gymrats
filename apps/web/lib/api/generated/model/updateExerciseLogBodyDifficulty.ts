@@ -10,12 +10,11 @@
  * Dificuldade percebida
  * @nullable
  */
-export type UpdateExerciseLogBodyDifficulty =
-  | (typeof UpdateExerciseLogBodyDifficulty)[keyof typeof UpdateExerciseLogBodyDifficulty]
-  | null;
+export type UpdateExerciseLogBodyDifficulty = typeof UpdateExerciseLogBodyDifficulty[keyof typeof UpdateExerciseLogBodyDifficulty] | null;
+
 
 export const UpdateExerciseLogBodyDifficulty = {
-  fácil: "fácil",
-  médio: "médio",
-  difícil: "difícil",
+  fácil: 'fácil',
+  médio: 'médio',
+  difícil: 'difícil',
 } as const;

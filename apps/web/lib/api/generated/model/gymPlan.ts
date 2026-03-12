@@ -6,10 +6,11 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type GymPlan = (typeof GymPlan)[keyof typeof GymPlan];
+export type GymPlan = typeof GymPlan[keyof typeof GymPlan];
+
 
 export const GymPlan = {
-  basic: "basic",
-  premium: "premium",
-  enterprise: "enterprise",
+  basic: 'basic',
+  premium: 'premium',
+  enterprise: 'enterprise',
 } as const;

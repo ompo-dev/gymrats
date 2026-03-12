@@ -5,7 +5,7 @@
  * API completa para o sistema de fitness com autenticação, gerenciamento de usuários e muito mais
  * OpenAPI spec version: 1.0.0
  */
-import type { GetFriends200ListItem } from "./getFriends200ListItem";
+import type { GetFriends200ListItem } from './getFriends200ListItem';
 
 export type GetFriends200 = {
   count?: number;

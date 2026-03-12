@@ -6,15 +6,15 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type FoodItemCategory =
-  (typeof FoodItemCategory)[keyof typeof FoodItemCategory];
+export type FoodItemCategory = typeof FoodItemCategory[keyof typeof FoodItemCategory];
+
 
 export const FoodItemCategory = {
-  protein: "protein",
-  carbs: "carbs",
-  vegetables: "vegetables",
-  fruits: "fruits",
-  fats: "fats",
-  dairy: "dairy",
-  snacks: "snacks",
+  protein: 'protein',
+  carbs: 'carbs',
+  vegetables: 'vegetables',
+  fruits: 'fruits',
+  fats: 'fats',
+  dairy: 'dairy',
+  snacks: 'snacks',
 } as const;

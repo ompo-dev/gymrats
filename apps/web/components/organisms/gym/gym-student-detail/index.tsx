@@ -10,6 +10,7 @@ import {
   DuoStatCard,
   DuoStatsGrid,
 } from "@/components/duo";
+import { NutritionLibraryModal } from "@/components/organisms/modals/nutrition-library-modal";
 import type { Payment, StudentData } from "@/lib/types";
 import {
   AssignPersonalModal,
@@ -69,6 +70,10 @@ export function GymStudentDetail({
     tabOptions,
     openWorkoutsEditor,
     openDietTab,
+    isNutritionLibraryOpen,
+    setIsNutritionLibraryOpen,
+    isCurrentNutritionDate,
+    handleNutritionPlansSynced,
     createWeeklyPlan,
     studentsApiBase,
   } = useGymStudentDetail({ student, payments, onBack, variant });
@@ -196,6 +201,7 @@ export function GymStudentDetail({
             student={studentData}
             dailyNutrition={dailyNutrition}
             nutritionDate={nutritionDate}
+            isCurrentDate={isCurrentNutritionDate}
             isLoadingNutrition={isLoadingNutrition}
             onNutritionDateChange={setNutritionDate}
             onFetchNutrition={fetchNutrition}
@@ -207,11 +213,19 @@ export function GymStudentDetail({
             onRemoveMeal={removeMeal}
             onRemoveFood={removeFoodFromMeal}
             onToggleWaterGlass={handleToggleWaterGlass}
+            onOpenLibrary={() => setIsNutritionLibraryOpen(true)}
             chatStreamUrl={
               studentData
                 ? `${studentsApiBase}/${studentData.id}/nutrition/chat-stream`
                 : undefined
             }
+          />
+          <NutritionLibraryModal
+            apiMode={variant}
+            studentId={studentData.id}
+            isOpen={isNutritionLibraryOpen}
+            onClose={() => setIsNutritionLibraryOpen(false)}
+            onPlansSynced={handleNutritionPlansSynced}
           />
         </SlideIn>
       )}

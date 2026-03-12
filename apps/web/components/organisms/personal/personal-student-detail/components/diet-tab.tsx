@@ -1,92 +1,229 @@
 "use client";
 
-import { Apple, Loader2 } from "lucide-react";
-import { DuoCard } from "@/components/duo";
-import type { DailyNutrition } from "@/lib/types";
+import { Apple, Droplets, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
+import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
+import { FoodSearch } from "@/components/organisms/modals/food-search";
+import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
+import type { DailyNutrition, FoodItem, Meal } from "@/lib/types";
+
+type PersonalStudentProfile = {
+  targetCalories?: number | null;
+  targetProtein?: number | null;
+  targetCarbs?: number | null;
+  targetFats?: number | null;
+  targetWater?: number | null;
+} | null;
 
 export interface PersonalDietTabProps {
+  profile: PersonalStudentProfile;
   dailyNutrition: DailyNutrition | null;
   nutritionDate: string;
+  isCurrentDate: boolean;
   isLoadingNutrition: boolean;
   onNutritionDateChange: (date: string) => void;
   onFetchNutrition: (date?: string) => void;
+  onMealComplete: (mealId: string) => void;
+  onAddMeal: (
+    meals: Array<{ name: string; type: Meal["type"]; time?: string }>,
+  ) => void | Promise<void>;
+  onAddFood: (
+    foods: Array<{ food: FoodItem; servings: number }>,
+    mealIds: string[],
+  ) => void | Promise<void>;
+  onApplyNutrition: (data: {
+    meals: Meal[];
+    totals: {
+      totalCalories: number;
+      totalProtein: number;
+      totalCarbs: number;
+      totalFats: number;
+    };
+  }) => void | Promise<void>;
+  onUpdateTargetWater: (targetWater: number) => void | Promise<void>;
+  onRemoveMeal: (mealId: string) => void | Promise<void>;
+  onRemoveFood: (mealId: string, foodId: string) => void | Promise<void>;
+  onToggleWaterGlass: (index: number) => void | Promise<void>;
+  onOpenLibrary: () => void;
+  chatStreamUrl?: string;
 }
 
 export function PersonalDietTab({
+  profile,
   dailyNutrition,
   nutritionDate,
+  isCurrentDate,
   isLoadingNutrition,
   onNutritionDateChange,
   onFetchNutrition,
+  onMealComplete,
+  onAddMeal,
+  onAddFood,
+  onApplyNutrition,
+  onUpdateTargetWater,
+  onRemoveMeal,
+  onRemoveFood,
+  onToggleWaterGlass,
+  onOpenLibrary,
+  chatStreamUrl,
 }: PersonalDietTabProps) {
+  const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [showFoodSearch, setShowFoodSearch] = useState(false);
+  const [targetWaterInput, setTargetWaterInput] = useState("3000");
+  const [isSavingTargetWater, setIsSavingTargetWater] = useState(false);
+
+  const targetCalories = profile?.targetCalories ?? 2000;
+  const targetProtein = profile?.targetProtein ?? 150;
+  const targetCarbs = profile?.targetCarbs ?? 250;
+  const targetFats = profile?.targetFats ?? 65;
+  const isReadOnly = !isCurrentDate;
+  const nutrition = dailyNutrition ?? {
+    date: nutritionDate,
+    meals: [],
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFats: 0,
+    waterIntake: 0,
+    targetCalories,
+    targetProtein,
+    targetCarbs,
+    targetFats,
+    targetWater: profile?.targetWater ?? 3000,
+  };
+
+  useEffect(() => {
+    setTargetWaterInput(String(nutrition.targetWater ?? 3000));
+  }, [nutrition.targetWater]);
+
+  const handleSaveTargetWater = async () => {
+    const parsed = Number(targetWaterInput);
+    if (!Number.isFinite(parsed) || parsed <= 0 || isReadOnly) return;
+
+    setIsSavingTargetWater(true);
+    try {
+      await onUpdateTargetWater(parsed);
+    } finally {
+      setIsSavingTargetWater(false);
+    }
+  };
+
   return (
-    <DuoCard.Root variant="default" padding="md">
-      <DuoCard.Header>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Apple
-              className="h-5 w-5 shrink-0"
-              style={{ color: "var(--duo-secondary)" }}
-              aria-hidden
+    <>
+      <DuoCard.Root variant="default" padding="md">
+        <DuoCard.Header>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Apple
+                className="h-5 w-5 shrink-0"
+                style={{ color: "var(--duo-secondary)" }}
+                aria-hidden
+              />
+              <h2 className="font-bold text-duo-fg">Nutricao</h2>
+            </div>
+            <input
+              type="date"
+              value={nutritionDate}
+              onChange={(e) => {
+                onNutritionDateChange(e.target.value);
+                onFetchNutrition(e.target.value);
+              }}
+              className="rounded-lg border border-duo-border bg-duo-bg px-3 py-1.5 text-sm font-bold text-duo-text"
             />
-            <h2 className="font-bold text-duo-fg">Nutrição</h2>
           </div>
-          <input
-            type="date"
-            value={nutritionDate}
-            onChange={(e) => {
-              onNutritionDateChange(e.target.value);
-              onFetchNutrition(e.target.value);
-            }}
-            className="rounded-lg border border-duo-border bg-duo-bg px-3 py-1.5 text-sm font-bold text-duo-text"
-          />
-        </div>
-      </DuoCard.Header>
-      {isLoadingNutrition ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
-        </div>
-      ) : dailyNutrition ? (
-        <div className="mt-4 space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-duo-fg-muted">Calorias</span>
-            <span className="font-semibold text-duo-fg">
-              {dailyNutrition.totalCalories} / {dailyNutrition.targetCalories}
-            </span>
+        </DuoCard.Header>
+
+        {isLoadingNutrition ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-10 w-10 animate-spin text-duo-gray-dark" />
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-duo-fg-muted">Proteína</span>
-            <span className="font-semibold text-duo-fg">
-              {dailyNutrition.totalProtein}g
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-duo-fg-muted">Carboidratos</span>
-            <span className="font-semibold text-duo-fg">
-              {dailyNutrition.totalCarbs}g
-            </span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-duo-fg-muted">Gorduras</span>
-            <span className="font-semibold text-duo-fg">
-              {dailyNutrition.totalFats}g
-            </span>
-          </div>
-          <p className="text-sm text-duo-fg-muted">
-            {dailyNutrition.meals?.length ?? 0} refeições registradas
-          </p>
-        </div>
-      ) : (
-        <div className="py-12 text-center">
-          <Apple className="mx-auto mb-3 h-10 w-10 text-duo-gray-dark opacity-40" />
-          <p className="font-bold text-duo-gray-dark">
-            Nenhum registro de nutrição para esta data
-          </p>
-          <p className="mt-1 text-sm text-duo-gray-dark">
-            Os dados de nutrição do aluno aparecerão aqui.
-          </p>
-        </div>
+        ) : (
+          <>
+            <DuoCard.Root variant="default" padding="md" className="mb-4">
+              <DuoCard.Header>
+                <div className="flex items-center gap-2">
+                  <Droplets className="h-5 w-5 text-duo-blue" />
+                  <h2 className="font-bold text-duo-fg">Meta diaria de agua</h2>
+                </div>
+              </DuoCard.Header>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <DuoInput.Simple
+                  label="Total em ml"
+                  type="number"
+                  value={targetWaterInput}
+                  min={0}
+                  step={50}
+                  disabled={isReadOnly}
+                  onChange={(event) => setTargetWaterInput(event.target.value)}
+                />
+                <DuoButton
+                  className="sm:w-40"
+                  onClick={handleSaveTargetWater}
+                  disabled={isSavingTargetWater || isReadOnly}
+                >
+                  {isSavingTargetWater ? "Salvando..." : "Salvar"}
+                </DuoButton>
+              </div>
+              <p className="mt-2 text-xs text-duo-fg-muted">
+                {isReadOnly
+                  ? "Datas anteriores ficam congeladas como historico. A meta e os checks sao somente leitura."
+                  : "O personal pode estruturar o plano atual e ajustar a meta de agua para o aluno."}
+              </p>
+            </DuoCard.Root>
+
+            {isReadOnly && (
+              <p className="mb-4 text-xs font-medium text-duo-fg-muted">
+                Voce esta visualizando um snapshot historico. Refeicoes, alimentos e trocas de plano so podem ser editados na data atual.
+              </p>
+            )}
+
+            <NutritionTracker.Simple
+              nutrition={nutrition}
+              onMealComplete={onMealComplete}
+              onAddMeal={() => setShowAddMeal(true)}
+              onOpenLibrary={onOpenLibrary}
+              onAddFoodToMeal={(mealId?: string) => {
+                setSelectedMealId(mealId ?? null);
+                setShowFoodSearch(true);
+              }}
+              onDeleteMeal={onRemoveMeal}
+              onDeleteFood={onRemoveFood}
+              onToggleWaterGlass={onToggleWaterGlass}
+              readOnly={isReadOnly}
+              waterReadOnly
+            />
+          </>
+        )}
+      </DuoCard.Root>
+
+      {showAddMeal && (
+        <AddMealModal.Simple
+          onClose={() => setShowAddMeal(false)}
+          onAddMeal={async (mealsData) => {
+            await onAddMeal(mealsData);
+            setShowAddMeal(false);
+          }}
+        />
       )}
-    </DuoCard.Root>
+
+      {showFoodSearch && (
+        <FoodSearch.Simple
+          onAddFood={onAddFood}
+          onAddMeal={onAddMeal}
+          onClose={() => {
+            setShowFoodSearch(false);
+            setSelectedMealId(null);
+          }}
+          selectedMealId={selectedMealId}
+          meals={nutrition.meals}
+          onSelectMeal={(mealId) => setSelectedMealId(mealId)}
+          onApplyNutrition={onApplyNutrition}
+          chatStreamUrl={chatStreamUrl}
+          contextMode="external"
+        />
+      )}
+    </>
   );
 }
