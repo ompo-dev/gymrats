@@ -13,6 +13,7 @@ export interface PixQrModalPollCheckConfig {
   /** Retorna true quando pagamento confirmado */
   check: () => Promise<boolean>;
   intervalMs?: number;
+  backoffMs?: number[];
   maxDurationMs?: number;
 }
 
@@ -311,13 +312,20 @@ export function PixQrModal({
     )
       return;
 
-    const { check, intervalMs = 8000, maxDurationMs = 20 * 60 * 1000 } =
-      pollConfig;
+    const {
+      check,
+      intervalMs = 8000,
+      backoffMs = [2000, 5000, 10000],
+      maxDurationMs = 20 * 60 * 1000,
+    } = pollConfig;
     const startedAt = Date.now();
+    let timeoutId: number | null = null;
+    let attempt = 0;
+    let cancelled = false;
 
     const checkAndClose = async () => {
       if (Date.now() - startedAt > maxDurationMs || hasClosedRef.current)
-        return;
+        return true;
       try {
         const confirmed = await check();
         if (confirmed && !hasClosedRef.current) {
@@ -328,23 +336,57 @@ export function PixQrModal({
             title: paymentConfirmedToast.title,
             description: paymentConfirmedToast.description,
           });
+          return true;
         }
       } catch {
         // Silencioso
       }
+      return false;
     };
 
-    const interval = setInterval(() => {
-      if (document.visibilityState === "visible") checkAndClose();
-    }, intervalMs);
+    const scheduleNextPoll = () => {
+      if (cancelled || hasClosedRef.current) {
+        return;
+      }
+
+      const nextDelay =
+        backoffMs[Math.min(attempt, backoffMs.length - 1)] ?? intervalMs;
+      timeoutId = window.setTimeout(async () => {
+        if (document.visibilityState !== "visible") {
+          scheduleNextPoll();
+          return;
+        }
+
+        const confirmed = await checkAndClose();
+        if (!confirmed) {
+          attempt += 1;
+          scheduleNextPoll();
+        }
+      }, nextDelay);
+    };
 
     const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") checkAndClose();
+      if (document.visibilityState === "visible") {
+        attempt = 0;
+        void checkAndClose().then((confirmed) => {
+          if (!confirmed) {
+            if (timeoutId != null) {
+              window.clearTimeout(timeoutId);
+            }
+            scheduleNextPoll();
+          }
+        });
+      }
     };
+
+    scheduleNextPoll();
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+      }
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [

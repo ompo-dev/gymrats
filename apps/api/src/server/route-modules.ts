@@ -1,4 +1,5 @@
 import { existsSync, readdirSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Elysia } from "elysia";
@@ -266,7 +267,16 @@ async function executeRouteModule(
   }
 
   const nextRequest = await createNextRequest(request);
-  const result = await runWithRequestContext(nextRequest.headers, () =>
+  const requestId = nextRequest.headers.get("x-request-id") || randomUUID();
+  nextRequest.headers.set("x-request-id", requestId);
+
+  const result = await runWithRequestContext(
+    {
+      headers: nextRequest.headers,
+      requestId,
+      startedAt: Date.now(),
+    },
+    () =>
     handler(nextRequest, {
       params: Promise.resolve(params),
     }),

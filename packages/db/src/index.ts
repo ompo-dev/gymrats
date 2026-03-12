@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+import { recordDbQuery } from "@gymrats/domain";
 
 const globalForPrisma = globalThis as { prisma?: PrismaClient };
 
@@ -11,12 +13,25 @@ function createPrismaClient() {
     );
   }
 
-  return new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+  const client = new PrismaClient({
+    log: [
+      { emit: "event", level: "query" },
+      { emit: "stdout", level: "error" },
+      ...(process.env.NODE_ENV === "development"
+        ? ([{ emit: "stdout", level: "warn" }] as const)
+        : []),
+    ],
   });
+
+  client.$on("query", (event: Prisma.QueryEvent) => {
+    recordDbQuery({
+      durationMs: event.duration,
+      query: event.query,
+      target: event.target,
+    });
+  });
+
+  return client;
 }
 
 function getPrismaClient() {

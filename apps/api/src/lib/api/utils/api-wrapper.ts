@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import type { ZodType } from "zod";
+import { getRequestId } from "@/lib/runtime/request-context";
 import { log, recordApiRequest } from "@/lib/observability";
 import {
+  requireAdmin,
   requireGym,
   requirePersonal,
   requireStudent,
@@ -13,7 +15,7 @@ import {
   reserveIdempotencyKey,
 } from "./idempotency-store";
 
-type AuthStrategy = "gym" | "student" | "personal" | "none";
+type AuthStrategy = "gym" | "student" | "personal" | "admin" | "none";
 
 interface HandlerOptions<
   TBody = Record<string, string | number | boolean | object | null>,
@@ -62,6 +64,10 @@ type SafeHandlerContext<
     user: AuthUser;
     personal: Record<string, unknown>;
   };
+  adminContext?: {
+    session: Record<string, unknown>;
+    user: AuthUser;
+  };
   params?: Record<string, string>;
 };
 
@@ -88,6 +94,55 @@ async function parseRequestBody(
   }
 }
 
+function attachStandardHeaders(response: NextResponse, startedAt: number) {
+  const requestId = getRequestId();
+  const latencyMs = Date.now() - startedAt;
+
+  response.headers.set("X-Response-Time-Ms", String(latencyMs));
+  if (requestId) {
+    response.headers.set("X-Request-Id", requestId);
+  }
+
+  return {
+    latencyMs,
+    requestId,
+    response,
+  };
+}
+
+function buildMetricContext(
+  logMetaBase: {
+    method: string;
+    route: string;
+  },
+  input: {
+    status: number;
+    latencyMs: number;
+    error?: string;
+    gymContext?: SafeHandlerContext["gymContext"];
+    studentContext?: SafeHandlerContext["studentContext"];
+    personalContext?: SafeHandlerContext["personalContext"];
+    adminContext?: SafeHandlerContext["adminContext"];
+    requestId?: string | null;
+  },
+) {
+  return {
+    method: logMetaBase.method,
+    path: logMetaBase.route,
+    status: input.status,
+    latencyMs: input.latencyMs,
+    error: input.error,
+    requestId: input.requestId ?? undefined,
+    userId:
+      input.adminContext?.user?.id ??
+      input.gymContext?.user?.id ??
+      input.studentContext?.user?.id ??
+      input.personalContext?.user?.id,
+    studentId: input.studentContext?.studentId,
+    gymId: input.gymContext?.gymId,
+  };
+}
+
 /**
  * Creates a safe API handler with built-in auth, validation, and error handling
  */
@@ -112,15 +167,29 @@ export function createSafeHandler<
       method,
       auth: options.auth || "none",
     };
-    try {
-      let gymContext: SafeHandlerContext["gymContext"];
-      let studentContext: SafeHandlerContext["studentContext"];
-      let personalContext: SafeHandlerContext["personalContext"];
 
-      // 1. Auth check
+    let gymContext: SafeHandlerContext["gymContext"];
+    let studentContext: SafeHandlerContext["studentContext"];
+    let personalContext: SafeHandlerContext["personalContext"];
+    let adminContext: SafeHandlerContext["adminContext"];
+
+    try {
       if (options.auth === "gym") {
         const result = await requireGym(req);
-        if ("response" in result) return result.response;
+        if ("response" in result) {
+          const { response, latencyMs, requestId } = attachStandardHeaders(
+            result.response,
+            startedAt,
+          );
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: response.status,
+              latencyMs,
+              requestId,
+            }),
+          );
+          return response;
+        }
         const sessionUser = result.session as { user?: AuthUser } | undefined;
         const resultWithGymId = result as { gymId?: string };
         const nextGymContext: NonNullable<SafeHandlerContext["gymContext"]> = {
@@ -128,16 +197,30 @@ export function createSafeHandler<
           session: result.session as Record<string, unknown>,
           user: result.user as AuthUser,
         };
-        // Ensure gymId is set (middleware should have it or user should have activeGymId)
         if (!nextGymContext.gymId) {
           const { getGymContext } = await import("@/lib/utils/gym/gym-context");
           const ctxResult = await getGymContext(req);
-          if (ctxResult.ctx) nextGymContext.gymId = ctxResult.ctx.gymId;
+          if (ctxResult.ctx) {
+            nextGymContext.gymId = ctxResult.ctx.gymId;
+          }
         }
         gymContext = nextGymContext;
       } else if (options.auth === "student") {
         const result = await requireStudent(req);
-        if ("response" in result) return result.response;
+        if ("response" in result) {
+          const { response, latencyMs, requestId } = attachStandardHeaders(
+            result.response,
+            startedAt,
+          );
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: response.status,
+              latencyMs,
+              requestId,
+            }),
+          );
+          return response;
+        }
         studentContext = {
           studentId: String(result.user.studentId),
           session: result.session as Record<string, unknown>,
@@ -146,20 +229,51 @@ export function createSafeHandler<
         };
       } else if (options.auth === "personal") {
         const result = await requirePersonal(req);
-        if ("response" in result) return result.response;
+        if ("response" in result) {
+          const { response, latencyMs, requestId } = attachStandardHeaders(
+            result.response,
+            startedAt,
+          );
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: response.status,
+              latencyMs,
+              requestId,
+            }),
+          );
+          return response;
+        }
         personalContext = {
           personalId: String(result.user.personalId),
           session: result.session as Record<string, unknown>,
           user: result.user as AuthUser,
           personal: (result.user.personal || {}) as Record<string, unknown>,
         };
+      } else if (options.auth === "admin") {
+        const result = await requireAdmin(req);
+        if ("response" in result) {
+          const { response, latencyMs, requestId } = attachStandardHeaders(
+            result.response,
+            startedAt,
+          );
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: response.status,
+              latencyMs,
+              requestId,
+            }),
+          );
+          return response;
+        }
+        adminContext = {
+          session: result.session as Record<string, unknown>,
+          user: result.user as AuthUser,
+        };
       }
 
-      // 2. Validation
       let body: TBody = {} as TBody;
       if (options.schema?.body) {
-        const rawBody = await parseRequestBody(req);
-        body = options.schema.body.parse(rawBody);
+        body = options.schema.body.parse(await parseRequestBody(req));
       } else {
         body = (await parseRequestBody(req)) as TBody;
       }
@@ -167,8 +281,12 @@ export function createSafeHandler<
       let query: TQuery = {} as TQuery;
       if (options.schema?.query) {
         const { searchParams } = new URL(req.url);
-        const queryObject = Object.fromEntries(searchParams.entries());
-        query = options.schema.query.parse(queryObject);
+        query = options.schema.query.parse(
+          Object.fromEntries(searchParams.entries()),
+        );
+      } else {
+        const { searchParams } = new URL(req.url);
+        query = Object.fromEntries(searchParams.entries()) as TQuery;
       }
 
       let params: Record<string, string> = {};
@@ -181,36 +299,38 @@ export function createSafeHandler<
         params = await Promise.resolve(routeContext.params);
       }
 
-      // 3. Execute handler (idempotent for mutations when X-Idempotency-Key is present)
+      const handlerContext = {
+        req,
+        body,
+        query,
+        gymContext,
+        studentContext,
+        personalContext,
+        adminContext,
+        params,
+      };
+
       const shouldUseIdempotency =
         (method === "POST" || method === "PATCH" || method === "DELETE") &&
         !!req.headers.get("x-idempotency-key");
 
       if (!shouldUseIdempotency) {
-        const response = await handler({
-          req,
-          body,
-          query,
-          gymContext,
-          studentContext,
-          personalContext,
-          params,
-        });
-        const latencyMs = Date.now() - startedAt;
-        response.headers.set("X-Response-Time-Ms", String(latencyMs));
-        recordApiRequest({
-          method: logMetaBase.method,
-          path: logMetaBase.route,
-          status: response.status,
-          latencyMs,
-          userId:
-            gymContext?.user?.id ??
-            studentContext?.user?.id ??
-            personalContext?.user?.id,
-          studentId: studentContext?.studentId,
-          gymId: gymContext?.gymId,
-        });
-        return response;
+        const handled = attachStandardHeaders(
+          await handler(handlerContext),
+          startedAt,
+        );
+        recordApiRequest(
+          buildMetricContext(logMetaBase, {
+            status: handled.response.status,
+            latencyMs: handled.latencyMs,
+            requestId: handled.requestId,
+            gymContext,
+            studentContext,
+            personalContext,
+            adminContext,
+          }),
+        );
+        return handled.response;
       }
 
       const idemKey = req.headers.get("x-idempotency-key") as string;
@@ -224,42 +344,59 @@ export function createSafeHandler<
             status: replay.response_status,
           });
           replayResponse.headers.set("X-Idempotency-Replay", "true");
-          replayResponse.headers.set(
-            "X-Response-Time-Ms",
-            String(Date.now() - startedAt),
+          const handled = attachStandardHeaders(replayResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: replay.response_status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
           );
-          recordApiRequest({
-            method: logMetaBase.method,
-            path: logMetaBase.route,
-            status: replay.response_status,
-            latencyMs: Date.now() - startedAt,
-          });
-          return replayResponse;
+          return handled.response;
         } catch {
           const replayResponse = NextResponse.json(
             { ok: true, replay: true },
             { status: replay.response_status },
           );
           replayResponse.headers.set("X-Idempotency-Replay", "true");
-          replayResponse.headers.set(
-            "X-Response-Time-Ms",
-            String(Date.now() - startedAt),
+          const handled = attachStandardHeaders(replayResponse, startedAt);
+          recordApiRequest(
+            buildMetricContext(logMetaBase, {
+              status: replay.response_status,
+              latencyMs: handled.latencyMs,
+              requestId: handled.requestId,
+              gymContext,
+              studentContext,
+              personalContext,
+              adminContext,
+            }),
           );
-          recordApiRequest({
-            method: logMetaBase.method,
-            path: logMetaBase.route,
-            status: replay.response_status,
-            latencyMs: Date.now() - startedAt,
-          });
-          return replayResponse;
+          return handled.response;
         }
       }
 
       if (replay && replay.status === "processing") {
-        return NextResponse.json(
-          { error: "Requisição idempotente em processamento" },
+        const processingResponse = NextResponse.json(
+          { error: "Requisicao idempotente em processamento" },
           { status: 409 },
         );
+        const handled = attachStandardHeaders(processingResponse, startedAt);
+        recordApiRequest(
+          buildMetricContext(logMetaBase, {
+            status: handled.response.status,
+            latencyMs: handled.latencyMs,
+            requestId: handled.requestId,
+            gymContext,
+            studentContext,
+            personalContext,
+            adminContext,
+          }),
+        );
+        return handled.response;
       }
 
       await reserveIdempotencyKey({
@@ -270,15 +407,7 @@ export function createSafeHandler<
       });
 
       try {
-        const response = await handler({
-          req,
-          body,
-          query,
-          gymContext,
-          studentContext,
-          personalContext,
-          params,
-        });
+        const response = await handler(handlerContext);
         const responseClone = response.clone();
         const responseText = await responseClone.text();
         await completeIdempotencyKey({
@@ -286,21 +415,19 @@ export function createSafeHandler<
           statusCode: response.status,
           responseBody: responseText || "null",
         });
-        const latencyMs = Date.now() - startedAt;
-        response.headers.set("X-Response-Time-Ms", String(latencyMs));
-        recordApiRequest({
-          method: logMetaBase.method,
-          path: logMetaBase.route,
-          status: response.status,
-          latencyMs,
-          userId:
-            gymContext?.user?.id ??
-            studentContext?.user?.id ??
-            personalContext?.user?.id,
-          studentId: studentContext?.studentId,
-          gymId: gymContext?.gymId,
-        });
-        return response;
+        const handled = attachStandardHeaders(response, startedAt);
+        recordApiRequest(
+          buildMetricContext(logMetaBase, {
+            status: handled.response.status,
+            latencyMs: handled.latencyMs,
+            requestId: handled.requestId,
+            gymContext,
+            studentContext,
+            personalContext,
+            adminContext,
+          }),
+        );
+        return handled.response;
       } catch (innerError) {
         await failIdempotencyKey(idemKey);
         throw innerError;
@@ -318,27 +445,38 @@ export function createSafeHandler<
           : err?.name === "ZodError"
             ? 400
             : 500;
-      const latencyMs = Date.now() - startedAt;
-      log.error("[SafeHandler] Error", { error: err?.message, ...logMetaBase });
-      recordApiRequest({
-        method: logMetaBase.method,
-        path: logMetaBase.route,
-        status,
-        latencyMs,
-        error: err?.message || "unknown",
+
+      log.error("[SafeHandler] Error", {
+        error: err?.message,
+        ...logMetaBase,
       });
 
-      if (err?.name === "ZodError") {
-        return NextResponse.json(
-          { error: "Erro de validação", details: err.errors },
-          { status: 400 },
-        );
-      }
+      const errorResponse =
+        err?.name === "ZodError"
+          ? NextResponse.json(
+              { error: "Erro de validacao", details: err.errors },
+              { status: 400 },
+            )
+          : NextResponse.json(
+              { error: err?.message || "Erro interno do servidor" },
+              { status },
+            );
 
-      return NextResponse.json(
-        { error: err?.message || "Erro interno do servidor" },
-        { status },
+      const handled = attachStandardHeaders(errorResponse, startedAt);
+      recordApiRequest(
+        buildMetricContext(logMetaBase, {
+          status,
+          latencyMs: handled.latencyMs,
+          error: err?.message || "unknown",
+          requestId: handled.requestId,
+          gymContext,
+          studentContext,
+          personalContext,
+          adminContext,
+        }),
       );
+
+      return handled.response;
     }
   };
 }

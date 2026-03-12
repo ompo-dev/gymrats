@@ -3,6 +3,8 @@
  * Extraído para reduzir tamanho do store principal.
  */
 
+import { featureFlags } from "@gymrats/config";
+import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { apiClient } from "@/lib/api/client";
 import type { Meal } from "@/lib/types";
 import type {
@@ -267,7 +269,7 @@ export function deduplicateMeals(meals: Meal[]): Meal[] {
   return unique;
 }
 
-function updateStoreWithSection(
+export function updateStoreWithSection(
   set: SetStateFn,
   sectionData: Partial<StudentData>,
 ): void {
@@ -328,6 +330,43 @@ function updateStoreWithSection(
   });
 }
 
+export function hydrateStudentBootstrapData(
+  set: SetStateFn,
+  sectionData: Partial<StudentData>,
+): void {
+  updateStoreWithSection(set, sectionData);
+  set((state) => ({
+    data: {
+      ...state.data,
+      metadata: {
+        ...state.data.metadata,
+        isLoading: false,
+        isInitialized: true,
+        lastSync: new Date(),
+        errors: {},
+      },
+    },
+  }));
+}
+
+async function loadStudentBootstrap(
+  sections: StudentDataSection[],
+): Promise<Partial<StudentData>> {
+  const params = new URLSearchParams();
+  if (sections.length > 0) {
+    params.set("sections", sections.join(","));
+  }
+
+  const response = await apiClient.get<BootstrapResponse<Partial<StudentData>>>(
+    `/api/students/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`,
+    {
+      timeout: 30000,
+    },
+  );
+
+  return response.data.data ?? {};
+}
+
 export async function loadSection(
   section: StudentDataSection,
   forceRefresh = false,
@@ -380,6 +419,18 @@ export async function loadSectionsIncremental(
   sections: StudentDataSection[],
   _skipNutrition = false,
 ): Promise<void> {
+  if (featureFlags.perfStudentBootstrapV2 && sections.length > 1) {
+    try {
+      const bootstrapData = await loadStudentBootstrap(sections);
+      if (Object.keys(bootstrapData).length > 0) {
+        updateStoreWithSection(set, bootstrapData);
+      }
+      return;
+    } catch {
+      // Fallback para o carregamento legado por secao.
+    }
+  }
+
   const sectionPromises = sections.map(async (section) => {
     try {
       const sectionData = await loadSection(section);
@@ -418,5 +469,17 @@ const ALL_SECTIONS: StudentDataSection[] = [
 ];
 
 export async function loadAllDataIncremental(set: SetStateFn): Promise<void> {
+  if (featureFlags.perfStudentBootstrapV2) {
+    try {
+      const bootstrapData = await loadStudentBootstrap(ALL_SECTIONS);
+      if (Object.keys(bootstrapData).length > 0) {
+        updateStoreWithSection(set, bootstrapData);
+      }
+      return;
+    } catch {
+      // Se o bootstrap falhar, continuamos com o fluxo legado.
+    }
+  }
+
   await loadSectionsIncremental(set, ALL_SECTIONS);
 }

@@ -1550,3 +1550,62 @@ model BoostCampaignEngagement {
   @@index([studentId])
   @@map("boost_campaign_engagements")
 }
+
+model TelemetryEvent {
+  id             String   @id @default(cuid())
+  eventType      String
+  domain         String
+  actorId        String?
+  journey        String?
+  requestId      String?
+  releaseId      String?
+  featureFlagSet String?
+  metricName     String?
+  metricValue    Float?
+  status         String?
+  payload        Json?
+  occurredAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([eventType, occurredAt])
+  @@index([domain, occurredAt])
+  @@index([releaseId, occurredAt])
+  @@map("telemetry_events")
+}
+
+model TelemetryRollupMinute {
+  id            String   @id @default(cuid())
+  bucketStart   DateTime
+  eventType     String
+  domain        String
+  releaseId     String?
+  requestCount  Int      @default(0)
+  errorCount    Int      @default(0)
+  avgLatencyMs  Float    @default(0)
+  p50LatencyMs  Float    @default(0)
+  p95LatencyMs  Float    @default(0)
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([bucketStart, eventType, domain, releaseId])
+  @@index([bucketStart, domain])
+  @@map("telemetry_rollups_minute")
+}
+
+model BusinessEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  domain     String
+  actorId    String?
+  requestId  String?
+  releaseId  String?
+  status     String?
+  payload    Json?
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([eventType, occurredAt])
+  @@index([domain, occurredAt])
+  @@map("business_events")
+}

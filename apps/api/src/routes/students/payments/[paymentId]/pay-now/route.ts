@@ -1,6 +1,7 @@
 import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import { persistBusinessEvent } from "@/lib/observability";
 import { createPixForPendingPayment } from "@/lib/services/gym/gym-membership-payment.service";
 
 const paramsSchema = z.object({
@@ -24,6 +25,17 @@ export const POST = createSafeHandler(
 
     try {
       const result = await createPixForPendingPayment(paymentId, studentId);
+      await persistBusinessEvent({
+        eventType: "pix.generated",
+        domain: "payments",
+        actorId: studentId,
+        status: "success",
+        payload: {
+          paymentId: result.paymentId,
+          amount: result.amount,
+          expiresAt: result.expiresAt,
+        },
+      });
       return NextResponse.json({
         paymentId: result.paymentId,
         brCode: result.brCode,

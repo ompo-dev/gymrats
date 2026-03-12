@@ -11,12 +11,16 @@
 
 "use client";
 
+import { featureFlags } from "@gymrats/config";
 import { useCallback } from "react";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
+import { useStudentBootstrap } from "@/hooks/use-student-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
 import { isAdmin, isStudent } from "@/lib/utils/role";
+import { hydrateStudentBootstrapData } from "@/stores/student/load-helpers";
 import { useStudentDiscoveryStore } from "@/stores/student-discovery-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+import type { StudentData } from "@/lib/types/student-unified";
 
 /**
  * Hook que inicializa automaticamente os dados do student
@@ -34,6 +38,10 @@ export function useStudentInitializer(options?: {
   onLoadComplete?: () => void;
   onLoadError?: (error: Error) => void;
 }) {
+  type StudentStoreSetter = (
+    fn: (state: { data: StudentData }) => { data: StudentData },
+  ) => void;
+
   const {
     autoLoad = true,
     onLoadStart,
@@ -58,6 +66,9 @@ export function useStudentInitializer(options?: {
   const preloadDiscovery = useStudentDiscoveryStore(
     (state) => state.preloadDefault,
   );
+  const bootstrapQuery = useStudentBootstrap(undefined, {
+    enabled: false,
+  });
 
   // Memoizar callbacks para evitar mudanças desnecessárias
   const memoizedOnLoadStart = useCallback(() => {
@@ -84,7 +95,23 @@ export function useStudentInitializer(options?: {
       isStudent(currentRole as string) || isAdmin(currentRole as string),
     loadAll: async () => {
       memoizedOnLoadStart();
-      await loadAll();
+      if (featureFlags.perfStudentBootstrapV2) {
+        const bootstrapData =
+          bootstrapQuery.data ??
+          (await bootstrapQuery.refetch()).data ??
+          null;
+
+        if (bootstrapData?.data) {
+          hydrateStudentBootstrapData(
+            useStudentUnifiedStore.setState as unknown as StudentStoreSetter,
+            bootstrapData.data,
+          );
+        } else {
+          await loadAll();
+        }
+      } else {
+        await loadAll();
+      }
       await preloadDiscovery();
       memoizedOnLoadComplete();
     },

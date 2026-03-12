@@ -4,6 +4,7 @@ import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
+import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +29,7 @@ export interface UsePaymentsPageProps {
 
 export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const { subscription: initialSubscription, startTrial: _startTrial } = props;
+  const paymentFlow = usePaymentFlow();
 
   useLoadPrioritized({ context: "payments" });
 
@@ -175,7 +177,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
     cancelMembership: cancelMembershipAction,
     loadGymPlans,
     changeMembershipPlan,
-    payStudentPayment,
     applyReferralToSubscription,
   } = actions;
 
@@ -338,12 +339,13 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   };
 
   const handlePixConfirmed = async () => {
+    await paymentFlow.invalidatePaymentQueries();
     await Promise.all([loadMemberships(), loadPayments(), loadReferral()]);
   };
 
   const handlePayNowClick = async (payment: StudentPayment) => {
     try {
-      const res = await payStudentPayment(payment.id);
+      const res = await paymentFlow.payNow.mutateAsync(payment.id);
       setPixModal({
         paymentId: res.paymentId,
         brCode: res.brCode,

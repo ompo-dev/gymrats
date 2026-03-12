@@ -2,6 +2,7 @@ import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { persistBusinessEvent } from "@/lib/observability";
 
 const paramsSchema = z.object({
   paymentId: z.string().min(1),
@@ -85,6 +86,16 @@ export const PATCH = createSafeHandler(
     await db.payment.update({
       where: { id: paymentId },
       data: { status: "canceled" },
+    });
+
+    await persistBusinessEvent({
+      eventType: "payment.canceled",
+      domain: "payments",
+      actorId: studentId,
+      status: "success",
+      payload: {
+        paymentId,
+      },
     });
 
     return NextResponse.json({ ok: true });

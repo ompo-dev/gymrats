@@ -10,21 +10,19 @@
 
 import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { StudentDomainService } from "@/lib/services/student-domain.service";
+import {
+  buildStudentBootstrap,
+  parseStudentBootstrapSections,
+} from "@/lib/bootstrap/student-bootstrap";
 
 export const GET = createSafeHandler(
   async ({ query, studentContext }) => {
-    const { studentId, user } = studentContext!;
-    const userId = user.id;
-    const sectionsParam = query.sections as string | undefined;
-    const sections = sectionsParam ? sectionsParam.split(",") : undefined;
-
-    const data = await StudentDomainService.getAllData(
-      studentId,
-      userId,
-      sections,
-    );
-    return NextResponse.json(data);
+    const response = await buildStudentBootstrap({
+      studentId: studentContext!.studentId,
+      userId: String(studentContext!.user.id),
+      sections: parseStudentBootstrapSections(query.sections as string | undefined),
+    });
+    return NextResponse.json(response.data);
   },
   { auth: "student" },
 );

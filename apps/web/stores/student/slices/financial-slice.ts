@@ -2,6 +2,7 @@
  * Slice financeiro para student-unified-store.
  */
 
+import { featureFlags } from "@gymrats/config";
 import { apiClient } from "@/lib/api/client";
 import type {
   StudentData,
@@ -12,6 +13,17 @@ import type {
 } from "@/lib/types/student-unified";
 import { loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
+
+function createIdempotencyKey(scope: string, entityId: string) {
+  const cryptoApi =
+    typeof window !== "undefined" && "crypto" in window ? window.crypto : null;
+  const suffix =
+    cryptoApi && "randomUUID" in cryptoApi
+      ? cryptoApi.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return `${scope}:${entityId}:${suffix}`;
+}
 
 export function createFinancialSlice(
   set: StudentSetState,
@@ -140,6 +152,11 @@ export function createFinancialSlice(
           planId,
           couponId: couponId || null,
         },
+        {
+          headers: {
+            "X-Idempotency-Key": createIdempotencyKey("student-join-gym", gymId),
+          },
+        },
       );
       await Promise.allSettled([
         get().loadMemberships(),
@@ -164,8 +181,18 @@ export function createFinancialSlice(
       const response = await apiClient.post<StudentPixPaymentPayload>(
         `/api/students/memberships/${membershipId}/change-plan`,
         { planId },
+        {
+          headers: {
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-change-plan",
+              membershipId,
+            ),
+          },
+        },
       );
-      await Promise.allSettled([get().loadMemberships(), get().loadPayments()]);
+      if (!featureFlags.perfPaymentsV2) {
+        await Promise.allSettled([get().loadMemberships(), get().loadPayments()]);
+      }
       return response.data;
     },
     cancelMembership: async (membershipId: string) => {
@@ -220,6 +247,14 @@ export function createFinancialSlice(
           planId,
           couponId: couponId || null,
         },
+        {
+          headers: {
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-subscribe-personal",
+              personalId,
+            ),
+          },
+        },
       );
       await refreshFinancialData();
       return response.data;
@@ -228,14 +263,35 @@ export function createFinancialSlice(
       const response = await apiClient.post<StudentPixPaymentPayload>(
         `/api/students/payments/${paymentId}/pay-now`,
         {},
+        {
+          headers: {
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-pay-now",
+              paymentId,
+            ),
+          },
+        },
       );
-      await get().loadPayments();
+      if (!featureFlags.perfPaymentsV2) {
+        await get().loadPayments();
+      }
       return response.data;
     },
     cancelStudentPayment: async (paymentId: string) => {
-      await apiClient.patch(`/api/payments/${paymentId}`, {
-        status: "canceled",
-      });
+      await apiClient.patch(
+        `/api/payments/${paymentId}`,
+        {
+          status: "canceled",
+        },
+        {
+          headers: {
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-cancel-payment",
+              paymentId,
+            ),
+          },
+        },
+      );
       await get().loadPayments();
     },
     getStudentPaymentStatus: async (paymentId: string) => {

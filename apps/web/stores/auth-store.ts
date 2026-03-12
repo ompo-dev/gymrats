@@ -10,7 +10,7 @@ import {
 } from "@/lib/auth/token-client";
 import type { UserProfile } from "@/lib/types";
 
-const SESSION_TTL_MS = 5_000;
+const SESSION_TTL_MS = 60_000;
 
 let sessionPromise: Promise<AuthSessionUser | null> | null = null;
 
