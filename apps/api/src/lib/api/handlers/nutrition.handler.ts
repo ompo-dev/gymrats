@@ -2,14 +2,18 @@ import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody, validateQuery } from "../middleware/validation.middleware";
 import {
   dailyNutritionQuerySchema,
+  searchFoodsQuerySchema,
   updateDailyNutritionSchema,
 } from "../schemas";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   badRequestResponse,
   internalErrorResponse,
+  notFoundResponse,
   successResponse,
 } from "../utils/response.utils";
+import { db } from "@/lib/db";
+import { searchFoodsUseCase } from "@/lib/use-cases/nutrition/search-foods";
 import {
   getActiveNutritionPlan,
   getDailyNutritionForStudent,
@@ -140,5 +144,47 @@ export async function getActiveNutritionPlanHandler(
   } catch (error) {
     console.error("[getActiveNutritionPlanHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar plano alimentar ativo", error);
+  }
+}
+
+export async function searchFoodsHandler(
+  request: NextRequest,
+): Promise<NextResponse> {
+  try {
+    const queryValidation = await validateQuery(request, searchFoodsQuerySchema);
+    if (!queryValidation.success) {
+      return queryValidation.response;
+    }
+
+    const result = await searchFoodsUseCase({
+      q: queryValidation.data.q,
+      category: queryValidation.data.category,
+      limit: queryValidation.data.limit,
+    });
+
+    return successResponse({ foods: result.foods });
+  } catch (error) {
+    console.error("[searchFoodsHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar alimentos", error);
+  }
+}
+
+export async function getFoodByIdHandler(
+  _request: NextRequest,
+  foodId: string,
+): Promise<NextResponse> {
+  try {
+    const food = await db.foodItem.findUnique({
+      where: { id: foodId },
+    });
+
+    if (!food) {
+      return notFoundResponse("Alimento nao encontrado");
+    }
+
+    return successResponse({ food });
+  } catch (error) {
+    console.error("[getFoodByIdHandler] Erro:", error);
+    return internalErrorResponse("Erro ao buscar alimento", error);
   }
 }

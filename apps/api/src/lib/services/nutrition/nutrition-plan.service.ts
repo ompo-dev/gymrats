@@ -349,7 +349,7 @@ async function findDailyNutritionWithRelations(
         orderBy: { order: "asc" },
         include: {
           foods: {
-            orderBy: { order: "asc" },
+            orderBy: { createdAt: "asc" },
           },
         },
       },
