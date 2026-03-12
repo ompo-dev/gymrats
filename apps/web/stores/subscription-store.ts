@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
+import { GYM_PLANS_CONFIG, centsToReais } from "@/lib/access-control/plans-config";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -44,6 +45,7 @@ export interface GymSubscriptionData {
     | string;
   basePrice: number;
   pricePerStudent: number;
+  pricePerPersonal: number;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
@@ -53,6 +55,7 @@ export interface GymSubscriptionData {
   isTrial: boolean;
   daysRemaining: number | null;
   activeStudents: number;
+  activePersonals: number;
   totalAmount: number;
   billingPeriod?: "monthly" | "annual";
   canStartTrial?: boolean;
@@ -322,8 +325,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             id: "temp-trial-id",
             plan: "basic",
             status: "trialing",
-            basePrice: 150,
-            pricePerStudent: 1.5,
+            basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
+            pricePerStudent: centsToReais(
+              GYM_PLANS_CONFIG.BASIC.pricePerStudent,
+            ),
+            pricePerPersonal: centsToReais(
+              GYM_PLANS_CONFIG.BASIC.pricePerPersonal ?? 0,
+            ),
             currentPeriodStart: now,
             currentPeriodEnd: trialEnd,
             cancelAtPeriodEnd: false,
@@ -333,7 +341,8 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             isTrial: true,
             daysRemaining: 14,
             activeStudents: 0,
-            totalAmount: 150,
+            activePersonals: 0,
+            totalAmount: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
           } satisfies GymSubscriptionData);
 
     if (userType === "student") {

@@ -13,7 +13,12 @@ interface SubscriptionStatusCardProps {
     isTrial: boolean;
     daysRemaining: number | null;
     activeStudents: number;
+    activePersonals: number;
+    basePrice: number;
+    pricePerStudent: number;
+    pricePerPersonal: number;
     totalAmount: number;
+    billingPeriod?: "monthly" | "annual";
     currentPeriodEnd: Date;
     cancelAtPeriodEnd: boolean;
   };
@@ -28,10 +33,11 @@ export function SubscriptionStatusCard({
 }: SubscriptionStatusCardProps) {
   const isTrialActive =
     subscription.isTrial && subscription.status === "trialing";
-  const isPremiumActive =
-    subscription.plan === "premium" &&
-    subscription.status === "active" &&
-    !subscription.isTrial;
+  const isPremiumActive = subscription.status === "active" && !subscription.isTrial;
+  const studentVariableAmount =
+    subscription.pricePerStudent * subscription.activeStudents;
+  const personalVariableAmount =
+    subscription.pricePerPersonal * subscription.activePersonals;
 
   return (
     <DuoCard.Root variant="default" padding="md">
@@ -77,7 +83,7 @@ export function SubscriptionStatusCard({
               </h3>
               <p className="text-xs text-duo-gray-dark">
                 {isTrialActive
-                  ? "Trial Ativo"
+                  ? "Trial ativo"
                   : isPremiumActive
                     ? "Ativo"
                     : "Sem assinatura"}
@@ -95,14 +101,14 @@ export function SubscriptionStatusCard({
             )}
           >
             {isTrialActive
-              ? "Trial Ativo"
+              ? "Trial ativo"
               : isPremiumActive
                 ? "Ativo"
-                : "Sem Assinatura"}
+                : "Sem assinatura"}
           </span>
         </div>
 
-        {isTrialActive && subscription.daysRemaining !== null && (
+        {isTrialActive && subscription.daysRemaining !== null ? (
           <DuoCard.Root variant="blue" size="default">
             <div className="flex items-center gap-3">
               <Gift className="h-8 w-8 text-duo-blue" />
@@ -117,11 +123,11 @@ export function SubscriptionStatusCard({
               </div>
             </div>
           </DuoCard.Root>
-        )}
+        ) : null}
 
-        {subscription.status === "active" && (
+        {subscription.status === "active" ? (
           <div className="space-y-3 pt-3 border-t-2 border-duo-border">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               <div>
                 <p className="text-xs text-duo-gray-dark">Alunos ativos</p>
                 <p className="text-lg font-bold text-duo-text">
@@ -129,25 +135,70 @@ export function SubscriptionStatusCard({
                 </p>
               </div>
               <div>
-                <p className="text-xs text-duo-gray-dark">Valor mensal</p>
+                <p className="text-xs text-duo-gray-dark">Personais filiados</p>
+                <p className="text-lg font-bold text-duo-text">
+                  {subscription.activePersonals}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-duo-gray-dark">
+                  {subscription.billingPeriod === "annual"
+                    ? "Valor anual"
+                    : "Valor mensal"}
+                </p>
                 <p className="text-lg font-bold text-duo-green">
                   R$ {subscription.totalAmount.toFixed(2)}
                 </p>
               </div>
             </div>
+
+            {subscription.billingPeriod === "annual" ? (
+              <div className="rounded-xl border border-duo-border bg-duo-bg p-3 text-sm text-duo-gray-dark">
+                O plano anual e fixo, sem cobranca extra por aluno ou personal
+                filiado.
+              </div>
+            ) : (
+              <div className="rounded-xl border border-duo-border bg-duo-bg p-3 space-y-2 text-sm text-duo-gray-dark">
+                <div className="flex items-center justify-between">
+                  <span>Base do plano</span>
+                  <span className="font-semibold text-duo-text">
+                    R$ {subscription.basePrice.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>
+                    Alunos ({subscription.activeStudents} x R${" "}
+                    {subscription.pricePerStudent.toFixed(2)})
+                  </span>
+                  <span className="font-semibold text-duo-text">
+                    R$ {studentVariableAmount.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>
+                    Personais ({subscription.activePersonals} x R${" "}
+                    {subscription.pricePerPersonal.toFixed(2)})
+                  </span>
+                  <span className="font-semibold text-duo-text">
+                    R$ {personalVariableAmount.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between text-sm pt-3 border-t border-duo-border">
-              <span className="text-duo-gray-dark">Próxima renovação</span>
+              <span className="text-duo-gray-dark">Proxima renovacao</span>
               <span className="font-bold text-duo-text">
                 {formatDatePtBr(subscription.currentPeriodEnd) || "N/A"}
               </span>
             </div>
-            {subscription.cancelAtPeriodEnd && (
+            {subscription.cancelAtPeriodEnd ? (
               <div className="flex items-center gap-2 text-sm text-duo-orange">
                 <AlertCircle className="h-4 w-4" />
-                <span>Cancelamento agendado para o fim do período</span>
+                <span>Cancelamento agendado para o fim do periodo</span>
               </div>
-            )}
-            {!subscription.cancelAtPeriodEnd && (
+            ) : null}
+            {!subscription.cancelAtPeriodEnd ? (
               <DuoButton
                 onClick={onCancel}
                 disabled={isCanceling}
@@ -157,9 +208,9 @@ export function SubscriptionStatusCard({
               >
                 {isCanceling ? "Cancelando..." : "Cancelar Assinatura"}
               </DuoButton>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </DuoCard.Root>
   );

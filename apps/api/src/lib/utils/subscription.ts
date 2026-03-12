@@ -680,7 +680,8 @@ export async function createGymSubscriptionBilling(
 
 /**
  * Cria cobrança PIX para assinatura de academia via pixQrCode.
- * Não cria produtos na AbacatePay - valor dinâmico (base + por aluno).
+ * Não cria produtos na AbacatePay - valor dinâmico
+ * (base + por aluno + por personal filiado no mensal).
  */
 export async function createGymSubscriptionPix(
   gymId: string,

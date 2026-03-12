@@ -17,6 +17,13 @@ interface SubscriptionPlansSelectorProps {
   isLoading: boolean;
 }
 
+function formatPrice(value: number) {
+  return value.toLocaleString("pt-BR", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function SubscriptionPlansSelector({
   onSubscribe,
   isLoading,
@@ -59,7 +66,7 @@ export function SubscriptionPlansSelector({
           onClick={() => setSelectedBillingPeriod("monthly")}
         >
           <div className="mb-2 text-lg font-bold text-duo-text">Mensal</div>
-          <div className="text-xs text-duo-gray-dark">por mês</div>
+          <div className="text-xs text-duo-gray-dark">por mes</div>
         </DuoCard.Root>
 
         <DuoCard.Root
@@ -92,16 +99,12 @@ export function SubscriptionPlansSelector({
           const monthlyBase = centsToReais(config.prices.monthly);
           const annualBase = centsToReais(config.prices.annual);
           const monthlyPerStudent = centsToReais(config.pricePerStudent);
-          const annualPerStudent = 0; // Preço fixo no anual
+          const monthlyPerPersonal = centsToReais(config.pricePerPersonal ?? 0);
 
           const displayBase =
             selectedBillingPeriod === "annual" ? annualBase : monthlyBase;
-          const displayPerStudent =
-            selectedBillingPeriod === "annual"
-              ? annualPerStudent
-              : monthlyPerStudent;
-
           const isSelected = selectedPlanType === plan;
+
           return (
             <DuoCard.Root
               key={plan}
@@ -115,29 +118,28 @@ export function SubscriptionPlansSelector({
               )}
               onClick={() => setSelectedPlanType(plan)}
             >
-              {plan === "premium" && (
+              {plan === "premium" ? (
                 <span className="absolute -top-2 right-2 rounded-full bg-duo-yellow px-2 py-0.5 text-xs font-bold">
                   Popular
                 </span>
-              )}
+              ) : null}
               <div className="mb-2 text-lg font-bold text-duo-text capitalize">
                 {plan}
               </div>
               <div className="mb-1 text-2xl font-bold text-duo-green">
-                R$ {displayBase}
+                R$ {formatPrice(displayBase)}
               </div>
               {selectedBillingPeriod === "annual" ? (
-                <div className="text-xs text-duo-gray-dark">
-                  Preço fixo anual
+                <div className="space-y-1 text-xs text-duo-gray-dark">
+                  <div>Preco fixo anual</div>
+                  <div>Sem cobranca por aluno ou personal</div>
                 </div>
               ) : (
-                <div className="text-xs text-duo-gray-dark">
-                  + R$ {displayPerStudent}/aluno
-                </div>
-              )}
-              {selectedBillingPeriod === "annual" && (
-                <div className="mt-1 text-xs text-duo-green font-bold">
-                  Sem cobrança por aluno
+                <div className="space-y-1 text-xs text-duo-gray-dark">
+                  <div>+ R$ {formatPrice(monthlyPerStudent)}/aluno</div>
+                  <div>
+                    + R$ {formatPrice(monthlyPerPersonal)}/personal filiado
+                  </div>
                 </div>
               )}
             </DuoCard.Root>
@@ -148,23 +150,23 @@ export function SubscriptionPlansSelector({
       <div className="space-y-2 pt-4 border-t-2 border-duo-border">
         <div className="flex items-center gap-2 text-sm text-duo-text">
           <CheckCircle className="h-4 w-4 text-duo-green" />
-          <span>Gestão completa de alunos</span>
+          <span>Gestao completa de alunos</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-duo-text">
           <CheckCircle className="h-4 w-4 text-duo-green" />
-          <span>Dashboard avançado</span>
+          <span>Dashboard avancado</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-duo-text">
           <CheckCircle className="h-4 w-4 text-duo-green" />
-          <span>Premium gratuito para todos os alunos</span>
+          <span>Controle de personais filiados</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-duo-text">
           <CheckCircle className="h-4 w-4 text-duo-green" />
-          <span>Relatórios detalhados</span>
+          <span>Relatorios detalhados</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-duo-text">
           <CheckCircle className="h-4 w-4 text-duo-green" />
-          <span>Suporte prioritário</span>
+          <span>Suporte prioritario</span>
         </div>
       </div>
 

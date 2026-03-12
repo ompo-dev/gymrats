@@ -36,6 +36,10 @@ interface FinancialSubscriptionTabProps {
     isTrial: boolean;
     daysRemaining: number | null;
     activeStudents: number;
+    activePersonals: number;
+    basePrice: number;
+    pricePerStudent: number;
+    pricePerPersonal: number;
     totalAmount: number;
   } | null;
 }
@@ -390,6 +394,7 @@ export function FinancialSubscriptionTab({
               monthlyPrice: centsToReais(config.prices.monthly),
               annualPrice: centsToReais(config.prices.annual),
               perStudentPrice: centsToReais(config.pricePerStudent),
+              perPersonalPrice: centsToReais(config.pricePerPersonal ?? 0),
               features: config.features,
             })),
           [],

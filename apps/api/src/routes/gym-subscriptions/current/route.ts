@@ -1,5 +1,9 @@
 import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
+import {
+  centsToReais,
+  getGymPlanConfig,
+} from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
 import { getTimeMs } from "@/lib/utils/date-safe";
 
@@ -30,6 +34,23 @@ export const GET = createSafeHandler(
     const activePersonals = await db.gymPersonalAffiliation.count({
       where: { gymId, status: "active" },
     });
+    const billingPeriod =
+      (subscription.billingPeriod as "monthly" | "annual" | undefined) ??
+      "monthly";
+    const planConfig = getGymPlanConfig(subscription.plan);
+    const basePrice = planConfig
+      ? centsToReais(planConfig.prices[billingPeriod])
+      : subscription.basePrice;
+    const pricePerStudent = planConfig
+      ? billingPeriod === "annual"
+        ? 0
+        : centsToReais(planConfig.pricePerStudent)
+      : subscription.pricePerStudent;
+    const pricePerPersonal = planConfig
+      ? billingPeriod === "annual"
+        ? 0
+        : centsToReais(planConfig.pricePerPersonal ?? 0)
+      : (subscription.pricePerPersonal ?? 0);
 
     const trialEndMs = getTimeMs(subscription.trialEnd);
     const isTrial = !!subscription.trialEnd && (trialEndMs ?? 0) > Date.now();
@@ -40,11 +61,11 @@ export const GET = createSafeHandler(
 
     // totalAmount: anual usa o preço base (já anualizado), mensal usa base + por aluno
     const totalAmount =
-      subscription.billingPeriod === "annual"
-        ? subscription.basePrice
-        : subscription.basePrice +
-          subscription.pricePerStudent * activeStudents +
-          (subscription.pricePerPersonal ?? 0) * activePersonals;
+      billingPeriod === "annual"
+        ? basePrice
+        : basePrice +
+          pricePerStudent * activeStudents +
+          pricePerPersonal * activePersonals;
 
     // Elegibilidade de indicação:
     // - Mostra durante trial
@@ -64,7 +85,10 @@ export const GET = createSafeHandler(
     return NextResponse.json({
       subscription: {
         ...subscription,
-        billingPeriod: subscription.billingPeriod ?? "monthly",
+        billingPeriod,
+        basePrice,
+        pricePerStudent,
+        pricePerPersonal,
         isTrial,
         daysRemaining,
         activeStudents,

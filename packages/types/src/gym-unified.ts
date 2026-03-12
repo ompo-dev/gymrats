@@ -18,6 +18,7 @@ export interface GymSubscriptionSnapshot {
   status: string;
   basePrice: number;
   pricePerStudent: number;
+  pricePerPersonal: number;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
   cancelAtPeriodEnd: boolean;
@@ -27,6 +28,7 @@ export interface GymSubscriptionSnapshot {
   isTrial: boolean;
   daysRemaining: number | null;
   activeStudents: number;
+  activePersonals: number;
   totalAmount: number;
   billingPeriod?: "monthly" | "annual";
 }

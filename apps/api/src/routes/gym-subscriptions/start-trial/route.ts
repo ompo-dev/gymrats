@@ -43,6 +43,9 @@ export const POST = createSafeHandler(
         status: "trialing",
         basePrice: centsToReais(GYM_PLANS_CONFIG.BASIC.prices.monthly),
         pricePerStudent: centsToReais(GYM_PLANS_CONFIG.BASIC.pricePerStudent),
+        pricePerPersonal: centsToReais(
+          GYM_PLANS_CONFIG.BASIC.pricePerPersonal ?? 0,
+        ),
         currentPeriodStart: now,
         currentPeriodEnd: trialEnd,
         trialStart: now,

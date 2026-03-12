@@ -36,10 +36,15 @@ export const POST = createSafeHandler(
     const newBasePrice = centsToReais(config.prices[billingPeriod]);
     const newPerStudentPrice =
       billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
+    const newPerPersonalPrice =
+      billingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerPersonal ?? 0);
 
     if (
       subscription.basePrice === newBasePrice &&
-      subscription.pricePerStudent === newPerStudentPrice
+      subscription.pricePerStudent === newPerStudentPrice &&
+      (subscription.pricePerPersonal ?? 0) === newPerPersonalPrice
     ) {
       return NextResponse.json({ success: true, updated: false });
     }
@@ -49,6 +54,7 @@ export const POST = createSafeHandler(
       data: {
         basePrice: newBasePrice,
         pricePerStudent: newPerStudentPrice,
+        pricePerPersonal: newPerPersonalPrice,
       },
     });
 

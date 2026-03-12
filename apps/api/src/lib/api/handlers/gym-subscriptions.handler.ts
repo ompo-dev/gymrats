@@ -81,6 +81,42 @@ export async function getCurrentGymSubscriptionHandler(
       });
     }
 
+    const activeStudents = gymId
+      ? await db.gymMembership.count({
+          where: { gymId, status: "active" },
+        })
+      : 0;
+    const activePersonals = gymId
+      ? await db.gymPersonalAffiliation.count({
+          where: { gymId, status: "active" },
+        })
+      : 0;
+    const billingPeriod =
+      (subscription?.billingPeriod as "monthly" | "annual" | undefined) ??
+      "monthly";
+    const config = subscription ? getGymPlanConfig(subscription.plan) : null;
+    const basePrice = config
+      ? centsToReais(config.prices[billingPeriod])
+      : subscription?.basePrice;
+    const pricePerStudent = config
+      ? billingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerStudent)
+      : subscription?.pricePerStudent;
+    const pricePerPersonal = config
+      ? billingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerPersonal ?? 0)
+      : (subscription?.pricePerPersonal ?? 0);
+    const totalAmount =
+      subscription == null
+        ? 0
+        : billingPeriod === "annual"
+          ? (basePrice ?? 0)
+          : (basePrice ?? 0) +
+            (pricePerStudent ?? 0) * activeStudents +
+            pricePerPersonal * activePersonals;
+
     const isTrialActive = subscription?.trialEnd
       ? new Date(subscription.trialEnd) > new Date()
       : false;
@@ -90,7 +126,21 @@ export async function getCurrentGymSubscriptionHandler(
         ? false
         : subscription.status !== "active";
 
-    return successResponse({ subscription: subscription ?? null, isFirstPayment });
+    return successResponse({
+      subscription: subscription
+        ? {
+            ...subscription,
+            billingPeriod,
+            basePrice,
+            pricePerStudent,
+            pricePerPersonal,
+            activeStudents,
+            activePersonals,
+            totalAmount,
+          }
+        : null,
+      isFirstPayment,
+    });
   } catch (error) {
     console.error("[getCurrentGymSubscriptionHandler] Erro:", error);
     return internalErrorResponse("Erro ao buscar assinatura", error);
@@ -173,9 +223,10 @@ export async function createGymSubscriptionHandler(
     );
     const pricePerStudent =
       billingPeriod === "annual" ? 0 : centsToReais(config.pricePerStudent);
-    const pricePerPersonal = config.pricePerPersonal
-      ? centsToReais(config.pricePerPersonal)
-      : null;
+    const pricePerPersonal =
+      billingPeriod === "annual"
+        ? 0
+        : centsToReais(config.pricePerPersonal ?? 0);
 
     // Calcular período
     const periodEnd = new Date(now);
@@ -305,6 +356,9 @@ export async function startGymTrialHandler(
         status: "trialing",
         basePrice: centsToReais(getGymPlanConfig("basic")!.prices.monthly),
         pricePerStudent: centsToReais(getGymPlanConfig("basic")!.pricePerStudent),
+        pricePerPersonal: centsToReais(
+          getGymPlanConfig("basic")!.pricePerPersonal ?? 0,
+        ),
         currentPeriodStart: now,
         currentPeriodEnd: trialEnd,
         trialStart: now,

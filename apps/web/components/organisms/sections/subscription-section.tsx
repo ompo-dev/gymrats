@@ -21,6 +21,7 @@ export interface SubscriptionPlan {
   annualPrice: number;
   features: string[];
   perStudentPrice?: number; // Preço por aluno/mês (apenas para gym, plano mensal)
+  perPersonalPrice?: number; // Preço por personal filiado/mês (apenas para gym)
 }
 
 export interface SubscriptionSectionProps {
@@ -30,6 +31,10 @@ export interface SubscriptionSectionProps {
   subscription?:
     | (StudentSubscriptionData & {
         activeStudents?: number;
+        activePersonals?: number;
+        basePrice?: number;
+        pricePerStudent?: number;
+        pricePerPersonal?: number;
         totalAmount?: number;
       })
     | null;
