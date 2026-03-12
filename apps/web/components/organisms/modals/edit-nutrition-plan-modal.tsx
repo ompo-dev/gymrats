@@ -21,6 +21,8 @@ interface EditNutritionPlanModalProps {
   studentId?: string;
 }
 
+const EMPTY_NUTRITION_PLANS: NutritionPlanData[] = [];
+
 function planToTrackerNutrition(plan: NutritionPlanData | null) {
   return {
     date: new Date().toISOString().slice(0, 10),
@@ -90,7 +92,9 @@ export function EditNutritionPlanModal({
       ? `${apiMode}:${studentId}` as const
       : null;
   const detailPlans = useStudentDetailStore((state) =>
-    detailKey ? state.nutritionLibraryPlans[detailKey] ?? [] : [],
+    detailKey
+      ? state.nutritionLibraryPlans[detailKey] ?? EMPTY_NUTRITION_PLANS
+      : EMPTY_NUTRITION_PLANS,
   );
 
   const currentPlan = useMemo(() => {

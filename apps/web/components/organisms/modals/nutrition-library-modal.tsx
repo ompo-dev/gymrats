@@ -22,6 +22,8 @@ interface NutritionLibraryModalProps {
   onPlansSynced?: () => void | Promise<void>;
 }
 
+const EMPTY_NUTRITION_PLANS: NutritionPlanData[] = [];
+
 export function NutritionLibraryModal({
   apiMode = "student",
   studentId,
@@ -74,7 +76,9 @@ export function NutritionLibraryModal({
       ? `${apiMode}:${studentId}` as const
       : null;
   const detailPlans = useStudentDetailStore((state) =>
-    detailKey ? state.nutritionLibraryPlans[detailKey] ?? [] : [],
+    detailKey
+      ? state.nutritionLibraryPlans[detailKey] ?? EMPTY_NUTRITION_PLANS
+      : EMPTY_NUTRITION_PLANS,
   );
   const activeDetailPlan = useStudentDetailStore((state) =>
     detailKey ? state.activeNutritionPlans[detailKey] ?? null : null,
