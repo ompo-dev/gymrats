@@ -22,6 +22,17 @@ import { hasActivePremiumStatus } from "@/lib/utils/subscription";
 
 const MAX_HISTORY = 4; // Últimas 4 mensagens para reduzir tokens
 
+function parseJsonStringArray(value: string | null | undefined): string[] {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
 function sendSSE(
   controller: ReadableStreamDefaultController,
   event: string,
@@ -129,6 +140,25 @@ export async function POST(request: NextRequest) {
           return;
         }
 
+        const student = await db.student.findUnique({
+          where: { id: studentId },
+          include: {
+            profile: {
+              select: {
+                targetCalories: true,
+                targetProtein: true,
+                targetCarbs: true,
+                targetFats: true,
+                targetWater: true,
+                mealsPerDay: true,
+                dietType: true,
+                allergies: true,
+                goals: true,
+              },
+            },
+          },
+        });
+
         let meals = existingMeals;
         if (!meals || meals.length === 0) {
           const todayDate = new Date().toISOString().split("T")[0];
@@ -155,6 +185,53 @@ export async function POST(request: NextRequest) {
         }
 
         let enhancedSystemPrompt = NUTRITION_SYSTEM_PROMPT;
+        const profile = student?.profile;
+        const allergies = parseJsonStringArray(profile?.allergies);
+        const goals = parseJsonStringArray(profile?.goals);
+        const studentContext: string[] = [];
+
+        if (profile?.targetCalories != null) {
+          studentContext.push(
+            `- Meta calórica diária: ${profile.targetCalories} kcal`,
+          );
+        }
+        if (profile?.targetProtein != null) {
+          studentContext.push(
+            `- Meta diária de proteína: ${profile.targetProtein} g`,
+          );
+        }
+        if (profile?.targetCarbs != null) {
+          studentContext.push(
+            `- Meta diária de carboidratos: ${profile.targetCarbs} g`,
+          );
+        }
+        if (profile?.targetFats != null) {
+          studentContext.push(
+            `- Meta diária de gorduras: ${profile.targetFats} g`,
+          );
+        }
+        if (profile?.targetWater != null) {
+          studentContext.push(`- Meta diária de água: ${profile.targetWater} ml`);
+        }
+        if (profile?.mealsPerDay != null) {
+          studentContext.push(
+            `- Preferência de refeições por dia: ${profile.mealsPerDay}`,
+          );
+        }
+        if (profile?.dietType) {
+          studentContext.push(`- Tipo de dieta preferido: ${profile.dietType}`);
+        }
+        if (allergies.length > 0) {
+          studentContext.push(`- Alergias/restrições: ${allergies.join(", ")}`);
+        }
+        if (goals.length > 0) {
+          studentContext.push(`- Objetivos: ${goals.join(", ")}`);
+        }
+
+        if (studentContext.length > 0) {
+          enhancedSystemPrompt += `\n\nDADOS FIXOS DO ALUNO (use como fonte de verdade):\n${studentContext.join("\n")}\n\nSe esses dados estiverem presentes, não peça novamente calorias, proteína, carboidratos, gorduras, água, preferências alimentares básicas ou quantidade de refeições. Use esses dados para montar a resposta. Só peça clarificação se faltar uma informação realmente indispensável para executar o pedido.`;
+        }
+
         if (meals?.length > 0) {
           const mealsInfo = meals
             .map(

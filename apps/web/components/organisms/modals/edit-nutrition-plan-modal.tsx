@@ -301,6 +301,7 @@ export function EditNutritionPlanModal({
               readOnly={false}
               waterReadOnly
               showCompletionControls={false}
+              showHydration={false}
             />
           </div>
         </Modal.Content>

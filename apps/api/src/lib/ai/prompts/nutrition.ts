@@ -165,6 +165,8 @@ const NUTRITION_PROMPT_JSON = {
     quantityUnclear: "Usar servings = 1",
     foodUnclear: "Solicitar clarificação",
     values: "Usar valores nutricionais realistas",
+    studentContext:
+      "Quando o sistema fornecer metas, macros, preferencias ou restricoes do aluno, use esses dados como fonte de verdade e nao pergunte novamente por eles.",
   },
 
   InitialMessage:

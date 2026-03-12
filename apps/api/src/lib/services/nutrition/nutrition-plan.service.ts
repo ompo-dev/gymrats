@@ -89,7 +89,7 @@ type DailyNutritionWithRelations = Prisma.DailyNutritionGetPayload<{
       orderBy: { order: "asc" };
       include: {
         foods: {
-          orderBy: { order: "asc" };
+          orderBy: { createdAt: "asc" };
         };
       };
     };
@@ -497,7 +497,7 @@ async function getOrCreateDailyNutrition(
         orderBy: { order: "asc" },
         include: {
           foods: {
-            orderBy: { order: "asc" },
+            orderBy: { createdAt: "asc" },
           },
         },
       },
@@ -809,19 +809,6 @@ export async function activateNutritionLibraryPlanForStudent(
       data: { activeNutritionPlanId: clonedPlan.id },
     });
 
-    if (student?.activeNutritionPlanId) {
-      const previousPlan = await tx.nutritionPlan.findUnique({
-        where: { id: student.activeNutritionPlanId },
-        select: { id: true, isLibraryTemplate: true },
-      });
-
-      if (previousPlan && !previousPlan.isLibraryTemplate) {
-        await tx.nutritionPlan.delete({
-          where: { id: previousPlan.id },
-        });
-      }
-    }
-
     await createDailySnapshotFromPlan(
       tx,
       studentId,
@@ -829,6 +816,9 @@ export async function activateNutritionLibraryPlanForStudent(
       currentDateKey,
       currentSnapshot?.waterIntake ?? 0,
     );
+  }, {
+    maxWait: 10_000,
+    timeout: 20_000,
   });
 
   return getActiveNutritionPlan(studentId);

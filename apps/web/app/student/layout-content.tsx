@@ -59,6 +59,7 @@ export function StudentLayoutContent({
   const storeProgress = (useStudent("progress") as unknown) as import("@/lib/types").UserProgress | undefined;
   const { loadWeeklyPlan } = useStudent("loaders");
   const editPlanModal = useModalState("edit-plan");
+  const nutritionLibraryModal = useModalState("nutrition-library");
   const currentStreak = storeProgress?.currentStreak ?? initialProgress.streak;
   const currentXP = storeProgress?.totalXP ?? initialProgress.xp;
 
@@ -133,7 +134,7 @@ export function StudentLayoutContent({
           <WorkoutModal.Simple />
           <EditUnitModal />
           <TrainingLibraryModal />
-          <NutritionLibraryModal />
+          {nutritionLibraryModal.isOpen && <NutritionLibraryModal />}
           {editPlanModal.isOpen && (
             <EditUnitModal
               isWeeklyPlanMode
