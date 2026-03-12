@@ -70,7 +70,7 @@ export async function POST(
       return validation.response;
     }
 
-    const { date, meals, targetWater, waterIntake } = validation.data;
+    const { date, meals, syncPlan, targetWater, waterIntake } = validation.data;
 
     if (targetWater !== undefined) {
       await updateStudentTargetWater(studentId, targetWater);
@@ -95,6 +95,7 @@ export async function POST(
       studentId,
       dateKey,
       meals,
+      syncPlan,
       waterIntake,
       actor: {
         createdById: ctx.gymId,

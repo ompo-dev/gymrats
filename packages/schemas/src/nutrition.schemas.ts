@@ -74,6 +74,7 @@ export const updateDailyNutritionSchema = z.object({
     ])
     .optional(),
   meals: z.array(nutritionMealSchema).optional(),
+  syncPlan: z.boolean().optional(),
   waterIntake: z.number().int().nonnegative().optional(),
   targetWater: z.number().int().positive().optional(),
 });

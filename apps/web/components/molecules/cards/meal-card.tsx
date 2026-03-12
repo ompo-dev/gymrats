@@ -157,22 +157,26 @@ function MealCardSimple({
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
             <div className="text-sm font-bold text-duo-text">
-              {meal.calories}
+              {Math.round(meal.calories)}
             </div>
             <div className="text-xs text-duo-gray-dark">cal</div>
           </div>
           <div>
             <div className="text-sm font-bold text-duo-text">
-              {meal.protein}g
+              {Math.round(meal.protein)}g
             </div>
             <div className="text-xs text-duo-gray-dark">prot</div>
           </div>
           <div>
-            <div className="text-sm font-bold text-duo-text">{meal.carbs}g</div>
+            <div className="text-sm font-bold text-duo-text">
+              {Math.round(meal.carbs)}g
+            </div>
             <div className="text-xs text-duo-gray-dark">carb</div>
           </div>
           <div>
-            <div className="text-sm font-bold text-duo-text">{meal.fats}g</div>
+            <div className="text-sm font-bold text-duo-text">
+              {Math.round(meal.fats)}g
+            </div>
             <div className="text-xs text-duo-gray-dark">gord</div>
           </div>
         </div>

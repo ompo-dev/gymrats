@@ -79,7 +79,7 @@ export async function updateDailyNutritionHandler(
       return validation.response;
     }
 
-    const { date, meals, targetWater, waterIntake } = validation.data;
+    const { date, meals, syncPlan, targetWater, waterIntake } = validation.data;
     const studentId = auth.user.student?.id ?? "";
 
     if (targetWater !== undefined) {
@@ -105,6 +105,7 @@ export async function updateDailyNutritionHandler(
       studentId,
       dateKey,
       meals,
+      syncPlan,
       waterIntake,
       actor: {
         createdById: studentId,

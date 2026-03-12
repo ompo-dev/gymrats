@@ -552,16 +552,16 @@ function FoodSearchSimple({
                               </div>
                               <div className="flex flex-wrap gap-2">
                                 <span className="rounded-full bg-[var(--duo-primary)]/20 px-2 py-0.5 text-xs font-bold text-[var(--duo-primary)]">
-                                  {food.calories} cal
+                                  {Math.round(food.calories)} cal
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  P: {food.protein}g
+                                  P: {Math.round(food.protein)}g
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  C: {food.carbs}g
+                                  C: {Math.round(food.carbs)}g
                                 </span>
                                 <span className="rounded-full bg-[var(--duo-border)] px-2 py-0.5 text-xs font-bold text-[var(--duo-fg-muted)]">
-                                  G: {food.fats}g
+                                  G: {Math.round(food.fats)}g
                                 </span>
                               </div>
                             </div>

@@ -8,6 +8,85 @@ import type {
 } from "@/lib/types";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
+function roundNutritionValue(value: number | null | undefined) {
+  return Math.round(Number(value ?? 0));
+}
+
+function normalizeComparableNutritionFood(food: MealFoodItem) {
+  return {
+    foodId: food.foodId || null,
+    foodName: food.foodName || "",
+    servings: roundNutritionValue(food.servings),
+    calories: roundNutritionValue(food.calories),
+    protein: roundNutritionValue(food.protein),
+    carbs: roundNutritionValue(food.carbs),
+    fats: roundNutritionValue(food.fats),
+    servingSize: food.servingSize || "",
+  };
+}
+
+function normalizeComparableNutritionMeal(meal: Meal, order: number) {
+  return {
+    name: meal.name || "",
+    type: meal.type || "snack",
+    calories: roundNutritionValue(meal.calories),
+    protein: roundNutritionValue(meal.protein),
+    carbs: roundNutritionValue(meal.carbs),
+    fats: roundNutritionValue(meal.fats),
+    time: meal.time || null,
+    order,
+    foods: (meal.foods || []).map(normalizeComparableNutritionFood),
+  };
+}
+
+export function hasNutritionMealStructureChanged(
+  previousMeals: Meal[],
+  nextMeals: Meal[],
+) {
+  if (previousMeals.length !== nextMeals.length) {
+    return true;
+  }
+
+  for (let index = 0; index < previousMeals.length; index += 1) {
+    const previousMeal = normalizeComparableNutritionMeal(previousMeals[index], index);
+    const nextMeal = normalizeComparableNutritionMeal(nextMeals[index], index);
+
+    if (
+      previousMeal.name !== nextMeal.name ||
+      previousMeal.type !== nextMeal.type ||
+      previousMeal.calories !== nextMeal.calories ||
+      previousMeal.protein !== nextMeal.protein ||
+      previousMeal.carbs !== nextMeal.carbs ||
+      previousMeal.fats !== nextMeal.fats ||
+      previousMeal.time !== nextMeal.time ||
+      previousMeal.order !== nextMeal.order ||
+      previousMeal.foods.length !== nextMeal.foods.length
+    ) {
+      return true;
+    }
+
+    for (let foodIndex = 0; foodIndex < previousMeal.foods.length; foodIndex += 1) {
+      const previousFood = previousMeal.foods[foodIndex];
+      const nextFood = nextMeal.foods[foodIndex];
+
+      if (
+        previousFood.foodId !== nextFood.foodId ||
+        previousFood.foodName !== nextFood.foodName ||
+        previousFood.servings !== nextFood.servings ||
+        previousFood.calories !== nextFood.calories ||
+        previousFood.protein !== nextFood.protein ||
+        previousFood.carbs !== nextFood.carbs ||
+        previousFood.fats !== nextFood.fats ||
+        previousFood.servingSize !== nextFood.servingSize
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function calculateCompletedNutritionTotals(meals: Meal[]) {
   const completedMeals = meals.filter((meal) => meal.completed === true);
 
@@ -59,15 +138,29 @@ export function normalizeDailyNutrition(
           ? getBrazilNutritionDateKey(fallback.date)
           : getBrazilNutritionDateKey(),
     meals,
-    totalCalories: data?.totalCalories ?? completedTotals.totalCalories,
-    totalProtein: data?.totalProtein ?? completedTotals.totalProtein,
-    totalCarbs: data?.totalCarbs ?? completedTotals.totalCarbs,
-    totalFats: data?.totalFats ?? completedTotals.totalFats,
+    totalCalories: roundNutritionValue(
+      data?.totalCalories ?? completedTotals.totalCalories,
+    ),
+    totalProtein: roundNutritionValue(
+      data?.totalProtein ?? completedTotals.totalProtein,
+    ),
+    totalCarbs: roundNutritionValue(
+      data?.totalCarbs ?? completedTotals.totalCarbs,
+    ),
+    totalFats: roundNutritionValue(data?.totalFats ?? completedTotals.totalFats),
     waterIntake: data?.waterIntake ?? fallback?.waterIntake ?? 0,
-    targetCalories: data?.targetCalories ?? fallback?.targetCalories ?? 2000,
-    targetProtein: data?.targetProtein ?? fallback?.targetProtein ?? 150,
-    targetCarbs: data?.targetCarbs ?? fallback?.targetCarbs ?? 250,
-    targetFats: data?.targetFats ?? fallback?.targetFats ?? 65,
+    targetCalories: roundNutritionValue(
+      data?.targetCalories ?? fallback?.targetCalories ?? 2000,
+    ),
+    targetProtein: roundNutritionValue(
+      data?.targetProtein ?? fallback?.targetProtein ?? 150,
+    ),
+    targetCarbs: roundNutritionValue(
+      data?.targetCarbs ?? fallback?.targetCarbs ?? 250,
+    ),
+    targetFats: roundNutritionValue(
+      data?.targetFats ?? fallback?.targetFats ?? 65,
+    ),
     targetWater: data?.targetWater ?? fallback?.targetWater ?? 3000,
     sourceNutritionPlanId:
       data?.sourceNutritionPlanId ?? fallback?.sourceNutritionPlanId ?? null,
@@ -84,10 +177,10 @@ export function mealFoodToPlanFood(food: MealFoodItem): NutritionPlanFoodItemDat
     foodId: food.foodId,
     foodName: food.foodName,
     servings: food.servings,
-    calories: food.calories,
-    protein: food.protein,
-    carbs: food.carbs,
-    fats: food.fats,
+    calories: roundNutritionValue(food.calories),
+    protein: roundNutritionValue(food.protein),
+    carbs: roundNutritionValue(food.carbs),
+    fats: roundNutritionValue(food.fats),
     servingSize: food.servingSize,
   };
 }
@@ -97,10 +190,10 @@ export function mealToNutritionPlanMeal(meal: Meal, order: number): NutritionPla
     id: meal.id,
     name: meal.name,
     type: meal.type,
-    calories: meal.calories || 0,
-    protein: meal.protein || 0,
-    carbs: meal.carbs || 0,
-    fats: meal.fats || 0,
+    calories: roundNutritionValue(meal.calories),
+    protein: roundNutritionValue(meal.protein),
+    carbs: roundNutritionValue(meal.carbs),
+    fats: roundNutritionValue(meal.fats),
     time: meal.time,
     order,
     foods: (meal.foods || []).map(mealFoodToPlanFood),
@@ -114,10 +207,10 @@ export function nutritionPlanToMeals(
     id: meal.id,
     name: meal.name,
     type: meal.type,
-    calories: meal.calories,
-    protein: meal.protein,
-    carbs: meal.carbs,
-    fats: meal.fats,
+    calories: roundNutritionValue(meal.calories),
+    protein: roundNutritionValue(meal.protein),
+    carbs: roundNutritionValue(meal.carbs),
+    fats: roundNutritionValue(meal.fats),
     time: meal.time,
     completed: false,
     foods: meal.foods.map((food) => ({
@@ -125,10 +218,10 @@ export function nutritionPlanToMeals(
       foodId: food.foodId || "",
       foodName: food.foodName,
       servings: food.servings,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fats: food.fats,
+      calories: roundNutritionValue(food.calories),
+      protein: roundNutritionValue(food.protein),
+      carbs: roundNutritionValue(food.carbs),
+      fats: roundNutritionValue(food.fats),
       servingSize: food.servingSize,
     })),
   }));
@@ -147,10 +240,10 @@ export function mealsToNutritionPlanData(params: {
     id: params.basePlan?.id ?? "temp-active-nutrition-plan",
     title: params.basePlan?.title ?? "Meu Plano Alimentar",
     description: params.basePlan?.description ?? null,
-    totalCalories: targets.totalCalories,
-    targetProtein: targets.targetProtein,
-    targetCarbs: targets.targetCarbs,
-    targetFats: targets.targetFats,
+    totalCalories: roundNutritionValue(targets.totalCalories),
+    targetProtein: roundNutritionValue(targets.targetProtein),
+    targetCarbs: roundNutritionValue(targets.targetCarbs),
+    targetFats: roundNutritionValue(targets.targetFats),
     isLibraryTemplate: params.basePlan?.isLibraryTemplate ?? false,
     createdById: params.basePlan?.createdById ?? null,
     creatorType: params.basePlan?.creatorType ?? null,
@@ -167,10 +260,10 @@ export function createDailyNutritionFromPlan(params: {
   const meals = nutritionPlanToMeals(params.plan);
   const targets = params.plan
     ? {
-        targetCalories: params.plan.totalCalories,
-        targetProtein: params.plan.targetProtein,
-        targetCarbs: params.plan.targetCarbs,
-        targetFats: params.plan.targetFats,
+        targetCalories: roundNutritionValue(params.plan.totalCalories),
+        targetProtein: roundNutritionValue(params.plan.targetProtein),
+        targetCarbs: roundNutritionValue(params.plan.targetCarbs),
+        targetFats: roundNutritionValue(params.plan.targetFats),
       }
     : {
         targetCalories: params.baseNutrition?.targetCalories ?? 2000,

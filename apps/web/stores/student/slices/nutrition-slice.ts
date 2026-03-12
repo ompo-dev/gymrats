@@ -6,6 +6,7 @@ import { apiClient } from "@/lib/api/client";
 import type { DailyNutrition, Meal, NutritionPlanData } from "@/lib/types";
 import {
   createDailyNutritionFromPlan,
+  hasNutritionMealStructureChanged,
   mealsToNutritionPlanData,
   normalizeDailyNutrition,
 } from "@/lib/utils/nutrition/nutrition-plan";
@@ -13,7 +14,24 @@ import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { deduplicateMeals, loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
 
+const DAILY_NUTRITION_FLUSH_DELAY_MS = 350;
 const pendingNutritionLibraryUpdates = new Map<string, Promise<void>>();
+const pendingDailyNutritionSyncs = new Map<string, Promise<void>>();
+const pendingDailyNutritionFlushTimers = new Map<
+  string,
+  ReturnType<typeof setTimeout>
+>();
+const pendingDailyNutritionNeedsFlush = new Set<string>();
+const pendingDailyNutritionResolvers = new Map<
+  string,
+  Array<{
+    version: number;
+    resolve: () => void;
+    reject: (error: unknown) => void;
+  }>
+>();
+const latestDailyNutritionVersions = new Map<string, number>();
+const latestDailyNutritionSyncPlanFlags = new Map<string, boolean>();
 
 function toApiMeals(meals: Meal[]) {
   return meals.map((meal, index) => ({
@@ -49,6 +67,43 @@ function upsertNutritionLibraryPlan(
   }
 
   return plans.map((plan) => (plan.id === nextPlan.id ? nextPlan : plan));
+}
+
+function buildDailyNutritionPayload(nutrition: DailyNutrition) {
+  return {
+    date: nutrition.date,
+    meals: toApiMeals(nutrition.meals),
+    waterIntake: nutrition.waterIntake,
+    targetWater: nutrition.targetWater,
+  };
+}
+
+function settleDailyNutritionResolvers(
+  key: string,
+  version: number,
+  error?: unknown,
+) {
+  const resolvers = pendingDailyNutritionResolvers.get(key);
+  if (!resolvers || resolvers.length === 0) {
+    return;
+  }
+
+  const settledResolvers = resolvers.filter((resolver) => resolver.version <= version);
+  const remainingResolvers = resolvers.filter((resolver) => resolver.version > version);
+
+  if (remainingResolvers.length > 0) {
+    pendingDailyNutritionResolvers.set(key, remainingResolvers);
+  } else {
+    pendingDailyNutritionResolvers.delete(key);
+  }
+
+  for (const resolver of settledResolvers) {
+    if (error) {
+      resolver.reject(error);
+    } else {
+      resolver.resolve();
+    }
+  }
 }
 
 function createOptimisticActivatedPlan(
@@ -189,7 +244,6 @@ export function createNutritionSlice(
 
     updateNutrition: async (updates: Partial<DailyNutrition>) => {
       const previousNutrition = get().data.dailyNutrition;
-      const previousActiveNutritionPlan = get().data.activeNutritionPlan;
       const resolvedDate = (() => {
         try {
           return getBrazilNutritionDateKey(updates.date || previousNutrition.date);
@@ -203,6 +257,10 @@ export function createNutritionSlice(
         updates.meals !== undefined
           ? deduplicateMeals(updates.meals)
           : previousNutrition.meals;
+      const shouldSyncPlan =
+        updates.meals !== undefined &&
+        isToday &&
+        hasNutritionMealStructureChanged(previousNutrition.meals, nextMeals);
 
       const nextDailyNutrition = normalizeDailyNutrition(
         {
@@ -219,7 +277,7 @@ export function createNutritionSlice(
           ...state.data,
           dailyNutrition: nextDailyNutrition,
           activeNutritionPlan:
-            updates.meals !== undefined && isToday
+            shouldSyncPlan
               ? mealsToNutritionPlanData({
                   meals: nextMeals,
                   basePlan: state.data.activeNutritionPlan,
@@ -228,43 +286,101 @@ export function createNutritionSlice(
         },
       }));
 
-      try {
-        const response = await apiClient.post<{
-          data?: Partial<DailyNutrition>;
-        }>("/api/nutrition/daily", {
-          date: resolvedDate,
-          ...(updates.meals !== undefined && { meals: toApiMeals(nextMeals) }),
-          ...(updates.waterIntake !== undefined && {
-            waterIntake: nextDailyNutrition.waterIntake,
-          }),
-          ...(updates.targetWater !== undefined && {
-            targetWater: updates.targetWater,
-          }),
-        });
+      const version = (latestDailyNutritionVersions.get(resolvedDate) ?? 0) + 1;
+      latestDailyNutritionVersions.set(resolvedDate, version);
+      latestDailyNutritionSyncPlanFlags.set(
+        resolvedDate,
+        (latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false) || shouldSyncPlan,
+      );
 
-        const responseNutrition = normalizeDailyNutrition(
-          response.data.data ?? nextDailyNutrition,
-          nextDailyNutrition,
-        );
+      const flushPromise = new Promise<void>((resolve, reject) => {
+        const resolvers = pendingDailyNutritionResolvers.get(resolvedDate) ?? [];
+        resolvers.push({ version, resolve, reject });
+        pendingDailyNutritionResolvers.set(resolvedDate, resolvers);
+      });
 
-        set((state) => ({
-          data: {
-            ...state.data,
-            dailyNutrition: responseNutrition,
-          },
-        }));
+      const scheduleFlush = () => {
+        const existingTimer = pendingDailyNutritionFlushTimers.get(resolvedDate);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
 
-      } catch (error) {
-        console.error("Erro ao atualizar nutricao:", error);
-        set((state) => ({
-          data: {
-            ...state.data,
-            dailyNutrition: previousNutrition,
-            activeNutritionPlan: previousActiveNutritionPlan,
-          },
-        }));
-        throw error;
+        const timer = setTimeout(() => {
+          pendingDailyNutritionFlushTimers.delete(resolvedDate);
+
+          if (pendingDailyNutritionSyncs.has(resolvedDate)) {
+            pendingDailyNutritionNeedsFlush.add(resolvedDate);
+            return;
+          }
+
+          const flushVersion = latestDailyNutritionVersions.get(resolvedDate) ?? version;
+          const currentNutrition = get().data.dailyNutrition;
+
+          if (!currentNutrition || currentNutrition.date !== resolvedDate) {
+            settleDailyNutritionResolvers(resolvedDate, flushVersion);
+            return;
+          }
+
+          const request = apiClient
+            .post<{
+              data?: Partial<DailyNutrition>;
+            }>("/api/nutrition/daily", {
+              ...buildDailyNutritionPayload(currentNutrition),
+              syncPlan: latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false,
+            })
+            .then((response) => {
+              const latestVersion = latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
+              const responseNutrition = normalizeDailyNutrition(
+                response.data.data ?? currentNutrition,
+                currentNutrition,
+              );
+
+              if (latestVersion === flushVersion) {
+                set((state) => ({
+                  data: {
+                    ...state.data,
+                    dailyNutrition: responseNutrition,
+                  },
+                }));
+              }
+
+              settleDailyNutritionResolvers(resolvedDate, flushVersion);
+            })
+            .catch((error) => {
+              console.error("Erro ao atualizar nutricao:", error);
+              settleDailyNutritionResolvers(resolvedDate, flushVersion, error);
+            })
+            .finally(() => {
+              if (pendingDailyNutritionSyncs.get(resolvedDate) === request) {
+                pendingDailyNutritionSyncs.delete(resolvedDate);
+              }
+
+              const latestVersion = latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
+              const needsAnotherFlush =
+                pendingDailyNutritionNeedsFlush.has(resolvedDate) ||
+                latestVersion > flushVersion;
+
+              if (needsAnotherFlush) {
+                pendingDailyNutritionNeedsFlush.delete(resolvedDate);
+                scheduleFlush();
+              } else {
+                latestDailyNutritionSyncPlanFlags.delete(resolvedDate);
+              }
+            });
+
+          pendingDailyNutritionSyncs.set(resolvedDate, request);
+        }, DAILY_NUTRITION_FLUSH_DELAY_MS);
+
+        pendingDailyNutritionFlushTimers.set(resolvedDate, timer);
+      };
+
+      if (pendingDailyNutritionSyncs.has(resolvedDate)) {
+        pendingDailyNutritionNeedsFlush.add(resolvedDate);
+      } else {
+        scheduleFlush();
       }
+
+      await flushPromise;
     },
 
     createNutritionLibraryPlan: async (data) => {

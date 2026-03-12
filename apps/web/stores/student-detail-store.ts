@@ -10,12 +10,30 @@ import type {
 } from "@/lib/types";
 import {
   createDailyNutritionFromPlan,
+  hasNutritionMealStructureChanged,
   mealsToNutritionPlanData,
   normalizeDailyNutrition,
 } from "@/lib/utils/nutrition/nutrition-plan";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
+const DETAIL_DAILY_NUTRITION_FLUSH_DELAY_MS = 350;
 const pendingDetailNutritionLibraryUpdates = new Map<string, Promise<void>>();
+const pendingDetailDailyNutritionSyncs = new Map<string, Promise<void>>();
+const pendingDetailDailyNutritionFlushTimers = new Map<
+  string,
+  ReturnType<typeof setTimeout>
+>();
+const pendingDetailDailyNutritionNeedsFlush = new Set<string>();
+const pendingDetailDailyNutritionResolvers = new Map<
+  string,
+  Array<{
+    version: number;
+    resolve: () => void;
+    reject: (error: unknown) => void;
+  }>
+>();
+const latestDetailDailyNutritionVersions = new Map<string, number>();
+const latestDetailDailyNutritionSyncPlanFlags = new Map<string, boolean>();
 
 export type StudentDetailScope = "gym" | "personal";
 
@@ -289,6 +307,43 @@ function syncLinkedNutritionState(params: {
   };
 }
 
+function buildDetailDailyNutritionPayload(nutrition: DailyNutrition) {
+  return {
+    date: nutrition.date,
+    meals: toApiMeals(nutrition.meals),
+    waterIntake: nutrition.waterIntake,
+    targetWater: nutrition.targetWater,
+  };
+}
+
+function settleDetailDailyNutritionResolvers(
+  key: string,
+  version: number,
+  error?: unknown,
+) {
+  const resolvers = pendingDetailDailyNutritionResolvers.get(key);
+  if (!resolvers || resolvers.length === 0) {
+    return;
+  }
+
+  const settledResolvers = resolvers.filter((resolver) => resolver.version <= version);
+  const remainingResolvers = resolvers.filter((resolver) => resolver.version > version);
+
+  if (remainingResolvers.length > 0) {
+    pendingDetailDailyNutritionResolvers.set(key, remainingResolvers);
+  } else {
+    pendingDetailDailyNutritionResolvers.delete(key);
+  }
+
+  for (const resolver of settledResolvers) {
+    if (error) {
+      resolver.reject(error);
+    } else {
+      resolver.resolve();
+    }
+  }
+}
+
 export const useStudentDetailStore = create<StudentDetailState>()((set, get) => ({
   weeklyPlans: {},
   activeNutritionPlans: {},
@@ -510,8 +565,11 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
 
   saveNutrition: async ({ scope, studentId, date, meals, waterIntake, targets }) => {
     const key = createStudentDetailKey(scope, studentId);
+    const requestKey = `${key}:${date}`;
     const previousNutrition = get().nutritionByDate[key]?.[date] ?? null;
-    const previousActivePlan = get().activeNutritionPlans[key] ?? null;
+    const shouldSyncPlan =
+      date === getBrazilNutritionDateKey() &&
+      hasNutritionMealStructureChanged(previousNutrition?.meals ?? [], meals);
     const nextNutrition = normalizeDailyNutrition(
       {
         date,
@@ -539,7 +597,7 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
       activeNutritionPlans: {
         ...state.activeNutritionPlans,
         [key]:
-          meals.length > 0
+          shouldSyncPlan && meals.length > 0
             ? mealsToNutritionPlanData({
                 meals,
                 basePlan: state.activeNutritionPlans[key] ?? null,
@@ -548,47 +606,110 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
       },
     }));
 
-    try {
-      const response = await apiClient.post<{
-        data?: Partial<DailyNutrition>;
-      }>(getNutritionBase(scope, studentId), {
-        date,
-        meals: toApiMeals(meals),
-        waterIntake,
-      });
+    const version =
+      (latestDetailDailyNutritionVersions.get(requestKey) ?? 0) + 1;
+    latestDetailDailyNutritionVersions.set(requestKey, version);
+    latestDetailDailyNutritionSyncPlanFlags.set(
+      requestKey,
+      (latestDetailDailyNutritionSyncPlanFlags.get(requestKey) ?? false) ||
+        shouldSyncPlan,
+    );
 
-      const payload = normalizeDailyNutrition(
-        response.data.data ?? nextNutrition,
-        nextNutrition,
-      );
+    const flushPromise = new Promise<void>((resolve, reject) => {
+      const resolvers = pendingDetailDailyNutritionResolvers.get(requestKey) ?? [];
+      resolvers.push({ version, resolve, reject });
+      pendingDetailDailyNutritionResolvers.set(requestKey, resolvers);
+    });
 
-      set((state) => ({
-        nutritionByDate: {
-          ...state.nutritionByDate,
-          [key]: {
-            ...(state.nutritionByDate[key] ?? {}),
-            [date]: payload,
-          },
-        },
-      }));
+    const scheduleFlush = () => {
+      const existingTimer = pendingDetailDailyNutritionFlushTimers.get(requestKey);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
 
-      await get().loadActiveNutritionPlan(scope, studentId);
-    } catch (error) {
-      set((state) => ({
-        nutritionByDate: {
-          ...state.nutritionByDate,
-          [key]: {
-            ...(state.nutritionByDate[key] ?? {}),
-            [date]: previousNutrition,
-          },
-        },
-        activeNutritionPlans: {
-          ...state.activeNutritionPlans,
-          [key]: previousActivePlan,
-        },
-      }));
-      throw error;
+      const timer = setTimeout(() => {
+        pendingDetailDailyNutritionFlushTimers.delete(requestKey);
+
+        if (pendingDetailDailyNutritionSyncs.has(requestKey)) {
+          pendingDetailDailyNutritionNeedsFlush.add(requestKey);
+          return;
+        }
+
+        const flushVersion =
+          latestDetailDailyNutritionVersions.get(requestKey) ?? version;
+        const currentNutrition = get().nutritionByDate[key]?.[date] ?? null;
+
+        if (!currentNutrition) {
+          settleDetailDailyNutritionResolvers(requestKey, flushVersion);
+          return;
+        }
+
+        const request = apiClient
+          .post<{
+            data?: Partial<DailyNutrition>;
+          }>(getNutritionBase(scope, studentId), {
+            ...buildDetailDailyNutritionPayload(currentNutrition),
+            syncPlan:
+              latestDetailDailyNutritionSyncPlanFlags.get(requestKey) ?? false,
+          })
+          .then((response) => {
+            const latestVersion =
+              latestDetailDailyNutritionVersions.get(requestKey) ?? flushVersion;
+            const payload = normalizeDailyNutrition(
+              response.data.data ?? currentNutrition,
+              currentNutrition,
+            );
+
+            if (latestVersion === flushVersion) {
+              set((state) => ({
+                nutritionByDate: {
+                  ...state.nutritionByDate,
+                  [key]: {
+                    ...(state.nutritionByDate[key] ?? {}),
+                    [date]: payload,
+                  },
+                },
+              }));
+            }
+
+            settleDetailDailyNutritionResolvers(requestKey, flushVersion);
+          })
+          .catch((error) => {
+            console.error("Erro ao atualizar nutricao do aluno:", error);
+            settleDetailDailyNutritionResolvers(requestKey, flushVersion, error);
+          })
+          .finally(() => {
+            if (pendingDetailDailyNutritionSyncs.get(requestKey) === request) {
+              pendingDetailDailyNutritionSyncs.delete(requestKey);
+            }
+
+            const latestVersion =
+              latestDetailDailyNutritionVersions.get(requestKey) ?? flushVersion;
+            const needsAnotherFlush =
+              pendingDetailDailyNutritionNeedsFlush.has(requestKey) ||
+              latestVersion > flushVersion;
+
+            if (needsAnotherFlush) {
+              pendingDetailDailyNutritionNeedsFlush.delete(requestKey);
+              scheduleFlush();
+            } else {
+              latestDetailDailyNutritionSyncPlanFlags.delete(requestKey);
+            }
+          });
+
+        pendingDetailDailyNutritionSyncs.set(requestKey, request);
+      }, DETAIL_DAILY_NUTRITION_FLUSH_DELAY_MS);
+
+      pendingDetailDailyNutritionFlushTimers.set(requestKey, timer);
+    };
+
+    if (pendingDetailDailyNutritionSyncs.has(requestKey)) {
+      pendingDetailDailyNutritionNeedsFlush.add(requestKey);
+    } else {
+      scheduleFlush();
     }
+
+    await flushPromise;
   },
 
   updateTargetWater: async ({ scope, studentId, date, targetWater }) => {

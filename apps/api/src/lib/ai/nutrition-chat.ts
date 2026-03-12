@@ -25,6 +25,10 @@ export interface NutritionChatProfileContext {
   goals?: string[] | null;
 }
 
+function roundNutritionChatNumber(value: number | null | undefined) {
+  return Math.round(Number(value ?? 0));
+}
+
 const DEFAULT_MEAL_NAMES: Record<string, string> = {
   breakfast: "Cafe da Manha",
   lunch: "Almoco",
@@ -164,19 +168,29 @@ export function buildNutritionSystemPrompt(params: {
   const studentContext: string[] = [];
 
   if (profile?.targetCalories != null) {
-    studentContext.push(`- Meta calorica diaria: ${profile.targetCalories} kcal`);
+    studentContext.push(
+      `- Meta calorica diaria: ${roundNutritionChatNumber(profile.targetCalories)} kcal`,
+    );
   }
   if (profile?.targetProtein != null) {
-    studentContext.push(`- Meta diaria de proteina: ${profile.targetProtein} g`);
+    studentContext.push(
+      `- Meta diaria de proteina: ${roundNutritionChatNumber(profile.targetProtein)} g`,
+    );
   }
   if (profile?.targetCarbs != null) {
-    studentContext.push(`- Meta diaria de carboidratos: ${profile.targetCarbs} g`);
+    studentContext.push(
+      `- Meta diaria de carboidratos: ${roundNutritionChatNumber(profile.targetCarbs)} g`,
+    );
   }
   if (profile?.targetFats != null) {
-    studentContext.push(`- Meta diaria de gorduras: ${profile.targetFats} g`);
+    studentContext.push(
+      `- Meta diaria de gorduras: ${roundNutritionChatNumber(profile.targetFats)} g`,
+    );
   }
   if (profile?.targetWater != null) {
-    studentContext.push(`- Meta diaria de agua: ${profile.targetWater} ml`);
+    studentContext.push(
+      `- Meta diaria de agua: ${roundNutritionChatNumber(profile.targetWater)} ml`,
+    );
   }
   if (profile?.mealsPerDay != null) {
     studentContext.push(
@@ -196,6 +210,9 @@ export function buildNutritionSystemPrompt(params: {
   }
 
   let prompt = basePrompt;
+
+  prompt +=
+    "\n\nREGRA FORTE DE FORMATACAO: nunca use casas decimais para calorias, proteinas, carboidratos ou gorduras. Sempre arredonde macros e calorias para numeros inteiros em qualquer JSON, card ou mensagem.";
 
   if (studentContext.length > 0) {
     prompt += `\n\nDADOS FIXOS DO ALUNO (use como fonte de verdade):\n${studentContext.join("\n")}\n\nSe esses dados estiverem presentes, nao peca novamente calorias, proteina, carboidratos, gorduras, agua, preferencia alimentar basica ou quantidade de refeicoes. Use esses dados para executar o pedido.`;
@@ -267,10 +284,16 @@ export function buildNutritionMealProgress(
       ...food,
       mealType,
     });
-    currentMeal.totalCalories += food.calories * food.servings;
-    currentMeal.totalProtein += food.protein * food.servings;
-    currentMeal.totalCarbs += food.carbs * food.servings;
-    currentMeal.totalFats += food.fats * food.servings;
+    currentMeal.totalCalories += roundNutritionChatNumber(
+      food.calories * food.servings,
+    );
+    currentMeal.totalProtein += roundNutritionChatNumber(
+      food.protein * food.servings,
+    );
+    currentMeal.totalCarbs += roundNutritionChatNumber(
+      food.carbs * food.servings,
+    );
+    currentMeal.totalFats += roundNutritionChatNumber(food.fats * food.servings);
     groupedMeals.set(mealType, currentMeal);
   }
 

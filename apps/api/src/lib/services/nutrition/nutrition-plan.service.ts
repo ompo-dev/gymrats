@@ -12,6 +12,7 @@ const DEFAULT_NUTRITION_TARGETS = {
   targetFats: 65,
   targetWater: 3000,
 } as const;
+const pendingNutritionWriteQueues = new Map<string, Promise<void>>();
 
 export type NutritionActorType = "STUDENT" | "GYM" | "PERSONAL";
 
@@ -139,6 +140,35 @@ async function retryNutritionWrite<T>(
   throw lastError;
 }
 
+async function queueNutritionWrite<T>(
+  key: string,
+  operation: () => Promise<T>,
+) {
+  const previousWrite = pendingNutritionWriteQueues.get(key) ?? Promise.resolve();
+  let result!: T;
+
+  const request = previousWrite
+    .catch(() => undefined)
+    .then(async () => {
+      result = await operation();
+    });
+
+  let trackedRequest: Promise<void>;
+  trackedRequest = request.finally(() => {
+    if (pendingNutritionWriteQueues.get(key) === trackedRequest) {
+      pendingNutritionWriteQueues.delete(key);
+    }
+  });
+
+  pendingNutritionWriteQueues.set(key, trackedRequest);
+  await trackedRequest;
+  return result;
+}
+
+function roundNutritionNumber(value: number | null | undefined) {
+  return Math.round(Number(value ?? 0));
+}
+
 function normalizeFoods(
   foods: NutritionFoodItemInput[] | undefined,
 ): NormalizedNutritionFoodItem[] {
@@ -146,10 +176,10 @@ function normalizeFoods(
     foodId: food.foodId ?? null,
     foodName: food.foodName,
     servings: food.servings ?? 1,
-    calories: Math.round(food.calories ?? 0),
-    protein: Number(food.protein ?? 0),
-    carbs: Number(food.carbs ?? 0),
-    fats: Number(food.fats ?? 0),
+    calories: roundNutritionNumber(food.calories),
+    protein: roundNutritionNumber(food.protein),
+    carbs: roundNutritionNumber(food.carbs),
+    fats: roundNutritionNumber(food.fats),
     servingSize: food.servingSize ?? "100g",
     order: food.order ?? index,
   }));
@@ -173,10 +203,18 @@ function normalizeMeals(meals: NutritionMealInput[]): NormalizedNutritionMeal[] 
     return {
       name: meal.name,
       type: meal.type,
-      calories: hasFoods ? totalsFromFoods.calories : Math.round(meal.calories ?? 0),
-      protein: hasFoods ? totalsFromFoods.protein : Number(meal.protein ?? 0),
-      carbs: hasFoods ? totalsFromFoods.carbs : Number(meal.carbs ?? 0),
-      fats: hasFoods ? totalsFromFoods.fats : Number(meal.fats ?? 0),
+      calories: hasFoods
+        ? roundNutritionNumber(totalsFromFoods.calories)
+        : roundNutritionNumber(meal.calories),
+      protein: hasFoods
+        ? roundNutritionNumber(totalsFromFoods.protein)
+        : roundNutritionNumber(meal.protein),
+      carbs: hasFoods
+        ? roundNutritionNumber(totalsFromFoods.carbs)
+        : roundNutritionNumber(meal.carbs),
+      fats: hasFoods
+        ? roundNutritionNumber(totalsFromFoods.fats)
+        : roundNutritionNumber(meal.fats),
       time: meal.time ?? null,
       completed: Boolean(meal.completed),
       order: meal.order ?? index,
@@ -231,13 +269,13 @@ function computeCompletedTotals(
 
 function serializeNutritionPlan(plan: NutritionPlanWithRelations) {
   return {
-    id: plan.id,
-    title: plan.title,
-    description: plan.description,
-    totalCalories: plan.totalCalories,
-    targetProtein: plan.targetProtein,
-    targetCarbs: plan.targetCarbs,
-    targetFats: plan.targetFats,
+      id: plan.id,
+      title: plan.title,
+      description: plan.description,
+    totalCalories: roundNutritionNumber(plan.totalCalories),
+    targetProtein: roundNutritionNumber(plan.targetProtein),
+    targetCarbs: roundNutritionNumber(plan.targetCarbs),
+    targetFats: roundNutritionNumber(plan.targetFats),
     isLibraryTemplate: plan.isLibraryTemplate,
     createdById: plan.createdById,
     creatorType: plan.creatorType,
@@ -246,10 +284,10 @@ function serializeNutritionPlan(plan: NutritionPlanWithRelations) {
       id: meal.id,
       name: meal.name,
       type: meal.type,
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fats: meal.fats,
+      calories: roundNutritionNumber(meal.calories),
+      protein: roundNutritionNumber(meal.protein),
+      carbs: roundNutritionNumber(meal.carbs),
+      fats: roundNutritionNumber(meal.fats),
       time: meal.time ?? undefined,
       order: meal.order,
       foods: meal.foods.map((food) => ({
@@ -257,10 +295,10 @@ function serializeNutritionPlan(plan: NutritionPlanWithRelations) {
         foodId: food.foodId ?? undefined,
         foodName: food.foodName,
         servings: food.servings,
-        calories: food.calories,
-        protein: food.protein,
-        carbs: food.carbs,
-        fats: food.fats,
+        calories: roundNutritionNumber(food.calories),
+        protein: roundNutritionNumber(food.protein),
+        carbs: roundNutritionNumber(food.carbs),
+        fats: roundNutritionNumber(food.fats),
         servingSize: food.servingSize,
         order: food.order,
       })),
@@ -301,10 +339,10 @@ function serializeDailyNutritionSnapshot(
     id: meal.id,
     name: meal.name,
     type: meal.type,
-    calories: meal.calories,
-    protein: meal.protein,
-    carbs: meal.carbs,
-    fats: meal.fats,
+    calories: roundNutritionNumber(meal.calories),
+    protein: roundNutritionNumber(meal.protein),
+    carbs: roundNutritionNumber(meal.carbs),
+    fats: roundNutritionNumber(meal.fats),
     time: meal.time ?? undefined,
     completed: meal.completed,
     order: meal.order,
@@ -313,10 +351,10 @@ function serializeDailyNutritionSnapshot(
       foodId: food.foodId ?? undefined,
       foodName: food.foodName,
       servings: food.servings,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fats: food.fats,
+      calories: roundNutritionNumber(food.calories),
+      protein: roundNutritionNumber(food.protein),
+      carbs: roundNutritionNumber(food.carbs),
+      fats: roundNutritionNumber(food.fats),
       servingSize: food.servingSize,
     })),
   }));
@@ -326,15 +364,15 @@ function serializeDailyNutritionSnapshot(
   return {
     date: options.dateKey,
     meals,
-    totalCalories: totals.totalCalories,
-    totalProtein: totals.totalProtein,
-    totalCarbs: totals.totalCarbs,
-    totalFats: totals.totalFats,
+    totalCalories: roundNutritionNumber(totals.totalCalories),
+    totalProtein: roundNutritionNumber(totals.totalProtein),
+    totalCarbs: roundNutritionNumber(totals.totalCarbs),
+    totalFats: roundNutritionNumber(totals.totalFats),
     waterIntake: dailyNutrition.waterIntake,
-    targetCalories: targets.targetCalories,
-    targetProtein: targets.targetProtein,
-    targetCarbs: targets.targetCarbs,
-    targetFats: targets.targetFats,
+    targetCalories: roundNutritionNumber(targets.targetCalories),
+    targetProtein: roundNutritionNumber(targets.targetProtein),
+    targetCarbs: roundNutritionNumber(targets.targetCarbs),
+    targetFats: roundNutritionNumber(targets.targetFats),
     targetWater: targets.targetWater,
     sourceNutritionPlanId: dailyNutrition.sourceNutritionPlanId,
     hasActiveNutritionPlan: options.hasActiveNutritionPlan,
@@ -411,7 +449,7 @@ async function findNutritionPlanWithRelations(
 }
 
 async function replaceNutritionPlanMeals(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | typeof db,
   nutritionPlanId: string,
   meals: NutritionMealInput[],
 ) {
@@ -437,20 +475,22 @@ async function replaceNutritionPlanMeals(
     });
 
     if (meal.foods.length > 0) {
-      await tx.nutritionPlanFoodItem.createMany({
-        data: meal.foods.map((food) => ({
-          nutritionPlanMealId: createdMeal.id,
-          foodId: food.foodId,
-          foodName: food.foodName,
-          servings: food.servings,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fats: food.fats,
-          servingSize: food.servingSize,
-          order: food.order,
-        })),
-      });
+      for (const food of meal.foods) {
+        await tx.nutritionPlanFoodItem.create({
+          data: {
+            nutritionPlanMealId: createdMeal.id,
+            foodId: food.foodId,
+            foodName: food.foodName,
+            servings: food.servings,
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fats: food.fats,
+            servingSize: food.servingSize,
+            order: food.order,
+          },
+        });
+      }
     }
   }
 
@@ -463,7 +503,7 @@ async function replaceNutritionPlanMeals(
 }
 
 async function replaceDailyNutritionMeals(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | typeof db,
   dailyNutritionId: string,
   meals: NutritionMealInput[],
 ) {
@@ -490,25 +530,110 @@ async function replaceDailyNutritionMeals(
     });
 
     if (meal.foods.length > 0) {
-      await tx.nutritionFoodItem.createMany({
-        data: meal.foods.map((food) => ({
-          nutritionMealId: createdMeal.id,
-          foodId: food.foodId,
-          foodName: food.foodName,
-          servings: food.servings,
-          calories: food.calories,
-          protein: food.protein,
-          carbs: food.carbs,
-          fats: food.fats,
-          servingSize: food.servingSize,
-        })),
-      });
+      for (const food of meal.foods) {
+        await tx.nutritionFoodItem.create({
+          data: {
+            nutritionMealId: createdMeal.id,
+            foodId: food.foodId,
+            foodName: food.foodName,
+            servings: food.servings,
+            calories: food.calories,
+            protein: food.protein,
+            carbs: food.carbs,
+            fats: food.fats,
+            servingSize: food.servingSize,
+          },
+        });
+      }
     }
   }
 }
 
+function hasSameNormalizedFoodStructure(
+  existingFoods: DailyNutritionWithRelations["meals"][number]["foods"],
+  nextFoods: NormalizedNutritionFoodItem[],
+) {
+  if (existingFoods.length !== nextFoods.length) {
+    return false;
+  }
+
+  for (let index = 0; index < existingFoods.length; index += 1) {
+    const existingFood = existingFoods[index];
+    const nextFood = nextFoods[index];
+
+    if (
+      (existingFood.foodId ?? null) !== nextFood.foodId ||
+      existingFood.foodName !== nextFood.foodName ||
+      roundNutritionNumber(existingFood.servings) !== nextFood.servings ||
+      roundNutritionNumber(existingFood.calories) !== nextFood.calories ||
+      roundNutritionNumber(existingFood.protein) !== nextFood.protein ||
+      roundNutritionNumber(existingFood.carbs) !== nextFood.carbs ||
+      roundNutritionNumber(existingFood.fats) !== nextFood.fats ||
+      existingFood.servingSize !== nextFood.servingSize
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function hasSameDailyMealStructure(
+  existingMeals: DailyNutritionWithRelations["meals"],
+  nextMeals: NutritionMealInput[],
+) {
+  const normalizedMeals = normalizeMeals(nextMeals);
+
+  if (existingMeals.length !== normalizedMeals.length) {
+    return false;
+  }
+
+  for (let index = 0; index < existingMeals.length; index += 1) {
+    const existingMeal = existingMeals[index];
+    const nextMeal = normalizedMeals[index];
+
+    if (
+      existingMeal.name !== nextMeal.name ||
+      existingMeal.type !== nextMeal.type ||
+      roundNutritionNumber(existingMeal.calories) !== nextMeal.calories ||
+      roundNutritionNumber(existingMeal.protein) !== nextMeal.protein ||
+      roundNutritionNumber(existingMeal.carbs) !== nextMeal.carbs ||
+      roundNutritionNumber(existingMeal.fats) !== nextMeal.fats ||
+      existingMeal.time !== nextMeal.time ||
+      existingMeal.order !== nextMeal.order ||
+      !hasSameNormalizedFoodStructure(existingMeal.foods, nextMeal.foods)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function updateDailyNutritionMealChecks(
+  tx: Prisma.TransactionClient | typeof db,
+  snapshot: DailyNutritionWithRelations,
+  meals: NutritionMealInput[],
+) {
+  const normalizedMeals = normalizeMeals(meals);
+
+  for (let index = 0; index < snapshot.meals.length; index += 1) {
+    const existingMeal = snapshot.meals[index];
+    const nextMeal = normalizedMeals[index];
+
+    if (!nextMeal || existingMeal.completed === nextMeal.completed) {
+      continue;
+    }
+
+    await tx.nutritionMeal.update({
+      where: { id: existingMeal.id },
+      data: { completed: nextMeal.completed },
+    });
+  }
+}
+
 async function getOrCreateDailyNutrition(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | typeof db,
   studentId: string,
   dateKey: string,
   waterIntake: number,
@@ -540,7 +665,7 @@ async function getOrCreateDailyNutrition(
 }
 
 async function createDailySnapshotFromPlan(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | typeof db,
   studentId: string,
   nutritionPlanId: string,
   dateKey: string,
@@ -601,7 +726,7 @@ async function createDailySnapshotFromPlan(
 }
 
 async function createActivePlanFromMeals(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient | typeof db,
   studentId: string,
   actor: NutritionActorMeta,
   meals: NutritionMealInput[],
@@ -727,37 +852,39 @@ export async function updateNutritionLibraryPlan(
     meals?: NutritionMealInput[];
   },
 ) {
-  await retryNutritionWrite(async () => {
-    await db.$transaction(async (tx) => {
-      if (updates.title !== undefined || updates.description !== undefined) {
-        await tx.nutritionPlan.update({
-          where: { id: planId },
-          data: {
-            ...(updates.title !== undefined && { title: updates.title }),
-            ...(updates.description !== undefined && {
-              description: updates.description,
-            }),
-          },
-        });
-      }
+  return queueNutritionWrite(`nutrition-library:${planId}`, async () => {
+    await retryNutritionWrite(async () => {
+      await db.$transaction(async (tx) => {
+        if (updates.title !== undefined || updates.description !== undefined) {
+          await tx.nutritionPlan.update({
+            where: { id: planId },
+            data: {
+              ...(updates.title !== undefined && { title: updates.title }),
+              ...(updates.description !== undefined && {
+                description: updates.description,
+              }),
+            },
+          });
+        }
 
-      if (updates.meals !== undefined) {
-        await replaceNutritionPlanMeals(tx, planId, updates.meals);
-      }
-    });
-  }, `updateNutritionLibraryPlan:${planId}`);
+        if (updates.meals !== undefined) {
+          await replaceNutritionPlanMeals(tx, planId, updates.meals);
+        }
+      });
+    }, `updateNutritionLibraryPlan:${planId}`);
 
-  await syncActiveNutritionPlanFromLibrary(planId);
+    await syncActiveNutritionPlanFromLibrary(planId);
 
-  const updated = await findNutritionPlanWithRelations(db, planId);
-  if (!updated) {
-    throw new NutritionDomainError(
-      "NUTRITION_PLAN_NOT_FOUND",
-      "Nutrition plan not found",
-    );
-  }
+    const updated = await findNutritionPlanWithRelations(db, planId);
+    if (!updated) {
+      throw new NutritionDomainError(
+        "NUTRITION_PLAN_NOT_FOUND",
+        "Nutrition plan not found",
+      );
+    }
 
-  return serializeNutritionPlan(updated);
+    return serializeNutritionPlan(updated);
+  });
 }
 
 export async function deleteNutritionLibraryPlan(planId: string) {
@@ -959,6 +1086,7 @@ export async function saveDailyNutritionForStudent(params: {
   studentId: string;
   dateKey: string;
   meals?: NutritionMealInput[];
+  syncPlan?: boolean;
   waterIntake?: number;
   actor: NutritionActorMeta;
 }) {
@@ -969,66 +1097,86 @@ export async function saveDailyNutritionForStudent(params: {
     );
   }
 
-  await db.$transaction(async (tx) => {
-    const student = await tx.student.findUnique({
-      where: { id: params.studentId },
-      select: { activeNutritionPlanId: true },
-    });
+  return queueNutritionWrite(
+    `daily-nutrition:${params.studentId}:${params.dateKey}`,
+    async () => {
+      await retryNutritionWrite(async () => {
+        const student = await db.student.findUnique({
+          where: { id: params.studentId },
+          select: { activeNutritionPlanId: true },
+        });
 
-    let activeNutritionPlanId = student?.activeNutritionPlanId ?? null;
-    const currentSnapshot = await findDailyNutritionWithRelations(
-      tx,
-      params.studentId,
-      params.dateKey,
-    );
-    const nextWaterIntake = params.waterIntake ?? currentSnapshot?.waterIntake ?? 0;
-
-    if (params.meals !== undefined) {
-      if (!activeNutritionPlanId) {
-        activeNutritionPlanId = await createActivePlanFromMeals(
-          tx,
+        let activeNutritionPlanId = student?.activeNutritionPlanId ?? null;
+        const currentSnapshot = await findDailyNutritionWithRelations(
+          db,
           params.studentId,
-          params.actor,
-          params.meals,
+          params.dateKey,
         );
-      } else {
-        await replaceNutritionPlanMeals(tx, activeNutritionPlanId, params.meals);
-      }
-    }
+        const nextWaterIntake =
+          params.waterIntake ?? currentSnapshot?.waterIntake ?? 0;
+        const shouldSyncPlan = params.syncPlan ?? true;
 
-    if (!activeNutritionPlanId && !currentSnapshot && params.waterIntake === undefined) {
-      return;
-    }
+        if (params.meals !== undefined) {
+          if (shouldSyncPlan && !activeNutritionPlanId) {
+            activeNutritionPlanId = await createActivePlanFromMeals(
+              db,
+              params.studentId,
+              params.actor,
+              params.meals,
+            );
+          } else if (shouldSyncPlan && activeNutritionPlanId) {
+            await replaceNutritionPlanMeals(db, activeNutritionPlanId, params.meals);
+          }
+        }
 
-    const dailyNutrition = await getOrCreateDailyNutrition(
-      tx,
-      params.studentId,
-      params.dateKey,
-      nextWaterIntake,
-    );
+        if (
+          !activeNutritionPlanId &&
+          !currentSnapshot &&
+          params.waterIntake === undefined
+        ) {
+          return;
+        }
 
-    await tx.dailyNutrition.update({
-      where: { id: dailyNutrition.id },
-      data: {
-        waterIntake: nextWaterIntake,
-        sourceNutritionPlanId: activeNutritionPlanId,
-      },
-    });
+        const dailyNutrition = await getOrCreateDailyNutrition(
+          db,
+          params.studentId,
+          params.dateKey,
+          nextWaterIntake,
+        );
 
-    if (params.meals !== undefined) {
-      await replaceDailyNutritionMeals(tx, dailyNutrition.id, params.meals);
-    } else if (!currentSnapshot && activeNutritionPlanId) {
-      await createDailySnapshotFromPlan(
-        tx,
-        params.studentId,
-        activeNutritionPlanId,
-        params.dateKey,
-        nextWaterIntake,
-      );
-    }
-  });
+        await db.dailyNutrition.update({
+          where: { id: dailyNutrition.id },
+          data: {
+            waterIntake: nextWaterIntake,
+            sourceNutritionPlanId: activeNutritionPlanId,
+          },
+        });
 
-  return getDailyNutritionForStudent(params.studentId, params.dateKey);
+        if (params.meals !== undefined) {
+          const canFastUpdateChecksOnly =
+            !shouldSyncPlan &&
+            currentSnapshot &&
+            hasSameDailyMealStructure(currentSnapshot.meals, params.meals);
+
+          if (canFastUpdateChecksOnly) {
+            await updateDailyNutritionMealChecks(db, currentSnapshot, params.meals);
+          } else {
+            await replaceDailyNutritionMeals(db, dailyNutrition.id, params.meals);
+          }
+        } else if (!currentSnapshot && activeNutritionPlanId) {
+          await createDailySnapshotFromPlan(
+            db,
+            params.studentId,
+            activeNutritionPlanId,
+            params.dateKey,
+            nextWaterIntake,
+          );
+        }
+      }, `saveDailyNutritionForStudent:${params.studentId}:${params.dateKey}`);
+
+      return getDailyNutritionForStudent(params.studentId, params.dateKey);
+    },
+  );
 }
 
 export async function updateStudentTargetWater(

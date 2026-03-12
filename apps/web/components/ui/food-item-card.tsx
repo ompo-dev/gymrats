@@ -82,25 +82,25 @@ export function FoodItemCard({
                 >
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.calories}
+                      {Math.round(food.calories)}
                     </div>
                     <div className="text-xs text-duo-fg-muted">cal</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.protein}g
+                      {Math.round(food.protein)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">prot</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.carbs}g
+                      {Math.round(food.carbs)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">carb</div>
                   </div>
                   <div>
                     <div className="text-sm font-bold text-duo-text">
-                      {food.fats}g
+                      {Math.round(food.fats)}g
                     </div>
                     <div className="text-xs text-duo-fg-muted">gord</div>
                   </div>
