@@ -7,6 +7,9 @@ import {
   isClientApiCapabilityEnabled,
 } from "@/lib/api/route-capabilities";
 
+let observabilityEndpointState: "unknown" | "probing" | "available" | "missing" =
+  "unknown";
+
 export async function recordClientTelemetryEvent(input: {
   eventType: string;
   domain: string;
@@ -21,6 +24,18 @@ export async function recordClientTelemetryEvent(input: {
     !isClientApiCapabilityEnabled("observabilityEvents")
   ) {
     return;
+  }
+
+  if (
+    observabilityEndpointState === "missing" ||
+    observabilityEndpointState === "probing"
+  ) {
+    return;
+  }
+
+  const isCapabilityProbe = observabilityEndpointState === "unknown";
+  if (isCapabilityProbe) {
+    observabilityEndpointState = "probing";
   }
 
   try {
@@ -40,9 +55,16 @@ export async function recordClientTelemetryEvent(input: {
     });
 
     if (response.status === 404) {
+      observabilityEndpointState = "missing";
       disableClientApiCapability("observabilityEvents");
+      return;
     }
+
+    observabilityEndpointState = "available";
   } catch {
+    if (isCapabilityProbe) {
+      observabilityEndpointState = "unknown";
+    }
     // Telemetria nao deve bloquear UX.
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from "@/runtime/next-server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
@@ -44,13 +45,58 @@ export const GET = createSafeHandler(
   async ({ studentContext, query }) => {
     const { lat, lng, filter } = querySchema.parse(query);
     const studentId = studentContext?.studentId ?? "";
+    const latNum = lat != null ? parseFloat(lat) : null;
+    const lngNum = lng != null ? parseFloat(lng) : null;
+    const RADIUS_KM = 10;
+
+    const where: Prisma.PersonalWhereInput = {
+      isActive: true,
+    };
+
+    if (filter === "remote") {
+      where.atendimentoRemoto = true;
+    }
+
+    if (filter === "subscribed") {
+      where.studentAssignments = {
+        some: {
+          studentId,
+          status: "active",
+        },
+      };
+    }
+
+    if (filter === "near" && latNum != null && lngNum != null) {
+      const latitudeDelta = RADIUS_KM / 111;
+      const longitudeDelta =
+        RADIUS_KM /
+        Math.max(1, 111 * Math.cos((latNum * Math.PI) / 180));
+
+      where.latitude = {
+        gte: latNum - latitudeDelta,
+        lte: latNum + latitudeDelta,
+      };
+      where.longitude = {
+        gte: lngNum - longitudeDelta,
+        lte: lngNum + longitudeDelta,
+      };
+    }
 
     const personals = await db.personal.findMany({
-      where: { isActive: true },
-      include: {
+      where,
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        bio: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        atendimentoPresencial: true,
+        atendimentoRemoto: true,
         gymAffiliations: {
           where: { status: "active" },
-          include: {
+          select: {
             gym: { select: { id: true, name: true } },
           },
         },
@@ -64,6 +110,14 @@ export const GET = createSafeHandler(
             endsAt: { gt: new Date() },
           },
           orderBy: { endsAt: "asc" },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            primaryColor: true,
+            linkedCouponId: true,
+            linkedPlanId: true,
+          },
         },
       },
     });
@@ -74,10 +128,7 @@ export const GET = createSafeHandler(
       filtered = personals.filter((p) => p.studentAssignments.length > 0);
     } else if (filter === "remote") {
       filtered = personals.filter((p) => p.atendimentoRemoto);
-    } else if (filter === "near" && lat != null && lng != null) {
-      const latNum = parseFloat(lat);
-      const lngNum = parseFloat(lng);
-      const RADIUS_KM = 10;
+    } else if (filter === "near" && latNum != null && lngNum != null) {
       filtered = personals.filter((p) => {
         if (p.latitude == null || p.longitude == null) return false;
         const d = haversineKm(latNum, lngNum, p.latitude, p.longitude);
@@ -91,9 +142,6 @@ export const GET = createSafeHandler(
         return dA - dB;
       });
     }
-
-    const latNum = lat != null ? parseFloat(lat) : null;
-    const lngNum = lng != null ? parseFloat(lng) : null;
 
     return NextResponse.json({
       personals: filtered.map((p) => ({

@@ -3,7 +3,7 @@
  */
 
 import { featureFlags } from "@gymrats/config";
-import type { BootstrapResponse } from "@gymrats/types/bootstrap";
+import { getGymBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
 import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type {
@@ -314,18 +314,8 @@ export async function loadSection(
 async function loadGymBootstrap(
   sections: GymDataSection[],
 ): Promise<Partial<GymUnifiedData>> {
-  const params = new URLSearchParams();
-  if (sections.length > 0) {
-    params.set("sections", sections.join(","));
-  }
-
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<GymUnifiedData>>
-  >(`/api/gyms/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`, {
-    timeout: 30000,
-  });
-
-  return normalizeGymDates(response.data.data ?? {}) as Partial<GymUnifiedData>;
+  const response = await getGymBootstrapRequest(sections);
+  return normalizeGymDates(response.data ?? {}) as Partial<GymUnifiedData>;
 }
 
 export function updateStoreWithSection(

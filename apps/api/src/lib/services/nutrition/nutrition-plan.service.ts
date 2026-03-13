@@ -13,6 +13,10 @@ const DEFAULT_NUTRITION_TARGETS = {
   targetWater: 3000,
 } as const;
 const pendingNutritionWriteQueues = new Map<string, Promise<void>>();
+const NUTRITION_TRANSACTION_OPTIONS = {
+  maxWait: 10_000,
+  timeout: 30_000,
+} as const;
 
 export type NutritionActorType = "STUDENT" | "GYM" | "PERSONAL";
 
@@ -163,6 +167,15 @@ async function queueNutritionWrite<T>(
   pendingNutritionWriteQueues.set(key, trackedRequest);
   await trackedRequest;
   return result;
+}
+
+async function runNutritionTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  return db.$transaction(
+    async (tx) => operation(tx),
+    NUTRITION_TRANSACTION_OPTIONS,
+  );
 }
 
 function roundNutritionNumber(value: number | null | undefined) {
@@ -475,22 +488,20 @@ async function replaceNutritionPlanMeals(
     });
 
     if (meal.foods.length > 0) {
-      for (const food of meal.foods) {
-        await tx.nutritionPlanFoodItem.create({
-          data: {
-            nutritionPlanMealId: createdMeal.id,
-            foodId: food.foodId,
-            foodName: food.foodName,
-            servings: food.servings,
-            calories: food.calories,
-            protein: food.protein,
-            carbs: food.carbs,
-            fats: food.fats,
-            servingSize: food.servingSize,
-            order: food.order,
-          },
-        });
-      }
+      await tx.nutritionPlanFoodItem.createMany({
+        data: meal.foods.map((food) => ({
+          nutritionPlanMealId: createdMeal.id,
+          foodId: food.foodId,
+          foodName: food.foodName,
+          servings: food.servings,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fats: food.fats,
+          servingSize: food.servingSize,
+          order: food.order,
+        })),
+      });
     }
   }
 
@@ -530,21 +541,19 @@ async function replaceDailyNutritionMeals(
     });
 
     if (meal.foods.length > 0) {
-      for (const food of meal.foods) {
-        await tx.nutritionFoodItem.create({
-          data: {
-            nutritionMealId: createdMeal.id,
-            foodId: food.foodId,
-            foodName: food.foodName,
-            servings: food.servings,
-            calories: food.calories,
-            protein: food.protein,
-            carbs: food.carbs,
-            fats: food.fats,
-            servingSize: food.servingSize,
-          },
-        });
-      }
+      await tx.nutritionFoodItem.createMany({
+        data: meal.foods.map((food) => ({
+          nutritionMealId: createdMeal.id,
+          foodId: food.foodId,
+          foodName: food.foodName,
+          servings: food.servings,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fats: food.fats,
+          servingSize: food.servingSize,
+        })),
+      });
     }
   }
 }
@@ -815,7 +824,7 @@ export async function createNutritionLibraryPlan(params: {
     }
   }
 
-  const plan = await db.$transaction(async (tx) => {
+  const plan = await runNutritionTransaction(async (tx) => {
     const createdPlan = await tx.nutritionPlan.create({
       data: {
         studentId: params.studentId,
@@ -854,7 +863,7 @@ export async function updateNutritionLibraryPlan(
 ) {
   return queueNutritionWrite(`nutrition-library:${planId}`, async () => {
     await retryNutritionWrite(async () => {
-      await db.$transaction(async (tx) => {
+      await runNutritionTransaction(async (tx) => {
         if (updates.title !== undefined || updates.description !== undefined) {
           await tx.nutritionPlan.update({
             where: { id: planId },
@@ -913,7 +922,7 @@ export async function activateNutritionLibraryPlanForStudent(
     );
   }
 
-  await db.$transaction(async (tx) => {
+  await runNutritionTransaction(async (tx) => {
     const student = await tx.student.findUnique({
       where: { id: studentId },
       select: { activeNutritionPlanId: true },
@@ -1064,7 +1073,7 @@ export async function getDailyNutritionForStudent(
   let dailyNutrition = await findDailyNutritionWithRelations(db, studentId, dateKey);
 
   if (!dailyNutrition && student?.activeNutritionPlanId && isTodayDateKey(dateKey)) {
-    dailyNutrition = await db.$transaction(async (tx) =>
+    dailyNutrition = await runNutritionTransaction((tx) =>
       createDailySnapshotFromPlan(
         tx,
         studentId,

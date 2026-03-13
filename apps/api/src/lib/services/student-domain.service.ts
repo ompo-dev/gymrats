@@ -7,6 +7,44 @@ import {
   listNutritionLibraryPlans,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 
+function calculateStreakFromWorkoutDates(dates: Date[]) {
+  const workoutDays = new Set<string>();
+  dates.forEach((dateValue) => {
+    const dateOnly = new Date(dateValue);
+    dateOnly.setHours(0, 0, 0, 0);
+    workoutDays.add(dateOnly.toISOString().split("T")[0]);
+  });
+
+  let currentStreak = 0;
+  const checkDate = new Date();
+  checkDate.setHours(0, 0, 0, 0);
+
+  const todayStr = checkDate.toISOString().split("T")[0];
+  const yesterday = new Date(checkDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+  if (!workoutDays.has(todayStr) && !workoutDays.has(yesterdayStr)) {
+    return 0;
+  }
+
+  if (!workoutDays.has(todayStr)) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  while (true) {
+    const dateStr = checkDate.toISOString().split("T")[0];
+    if (!workoutDays.has(dateStr)) {
+      break;
+    }
+
+    currentStreak++;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  return currentStreak;
+}
+
 /**
  * Service to centralize student domain operations and stat updates
  */
@@ -18,48 +56,10 @@ export class StudentDomainService {
     const allWorkoutHistory = await db.workoutHistory.findMany({
       where: { studentId },
       select: { date: true },
-      orderBy: { date: "desc" },
     });
-
-    const workoutDays = new Set<string>();
-    allWorkoutHistory.forEach((wh) => {
-      const dateOnly = new Date(wh.date);
-      dateOnly.setHours(0, 0, 0, 0);
-      workoutDays.add(dateOnly.toISOString().split("T")[0]);
-    });
-
-    let currentStreak = 0;
-    const checkDate = new Date();
-    checkDate.setHours(0, 0, 0, 0);
-
-    // Initial check: if no workout today, check yesterday as well.
-    // In Duolingo style, the streak is maintained if you haven't worked out yet today
-    // as long as you worked out yesterday.
-    const todayStr = checkDate.toISOString().split("T")[0];
-    const yesterday = new Date(checkDate);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-    if (!workoutDays.has(todayStr) && !workoutDays.has(yesterdayStr)) {
-      currentStreak = 0;
-    } else {
-      // If we did a workout today or yesterday, start counting backwards
-      if (!workoutDays.has(todayStr)) {
-        checkDate.setDate(checkDate.getDate() - 1);
-      }
-
-      while (true) {
-        const dateStr = checkDate.toISOString().split("T")[0];
-        if (workoutDays.has(dateStr)) {
-          currentStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-    }
-
-    return currentStreak;
+    return calculateStreakFromWorkoutDates(
+      allWorkoutHistory.map((workoutHistory) => workoutHistory.date),
+    );
   }
 
   /**
@@ -110,34 +110,68 @@ export class StudentDomainService {
    * Gets detailed student progress including achievements and weekly XP
    */
   static async getProgress(studentId: string) {
-    const progress = await db.studentProgress.findUnique({
-      where: { studentId },
-    });
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    // 1. Calculate current streak
-    const calculatedStreak =
-      await StudentDomainService.calculateStreak(studentId);
+    const [progress, streakHistory, achievementUnlocks, workoutHistoryForXP] =
+      await Promise.all([
+        db.studentProgress.findUnique({
+          where: { studentId },
+        }),
+        db.workoutHistory.findMany({
+          where: { studentId },
+          select: { date: true },
+        }),
+        db.achievementUnlock.findMany({
+          where: { studentId },
+          select: {
+            unlockedAt: true,
+            progress: true,
+            achievement: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                icon: true,
+                target: true,
+                category: true,
+                level: true,
+                color: true,
+              },
+            },
+          },
+          orderBy: { unlockedAt: "desc" },
+        }),
+        db.workoutHistory.findMany({
+          where: {
+            studentId,
+            date: { gte: sevenDaysAgo },
+          },
+          select: {
+            date: true,
+            workout: { select: { xpReward: true } },
+          },
+        }),
+      ]);
 
-    // 2. Update streak in DB if changed
+    const calculatedStreak = calculateStreakFromWorkoutDates(
+      streakHistory.map((workoutHistory) => workoutHistory.date),
+    );
+
     if (progress && calculatedStreak !== (progress.currentStreak || 0)) {
-      await db.studentProgress.update({
-        where: { studentId },
-        data: {
-          currentStreak: calculatedStreak,
-          longestStreak: Math.max(
-            calculatedStreak,
-            progress.longestStreak || 0,
-          ),
-        },
-      });
+      void db.studentProgress
+        .update({
+          where: { studentId },
+          data: {
+            currentStreak: calculatedStreak,
+            longestStreak: Math.max(
+              calculatedStreak,
+              progress.longestStreak || 0,
+            ),
+          },
+        })
+        .catch(() => undefined);
     }
-
-    // 3. Fetch achievements
-    const achievementUnlocks = await db.achievementUnlock.findMany({
-      where: { studentId },
-      include: { achievement: true },
-      orderBy: { unlockedAt: "desc" },
-    });
 
     const achievements = achievementUnlocks.map((unlock) => ({
       id: unlock.achievement.id,
@@ -151,20 +185,6 @@ export class StudentDomainService {
       level: unlock.achievement.level || undefined,
       color: unlock.achievement.color || "#58CC02",
     }));
-
-    // 4. Calculate weekly XP (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const workoutHistoryForXP = await db.workoutHistory.findMany({
-      where: {
-        studentId,
-        date: { gte: sevenDaysAgo },
-      },
-      include: {
-        workout: { select: { xpReward: true } },
-      },
-    });
 
     const weeklyXP = [0, 0, 0, 0, 0, 0, 0];
     workoutHistoryForXP.forEach((wh) => {

@@ -8,10 +8,31 @@ export const GET = createSafeHandler(
     const { lat, lng } = query;
     const gyms = await db.gym.findMany({
       where: { isActive: true },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        logo: true,
+        address: true,
+        phone: true,
+        latitude: true,
+        longitude: true,
+        rating: true,
+        totalReviews: true,
+        amenities: true,
+        openingHours: true,
+        photos: true,
+        isPartner: true,
         plans: {
           where: { isActive: true },
           orderBy: { price: "asc" },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            price: true,
+            duration: true,
+          },
         },
       },
       orderBy: { rating: "desc" },

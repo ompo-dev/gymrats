@@ -1,5 +1,4 @@
 import { featureFlags } from "@gymrats/config";
-import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import type {
   PersonalAffiliation,
   PersonalProfile,
@@ -7,6 +6,7 @@ import type {
   PersonalSubscriptionData,
 } from "@gymrats/types/personal-module";
 import { apiClient } from "@/lib/api/client";
+import { getPersonalBootstrapRequest } from "@/lib/api/bootstrap";
 import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { Expense, FinancialSummary } from "@/lib/types";
 import type {
@@ -143,21 +143,8 @@ export async function loadSection(
 async function loadPersonalBootstrap(
   sections: PersonalDataSection[],
 ): Promise<Partial<PersonalUnifiedData>> {
-  const params = new URLSearchParams();
-  if (sections.length > 0) {
-    params.set("sections", sections.join(","));
-  }
-
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<PersonalUnifiedData>>
-  >(
-    `/api/personals/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`,
-    {
-      timeout: 30000,
-    },
-  );
-
-  return response.data.data ?? {};
+  const response = await getPersonalBootstrapRequest(sections);
+  return response.data ?? {};
 }
 
 export async function loadSectionsIncremental(

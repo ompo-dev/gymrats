@@ -41,20 +41,30 @@ export const GET = createSafeHandler(
   async ({ query }) => {
     const now = new Date();
 
-    await db.boostCampaign.updateMany({
-      where: {
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
-    });
-
     const campaigns = await db.boostCampaign.findMany({
       where: {
         status: "active",
         endsAt: { gt: now },
       },
-      include: {
+      select: {
+        id: true,
+        gymId: true,
+        personalId: true,
+        title: true,
+        description: true,
+        primaryColor: true,
+        durationHours: true,
+        amountCents: true,
+        status: true,
+        clicks: true,
+        impressions: true,
+        linkedCouponId: true,
+        linkedPlanId: true,
+        startsAt: true,
+        endsAt: true,
+        createdAt: true,
+        updatedAt: true,
+        radiusKm: true,
         gym: {
           select: { id: true, latitude: true, longitude: true },
         },

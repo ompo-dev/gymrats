@@ -4,9 +4,8 @@
  */
 
 import { featureFlags } from "@gymrats/config";
-import type { BootstrapResponse } from "@gymrats/types/bootstrap";
+import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { Meal } from "@/lib/types";
 import type {
   StudentData,
@@ -353,19 +352,8 @@ export function hydrateStudentBootstrapData(
 async function loadStudentBootstrap(
   sections: StudentDataSection[],
 ): Promise<Partial<StudentData>> {
-  const params = new URLSearchParams();
-  if (sections.length > 0) {
-    params.set("sections", sections.join(","));
-  }
-
-  const response = await apiClient.get<BootstrapResponse<Partial<StudentData>>>(
-    `/api/students/bootstrap${params.size > 0 ? `?${params.toString()}` : ""}`,
-    {
-      timeout: 30000,
-    },
-  );
-
-  return response.data.data ?? {};
+  const response = await getStudentBootstrapRequest(sections);
+  return response.data ?? {};
 }
 
 export async function loadSection(
@@ -422,7 +410,6 @@ export async function loadSectionsIncremental(
 ): Promise<void> {
   if (
     featureFlags.perfStudentBootstrapV2 &&
-    isClientApiCapabilityEnabled("studentBootstrap") &&
     sections.length > 1
   ) {
     try {
@@ -474,10 +461,7 @@ const ALL_SECTIONS: StudentDataSection[] = [
 ];
 
 export async function loadAllDataIncremental(set: SetStateFn): Promise<void> {
-  if (
-    featureFlags.perfStudentBootstrapV2 &&
-    isClientApiCapabilityEnabled("studentBootstrap")
-  ) {
+  if (featureFlags.perfStudentBootstrapV2) {
     try {
       const bootstrapData = await loadStudentBootstrap(ALL_SECTIONS);
       if (Object.keys(bootstrapData).length > 0) {

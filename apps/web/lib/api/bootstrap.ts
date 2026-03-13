@@ -28,11 +28,39 @@ function buildSectionsQuery(sections?: readonly string[]) {
   return `?${params.toString()}`;
 }
 
+function createLegacyStudentBootstrapResponse(
+  data: Partial<StudentData>,
+): BootstrapResponse<Partial<StudentData>> {
+  return {
+    data,
+    meta: {
+      version: "legacy-students-all",
+      generatedAt: new Date().toISOString(),
+      requestId: "legacy-students-all",
+      sectionTimings: {},
+      cache: {
+        hit: false,
+        strategy: "legacy-students-all",
+      },
+    },
+  };
+}
+
+async function getLegacyStudentBootstrapRequest(
+  sections?: readonly StudentDataSection[],
+) {
+  const response = await apiClient.get<Partial<StudentData>>(
+    `/api/students/all${buildSectionsQuery(sections)}`,
+  );
+
+  return createLegacyStudentBootstrapResponse(response.data ?? {});
+}
+
 export async function getStudentBootstrapRequest(
   sections?: readonly StudentDataSection[],
 ) {
   if (!isClientApiCapabilityEnabled("studentBootstrap")) {
-    throw new Error("student bootstrap disabled");
+    return getLegacyStudentBootstrapRequest(sections);
   }
 
   try {
@@ -43,6 +71,7 @@ export async function getStudentBootstrapRequest(
   } catch (error) {
     if (isRouteNotFoundError(error, "/api/students/bootstrap")) {
       disableClientApiCapability("studentBootstrap");
+      return getLegacyStudentBootstrapRequest(sections);
     }
     throw error;
   }
