@@ -12,6 +12,7 @@ import type {
   GymUnifiedData,
 } from "@/lib/types/gym-unified";
 import { normalizeGymDates } from "@/lib/utils/date-safe";
+import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 export const SECTION_ROUTES: Record<GymDataSection, string> = {
   profile: "/api/gyms/profile",
@@ -160,9 +161,9 @@ export function transformSectionResponse(
       break;
     case "equipment":
       result = {
-        equipment:
-          ((data.equipment as unknown as GymUnifiedData["equipment"]) ||
-            []) as GymUnifiedData["equipment"],
+        equipment: normalizeEquipmentList(
+          data.equipment as unknown as GymUnifiedData["equipment"],
+        ) as GymUnifiedData["equipment"],
       };
       break;
     case "financialSummary":
@@ -231,13 +232,27 @@ export function transformSectionResponse(
       };
       break;
     case "balanceWithdraws":
+      const rawWithdraws = Array.isArray(data.withdraws)
+        ? (data.withdraws as Array<
+            Record<string, import("@/lib/types/api-error").JsonValue>
+          >)
+        : [];
       result = {
         balanceWithdraws: {
           balanceReais: Number(data.balanceReais ?? 0),
           balanceCents: Number(data.balanceCents ?? 0),
-          withdraws:
-            (data.withdraws as GymUnifiedData["balanceWithdraws"]["withdraws"]) ||
-            [],
+          withdraws: rawWithdraws.map((withdraw) => ({
+            id: String(withdraw.id ?? ""),
+            amount: Number(withdraw.amount ?? 0),
+            pixKey: String(withdraw.pixKey ?? ""),
+            pixKeyType: String(withdraw.pixKeyType ?? ""),
+            externalId: String(withdraw.externalId ?? ""),
+            status: String(withdraw.status ?? ""),
+            createdAt: withdraw.createdAt as unknown as Date,
+            completedAt:
+              (withdraw.completedAt as unknown as Date | null | undefined) ??
+              null,
+          })),
         },
       };
       break;
@@ -315,7 +330,15 @@ async function loadGymBootstrap(
   sections: GymDataSection[],
 ): Promise<Partial<GymUnifiedData>> {
   const response = await getGymBootstrapRequest(sections);
-  return normalizeGymDates(response.data ?? {}) as Partial<GymUnifiedData>;
+  const normalizedData = normalizeGymDates(
+    response.data ?? {},
+  ) as Partial<GymUnifiedData>;
+
+  if ("equipment" in normalizedData) {
+    normalizedData.equipment = normalizeEquipmentList(normalizedData.equipment);
+  }
+
+  return normalizedData;
 }
 
 export function updateStoreWithSection(

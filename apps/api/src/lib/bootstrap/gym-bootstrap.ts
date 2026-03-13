@@ -1,4 +1,3 @@
-import type { StudentData } from "@gymrats/types";
 import type { GymDataSection, GymUnifiedData } from "@gymrats/types/gym-unified";
 import { createBootstrapResponse, measureBootstrapSection } from "@gymrats/domain";
 import {
@@ -48,7 +47,75 @@ type MemberWithStudent = {
   joinDate?: Date;
 };
 
-function transformMembersToStudents(members: MemberWithStudent[]): StudentData[] {
+function normalizeMembershipPlanType(
+  type: string | null | undefined,
+): GymUnifiedData["membershipPlans"][number]["type"] {
+  switch (type) {
+    case "annual":
+    case "yearly":
+      return "annual";
+    case "quarterly":
+      return "quarterly";
+    case "semi-annual":
+    case "semi_annual":
+    case "semiannual":
+      return "semi-annual";
+    case "trial":
+      return "trial";
+    case "monthly":
+    default:
+      return "monthly";
+  }
+}
+
+function normalizeExpenseType(
+  type: string | null | undefined,
+): GymUnifiedData["expenses"][number]["type"] {
+  switch (type) {
+    case "equipment":
+    case "maintenance":
+    case "staff":
+    case "utilities":
+    case "rent":
+      return type;
+    default:
+      return "other";
+  }
+}
+
+function normalizePaymentStatus(
+  status: string | null | undefined,
+): GymUnifiedData["payments"][number]["status"] {
+  switch (status) {
+    case "paid":
+    case "pending":
+    case "overdue":
+    case "canceled":
+    case "withdrawn":
+      return status;
+    default:
+      return "pending";
+  }
+}
+
+function normalizePaymentMethod(
+  paymentMethod: string | null | undefined,
+): GymUnifiedData["payments"][number]["paymentMethod"] {
+  switch (paymentMethod) {
+    case "credit-card":
+    case "debit-card":
+    case "cash":
+    case "pix":
+    case "bank-transfer":
+      return paymentMethod;
+    default:
+      return "pix";
+  }
+}
+
+function transformMembersToStudents(
+  members: MemberWithStudent[],
+): GymUnifiedData["students"] {
   return members.map((membership) => {
     const student = membership.student ?? membership;
     const user = student.user ?? {};
@@ -111,7 +178,7 @@ function transformMembersToStudents(members: MemberWithStudent[]): StudentData[]
       weightHistory: [],
       favoriteEquipment: [],
     };
-  }) as StudentData[];
+  }) as unknown as GymUnifiedData["students"];
 }
 
 export function parseGymBootstrapSections(sectionsParam?: string): GymDataSection[] {
@@ -224,10 +291,7 @@ async function loadGymBootstrapSection(
       };
     case "equipment":
       return {
-        equipment: await db.equipment.findMany({
-          where: { gymId },
-          orderBy: { createdAt: "desc" },
-        }),
+        equipment: await GymInventoryService.getEquipment(gymId),
       };
     case "financialSummary":
       return {
@@ -235,21 +299,66 @@ async function loadGymBootstrapSection(
       };
     case "recentCheckIns":
       return {
-        recentCheckIns: await GymMemberService.getRecentCheckIns(gymId),
+        recentCheckIns: (await GymMemberService.getRecentCheckIns(gymId)).map(
+          (checkIn) => ({
+            ...checkIn,
+            checkOut: checkIn.checkOut ?? undefined,
+          }),
+        ),
       };
     case "membershipPlans":
       return {
-        membershipPlans: await GymDomainService.getPlans(gymId, {
+        membershipPlans: (await GymDomainService.getPlans(gymId, {
           includeInactive: true,
-        }),
+        })).map((plan) => ({
+          id: plan.id,
+          name: plan.name,
+          type: normalizeMembershipPlanType(plan.type),
+          price: plan.price,
+          duration: plan.duration,
+          benefits: Array.isArray(plan.benefits)
+            ? plan.benefits.filter(
+                (benefit): benefit is string => typeof benefit === "string",
+              )
+            : [],
+          isActive: plan.isActive,
+        })),
       };
     case "payments":
       return {
-        payments: await GymDomainService.getPayments(gymId, { limit: 50 }),
+        payments: (await GymDomainService.getPayments(gymId, { limit: 50 })).map(
+          (payment) => ({
+            id: payment.id,
+            studentId: payment.studentId,
+            studentName: payment.studentName,
+            planId: payment.planId ?? "",
+            planName: payment.plan?.name ?? "",
+            amount: payment.amount,
+            date: payment.date,
+            dueDate: payment.dueDate,
+            status: normalizePaymentStatus(
+              payment.withdrawnAt ? "withdrawn" : payment.status,
+            ),
+            paymentMethod: normalizePaymentMethod(payment.paymentMethod),
+            reference: payment.reference ?? undefined,
+            abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
+            withdrawnAt: payment.withdrawnAt ?? undefined,
+            withdrawId: payment.withdrawId ?? undefined,
+          }),
+        ),
       };
     case "expenses":
       return {
-        expenses: await GymDomainService.getExpenses(gymId, { limit: 50 }),
+        expenses: (await GymDomainService.getExpenses(gymId, { limit: 50 })).map(
+          (expense) => ({
+            id: expense.id,
+            type: normalizeExpenseType(expense.type),
+            description: expense.description ?? "",
+            amount: expense.amount,
+            date: expense.date,
+            category: expense.category ?? "",
+          }),
+        ),
       };
     case "coupons": {
       const now = new Date();

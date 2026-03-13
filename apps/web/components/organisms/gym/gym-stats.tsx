@@ -13,6 +13,7 @@ import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import type { Equipment, GymStats } from "@/lib/types";
+import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 interface GymStatsPageProps {
   stats: GymStats;
@@ -20,6 +21,8 @@ interface GymStatsPageProps {
 }
 
 export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
+  const safeEquipment = normalizeEquipmentList(equipment);
+
   return (
     <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
@@ -58,7 +61,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
           />
           <DuoStatCard.Simple
             icon={Dumbbell}
-            value={String(equipment.length)}
+            value={String(safeEquipment.length)}
             label="Equipamentos Ativos"
             badge="78%"
             iconColor="var(--duo-accent)"
@@ -236,7 +239,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
             </div>
           </DuoCard.Header>
           <div className="space-y-3">
-            {equipment.slice(0, 5).map((eq: Equipment, index: number) => (
+            {safeEquipment.slice(0, 5).map((eq: Equipment, index: number) => (
               <motion.div
                 key={eq.id}
                 initial={{ opacity: 0, y: 20 }}

@@ -59,6 +59,9 @@ export function GymSettingsTeamCard() {
   const personalProfile = viewPersonalId
     ? (personalProfilesById[viewPersonalId] ?? null)
     : null;
+  const personalProfileGyms = Array.isArray(personalProfile?.gyms)
+    ? personalProfile.gyms
+    : [];
   const loadingProfile = viewPersonalId
     ? Boolean(loadingPersonalProfileIds[viewPersonalId])
     : false;
@@ -150,7 +153,7 @@ export function GymSettingsTeamCard() {
               </div>
               <div className="rounded-lg border border-duo-border p-3 text-center">
                 <p className="text-lg font-bold text-duo-fg">
-                  {personalProfile.gyms.length}
+                  {personalProfileGyms.length}
                 </p>
                 <p className="text-xs text-duo-fg-muted">Academias</p>
               </div>

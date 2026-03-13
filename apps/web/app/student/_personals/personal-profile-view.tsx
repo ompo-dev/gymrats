@@ -65,6 +65,8 @@ export function PersonalProfileView({
   );
   const loading = !profile && (!resource || resource.status === "loading");
   const error = resource?.error ?? null;
+  const profileGyms = Array.isArray(profile?.gyms) ? profile.gyms : [];
+  const profilePlans = Array.isArray(profile?.plans) ? profile.plans : [];
 
   useEffect(() => {
     void loadPersonalProfile(personalId, profileRefreshKey !== undefined);
@@ -108,13 +110,20 @@ export function PersonalProfileView({
       !autoStarted &&
       !profile.isSubscribed
     ) {
-      const plan = profile.plans.find((p) => p.id === preSelectedPlan);
+      const plan = profilePlans.find((p) => p.id === preSelectedPlan);
       if (plan) {
         setAutoStarted(true);
         handleSubscribe(preSelectedPlan, preSelectedCoupon);
       }
     }
-  }, [profile, preSelectedPlan, preSelectedCoupon, autoStarted, handleSubscribe]);
+  }, [
+    profile,
+    preSelectedPlan,
+    preSelectedCoupon,
+    autoStarted,
+    handleSubscribe,
+    profilePlans,
+  ]);
 
   if (loading) {
     return (
@@ -210,13 +219,13 @@ export function PersonalProfileView({
             <Dumbbell className="h-6 w-6 text-duo-orange" />
             <div>
               <p className="text-xs text-duo-gray-dark">Academias</p>
-              <p className="text-lg font-bold">{profile.gyms.length}</p>
+              <p className="text-lg font-bold">{profileGyms.length}</p>
             </div>
           </div>
         </DuoCard.Root>
       </div>
 
-      {profile.gyms.length > 0 && (
+      {profileGyms.length > 0 && (
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
@@ -225,7 +234,7 @@ export function PersonalProfileView({
             </div>
           </DuoCard.Header>
           <div className="space-y-3">
-            {profile.gyms.map((g) => (
+            {profileGyms.map((g) => (
               <AcademyListItemCard
                 key={g.id}
                 image={g.logo || g.image || "/placeholder.svg"}
@@ -277,12 +286,12 @@ export function PersonalProfileView({
           </div>
         </DuoCard.Header>
         <div className="space-y-3">
-          {profile.plans.length === 0 ? (
+          {profilePlans.length === 0 ? (
             <p className="py-4 text-center text-sm text-duo-gray-dark">
               Nenhum plano disponível
             </p>
           ) : (
-            profile.plans.map((plan) => (
+            profilePlans.map((plan) => (
               <DuoCard.Root
                 key={plan.id}
                 variant="default"

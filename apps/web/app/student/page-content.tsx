@@ -59,6 +59,10 @@ function HomeTabPrioritizedLoader() {
   return null;
 }
 
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 /**
  * Componente de Conteúdo da Home do Student
  *
@@ -195,16 +199,22 @@ function StudentHomeContent() {
   };
 
   // Dados do store (sem fallback SSR) — cast do persist (JsonValue) para tipos do domínio
-  const currentGymLocations = (storeGymLocations ??
-    []) as unknown as GymLocation[];
-  const currentDayPasses = (storeDayPasses ?? []) as unknown as DayPass[];
-  const currentMemberships = (storeMemberships ??
-    []) as unknown as StudentGymMembership[];
+  const currentGymLocations = asArray<GymLocation>(storeGymLocations);
+  const currentDayPasses = asArray<DayPass>(storeDayPasses);
+  const currentMemberships = asArray<StudentGymMembership>(storeMemberships);
   const currentUser = storeUser as unknown as UserInfo | null;
-  const currentWorkoutHistory = (storeWorkoutHistory ??
-    []) as unknown as WorkoutHistory[];
-  const currentWeightHistory = (storeWeightHistory ??
-    []) as unknown as WeightHistoryItem[];
+  const currentWorkoutHistory = Array.isArray(storeWorkoutHistory)
+    ? (storeWorkoutHistory as WorkoutHistory[])
+    : asArray<WorkoutHistory>(
+        (storeWorkoutHistory as { history?: unknown[] } | null | undefined)
+          ?.history,
+      );
+  const currentWeightHistory = Array.isArray(storeWeightHistory)
+    ? (storeWeightHistory as WeightHistoryItem[])
+    : asArray<WeightHistoryItem>(
+        (storeWeightHistory as { history?: unknown[] } | null | undefined)
+          ?.history,
+      );
   const currentWeightGain = (storeWeightGain ?? null) as number | null;
   const profile = storeProfile as unknown as StudentProfileData | null;
   const currentWeight = profile?.weight;
@@ -599,7 +609,7 @@ function StudentHomeContent() {
                         icon: "💪",
                       },
                     ] as Unit[])
-                  : ((storeUnits ?? []) as unknown as Unit[])
+                  : asArray<Unit>(storeUnits)
               }
               workoutHistory={currentWorkoutHistory}
             />

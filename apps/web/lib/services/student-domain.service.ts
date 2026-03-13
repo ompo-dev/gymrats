@@ -1,5 +1,60 @@
 import { db } from "@/lib/db";
-import type { JsonValue } from "@/lib/types/api-error";
+
+type ScalarUpdateValue = string | number | boolean | null | undefined;
+
+function toOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function toNullableNumber(value: unknown): number | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toOptionalNumber(value);
+}
+
+function toOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function toNullableString(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return toOptionalString(value);
+}
+
+function toNullableBoolean(value: unknown): boolean | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function toDateValue(value: unknown): Date | undefined {
+  if (value instanceof Date) {
+    return value;
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? undefined : date;
+  }
+
+  return undefined;
+}
+
+function toJSONString(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  return JSON.stringify(value);
+}
 
 /**
  * Service to centralize student domain operations and stat updates
@@ -191,23 +246,27 @@ export class StudentDomainService {
    */
   static async updateProgress(
     studentId: string,
-    data: Record<string, string | number | boolean | Date | null | undefined>,
+    data: Record<string, unknown>,
   ) {
+    const progressData = {
+      totalXP: toOptionalNumber(data.totalXP),
+      todayXP: toOptionalNumber(data.todayXP),
+      workoutsCompleted: toOptionalNumber(data.workoutsCompleted),
+      currentStreak: toOptionalNumber(data.currentStreak),
+      longestStreak: toOptionalNumber(data.longestStreak),
+      currentLevel: toOptionalNumber(data.currentLevel),
+      xpToNextLevel: toOptionalNumber(data.xpToNextLevel),
+      dailyGoalXP: toOptionalNumber(data.dailyGoalXP),
+      lastActivityDate: toDateValue(data.lastActivityDate),
+    };
+
     return db.studentProgress.upsert({
       where: { studentId },
       create: {
         studentId,
-        ...data,
-        lastActivityDate: data.lastActivityDate
-          ? new Date(data.lastActivityDate)
-          : undefined,
+        ...progressData,
       },
-      update: {
-        ...data,
-        lastActivityDate: data.lastActivityDate
-          ? new Date(data.lastActivityDate)
-          : undefined,
-      },
+      update: progressData,
     });
   }
 
@@ -216,7 +275,7 @@ export class StudentDomainService {
    */
   static async upsertProfile(
     studentId: string,
-    data: Record<string, string | number | boolean | null | undefined>,
+    data: Record<string, ScalarUpdateValue>,
   ) {
     return db.studentProfile.upsert({
       where: { studentId },
@@ -230,71 +289,52 @@ export class StudentDomainService {
    */
   static async updateFullProfile(
     studentId: string,
-    data: Record<
-      string,
-      | string
-      | number
-      | boolean
-      | string[]
-      | Record<string, string | string[]>
-      | null
-      | undefined
-    >,
+    data: Record<string, unknown>,
   ) {
     // 1. Update basic student information
     await db.student.update({
       where: { id: studentId },
       data: {
-        age: data.age,
-        gender: data.gender,
-        isTrans: data.isTrans ?? undefined,
-        usesHormones: data.usesHormones ?? undefined,
-        hormoneType: data.hormoneType || null,
+        age: toNullableNumber(data.age),
+        gender: toNullableString(data.gender),
+        isTrans: toNullableBoolean(data.isTrans),
+        usesHormones: toNullableBoolean(data.usesHormones),
+        hormoneType: toNullableString(data.hormoneType),
       },
     });
 
     // 2. Prepare profile data (handling JSON stringification for arrays/objects)
-    const profileData = {
-      height: data.height,
-      weight: data.weight,
-      fitnessLevel: data.fitnessLevel || null,
-      weeklyWorkoutFrequency: data.weeklyWorkoutFrequency,
-      workoutDuration: data.workoutDuration,
-      goals: data.goals ? JSON.stringify(data.goals) : null,
-      injuries: data.injuries ? JSON.stringify(data.injuries) : null,
-      availableEquipment: data.availableEquipment
-        ? JSON.stringify(data.availableEquipment)
-        : null,
-      gymType: data.gymType || null,
-      preferredWorkoutTime: data.preferredWorkoutTime || null,
-      preferredSets: data.preferredSets,
-      preferredRepRange: data.preferredRepRange || null,
-      restTime: data.restTime || null,
-      dietType: data.dietType || null,
-      allergies: data.allergies ? JSON.stringify(data.allergies) : null,
-      targetCalories: data.targetCalories,
-      targetProtein: data.targetProtein,
-      targetCarbs: data.targetCarbs,
-      targetFats: data.targetFats,
-      targetWater: data.targetWater,
-      mealsPerDay: data.mealsPerDay,
-      bmr: data.bmr,
-      tdee: data.tdee,
-      activityLevel: data.activityLevel,
-      hormoneTreatmentDuration: data.hormoneTreatmentDuration,
-      physicalLimitations: data.physicalLimitations
-        ? JSON.stringify(data.physicalLimitations)
-        : null,
-      motorLimitations: data.motorLimitations
-        ? JSON.stringify(data.motorLimitations)
-        : null,
-      medicalConditions: data.medicalConditions
-        ? JSON.stringify(data.medicalConditions)
-        : null,
-      limitationDetails: data.limitationDetails
-        ? JSON.stringify(data.limitationDetails)
-        : null,
-      dailyAvailableHours: data.dailyAvailableHours,
+    const profileData: Record<string, ScalarUpdateValue> = {
+      height: toNullableNumber(data.height),
+      weight: toNullableNumber(data.weight),
+      fitnessLevel: toNullableString(data.fitnessLevel),
+      weeklyWorkoutFrequency: toNullableNumber(data.weeklyWorkoutFrequency),
+      workoutDuration: toNullableNumber(data.workoutDuration),
+      goals: toJSONString(data.goals),
+      injuries: toJSONString(data.injuries),
+      availableEquipment: toJSONString(data.availableEquipment),
+      gymType: toNullableString(data.gymType),
+      preferredWorkoutTime: toNullableString(data.preferredWorkoutTime),
+      preferredSets: toNullableNumber(data.preferredSets),
+      preferredRepRange: toNullableString(data.preferredRepRange),
+      restTime: toNullableString(data.restTime),
+      dietType: toNullableString(data.dietType),
+      allergies: toJSONString(data.allergies),
+      targetCalories: toNullableNumber(data.targetCalories),
+      targetProtein: toNullableNumber(data.targetProtein),
+      targetCarbs: toNullableNumber(data.targetCarbs),
+      targetFats: toNullableNumber(data.targetFats),
+      targetWater: toNullableNumber(data.targetWater),
+      mealsPerDay: toNullableNumber(data.mealsPerDay),
+      bmr: toNullableNumber(data.bmr),
+      tdee: toNullableNumber(data.tdee),
+      activityLevel: toNullableNumber(data.activityLevel),
+      hormoneTreatmentDuration: toNullableNumber(data.hormoneTreatmentDuration),
+      physicalLimitations: toJSONString(data.physicalLimitations),
+      motorLimitations: toJSONString(data.motorLimitations),
+      medicalConditions: toJSONString(data.medicalConditions),
+      limitationDetails: toJSONString(data.limitationDetails),
+      dailyAvailableHours: toNullableNumber(data.dailyAvailableHours),
     };
 
     await StudentDomainService.upsertProfile(studentId, profileData);
@@ -316,12 +356,12 @@ export class StudentDomainService {
     studentId: string,
     userId: string,
     sections?: string[],
-  ) {
+  ): Promise<Record<string, unknown>> {
     const requestedSections = sections
       ? sections.filter((s) => s !== "actions" && s !== "loaders")
       : null;
 
-    const result: Record<string, JsonValue> = {};
+    const result: Record<string, unknown> = {};
 
     // 1. User Info
     if (!requestedSections || requestedSections.includes("user")) {
@@ -424,8 +464,10 @@ export class StudentDomainService {
     }
 
     if (!requestedSections || requestedSections.includes("weightHistory")) {
-      result.weightHistory =
+      const weightHistorySnapshot =
         await StudentDomainService.getWeightHistory(studentId);
+      result.weightHistory = weightHistorySnapshot.history;
+      result.weightGain = weightHistorySnapshot.weightGain;
     }
 
     if (!requestedSections || requestedSections.includes("memberships")) {

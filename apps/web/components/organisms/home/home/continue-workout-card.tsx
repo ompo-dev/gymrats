@@ -16,10 +16,11 @@ function ContinueWorkoutCardSimple({
   workoutHistory,
 }: ContinueWorkoutCardProps) {
   const router = useRouter();
+  const safeUnits = Array.isArray(units) ? units : [];
+  const safeWorkoutHistory = Array.isArray(workoutHistory) ? workoutHistory : [];
 
-  // Encontrar o primeiro workout não completado
   const findNextWorkout = () => {
-    for (const unit of units) {
+    for (const unit of safeUnits) {
       if (unit.workouts && unit.workouts.length > 0) {
         const nextWorkout = unit.workouts.find(
           (workout) => !workout.completed && !workout.locked,
@@ -35,18 +36,14 @@ function ContinueWorkoutCardSimple({
     return null;
   };
 
-  // Encontrar o último workout completado
   const findLastCompletedWorkout = () => {
-    if (workoutHistory.length === 0) return null;
-
-    const lastWorkout = workoutHistory[0]; // Já está ordenado por data (mais recente primeiro)
-    return lastWorkout;
+    if (safeWorkoutHistory.length === 0) return null;
+    return safeWorkoutHistory[0];
   };
 
   const nextWorkout = findNextWorkout();
   const lastCompleted = findLastCompletedWorkout();
 
-  // Se não houver próximo workout e não houver histórico, mostrar empty state
   if (!nextWorkout && !lastCompleted) {
     return (
       <DuoCard.Root variant="default" padding="md">
@@ -73,7 +70,7 @@ function ContinueWorkoutCardSimple({
             Comece sua jornada!
           </p>
           <p className="text-sm text-duo-fg-muted">
-            Seus treinos personalizados estão prontos. Comece agora!
+            Seus treinos personalizados estao prontos. Comece agora!
           </p>
           <DuoButton
             onClick={() => router.push("/student?tab=learn")}
@@ -89,7 +86,6 @@ function ContinueWorkoutCardSimple({
     );
   }
 
-  // Se houver próximo workout, mostrar para continuar
   if (nextWorkout) {
     const workoutUrl = `/student?tab=learn&modal=workout&workoutId=${nextWorkout.workout.id}`;
 
@@ -139,7 +135,6 @@ function ContinueWorkoutCardSimple({
     );
   }
 
-  // Se não houver próximo workout mas houver histórico, mostrar último completado
   if (lastCompleted) {
     return (
       <DuoCard.Root variant="default" padding="md">
@@ -167,7 +162,7 @@ function ContinueWorkoutCardSimple({
             </div>
             <div className="flex-1">
               <p className="font-bold text-duo-text">
-                Último treino: {lastCompleted.workoutName}
+                Ultimo treino: {lastCompleted.workoutName}
               </p>
               <p className="text-xs text-duo-fg-muted">
                 {new Date(lastCompleted.date).toLocaleDateString("pt-BR", {
@@ -183,7 +178,7 @@ function ContinueWorkoutCardSimple({
             className="w-full"
           >
             <Play className="h-4 w-4 mr-2" />
-            Ver Próximo Treino
+            Ver Proximo Treino
             <ArrowRight className="h-4 w-4 ml-2" />
           </DuoButton>
         </motion.div>

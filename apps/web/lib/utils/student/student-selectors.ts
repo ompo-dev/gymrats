@@ -3,7 +3,7 @@
  * Seletores simples gerados automaticamente; compostos explícitos.
  */
 
-import type { StudentData } from "@/lib/types/student-unified";
+import type { StudentData, WeightHistoryItem } from "@/lib/types/student-unified";
 
 export function selectUser(d: StudentData) {
   return d.user;
@@ -17,8 +17,14 @@ export function selectProgress(d: StudentData) {
 export function selectProfile(d: StudentData) {
   return d.profile;
 }
-export function selectWeightHistory(d: StudentData) {
-  return d.weightHistory;
+export function selectWeightHistory(d: StudentData): WeightHistoryItem[] {
+  if (Array.isArray(d.weightHistory)) {
+    return d.weightHistory as WeightHistoryItem[];
+  }
+
+  return Array.isArray((d.weightHistory as { history?: unknown[] } | undefined)?.history)
+    ? (((d.weightHistory as { history?: unknown[] }).history ?? []) as WeightHistoryItem[])
+    : [];
 }
 export function selectWeightGain(d: StudentData) {
   return d.weightGain;
@@ -30,7 +36,11 @@ export function selectWeeklyPlan(d: StudentData) {
   return d.weeklyPlan;
 }
 export function selectWorkoutHistory(d: StudentData) {
-  return d.workoutHistory;
+  return Array.isArray(d.workoutHistory)
+    ? d.workoutHistory
+    : Array.isArray((d.workoutHistory as { history?: unknown[] } | undefined)?.history)
+      ? ((d.workoutHistory as { history?: unknown[] }).history ?? [])
+      : [];
 }
 export function selectPersonalRecords(d: StudentData) {
   return d.personalRecords;
@@ -129,7 +139,9 @@ export function selectPhone(d: StudentData) {
 }
 
 export function selectCurrentWeight(d: StudentData) {
-  return d.profile.weight || (d.weightHistory[0]?.weight ?? null);
+  const weightHistory = selectWeightHistory(d);
+  const profile = d.profile as { weight?: number } | null | undefined;
+  return profile?.weight ?? (weightHistory[0]?.weight ?? null);
 }
 export function selectHeight(d: StudentData) {
   return d.profile.height;

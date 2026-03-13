@@ -13,6 +13,7 @@ import type {
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
 import { normalizeDailyNutrition } from "@/lib/utils/nutrition/nutrition-plan";
+import { normalizeStudentSectionData } from "@/lib/utils/student/normalize-student-data";
 
 type SetStateFn = (
   fn: (s: { data: StudentData }) => { data: StudentData },
@@ -273,59 +274,74 @@ export function updateStoreWithSection(
   set: SetStateFn,
   sectionData: Partial<StudentData>,
 ): void {
+  const normalizedSectionData = normalizeStudentSectionData(sectionData);
+
   set((state) => {
     const newState = { ...state.data };
-    if (sectionData.user)
-      newState.user = { ...newState.user, ...sectionData.user };
-    if (sectionData.student)
-      newState.student = { ...newState.student, ...sectionData.student };
-    if (sectionData.progress)
-      newState.progress = { ...newState.progress, ...sectionData.progress };
-    if (sectionData.profile)
-      newState.profile = { ...newState.profile, ...sectionData.profile };
-    if (sectionData.weightHistory) {
-      newState.weightHistory = sectionData.weightHistory;
-      if (sectionData.weightHistory.length > 0) {
-        newState.weightGain = calculateWeightGain(sectionData.weightHistory);
-        if (!newState.profile?.weight && sectionData.weightHistory[0]) {
+    if (normalizedSectionData.user)
+      newState.user = { ...newState.user, ...normalizedSectionData.user };
+    if (normalizedSectionData.student)
+      newState.student = {
+        ...newState.student,
+        ...normalizedSectionData.student,
+      };
+    if (normalizedSectionData.progress)
+      newState.progress = {
+        ...newState.progress,
+        ...normalizedSectionData.progress,
+      };
+    if (normalizedSectionData.profile)
+      newState.profile = {
+        ...newState.profile,
+        ...normalizedSectionData.profile,
+      };
+    if (normalizedSectionData.weightHistory) {
+      newState.weightHistory = normalizedSectionData.weightHistory;
+      if (normalizedSectionData.weightHistory.length > 0) {
+        newState.weightGain =
+          normalizedSectionData.weightGain ??
+          calculateWeightGain(normalizedSectionData.weightHistory);
+        if (!newState.profile?.weight && normalizedSectionData.weightHistory[0]) {
           newState.profile = {
             ...newState.profile,
-            weight: sectionData.weightHistory[0].weight,
+            weight: normalizedSectionData.weightHistory[0].weight,
           };
         }
       }
     }
-    if (sectionData.units !== undefined) newState.units = sectionData.units;
-    if (sectionData.weeklyPlan !== undefined)
-      newState.weeklyPlan = sectionData.weeklyPlan;
-    if (sectionData.libraryPlans !== undefined)
-      newState.libraryPlans = sectionData.libraryPlans;
-    if (sectionData.workoutHistory !== undefined)
-      newState.workoutHistory = sectionData.workoutHistory;
-    if (sectionData.personalRecords !== undefined)
-      newState.personalRecords = sectionData.personalRecords;
-    if (sectionData.activeNutritionPlan !== undefined)
-      newState.activeNutritionPlan = sectionData.activeNutritionPlan;
-    if (sectionData.nutritionLibraryPlans !== undefined)
-      newState.nutritionLibraryPlans = sectionData.nutritionLibraryPlans;
-    if (sectionData.subscription !== undefined)
-      newState.subscription = sectionData.subscription;
-    if (sectionData.memberships !== undefined)
-      newState.memberships = sectionData.memberships;
-    if (sectionData.payments !== undefined)
-      newState.payments = sectionData.payments;
-    if (sectionData.paymentMethods !== undefined)
-      newState.paymentMethods = sectionData.paymentMethods;
-    if (sectionData.referral !== undefined)
-      newState.referral = sectionData.referral;
-    if (sectionData.dayPasses !== undefined)
-      newState.dayPasses = sectionData.dayPasses;
-    if (sectionData.friends !== undefined)
-      newState.friends = sectionData.friends;
-    if (sectionData.gymLocations !== undefined)
-      newState.gymLocations = sectionData.gymLocations;
-    if (sectionData.dailyNutrition !== undefined)
-      newState.dailyNutrition = sectionData.dailyNutrition;
+    if (normalizedSectionData.units !== undefined)
+      newState.units = normalizedSectionData.units;
+    if (normalizedSectionData.weeklyPlan !== undefined)
+      newState.weeklyPlan = normalizedSectionData.weeklyPlan;
+    if (normalizedSectionData.libraryPlans !== undefined)
+      newState.libraryPlans = normalizedSectionData.libraryPlans;
+    if (normalizedSectionData.workoutHistory !== undefined)
+      newState.workoutHistory = normalizedSectionData.workoutHistory;
+    if (normalizedSectionData.personalRecords !== undefined)
+      newState.personalRecords = normalizedSectionData.personalRecords;
+    if (normalizedSectionData.activeNutritionPlan !== undefined)
+      newState.activeNutritionPlan = normalizedSectionData.activeNutritionPlan;
+    if (normalizedSectionData.nutritionLibraryPlans !== undefined)
+      newState.nutritionLibraryPlans =
+        normalizedSectionData.nutritionLibraryPlans;
+    if (normalizedSectionData.subscription !== undefined)
+      newState.subscription = normalizedSectionData.subscription;
+    if (normalizedSectionData.memberships !== undefined)
+      newState.memberships = normalizedSectionData.memberships;
+    if (normalizedSectionData.payments !== undefined)
+      newState.payments = normalizedSectionData.payments;
+    if (normalizedSectionData.paymentMethods !== undefined)
+      newState.paymentMethods = normalizedSectionData.paymentMethods;
+    if (normalizedSectionData.referral !== undefined)
+      newState.referral = normalizedSectionData.referral;
+    if (normalizedSectionData.dayPasses !== undefined)
+      newState.dayPasses = normalizedSectionData.dayPasses;
+    if (normalizedSectionData.friends !== undefined)
+      newState.friends = normalizedSectionData.friends;
+    if (normalizedSectionData.gymLocations !== undefined)
+      newState.gymLocations = normalizedSectionData.gymLocations;
+    if (normalizedSectionData.dailyNutrition !== undefined)
+      newState.dailyNutrition = normalizedSectionData.dailyNutrition;
     return { data: newState };
   });
 }
@@ -353,7 +369,7 @@ async function loadStudentBootstrap(
   sections: StudentDataSection[],
 ): Promise<Partial<StudentData>> {
   const response = await getStudentBootstrapRequest(sections);
-  return response.data ?? {};
+  return normalizeStudentSectionData(response.data ?? {});
 }
 
 export async function loadSection(

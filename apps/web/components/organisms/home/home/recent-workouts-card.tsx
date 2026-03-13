@@ -10,7 +10,9 @@ interface RecentWorkoutsCardProps {
 }
 
 function RecentWorkoutsCardSimple({ workoutHistory }: RecentWorkoutsCardProps) {
-  const recentWorkouts = workoutHistory.slice(0, 3);
+  const recentWorkouts = Array.isArray(workoutHistory)
+    ? workoutHistory.slice(0, 3)
+    : [];
 
   if (recentWorkouts.length === 0) {
     return (
@@ -80,7 +82,6 @@ function RecentWorkoutsCardSimple({ workoutHistory }: RecentWorkoutsCardProps) {
       <div className="space-y-2">
         {recentWorkouts.map((workout, index) => (
           <DuoCard.Root key={index} variant="default" size="sm" className="p-3">
-            {/* Linha do dia + nome do treino */}
             <div className="flex items-center justify-between gap-2 mb-1.5">
               <div className="font-bold text-duo-text truncate min-w-0">
                 {workout.workoutName || "Treino"}
@@ -89,7 +90,6 @@ function RecentWorkoutsCardSimple({ workoutHistory }: RecentWorkoutsCardProps) {
                 {formatDate(workout.date)}
               </div>
             </div>
-            {/* Tempo e kg total */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 text-xs text-duo-gray-dark">
                 <div className="flex items-center gap-1">

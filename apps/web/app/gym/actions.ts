@@ -22,6 +22,10 @@ import {
   getApiErrorMessage,
   reviveDate,
 } from "@/lib/api/server-action-utils";
+import {
+  normalizeEquipmentItem,
+  normalizeEquipmentList,
+} from "@/lib/utils/gym/normalize-equipment";
 
 type SessionPayload = {
   user?: {
@@ -168,7 +172,7 @@ export async function getGymEquipment(): Promise<Equipment[]> {
     const payload = await serverApiGet<{ equipment: Equipment[] }>(
       "/api/gyms/equipment",
     );
-    return payload.equipment;
+    return normalizeEquipmentList(payload.equipment);
   } catch (error) {
     console.error("[getGymEquipment] Erro:", error);
     return [];
@@ -182,7 +186,7 @@ export async function getGymEquipmentById(
     const payload = await serverApiGet<{ equipment: Equipment }>(
       `/api/gyms/equipment/${equipmentId}`,
     );
-    return payload.equipment;
+    return normalizeEquipmentItem(payload.equipment);
   } catch (error) {
     console.error("[getGymEquipmentById] Erro:", error);
     return null;

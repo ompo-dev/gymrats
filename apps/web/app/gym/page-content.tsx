@@ -15,6 +15,7 @@ import { useGymInitializer } from "@/hooks/use-gym-initializer";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
+import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 function GymHomeContent() {
@@ -29,7 +30,7 @@ function GymHomeContent() {
   const profile = store.profile;
   const stats = store.stats;
   const students = store.students ?? [];
-  const equipment = store.equipment ?? [];
+  const equipment = normalizeEquipmentList(store.equipment);
   const financialSummary = store.financialSummary;
   const recentCheckIns = store.recentCheckIns ?? [];
   const plans = store.membershipPlans ?? [];

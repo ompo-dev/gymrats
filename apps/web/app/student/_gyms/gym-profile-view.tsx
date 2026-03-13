@@ -61,6 +61,17 @@ export function GymProfileView({
   const loadGymProfile = useDiscoveryProfilesStore((state) => state.loadGymProfile);
   const loading = !profile && (!resource || resource.status === "loading");
   const error = resource?.error ?? null;
+  const profilePhotos = Array.isArray(profile?.photos) ? profile.photos : [];
+  const profileEquipment = Array.isArray(profile?.equipment)
+    ? profile.equipment
+    : [];
+  const profileAmenities = Array.isArray(profile?.amenities)
+    ? profile.amenities
+    : [];
+  const profilePersonals = Array.isArray(profile?.personals)
+    ? profile.personals
+    : [];
+  const profilePlans = Array.isArray(profile?.plans) ? profile.plans : [];
 
   useEffect(() => {
     void loadGymProfile(gymId, variant, profileRefreshKey !== undefined);
@@ -74,7 +85,7 @@ export function GymProfileView({
       onJoinPlan &&
       variant === "student"
     ) {
-      const plan = profile.plans.find((p) => p.id === preSelectedPlan);
+      const plan = profilePlans.find((p) => p.id === preSelectedPlan);
       const hasMembership = !!profile.myMembership;
       if (plan && !hasMembership) {
         setAutoStarted(true);
@@ -88,6 +99,7 @@ export function GymProfileView({
     autoStarted,
     gymId,
     onJoinPlan,
+    profilePlans,
     variant,
   ]);
 
@@ -138,18 +150,18 @@ export function GymProfileView({
             </div>
           </DuoCard.Header>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            {(profile.logo || profile.photos?.[0]) && (
+            {(profile.logo || profilePhotos[0]) && (
               <div className="flex shrink-0 gap-2">
                 <div className="h-20 w-20 overflow-hidden rounded-xl border-2 border-duo-border">
                   <img
-                    src={profile.logo || profile.photos?.[0]}
+                    src={profile.logo || profilePhotos[0]}
                     alt={profile.name}
                     className="h-full w-full object-cover"
                   />
                 </div>
-                {profile.photos && profile.photos.length > 1 && (
+                {profilePhotos.length > 1 && (
                   <div className="flex gap-1 overflow-x-auto">
-                    {profile.photos.slice(1, 4).map((url, i) => (
+                    {profilePhotos.slice(1, 4).map((url, i) => (
                       <div
                         key={i}
                         className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border-2 border-duo-border"
@@ -219,7 +231,7 @@ export function GymProfileView({
         </DuoCard.Root>
       </div>
 
-      {profile.amenities && profile.amenities.length > 0 && (
+      {profileAmenities.length > 0 && (
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
@@ -231,7 +243,7 @@ export function GymProfileView({
             </div>
           </DuoCard.Header>
           <div className="flex flex-wrap gap-2">
-            {profile.amenities.map((a) => (
+            {profileAmenities.map((a) => (
               <span
                 key={a}
                 className="rounded-full border-2 border-duo-border bg-duo-blue/10 px-3 py-1 text-xs font-bold text-duo-blue"
@@ -243,7 +255,7 @@ export function GymProfileView({
         </DuoCard.Root>
       )}
 
-      {profile.equipment && profile.equipment.length > 0 && (
+      {profileEquipment.length > 0 && (
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
             <div className="flex items-center gap-2">
@@ -255,7 +267,7 @@ export function GymProfileView({
             </div>
           </DuoCard.Header>
           <div className="flex flex-wrap gap-2">
-            {profile.equipment.slice(0, 12).map((e) => (
+            {profileEquipment.slice(0, 12).map((e) => (
               <span
                 key={e.id}
                 className={cn(
@@ -268,17 +280,16 @@ export function GymProfileView({
                 {e.name}
               </span>
             ))}
-            {profile.equipment.length > 12 && (
+            {profileEquipment.length > 12 && (
               <span className="rounded-lg border-2 border-duo-border px-2 py-1 text-xs font-bold text-duo-gray-dark">
-                +{profile.equipment.length - 12} mais
+                +{profileEquipment.length - 12} mais
               </span>
             )}
           </div>
         </DuoCard.Root>
       )}
 
-      {profile.personals &&
-        profile.personals.length > 0 &&
+      {profilePersonals.length > 0 &&
         variant === "student" &&
         onViewPersonal && (
           <DuoCard.Root variant="default" padding="md">
@@ -292,7 +303,7 @@ export function GymProfileView({
               </div>
             </DuoCard.Header>
             <div className="space-y-3">
-              {profile.personals.map((p) => (
+              {profilePersonals.map((p) => (
                 <PersonalListItemCard
                   key={p.id}
                   image={p.avatar || "/placeholder.svg"}
@@ -348,12 +359,12 @@ export function GymProfileView({
           </div>
         </DuoCard.Header>
         <div className="space-y-3">
-          {profile.plans.length === 0 ? (
+          {profilePlans.length === 0 ? (
             <p className="py-4 text-center text-sm text-duo-gray-dark">
               Nenhum plano disponível no momento
             </p>
           ) : (
-            profile.plans.map((plan) => {
+            profilePlans.map((plan) => {
               const hasMembership = !!profile.myMembership;
               const isMyPlan = profile.myMembership?.planId === plan.id;
               const isActive = profile.myMembership?.status === "active";

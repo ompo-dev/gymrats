@@ -25,6 +25,10 @@ import {
   DuoStatsGrid,
 } from "@/components/duo";
 import type { Equipment } from "@/lib/types";
+import {
+  normalizeEquipmentItem,
+  normalizeEquipmentList,
+} from "@/lib/utils/gym/normalize-equipment";
 import { cn } from "@/lib/utils";
 import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { AddEquipmentModal } from "./add-equipment-modal";
@@ -38,9 +42,11 @@ export function GymEquipmentPage({
   equipment: initialEquipment,
 }: GymEquipmentPageProps) {
   // Local state para lista (sincroniza quando troca de academia)
-  const [equipmentList, setEquipmentList] = useState(initialEquipment);
+  const [equipmentList, setEquipmentList] = useState(() =>
+    normalizeEquipmentList(initialEquipment),
+  );
   useEffect(() => {
-    setEquipmentList(initialEquipment);
+    setEquipmentList(normalizeEquipmentList(initialEquipment));
   }, [initialEquipment]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -141,15 +147,7 @@ export function GymEquipmentPage({
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={(newEquip) => {
           setEquipmentList((prev) => [
-            {
-              ...newEquip,
-              usageStats: newEquip.usageStats || {
-                totalUses: 0,
-                avgUsageTime: 0,
-                popularTimes: [],
-              },
-              maintenanceHistory: newEquip.maintenanceHistory || [],
-            },
+            normalizeEquipmentItem(newEquip),
             ...prev,
           ]);
           setIsAddModalOpen(false);
