@@ -8,7 +8,6 @@ import {
   Target,
   Users,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
@@ -109,12 +108,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                 );
                 const percent = Math.round((day.checkins / maxCheckins) * 100);
                 return (
-                  <motion.div
-                    key={day.dayKey}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
-                  >
+                  <div key={day.dayKey} className={index > 0 ? "pt-0" : undefined}>
                     <DuoCard.Root variant="default" size="default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-green/10">
@@ -138,7 +132,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                         </div>
                       </div>
                     </DuoCard.Root>
-                  </motion.div>
+                  </div>
                 );
               })
             )}
@@ -187,12 +181,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                 );
                 const percent = Math.round((item.checkins / maxCheckins) * 100);
                 return (
-                  <motion.div
-                    key={item.hour}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03, duration: 0.4 }}
-                  >
+                  <div key={item.hour} className={index > 0 ? "pt-0" : undefined}>
                     <DuoCard.Root variant="default" size="default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-orange/10">
@@ -216,7 +205,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                         </div>
                       </div>
                     </DuoCard.Root>
-                  </motion.div>
+                  </div>
                 );
               })
             )}
@@ -240,12 +229,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
           </DuoCard.Header>
           <div className="space-y-3">
             {safeEquipment.slice(0, 5).map((eq: Equipment, index: number) => (
-              <motion.div
-                key={eq.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
+              <div key={eq.id} className={index > 0 ? "pt-0" : undefined}>
                 <DuoCard.Root variant="default" size="sm">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-duo-blue text-sm font-bold text-white">
@@ -267,7 +251,7 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                     </div>
                   </div>
                 </DuoCard.Root>
-              </motion.div>
+              </div>
             ))}
           </div>
         </DuoCard.Root>

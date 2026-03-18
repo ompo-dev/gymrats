@@ -93,7 +93,21 @@ export function useGymStudentDetail({
   const isCurrentNutritionDate = nutritionDate === getBrazilNutritionDateKey();
 
   useEffect(() => {
-    setStudentPayments(payments);
+    setStudentPayments((current) => {
+      if (
+        current.length === payments.length &&
+        current.every(
+          (entry, index) =>
+            entry.id === payments[index]?.id &&
+            entry.status === payments[index]?.status &&
+            entry.amount === payments[index]?.amount,
+        )
+      ) {
+        return current;
+      }
+
+      return payments;
+    });
   }, [payments]);
 
   useEffect(() => {

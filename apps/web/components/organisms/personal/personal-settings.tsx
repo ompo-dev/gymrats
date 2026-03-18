@@ -1,7 +1,6 @@
 "use client";
 
 import { CreditCard, Loader2, MapPin } from "lucide-react";
-import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -66,16 +65,35 @@ export function PersonalSettingsPage({
   );
 
   useEffect(() => {
-    setName(profile?.name ?? "");
-    setEmail(profile?.email ?? "");
-    setPhone(profile?.phone ?? "");
-    setBio(profile?.bio ?? "");
-    setAddress(profile?.address ?? "");
-    setCref(profile?.cref ?? "");
-    setPixKeyType(profile?.pixKeyType ?? "");
-    setPixKey(profile?.pixKey ?? "");
-    setAtendimentoPresencial(profile?.atendimentoPresencial ?? true);
-    setAtendimentoRemoto(profile?.atendimentoRemoto ?? true);
+    const nextName = profile?.name ?? "";
+    const nextEmail = profile?.email ?? "";
+    const nextPhone = profile?.phone ?? "";
+    const nextBio = profile?.bio ?? "";
+    const nextAddress = profile?.address ?? "";
+    const nextCref = profile?.cref ?? "";
+    const nextPixKeyType = profile?.pixKeyType ?? "";
+    const nextPixKey = profile?.pixKey ?? "";
+    const nextAtendimentoPresencial = profile?.atendimentoPresencial ?? true;
+    const nextAtendimentoRemoto = profile?.atendimentoRemoto ?? true;
+
+    setName((current) => (current === nextName ? current : nextName));
+    setEmail((current) => (current === nextEmail ? current : nextEmail));
+    setPhone((current) => (current === nextPhone ? current : nextPhone));
+    setBio((current) => (current === nextBio ? current : nextBio));
+    setAddress((current) => (current === nextAddress ? current : nextAddress));
+    setCref((current) => (current === nextCref ? current : nextCref));
+    setPixKeyType((current) =>
+      current === nextPixKeyType ? current : nextPixKeyType,
+    );
+    setPixKey((current) => (current === nextPixKey ? current : nextPixKey));
+    setAtendimentoPresencial((current) =>
+      current === nextAtendimentoPresencial
+        ? current
+        : nextAtendimentoPresencial,
+    );
+    setAtendimentoRemoto((current) =>
+      current === nextAtendimentoRemoto ? current : nextAtendimentoRemoto,
+    );
   }, [profile]);
 
   const handleLogout = async () => {
@@ -254,11 +272,9 @@ export function PersonalSettingsPage({
                 ),
               },
             ].map((field, index) => (
-              <motion.div
+              <div
                 key={field.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
+                className={index > 0 ? "pt-0" : undefined}
               >
                 <DuoCard.Root
                   variant="default"
@@ -289,7 +305,7 @@ export function PersonalSettingsPage({
                     <div>{field.content}</div>
                   </div>
                 </DuoCard.Root>
-              </motion.div>
+              </div>
             ))}
           </div>
         </DuoCard.Root>

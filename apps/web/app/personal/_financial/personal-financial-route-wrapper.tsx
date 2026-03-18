@@ -33,10 +33,15 @@ export function PersonalFinancialRouteWrapper({
 }) {
   const router = useRouter();
   const hydrateInitial = usePersonalUnifiedStore((s) => s.hydrateInitial);
+  const hydrationKey = JSON.stringify({
+    subscriptionId: subscription?.id ?? null,
+    studentIds: students.map((student) => student.id),
+    affiliationIds: affiliations.map((affiliation) => affiliation.id),
+  });
 
   useEffect(() => {
     hydrateInitial({ subscription, students, affiliations });
-  }, [hydrateInitial, subscription, students, affiliations]);
+  }, [hydrateInitial, hydrationKey, subscription, students, affiliations]);
 
   const onRefresh = useCallback(async () => {
     router.refresh();

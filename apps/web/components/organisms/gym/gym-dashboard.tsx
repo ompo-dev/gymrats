@@ -1,7 +1,6 @@
 "use client";
 
 import { Dumbbell, LogIn, Users } from "lucide-react";
-import { motion } from "motion/react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -145,11 +144,9 @@ export function GymDashboardPage({
                   (s) => s.id === checkin.studentId,
                 );
                 return (
-                  <motion.div
+                  <div
                     key={checkin.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
+                    className={index > 0 ? "pt-0" : undefined}
                   >
                     <DuoCard.Root variant="default" size="sm">
                       <div className="flex items-center gap-3">
@@ -173,7 +170,7 @@ export function GymDashboardPage({
                         </div>
                       </div>
                     </DuoCard.Root>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
@@ -202,12 +199,7 @@ export function GymDashboardPage({
                   </p>
                 )}
               {equipmentInUse.map((eq, index) => (
-                <motion.div
-                  key={eq.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
-                >
+                <div key={eq.id} className={index > 0 ? "pt-0" : undefined}>
                   <DuoCard.Root variant="blue" size="sm">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -226,8 +218,8 @@ export function GymDashboardPage({
                         </p>
                       </div>
                     </div>
-                  </DuoCard.Root>
-                </motion.div>
+                    </DuoCard.Root>
+                </div>
               ))}
 
               {equipmentMaintenance.length > 0 && (
@@ -237,11 +229,9 @@ export function GymDashboardPage({
                     Em Manutenção
                   </h3>
                   {equipmentMaintenance.map((eq, index) => (
-                    <motion.div
+                    <div
                       key={eq.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
+                      className={index > 0 ? "pt-0" : undefined}
                     >
                       <DuoCard.Root variant="orange" size="sm">
                         <p className="text-sm font-bold text-duo-text">
@@ -251,7 +241,7 @@ export function GymDashboardPage({
                           Aguardando manutenção
                         </p>
                       </DuoCard.Root>
-                    </motion.div>
+                    </div>
                   ))}
                 </>
               )}
@@ -289,11 +279,9 @@ export function GymDashboardPage({
                 ] as const;
                 const variant = variants[index] || "default";
                 return (
-                  <motion.div
+                  <div
                     key={student.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
+                    className={index > 0 ? "pt-0" : undefined}
                   >
                     <DuoCard.Root variant={variant} size="sm">
                       <div className="flex items-center gap-3">
@@ -328,7 +316,7 @@ export function GymDashboardPage({
                         </div>
                       </div>
                     </DuoCard.Root>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>

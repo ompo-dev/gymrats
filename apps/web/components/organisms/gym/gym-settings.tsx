@@ -10,7 +10,6 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { SlideIn } from "@/components/animations/slide-in";
@@ -97,13 +96,41 @@ export function GymSettingsPage({
 
   // Sincroniza quando troca de academia (profile vem de outra gym) ou após refresh
   useEffect(() => {
-    setProfile(initialProfile);
-    setAddress(initialProfile.address ?? "");
-    setPhone(initialProfile.phone ?? "");
-    setCnpj(initialProfile.cnpj ?? "");
-    setPixKeyType(initialProfile.pixKeyType ?? "");
-    setPixKey(initialProfile.pixKey ?? "");
-    setDaySchedules(parseInitialSchedules());
+    const nextSchedules = parseInitialSchedules();
+
+    setProfile((current) =>
+      current.id === initialProfile.id ? current : initialProfile,
+    );
+    setAddress((current) =>
+      current === (initialProfile.address ?? "")
+        ? current
+        : (initialProfile.address ?? ""),
+    );
+    setPhone((current) =>
+      current === (initialProfile.phone ?? "")
+        ? current
+        : (initialProfile.phone ?? ""),
+    );
+    setCnpj((current) =>
+      current === (initialProfile.cnpj ?? "")
+        ? current
+        : (initialProfile.cnpj ?? ""),
+    );
+    setPixKeyType((current) =>
+      current === (initialProfile.pixKeyType ?? "")
+        ? current
+        : (initialProfile.pixKeyType ?? ""),
+    );
+    setPixKey((current) =>
+      current === (initialProfile.pixKey ?? "")
+        ? current
+        : (initialProfile.pixKey ?? ""),
+    );
+    setDaySchedules((current) => {
+      const currentKey = JSON.stringify(current);
+      const nextKey = JSON.stringify(nextSchedules);
+      return currentKey === nextKey ? current : nextSchedules;
+    });
   }, [initialProfile, parseInitialSchedules]);
 
   const {
@@ -443,12 +470,7 @@ export function GymSettingsPage({
                 ),
               },
             ].map((field, index) => (
-              <motion.div
-                key={field.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
+              <div key={field.title} className={index > 0 ? "pt-0" : undefined}>
                 <DuoCard.Root
                   variant="default"
                   size="default"
@@ -478,14 +500,10 @@ export function GymSettingsPage({
                     <div>{field.content}</div>
                   </div>
                 </DuoCard.Root>
-              </motion.div>
+              </div>
             ))}
             {hasInfoChanges && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.4 }}
-              >
+              <div>
                 <DuoButton
                   onClick={handleSaveInfo}
                   disabled={saving}
@@ -497,7 +515,7 @@ export function GymSettingsPage({
                     "Salvar alterações"
                   )}
                 </DuoButton>
-              </motion.div>
+              </div>
             )}
             {saveError && (
               <p className="text-sm font-medium text-red-600">{saveError}</p>
@@ -527,11 +545,8 @@ export function GymSettingsPage({
               const s = daySchedules[day.id];
               if (!s) return null;
               return (
-                <motion.div
+                <div
                   key={day.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03, duration: 0.3 }}
                   className={cn(
                     "rounded-xl border-2 p-3 transition-all",
                     s.enabled
@@ -599,17 +614,12 @@ export function GymSettingsPage({
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
           {hasScheduleChanges && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="mt-4"
-            >
+            <div className="mt-4">
               <DuoButton
                 onClick={handleSaveSchedules}
                 disabled={saving}
@@ -621,7 +631,7 @@ export function GymSettingsPage({
                   "Salvar horários"
                 )}
               </DuoButton>
-            </motion.div>
+            </div>
           )}
           {saveError && (
             <p className="mt-3 text-sm font-medium text-red-600">{saveError}</p>

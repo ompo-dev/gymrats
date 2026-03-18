@@ -1,7 +1,6 @@
 "use client";
 
 import { Flame, Loader2, Search, UserPlus } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
@@ -283,23 +282,16 @@ export function GymStudentsPage({
               )}
             </div>
 
-            <AnimatePresence>
-              {variant === "personal" && networkFilter === "gym" && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <DuoSelect.Simple
-                    options={gymOptions}
-                    value={gymFilter || "all"}
-                    onChange={(value) => setGymFilter(value as string)}
-                    placeholder="Selecione a Academia"
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {variant === "personal" && networkFilter === "gym" && (
+              <div>
+                <DuoSelect.Simple
+                  options={gymOptions}
+                  value={gymFilter || "all"}
+                  onChange={(value) => setGymFilter(value as string)}
+                  placeholder="Selecione a Academia"
+                />
+              </div>
+            )}
           </div>
         </DuoCard.Root>
       </SlideIn>
@@ -307,12 +299,7 @@ export function GymStudentsPage({
       <SlideIn delay={0.2}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredStudents.map((student, index) => (
-            <motion.div
-              key={student.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.4 }}
-            >
+            <div key={student.id} className={index > 0 ? "pt-0" : undefined}>
               <DuoCard.Root
                 variant="default"
                 size="default"
@@ -458,7 +445,7 @@ export function GymStudentsPage({
                   )
                 )}
               </DuoCard.Root>
-            </motion.div>
+            </div>
           ))}
         </div>
       </SlideIn>

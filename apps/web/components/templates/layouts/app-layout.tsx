@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { startTransition, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { AppBottomNav } from "@/components/organisms/navigation/app-bottom-nav";
 import { AppHeader } from "@/components/organisms/navigation/app-header";
 import { useScrollReset } from "@/hooks/use-scroll-reset";
@@ -68,9 +68,7 @@ function AppLayoutSimple({
     if (customTabChange) {
       await customTabChange(newTab, activeTab);
     } else {
-      startTransition(() => {
-        void setTab(newTab);
-      });
+      await setTab(newTab);
     }
 
     setTimeout(() => {

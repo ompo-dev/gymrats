@@ -11,7 +11,6 @@ import {
   Search,
   Wrench,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
@@ -46,7 +45,23 @@ export function GymEquipmentPage({
     normalizeEquipmentList(initialEquipment),
   );
   useEffect(() => {
-    setEquipmentList(normalizeEquipmentList(initialEquipment));
+    setEquipmentList((current) => {
+      const next = normalizeEquipmentList(initialEquipment);
+
+      if (
+        current.length === next.length &&
+        current.every(
+          (item, index) =>
+            item.id === next[index]?.id &&
+            item.status === next[index]?.status &&
+            item.updatedAt?.valueOf?.() === next[index]?.updatedAt?.valueOf?.(),
+        )
+      ) {
+        return current;
+      }
+
+      return next;
+    });
   }, [initialEquipment]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -249,11 +264,9 @@ export function GymEquipmentPage({
       <SlideIn delay={0.3}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredEquipment.map((equipment, index) => (
-            <motion.div
+            <div
               key={equipment.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05, duration: 0.4 }}
+              className={index > 0 ? "pt-0" : undefined}
             >
               <DuoCard.Root
                 variant="default"
@@ -360,7 +373,7 @@ export function GymEquipmentPage({
                   </DuoCard.Root>
                 )}
               </DuoCard.Root>
-            </motion.div>
+            </div>
           ))}
         </div>
       </SlideIn>

@@ -1,7 +1,6 @@
 "use client";
 
 import { BarChart3, Crown, type LucideIcon, Settings } from "lucide-react";
-import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
@@ -69,12 +68,7 @@ function PersonalMoreMenuSimple() {
       <SlideIn delay={0.1}>
         <div className="grid gap-4">
           {moreMenuItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
-            >
+            <div key={item.id} className={index > 0 ? "pt-0" : undefined}>
               <NavigationButtonCard
                 icon={item.icon}
                 title={item.label}
@@ -82,7 +76,7 @@ function PersonalMoreMenuSimple() {
                 color={item.color}
                 onClick={() => handleItemClick(item.id)}
               />
-            </motion.div>
+            </div>
           ))}
         </div>
       </SlideIn>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2, Search, UserMinus, UserPlus } from "lucide-react";
-import { motion } from "motion/react";
 import Image from "next/image";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
@@ -190,12 +189,7 @@ export function PersonalStudentsPage({
         <SlideIn delay={0.2}>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredStudents.map((item, index) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-              >
+              <div key={item.id} className={index > 0 ? "pt-0" : undefined}>
                 <DuoCard.Root
                   variant="default"
                   size="default"
@@ -256,7 +250,7 @@ export function PersonalStudentsPage({
                     </DuoButton>
                   </div>
                 </DuoCard.Root>
-              </motion.div>
+              </div>
             ))}
           </div>
         </SlideIn>

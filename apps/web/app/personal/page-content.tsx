@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useCallback, useMemo } from "react";
 import { PersonalDashboardPageContent } from "./_dashboard/page-content";
@@ -202,12 +201,7 @@ function PersonalHomeContent() {
   }, [loadSection]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2 }}
-      className="px-4 py-6"
-    >
+    <div className="px-4 py-6">
       {tab === "dashboard" && (
         <PersonalDashboardTab
           onViewGym={(id) => {
@@ -230,7 +224,7 @@ function PersonalHomeContent() {
       {tab === "settings" && <PersonalSettingsTab onRefresh={refreshSettings} />}
       {tab === "stats" && <PersonalStatsTab />}
       {tab === "more" && <PersonalMoreMenu.Simple />}
-    </motion.div>
+    </div>
   );
 }
 

@@ -7,7 +7,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import {
@@ -242,12 +241,7 @@ export function PersonalDashboardPage({
                 </p>
               )}
               {topStudents.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
-                >
+                <div key={item.id} className={index > 0 ? "pt-0" : undefined}>
                   <StudentListItemCard
                     image="/placeholder.svg"
                     name={studentName(item)}
@@ -255,7 +249,7 @@ export function PersonalDashboardPage({
                       item.gym ? `via ${item.gym.name}` : "Independente"
                     }
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
           </DuoCard.Root>
@@ -282,12 +276,7 @@ export function PersonalDashboardPage({
                 </p>
               )}
               {affiliations.map((a, index) => (
-                <motion.div
-                  key={a.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
-                >
+                <div key={a.id} className={index > 0 ? "pt-0" : undefined}>
                   <AcademyListItemCard
                     image={a.gym.logo || a.gym.image || "/placeholder.svg"}
                     name={a.gym.name}
@@ -295,7 +284,7 @@ export function PersonalDashboardPage({
                     planName={`${studentsByGym[a.gym.name]?.length ?? 0} alunos`}
                     hoverColor="duo-blue"
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
           </DuoCard.Root>
