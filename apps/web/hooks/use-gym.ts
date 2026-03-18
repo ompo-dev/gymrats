@@ -1,5 +1,6 @@
 "use client";
 
+import { useShallow } from "zustand/react/shallow";
 import type { GymSelectorReturnMap } from "@/lib/utils/gym/gym-selectors";
 import {
   type GymUnifiedState,
@@ -32,174 +33,79 @@ export function useGym<T extends GymSelector>(
   | GymUnifiedState["data"]
   | GymSelectorReturnMap[T]
   | { [K in T]: GymSelectorReturnMap[K] } {
-  const data = useGymUnifiedStore((state) => state.data);
-  const loadAll = useGymUnifiedStore((state) => state.loadAll);
-  const loadAllPrioritized = useGymUnifiedStore(
-    (state) => state.loadAllPrioritized,
-  );
-  const loadSection = useGymUnifiedStore((state) => state.loadSection);
-  const loadStudentDetail = useGymUnifiedStore(
-    (state) => state.loadStudentDetail,
-  );
-  const loadStudentPayments = useGymUnifiedStore(
-    (state) => state.loadStudentPayments,
-  );
-  const hydrateInitial = useGymUnifiedStore((state) => state.hydrateInitial);
-  const updateProfile = useGymUnifiedStore((state) => state.updateProfile);
-  const createExpense = useGymUnifiedStore((state) => state.createExpense);
-  const createPayment = useGymUnifiedStore((state) => state.createPayment);
-  const checkInStudent = useGymUnifiedStore((state) => state.checkInStudent);
-  const checkOutStudent = useGymUnifiedStore((state) => state.checkOutStudent);
-  const updatePaymentStatus = useGymUnifiedStore(
-    (state) => state.updatePaymentStatus,
-  );
-  const updateMemberStatus = useGymUnifiedStore(
-    (state) => state.updateMemberStatus,
-  );
-  const createEquipment = useGymUnifiedStore((state) => state.createEquipment);
-  const updateEquipment = useGymUnifiedStore((state) => state.updateEquipment);
-  const createMaintenance = useGymUnifiedStore(
-    (state) => state.createMaintenance,
-  );
-  const createMembershipPlan = useGymUnifiedStore(
-    (state) => state.createMembershipPlan,
-  );
-  const updateMembershipPlan = useGymUnifiedStore(
-    (state) => state.updateMembershipPlan,
-  );
-  const deleteMembershipPlan = useGymUnifiedStore(
-    (state) => state.deleteMembershipPlan,
-  );
-  const createCoupon = useGymUnifiedStore((state) => state.createCoupon);
-  const deleteCoupon = useGymUnifiedStore((state) => state.deleteCoupon);
-  const createBoostCampaign = useGymUnifiedStore(
-    (state) => state.createBoostCampaign,
-  );
-  const deleteBoostCampaign = useGymUnifiedStore(
-    (state) => state.deleteBoostCampaign,
-  );
-  const getBoostCampaignPix = useGymUnifiedStore(
-    (state) => state.getBoostCampaignPix,
-  );
-  const createWithdraw = useGymUnifiedStore((state) => state.createWithdraw);
-  const enrollStudent = useGymUnifiedStore((state) => state.enrollStudent);
-  const createGymSubscription = useGymUnifiedStore(
-    (state) => state.createGymSubscription,
-  );
-  const cancelGymSubscription = useGymUnifiedStore(
-    (state) => state.cancelGymSubscription,
-  );
-  const applySubscriptionReferral = useGymUnifiedStore(
-    (state) => state.applySubscriptionReferral,
-  );
-  const checkCurrentSubscriptionActive = useGymUnifiedStore(
-    (state) => state.checkCurrentSubscriptionActive,
-  );
-  const checkBoostCampaignActive = useGymUnifiedStore(
-    (state) => state.checkBoostCampaignActive,
-  );
-
-  if (selectors.length === 0) {
-    return data as GymUnifiedState["data"];
-  }
-
-  if (selectors.length === 1) {
-    const selector = selectors[0];
-    if (selector === "actions") {
-      return {
-        createExpense,
-        createPayment,
-        checkInStudent,
-        checkOutStudent,
-        updatePaymentStatus,
-        updateMemberStatus,
-        createEquipment,
-        updateEquipment,
-        createMaintenance,
-        createMembershipPlan,
-        updateMembershipPlan,
-        deleteMembershipPlan,
-        createCoupon,
-        deleteCoupon,
-        createBoostCampaign,
-        deleteBoostCampaign,
-        getBoostCampaignPix,
-        createWithdraw,
-        enrollStudent,
-        createGymSubscription,
-        cancelGymSubscription,
-        applySubscriptionReferral,
-        checkCurrentSubscriptionActive,
-        checkBoostCampaignActive,
-        loadStudentDetail,
-        loadStudentPayments,
-        hydrateInitial,
-        updateProfile,
-      } as unknown as GymSelectorReturnMap[T];
-    }
-    if (selector === "loaders") {
-      return {
-        loadAll,
-        loadAllPrioritized,
-        loadSection,
-        loadStudentDetail,
-        loadStudentPayments,
-      } as unknown as GymSelectorReturnMap[T];
-    }
-    return dataSelector(
-      selector,
-      data,
-    ) as GymSelectorReturnMap[typeof selector];
-  }
-
-  const result: Record<string, unknown> = {};
-  selectors.forEach((selector) => {
-    if (selector === "actions") {
-      result.actions = {
-        createExpense,
-        createPayment,
-        checkInStudent,
-        checkOutStudent,
-        updatePaymentStatus,
-        updateMemberStatus,
-        createEquipment,
-        updateEquipment,
-        createMaintenance,
-        createMembershipPlan,
-        updateMembershipPlan,
-        deleteMembershipPlan,
-        createCoupon,
-        deleteCoupon,
-        createBoostCampaign,
-        deleteBoostCampaign,
-        getBoostCampaignPix,
-        createWithdraw,
-        enrollStudent,
-        createGymSubscription,
-        cancelGymSubscription,
-        applySubscriptionReferral,
-        checkCurrentSubscriptionActive,
-        checkBoostCampaignActive,
-        loadStudentDetail,
-        loadStudentPayments,
-        hydrateInitial,
-        updateProfile,
+  return useGymUnifiedStore(
+    useShallow((state) => {
+      const actions = {
+        createExpense: state.createExpense,
+        createPayment: state.createPayment,
+        checkInStudent: state.checkInStudent,
+        checkOutStudent: state.checkOutStudent,
+        updatePaymentStatus: state.updatePaymentStatus,
+        updateMemberStatus: state.updateMemberStatus,
+        createEquipment: state.createEquipment,
+        updateEquipment: state.updateEquipment,
+        createMaintenance: state.createMaintenance,
+        createMembershipPlan: state.createMembershipPlan,
+        updateMembershipPlan: state.updateMembershipPlan,
+        deleteMembershipPlan: state.deleteMembershipPlan,
+        createCoupon: state.createCoupon,
+        deleteCoupon: state.deleteCoupon,
+        createBoostCampaign: state.createBoostCampaign,
+        deleteBoostCampaign: state.deleteBoostCampaign,
+        getBoostCampaignPix: state.getBoostCampaignPix,
+        createWithdraw: state.createWithdraw,
+        enrollStudent: state.enrollStudent,
+        createGymSubscription: state.createGymSubscription,
+        cancelGymSubscription: state.cancelGymSubscription,
+        applySubscriptionReferral: state.applySubscriptionReferral,
+        checkCurrentSubscriptionActive: state.checkCurrentSubscriptionActive,
+        checkBoostCampaignActive: state.checkBoostCampaignActive,
+        loadStudentDetail: state.loadStudentDetail,
+        loadStudentPayments: state.loadStudentPayments,
+        hydrateInitial: state.hydrateInitial,
+        updateProfile: state.updateProfile,
       };
-    } else if (selector === "loaders") {
-      result.loaders = {
-        loadAll,
-        loadAllPrioritized,
-        loadSection,
-        loadStudentDetail,
-        loadStudentPayments,
+      const loaders = {
+        loadAll: state.loadAll,
+        loadAllPrioritized: state.loadAllPrioritized,
+        loadSection: state.loadSection,
+        loadStudentDetail: state.loadStudentDetail,
+        loadStudentPayments: state.loadStudentPayments,
       };
-    } else {
-      result[selector] = dataSelector(selector, data);
-    }
-  });
 
-  return result as unknown as Pick<
-    GymSelectorReturnMap,
-    T[number] & keyof GymSelectorReturnMap
-  >;
+      if (selectors.length === 0) {
+        return state.data;
+      }
+
+      if (selectors.length === 1) {
+        const selector = selectors[0];
+        if (selector === "actions") {
+          return actions as unknown as GymSelectorReturnMap[T];
+        }
+        if (selector === "loaders") {
+          return loaders as unknown as GymSelectorReturnMap[T];
+        }
+        return dataSelector(
+          selector,
+          state.data,
+        ) as GymSelectorReturnMap[typeof selector];
+      }
+
+      const result: Record<string, unknown> = {};
+      selectors.forEach((selector) => {
+        if (selector === "actions") {
+          result.actions = actions;
+        } else if (selector === "loaders") {
+          result.loaders = loaders;
+        } else {
+          result[selector] = dataSelector(selector, state.data);
+        }
+      });
+
+      return result as unknown as Pick<
+        GymSelectorReturnMap,
+        T[number] & keyof GymSelectorReturnMap
+      >;
+    }),
+  );
 }

@@ -12,29 +12,42 @@ import { PersonalStudentsPageContent } from "./_students/page-content";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
 import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
-import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
+import { usePersonal } from "@/hooks/use-personal";
 import type { MembershipPlan, StudentData } from "@/lib/types";
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
 function PersonalHomeContent() {
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  const loadAll = usePersonalUnifiedStore((state) => state.loadAll);
   usePersonalInitializer();
   useLoadPrioritizedPersonal({ onlyPriorities: true });
 
-  const store = usePersonalUnifiedStore((state) => state.data);
-  const profile = store.profile;
-  const affiliations = store.affiliations;
-  const students = store.students;
-  const studentDirectory = store.studentDirectory;
-  const subscription = store.subscription;
-  const financialSummary = store.financialSummary ?? null;
-  const storeExpenses = store.expenses ?? [];
-  const storePayments = store.payments ?? [];
-  const storeCoupons = store.coupons ?? [];
-  const storeCampaigns = store.campaigns ?? [];
-  const storePlans = store.membershipPlans ?? [];
+  const { loadAll } = usePersonal("loaders");
+  const {
+    profile,
+    affiliations,
+    students,
+    studentDirectory,
+    subscription,
+    financialSummary,
+    expenses: storeExpenses,
+    payments: storePayments,
+    coupons: storeCoupons,
+    campaigns: storeCampaigns,
+    membershipPlans: storePlans,
+  } = usePersonal(
+    "profile",
+    "affiliations",
+    "students",
+    "studentDirectory",
+    "subscription",
+    "financialSummary",
+    "expenses",
+    "payments",
+    "coupons",
+    "campaigns",
+    "membershipPlans",
+  );
 
   const load = useCallback(async () => {
     await loadAll();

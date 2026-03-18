@@ -27,6 +27,42 @@ export interface AuthResponse {
   };
 }
 
+export interface AuthSessionResponse {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: "PENDING" | "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
+    hasGym: boolean;
+    hasStudent: boolean;
+    activeGymId?: string | null;
+    gyms?: Array<{
+      id: string;
+      plan?: string;
+      subscription?: {
+        plan: string;
+        status: string;
+        currentPeriodEnd?: string | Date | null;
+      } | null;
+    }>;
+    student?: {
+      id: string;
+      subscription?: {
+        plan: string;
+        status: string;
+        currentPeriodEnd?: string | Date | null;
+      } | null;
+    } | null;
+    personal?: {
+      id: string;
+    } | null;
+  };
+  session?: {
+    id: string;
+    token?: string | null;
+  } | null;
+}
+
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
@@ -80,18 +116,20 @@ export const authApi = {
     }
   },
 
-  async getSession(): Promise<AuthResponse | null> {
+  async getSession(): Promise<AuthSessionResponse | null> {
     try {
-      const response = await apiClient.get<AuthResponse>("/api/auth/session");
+      const response = await apiClient.get<AuthSessionResponse>(
+        "/api/auth/session",
+      );
       return response.data;
     } catch {
       return null;
     }
   },
 
-  async exchangeOneTimeToken(token: string): Promise<AuthResponse> {
+  async exchangeOneTimeToken(token: string): Promise<AuthSessionResponse> {
     try {
-      const response = await apiClient.post<AuthResponse>(
+      const response = await apiClient.post<AuthSessionResponse>(
         "/api/auth/exchange-one-time-token",
         { token },
       );

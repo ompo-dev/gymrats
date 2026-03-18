@@ -18,7 +18,14 @@ type GymContextType =
   | "default";
 
 const CONTEXT_PRIORITIES: Record<GymContextType, GymDataSection[]> = {
-  dashboard: ["stats", "recentCheckIns", "students", "equipment"],
+  dashboard: [
+    "profile",
+    "stats",
+    "students",
+    "equipment",
+    "recentCheckIns",
+    "subscription",
+  ],
   students: ["students", "membershipPlans"],
   equipment: ["equipment", "stats"],
   financial: [

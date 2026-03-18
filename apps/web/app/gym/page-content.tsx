@@ -11,12 +11,12 @@ import { GymSettingsPage } from "@/components/organisms/gym/gym-settings";
 import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
+import { useGym } from "@/hooks/use-gym";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
-import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 function GymHomeContent() {
   const router = useRouter();
@@ -26,20 +26,36 @@ function GymHomeContent() {
   useGymInitializer();
   useLoadPrioritizedGym({ onlyPriorities: true });
 
-  const store = useGymUnifiedStore((state) => state.data);
-  const profile = store.profile;
-  const stats = store.stats;
-  const students = store.students ?? [];
-  const equipment = normalizeEquipmentList(store.equipment);
-  const financialSummary = store.financialSummary;
-  const recentCheckIns = store.recentCheckIns ?? [];
-  const plans = store.membershipPlans ?? [];
-  const payments = store.payments ?? [];
-  const expenses = store.expenses ?? [];
-  const coupons = store.coupons ?? [];
-  const campaigns = store.campaigns ?? [];
-  const balanceWithdraws = store.balanceWithdraws;
-  const subscription = store.subscription;
+  const {
+    profile,
+    stats,
+    students = [],
+    equipment: rawEquipment = [],
+    financialSummary,
+    recentCheckIns = [],
+    membershipPlans: plans = [],
+    payments = [],
+    expenses = [],
+    coupons = [],
+    campaigns = [],
+    balanceWithdraws,
+    subscription,
+  } = useGym(
+    "profile",
+    "stats",
+    "students",
+    "equipment",
+    "financialSummary",
+    "recentCheckIns",
+    "membershipPlans",
+    "payments",
+    "expenses",
+    "coupons",
+    "campaigns",
+    "balanceWithdraws",
+    "subscription",
+  );
+  const equipment = normalizeEquipmentList(rawEquipment);
 
   // Usar valor padrão para evitar problemas de SSR
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));

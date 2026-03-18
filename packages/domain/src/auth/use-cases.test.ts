@@ -31,7 +31,7 @@ describe("auth use cases", () => {
     }
   });
 
-  it("prefers cookie auth token over auth header after better auth succeeds", async () => {
+  it("prefers the legacy auth token before falling back to better auth", async () => {
     const getSessionByToken = vi.fn().mockResolvedValue(null);
     const result = await getSessionUseCase(
       {
@@ -62,7 +62,7 @@ describe("auth use cases", () => {
       expect(result.data.sessionToken).toBe("right-token");
       expect(result.data.shouldSyncAuthToken).toBe(false);
     }
-    expect(getSessionByToken).not.toHaveBeenCalled();
+    expect(getSessionByToken).toHaveBeenCalledWith("right-token");
   });
 
   it("falls back to the better auth session id token when auth_token is missing", async () => {

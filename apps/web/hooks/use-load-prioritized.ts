@@ -87,12 +87,15 @@ const CONTEXT_PRIORITIES: Record<ContextType, StudentDataSection[]> = {
   ],
   gyms: ["gymLocations"],
   home: [
+    "user",
     "progress",
     "workoutHistory",
     "profile",
+    "weightHistory",
     "weeklyPlan",
     "units",
     "dailyNutrition",
+    "gymLocations",
   ],
   default: ["progress", "weeklyPlan", "units", "profile"],
 };

@@ -362,14 +362,6 @@ async function loadGymBootstrapSection(
       };
     case "coupons": {
       const now = new Date();
-      await db.gymCoupon.updateMany({
-        where: {
-          gymId,
-          isActive: true,
-          expiresAt: { lt: now },
-        },
-        data: { isActive: false },
-      });
       const coupons = await db.gymCoupon.findMany({
         where: { gymId },
         orderBy: { createdAt: "desc" },
@@ -383,7 +375,10 @@ async function loadGymBootstrapSection(
           maxUses: coupon.maxUses === -1 ? 999999 : coupon.maxUses,
           currentUses: coupon.currentUses,
           expiryDate: coupon.expiresAt ?? new Date(9999, 11, 31),
-          isActive: coupon.isActive,
+          isActive:
+            coupon.isActive &&
+            (!coupon.expiresAt || coupon.expiresAt >= now) &&
+            (coupon.maxUses === -1 || coupon.currentUses < coupon.maxUses),
         })) as GymUnifiedData["coupons"],
       };
     }

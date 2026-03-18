@@ -46,7 +46,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(redirectUrl, 302);
   } catch (error) {
-    console.error("Erro ao criar token de ponte OAuth:", error);
+    console.error("[google.bridge] Failed to create one-time token", {
+      error: error instanceof Error ? error.message : String(error),
+      redirectTo,
+      errorRedirectTo,
+      requestOrigin: getRequestOrigin(request),
+    });
 
     const errorUrl = new URL(errorRedirectTo);
     errorUrl.searchParams.set("oauth_bridge", "failed");

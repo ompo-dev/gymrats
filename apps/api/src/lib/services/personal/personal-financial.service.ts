@@ -111,15 +111,6 @@ export class PersonalFinancialService {
 
   static async getBoostCampaigns(personalId: string): Promise<BoostCampaign[]> {
     const now = new Date();
-    await db.boostCampaign.updateMany({
-      where: {
-        personalId,
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
-    });
-
     const campaigns = await db.boostCampaign.findMany({
       where: { personalId },
       orderBy: { createdAt: "desc" },
@@ -132,7 +123,10 @@ export class PersonalFinancialService {
       primaryColor: c.primaryColor,
       durationHours: c.durationHours,
       amountCents: c.amountCents,
-      status: c.status,
+      status:
+        c.status === "active" && c.endsAt && c.endsAt <= now
+          ? "expired"
+          : c.status,
       clicks: c.clicks,
       impressions: c.impressions,
       radiusKm: c.radiusKm,
@@ -148,29 +142,6 @@ export class PersonalFinancialService {
 
   static async getCoupons(personalId: string): Promise<Coupon[]> {
     const now = new Date();
-    await db.personalCoupon.updateMany({
-      where: {
-        personalId,
-        isActive: true,
-        expiresAt: { lt: now },
-      },
-      data: { isActive: false },
-    });
-
-    const limitedCoupons = await db.personalCoupon.findMany({
-      where: { personalId, isActive: true, maxUses: { not: -1 } },
-      select: { id: true, currentUses: true, maxUses: true },
-    });
-    const maxedCouponIds = limitedCoupons
-      .filter((coupon) => coupon.currentUses >= coupon.maxUses)
-      .map((coupon) => coupon.id);
-    if (maxedCouponIds.length > 0) {
-      await db.personalCoupon.updateMany({
-        where: { id: { in: maxedCouponIds } },
-        data: { isActive: false },
-      });
-    }
-
     const coupons = await db.personalCoupon.findMany({
       where: { personalId },
       orderBy: { createdAt: "desc" },
@@ -184,7 +155,10 @@ export class PersonalFinancialService {
       maxUses: c.maxUses === -1 ? 999999 : c.maxUses,
       currentUses: c.currentUses,
       expiryDate: c.expiresAt ?? new Date(9999, 11, 31),
-      isActive: c.isActive,
+      isActive:
+        c.isActive &&
+        (!c.expiresAt || c.expiresAt >= now) &&
+        (c.maxUses === -1 || c.currentUses < c.maxUses),
     }));
   }
 }

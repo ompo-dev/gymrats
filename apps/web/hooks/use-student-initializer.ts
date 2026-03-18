@@ -21,7 +21,6 @@ import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { StudentData } from "@/lib/types/student-unified";
 import { isAdmin, isStudent } from "@/lib/utils/role";
 import { hydrateStudentBootstrapData } from "@/stores/student/load-helpers";
-import { useStudentDiscoveryStore } from "@/stores/student-discovery-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 /**
@@ -65,12 +64,12 @@ export function useStudentInitializer(options?: {
     (state) => state.data.metadata.isLoading,
   );
   const errors = useStudentUnifiedStore((state) => state.data.metadata.errors);
-  const preloadDiscovery = useStudentDiscoveryStore(
-    (state) => state.preloadDefault,
+  const bootstrapQuery = useStudentBootstrap(
+    DEFAULT_STUDENT_BOOTSTRAP_SECTIONS,
+    {
+      enabled: false,
+    },
   );
-  const bootstrapQuery = useStudentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS, {
-    enabled: false,
-  });
 
   // Memoizar callbacks para evitar mudanças desnecessárias
   const memoizedOnLoadStart = useCallback(() => {
@@ -115,7 +114,6 @@ export function useStudentInitializer(options?: {
       } else {
         await loadAll();
       }
-      await preloadDiscovery();
       memoizedOnLoadComplete();
     },
     isInitialized,

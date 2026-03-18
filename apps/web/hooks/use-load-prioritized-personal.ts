@@ -20,7 +20,13 @@ const CONTEXT_PRIORITIES: Record<
   PersonalContextType,
   readonly PersonalDataSection[]
 > = {
-  dashboard: ["profile", "affiliations", "students", "subscription"],
+  dashboard: [
+    "profile",
+    "affiliations",
+    "students",
+    "subscription",
+    "financialSummary",
+  ],
   students: ["students", "studentDirectory", "affiliations"],
   gyms: ["affiliations", "students"],
   financial: [

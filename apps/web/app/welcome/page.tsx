@@ -9,29 +9,18 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { authApi } from "@/lib/api/auth";
-import { resolveApiBaseUrl } from "@/lib/api/client-factory";
-import { setAuthToken } from "@/lib/auth/token-client";
-import { authClient } from "@/lib/auth-client";
-import { useAuthStore } from "@/stores";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 function WelcomePageContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const { syncSession, setUserProfile } = useAuthStore();
-  const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const buildGoogleStartUrl = () => {
-    const appBaseURL =
-      process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-    const apiBaseURL = resolveApiBaseUrl() || appBaseURL;
-    const startUrl = new URL("/api/auth/google/start", apiBaseURL);
+    const appBaseURL = window.location.origin;
+    const startUrl = new URL("/api/auth/google/start", appBaseURL);
 
     startUrl.searchParams.set("redirectTo", `${appBaseURL}/auth/callback`);
     startUrl.searchParams.set(
@@ -43,104 +32,19 @@ function WelcomePageContent() {
   };
 
   useEffect(() => {
-    const checkCallback = async () => {
-      const callbackParam = searchParams.get("callback");
-      const errorParam = searchParams.get("error");
+    const errorParam = searchParams.get("error");
+    const messageParam = searchParams.get("message");
 
-      if (errorParam) {
-        setError("Erro ao fazer login com Google. Tente novamente.");
-        setIsLoading(false);
-        return;
-      }
+    if (!errorParam) {
+      return;
+    }
 
-      if (callbackParam === "google") {
-        try {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          const { data: session } = await authClient.getSession();
-
-          if (session?.user) {
-            const sessionResponse = await authApi.getSession();
-
-            if (sessionResponse) {
-              const userRole =
-                (sessionResponse.user as {
-                  role: "STUDENT" | "GYM" | "PERSONAL" | "ADMIN";
-                }).role || sessionResponse.user.role;
-
-              if (sessionResponse.session?.token) {
-                setAuthToken(sessionResponse.session.token);
-              }
-              localStorage.setItem("isAuthenticated", "true");
-              localStorage.setItem("userEmail", sessionResponse.user.email);
-              localStorage.setItem("userId", sessionResponse.user.id);
-
-              syncSession(sessionResponse as never);
-              setUserProfile({
-                id: sessionResponse.user.id,
-                name: sessionResponse.user.name,
-                age: 25,
-                gender: "prefer-not-to-say",
-                height: 170,
-                weight: 70,
-                fitnessLevel: "iniciante",
-                weeklyWorkoutFrequency: 3,
-                workoutDuration: 60,
-                goals: [],
-                availableEquipment: [],
-                gymType: "academia-completa",
-                preferredWorkoutTime: "manha",
-                preferredSets: 3,
-                preferredRepRange: "hipertrofia",
-                restTime: "medio",
-              });
-
-              if ((userRole as string) === "PENDING") {
-                router.push("/auth/register/user-type");
-                return;
-              }
-
-              const hasReferral = document.cookie.includes("gymrats_referral");
-
-              if (userRole === "STUDENT" || userRole === "ADMIN") {
-                loadAll().catch((err) => {
-                  console.error(
-                    "Erro ao carregar dados do student apos login:",
-                    err,
-                  );
-                });
-                router.push(
-                  hasReferral
-                    ? "/student?tab=payments&subTab=subscription"
-                    : "/student",
-                );
-              } else if (userRole === "GYM") {
-                router.push(
-                  hasReferral
-                    ? "/gym?tab=financial&subTab=subscription"
-                    : "/gym",
-                );
-              } else if (userRole === "PERSONAL") {
-                router.push("/personal");
-              } else {
-                router.push("/welcome");
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Erro ao verificar callback:", err);
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Erro ao processar login com Google",
-          );
-          setIsLoading(false);
-        }
-      }
-    };
-
-    checkCallback();
-  }, [searchParams, router, setUserProfile, syncSession, loadAll]);
+    setError(
+      messageParam ||
+        "Erro ao fazer login com Google. Tente novamente.",
+    );
+    setIsLoading(false);
+  }, [searchParams]);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);

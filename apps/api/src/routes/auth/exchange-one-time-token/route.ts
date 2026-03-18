@@ -23,11 +23,37 @@ export async function POST(request: NextRequest) {
 
     const user = await db.user.findUnique({
       where: { id: verifiedSession.user.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
+      include: {
+        student: {
+          select: {
+            id: true,
+            subscription: {
+              select: {
+                plan: true,
+                status: true,
+                currentPeriodEnd: true,
+              },
+            },
+          },
+        },
+        personal: {
+          select: {
+            id: true,
+          },
+        },
+        gyms: {
+          select: {
+            id: true,
+            plan: true,
+            subscription: {
+              select: {
+                plan: true,
+                status: true,
+                currentPeriodEnd: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -39,7 +65,18 @@ export async function POST(request: NextRequest) {
     }
 
     const response = NextResponse.json({
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        hasGym: user.role === "ADMIN" || user.gyms.length > 0,
+        hasStudent: user.role === "ADMIN" || Boolean(user.student),
+        activeGymId: user.activeGymId ?? null,
+        gyms: user.gyms,
+        student: user.student,
+        personal: user.personal,
+      },
       session: {
         id: verifiedSession.session.id,
         token: verifiedSession.session.token,

@@ -9,6 +9,82 @@ import {
 
 let observabilityEndpointState: "unknown" | "probing" | "available" | "missing" =
   "unknown";
+let flushHandle: number | null = null;
+const pendingEvents: Array<Record<string, unknown>> = [];
+
+function scheduleFlush() {
+  if (typeof window === "undefined" || flushHandle !== null) {
+    return;
+  }
+
+  const flush = () => {
+    flushHandle = null;
+    void flushTelemetryQueue();
+  };
+
+  if ("requestIdleCallback" in window) {
+    flushHandle = window.requestIdleCallback(flush, {
+      timeout: 2_000,
+    }) as unknown as number;
+    return;
+  }
+
+  flushHandle = window.setTimeout(flush, 750);
+}
+
+async function flushTelemetryQueue() {
+  if (pendingEvents.length === 0) {
+    return;
+  }
+
+  const nextEvent = pendingEvents.shift();
+  if (!nextEvent) {
+    return;
+  }
+
+  if (
+    observabilityEndpointState === "missing" ||
+    observabilityEndpointState === "probing"
+  ) {
+    if (pendingEvents.length > 0) {
+      scheduleFlush();
+    }
+    return;
+  }
+
+  const isCapabilityProbe = observabilityEndpointState === "unknown";
+  if (isCapabilityProbe) {
+    observabilityEndpointState = "probing";
+  }
+
+  try {
+    const response = await browserApiFetch("/api/observability/events", {
+      method: "POST",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(nextEvent),
+    });
+
+    if (response.status === 404) {
+      observabilityEndpointState = "missing";
+      disableClientApiCapability("observabilityEvents");
+      pendingEvents.length = 0;
+      return;
+    }
+
+    observabilityEndpointState = "available";
+  } catch {
+    if (isCapabilityProbe) {
+      observabilityEndpointState = "unknown";
+    }
+  } finally {
+    if (pendingEvents.length > 0) {
+      scheduleFlush();
+    }
+  }
+}
 
 export async function recordClientTelemetryEvent(input: {
   eventType: string;
@@ -26,45 +102,12 @@ export async function recordClientTelemetryEvent(input: {
     return;
   }
 
-  if (
-    observabilityEndpointState === "missing" ||
-    observabilityEndpointState === "probing"
-  ) {
-    return;
-  }
-
-  const isCapabilityProbe = observabilityEndpointState === "unknown";
-  if (isCapabilityProbe) {
-    observabilityEndpointState = "probing";
-  }
-
-  try {
-    const response = await browserApiFetch("/api/observability/events", {
-      method: "POST",
-      keepalive: true,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...input,
-        releaseId: releaseInfo.id,
-        featureFlagSet: Object.entries(featureFlags)
-          .filter(([, enabled]) => enabled)
-          .map(([flag]) => flag),
-      }),
-    });
-
-    if (response.status === 404) {
-      observabilityEndpointState = "missing";
-      disableClientApiCapability("observabilityEvents");
-      return;
-    }
-
-    observabilityEndpointState = "available";
-  } catch {
-    if (isCapabilityProbe) {
-      observabilityEndpointState = "unknown";
-    }
-    // Telemetria nao deve bloquear UX.
-  }
+  pendingEvents.push({
+    ...input,
+    releaseId: releaseInfo.id,
+    featureFlagSet: Object.entries(featureFlags)
+      .filter(([, enabled]) => enabled)
+      .map(([flag]) => flag),
+  });
+  scheduleFlush();
 }

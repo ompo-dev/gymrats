@@ -10,7 +10,11 @@ function getAppUrl() {
 }
 
 function getApiUrl() {
-  return process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_API_URL || getAppUrl();
+  return (
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    getAppUrl()
+  );
 }
 
 function getTrustedOrigins() {
@@ -19,7 +23,14 @@ function getTrustedOrigins() {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  return Array.from(new Set([getAppUrl(), getApiUrl(), ...extraTrustedOrigins]));
+  const appUrl = getAppUrl();
+  const apiUrl = getApiUrl();
+  const baseOrigins =
+    process.env.NODE_ENV === "production"
+      ? [appUrl]
+      : [appUrl, apiUrl];
+
+  return Array.from(new Set([...baseOrigins, ...extraTrustedOrigins]));
 }
 
 function getAuthErrorUrl() {
@@ -65,7 +76,7 @@ function createAuth() {
     plugins: [
       bearer(),
       oneTimeToken({
-        expiresIn: 3,
+        expiresIn: 10,
       }),
     ],
     baseURL: getApiUrl(),
@@ -131,13 +142,6 @@ function createAuth() {
               expires_at?: number;
             };
 
-            console.log("[Account Hook Before] Data received:", {
-              accountId: account.accountId,
-              providerId: account.providerId,
-              provider: accountWithLegacy.provider,
-              providerAccountId: accountWithLegacy.providerAccountId,
-            });
-
             const updatedData: Record<
               string,
               string | number | boolean | object | null
@@ -167,12 +171,6 @@ function createAuth() {
               updatedData.type = "oauth";
             }
 
-            console.log("[Account Hook Before] Data transformed:", {
-              provider: updatedData.provider,
-              providerAccountId: updatedData.providerAccountId,
-              type: updatedData.type,
-            });
-
             return { data: updatedData };
           },
           after: async (account, _ctx) => {
@@ -184,14 +182,6 @@ function createAuth() {
               id_token?: string;
               expires_at?: number;
             };
-
-            console.log("[Account Hook After] Account created:", {
-              id: account.id,
-              accountId: account.accountId,
-              providerId: account.providerId,
-              provider: accountWithLegacy.provider,
-              providerAccountId: accountWithLegacy.providerAccountId,
-            });
 
             const updateData: Record<
               string,
@@ -233,7 +223,6 @@ function createAuth() {
             }
 
             if (Object.keys(updateData).length > 0) {
-              console.log("[Account Hook After] Updating account with:", updateData);
               await db.account.update({
                 where: { id: account.id },
                 data: updateData,
@@ -329,8 +318,6 @@ function createAuth() {
               maxAge: 60 * 60 * 24 * 30,
               path: "/",
             });
-
-            console.log("[Auth Hook] auth_token cookie synced after social login");
           }
         }
       }),

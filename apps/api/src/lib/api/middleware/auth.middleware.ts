@@ -6,7 +6,7 @@
 
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { getRequestContextCookie } from "../../runtime/request-context";
-import { getSession } from "@/lib/utils/session";
+import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 
 export interface AuthResult {
   userId: string;
@@ -50,106 +50,34 @@ export async function requireAuth(
   request: NextRequest,
 ): Promise<AuthResult | AuthError> {
   try {
-    let sessionToken = extractAuthToken(request);
+    const result = await resolveAuthSessionFromRequest(request);
 
-    if (!sessionToken) {
-      sessionToken =
+    if (!result.ok) {
+      const sessionToken =
+        extractAuthToken(request) ||
         getRequestContextCookie("auth_token") ||
         getRequestContextCookie("better-auth.session_token");
-    }
-
-    if (sessionToken) {
-      const session = await getSession(sessionToken);
-
-      if (session) {
-        return {
-          userId: session.userId,
-          session,
-          user: session.user,
-        };
-      }
-    }
-
-    try {
-      const { auth } = await import("@/lib/auth-config");
-      const betterAuthSession = await auth.api.getSession({
-        headers: request.headers,
-      });
-
-      if (betterAuthSession?.user) {
-        const { db } = await import("@/lib/db");
-        const user = await db.user.findUnique({
-          where: { id: betterAuthSession.user.id },
-          include: {
-            student: {
-              select: {
-                id: true,
-                subscription: {
-                  select: {
-                    plan: true,
-                    status: true,
-                    trialEnd: true,
-                    currentPeriodEnd: true,
-                  },
-                },
-              },
-            },
-            personal: { select: { id: true } },
-            gyms: {
-              select: {
-                id: true,
-                plan: true,
-                subscription: {
-                  select: {
-                    plan: true,
-                    status: true,
-                    currentPeriodEnd: true,
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        if (user) {
-          return {
-            userId: user.id,
-            session: {
-              id: betterAuthSession.session?.id || "",
-              userId: user.id,
-              user,
-            } as Record<string, string | number | boolean | object | null>,
-            user: {
-              ...user,
-              student: user.student || undefined,
-              personal: user.personal || undefined,
-              gyms: user.gyms || [],
-            },
-          };
-        }
-      }
-    } catch (_betterAuthError) {
-      console.log(
-        "[requireAuth] Better Auth nao encontrou sessao, tentando metodo antigo",
-      );
-    }
-
-    if (sessionToken) {
       return {
         response: NextResponse.json(
-          { error: "Sessao invalida" },
-          { status: 401 },
+          { error: sessionToken ? "Sessao invalida" : "Nao autenticado" },
+          { status: result.error.status },
         ),
-        error: "Sessao invalida ou expirada",
+        error: result.error.message,
       };
     }
 
     return {
-      response: NextResponse.json(
-        { error: "Nao autenticado" },
-        { status: 401 },
-      ),
-      error: "Token nao fornecido",
+      userId: result.data.user.id,
+      session: {
+        id: result.data.session.id,
+        token: result.data.session.token,
+      },
+      user: {
+        ...result.data.user,
+        student: result.data.user.student || undefined,
+        personal: result.data.user.personal || undefined,
+        gyms: result.data.user.gyms || [],
+      },
     };
   } catch (error) {
     console.error("[requireAuth] Erro:", error);
@@ -198,15 +126,7 @@ export async function requireStudent(
       where: { userId: auth.userId },
     });
 
-    if (!existingStudent) {
-      const newStudent = await db.student.create({
-        data: {
-          userId: auth.userId,
-        },
-      });
-      studentId = newStudent.id;
-      student = { id: newStudent.id };
-    } else {
+    if (existingStudent) {
       studentId = existingStudent.id;
       student = { id: existingStudent.id };
     }
@@ -296,22 +216,7 @@ export async function requirePersonal(
       select: { id: true },
     });
 
-    if (!existingPersonal) {
-      const userRecord = await db.user.findUnique({
-        where: { id: auth.userId },
-        select: { name: true, email: true },
-      });
-      const created = await db.personal.create({
-        data: {
-          userId: auth.userId,
-          name: userRecord?.name || "Personal",
-          email: userRecord?.email || "",
-        },
-        select: { id: true },
-      });
-      personalId = created.id;
-      personal = { id: created.id };
-    } else {
+    if (existingPersonal) {
       personalId = existingPersonal.id;
       personal = { id: existingPersonal.id };
     }

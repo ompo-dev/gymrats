@@ -4,10 +4,11 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { authApi } from "@/lib/api/auth";
 import { setAuthToken } from "@/lib/auth/token-client";
-import { authClient } from "@/lib/auth-client";
+import { useAuthStore } from "@/stores";
 
 function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
+  const syncSession = useAuthStore((state) => state.syncSession);
   const [status, setStatus] = useState<"processing" | "success" | "error">(
     "processing",
   );
@@ -17,7 +18,11 @@ function AuthCallbackPageContent() {
     const processSuccess = (sessionResponse: {
       user: {
         id: string;
+        email: string;
+        name: string;
         role?: string;
+        hasGym?: boolean;
+        hasStudent?: boolean;
       };
       session?: { token?: string };
     }) => {
@@ -25,19 +30,47 @@ function AuthCallbackPageContent() {
         setAuthToken(sessionResponse.session.token);
       }
 
+      syncSession({
+        user: {
+          id: sessionResponse.user.id,
+          email: sessionResponse.user.email,
+          name: sessionResponse.user.name,
+          role:
+            (sessionResponse.user.role as
+              | "PENDING"
+              | "STUDENT"
+              | "GYM"
+              | "PERSONAL"
+              | "ADMIN") ?? "STUDENT",
+          hasGym: sessionResponse.user.hasGym ?? false,
+          hasStudent: sessionResponse.user.hasStudent ?? false,
+        },
+        session: sessionResponse.session
+          ? {
+              id: "callback",
+              token: sessionResponse.session.token,
+            }
+          : null,
+      });
+
       const userRole = sessionResponse.user.role;
       setStatus("success");
+      const hasReferral = document.cookie.includes("gymrats_referral");
 
       const redirectURL =
         userRole === "PENDING"
           ? "/auth/register/user-type"
           : userRole === "GYM"
-            ? "/gym"
+            ? hasReferral
+              ? "/gym?tab=financial&subTab=subscription"
+              : "/gym"
             : userRole === "PERSONAL"
               ? "/personal"
-              : "/student";
+              : hasReferral
+                ? "/student?tab=payments&subTab=subscription"
+                : "/student";
 
-      window.location.href = redirectURL;
+      window.location.replace(redirectURL);
     };
 
     const processCallback = async () => {
@@ -50,28 +83,10 @@ function AuthCallbackPageContent() {
         const urlToken =
           searchParams.get("token") || searchParams.get("oneTimeToken");
 
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
         let sessionResponse =
           urlToken != null
             ? await authApi.exchangeOneTimeToken(urlToken)
             : null;
-
-        if (!sessionResponse) {
-          try {
-            const generated = await authClient.oneTimeToken.generate();
-            if (generated?.data?.token) {
-              sessionResponse = await authApi.exchangeOneTimeToken(
-                generated.data.token,
-              );
-            }
-          } catch (generateError) {
-            console.warn(
-              "Falha ao gerar one-time token, tentando fallback de sessao:",
-              generateError,
-            );
-          }
-        }
 
         if (!sessionResponse) {
           sessionResponse = await authApi.getSession();
@@ -90,13 +105,13 @@ function AuthCallbackPageContent() {
         setStatus("error");
 
         setTimeout(() => {
-          window.location.href = "/welcome?error=google";
+          window.location.replace("/welcome?error=google");
         }, 2000);
       }
     };
 
     processCallback();
-  }, [searchParams]);
+  }, [searchParams, syncSession]);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">

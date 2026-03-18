@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { hasBrowserSessionHint } from "@/lib/auth/token-client";
 import { useAuthStore } from "@/stores";
 
 function shouldHydrateSessionForCurrentPath(): boolean {
@@ -27,11 +26,7 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (
-      !isAuthenticated &&
-      !hasBrowserSessionHint() &&
-      !shouldHydrateSessionForCurrentPath()
-    ) {
+    if (!shouldHydrateSessionForCurrentPath() && !isAuthenticated) {
       return;
     }
 

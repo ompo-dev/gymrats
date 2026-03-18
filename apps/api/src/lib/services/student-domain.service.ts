@@ -213,21 +213,6 @@ export class StudentDomainService {
       streakHistory.map((workoutHistory) => workoutHistory.date),
     );
 
-    if (progress && calculatedStreak !== (progress.currentStreak || 0)) {
-      void db.studentProgress
-        .update({
-          where: { studentId },
-          data: {
-            currentStreak: calculatedStreak,
-            longestStreak: Math.max(
-              calculatedStreak,
-              progress.longestStreak || 0,
-            ),
-          },
-        })
-        .catch(() => undefined);
-    }
-
     const achievements = achievementUnlocks.map((unlock) => ({
       id: unlock.achievement.id,
       title: unlock.achievement.title,

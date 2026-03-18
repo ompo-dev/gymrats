@@ -8,18 +8,7 @@ const startQuerySchema = z.object({
 });
 
 function getAppUrl(request: NextRequest) {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    getRequestOrigin(request)
-  );
-}
-
-function getApiOrigin(request: NextRequest) {
-  return (
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    getRequestOrigin(request)
-  );
+  return process.env.NEXT_PUBLIC_APP_URL || getRequestOrigin(request);
 }
 
 function getRequestOrigin(request: NextRequest) {
@@ -48,12 +37,11 @@ export async function GET(request: NextRequest) {
   }
 
   const appUrl = getAppUrl(request);
-  const apiOrigin = getApiOrigin(request);
   const redirectTo = validation.data.redirectTo || `${appUrl}/auth/callback`;
   const errorRedirectTo =
     validation.data.errorRedirectTo || `${appUrl}/auth/callback?error=true`;
 
-  const bridgeUrl = new URL("/api/auth/google/bridge", apiOrigin);
+  const bridgeUrl = new URL("/api/auth/google/bridge", appUrl);
   bridgeUrl.searchParams.set("redirectTo", redirectTo);
   bridgeUrl.searchParams.set("errorRedirectTo", errorRedirectTo);
 
@@ -63,6 +51,13 @@ export async function GET(request: NextRequest) {
     newUserCallbackURL: bridgeUrl.toString(),
     errorCallbackURL: errorRedirectTo,
   };
+
+  console.info("[google.start] Starting Google OAuth bridge", {
+    requestOrigin: getRequestOrigin(request),
+    appUrl,
+    callbackURL: bridgeUrl.toString(),
+    errorCallbackURL: errorRedirectTo,
+  });
 
   const html = `<!doctype html>
 <html lang="pt-BR">
@@ -90,6 +85,7 @@ export async function GET(request: NextRequest) {
           const data = await response.json().catch(() => null);
           if (!response.ok || !data?.url) {
             const errorUrl = new URL(errorRedirectTo);
+            errorUrl.searchParams.set("status", String(response.status));
             if (data?.error) {
               errorUrl.searchParams.set("message", data.error);
             }

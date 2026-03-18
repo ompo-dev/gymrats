@@ -445,6 +445,28 @@ export async function getSessionUseCase(
   deps: GetSessionDeps,
   input: GetSessionInput,
 ): Promise<UseCaseResult<GetSessionOutput>> {
+  const legacyToken =
+    input.cookieAuthToken ||
+    input.authHeaderToken ||
+    input.cookieBetterAuthToken ||
+    null;
+
+  if (legacyToken) {
+    const sessionToken = legacyToken.trim();
+    const session = await deps.getSessionByToken(sessionToken);
+    if (session) {
+      return ok({
+        user: buildSessionUser(session.user),
+        session: {
+          id: session.id,
+          token: session.token || session.sessionToken || sessionToken,
+        },
+        sessionToken: session.token || session.sessionToken || sessionToken,
+        shouldSyncAuthToken: false,
+      });
+    }
+  }
+
   try {
     const betterAuthSession = await deps.getBetterAuthSession(input.headers);
     if (betterAuthSession?.user?.id) {
@@ -482,34 +504,14 @@ export async function getSessionUseCase(
   } catch (_betterAuthError) {
     console.log(
       "[session] Better Auth nao encontrou sessao, tentando metodo antigo",
-    );
+      );
   }
-
-  const legacyToken =
-    input.authHeaderToken ||
-    input.cookieAuthToken ||
-    input.cookieBetterAuthToken ||
-    null;
 
   if (!legacyToken) {
     return fail("Token nao fornecido", 401);
   }
 
-  const sessionToken = legacyToken.trim();
-  const session = await deps.getSessionByToken(sessionToken);
-  if (!session) {
-    return fail("Sessao invalida ou expirada", 401);
-  }
-
-  return ok({
-    user: buildSessionUser(session.user),
-    session: {
-      id: session.id,
-      token: session.token || session.sessionToken || sessionToken,
-    },
-    sessionToken: session.token || session.sessionToken || sessionToken,
-    shouldSyncAuthToken: false,
-  });
+  return fail("Sessao invalida ou expirada", 401);
 }
 
 export interface SignOutInput {
