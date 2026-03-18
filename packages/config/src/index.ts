@@ -24,16 +24,16 @@ export const featureFlags: FeatureFlags = {
   ),
   perfStudentBootstrapV2: getEnvBoolean(
     process.env.NEXT_PUBLIC_PERF_STUDENT_BOOTSTRAP_V2,
-    !isProductionRuntime,
+    true,
   ),
   perfPaymentsV2: getEnvBoolean(process.env.NEXT_PUBLIC_PERF_PAYMENTS_V2, true),
   perfGymBootstrapV2: getEnvBoolean(
     process.env.NEXT_PUBLIC_PERF_GYM_BOOTSTRAP_V2,
-    false,
+    true,
   ),
   perfPersonalBootstrapV2: getEnvBoolean(
     process.env.NEXT_PUBLIC_PERF_PERSONAL_BOOTSTRAP_V2,
-    false,
+    true,
   ),
   observabilityDashboardEnabled: getEnvBoolean(
     process.env.NEXT_PUBLIC_OBSERVABILITY_DASHBOARD_ENABLED,

@@ -4,6 +4,7 @@ import { featureFlags } from "@gymrats/config";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useGymBootstrap } from "@/hooks/use-gym-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
+import { DEFAULT_GYM_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { isAdmin, isGym } from "@/lib/utils/role";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
@@ -19,7 +20,7 @@ export function useGymInitializer(options?: { autoLoad?: boolean }) {
   const isLoading = useGymUnifiedStore(
     (state) => state.data.metadata.isLoading,
   );
-  const bootstrapQuery = useGymBootstrap(undefined, {
+  const bootstrapQuery = useGymBootstrap(DEFAULT_GYM_BOOTSTRAP_SECTIONS, {
     enabled: false,
   });
   const initializer = useDomainInitializer({

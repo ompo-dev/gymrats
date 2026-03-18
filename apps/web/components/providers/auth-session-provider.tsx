@@ -2,14 +2,41 @@
 
 import type { ReactNode } from "react";
 import { useEffect } from "react";
+import { hasBrowserSessionHint } from "@/lib/auth/token-client";
 import { useAuthStore } from "@/stores";
+
+function shouldHydrateSessionForCurrentPath(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const pathname = window.location.pathname;
+  return ["/student", "/gym", "/personal"].some((prefix) =>
+    pathname.startsWith(prefix),
+  );
+}
 
 export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const ensureSession = useAuthStore((state) => state.ensureSession);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isSessionLoading = useAuthStore((state) => state.isSessionLoading);
+  const sessionUser = useAuthStore((state) => state.sessionUser);
 
   useEffect(() => {
+    if (sessionUser || isSessionLoading) {
+      return;
+    }
+
+    if (
+      !isAuthenticated &&
+      !hasBrowserSessionHint() &&
+      !shouldHydrateSessionForCurrentPath()
+    ) {
+      return;
+    }
+
     void ensureSession();
-  }, [ensureSession]);
+  }, [ensureSession, isAuthenticated, isSessionLoading, sessionUser]);
 
   return children;
 }

@@ -25,8 +25,9 @@ Esta camada Docker representa o desenho operacional atual do monorepo:
 ## Como os containers se conversam
 
 - O navegador acessa `web` em `http://localhost:3000`
-- O navegador acessa a API publica em `http://localhost:4000`
+- O navegador acessa a API pelo mesmo host em `http://localhost:3000/api/*`
 - O container `web` usa `API_INTERNAL_URL=http://api:4000` para chamadas server-side
+- O container `web` usa `API_PROXY_TARGET=http://api:4000` para proxy same-origin do Next
 - `api`, `worker` e `cron` usam o mesmo `DATABASE_URL`
 - Os scripts custom de migration usam o mesmo conjunto de variaveis do compose
 - O Prisma usa `DATABASE_URL` para runtime e `DIRECT_URL` para migrations quando disponivel
@@ -111,7 +112,8 @@ Guia do fluxo de migrations:
 
 ## Observacoes
 
-- O frontend usa `NEXT_PUBLIC_API_URL` no browser e `API_INTERNAL_URL` no servidor.
+- Com `API_PROXY_TARGET` definido, o frontend usa `/api` no browser e `API_INTERNAL_URL` no servidor.
+- `BETTER_AUTH_URL` deve apontar para a origem publica do app (`http://localhost:3000` no Docker local).
 - Em ambientes com Supabase, mantenha `DATABASE_URL` no pooler e `DIRECT_URL` na conexao direta.
 - O entrypoint oficial de migrations do stack fica em `apps/web/scripts/migration/run-stack-migrations.mjs`.
 - O build do `web` continua funcionando mesmo com o backend legado do Next ainda presente.

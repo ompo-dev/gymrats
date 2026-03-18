@@ -3,9 +3,8 @@ import { persist } from "zustand/middleware";
 import { apiClient } from "@/lib/api/client";
 import {
   clearAuthToken,
-  ensureAuthToken,
   getAuthToken,
-  refreshAuthToken,
+  hasBrowserSessionHint,
   setAuthToken,
 } from "@/lib/auth/token-client";
 import type { UserProfile } from "@/lib/types";
@@ -29,7 +28,7 @@ export interface AuthSessionUser {
   role: Exclude<AuthRole, null>;
   hasGym: boolean;
   hasStudent: boolean;
-  activeGymId?: string;
+  activeGymId?: string | null;
   gyms?: Array<{
     id: string;
     plan?: string;
@@ -230,21 +229,12 @@ export const useAuthStore = create<AuthState>()(
           set({ isSessionLoading: true, sessionError: null });
 
           try {
-            const token = getAuthToken() || (await ensureAuthToken());
-
-            if (!token) {
+            if (!force && !state.isAuthenticated && !hasBrowserSessionHint()) {
               applySessionToState(set, null);
               return null;
             }
 
-            let payload = await requestSession().catch(() => null);
-
-            if (!payload?.user) {
-              const refreshedToken = await refreshAuthToken();
-              if (refreshedToken) {
-                payload = await requestSession().catch(() => null);
-              }
-            }
+            const payload = await requestSession().catch(() => null);
 
             applySessionToState(set, payload);
             return payload?.user ?? null;

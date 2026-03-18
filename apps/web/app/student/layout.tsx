@@ -3,6 +3,7 @@ import { HydrationBoundary, dehydrate } from "@tanstack/react-query";
 import { featureFlags } from "@gymrats/config";
 import { LoadingScreenFallback } from "@/components/organisms/loading-screen-fallback";
 import { getStudentBootstrapServerRequest } from "@/lib/api/bootstrap-server";
+import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { createAppQueryClient } from "@/lib/query/create-query-client";
 import { queryKeys } from "@/lib/query/query-keys";
 import { getStudentProfile, getStudentProgress } from "./actions";
@@ -26,8 +27,9 @@ async function StudentLayoutWrapper({
   if (featureFlags.perfStudentBootstrapV2) {
     try {
       const bootstrap = await queryClient.fetchQuery({
-        queryKey: queryKeys.studentBootstrap(),
-        queryFn: () => getStudentBootstrapServerRequest(),
+        queryKey: queryKeys.studentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS),
+        queryFn: () =>
+          getStudentBootstrapServerRequest(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS),
       });
 
       profileData = {

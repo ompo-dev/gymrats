@@ -410,6 +410,10 @@ export interface GetSessionOutput {
     hasGym: boolean;
     hasStudent: boolean;
     createdAt?: Date;
+    activeGymId?: string | null;
+    gyms?: UserSummary["gyms"];
+    student?: UserSummary["student"];
+    personal?: UserSummary["personal"];
   };
   session: {
     id: string;
@@ -417,6 +421,24 @@ export interface GetSessionOutput {
   };
   sessionToken: string;
   shouldSyncAuthToken: boolean;
+}
+
+function buildSessionUser(user: UserSummary): GetSessionOutput["user"] {
+  const isAdmin = user.role === "ADMIN";
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    hasGym: isAdmin || (user.gyms?.length ?? 0) > 0,
+    hasStudent: isAdmin || !!user.student,
+    createdAt: user.createdAt,
+    activeGymId: user.activeGymId ?? null,
+    gyms: user.gyms ?? [],
+    student: user.student ?? null,
+    personal: user.personal ?? null,
+  };
 }
 
 export async function getSessionUseCase(
@@ -428,49 +450,32 @@ export async function getSessionUseCase(
     if (betterAuthSession?.user?.id) {
       const user = await deps.findUserById(betterAuthSession.user.id);
       if (user) {
-        const isAdmin = user.role === "ADMIN";
-        const hasGym = isAdmin || (user.gyms?.length ?? 0) > 0;
-        const hasStudent = isAdmin || !!user.student;
         const tokenCandidates = [
-          input.authHeaderToken,
-          input.cookieAuthToken,
           input.cookieBetterAuthToken,
+          input.cookieAuthToken,
+          input.authHeaderToken,
         ]
           .map((token) => token?.trim() || null)
           .filter((token): token is string => Boolean(token));
-        let sessionToken: string | null = null;
-
-        for (const candidateToken of tokenCandidates) {
-          const tokenSession = await deps.getSessionByToken(candidateToken);
-
-          if (tokenSession?.userId === user.id) {
-            sessionToken = candidateToken;
-            break;
-          }
-        }
+        let sessionToken: string | null = tokenCandidates[0] ?? null;
 
         const sessionId = betterAuthSession.session?.id || "";
         if (!sessionToken && sessionId) {
           sessionToken = (await deps.getSessionTokenById(sessionId)) || "";
         }
         const resolvedSessionToken = sessionToken || "";
+        const normalizedCookieAuthToken = input.cookieAuthToken?.trim() || "";
 
         return ok({
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            hasGym,
-            hasStudent,
-            createdAt: user.createdAt,
-          },
+          user: buildSessionUser(user),
           session: {
             id: sessionId,
             token: resolvedSessionToken,
           },
           sessionToken: resolvedSessionToken,
-          shouldSyncAuthToken: Boolean(resolvedSessionToken),
+          shouldSyncAuthToken:
+            Boolean(resolvedSessionToken) &&
+            resolvedSessionToken !== normalizedCookieAuthToken,
         });
       }
     }
@@ -496,20 +501,8 @@ export async function getSessionUseCase(
     return fail("Sessao invalida ou expirada", 401);
   }
 
-  const isAdmin = session.user.role === "ADMIN";
-  const hasGym = isAdmin || (session.user.gyms?.length ?? 0) > 0;
-  const hasStudent = isAdmin || !!session.user.student;
-
   return ok({
-    user: {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      role: session.user.role,
-      hasGym,
-      hasStudent,
-      createdAt: session.user.createdAt,
-    },
+    user: buildSessionUser(session.user),
     session: {
       id: session.id,
       token: session.token || session.sessionToken || sessionToken,

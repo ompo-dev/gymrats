@@ -81,9 +81,33 @@ export async function requireAuth(
         const user = await db.user.findUnique({
           where: { id: betterAuthSession.user.id },
           include: {
-            student: { select: { id: true } },
+            student: {
+              select: {
+                id: true,
+                subscription: {
+                  select: {
+                    plan: true,
+                    status: true,
+                    trialEnd: true,
+                    currentPeriodEnd: true,
+                  },
+                },
+              },
+            },
             personal: { select: { id: true } },
-            gyms: { select: { id: true } },
+            gyms: {
+              select: {
+                id: true,
+                plan: true,
+                subscription: {
+                  select: {
+                    plan: true,
+                    status: true,
+                    currentPeriodEnd: true,
+                  },
+                },
+              },
+            },
           },
         });
 

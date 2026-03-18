@@ -8,6 +8,7 @@ export interface UserSummary {
   name: string;
   role: UserSummaryRole;
   createdAt?: Date;
+  activeGymId?: string | null;
   student?: {
     id: string;
     pixKey?: string | null;

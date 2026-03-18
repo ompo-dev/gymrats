@@ -70,16 +70,20 @@ const nextConfig = {
       "date-fns",
     ],
   },
-  // Rewrites removidos - o custom-server.ts já roteia /api/* para o Elysia
-  // async rewrites() {
-  //   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-  //   return [
-  //     {
-  //       source: "/api/:path*",
-  //       destination: `${apiBase}/api/:path*`,
-  //     },
-  //   ];
-  // },
+  async rewrites() {
+    const proxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
+
+    if (!proxyTarget) {
+      return [];
+    }
+
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${proxyTarget}/api/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {

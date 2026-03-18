@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
+import { isSameOriginApiBaseUrl, normalizeApiBaseUrl } from "./base-url";
 import {
-  ensureAuthToken,
   getAuthToken,
   refreshAuthToken,
 } from "./token-client";
@@ -25,11 +25,6 @@ const SILENT_404_ROUTES = [
 
 let axiosInstance: AxiosInstance | null = null;
 
-function normalizeBaseUrl(url: string | undefined): string {
-  if (!url) return "";
-  return url.replace(/\/$/, "");
-}
-
 function resolveRuntimePublicApiUrl(): string {
   if (typeof window === "undefined") {
     return "";
@@ -38,13 +33,13 @@ function resolveRuntimePublicApiUrl(): string {
   const runtimeWindow = window as Window & {
     __GYMRATS_API_URL__?: string;
   };
-  const windowUrl = normalizeBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
+  const windowUrl = normalizeApiBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
 
   if (windowUrl) {
     return windowUrl;
   }
 
-  const datasetUrl = normalizeBaseUrl(
+  const datasetUrl = normalizeApiBaseUrl(
     document.body?.dataset.apiBaseUrl || document.documentElement?.dataset.apiBaseUrl,
   );
 
@@ -52,7 +47,7 @@ function resolveRuntimePublicApiUrl(): string {
     return datasetUrl;
   }
 
-  const metaUrl = normalizeBaseUrl(
+  const metaUrl = normalizeApiBaseUrl(
     document
       .querySelector('meta[name="gymrats-api-base-url"]')
       ?.getAttribute("content") || undefined,
@@ -62,12 +57,19 @@ function resolveRuntimePublicApiUrl(): string {
 }
 
 export function resolveApiBaseUrl(): string {
-  const publicUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
-  const internalUrl = normalizeBaseUrl(process.env.API_INTERNAL_URL);
-  const authUrl = normalizeBaseUrl(process.env.BETTER_AUTH_URL);
+  const publicUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+  const internalUrl = normalizeApiBaseUrl(process.env.API_INTERNAL_URL);
+  const authUrl = normalizeApiBaseUrl(process.env.BETTER_AUTH_URL);
 
   if (typeof window !== "undefined") {
-    return resolveRuntimePublicApiUrl() || publicUrl || authUrl || "";
+    const browserBaseUrl =
+      resolveRuntimePublicApiUrl() || publicUrl || authUrl || "";
+
+    if (isSameOriginApiBaseUrl(browserBaseUrl)) {
+      return window.location.origin;
+    }
+
+    return browserBaseUrl;
   }
 
   return internalUrl || publicUrl || authUrl || "http://localhost:4000";
@@ -94,10 +96,7 @@ function createAxiosClient(): AxiosInstance {
         config.baseURL = baseUrl;
       }
 
-      const requestUrl = typeof config.url === "string" ? config.url : "";
-      const isSessionRequest = requestUrl.includes("/api/auth/session");
-      const token =
-        getAuthToken() || (isSessionRequest ? null : await ensureAuthToken());
+      const token = getAuthToken();
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

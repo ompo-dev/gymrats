@@ -1,9 +1,20 @@
+import { isSameOriginApiBaseUrl, normalizeApiBaseUrl } from "./base-url";
+
 const AUTH_TOKEN_KEY = "auth_token";
 let authTokenSyncPromise: Promise<string | null> | null = null;
 
-function normalizeBaseUrl(url: string | undefined): string {
-  if (!url) return "";
-  return url.replace(/\/$/, "");
+function getCookieValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+
+  const cookies = document.cookie.split(";").map((cookie) => cookie.trim());
+  const tokenCookie = cookies.find((cookie) => cookie.startsWith(`${name}=`));
+
+  if (!tokenCookie) {
+    return null;
+  }
+
+  const [, rawValue = ""] = tokenCookie.split("=", 2);
+  return rawValue ? decodeURIComponent(rawValue) : null;
 }
 
 function resolveRuntimePublicApiUrl(): string {
@@ -14,13 +25,13 @@ function resolveRuntimePublicApiUrl(): string {
   const runtimeWindow = window as Window & {
     __GYMRATS_API_URL__?: string;
   };
-  const windowUrl = normalizeBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
+  const windowUrl = normalizeApiBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
 
   if (windowUrl) {
     return windowUrl;
   }
 
-  const datasetUrl = normalizeBaseUrl(
+  const datasetUrl = normalizeApiBaseUrl(
     document.body?.dataset.apiBaseUrl ||
       document.documentElement?.dataset.apiBaseUrl ||
       undefined,
@@ -30,7 +41,7 @@ function resolveRuntimePublicApiUrl(): string {
     return datasetUrl;
   }
 
-  const metaUrl = normalizeBaseUrl(
+  const metaUrl = normalizeApiBaseUrl(
     document
       .querySelector('meta[name="gymrats-api-base-url"]')
       ?.getAttribute("content") || undefined,
@@ -41,27 +52,19 @@ function resolveRuntimePublicApiUrl(): string {
 
 function resolveSessionEndpointUrl(): string {
   const runtimeUrl = resolveRuntimePublicApiUrl();
-  const publicUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL);
-  const authUrl = normalizeBaseUrl(process.env.BETTER_AUTH_URL);
+  const publicUrl = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
+  const authUrl = normalizeApiBaseUrl(process.env.BETTER_AUTH_URL);
   const baseUrl = runtimeUrl || publicUrl || authUrl;
+
+  if (isSameOriginApiBaseUrl(baseUrl)) {
+    return "/api/auth/session";
+  }
 
   return baseUrl ? `${baseUrl}/api/auth/session` : "/api/auth/session";
 }
 
 function getCookieToken(): string | null {
-  if (typeof document === "undefined") return null;
-
-  const cookies = document.cookie.split(";").map((cookie) => cookie.trim());
-  const tokenCookie = cookies.find((cookie) =>
-    cookie.startsWith(`${AUTH_TOKEN_KEY}=`),
-  );
-
-  if (!tokenCookie) {
-    return null;
-  }
-
-  const [, rawValue = ""] = tokenCookie.split("=", 2);
-  return rawValue ? decodeURIComponent(rawValue) : null;
+  return getCookieValue(AUTH_TOKEN_KEY);
 }
 
 function getLocalStorageToken(): string | null {
@@ -113,6 +116,12 @@ export function getAuthToken(): string | null {
   }
 
   return null;
+}
+
+export function hasBrowserSessionHint(): boolean {
+  if (typeof window === "undefined") return false;
+
+  return Boolean(getAuthToken() || getCookieValue("better-auth.session_token"));
 }
 
 export function setAuthToken(token: string): void {

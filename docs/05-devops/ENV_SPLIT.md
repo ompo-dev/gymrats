@@ -29,6 +29,7 @@ No split local, os valores canonicos sao:
 
 Essas variaveis sao usadas pelo runtime server-side do `web`:
 
+- `API_PROXY_TARGET`
 - `API_INTERNAL_URL`
 - `BETTER_AUTH_URL`
 - `BETTER_AUTH_SECRET`
@@ -37,8 +38,9 @@ Essas variaveis sao usadas pelo runtime server-side do `web`:
 
 No split local:
 
+- `API_PROXY_TARGET=http://api:4000`
 - `API_INTERNAL_URL=http://api:4000`
-- `BETTER_AUTH_URL=http://localhost:4000`
+- `BETTER_AUTH_URL=http://localhost:3000`
 
 ## Variaveis compartilhadas de backend
 

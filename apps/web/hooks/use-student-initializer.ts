@@ -16,6 +16,7 @@ import { useCallback } from "react";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useStudentBootstrap } from "@/hooks/use-student-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
+import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { StudentData } from "@/lib/types/student-unified";
 import { isAdmin, isStudent } from "@/lib/utils/role";
@@ -67,7 +68,7 @@ export function useStudentInitializer(options?: {
   const preloadDiscovery = useStudentDiscoveryStore(
     (state) => state.preloadDefault,
   );
-  const bootstrapQuery = useStudentBootstrap(undefined, {
+  const bootstrapQuery = useStudentBootstrap(DEFAULT_STUDENT_BOOTSTRAP_SECTIONS, {
     enabled: false,
   });
 

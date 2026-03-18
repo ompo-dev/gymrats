@@ -1,9 +1,9 @@
 /**
  * Logger estruturado para APIs (Elysia).
- * Delega para lib/observability para unificar com Next.js API routes.
+ * Mantem logging textual aqui; a persistencia de telemetry fica em createSafeHandler.
  */
 
-import { log, recordApiRequest } from "@/lib/observability";
+import { log } from "@/lib/observability";
 
 export function logApiRequest(ctx: {
   request: Request;
@@ -17,14 +17,7 @@ export function logApiRequest(ctx: {
   const url = new URL(ctx.request.url);
   const latencyMs = ctx._requestStart ? Date.now() - ctx._requestStart : 0;
   const statusNum = ctx.set?.status;
-  recordApiRequest({
-    method: ctx.request.method,
-    path: url.pathname,
-    status: typeof statusNum === "number" ? statusNum : undefined,
-    latencyMs,
-    userId: ctx.userId,
-    studentId: ctx.studentId,
-  });
+
   log.info(`API ${ctx.request.method} ${url.pathname}`, {
     status: statusNum,
     latencyMs,
@@ -43,12 +36,7 @@ export function logApiError(ctx: {
   const latencyMs = ctx._requestStart ? Date.now() - ctx._requestStart : 0;
   const errorMsg =
     ctx.error instanceof Error ? ctx.error.message : String(ctx.error);
-  recordApiRequest({
-    method: ctx.request.method,
-    path: url.pathname,
-    latencyMs,
-    error: errorMsg,
-  });
+
   log.error(`API ${ctx.request.method} ${url.pathname} - ${errorMsg}`, {
     latencyMs,
     code: ctx.code,

@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  ensureAuthToken,
-  getAuthToken,
-  refreshAuthToken,
-} from "@/lib/auth/token-client";
+import { getAuthToken, refreshAuthToken } from "@/lib/auth/token-client";
 import { resolveApiBaseUrl } from "./client-factory";
 
 function buildApiUrl(path: string): string {
@@ -25,8 +21,7 @@ export async function browserApiFetch(
   const headers = new Headers(init.headers);
   const requestUrl = buildApiUrl(path);
   const isSessionRequest = requestUrl.includes("/api/auth/session");
-  const token =
-    getAuthToken() || (isSessionRequest ? null : await ensureAuthToken());
+  const token = getAuthToken();
 
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);

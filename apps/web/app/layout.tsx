@@ -55,11 +55,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const runtimeApiBaseUrl = (
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.BETTER_AUTH_URL ||
-    ""
-  ).replace(/\/$/, "");
+  const runtimeApiBaseUrl = process.env.API_PROXY_TARGET
+    ? "/api"
+    : (
+        process.env.NEXT_PUBLIC_API_URL ||
+        process.env.BETTER_AUTH_URL ||
+        ""
+      ).replace(/\/$/, "");
 
   return (
     <html lang="pt-BR" className={nunito.variable}>

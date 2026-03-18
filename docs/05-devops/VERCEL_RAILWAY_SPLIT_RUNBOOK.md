@@ -9,11 +9,11 @@ Este runbook documenta o split operacional alvo do GymRats:
 - `apps/worker` processa filas e webhooks no Railway
 - `apps/cron` executa jobs agendados no Railway
 
-O contrato externo `/api/*` deve ser preservado, apenas mudando de host para o backend dedicado.
+O contrato externo `/api/*` deve ser preservado no host do frontend, com proxy same-origin da Vercel para o backend dedicado no Railway.
 
 ## Estado atual consolidado
 
-- O frontend ja usa `NEXT_PUBLIC_API_URL` como base do client compartilhado.
+- O frontend usa `/api` no browser quando `API_PROXY_TARGET` esta configurado.
 - Os fluxos de SSE do chat de treino e nutricao ja usam URL absoluta da API.
 - Better Auth foi centralizado para aceitar `Bearer`, `one-time-token` e `trustedOrigins`.
 - Redis e BullMQ foram movidos para pacotes compartilhados e deixados lazy para nao quebrar o build do frontend.
@@ -74,7 +74,7 @@ Manter o projeto apontando para a raiz do repo:
 ### API
 
 - `PORT`
-- `BETTER_AUTH_URL=https://api.seudominio.com`
+- `BETTER_AUTH_URL=https://app.seudominio.com`
 - `NEXT_PUBLIC_API_URL=https://api.seudominio.com`
 - `NEXT_PUBLIC_APP_URL=https://app.seudominio.com`
 - `CORS_ALLOWED_ORIGINS=https://app.seudominio.com`
@@ -94,15 +94,18 @@ Manter o projeto apontando para a raiz do repo:
 ### Vercel / Frontend
 
 - `NEXT_PUBLIC_APP_URL=https://app.seudominio.com`
+- `API_PROXY_TARGET=https://api.seudominio.com`
+- `API_INTERNAL_URL=https://api.seudominio.com`
+- `BETTER_AUTH_URL=https://app.seudominio.com`
 - `NEXT_PUBLIC_API_URL=https://api.seudominio.com`
 
 ## Ordem segura de rollout
 
 1. Subir `api`, `worker` e `cron` no Railway com variaveis completas.
 2. Validar `GET /healthz` na API.
-3. Testar auth, pagamentos e webhooks em homologacao apontando o frontend para a API do Railway.
-4. Configurar `NEXT_PUBLIC_API_URL` na Vercel para o dominio da API.
-5. Validar login, callback OAuth, chat-stream, pagamentos e week-reset.
+3. Testar auth, pagamentos e webhooks em homologacao com `API_PROXY_TARGET` apontando para o Railway.
+4. Configurar `API_PROXY_TARGET` e `API_INTERNAL_URL` na Vercel para o dominio da API.
+5. Validar login, callback OAuth, chat-stream, pagamentos e week-reset sem preflight no browser.
 6. Desligar o uso publico das rotas `app/api/*` do Next apenas quando a paridade estiver homologada.
 
 ## Criticos de operacao

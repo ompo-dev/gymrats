@@ -9,6 +9,13 @@ import {
   isPremiumPlan,
 } from "@/lib/utils/subscription";
 
+type StudentSubscriptionRecord = {
+  plan: string;
+  status: string;
+  trialEnd?: string | Date | null;
+  currentPeriodEnd?: string | Date | null;
+};
+
 export async function GET(request: NextRequest) {
   try {
     const authHeaderValue = request.headers.get("authorization");
@@ -27,8 +34,33 @@ export async function GET(request: NextRequest) {
           db.user.findUnique({
             where: { id: userId },
             include: {
-              student: { select: { id: true } },
-              gyms: { select: { id: true } },
+              student: {
+                select: {
+                  id: true,
+                  subscription: {
+                    select: {
+                      plan: true,
+                      status: true,
+                      trialEnd: true,
+                      currentPeriodEnd: true,
+                    },
+                  },
+                },
+              },
+              personal: { select: { id: true } },
+              gyms: {
+                select: {
+                  id: true,
+                  plan: true,
+                  subscription: {
+                    select: {
+                      plan: true,
+                      status: true,
+                      currentPeriodEnd: true,
+                    },
+                  },
+                },
+              },
             },
           }),
         getSessionTokenById: async (sessionId) => {
@@ -55,7 +87,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Buscar dados da subscription para enriquecer a sessão
+    const studentSubscription =
+      result.data.user.student &&
+      typeof result.data.user.student === "object" &&
+      "subscription" in result.data.user.student
+        ? (result.data.user.student.subscription as
+            | StudentSubscriptionRecord
+            | null
+            | undefined)
+        : null;
+
     let subscriptionData: {
       plan: string;
       status: string;
@@ -63,31 +104,19 @@ export async function GET(request: NextRequest) {
       isPremium: boolean;
     } | null = null;
 
-    if (result.data.user.hasStudent) {
-      const student = await db.student.findFirst({
-        where: { userId: result.data.user.id },
-        select: { id: true },
-      });
-
-      if (student) {
-        const subscription = await db.subscription.findUnique({
-          where: { studentId: student.id },
-          select: {
-            plan: true,
-            status: true,
-            trialEnd: true,
-          },
-        });
-
-        if (subscription && isPremiumPlan(subscription.plan)) {
-          subscriptionData = {
-            plan: subscription.plan,
-            status: subscription.status,
-            billingPeriod: getBillingPeriodFromPlan(subscription.plan),
-            isPremium: hasActivePremiumStatus(subscription),
-          };
-        }
-      }
+    if (studentSubscription && isPremiumPlan(studentSubscription.plan)) {
+      subscriptionData = {
+        plan: studentSubscription.plan,
+        status: studentSubscription.status,
+        billingPeriod: getBillingPeriodFromPlan(studentSubscription.plan),
+        isPremium: hasActivePremiumStatus({
+          ...studentSubscription,
+          trialEnd:
+            studentSubscription.trialEnd ??
+            studentSubscription.currentPeriodEnd ??
+            null,
+        }),
+      };
     }
 
     const response = NextResponse.json({
@@ -103,16 +132,16 @@ export async function GET(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 30, // 30 dias
+        maxAge: 60 * 60 * 24 * 30,
         path: "/",
       });
     }
 
     return response;
   } catch (error) {
-    console.error("Erro ao buscar sessão:", error);
+    console.error("Erro ao buscar sessao:", error);
     const message =
-      error instanceof Error ? error.message : "Erro ao buscar sessão";
+      error instanceof Error ? error.message : "Erro ao buscar sessao";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -193,16 +193,6 @@ export async function getAuthContext(options: {
       });
       if (existing) {
         personalId = existing.id;
-      } else {
-        const created = await db.personal.create({
-          data: {
-            userId: user.id,
-            name: (user.name as string) || "Personal",
-            email: (user.email as string) || "",
-          },
-          select: { id: true },
-        });
-        personalId = created.id;
       }
     }
     if (!personalId) {
@@ -228,22 +218,6 @@ export async function getAuthContext(options: {
       });
       if (existingGym) {
         gymId = existingGym.id;
-      } else {
-        const newGym = await db.gym.create({
-          data: {
-            userId: user.id,
-            name: user.name || "Admin Gym",
-            address: "",
-            phone: "",
-            email: user.email || "",
-            isActive: true,
-          },
-        });
-        gymId = newGym.id;
-        await db.user.update({
-          where: { id: user.id },
-          data: { activeGymId: gymId },
-        });
       }
     }
 
@@ -267,9 +241,6 @@ export async function getAuthContext(options: {
 
   if (isAdmin && !student) {
     student = await db.student.findUnique({ where: { userId: user.id } });
-    if (!student) {
-      student = await db.student.create({ data: { userId: user.id } });
-    }
   }
 
   if (!student) {

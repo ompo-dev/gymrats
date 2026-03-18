@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SessionWithUser, UserSummary } from "./types";
+import type { UserSummary } from "./types";
 import { getSessionUseCase, signInUseCase } from "./use-cases";
 
 describe("auth use cases", () => {
@@ -31,31 +31,8 @@ describe("auth use cases", () => {
     }
   });
 
-  it("prefers the token that actually belongs to the authenticated user", async () => {
-    const wrongSession: SessionWithUser = {
-      id: "session-wrong",
-      userId: "other-user",
-      token: "wrong-token",
-      user: {
-        id: "other-user",
-        email: "other@gymrats.app",
-        name: "Other",
-        role: "STUDENT",
-      },
-    };
-
-    const rightSession: SessionWithUser = {
-      id: "session-right",
-      userId: "user-1",
-      token: "right-token",
-      user: {
-        id: "user-1",
-        email: "student@gymrats.app",
-        name: "Student",
-        role: "STUDENT",
-      },
-    };
-
+  it("prefers cookie auth token over auth header after better auth succeeds", async () => {
+    const getSessionByToken = vi.fn().mockResolvedValue(null);
     const result = await getSessionUseCase(
       {
         getBetterAuthSession: vi.fn().mockResolvedValue({
@@ -71,19 +48,7 @@ describe("auth use cases", () => {
           gyms: [],
         }),
         getSessionTokenById: vi.fn().mockResolvedValue("session-token"),
-        getSessionByToken: vi.fn(
-          async (token: string): Promise<SessionWithUser | null> => {
-            if (token === "wrong-token") {
-              return wrongSession;
-            }
-
-            if (token === "right-token") {
-              return rightSession;
-            }
-
-            return null;
-          },
-        ),
+        getSessionByToken,
       },
       {
         headers: new Headers(),
@@ -95,7 +60,41 @@ describe("auth use cases", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.sessionToken).toBe("right-token");
+      expect(result.data.shouldSyncAuthToken).toBe(false);
+    }
+    expect(getSessionByToken).not.toHaveBeenCalled();
+  });
+
+  it("falls back to the better auth session id token when auth_token is missing", async () => {
+    const getSessionTokenById = vi.fn().mockResolvedValue("session-token");
+
+    const result = await getSessionUseCase(
+      {
+        getBetterAuthSession: vi.fn().mockResolvedValue({
+          user: { id: "user-1" },
+          session: { id: "session-1" },
+        }),
+        findUserById: vi.fn().mockResolvedValue({
+          id: "user-1",
+          email: "student@gymrats.app",
+          name: "Student",
+          role: "STUDENT",
+          student: { id: "student-1" },
+          gyms: [],
+        }),
+        getSessionTokenById,
+        getSessionByToken: vi.fn().mockResolvedValue(null),
+      },
+      {
+        headers: new Headers(),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.sessionToken).toBe("session-token");
       expect(result.data.shouldSyncAuthToken).toBe(true);
     }
+    expect(getSessionTokenById).toHaveBeenCalledWith("session-1");
   });
 });
