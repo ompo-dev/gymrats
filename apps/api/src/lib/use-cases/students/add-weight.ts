@@ -4,6 +4,7 @@
  */
 
 import { db } from "@/lib/db";
+import { invalidateWeightHistoryCache } from "./get-weight-history";
 
 export interface AddWeightInput {
   studentId: string;
@@ -40,6 +41,7 @@ export async function addWeightUseCase(
     where: { studentId },
     data: { weight },
   });
+  await invalidateWeightHistoryCache(studentId);
 
   return {
     weightEntry: {

@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from "@/lib/api/client";
+import { waitForJobCompletion } from "@/lib/api/job-client";
 import type { DailyNutrition, Meal, NutritionPlanData } from "@/lib/types";
 import {
   createDailyNutritionFromPlan,
@@ -560,12 +561,22 @@ export function createNutritionSlice(
       try {
         const response = await apiClient.post<{
           data?: NutritionPlanData | null;
+          jobId?: string;
         }>("/api/nutrition/activate", {
           libraryPlanId: planId,
         });
 
-        const activatedPlan =
-          response.data.data ?? optimisticActivePlan;
+        if (response.data.jobId) {
+          await waitForJobCompletion(response.data.jobId);
+          await Promise.all([
+            get().loadActiveNutritionPlan(),
+            get().loadNutrition(),
+            get().loadNutritionLibraryPlans(),
+          ]);
+          return;
+        }
+
+        const activatedPlan = response.data.data ?? optimisticActivePlan;
         set((state) => ({
           data: {
             ...state.data,

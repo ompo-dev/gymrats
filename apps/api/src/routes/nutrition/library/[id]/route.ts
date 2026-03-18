@@ -2,13 +2,48 @@ import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
-import { successResponse } from "@/lib/api/utils/response.utils";
+import {
+  notFoundResponse,
+  successResponse,
+} from "@/lib/api/utils/response.utils";
 import { assertStudentCanManageNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-access.service";
+import { getNutritionLibraryPlanDetail } from "@/lib/services/nutrition/nutrition-library-read.service";
 import {
   deleteNutritionLibraryPlan,
   updateNutritionLibraryPlan,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const auth = await requireStudent(request);
+    if ("error" in auth) {
+      return auth.response;
+    }
+
+    const { id } = await params;
+    await assertStudentCanManageNutritionLibraryPlan(
+      auth.user.student?.id ?? "",
+      id,
+    );
+
+    const url = new URL(request.url);
+    const data = await getNutritionLibraryPlanDetail(id, {
+      fresh: url.searchParams.get("fresh") === "1",
+    });
+    if (!data) {
+      return notFoundResponse("Plano alimentar nao encontrado");
+    }
+
+    return successResponse({ data });
+  } catch (error) {
+    console.error("[nutrition/library/[id]] Erro GET:", error);
+    return mapNutritionRouteError(error, "Erro ao buscar plano alimentar");
+  }
+}
 
 export async function PATCH(
   request: NextRequest,

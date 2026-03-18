@@ -1,5 +1,15 @@
 import { Prisma } from "@prisma/client";
+import {
+  deleteCacheKeys,
+  getCachedJson,
+  setCachedJson,
+} from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
+import {
+  getNutritionLibraryPlanDetail as getNutritionLibraryPlanDetailCached,
+  invalidateNutritionLibraryCache,
+  listNutritionLibraryPlans as listNutritionLibraryPlanSummaries,
+} from "@/lib/services/nutrition/nutrition-library-read.service";
 import {
   getBrazilNutritionDateKey,
   getBrazilNutritionDayRange,
@@ -17,6 +27,20 @@ const NUTRITION_TRANSACTION_OPTIONS = {
   maxWait: 10_000,
   timeout: 30_000,
 } as const;
+const DAILY_NUTRITION_CACHE_TTL_SECONDS = 15;
+
+function buildDailyNutritionCacheKey(studentId: string, dateKey: string) {
+  return `daily-nutrition:${studentId}:${dateKey}:v1`;
+}
+
+async function invalidateDailyNutritionCache(
+  studentId: string,
+  dateKey?: string | null,
+) {
+  await deleteCacheKeys([
+    dateKey ? buildDailyNutritionCacheKey(studentId, dateKey) : null,
+  ]);
+}
 
 export type NutritionActorType = "STUDENT" | "GYM" | "PERSONAL";
 
@@ -764,26 +788,11 @@ function isTodayDateKey(dateKey: string) {
   return dateKey === getBrazilNutritionDateKey();
 }
 
-export async function listNutritionLibraryPlans(studentId: string) {
-  const plans = await db.nutritionPlan.findMany({
-    where: {
-      studentId,
-      isLibraryTemplate: true,
-    },
-    include: {
-      meals: {
-        orderBy: { order: "asc" },
-        include: {
-          foods: {
-            orderBy: { order: "asc" },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return plans.map(serializeNutritionPlan);
+export async function listNutritionLibraryPlans(
+  studentId: string,
+  options: { fresh?: boolean } = {},
+) {
+  return listNutritionLibraryPlanSummaries(studentId, options);
 }
 
 export async function getActiveNutritionPlan(studentId: string) {
@@ -850,7 +859,12 @@ export async function createNutritionLibraryPlan(params: {
     );
   }
 
-  return serializeNutritionPlan(plan);
+  const payload = serializeNutritionPlan(plan);
+  await invalidateNutritionLibraryCache({
+    studentId: params.studentId,
+    planId: payload.id,
+  });
+  return payload;
 }
 
 export async function updateNutritionLibraryPlan(
@@ -892,14 +906,31 @@ export async function updateNutritionLibraryPlan(
       );
     }
 
-    return serializeNutritionPlan(updated);
+    const payload = serializeNutritionPlan(updated);
+    await invalidateNutritionLibraryCache({
+      studentId: updated.studentId,
+      planId,
+    });
+    return payload;
   });
 }
 
 export async function deleteNutritionLibraryPlan(planId: string) {
+  const plan = await db.nutritionPlan.findUnique({
+    where: { id: planId },
+    select: {
+      studentId: true,
+    },
+  });
   await db.nutritionPlan.delete({
     where: { id: planId },
   });
+  if (plan?.studentId) {
+    await invalidateNutritionLibraryCache({
+      studentId: plan.studentId,
+      planId,
+    });
+  }
 }
 
 export async function activateNutritionLibraryPlanForStudent(
@@ -993,6 +1024,11 @@ export async function activateNutritionLibraryPlanForStudent(
     timeout: 20_000,
   });
 
+  await invalidateDailyNutritionCache(studentId, getBrazilNutritionDateKey());
+  await invalidateNutritionLibraryCache({
+    studentId,
+    planId: libraryPlanId,
+  });
   return getActiveNutritionPlan(studentId);
 }
 
@@ -1039,10 +1075,68 @@ export async function syncActiveNutritionPlanFromLibrary(libraryPlanId: string) 
   return { synced: true };
 }
 
+function serializeDailyNutritionPlanFallback(params: {
+  plan: NutritionPlanWithRelations;
+  targets: typeof DEFAULT_NUTRITION_TARGETS;
+  dateKey: string;
+}) {
+  const { dateKey, plan, targets } = params;
+  return {
+    date: dateKey,
+    meals: plan.meals.map((meal) => ({
+      id: meal.id,
+      name: meal.name,
+      type: meal.type,
+      calories: roundNutritionNumber(meal.calories),
+      protein: roundNutritionNumber(meal.protein),
+      carbs: roundNutritionNumber(meal.carbs),
+      fats: roundNutritionNumber(meal.fats),
+      time: meal.time ?? undefined,
+      completed: false,
+      order: meal.order,
+      foods: meal.foods.map((food) => ({
+        id: food.id,
+        foodId: food.foodId ?? undefined,
+        foodName: food.foodName,
+        servings: food.servings,
+        calories: roundNutritionNumber(food.calories),
+        protein: roundNutritionNumber(food.protein),
+        carbs: roundNutritionNumber(food.carbs),
+        fats: roundNutritionNumber(food.fats),
+        servingSize: food.servingSize,
+      })),
+    })),
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFats: 0,
+    waterIntake: 0,
+    targetCalories: roundNutritionNumber(targets.targetCalories),
+    targetProtein: roundNutritionNumber(targets.targetProtein),
+    targetCarbs: roundNutritionNumber(targets.targetCarbs),
+    targetFats: roundNutritionNumber(targets.targetFats),
+    targetWater: targets.targetWater,
+    sourceNutritionPlanId: plan.id,
+    hasActiveNutritionPlan: true,
+    isLegacyFallback: false,
+  };
+}
+
 export async function getDailyNutritionForStudent(
   studentId: string,
   dateKey: string,
+  options: { fresh?: boolean } = {},
 ) {
+  const cacheKey = buildDailyNutritionCacheKey(studentId, dateKey);
+  if (!options.fresh) {
+    const cached = await getCachedJson<ReturnType<typeof serializeDailyNutritionSnapshot>>(
+      cacheKey,
+    );
+    if (cached) {
+      return cached;
+    }
+  }
+
   const student = await db.student.findUnique({
     where: { id: studentId },
     select: {
@@ -1070,25 +1164,30 @@ export async function getDailyNutritionForStudent(
       : {}),
   };
 
-  let dailyNutrition = await findDailyNutritionWithRelations(db, studentId, dateKey);
+  const dailyNutrition = await findDailyNutritionWithRelations(db, studentId, dateKey);
 
-  if (!dailyNutrition && student?.activeNutritionPlanId && isTodayDateKey(dateKey)) {
-    dailyNutrition = await runNutritionTransaction((tx) =>
-      createDailySnapshotFromPlan(
-        tx,
-        studentId,
-        student.activeNutritionPlanId as string,
-        dateKey,
-        0,
-      ),
-    );
-  }
-
-  return serializeDailyNutritionSnapshot(dailyNutrition, targets, {
+  let payload = serializeDailyNutritionSnapshot(dailyNutrition, targets, {
     dateKey,
     hasActiveNutritionPlan: Boolean(student?.activeNutritionPlanId),
     isLegacyFallback: Boolean(dailyNutrition && !dailyNutrition.sourceNutritionPlanId),
   });
+
+  if (!dailyNutrition && student?.activeNutritionPlanId) {
+    const activePlan = await findNutritionPlanWithRelations(
+      db,
+      student.activeNutritionPlanId,
+    );
+    if (activePlan) {
+      payload = serializeDailyNutritionPlanFallback({
+        plan: activePlan,
+        targets,
+        dateKey,
+      });
+    }
+  }
+
+  await setCachedJson(cacheKey, payload, DAILY_NUTRITION_CACHE_TTL_SECONDS);
+  return payload;
 }
 
 export async function saveDailyNutritionForStudent(params: {
@@ -1183,7 +1282,10 @@ export async function saveDailyNutritionForStudent(params: {
         }
       }, `saveDailyNutritionForStudent:${params.studentId}:${params.dateKey}`);
 
-      return getDailyNutritionForStudent(params.studentId, params.dateKey);
+      await invalidateDailyNutritionCache(params.studentId, params.dateKey);
+      return getDailyNutritionForStudent(params.studentId, params.dateKey, {
+        fresh: true,
+      });
     },
   );
 }
@@ -1197,10 +1299,11 @@ export async function updateStudentTargetWater(
     create: { studentId, targetWater },
     update: { targetWater },
   });
+  await invalidateDailyNutritionCache(studentId, getBrazilNutritionDateKey());
 }
 
 export async function getNutritionLibraryPlanById(planId: string) {
-  return findNutritionPlanWithRelations(db, planId);
+  return getNutritionLibraryPlanDetailCached(planId, { fresh: true });
 }
 
 export function isNutritionLibraryError(error: unknown, code: string) {

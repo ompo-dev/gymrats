@@ -10,6 +10,7 @@
 import { create } from "zustand";
 
 import { apiClient } from "@/lib/api/client";
+import { waitForJobCompletion } from "@/lib/api/job-client";
 import type {
   DailyNutrition,
   DifficultyLevel,
@@ -724,9 +725,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       createLibraryPlan: async (data: any) => {
-        const response = await apiClient.post("/api/workouts/library", data);
+        const response = await apiClient.post<{
+          data?: { id?: string };
+        }>("/api/workouts/library", data);
         await get().loadLibraryPlans();
-        const apiData = (response as { data?: { id?: string } }).data;
+        const apiData = response.data.data;
         return apiData?.id || "";
       },
 
@@ -764,7 +767,13 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }
 
         try {
-          await apiClient.post("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+          const response = await apiClient.post<{
+            jobId?: string;
+          }>("/api/workouts/weekly-plan/activate", { libraryPlanId: planId });
+          const jobId = response.data.jobId;
+          if (jobId) {
+            await waitForJobCompletion(jobId);
+          }
           await get().loadWeeklyPlan(true);
         } catch (error) {
           if (libraryPlan) {

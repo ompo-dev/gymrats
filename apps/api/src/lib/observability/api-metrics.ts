@@ -11,6 +11,7 @@ import { log } from "./logger";
 export type ApiMetricContext = {
   method: string;
   path: string;
+  routeKey?: string;
   status?: number;
   latencyMs: number;
   userId?: string;
@@ -23,6 +24,7 @@ export type ApiMetricContext = {
   dbMs?: number;
   dbQueryCount?: number;
   externalMs?: number;
+  cacheHit?: boolean;
   error?: string;
 };
 
@@ -41,11 +43,14 @@ export function recordApiRequest(ctx: ApiMetricContext) {
   const payload = {
     ...ctx,
     requestId,
+    routeKey: ctx.routeKey ?? ctx.path,
     releaseId: ctx.releaseId ?? releaseInfo.id,
     featureFlagSet: ctx.featureFlagSet ?? enabledFlags,
     dbMs: ctx.dbMs ?? requestMetrics.dbMs,
     dbQueryCount: ctx.dbQueryCount ?? requestMetrics.dbQueryCount,
     externalMs: ctx.externalMs ?? requestMetrics.externalMs,
+    cacheHit: ctx.cacheHit ?? false,
+    statusClass: ctx.status ? `${Math.floor(ctx.status / 100)}xx` : "unknown",
     domain,
   };
   const { method, path, status, latencyMs, error } = payload;

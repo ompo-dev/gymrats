@@ -4,18 +4,55 @@ import { updateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
 import {
   forbiddenResponse,
   internalErrorResponse,
+  notFoundResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import {
   assertPersonalCanManageNutritionLibraryPlan,
   assertPersonalStudentAccess,
 } from "@/lib/services/nutrition/nutrition-access.service";
+import { getNutritionLibraryPlanDetail } from "@/lib/services/nutrition/nutrition-library-read.service";
 import {
   deleteNutritionLibraryPlan,
   updateNutritionLibraryPlan,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; planId: string }> },
+) {
+  try {
+    const { ctx, errorResponse } = await getPersonalContext(request);
+    if (errorResponse || !ctx) {
+      return errorResponse ?? internalErrorResponse("Nao autenticado");
+    }
+
+    const { id: studentId, planId } = await params;
+    await assertPersonalStudentAccess(ctx.personalId, studentId);
+    const plan = await assertPersonalCanManageNutritionLibraryPlan(
+      ctx.personalId,
+      planId,
+    );
+    if (plan.studentId !== studentId) {
+      return forbiddenResponse("Plano alimentar nao pertence a este aluno");
+    }
+
+    const url = new URL(request.url);
+    const data = await getNutritionLibraryPlanDetail(planId, {
+      fresh: url.searchParams.get("fresh") === "1",
+    });
+    if (!data) {
+      return notFoundResponse("Plano alimentar nao encontrado");
+    }
+
+    return successResponse({ data });
+  } catch (error) {
+    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro GET:", error);
+    return mapNutritionRouteError(error, "Erro ao buscar plano alimentar");
+  }
+}
 
 export async function PATCH(
   request: NextRequest,

@@ -9,6 +9,7 @@ import type {
 import { db } from "@/lib/db";
 import { ReferralService } from "@/lib/services/referral.service";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
+import { listTrainingLibraryPlans } from "@/lib/services/workouts/training-library-read.service";
 import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
 
 export const DEFAULT_STUDENT_BOOTSTRAP_SECTIONS: StudentDataSection[] = [
@@ -73,10 +74,14 @@ export async function buildStudentBootstrap(options: {
           if (section === "weeklyPlan") {
             const student = await db.student.findUnique({
               where: { id: options.studentId },
-              select: { weekOverride: true },
+              select: {
+                activeWeeklyPlanId: true,
+                weekOverride: true,
+              },
             });
             const weeklyPlanResult = await getWeeklyPlanUseCase({
               studentId: options.studentId,
+              activeWeeklyPlanId: student?.activeWeeklyPlanId ?? null,
               weekOverride: student?.weekOverride ?? null,
             });
             return {
@@ -85,25 +90,7 @@ export async function buildStudentBootstrap(options: {
           }
 
           if (section === "libraryPlans") {
-            const libraryPlans = await db.weeklyPlan.findMany({
-              where: {
-                studentId: options.studentId,
-                ...({ isLibraryTemplate: true } as const),
-              },
-              include: {
-                slots: {
-                  orderBy: { dayOfWeek: "asc" },
-                  include: {
-                    workout: {
-                      include: {
-                        exercises: { orderBy: { order: "asc" } },
-                      },
-                    },
-                  },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-            });
+            const libraryPlans = await listTrainingLibraryPlans(options.studentId);
             return {
               libraryPlans,
             } as Partial<StudentData>;

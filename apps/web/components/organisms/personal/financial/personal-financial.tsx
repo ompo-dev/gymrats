@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -24,18 +24,20 @@ export function PersonalFinancialPage({
     "subTab",
     parseAsString.withDefault("overview"),
   );
-  const [viewMode, setViewMode] = useState<PersonalFinancialViewMode>("overview");
-
-  useEffect(() => {
-    if (querySubTab && (querySubTab === "overview" || querySubTab === "subscription")) {
-      setViewMode(querySubTab);
+  const viewMode = useMemo<PersonalFinancialViewMode>(() => {
+    if (
+      querySubTab === "overview" ||
+      querySubTab === "subscription"
+    ) {
+      return querySubTab;
     }
+
+    return "overview";
   }, [querySubTab]);
 
   const handleTabChange = (tab: string) => {
     const mode = tab as PersonalFinancialViewMode;
-    setViewMode(mode);
-    setSubTab(mode);
+    void Promise.all([setQuerySubTab(mode), setSubTab(mode)]);
   };
 
   return (

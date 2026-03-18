@@ -109,8 +109,7 @@ export function StudentMoreMenu() {
   const handleItemClick = async (itemId: string) => {
     if (itemId === "theme-test") return;
     if (itemId === "subscription") {
-      await setTab("payments");
-      await setSubTab("subscription");
+      await Promise.all([setTab("payments"), setSubTab("subscription")]);
       return;
     }
     if (itemId === "home") {

@@ -6,13 +6,13 @@ import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { apiClient } from "@/lib/api/client";
 import type { NutritionPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
   type StudentDetailScope,
   useStudentDetailStore,
 } from "@/stores/student-detail-store";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { EditNutritionPlanModal } from "./edit-nutrition-plan-modal";
 import { Modal } from "./modal";
@@ -37,7 +37,7 @@ interface NutritionLibraryShellProps {
   activatingId: string | null;
   onCreate: () => Promise<void>;
   onDeleteRequest: (planId: string) => void;
-  onEditRequest: (plan: NutritionPlanData) => void;
+  onEditRequest: (planId: string) => Promise<void>;
   onActivate: (planId: string) => Promise<void>;
 }
 
@@ -58,6 +58,15 @@ function NutritionLibraryShell({
     () => [...libraryPlans].sort((a, b) => a.title.localeCompare(b.title)),
     [libraryPlans],
   );
+
+  const getMealCount = (plan: NutritionPlanData) =>
+    Number((plan as NutritionPlanData & { mealCount?: number }).mealCount) ||
+    plan.meals.length;
+
+  const getPreview = (plan: NutritionPlanData) =>
+    (plan as NutritionPlanData & { preview?: string }).preview?.trim() ||
+    plan.description?.trim() ||
+    `${getMealCount(plan)} refeicoes`;
 
   return (
     <Modal.Root isOpen={isOpen} onClose={onClose} maxWidth="lg">
@@ -135,11 +144,11 @@ function NutritionLibraryShell({
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <div
                     className="min-w-0 flex-1 cursor-pointer"
-                    onClick={() => onEditRequest(plan)}
+                    onClick={() => void onEditRequest(plan.id)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-duo-green/10 font-bold text-duo-green">
-                        {plan.meals.length}
+                        {getMealCount(plan)}
                       </div>
                       <div className="min-w-0">
                         <h4 className="truncate text-lg font-bold text-duo-fg">
@@ -147,7 +156,7 @@ function NutritionLibraryShell({
                         </h4>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           <span className="text-sm text-duo-fg-muted">
-                            {plan.description?.trim() || `${plan.meals.length} refeicoes`}
+                            {getPreview(plan)}
                           </span>
                           {plan.creatorType === "PERSONAL" && (
                             <span className="rounded-lg bg-duo-green/10 px-2 py-0.5 text-xs font-medium text-duo-green">
@@ -169,7 +178,7 @@ function NutritionLibraryShell({
                       variant="ghost"
                       size="icon"
                       className="text-duo-fg-muted hover:bg-duo-green/10 hover:text-duo-green"
-                      onClick={() => onEditRequest(plan)}
+                      onClick={() => void onEditRequest(plan.id)}
                       title="Editar plano"
                     >
                       <Edit className="size-4" />
@@ -253,8 +262,17 @@ function StudentNutritionLibraryModal() {
     if (!isOpen) return;
 
     void loadNutritionLibraryPlans();
-    void loadActiveNutritionPlan();
-  }, [isOpen, loadActiveNutritionPlan, loadNutritionLibraryPlans]);
+    if (!activePlan) {
+      void loadActiveNutritionPlan();
+    }
+  }, [activePlan, isOpen, loadActiveNutritionPlan, loadNutritionLibraryPlans]);
+
+  const loadStudentPlanDetail = async (planId: string) => {
+    const response = await apiClient.get<{
+      data?: NutritionPlanData | null;
+    }>(`/api/nutrition/library/${planId}?fresh=1`);
+    return response.data.data ?? null;
+  };
 
   const syncStudentNutrition = async () => {
     await Promise.allSettled([
@@ -270,10 +288,8 @@ function StudentNutritionLibraryModal() {
       const planId = await createNutritionLibraryPlan({
         title: "Novo Plano Alimentar",
       });
-      const nextPlan =
-        useStudentUnifiedStore
-          .getState()
-          .data.nutritionLibraryPlans.find((plan) => plan.id === planId) ?? null;
+      await loadNutritionLibraryPlans();
+      const nextPlan = planId ? await loadStudentPlanDetail(planId) : null;
       setEditingPlan(nextPlan);
       toast.success("Plano alimentar criado!");
     } catch {
@@ -314,6 +330,19 @@ function StudentNutritionLibraryModal() {
     }
   };
 
+  const handleEditRequest = async (planId: string) => {
+    try {
+      const plan = await loadStudentPlanDetail(planId);
+      if (!plan) {
+        toast.error("Nao foi possivel carregar o plano alimentar.");
+        return;
+      }
+      setEditingPlan(plan);
+    } catch {
+      toast.error("Erro ao abrir o plano alimentar.");
+    }
+  };
+
   return (
     <>
       <NutritionLibraryShell
@@ -326,7 +355,7 @@ function StudentNutritionLibraryModal() {
         activatingId={activatingId}
         onCreate={handleCreate}
         onDeleteRequest={setDeletePlanId}
-        onEditRequest={setEditingPlan}
+        onEditRequest={handleEditRequest}
         onActivate={handleActivate}
       />
 
@@ -396,14 +425,24 @@ function ScopedNutritionLibraryModal({
     if (!isOpen) return;
 
     void loadNutritionLibraryPlans(scope, studentId);
-    void loadActiveNutritionPlan(scope, studentId);
+    if (!activePlan) {
+      void loadActiveNutritionPlan(scope, studentId);
+    }
   }, [
+    activePlan,
     isOpen,
     loadActiveNutritionPlan,
     loadNutritionLibraryPlans,
     scope,
     studentId,
   ]);
+
+  const loadScopedPlanDetail = async (planId: string) => {
+    const response = await apiClient.get<{
+      data?: NutritionPlanData | null;
+    }>(`/api/${scope}/students/${studentId}/nutrition/library/${planId}?fresh=1`);
+    return response.data.data ?? null;
+  };
 
   const syncScopedPlans = async () => {
     await Promise.allSettled([
@@ -423,10 +462,8 @@ function ScopedNutritionLibraryModal({
           title: "Novo Plano Alimentar",
         },
       });
-      const nextPlan =
-        (useStudentDetailStore.getState().nutritionLibraryPlans[detailKey] ?? []).find(
-          (plan) => plan.id === planId,
-        ) ?? null;
+      await loadNutritionLibraryPlans(scope, studentId);
+      const nextPlan = planId ? await loadScopedPlanDetail(planId) : null;
       setEditingPlan(nextPlan);
       toast.success("Plano alimentar criado!");
     } catch {
@@ -475,6 +512,19 @@ function ScopedNutritionLibraryModal({
     }
   };
 
+  const handleEditRequest = async (planId: string) => {
+    try {
+      const plan = await loadScopedPlanDetail(planId);
+      if (!plan) {
+        toast.error("Nao foi possivel carregar o plano alimentar.");
+        return;
+      }
+      setEditingPlan(plan);
+    } catch {
+      toast.error("Erro ao abrir o plano alimentar.");
+    }
+  };
+
   return (
     <>
       <NutritionLibraryShell
@@ -487,7 +537,7 @@ function ScopedNutritionLibraryModal({
         activatingId={activatingId}
         onCreate={handleCreate}
         onDeleteRequest={setDeletePlanId}
-        onEditRequest={setEditingPlan}
+        onEditRequest={handleEditRequest}
         onActivate={handleActivate}
       />
 

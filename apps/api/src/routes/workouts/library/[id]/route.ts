@@ -1,8 +1,16 @@
 import type { NextRequest } from "@/runtime/next-server";
 import {
   deleteLibraryPlanHandler,
+  getLibraryPlanDetailHandler,
   updateLibraryPlanHandler,
 } from "@/lib/api/handlers/training-library.handler";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  return getLibraryPlanDetailHandler(request, { params });
+}
 
 export async function PUT(
   request: NextRequest,

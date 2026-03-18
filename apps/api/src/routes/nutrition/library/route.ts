@@ -7,8 +7,10 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import {
-  createNutritionLibraryPlan,
   listNutritionLibraryPlans,
+} from "@/lib/services/nutrition/nutrition-library-read.service";
+import {
+  createNutritionLibraryPlan,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 
@@ -19,7 +21,10 @@ export async function GET(request: NextRequest) {
       return auth.response;
     }
 
-    const data = await listNutritionLibraryPlans(auth.user.student?.id ?? "");
+    const url = new URL(request.url);
+    const data = await listNutritionLibraryPlans(auth.user.student?.id ?? "", {
+      fresh: url.searchParams.get("fresh") === "1",
+    });
     return successResponse({ data });
   } catch (error) {
     console.error("[nutrition/library] Erro GET:", error);

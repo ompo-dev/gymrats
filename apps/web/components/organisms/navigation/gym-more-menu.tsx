@@ -73,9 +73,11 @@ function GymMoreMenuSimple() {
   const handleItemClick = async (itemId: string) => {
     if (itemId === "theme-test") return;
     if (itemId === "subscription") {
-      await setTab("financial");
-      await setView("subscription");
-      await setSubTab("subscription");
+      await Promise.all([
+        setTab("financial"),
+        setView("subscription"),
+        setSubTab("subscription"),
+      ]);
       return;
     }
     await setTab(itemId);

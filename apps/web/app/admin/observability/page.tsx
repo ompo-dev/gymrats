@@ -43,10 +43,55 @@ type ObservabilitySummary = {
   note?: string;
 };
 
+type ObservabilityRoutes = {
+  routes: Array<{
+    route: string;
+    method: string;
+    domain: string;
+    count: number;
+    errorCount: number;
+    avgMs: number;
+    p50Ms: number;
+    p95Ms: number;
+    lastSeenAt: string;
+    cacheHitRate: number;
+  }>;
+};
+
+type ObservabilityErrors = {
+  errors: Array<{
+    fingerprint: string;
+    route: string;
+    count: number;
+    lastSeenAt: string;
+    sampleMessage: string;
+  }>;
+};
+
 async function getSummary() {
   try {
     return await serverApiGet<ObservabilitySummary>(
       "/api/admin/observability/summary?sinceHours=24",
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function getRoutes() {
+  try {
+    return await serverApiGet<ObservabilityRoutes>(
+      "/api/admin/observability/routes?sinceHours=24&limit=10",
+    );
+  } catch {
+    return null;
+  }
+}
+
+async function getErrors() {
+  try {
+    return await serverApiGet<ObservabilityErrors>(
+      "/api/admin/observability/errors?sinceHours=24&limit=10",
     );
   } catch {
     return null;
@@ -63,7 +108,11 @@ export default async function AdminObservabilityPage() {
     return <div className="p-6 text-sm text-duo-gray-dark">Acesso restrito a administradores.</div>;
   }
 
-  const summary = await getSummary();
+  const [summary, routes, errors] = await Promise.all([
+    getSummary(),
+    getRoutes(),
+    getErrors(),
+  ]);
 
   if (!summary) {
     return <div className="p-6 text-sm text-duo-gray-dark">Nao foi possivel carregar a observabilidade.</div>;
@@ -143,6 +192,44 @@ export default async function AdminObservabilityPage() {
                 </p>
                 <p className="text-xs text-duo-gray-dark">
                   {event.metricName ? `${event.metricName}: ${event.metricValue ?? 0}` : event.status || "ok"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div className="rounded-2xl border border-duo-border bg-duo-bg-card p-4">
+          <h2 className="mb-4 text-lg font-semibold text-duo-text">Slow routes</h2>
+          <div className="space-y-3">
+            {(routes?.routes ?? []).map((route) => (
+              <div
+                key={`${route.method}:${route.route}`}
+                className="rounded-xl border border-duo-border/70 px-3 py-2"
+              >
+                <p className="font-medium text-duo-text">
+                  {route.method} {route.route}
+                </p>
+                <p className="text-xs text-duo-gray-dark">
+                  p95 {route.p95Ms}ms · avg {route.avgMs}ms · errors {route.errorCount} · cache {Math.round(route.cacheHitRate * 100)}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-duo-border bg-duo-bg-card p-4">
+          <h2 className="mb-4 text-lg font-semibold text-duo-text">Top errors</h2>
+          <div className="space-y-3">
+            {(errors?.errors ?? []).map((error) => (
+              <div
+                key={error.fingerprint}
+                className="rounded-xl border border-duo-border/70 px-3 py-2"
+              >
+                <p className="font-medium text-duo-text">{error.route}</p>
+                <p className="text-xs text-duo-gray-dark">
+                  {error.count}x · {error.sampleMessage}
                 </p>
               </div>
             ))}

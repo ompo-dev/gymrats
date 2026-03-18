@@ -43,12 +43,18 @@ export async function GET(
 
     const student = await db.student.findUnique({
       where: { id: studentId },
-      select: { weekOverride: true },
+      select: {
+        activeWeeklyPlanId: true,
+        weekOverride: true,
+      },
     });
+    const url = new URL(request.url);
 
     const result = await getWeeklyPlanUseCase({
       studentId,
+      activeWeeklyPlanId: student?.activeWeeklyPlanId ?? null,
       weekOverride: student?.weekOverride ?? null,
+      fresh: url.searchParams.get("fresh") === "1",
     });
 
     if (!result.weeklyPlan) {

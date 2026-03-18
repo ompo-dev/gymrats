@@ -68,12 +68,18 @@ export async function getWeeklyPlanHandler(
 
     const student = await db.student.findUnique({
       where: { id: auth.user.student?.id },
-      select: { weekOverride: true },
+      select: {
+        activeWeeklyPlanId: true,
+        weekOverride: true,
+      },
     });
+    const url = new URL(request.url);
 
     const result = await getWeeklyPlanUseCase({
       studentId: auth.user.student?.id,
+      activeWeeklyPlanId: student?.activeWeeklyPlanId ?? null,
       weekOverride: student?.weekOverride ?? null,
+      fresh: url.searchParams.get("fresh") === "1",
     });
 
     if (!result.weeklyPlan) {

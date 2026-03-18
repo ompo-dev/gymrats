@@ -39,7 +39,9 @@ export async function GET(
       return badRequestResponse("Data invalida fornecida");
     }
 
-    const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey);
+    const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
+      fresh: searchParams.get("fresh") === "1",
+    });
     return successResponse(
       dailyNutrition as unknown as Record<
         string,
@@ -84,7 +86,9 @@ export async function POST(
     }
 
     if (meals === undefined && waterIntake === undefined) {
-      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey);
+      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
+        fresh: true,
+      });
       return successResponse({
         data: dailyNutrition,
         message: "Meta de agua atualizada com sucesso",

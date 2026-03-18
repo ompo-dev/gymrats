@@ -17,8 +17,10 @@ const defaultQueueOptions = {
 
 let emailQueueInstance: Queue | null = null;
 let webhookQueueInstance: Queue | null = null;
+let planOperationQueueInstance: Queue | null = null;
 let emailDeadLetterQueueInstance: Queue | null = null;
 let webhookDeadLetterQueueInstance: Queue | null = null;
+let planOperationDeadLetterQueueInstance: Queue | null = null;
 
 function createLazyQueue(getInstance: () => Queue): Queue {
   return new Proxy(
@@ -43,6 +45,25 @@ function getWebhookQueue() {
   return webhookQueueInstance;
 }
 
+function getPlanOperationQueue() {
+  planOperationQueueInstance ??= new Queue("plan-operation-queue", {
+    connection: redisConnection as never,
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: {
+        type: "exponential",
+        delay: 5000,
+      },
+      removeOnComplete: {
+        age: 60 * 60,
+        count: 1000,
+      },
+      removeOnFail: 1000,
+    },
+  });
+  return planOperationQueueInstance;
+}
+
 function getEmailDeadLetterQueue() {
   emailDeadLetterQueueInstance ??= new Queue(
     "email-queue-dlq",
@@ -59,13 +80,25 @@ function getWebhookDeadLetterQueue() {
   return webhookDeadLetterQueueInstance;
 }
 
+function getPlanOperationDeadLetterQueue() {
+  planOperationDeadLetterQueueInstance ??= new Queue(
+    "plan-operation-queue-dlq",
+    defaultQueueOptions,
+  );
+  return planOperationDeadLetterQueueInstance;
+}
+
 export const emailQueue = createLazyQueue(getEmailQueue);
 export const webhookQueue = createLazyQueue(getWebhookQueue);
+export const planOperationQueue = createLazyQueue(getPlanOperationQueue);
 export const emailDeadLetterQueue = createLazyQueue(getEmailDeadLetterQueue);
 export const webhookDeadLetterQueue = createLazyQueue(getWebhookDeadLetterQueue);
+export const planOperationDeadLetterQueue = createLazyQueue(
+  getPlanOperationDeadLetterQueue,
+);
 
 export async function pushToDeadLetterQueue(
-  queueName: "email-queue" | "webhook-queue",
+  queueName: "email-queue" | "webhook-queue" | "plan-operation-queue",
   job: Job | undefined,
   error: Error,
 ) {
@@ -74,7 +107,9 @@ export async function pushToDeadLetterQueue(
   const deadLetterQueue =
     queueName === "email-queue"
       ? getEmailDeadLetterQueue()
-      : getWebhookDeadLetterQueue();
+      : queueName === "webhook-queue"
+        ? getWebhookDeadLetterQueue()
+        : getPlanOperationDeadLetterQueue();
 
   await deadLetterQueue.add(
     `${job.name}-dead-letter`,

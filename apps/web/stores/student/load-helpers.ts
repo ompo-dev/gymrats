@@ -389,8 +389,11 @@ export async function loadSection(
   const loadPromise = (async () => {
     try {
       if (!route) return {};
+      const requestUrl = forceRefresh
+        ? `${route}${route.includes("?") ? "&" : "?"}fresh=1`
+        : route;
       const response = await apiClient
-        .get<Record<string, string | number | boolean | object | null>>(route, {
+        .get<Record<string, string | number | boolean | object | null>>(requestUrl, {
           timeout: 30000,
         })
         .catch(

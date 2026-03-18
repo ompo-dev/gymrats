@@ -45,8 +45,7 @@ function PersonalMoreMenuSimple() {
 
   const handleItemClick = async (itemId: string) => {
     if (itemId === "financial") {
-      await setTab("financial");
-      await setSubTab("subscription");
+      await Promise.all([setTab("financial"), setSubTab("subscription")]);
       return;
     }
     if (itemId === "stats") {

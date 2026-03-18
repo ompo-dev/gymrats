@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -65,20 +65,17 @@ export function PersonalFinancialPageContent({
     | "expenses"
     | "subscription"
     | "ads";
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    (subTab || "overview") as ViewMode,
-  );
-
-  useEffect(() => {
-    if (subTab && subTab !== "referrals") {
-      setViewMode(subTab as ViewMode);
+  const viewMode = useMemo<ViewMode>(() => {
+    if (!subTab || subTab === "referrals") {
+      return "overview";
     }
+
+    return subTab as ViewMode;
   }, [subTab]);
 
   const handleTabChange = (tab: string) => {
     const newViewMode = (tab === "referrals" ? "overview" : tab) as ViewMode;
-    setViewMode(newViewMode);
-    setSubTab(newViewMode);
+    void setSubTab(newViewMode);
   };
 
   const subscriptionForOverview = subscription
@@ -163,5 +160,4 @@ export function PersonalFinancialPageContent({
     </div>
   );
 }
-
 

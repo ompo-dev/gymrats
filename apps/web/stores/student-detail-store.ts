@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
+import { waitForJobCompletion } from "@/lib/api/job-client";
 import type {
   DailyNutrition,
   Meal,
@@ -1040,9 +1041,20 @@ export const useStudentDetailStore = create<StudentDetailState>()((set, get) => 
     try {
       const response = await apiClient.post<{
         data?: NutritionPlanData | null;
+        jobId?: string;
       }>(getNutritionActivateBase(scope, studentId), {
         libraryPlanId: planId,
       });
+
+      if (response.data.jobId) {
+        await waitForJobCompletion(response.data.jobId);
+        await Promise.all([
+          get().loadActiveNutritionPlan(scope, studentId),
+          get().loadNutrition(scope, studentId, currentDate),
+          get().loadNutritionLibraryPlans(scope, studentId),
+        ]);
+        return;
+      }
 
       const activatedPlan = response.data.data ?? optimisticActivePlan;
       set((state) => ({

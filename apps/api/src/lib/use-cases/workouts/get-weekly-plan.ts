@@ -3,11 +3,51 @@
  */
 
 import { db } from "@/lib/db";
+import {
+  deleteCacheKeysByPrefix,
+  getCachedJson,
+  setCachedJson,
+} from "@/lib/cache/resource-cache";
 import { addDays, getWeekStart } from "@/lib/utils/week";
 
 export interface GetWeeklyPlanInput {
   studentId: string;
   weekOverride?: Date | null;
+  activeWeeklyPlanId?: string | null;
+  fresh?: boolean;
+}
+
+const WEEKLY_PLAN_CACHE_TTL_SECONDS = 15;
+
+function buildWeeklyPlanCacheKey(
+  studentId: string,
+  activeWeeklyPlanId: string,
+  weekStart: Date,
+) {
+  return [
+    "weekly-plan",
+    studentId,
+    activeWeeklyPlanId,
+    weekStart.toISOString(),
+    "v2",
+  ].join(":");
+}
+
+function parseJsonArray(value: string | null | undefined): string[] | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function invalidateWeeklyPlanCache(studentId: string) {
+  await deleteCacheKeysByPrefix(`weekly-plan:${studentId}:`);
 }
 
 export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
@@ -16,33 +56,81 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
   const weekStart = getWeekStart(weekOverride ?? null);
   const weekEnd = addDays(weekStart, 7);
 
-  const studentData = await db.student.findUnique({
-    where: { id: studentId },
-    select: { activeWeeklyPlanId: true },
-  });
+  const activeWeeklyPlanId =
+    input.activeWeeklyPlanId ??
+    (
+      await db.student.findUnique({
+        where: { id: studentId },
+        select: { activeWeeklyPlanId: true },
+      })
+    )?.activeWeeklyPlanId ??
+    null;
 
-  if (!studentData?.activeWeeklyPlanId) {
+  if (!activeWeeklyPlanId) {
     return { weeklyPlan: null, weekStart };
   }
 
+  const cacheKey = buildWeeklyPlanCacheKey(
+    studentId,
+    activeWeeklyPlanId,
+    weekStart,
+  );
+  if (!input.fresh) {
+    const cached = await getCachedJson<{ weeklyPlan: unknown }>(cacheKey);
+    if (cached?.weeklyPlan) {
+      return {
+        weeklyPlan: cached.weeklyPlan,
+        weekStart,
+      };
+    }
+  }
+
   const weeklyPlan = await db.weeklyPlan.findUnique({
-    where: { id: studentData.activeWeeklyPlanId },
-    include: {
+    where: { id: activeWeeklyPlanId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      sourceLibraryPlanId: true,
       slots: {
         orderBy: { dayOfWeek: "asc" },
-        include: {
+        select: {
+          id: true,
+          dayOfWeek: true,
+          type: true,
+          workoutId: true,
           workout: {
-            include: {
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              type: true,
+              muscleGroup: true,
+              difficulty: true,
+              xpReward: true,
+              estimatedTime: true,
               exercises: {
                 orderBy: { order: "asc" },
-                include: {
+                select: {
+                  id: true,
+                  name: true,
+                  sets: true,
+                  reps: true,
+                  rest: true,
+                  notes: true,
+                  videoUrl: true,
+                  educationalId: true,
+                  primaryMuscles: true,
+                  secondaryMuscles: true,
+                  difficulty: true,
+                  equipment: true,
+                  instructions: true,
+                  tips: true,
+                  commonMistakes: true,
+                  benefits: true,
+                  scientificEvidence: true,
                   alternatives: { orderBy: { order: "asc" } },
                 },
-              },
-              completions: {
-                where: { studentId },
-                orderBy: { date: "desc" },
-                take: 1,
               },
             },
           },
@@ -148,22 +236,14 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
           notes: ex.notes || undefined,
           videoUrl: ex.videoUrl || undefined,
           educationalId: ex.educationalId || undefined,
-          primaryMuscles: ex.primaryMuscles
-            ? JSON.parse(ex.primaryMuscles)
-            : undefined,
-          secondaryMuscles: ex.secondaryMuscles
-            ? JSON.parse(ex.secondaryMuscles)
-            : undefined,
+          primaryMuscles: parseJsonArray(ex.primaryMuscles),
+          secondaryMuscles: parseJsonArray(ex.secondaryMuscles),
           difficulty: ex.difficulty || undefined,
-          equipment: ex.equipment ? JSON.parse(ex.equipment) : undefined,
-          instructions: ex.instructions
-            ? JSON.parse(ex.instructions)
-            : undefined,
-          tips: ex.tips ? JSON.parse(ex.tips) : undefined,
-          commonMistakes: ex.commonMistakes
-            ? JSON.parse(ex.commonMistakes)
-            : undefined,
-          benefits: ex.benefits ? JSON.parse(ex.benefits) : undefined,
+          equipment: parseJsonArray(ex.equipment),
+          instructions: parseJsonArray(ex.instructions),
+          tips: parseJsonArray(ex.tips),
+          commonMistakes: parseJsonArray(ex.commonMistakes),
+          benefits: parseJsonArray(ex.benefits),
           scientificEvidence: ex.scientificEvidence || undefined,
           alternatives:
             ex.alternatives.length > 0
@@ -189,7 +269,7 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
     };
   });
 
-  return {
+  const result = {
     weeklyPlan: {
       id: weeklyPlan.id,
       title: weeklyPlan.title,
@@ -199,4 +279,12 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
     },
     weekStart,
   };
+
+  await setCachedJson(
+    cacheKey,
+    { weeklyPlan: result.weeklyPlan },
+    WEEKLY_PLAN_CACHE_TTL_SECONDS,
+  );
+
+  return result;
 }

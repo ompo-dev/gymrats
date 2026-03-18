@@ -1,6 +1,8 @@
 export {
   emailDeadLetterQueue,
   emailQueue,
+  planOperationDeadLetterQueue,
+  planOperationQueue,
   pushToDeadLetterQueue,
   webhookDeadLetterQueue,
   webhookQueue,

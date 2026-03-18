@@ -111,7 +111,6 @@ export function StudentLayoutContent({
   const handleTabChange = async (newTab: string) => {
     if (newTab === "home") {
       await setTab(null);
-      router.push("/student");
     } else {
       await setTab(newTab);
     }

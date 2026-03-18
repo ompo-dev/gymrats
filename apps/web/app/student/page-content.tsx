@@ -468,7 +468,6 @@ function StudentHomeContent() {
 
   return (
     <motion.div
-      key={tab}
       initial={isMounted ? { opacity: 0 } : false}
       animate={isMounted ? { opacity: 1 } : false}
       transition={{ duration: 0.2 }}

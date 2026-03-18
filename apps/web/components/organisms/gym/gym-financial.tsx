@@ -1,7 +1,7 @@
 "use client";
 
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoSelect } from "@/components/duo";
@@ -89,18 +89,17 @@ export function GymFinancialPage({
     "subTab",
     parseAsString.withDefault("overview"),
   );
-  const [viewMode, setViewMode] = useState<FinancialViewMode>("overview");
-
-  useEffect(() => {
-    if (subTab && subTab !== "referrals") {
-      setViewMode(subTab as FinancialViewMode);
+  const viewMode = useMemo<FinancialViewMode>(() => {
+    if (!subTab || subTab === "referrals") {
+      return "overview";
     }
+
+    return subTab as FinancialViewMode;
   }, [subTab]);
 
   const handleTabChange = (tab: string) => {
     const mode = (tab === "referrals" ? "overview" : tab) as FinancialViewMode;
-    setViewMode(mode);
-    setSubTab(mode);
+    void setSubTab(mode);
   };
 
   return (

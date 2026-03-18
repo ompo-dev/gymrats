@@ -7,8 +7,10 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { assertPersonalStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
 import {
-  createNutritionLibraryPlan,
   listNutritionLibraryPlans,
+} from "@/lib/services/nutrition/nutrition-library-read.service";
+import {
+  createNutritionLibraryPlan,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
@@ -26,7 +28,10 @@ export async function GET(
     const { id: studentId } = await params;
     await assertPersonalStudentAccess(ctx.personalId, studentId);
 
-    const data = await listNutritionLibraryPlans(studentId);
+    const url = new URL(request.url);
+    const data = await listNutritionLibraryPlans(studentId, {
+      fresh: url.searchParams.get("fresh") === "1",
+    });
     return successResponse({ data });
   } catch (error) {
     console.error("[personals/students/[id]/nutrition/library] Erro GET:", error);

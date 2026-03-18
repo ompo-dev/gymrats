@@ -19,6 +19,12 @@ import {
   activateLibraryPlanSchema,
 } from "../schemas/workouts.schemas";
 import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
+import {
+  getTrainingLibraryPlanDetail,
+  invalidateTrainingLibraryCache,
+  listTrainingLibraryPlans,
+} from "@/lib/services/workouts/training-library-read.service";
+import { invalidateWeeklyPlanCache } from "@/lib/use-cases/workouts/get-weekly-plan";
 
 // ==========================================
 // LIBRARY (CRUD)
@@ -40,28 +46,43 @@ export async function getLibraryPlansHandler(
       return badRequestResponse("studentId não identificado ou ausente para este usuário");
     }
 
-    const libraryPlans = await db.weeklyPlan.findMany({
-      where: {
-        studentId,
-        ...({ isLibraryTemplate: true } as any),
-      },
-      include: {
-        slots: {
-          orderBy: { dayOfWeek: "asc" },
-          include: {
-            workout: {
-              include: { exercises: { orderBy: { order: "asc" } } },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
+    const libraryPlans = await listTrainingLibraryPlans(studentId, {
+      fresh: url.searchParams.get("fresh") === "1",
     });
 
     return successResponse({ data: libraryPlans });
   } catch (error) {
     console.error("Error fetching library plans:", error);
     return internalErrorResponse("Erro ao buscar treinos da biblioteca");
+  }
+}
+
+export async function getLibraryPlanDetailHandler(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  try {
+    const auth = await requireAuth(request);
+    if ("error" in auth) return auth.response;
+
+    const { id } = await params;
+    const url = new URL(request.url);
+    const plan = await getTrainingLibraryPlanDetail(id, {
+      fresh: url.searchParams.get("fresh") === "1",
+    });
+
+    if (!plan) {
+      return notFoundResponse("Plano nÃ£o encontrado");
+    }
+
+    if (auth.user.role === "STUDENT" && plan.studentId !== auth.user.student?.id) {
+      return unauthorizedResponse("Sem permissÃ£o para acessar treino de outro aluno");
+    }
+
+    return successResponse({ data: plan });
+  } catch (error) {
+    console.error("Error fetching library plan detail:", error);
+    return internalErrorResponse("Erro ao buscar treino da biblioteca");
   }
 }
 
@@ -197,6 +218,11 @@ export async function createLibraryPlanHandler(
         return cloneWeeklyPlan;
       });
 
+      await invalidateTrainingLibraryCache({
+        studentId: targetStudentId,
+        planId: result.id,
+      });
+
       return successResponse(
         { data: result, message: "Plano clonado para a biblioteca" },
         201,
@@ -221,6 +247,11 @@ export async function createLibraryPlanHandler(
         },
       },
       include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+    });
+
+    await invalidateTrainingLibraryCache({
+      studentId: targetStudentId,
+      planId: weeklyPlan.id,
     });
 
     return successResponse(
@@ -284,6 +315,11 @@ export async function updateLibraryPlanHandler(
     });
 
     await syncActiveWeeklyPlanFromLibrary(id);
+    await invalidateTrainingLibraryCache({
+      studentId: updatedPlan.studentId,
+      planId: updatedPlan.id,
+    });
+    await invalidateWeeklyPlanCache(updatedPlan.studentId);
 
     return successResponse({ data: updatedPlan, message: "Plano editado com sucesso" });
   } catch (error) {
@@ -329,6 +365,10 @@ export async function deleteLibraryPlanHandler(
     }
 
     await db.weeklyPlan.delete({ where: { id } });
+    await invalidateTrainingLibraryCache({
+      studentId: plan.studentId,
+      planId: id,
+    });
     return successResponse({ message: "Plano deletado com sucesso" });
   } catch (error) {
     console.error("Error deleting library plan:", error);

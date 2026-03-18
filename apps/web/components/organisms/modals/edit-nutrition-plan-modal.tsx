@@ -91,7 +91,21 @@ export function EditNutritionPlanModal({
   const currentPlan = useMemo(() => {
     if (!nutritionPlan) return null;
     const plans = apiMode === "student" ? studentPlans : detailPlans;
-    return plans.find((plan) => plan.id === nutritionPlan.id) ?? nutritionPlan;
+    const matchingPlan = plans.find((plan) => plan.id === nutritionPlan.id);
+    if (!matchingPlan) {
+      return nutritionPlan;
+    }
+
+    const inputFoodCount = nutritionPlan.meals.reduce(
+      (total, meal) => total + meal.foods.length,
+      0,
+    );
+    const storeFoodCount = matchingPlan.meals.reduce(
+      (total, meal) => total + meal.foods.length,
+      0,
+    );
+
+    return storeFoodCount >= inputFoodCount ? matchingPlan : nutritionPlan;
   }, [apiMode, detailPlans, nutritionPlan, studentPlans]);
 
   const [title, setTitle] = useState(currentPlan?.title ?? "");

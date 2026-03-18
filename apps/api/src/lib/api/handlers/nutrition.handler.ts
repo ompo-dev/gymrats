@@ -51,6 +51,7 @@ export async function getDailyNutritionHandler(
     const dailyNutrition = await getDailyNutritionForStudent(
       auth.user.student?.id ?? "",
       dateKey,
+      { fresh: new URL(request.url).searchParams.get("fresh") === "1" },
     );
 
     return successResponse(
@@ -94,7 +95,9 @@ export async function updateDailyNutritionHandler(
     }
 
     if (meals === undefined && waterIntake === undefined) {
-      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey);
+      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
+        fresh: true,
+      });
       return successResponse({
         data: dailyNutrition,
         message: "Meta de agua atualizada com sucesso",
