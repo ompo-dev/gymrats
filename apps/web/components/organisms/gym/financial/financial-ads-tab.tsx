@@ -10,7 +10,6 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -420,21 +419,13 @@ export function FinancialAdsTab({
         </div>
       </DuoCard.Root>
 
-      <AnimatePresence>
+      <>
         {modalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+          <div
             className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
             onClick={() => setModalOpen(false)}
           >
-            <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            <div
               className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
               onClick={(e) => e.stopPropagation()}
               style={{
@@ -444,12 +435,7 @@ export function FinancialAdsTab({
               }}
             >
               {/* Header */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="border-b-2 border-duo-border p-6 shrink-0"
-              >
+              <div className="border-b-2 border-duo-border p-6 shrink-0">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-duo-text">
                     Criar Anúncio
@@ -464,7 +450,7 @@ export function FinancialAdsTab({
                     ✕
                   </DuoButton>
                 </div>
-              </motion.div>
+              </div>
 
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-5">
@@ -644,12 +630,7 @@ export function FinancialAdsTab({
               </div>
 
               {/* Footer */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.3 }}
-                className="shrink-0 border-t-2 border-duo-border p-6 space-y-4"
-              >
+              <div className="shrink-0 border-t-2 border-duo-border p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-duo-gray-dark">
                     {formatDuration(durationHours)}
@@ -674,11 +655,11 @@ export function FinancialAdsTab({
                     {isSubmitting ? "Processando..." : `Gerar PIX `}
                   </DuoButton>
                 </div>
-              </motion.div>
-            </motion.div>
-          </motion.div>
+              </div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
 
       {/* Modal PIX */}
       {pixModal && (

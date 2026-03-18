@@ -111,7 +111,10 @@ export function useGymStudentDetail({
   }, [payments]);
 
   useEffect(() => {
-    setMembershipStatus(student?.membershipStatus ?? "inactive");
+    const nextStatus = student?.membershipStatus ?? "inactive";
+    setMembershipStatus((current) =>
+      current === nextStatus ? current : nextStatus,
+    );
   }, [student?.membershipStatus]);
 
   const getTargets = useCallback(() => {

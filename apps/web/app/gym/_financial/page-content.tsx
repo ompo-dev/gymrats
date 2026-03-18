@@ -74,10 +74,6 @@ export default function FinancialPage({
   campaigns = [],
   plans = [],
 }: FinancialPageProps) {
-  const [view, setView] = useQueryState(
-    "view",
-    parseAsString.withDefault("overview"),
-  );
   const [subTab, setSubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("overview"),
@@ -91,16 +87,12 @@ export default function FinancialPage({
     | "ads";
 
   const viewMode = useMemo(
-    () =>
-      ((subTab || view || "overview") === "referrals"
-        ? "overview"
-        : (subTab || view || "overview")) as ViewMode,
-    [subTab, view],
+    () => ((subTab || "overview") === "referrals" ? "overview" : subTab) as ViewMode,
+    [subTab],
   );
 
   const handleTabChange = (tab: string) => {
     const newViewMode = (tab === "referrals" ? "overview" : tab) as ViewMode;
-    void setView(newViewMode);
     void setSubTab(newViewMode);
   };
 

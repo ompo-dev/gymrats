@@ -30,8 +30,7 @@ function GymSelectorSimple() {
 
   const { toast } = useToast();
 
-  const subscriptionTabUrl =
-    "/gym?tab=financial&view=subscription&subTab=subscription";
+  const subscriptionTabUrl = "/gym?tab=financial&subTab=subscription";
 
   const handleSelectGym = async (gymId: string) => {
     if (gymId === "create-new") {

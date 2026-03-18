@@ -95,7 +95,10 @@ export function PersonalDietTab({
   };
 
   useEffect(() => {
-    setTargetWaterInput(String(nutrition.targetWater ?? 3000));
+    const nextValue = String(nutrition.targetWater ?? 3000);
+    setTargetWaterInput((current) =>
+      current === nextValue ? current : nextValue,
+    );
   }, [nutrition.targetWater]);
 
   const handleSaveTargetWater = async () => {

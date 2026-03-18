@@ -9,7 +9,6 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
@@ -180,12 +179,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
                   const progress = achievement.progress ?? 0;
                   const target = achievement.target ?? 100;
                   return (
-                    <motion.div
-                      key={achievement.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
-                    >
+                    <div key={achievement.id}>
                       <DuoCard.Root
                         variant={unlocked ? "highlighted" : "default"}
                         size="default"
@@ -233,7 +227,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
                           </div>
                         )}
                       </DuoCard.Root>
-                    </motion.div>
+                    </div>
                   );
                 })
               )}
@@ -263,12 +257,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
             </p>
             <div className="space-y-2">
               {ranking.map((gym, index) => (
-                <motion.div
-                  key={`${gym.name}-${index}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05, duration: 0.4 }}
-                >
+                <div key={`${gym.name}-${index}`}>
                   <DuoCard.Root
                     variant="default"
                     size="default"
@@ -315,7 +304,7 @@ export function GymGamificationPage({ profile }: GymGamificationPageProps) {
                       </div>
                     </div>
                   </DuoCard.Root>
-                </motion.div>
+                </div>
               ))}
             </div>
           </DuoCard.Root>

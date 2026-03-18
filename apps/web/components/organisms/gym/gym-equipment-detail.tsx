@@ -12,7 +12,6 @@ import {
   Edit,
   Wrench,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
@@ -442,12 +441,7 @@ export function GymEquipmentDetail({
             {equipment.maintenanceHistory.length > 0 ? (
               <div className="space-y-3">
                 {equipment.maintenanceHistory.map((record, index) => (
-                  <motion.div
-                    key={record.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
-                  >
+                  <div key={record.id}>
                     <DuoCard.Root variant="default" size="default">
                       <div className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -473,7 +467,7 @@ export function GymEquipmentDetail({
                         </div>
                       </div>
                     </DuoCard.Root>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             ) : (

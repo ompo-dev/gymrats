@@ -13,7 +13,6 @@ import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
 import { useGym } from "@/hooks/use-gym";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
-import { useGymsList } from "@/hooks/use-gyms-list";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
@@ -139,7 +138,6 @@ function GymGamificationTab() {
 
 function GymHomeContent() {
   const router = useRouter();
-  const { activeGymId } = useGymsList();
   const { isAdmin, role } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
@@ -155,7 +153,7 @@ function GymHomeContent() {
   }, [tab, userIsAdmin, router]);
 
   return (
-    <div key={activeGymId || "gym"} className="px-4 py-6">
+    <div className="px-4 py-6">
       {tab === "dashboard" && <GymDashboardTab />}
       {tab === "students" && <GymStudentsTab />}
       {tab === "equipment" && <GymEquipmentTab />}

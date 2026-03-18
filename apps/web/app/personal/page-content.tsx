@@ -205,7 +205,10 @@ function PersonalHomeContent() {
       {tab === "dashboard" && (
         <PersonalDashboardTab
           onViewGym={(id) => {
-            void Promise.all([setTab("gyms"), setGymId(id)]);
+            void (async () => {
+              await setGymId(id);
+              await setTab("gyms");
+            })();
           }}
         />
       )}
@@ -214,8 +217,12 @@ function PersonalHomeContent() {
         <PersonalGymsTab
           gymId={gymId ?? null}
           onRefresh={refreshGyms}
-          onViewGym={(id) => setGymId(id)}
-          onBackFromGym={() => setGymId(null)}
+          onViewGym={(id) => {
+            void setGymId(id);
+          }}
+          onBackFromGym={() => {
+            void setGymId(null);
+          }}
         />
       )}
       {tab === "financial" && (

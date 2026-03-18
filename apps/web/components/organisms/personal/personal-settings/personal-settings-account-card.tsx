@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowRightLeft, LogOut, Shield } from "lucide-react";
-import { motion } from "motion/react";
 import { DuoCard } from "@/components/duo";
 
 interface PersonalSettingsAccountCardProps {
@@ -46,11 +45,7 @@ export function PersonalSettingsAccountCard({
             </div>
           </DuoCard.Root>
         )}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.4 }}
-        >
+        <div>
           <DuoCard.Root
             variant="default"
             size="default"
@@ -69,7 +64,7 @@ export function PersonalSettingsAccountCard({
               </div>
             </div>
           </DuoCard.Root>
-        </motion.div>
+        </div>
       </div>
     </DuoCard.Root>
   );
