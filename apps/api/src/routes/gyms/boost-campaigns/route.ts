@@ -4,6 +4,7 @@ import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
+import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 
 const createBoostCampaignSchema = z.object({
   title: z.string().min(1, "Titulo e obrigatorio"),
@@ -23,22 +24,11 @@ const createBoostCampaignSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ gymContext }) => {
+  async ({ gymContext, req }) => {
     const gymId = gymContext!.gymId;
-    const now = new Date();
-
-    await db.boostCampaign.updateMany({
-      where: {
-        gymId,
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
-    });
-
-    const campaigns = await db.boostCampaign.findMany({
-      where: { gymId },
-      orderBy: { createdAt: "desc" },
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const campaigns = await GymFinancialService.getBoostCampaigns(gymId, {
+      fresh,
     });
 
     return NextResponse.json({ campaigns });

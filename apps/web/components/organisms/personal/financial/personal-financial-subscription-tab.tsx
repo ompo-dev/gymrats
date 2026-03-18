@@ -87,7 +87,7 @@ export function PersonalFinancialSubscriptionTab({
           );
         }}
         onCancel={handleCancel}
-        onPaymentSuccess={async () => loadSection("subscription")}
+        onPaymentSuccess={async () => loadSection("subscription", true)}
         plans={plans}
         showPlansWhen="always"
         texts={{
@@ -110,10 +110,10 @@ export function PersonalFinancialSubscriptionTab({
           amount={pixModal.amount}
           expiresAt={pixModal.expiresAt}
           simulatePixUrl={`/api/personals/subscription/simulate-pix?pixId=${encodeURIComponent(pixModal.pixId)}`}
-          onSimulateSuccess={() => loadSection("subscription")}
+          onSimulateSuccess={() => loadSection("subscription", true)}
           pollConfig={{
             type: "subscription",
-            refetch: () => loadSection("subscription"),
+            refetch: () => loadSection("subscription", true),
             currentStatus: subscription?.status,
             initialStatus: "pending_payment",
             targetStatus: "active",

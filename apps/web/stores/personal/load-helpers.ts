@@ -28,6 +28,14 @@ export const SECTION_ROUTES: Record<PersonalDataSection, string> = {
   membershipPlans: "/api/personals/membership-plans",
 };
 
+function withFreshParam(route: string, force = false) {
+  if (!force) {
+    return route;
+  }
+
+  return `${route}${route.includes("?") ? "&" : "?"}fresh=1`;
+}
+
 const loadingSections = new Set<PersonalDataSection>();
 const loadingPromises = new Map<
   PersonalDataSection,
@@ -41,6 +49,7 @@ export function clearLoadingState() {
 
 export async function loadSection(
   section: PersonalDataSection,
+  force = false,
 ): Promise<Partial<PersonalUnifiedData>> {
   const existing = loadingPromises.get(section);
   if (existing) return existing;
@@ -48,7 +57,7 @@ export async function loadSection(
   const promise = (async () => {
     loadingSections.add(section);
     try {
-      const route = SECTION_ROUTES[section];
+      const route = withFreshParam(SECTION_ROUTES[section], force);
       if (section === "profile") {
         const res = await apiClient.get<{ personal: PersonalProfile | null }>(
           route,

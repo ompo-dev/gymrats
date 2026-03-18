@@ -361,7 +361,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
       const promise = (async () => {
         try {
           const response = await apiClient.get<{ student: GymUnifiedData["students"][number] }>(
-            `/api/gyms/students/${studentId}`,
+            `/api/gyms/students/${studentId}${force ? "?fresh=1" : ""}`,
           );
           set((state) => ({
             data: {
@@ -391,7 +391,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           const response = await apiClient.get<{
             payments: GymUnifiedData["payments"];
           }>("/api/gyms/payments", {
-            params: { studentId },
+            params: { studentId, ...(force ? { fresh: "1" } : {}) },
           });
           set((state) => ({
             data: {

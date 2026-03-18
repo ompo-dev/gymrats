@@ -2,6 +2,7 @@ import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 
 const createGymCouponSchema = z.object({
   code: z.string().min(1, "Codigo do cupom e obrigatorio"),
@@ -15,55 +16,15 @@ const createGymCouponSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ gymContext }) => {
+  async ({ gymContext, req }) => {
     const gymId = gymContext!.gymId;
-    const now = new Date();
-
-    await db.gymCoupon.updateMany({
-      where: {
-        gymId,
-        isActive: true,
-        expiresAt: { lt: now },
-      },
-      data: { isActive: false },
-    });
-
-    const limitedCoupons = await db.gymCoupon.findMany({
-      where: {
-        gymId,
-        isActive: true,
-        maxUses: { not: -1 },
-      },
-      select: { id: true, currentUses: true, maxUses: true },
-    });
-
-    const maxedCouponIds = limitedCoupons
-      .filter((coupon) => coupon.currentUses >= coupon.maxUses)
-      .map((coupon) => coupon.id);
-
-    if (maxedCouponIds.length > 0) {
-      await db.gymCoupon.updateMany({
-        where: { id: { in: maxedCouponIds } },
-        data: { isActive: false },
-      });
-    }
-
-    const coupons = await db.gymCoupon.findMany({
-      where: { gymId },
-      orderBy: { createdAt: "desc" },
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const coupons = await GymFinancialService.getCoupons(gymId, {
+      fresh,
     });
 
     return NextResponse.json({
-      coupons: coupons.map((coupon) => ({
-        id: coupon.id,
-        code: coupon.code,
-        type: coupon.discountType as "percentage" | "fixed",
-        value: coupon.discountValue,
-        maxUses: coupon.maxUses === -1 ? 999999 : coupon.maxUses,
-        currentUses: coupon.currentUses,
-        expiryDate: coupon.expiresAt ?? new Date(9999, 11, 31),
-        isActive: coupon.isActive,
-      })),
+      coupons,
     });
   },
   { auth: "gym" },

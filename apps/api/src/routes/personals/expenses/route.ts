@@ -9,7 +9,10 @@ export async function GET(request: Request) {
     if (errorResponse || !ctx) {
       return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
-    const expenses = await PersonalFinancialService.getExpenses(ctx.personalId);
+    const fresh = new URL(request.url).searchParams.get("fresh") === "1";
+    const expenses = await PersonalFinancialService.getExpenses(ctx.personalId, {
+      fresh,
+    });
     return NextResponse.json({ expenses });
   } catch (error) {
     console.error("[GET /api/personals/expenses] Erro:", error);

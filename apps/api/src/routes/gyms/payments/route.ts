@@ -8,9 +8,13 @@ import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 // GET — listar pagamentos
 export const GET = createSafeHandler(
-  async ({ query, gymContext }) => {
+  async ({ query, gymContext, req }) => {
     const { gymId } = gymContext!;
-    const payments = await GymDomainService.getPayments(gymId, query);
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const payments = await GymDomainService.getPayments(gymId, {
+      ...(query as Record<string, string | undefined>),
+      fresh,
+    });
     return NextResponse.json({ payments });
   },
   {

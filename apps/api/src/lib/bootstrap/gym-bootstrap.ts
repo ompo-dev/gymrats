@@ -361,33 +361,13 @@ async function loadGymBootstrapSection(
         ),
       };
     case "coupons": {
-      const now = new Date();
-      const coupons = await db.gymCoupon.findMany({
-        where: { gymId },
-        orderBy: { createdAt: "desc" },
-      });
       return {
-        coupons: coupons.map((coupon) => ({
-          id: coupon.id,
-          code: coupon.code,
-          type: coupon.discountType as "percentage" | "fixed",
-          value: coupon.discountValue,
-          maxUses: coupon.maxUses === -1 ? 999999 : coupon.maxUses,
-          currentUses: coupon.currentUses,
-          expiryDate: coupon.expiresAt ?? new Date(9999, 11, 31),
-          isActive:
-            coupon.isActive &&
-            (!coupon.expiresAt || coupon.expiresAt >= now) &&
-            (coupon.maxUses === -1 || coupon.currentUses < coupon.maxUses),
-        })) as GymUnifiedData["coupons"],
+        coupons: (await GymFinancialService.getCoupons(gymId)) as GymUnifiedData["coupons"],
       };
     }
     case "campaigns":
       return {
-        campaigns: await db.boostCampaign.findMany({
-          where: { gymId },
-          orderBy: { createdAt: "desc" },
-        }),
+        campaigns: await GymFinancialService.getBoostCampaigns(gymId),
       };
     case "balanceWithdraws":
       return {

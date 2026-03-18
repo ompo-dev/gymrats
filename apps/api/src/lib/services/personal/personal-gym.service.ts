@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { PersonalSubscriptionService } from "./personal-subscription.service";
 
 function getDiscountPercentByGymPlan(plan?: string | null, status?: string | null) {
@@ -6,6 +7,27 @@ function getDiscountPercentByGymPlan(plan?: string | null, status?: string | nul
   const isEligible =
     status === "active" && (normalized === "premium" || normalized === "enterprise");
   return isEligible ? 50 : null;
+}
+
+const PERSONAL_GYMS_CACHE_TTL_SECONDS = 20;
+
+function buildPersonalGymCacheKey(
+  personalId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `personal:gym:${personalId}:${resource}:${query}`
+    : `personal:gym:${personalId}:${resource}`;
 }
 
 export class PersonalGymService {
@@ -73,8 +95,23 @@ export class PersonalGymService {
     return affiliation;
   }
 
-  static async listPersonalGyms(personalId: string) {
-    return db.gymPersonalAffiliation.findMany({
+  static async listPersonalGyms(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildPersonalGymCacheKey(personalId, "affiliations");
+
+    if (!options?.fresh) {
+      const cached =
+        await getCachedJson<Awaited<ReturnType<typeof db.gymPersonalAffiliation.findMany>>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const affiliations = await db.gymPersonalAffiliation.findMany({
       where: { personalId, status: "active" },
       include: {
         gym: {
@@ -95,6 +132,14 @@ export class PersonalGymService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    await setCachedJson(
+      cacheKey,
+      affiliations,
+      PERSONAL_GYMS_CACHE_TTL_SECONDS,
+    );
+
+    return affiliations;
   }
 
   static async listGymPersonals(gymId: string) {

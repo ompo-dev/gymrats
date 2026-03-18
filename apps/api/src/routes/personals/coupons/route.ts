@@ -1,6 +1,7 @@
 import { NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 
 export async function GET(request: Request) {
   try {
@@ -12,51 +13,12 @@ export async function GET(request: Request) {
       );
     }
 
-    const now = new Date();
-    await db.personalCoupon.updateMany({
-      where: {
-        personalId: ctx.personalId,
-        isActive: true,
-        expiresAt: { lt: now },
-      },
-      data: { isActive: false },
+    const fresh = new URL(request.url).searchParams.get("fresh") === "1";
+    const coupons = await PersonalFinancialService.getCoupons(ctx.personalId, {
+      fresh,
     });
 
-    const limitedCoupons = await db.personalCoupon.findMany({
-      where: {
-        personalId: ctx.personalId,
-        isActive: true,
-        maxUses: { not: -1 },
-      },
-      select: { id: true, currentUses: true, maxUses: true },
-    });
-    const maxedCouponIds = limitedCoupons
-      .filter((coupon) => coupon.currentUses >= coupon.maxUses)
-      .map((coupon) => coupon.id);
-    if (maxedCouponIds.length > 0) {
-      await db.personalCoupon.updateMany({
-        where: { id: { in: maxedCouponIds } },
-        data: { isActive: false },
-      });
-    }
-
-    const coupons = await db.personalCoupon.findMany({
-      where: { personalId: ctx.personalId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const mapped = coupons.map((c) => ({
-      id: c.id,
-      code: c.code,
-      type: c.discountType as "percentage" | "fixed",
-      value: c.discountValue,
-      maxUses: c.maxUses === -1 ? 999999 : c.maxUses,
-      currentUses: c.currentUses,
-      expiryDate: c.expiresAt ?? new Date(9999, 11, 31),
-      isActive: c.isActive,
-    }));
-
-    return NextResponse.json({ coupons: mapped });
+    return NextResponse.json({ coupons });
   } catch (error) {
     console.error("[GET /api/personals/coupons] Erro:", error);
     return NextResponse.json({ error: "Erro interno" }, { status: 500 });

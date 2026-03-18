@@ -9,7 +9,7 @@ const querySchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ personalContext, query }) => {
+  async ({ personalContext, query, req }) => {
     if (!featureFlags.personalEnabled) {
       return NextResponse.json(
         { error: "Módulo Personal desabilitado" },
@@ -17,9 +17,11 @@ export const GET = createSafeHandler(
       );
     }
 
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
     const students = await StudentPersonalService.listStudentsAsStudentData(
       personalContext!.personalId,
       (query as { gymId?: string }).gymId,
+      { fresh },
     );
 
     return NextResponse.json({ students });

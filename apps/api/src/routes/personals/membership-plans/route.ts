@@ -1,6 +1,7 @@
 import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 
 type MembershipPlanBody = {
   name: string;
@@ -37,11 +38,11 @@ function parseBenefits(benefits: string | string[] | null | undefined) {
 }
 
 export const GET = createSafeHandler(
-  async ({ personalContext }) => {
+  async ({ personalContext, req }) => {
     const personalId = personalContext!.personalId;
-    const plans = await (db as any).personalMembershipPlan.findMany({
-      where: { personalId },
-      orderBy: { price: "asc" },
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const plans = await PersonalFinancialService.getMembershipPlans(personalId, {
+      fresh,
     });
 
     return NextResponse.json({

@@ -16,30 +16,103 @@ import { usePersonal } from "@/hooks/use-personal";
 import type { MembershipPlan, StudentData } from "@/lib/types";
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
-function PersonalHomeContent() {
-  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
-  const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  usePersonalInitializer();
-  useLoadPrioritizedPersonal({ onlyPriorities: true });
+function usePersonalStatsSnapshot() {
+  const { affiliations, students } = usePersonal("affiliations", "students");
 
-  const { loadAll } = usePersonal("loaders");
+  return useMemo(() => {
+    const studentsViaGym = students.filter((item) => item.gym?.id).length;
+    const independentStudents = students.length - studentsViaGym;
+
+    return {
+      affiliations,
+      students,
+      stats: {
+        gyms: affiliations.length,
+        students: students.length,
+        studentsViaGym,
+        independentStudents,
+      },
+    };
+  }, [affiliations, students]);
+}
+
+function PersonalDashboardTab({
+  onViewGym,
+}: {
+  onViewGym: (gymId: string) => void;
+}) {
+  const { profile, subscription, financialSummary } = usePersonal(
+    "profile",
+    "subscription",
+    "financialSummary",
+  );
+  const { affiliations, students, stats } = usePersonalStatsSnapshot();
+
+  return (
+    <PersonalDashboardPageContent
+      profile={profile}
+      stats={stats}
+      affiliations={affiliations}
+      students={students}
+      subscription={subscription}
+      financialSummary={financialSummary}
+      onViewGym={onViewGym}
+    />
+  );
+}
+
+function PersonalStudentsTab() {
+  const { affiliations, studentDirectory } = usePersonal(
+    "affiliations",
+    "studentDirectory",
+  );
+
+  return (
+    <PersonalStudentsPageContent
+      students={studentDirectory as unknown as StudentData[]}
+      affiliations={affiliations}
+    />
+  );
+}
+
+function PersonalGymsTab({
+  gymId,
+  onViewGym,
+  onBackFromGym,
+  onRefresh,
+}: {
+  gymId: string | null;
+  onViewGym: (gymId: string) => void;
+  onBackFromGym: () => void;
+  onRefresh: () => Promise<void>;
+}) {
+  const { affiliations } = usePersonal("affiliations");
+
+  return (
+    <PersonalGymsPageContent
+      affiliations={affiliations}
+      onRefresh={onRefresh}
+      gymId={gymId}
+      onViewGym={onViewGym}
+      onBackFromGym={onBackFromGym}
+    />
+  );
+}
+
+function PersonalFinancialTab({
+  onRefresh,
+}: {
+  onRefresh: () => Promise<void>;
+}) {
   const {
-    profile,
-    affiliations,
-    students,
-    studentDirectory,
     subscription,
     financialSummary,
-    expenses: storeExpenses,
-    payments: storePayments,
-    coupons: storeCoupons,
-    campaigns: storeCampaigns,
-    membershipPlans: storePlans,
+    expenses,
+    payments,
+    coupons,
+    campaigns,
+    membershipPlans,
   } = usePersonal(
-    "profile",
-    "affiliations",
-    "students",
-    "studentDirectory",
     "subscription",
     "financialSummary",
     "expenses",
@@ -49,20 +122,84 @@ function PersonalHomeContent() {
     "membershipPlans",
   );
 
-  const load = useCallback(async () => {
-    await loadAll();
-  }, [loadAll]);
+  return (
+    <PersonalFinancialPageContent
+      subscription={subscription}
+      financialSummary={financialSummary}
+      expenses={expenses}
+      payments={payments}
+      coupons={coupons}
+      campaigns={campaigns}
+      plans={membershipPlans as unknown as MembershipPlan[]}
+      onRefresh={onRefresh}
+    />
+  );
+}
 
-  const stats = useMemo(() => {
-    const studentsViaGym = students.filter((item) => item.gym?.id).length;
-    const independentStudents = students.length - studentsViaGym;
-    return {
-      gyms: affiliations.length,
-      students: students.length,
-      studentsViaGym,
-      independentStudents,
-    };
-  }, [affiliations.length, students]);
+function PersonalSettingsTab({
+  onRefresh,
+}: {
+  onRefresh: () => Promise<void>;
+}) {
+  const { profile, membershipPlans } = usePersonal("profile", "membershipPlans");
+
+  return (
+    <PersonalSettingsPageContent
+      profile={profile}
+      plans={membershipPlans as PersonalMembershipPlan[]}
+      onRefresh={onRefresh}
+    />
+  );
+}
+
+function PersonalStatsTab() {
+  const { stats } = usePersonalStatsSnapshot();
+
+  return (
+    <PersonalStatsPageContent
+      gyms={stats.gyms}
+      students={stats.students}
+      studentsViaGym={stats.studentsViaGym}
+      independentStudents={stats.independentStudents}
+    />
+  );
+}
+
+function PersonalHomeContent() {
+  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
+  const [gymId, setGymId] = useQueryState("gymId", parseAsString);
+
+  usePersonalInitializer();
+  useLoadPrioritizedPersonal({ onlyPriorities: true });
+
+  const { loadSection } = usePersonal("loaders");
+
+  const refreshGyms = useCallback(async () => {
+    await Promise.all([
+      loadSection("affiliations", true),
+      loadSection("students", true),
+    ]);
+  }, [loadSection]);
+
+  const refreshFinancial = useCallback(async () => {
+    await Promise.all([
+      loadSection("subscription", true),
+      loadSection("financialSummary", true),
+      loadSection("expenses", true),
+      loadSection("payments", true),
+      loadSection("coupons", true),
+      loadSection("campaigns", true),
+      loadSection("membershipPlans", true),
+    ]);
+  }, [loadSection]);
+
+  const refreshSettings = useCallback(async () => {
+    await Promise.all([
+      loadSection("profile", true),
+      loadSection("membershipPlans", true),
+      loadSection("subscription", true),
+    ]);
+  }, [loadSection]);
 
   return (
     <motion.div
@@ -72,61 +209,26 @@ function PersonalHomeContent() {
       className="px-4 py-6"
     >
       {tab === "dashboard" && (
-        <PersonalDashboardPageContent
-          profile={profile}
-          stats={stats}
-          affiliations={affiliations}
-          students={students}
-          subscription={subscription}
-          financialSummary={financialSummary}
+        <PersonalDashboardTab
           onViewGym={(id) => {
-            setTab("gyms");
-            setGymId(id);
+            void Promise.all([setTab("gyms"), setGymId(id)]);
           }}
         />
       )}
-      {tab === "students" && (
-        <PersonalStudentsPageContent
-          students={studentDirectory as unknown as StudentData[]}
-          affiliations={affiliations}
-        />
-      )}
+      {tab === "students" && <PersonalStudentsTab />}
       {tab === "gyms" && (
-        <PersonalGymsPageContent
-          affiliations={affiliations}
-          onRefresh={load}
+        <PersonalGymsTab
           gymId={gymId ?? null}
+          onRefresh={refreshGyms}
           onViewGym={(id) => setGymId(id)}
           onBackFromGym={() => setGymId(null)}
         />
       )}
       {tab === "financial" && (
-        <PersonalFinancialPageContent
-          subscription={subscription}
-          financialSummary={financialSummary}
-          expenses={storeExpenses}
-          payments={storePayments}
-          coupons={storeCoupons}
-          campaigns={storeCampaigns}
-          plans={storePlans as unknown as MembershipPlan[]}
-          onRefresh={load}
-        />
+        <PersonalFinancialTab onRefresh={refreshFinancial} />
       )}
-      {tab === "settings" && (
-        <PersonalSettingsPageContent
-          profile={profile}
-          plans={storePlans}
-          onRefresh={load}
-        />
-      )}
-      {tab === "stats" && (
-        <PersonalStatsPageContent
-          gyms={stats.gyms}
-          students={stats.students}
-          studentsViaGym={stats.studentsViaGym}
-          independentStudents={stats.independentStudents}
-        />
-      )}
+      {tab === "settings" && <PersonalSettingsTab onRefresh={refreshSettings} />}
+      {tab === "stats" && <PersonalStatsTab />}
       {tab === "more" && <PersonalMoreMenu.Simple />}
     </motion.div>
   );

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import type {
   BoostCampaign,
   Coupon,
@@ -6,10 +7,42 @@ import type {
   FinancialSummary,
 } from "@/lib/types";
 
+const PERSONAL_FINANCIAL_SUMMARY_CACHE_TTL_SECONDS = 15;
+const PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS = 30;
+
+function buildPersonalFinancialCacheKey(
+  personalId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `personal:financial:${personalId}:${resource}:${query}`
+    : `personal:financial:${personalId}:${resource}`;
+}
+
 export class PersonalFinancialService {
   static async getFinancialSummary(
     personalId: string,
+    options?: { fresh?: boolean },
   ): Promise<FinancialSummary | null> {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "summary");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<FinancialSummary | null>(cacheKey);
+      if (cached) {
+        return cached as FinancialSummary | null;
+      }
+    }
+
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -42,7 +75,7 @@ export class PersonalFinancialService {
     const totalPayments = 0; // TODO: Implement when PersonalPayment model exists
     const avgTicket = 0;
 
-    return {
+    const summary = {
       totalRevenue: totalReceitas,
       totalExpenses: totalDespesas,
       netProfit: totalReceitas - totalDespesas,
@@ -53,9 +86,29 @@ export class PersonalFinancialService {
       churnRate: defaultSummary.churnRate,
       revenueGrowth: defaultSummary.revenueGrowth,
     };
+
+    await setCachedJson(
+      cacheKey,
+      summary,
+      PERSONAL_FINANCIAL_SUMMARY_CACHE_TTL_SECONDS,
+    );
+
+    return summary;
   }
 
-  static async getExpenses(personalId: string): Promise<Expense[]> {
+  static async getExpenses(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ): Promise<Expense[]> {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "expenses");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Expense[]>(cacheKey);
+      if (cached) {
+        return cached as Expense[];
+      }
+    }
+
     const expenses = await db.personalExpense.findMany({
       where: { personalId },
       orderBy: { date: "desc" },
@@ -72,7 +125,7 @@ export class PersonalFinancialService {
       other: "other",
     };
 
-    return expenses.map((expense) => ({
+    const payload = expenses.map((expense) => ({
       id: expense.id,
       type: expenseTypeMap[expense.type] || "other",
       description: expense.description || "",
@@ -80,18 +133,58 @@ export class PersonalFinancialService {
       date: expense.date,
       category: expense.category || "",
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
-  static async getPayments(personalId: string) {
-    return [];
+  static async getPayments(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "payments");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<unknown[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const payload: unknown[] = [];
+    await setCachedJson(
+      cacheKey,
+      payload,
+      PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+    return payload;
   }
 
-  static async getMembershipPlans(personalId: string) {
+  static async getMembershipPlans(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ): Promise<Array<Record<string, unknown>>> {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "plans");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Array<Record<string, unknown>>>(
+        cacheKey,
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const plans = await (db as any).personalMembershipPlan.findMany({
       where: { personalId },
       orderBy: { price: "asc" },
     });
-    return (plans as any[]).map((p: any) => {
+    const payload = (plans as any[]).map((p: any) => {
       let benefits: string[] = [];
       if (typeof p.benefits === "string") {
         try {
@@ -107,15 +200,35 @@ export class PersonalFinancialService {
         benefits,
       };
     });
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
-  static async getBoostCampaigns(personalId: string): Promise<BoostCampaign[]> {
+  static async getBoostCampaigns(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ): Promise<BoostCampaign[]> {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "campaigns");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<BoostCampaign[]>(cacheKey);
+      if (cached) {
+        return cached as BoostCampaign[];
+      }
+    }
+
     const now = new Date();
     const campaigns = await db.boostCampaign.findMany({
       where: { personalId },
       orderBy: { createdAt: "desc" },
     });
-    return campaigns.map((c) => ({
+    const payload = campaigns.map((c) => ({
       id: c.id,
       gymId: c.gymId ?? "",
       title: c.title,
@@ -138,16 +251,36 @@ export class PersonalFinancialService {
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
-  static async getCoupons(personalId: string): Promise<Coupon[]> {
+  static async getCoupons(
+    personalId: string,
+    options?: { fresh?: boolean },
+  ): Promise<Coupon[]> {
+    const cacheKey = buildPersonalFinancialCacheKey(personalId, "coupons");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Coupon[]>(cacheKey);
+      if (cached) {
+        return cached as Coupon[];
+      }
+    }
+
     const now = new Date();
     const coupons = await db.personalCoupon.findMany({
       where: { personalId },
       orderBy: { createdAt: "desc" },
     });
 
-    return coupons.map((c) => ({
+    const payload = coupons.map((c) => ({
       id: c.id,
       code: c.code,
       type: c.discountType as "percentage" | "fixed",
@@ -160,5 +293,13 @@ export class PersonalFinancialService {
         (!c.expiresAt || c.expiresAt >= now) &&
         (c.maxUses === -1 || c.currentUses < c.maxUses),
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      PERSONAL_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 }

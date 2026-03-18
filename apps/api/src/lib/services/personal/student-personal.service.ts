@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import type {
   StudentData,
   UserProfile,
@@ -7,6 +8,27 @@ import type {
   MuscleGroup,
   WorkoutHistory,
 } from "@/lib/types";
+
+const PERSONAL_STUDENTS_CACHE_TTL_SECONDS = 20;
+
+function buildPersonalStudentCacheKey(
+  personalId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `personal:students:${personalId}:${resource}:${query}`
+    : `personal:students:${personalId}:${resource}`;
+}
 
 const EXERCISE_DIFFICULTY = [
   "muito-facil",
@@ -358,8 +380,28 @@ export class StudentPersonalService {
     return assignment;
   }
 
-  static async listStudentsByPersonal(personalId: string, gymId?: string | null) {
-    return db.studentPersonalAssignment.findMany({
+  static async listStudentsByPersonal(
+    personalId: string,
+    gymId?: string | null,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildPersonalStudentCacheKey(
+      personalId,
+      "assignments",
+      { gymId: gymId ?? "all" },
+    );
+
+    if (!options?.fresh) {
+      const cached =
+        await getCachedJson<Awaited<ReturnType<typeof db.studentPersonalAssignment.findMany>>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const assignments = await db.studentPersonalAssignment.findMany({
       where: {
         personalId,
         status: "active",
@@ -379,6 +421,14 @@ export class StudentPersonalService {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    await setCachedJson(
+      cacheKey,
+      assignments,
+      PERSONAL_STUDENTS_CACHE_TTL_SECONDS,
+    );
+
+    return assignments;
   }
 
   /**
@@ -387,8 +437,24 @@ export class StudentPersonalService {
   static async listStudentsAsStudentData(
     personalId: string,
     gymId?: string,
+    options?: { fresh?: boolean },
   ): Promise<StudentData[]> {
-    const assignments = await this.listStudentsByPersonal(personalId, gymId);
+    const cacheKey = buildPersonalStudentCacheKey(
+      personalId,
+      "student-data",
+      { gymId: gymId ?? "all" },
+    );
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<StudentData[]>(cacheKey);
+      if (cached) {
+        return cached as StudentData[];
+      }
+    }
+
+    const assignments = await this.listStudentsByPersonal(personalId, gymId, {
+      fresh: options?.fresh,
+    });
     const result: StudentData[] = [];
 
     const parseJson = <T>(s: string | null | undefined, fallback: T): T => {
@@ -524,6 +590,12 @@ export class StudentPersonalService {
           : undefined,
       });
     }
+
+    await setCachedJson(
+      cacheKey,
+      result,
+      PERSONAL_STUDENTS_CACHE_TTL_SECONDS,
+    );
 
     return result;
   }

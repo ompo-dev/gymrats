@@ -19,7 +19,7 @@ export interface PersonalFinancialPageProps {
 export function PersonalFinancialPage({
   onRefresh,
 }: PersonalFinancialPageProps = {}) {
-  const { subTab, setSubTab, stats, subscription } = usePersonalFinancial();
+  const { stats, subscription } = usePersonalFinancial();
   const [querySubTab, setQuerySubTab] = useQueryState(
     "subTab",
     parseAsString.withDefault("overview"),
@@ -37,7 +37,7 @@ export function PersonalFinancialPage({
 
   const handleTabChange = (tab: string) => {
     const mode = tab as PersonalFinancialViewMode;
-    void Promise.all([setQuerySubTab(mode), setSubTab(mode)]);
+    void setQuerySubTab(mode);
   };
 
   return (

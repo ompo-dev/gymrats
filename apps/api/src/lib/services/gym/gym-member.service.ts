@@ -1,5 +1,27 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
+
+const GYM_RECENT_CHECKINS_CACHE_TTL_SECONDS = 10;
+
+function buildGymMemberCacheKey(
+  gymId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `gym:member:${gymId}:${resource}:${query}`
+    : `gym:member:${gymId}:${resource}`;
+}
 
 export class GymMemberService {
   /**
@@ -313,19 +335,47 @@ export class GymMemberService {
   /**
    * Busca check-ins recentes da academia
    */
-  static async getRecentCheckIns(gymId: string) {
+  static async getRecentCheckIns(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildGymMemberCacheKey(gymId, "recent-checkins");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<
+        Array<{
+          id: string;
+          studentId: string;
+          studentName: string;
+          timestamp: Date | string;
+          checkOut: Date | string | null;
+        }>
+      >(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
     const checkIns = await db.checkIn.findMany({
       where: { gymId },
       orderBy: { timestamp: "desc" },
       take: 20,
     });
 
-    return checkIns.map((ci) => ({
+    const payload = checkIns.map((ci) => ({
       id: ci.id,
       studentId: ci.studentId,
       studentName: ci.studentName,
       timestamp: ci.timestamp,
       checkOut: ci.checkOut,
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_RECENT_CHECKINS_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 }

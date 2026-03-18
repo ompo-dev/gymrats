@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import type {
   Equipment,
   GymProfile,
@@ -26,6 +27,29 @@ interface UpdateOnboardingInput {
   latitude?: number | null;
   longitude?: number | null;
   equipment?: Array<{ name: string; type: string }>;
+}
+
+const GYM_PROFILE_CACHE_TTL_SECONDS = 30;
+const GYM_EQUIPMENT_CACHE_TTL_SECONDS = 30;
+const GYM_STATS_CACHE_TTL_SECONDS = 15;
+
+function buildGymInventoryCacheKey(
+  gymId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `gym:inventory:${gymId}:${resource}:${query}`
+    : `gym:inventory:${gymId}:${resource}`;
 }
 
 function normalizeMaintenanceType(
@@ -99,7 +123,19 @@ export class GymInventoryService {
   /**
    * Busca o perfil da academia e inventário
    */
-  static async getProfile(gymId: string): Promise<GymProfile | null> {
+  static async getProfile(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ): Promise<GymProfile | null> {
+    const cacheKey = buildGymInventoryCacheKey(gymId, "profile");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<GymProfile | null>(cacheKey);
+      if (cached) {
+        return cached as GymProfile | null;
+      }
+    }
+
     const gym = await db.gym.findUnique({
       where: { id: gymId },
       include: {
@@ -130,7 +166,7 @@ export class GymInventoryService {
       }
     }
 
-    return {
+    const profile = {
       id: gym.id,
       name: gym.name,
       address: gym.address,
@@ -160,12 +196,28 @@ export class GymInventoryService {
         ranking: gym.profile.ranking ?? 0,
       },
     } as GymProfile;
+
+    await setCachedJson(cacheKey, profile, GYM_PROFILE_CACHE_TTL_SECONDS);
+
+    return profile;
   }
 
   /**
    * Lista os equipamentos da academia
    */
-  static async getEquipment(gymId: string): Promise<Equipment[]> {
+  static async getEquipment(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ): Promise<Equipment[]> {
+    const cacheKey = buildGymInventoryCacheKey(gymId, "equipment");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Equipment[]>(cacheKey);
+      if (cached) {
+        return cached as Equipment[];
+      }
+    }
+
     const equipment = await db.equipment.findMany({
       where: { gymId },
       orderBy: { name: "asc" },
@@ -177,7 +229,11 @@ export class GymInventoryService {
       },
     });
 
-    return equipment.map(mapEquipment);
+    const payload = equipment.map(mapEquipment);
+
+    await setCachedJson(cacheKey, payload, GYM_EQUIPMENT_CACHE_TTL_SECONDS);
+
+    return payload;
   }
 
   /**
@@ -230,7 +286,19 @@ export class GymInventoryService {
   /**
    * Gera estatísticas gerais da academia
    */
-  static async getStats(gymId: string): Promise<GymStats | null> {
+  static async getStats(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ): Promise<GymStats | null> {
+    const cacheKey = buildGymInventoryCacheKey(gymId, "stats");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<GymStats | null>(cacheKey);
+      if (cached) {
+        return cached as GymStats | null;
+      }
+    }
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -359,7 +427,7 @@ export class GymInventoryService {
       { hourNum: 18, checkins: 0 },
     );
 
-    return {
+    const stats = {
       today: {
         checkins: todayCheckIns,
         activeStudents: activeNow,
@@ -383,6 +451,10 @@ export class GymInventoryService {
         mostUsedEquipment: [],
       },
     };
+
+    await setCachedJson(cacheKey, stats, GYM_STATS_CACHE_TTL_SECONDS);
+
+    return stats;
   }
 
   /**

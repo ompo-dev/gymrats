@@ -6,8 +6,11 @@ import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 export const GET = createSafeHandler(
-  async ({ gymContext }) => {
-    const profile = await GymInventoryService.getProfile(gymContext?.gymId);
+  async ({ gymContext, req }) => {
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const profile = await GymInventoryService.getProfile(gymContext?.gymId, {
+      fresh,
+    });
     return NextResponse.json({
       hasProfile: !!profile,
       profile,
@@ -33,7 +36,7 @@ export const PATCH = createSafeHandler(
     }
 
     await GymDomainService.updateGymProfile(gymId, updateBody);
-    const profile = await GymInventoryService.getProfile(gymId);
+    const profile = await GymInventoryService.getProfile(gymId, { fresh: true });
     return NextResponse.json({ profile });
   },
   {

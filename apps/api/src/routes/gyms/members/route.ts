@@ -9,9 +9,13 @@ import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 // GET — listar membros da academia (com suporte a ?status= e ?search=)
 export const GET = createSafeHandler(
-  async ({ query, gymContext }) => {
+  async ({ query, gymContext, req }) => {
     const { gymId } = gymContext!;
-    const memberships = await GymDomainService.getMembers(gymId, query);
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const memberships = await GymDomainService.getMembers(gymId, {
+      ...(query as Record<string, string | undefined>),
+      fresh,
+    });
     return NextResponse.json({ members: memberships });
   },
   {

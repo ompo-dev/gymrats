@@ -12,9 +12,11 @@ const createWithdrawSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ gymContext }) => {
+  async ({ gymContext, req }) => {
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
     const data = await GymFinancialService.getBalanceAndWithdraws(
       gymContext!.gymId,
+      { fresh },
     );
     return NextResponse.json(data);
   },

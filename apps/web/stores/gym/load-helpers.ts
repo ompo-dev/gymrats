@@ -30,6 +30,14 @@ export const SECTION_ROUTES: Record<GymDataSection, string> = {
   subscription: "/api/gym-subscriptions/current",
 };
 
+function withFreshParam(route: string, force = false) {
+  if (!force) {
+    return route;
+  }
+
+  return `${route}${route.includes("?") ? "&" : "?"}fresh=1`;
+}
+
 const loadingSections = new Set<GymDataSection>();
 const loadingPromises = new Map<
   GymDataSection,
@@ -289,7 +297,7 @@ export async function loadSection(
   // caso o usuário mude de academia enquanto a request está em andamento.
   const expectedGeneration = currentFetchGeneration;
 
-  const route = SECTION_ROUTES[section];
+  const route = withFreshParam(SECTION_ROUTES[section], force);
   const promise = (async () => {
     try {
       const response = await apiClient.get(route, { timeout: 30000 });

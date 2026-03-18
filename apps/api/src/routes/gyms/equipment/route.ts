@@ -15,8 +15,11 @@ const createEquipmentSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ gymContext }) => {
-    const equipment = await GymInventoryService.getEquipment(gymContext?.gymId);
+  async ({ gymContext, req }) => {
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const equipment = await GymInventoryService.getEquipment(gymContext?.gymId, {
+      fresh,
+    });
     return NextResponse.json({ equipment });
   },
   {

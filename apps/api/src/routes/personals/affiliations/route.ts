@@ -11,7 +11,7 @@ const deleteAffiliationSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ personalContext }) => {
+  async ({ personalContext, req }) => {
     if (!featureFlags.personalEnabled) {
       return NextResponse.json(
         { error: "Módulo Personal desabilitado" },
@@ -19,7 +19,10 @@ export const GET = createSafeHandler(
       );
     }
     const personalId = personalContext?.personalId || "";
-    const affiliations = await PersonalGymService.listPersonalGyms(personalId);
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const affiliations = await PersonalGymService.listPersonalGyms(personalId, {
+      fresh,
+    });
     return NextResponse.json({ affiliations });
   },
   { auth: "personal" },

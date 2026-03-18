@@ -1,5 +1,32 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+
+const GYM_DOMAIN_LIST_CACHE_TTL_SECONDS = 20;
+type GymPlanWithParsedBenefits = Awaited<
+  ReturnType<typeof db.membershipPlan.findMany>
+>[number] & {
+  benefits: unknown[];
+};
+
+function buildGymDomainCacheKey(
+  gymId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `gym:domain:${gymId}:${resource}:${query}`
+    : `gym:domain:${gymId}:${resource}`;
+}
 
 /**
  * Service to centralize gym domain operations and stat updates
@@ -105,15 +132,29 @@ export class GymDomainService {
    */
   static async getMembers(
     gymId: string,
-    filters: { status?: string; search?: string },
+    filters: { status?: string; search?: string; fresh?: boolean },
   ) {
     const { status, search } = filters;
+    const cacheKey = buildGymDomainCacheKey(gymId, "members", {
+      status,
+      search,
+    });
+
+    if (!filters.fresh) {
+      const cached =
+        await getCachedJson<Awaited<ReturnType<typeof db.gymMembership.findMany>>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
     // Listagem padrão: só alunos vinculados (active/pending). Cancelados/suspended não aparecem.
     const statusFilter =
       status && status !== "all"
         ? { status }
         : { status: { in: ["active", "pending"] } };
-    return db.gymMembership.findMany({
+    const memberships = await db.gymMembership.findMany({
       where: {
         gymId,
         ...statusFilter,
@@ -134,6 +175,10 @@ export class GymDomainService {
       orderBy: { createdAt: "desc" },
       ...(search ? { take: 10 } : {}),
     });
+
+    await setCachedJson(cacheKey, memberships, GYM_DOMAIN_LIST_CACHE_TTL_SECONDS);
+
+    return memberships;
   }
 
   /**
@@ -233,9 +278,27 @@ export class GymDomainService {
       endDate?: string;
       type?: string;
       limit?: number;
+      fresh?: boolean;
     },
   ) {
     const { startDate, endDate, type, limit } = filters;
+    const cacheKey = buildGymDomainCacheKey(gymId, "expenses", {
+      startDate,
+      endDate,
+      type,
+      limit,
+    });
+
+    if (!filters.fresh) {
+      const cached =
+        await getCachedJson<Awaited<ReturnType<typeof db.expense.findMany>>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const whereClause: Prisma.ExpenseWhereInput = { gymId };
 
     if (type && type !== "all") {
@@ -249,11 +312,15 @@ export class GymDomainService {
       if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
-    return db.expense.findMany({
+    const expenses = await db.expense.findMany({
       where: whereClause,
       orderBy: { date: "desc" },
       take: limit,
     });
+
+    await setCachedJson(cacheKey, expenses, GYM_DOMAIN_LIST_CACHE_TTL_SECONDS);
+
+    return expenses;
   }
 
   /**
@@ -292,9 +359,28 @@ export class GymDomainService {
       startDate?: string;
       endDate?: string;
       limit?: number;
+      fresh?: boolean;
     },
   ) {
     const { status, studentId, startDate, endDate, limit } = filters;
+    const cacheKey = buildGymDomainCacheKey(gymId, "payments", {
+      status,
+      studentId,
+      startDate,
+      endDate,
+      limit,
+    });
+
+    if (!filters.fresh) {
+      const cached =
+        await getCachedJson<Awaited<ReturnType<typeof db.payment.findMany>>>(
+          cacheKey,
+        );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const whereClause: Prisma.PaymentWhereInput = { gymId };
 
     if (status && status !== "all") {
@@ -312,7 +398,7 @@ export class GymDomainService {
       if (endDate) (whereClause.date as { lte?: Date }).lte = new Date(endDate);
     }
 
-    return db.payment.findMany({
+    const payments = await db.payment.findMany({
       where: whereClause,
       orderBy: { date: "desc" },
       take: limit,
@@ -320,6 +406,10 @@ export class GymDomainService {
         plan: { select: { name: true } },
       },
     });
+
+    await setCachedJson(cacheKey, payments, GYM_DOMAIN_LIST_CACHE_TTL_SECONDS);
+
+    return payments;
   }
 
   /**
@@ -356,7 +446,23 @@ export class GymDomainService {
   /**
    * Lists gym membership plans
    */
-  static async getPlans(gymId: string, filters: { includeInactive?: boolean }) {
+  static async getPlans(
+    gymId: string,
+    filters: { includeInactive?: boolean; fresh?: boolean },
+  ): Promise<GymPlanWithParsedBenefits[]> {
+    const cacheKey = buildGymDomainCacheKey(gymId, "plans", {
+      includeInactive: filters.includeInactive ?? false,
+    });
+
+    if (!filters.fresh) {
+      const cached = await getCachedJson<GymPlanWithParsedBenefits[]>(
+        cacheKey,
+      );
+      if (cached) {
+        return cached;
+      }
+    }
+
     const plans = await db.membershipPlan.findMany({
       where: {
         gymId,
@@ -365,7 +471,7 @@ export class GymDomainService {
       orderBy: { price: "asc" },
     });
 
-    return plans.map((p) => ({
+    const payload: GymPlanWithParsedBenefits[] = plans.map((p) => ({
       ...p,
       benefits: p.benefits
         ? (() => {
@@ -377,6 +483,10 @@ export class GymDomainService {
           })()
         : [],
     }));
+
+    await setCachedJson(cacheKey, payload, GYM_DOMAIN_LIST_CACHE_TTL_SECONDS);
+
+    return payload;
   }
 
   /**

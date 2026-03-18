@@ -4,6 +4,7 @@ import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { PIX_EXPIRES_IN_SECONDS } from "@/lib/utils/subscription";
+import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 
 const createBoostCampaignSchema = z.object({
   title: z.string().min(1, "Titulo e obrigatorio"),
@@ -23,25 +24,20 @@ const createBoostCampaignSchema = z.object({
 });
 
 export const GET = createSafeHandler(
-  async ({ personalContext }) => {
+  async ({ personalContext, req }) => {
     const personalId = personalContext!.personalId;
-    const now = new Date();
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const campaigns = await PersonalFinancialService.getBoostCampaigns(
+      personalId,
+      { fresh },
+    );
 
-    await db.boostCampaign.updateMany({
-      where: {
+    return NextResponse.json({
+      campaigns: campaigns.map((campaign) => ({
+        ...campaign,
         personalId,
-        status: "active",
-        endsAt: { lte: now },
-      },
-      data: { status: "expired" },
+      })),
     });
-
-    const campaigns = await db.boostCampaign.findMany({
-      where: { personalId },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json({ campaigns });
   },
   { auth: "personal" },
 );

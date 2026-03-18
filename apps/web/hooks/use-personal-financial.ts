@@ -1,11 +1,8 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { parseAsString, useQueryState } from "nuqs";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
-
-export type PersonalFinancialSubTab = "overview" | "subscription";
 
 export function usePersonalFinancial() {
   const { subscription, students, affiliations, actions, loaders } =
@@ -17,10 +14,6 @@ export function usePersonalFinancial() {
       "loaders",
     );
   const { toast } = useToast();
-  const [subTab, setSubTab] = useQueryState(
-    "subTab",
-    parseAsString.withDefault("overview"),
-  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
   const [pixModal, setPixModal] = useState<{
@@ -114,14 +107,12 @@ export function usePersonalFinancial() {
 
   const handlePixConfirmed = useCallback(() => {
     setPixModal(null);
-    loaders.loadSection("subscription");
+    void loaders.loadSection("subscription", true);
   }, [loaders]);
 
   return {
     subscription,
     stats,
-    subTab,
-    setSubTab,
     isSubmitting,
     isCanceling,
     pixModal,

@@ -8,9 +8,13 @@ import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 // GET — listar despesas
 export const GET = createSafeHandler(
-  async ({ query, gymContext }) => {
+  async ({ query, gymContext, req }) => {
     const { gymId } = gymContext!;
-    const expenses = await GymDomainService.getExpenses(gymId, query);
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const expenses = await GymDomainService.getExpenses(gymId, {
+      ...(query as Record<string, string | undefined>),
+      fresh,
+    });
     return NextResponse.json({ expenses });
   },
   {

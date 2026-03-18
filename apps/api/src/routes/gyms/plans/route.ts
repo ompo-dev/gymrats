@@ -8,9 +8,13 @@ import { GymDomainService } from "@/lib/services/gym-domain.service";
 
 // GET — listar planos da academia
 export const GET = createSafeHandler(
-  async ({ query, gymContext }) => {
+  async ({ query, gymContext, req }) => {
     const { gymId } = gymContext!;
-    const plans = await GymDomainService.getPlans(gymId, query);
+    const fresh = new URL(req.url).searchParams.get("fresh") === "1";
+    const plans = await GymDomainService.getPlans(gymId, {
+      ...(query as Record<string, string | undefined>),
+      fresh,
+    });
     return NextResponse.json({ plans });
   },
   {

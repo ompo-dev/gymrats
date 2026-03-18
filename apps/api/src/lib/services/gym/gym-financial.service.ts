@@ -1,8 +1,31 @@
 import { db } from "@/lib/db";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 
 /** Taxa AbacatePay por transação (recebimento de pagamento e saque). */
 const ABACATEPAY_FEE_REAIS = 0.8;
+const GYM_FINANCIAL_SUMMARY_CACHE_TTL_SECONDS = 15;
+const GYM_FINANCIAL_LIST_CACHE_TTL_SECONDS = 30;
+const GYM_WITHDRAWS_CACHE_TTL_SECONDS = 15;
+
+function buildGymFinancialCacheKey(
+  gymId: string,
+  resource: string,
+  params?: Record<string, string | number | boolean | null | undefined>,
+) {
+  const query = Object.entries(params ?? {})
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`,
+    )
+    .join("&");
+
+  return query.length > 0
+    ? `gym:financial:${gymId}:${resource}:${query}`
+    : `gym:financial:${gymId}:${resource}`;
+}
 
 export interface GymBalanceWithdraws {
   balanceReais: number;
@@ -25,7 +48,17 @@ export class GymFinancialService {
    */
   static async getFinancialSummary(
     gymId: string,
+    options?: { fresh?: boolean },
   ): Promise<FinancialSummary | null> {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "summary");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<FinancialSummary | null>(cacheKey);
+      if (cached) {
+        return cached as FinancialSummary | null;
+      }
+    }
+
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -59,7 +92,7 @@ export class GymFinancialService {
     const pending = pendingPayments._sum.amount ?? 0;
     const overdue = overduePayments._sum.amount ?? 0;
 
-    return {
+    const summary = {
       totalRevenue,
       totalExpenses,
       netProfit,
@@ -70,12 +103,32 @@ export class GymFinancialService {
       churnRate: 0,
       revenueGrowth: 0,
     };
+
+    await setCachedJson(
+      cacheKey,
+      summary,
+      GYM_FINANCIAL_SUMMARY_CACHE_TTL_SECONDS,
+    );
+
+    return summary;
   }
 
   /**
    * Lista as despesas da academia
    */
-  static async getExpenses(gymId: string): Promise<Expense[]> {
+  static async getExpenses(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ): Promise<Expense[]> {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "expenses");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Expense[]>(cacheKey);
+      if (cached) {
+        return cached as Expense[];
+      }
+    }
+
     const expenses = await db.expense.findMany({
       where: { gymId },
       orderBy: { date: "desc" },
@@ -92,7 +145,7 @@ export class GymFinancialService {
       other: "other",
     };
 
-    return expenses.map((expense) => ({
+    const payload = expenses.map((expense) => ({
       id: expense.id,
       type: expenseTypeMap[expense.type] || "other",
       description: expense.description || "",
@@ -100,6 +153,14 @@ export class GymFinancialService {
       date: expense.date,
       category: expense.category || "",
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
   /**
@@ -108,7 +169,19 @@ export class GymFinancialService {
   static async getPayments(
     gymId: string,
     studentId?: string,
+    options?: { fresh?: boolean },
   ): Promise<Payment[]> {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "payments", {
+      studentId,
+    });
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<Payment[]>(cacheKey);
+      if (cached) {
+        return cached as Payment[];
+      }
+    }
+
     const payments = await db.payment.findMany({
       where: {
         gymId,
@@ -120,7 +193,7 @@ export class GymFinancialService {
       },
     });
 
-    return payments.map((payment) => ({
+    const payload = payments.map((payment) => ({
       id: payment.id,
       studentId: payment.studentId,
       studentName: payment.studentName,
@@ -142,6 +215,142 @@ export class GymFinancialService {
       withdrawnAt: payment.withdrawnAt ?? undefined,
       withdrawId: payment.withdrawId ?? undefined,
     }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
+  }
+
+  static async getCoupons(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "coupons");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<
+        Array<{
+          id: string;
+          code: string;
+          type: "percentage" | "fixed";
+          value: number;
+          maxUses: number;
+          currentUses: number;
+          expiryDate: Date | string;
+          isActive: boolean;
+        }>
+      >(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const now = new Date();
+    const coupons = await db.gymCoupon.findMany({
+      where: { gymId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const payload = coupons.map((coupon) => ({
+      id: coupon.id,
+      code: coupon.code,
+      type: coupon.discountType as "percentage" | "fixed",
+      value: coupon.discountValue,
+      maxUses: coupon.maxUses === -1 ? 999999 : coupon.maxUses,
+      currentUses: coupon.currentUses,
+      expiryDate: coupon.expiresAt ?? new Date(9999, 11, 31),
+      isActive:
+        coupon.isActive &&
+        (!coupon.expiresAt || coupon.expiresAt >= now) &&
+        (coupon.maxUses === -1 || coupon.currentUses < coupon.maxUses),
+    }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
+  }
+
+  static async getBoostCampaigns(
+    gymId: string,
+    options?: { fresh?: boolean },
+  ) {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "campaigns");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<
+        Array<{
+          id: string;
+          gymId: string | null;
+          title: string;
+          description: string;
+          primaryColor: string;
+          durationHours: number;
+          amountCents: number;
+          status: string;
+          clicks: number;
+          impressions: number;
+          radiusKm: number | null;
+          linkedCouponId: string | null;
+          linkedPlanId: string | null;
+          abacatePayBillingId: string | null;
+          startsAt: Date | string | null;
+          endsAt: Date | string | null;
+          createdAt: Date | string;
+          updatedAt: Date | string;
+        }>
+      >(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const now = new Date();
+    const campaigns = await db.boostCampaign.findMany({
+      where: { gymId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const payload = campaigns.map((campaign) => ({
+      id: campaign.id,
+      gymId: campaign.gymId,
+      title: campaign.title,
+      description: campaign.description,
+      primaryColor: campaign.primaryColor,
+      durationHours: campaign.durationHours,
+      amountCents: campaign.amountCents,
+      status:
+        campaign.status === "active" &&
+        campaign.endsAt &&
+        campaign.endsAt <= now
+          ? "expired"
+          : campaign.status,
+      clicks: campaign.clicks,
+      impressions: campaign.impressions,
+      radiusKm: campaign.radiusKm,
+      linkedCouponId: campaign.linkedCouponId,
+      linkedPlanId: campaign.linkedPlanId,
+      abacatePayBillingId: campaign.abacatePayBillingId,
+      startsAt: campaign.startsAt,
+      endsAt: campaign.endsAt,
+      createdAt: campaign.createdAt,
+      updatedAt: campaign.updatedAt,
+    }));
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_FINANCIAL_LIST_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
   /**
@@ -150,7 +359,17 @@ export class GymFinancialService {
    */
   static async getBalanceAndWithdraws(
     gymId: string,
+    options?: { fresh?: boolean },
   ): Promise<GymBalanceWithdraws> {
+    const cacheKey = buildGymFinancialCacheKey(gymId, "withdraws");
+
+    if (!options?.fresh) {
+      const cached = await getCachedJson<GymBalanceWithdraws>(cacheKey);
+      if (cached) {
+        return cached as GymBalanceWithdraws;
+      }
+    }
+
     const [paidAgg, withdraws] = await Promise.all([
       db.payment.aggregate({
         where: { gymId, status: "paid" },
@@ -179,7 +398,7 @@ export class GymFinancialService {
     const balanceReais = Math.max(0, totalReceived - totalWithdrawn);
     const balanceCents = Math.floor(balanceReais * 100);
 
-    return {
+    const payload = {
       balanceReais,
       balanceCents,
       withdraws: withdraws.map((w) => ({
@@ -191,8 +410,16 @@ export class GymFinancialService {
         status: w.status,
         createdAt: w.createdAt,
         completedAt: w.completedAt ?? null,
-      })),
+        })),
     };
+
+    await setCachedJson(
+      cacheKey,
+      payload,
+      GYM_WITHDRAWS_CACHE_TTL_SECONDS,
+    );
+
+    return payload;
   }
 
   /**
