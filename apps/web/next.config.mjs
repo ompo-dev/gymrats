@@ -8,6 +8,30 @@ function toOrigin(value) {
   }
 }
 
+function normalizeUrl(value) {
+  return value?.replace(/\/$/, "") || null;
+}
+
+function resolveProxyTarget() {
+  const explicitProxyTarget = normalizeUrl(process.env.API_PROXY_TARGET);
+
+  if (explicitProxyTarget) {
+    return explicitProxyTarget;
+  }
+
+  const publicApiUrl = normalizeUrl(process.env.NEXT_PUBLIC_API_URL);
+  const publicApiOrigin = toOrigin(publicApiUrl);
+  const appOrigin = toOrigin(
+    process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL,
+  );
+
+  if (publicApiUrl && publicApiOrigin && appOrigin && publicApiOrigin !== appOrigin) {
+    return publicApiUrl;
+  }
+
+  return null;
+}
+
 const cspConnectSrc = [
   "'self'",
   "wss:",
@@ -71,7 +95,7 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    const proxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, "");
+    const proxyTarget = resolveProxyTarget();
 
     if (!proxyTarget) {
       return [];

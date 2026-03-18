@@ -55,23 +55,51 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const runtimeApiBaseUrl = process.env.API_PROXY_TARGET
+  const normalizeUrl = (value?: string) => value?.replace(/\/$/, "") || "";
+  const getOrigin = (value?: string) => {
+    if (!value) return "";
+
+    try {
+      return new URL(value).origin;
+    } catch {
+      return "";
+    }
+  };
+
+  const explicitProxyTarget = normalizeUrl(process.env.API_PROXY_TARGET);
+  const publicApiUrl = normalizeUrl(process.env.NEXT_PUBLIC_API_URL);
+  const authUrl = normalizeUrl(process.env.BETTER_AUTH_URL);
+  const appOrigin = getOrigin(process.env.NEXT_PUBLIC_APP_URL || authUrl);
+  const publicApiOrigin = getOrigin(publicApiUrl);
+  const shouldUseSameOriginProxy = Boolean(
+    explicitProxyTarget ||
+      (publicApiUrl &&
+        appOrigin &&
+        publicApiOrigin &&
+        publicApiOrigin !== appOrigin),
+  );
+  const runtimeApiBaseUrl = shouldUseSameOriginProxy
     ? "/api"
-    : (
-        process.env.NEXT_PUBLIC_API_URL ||
-        process.env.BETTER_AUTH_URL ||
-        ""
-      ).replace(/\/$/, "");
+    : publicApiUrl || authUrl;
+  const runtimeApiBaseSource = explicitProxyTarget
+    ? "api_proxy_target"
+    : shouldUseSameOriginProxy
+      ? "next_public_api_url_cross_origin"
+      : publicApiUrl
+        ? "next_public_api_url"
+        : authUrl
+          ? "better_auth_url"
+          : "none";
 
   return (
     <html lang="pt-BR" className={nunito.variable}>
       <head>
-        {runtimeApiBaseUrl ? (
-          <meta name="gymrats-api-base-url" content={runtimeApiBaseUrl} />
-        ) : null}
+        {runtimeApiBaseUrl ? <meta name="gymrats-api-base-url" content={runtimeApiBaseUrl} /> : null}
+        <meta name="gymrats-api-base-source" content={runtimeApiBaseSource} />
       </head>
       <body
         data-api-base-url={runtimeApiBaseUrl || undefined}
+        data-api-base-source={runtimeApiBaseSource}
         className="font-sans antialiased bg-duo-bg text-duo-fg"
         suppressHydrationWarning
       >
