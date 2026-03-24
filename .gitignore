@@ -25,6 +25,10 @@ db.json
 apps/*/dist/
 apps/*/tsconfig.tsbuildinfo
 .codex-build/
+apps/mobile/.expo/
+apps/mobile/dist-mobile/
+apps/mobile/android/
+apps/mobile/ios/
 
 # Logs
 logs

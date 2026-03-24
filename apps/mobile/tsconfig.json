@@ -1,0 +1,23 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": [
+      "ES2022"
+    ],
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "types": [
+      "expo-router"
+    ],
+    "skipLibCheck": true
+  },
+  "include": [
+    "app",
+    "src",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
+  ]
+}
