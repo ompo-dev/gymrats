@@ -2,7 +2,8 @@ import type { ExpoConfig } from "expo/config";
 import path from "path";
 
 const config: ExpoConfig = {
-  name: "GymRats Mobile",
+  name: "GymRats",
+  icon: "./assets/icon.png",
   slug: "gymrats-mobile",
   version: "1.0.0",
   scheme: "gymrats-mobile",
@@ -34,6 +35,7 @@ const config: ExpoConfig = {
   android: {
     package: "com.gymrats.mobile",
     adaptiveIcon: {
+      foregroundImage: "./assets/icon.png",
       backgroundColor: "#f7f7f0"
     },
     permissions: [
