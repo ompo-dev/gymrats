@@ -1,3 +1,7 @@
+import {
+  extractBearerToken,
+  extractCookieValue,
+} from "@gymrats/domain/auth-tokens";
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import { getSessionUseCase } from "@/lib/use-cases/auth";
@@ -38,30 +42,6 @@ const SESSION_USER_INCLUDE = {
 } as const;
 
 type ResolvedSessionResult = Awaited<ReturnType<typeof getSessionUseCase>>;
-
-function extractCookieValue(headers: Headers, name: string) {
-  const cookieHeader = headers.get("cookie");
-  if (!cookieHeader) {
-    return null;
-  }
-
-  for (const chunk of cookieHeader.split(";")) {
-    const [rawName, ...rest] = chunk.trim().split("=");
-    if (rawName === name) {
-      const value = rest.join("=");
-      return value ? decodeURIComponent(value) : null;
-    }
-  }
-
-  return null;
-}
-
-function extractBearerToken(headers: Headers) {
-  const authHeaderValue = headers.get("authorization");
-  return authHeaderValue
-    ? authHeaderValue.replace(/^Bearer\s+/i, "").trim()
-    : null;
-}
 
 function createResolution(headers: Headers): Promise<ResolvedSessionResult> {
   return getSessionUseCase(

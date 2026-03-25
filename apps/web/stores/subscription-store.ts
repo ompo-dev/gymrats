@@ -4,6 +4,7 @@ import {
   GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
 import { apiClient } from "@/lib/api/client";
+import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import type { StudentData } from "@/lib/types/student-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
@@ -609,10 +610,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   resetForGymChange: () =>
-    set({
-      gymSubscription: null,
-      subscription: null,
-      studentMeta: createMeta(),
-      gymMeta: createMeta(),
-    }),
+    (() => {
+      clearBootstrapHydrationState("gym");
+      set({
+        gymSubscription: null,
+        subscription: null,
+        studentMeta: createMeta(),
+        gymMeta: createMeta(),
+      });
+    })(),
 }));

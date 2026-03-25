@@ -1,10 +1,11 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
+import {
+  useDomainBootstrap,
+  useDomainBootstrapBridge,
+} from "@/hooks/shared/use-domain-bootstrap";
 import { usePersonal } from "@/hooks/use-personal";
 import { getPersonalBootstrapRequest } from "@/lib/api/bootstrap";
-import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
 import type {
   PersonalDataSection,
@@ -59,41 +60,13 @@ export function usePersonalBootstrap(
     enabled?: boolean;
   },
 ) {
-  const query = useQuery({
+  return useDomainBootstrap({
+    domain: "personal",
+    sections,
+    enabled: options?.enabled,
     queryKey: queryKeys.personalBootstrap(sections),
     queryFn: () => getPersonalBootstrapRequest(sections),
-    enabled: options?.enabled ?? true,
-    retry: false,
   });
-  const lastTrackedRequestId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (
-      !query.data?.meta.requestId ||
-      query.data.meta.requestId === lastTrackedRequestId.current
-    ) {
-      return;
-    }
-
-    lastTrackedRequestId.current = query.data.meta.requestId;
-    const payloadBytes = new Blob([JSON.stringify(query.data.data)]).size;
-
-    void recordClientTelemetryEvent({
-      eventType: "personal.bootstrap_loaded",
-      domain: "personal",
-      journey: "personal",
-      metricName: "bootstrapBytes",
-      metricValue: payloadBytes,
-      payload: {
-        requestId: query.data.meta.requestId,
-        generatedAt: query.data.meta.generatedAt,
-        sections: sections ?? ["all"],
-        sectionTimings: query.data.meta.sectionTimings,
-      },
-    });
-  }, [query.data, sections]);
-
-  return query;
 }
 
 export function usePersonalBootstrapBridge(
@@ -102,25 +75,17 @@ export function usePersonalBootstrapBridge(
     enabled?: boolean;
   },
 ) {
-  const query = usePersonalBootstrap(sections, options);
   const { hydrateInitial } = usePersonal("actions");
-  const normalizedData = useMemo(
-    () =>
-      query.data?.data
-        ? (normalizeGymDates(query.data.data) as Partial<PersonalUnifiedData>)
-        : null,
-    [query.data?.data],
-  );
-
-  useEffect(() => {
-    if (!normalizedData) {
-      return;
-    }
-
-    hydrateInitial(normalizedData);
-  }, [hydrateInitial, normalizedData]);
-
-  return query;
+  return useDomainBootstrapBridge({
+    domain: "personal",
+    sections,
+    enabled: options?.enabled,
+    queryKey: queryKeys.personalBootstrap(sections),
+    queryFn: () => getPersonalBootstrapRequest(sections),
+    normalizeData: (data) =>
+      normalizeGymDates(data) as Partial<PersonalUnifiedData>,
+    hydrate: hydrateInitial,
+  });
 }
 
 export function usePersonalDashboardBootstrapBridge(options?: {

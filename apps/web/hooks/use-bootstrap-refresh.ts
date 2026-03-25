@@ -2,6 +2,7 @@
 
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 
 export type BootstrapDomain = "student" | "gym" | "personal";
 
@@ -14,11 +15,12 @@ export async function invalidateQueryDomains(
   domains: readonly string[],
 ) {
   await Promise.all(
-    domains.map((domain) =>
-      queryClient.invalidateQueries({
+    domains.map(async (domain) => {
+      clearBootstrapHydrationState(domain as BootstrapDomain);
+      await queryClient.invalidateQueries({
         predicate: (query) => matchesDomain(query.queryKey, domain),
-      }),
-    ),
+      });
+    }),
   );
 }
 
@@ -26,6 +28,7 @@ export async function invalidateBootstrapQueries(
   queryClient: QueryClient,
   domain: BootstrapDomain,
 ) {
+  clearBootstrapHydrationState(domain);
   await queryClient.invalidateQueries({
     predicate: (query) =>
       matchesDomain(query.queryKey, domain) &&

@@ -324,20 +324,11 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         try {
           // FASE 1: Carregar seções prioritárias (em paralelo)
           // Atualiza store incrementalmente conforme cada uma carrega
-          console.log(
-            `[loadAllPrioritized] Carregando prioridades: ${priorities.join(
-              ", ",
-            )}`,
-          );
-
           await loadSectionsIncremental(set, priorities);
 
           // Se onlyPriorities for true (padrão), só carrega as prioridades
           // Isso evita recarregar tudo quando navegar entre páginas
           if (onlyPriorities) {
-            console.log(
-              "[loadAllPrioritized] Apenas prioridades solicitadas, finalizando.",
-            );
             return;
           }
 
@@ -370,15 +361,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           );
 
           if (remainingSections.length > 0) {
-            console.log(
-              `[loadAllPrioritized] FASE 2: Carregando resto em background: ${remainingSections.join(
-                ", ",
-              )}`,
-            );
-
             // Carregar em background sem bloquear (não aguardar)
             loadSectionsIncremental(set, remainingSections).catch((error) => {
-              console.warn(
+              console.error(
                 "[loadAllPrioritized] Erro ao carregar seções restantes:",
                 error,
               );
@@ -1220,12 +1205,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           };
         });
 
-        if (!found) {
-          console.warn(
-            "[addWorkoutExercise] Workout nao encontrado no cache local, seguindo com refresh do backend.",
-            { workoutId },
-          );
-        }
+        void found;
 
         try {
           const response = await apiClient.post("/api/workouts/exercises", {
@@ -1704,7 +1684,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         const state = get();
         if (state.data.activeWorkout?.workoutId === workoutId) {
           // TODO: Salvar no backend
-          console.log("Salvar progresso do workout:", workoutId);
         }
       },
 

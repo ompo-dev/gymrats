@@ -1,21 +1,43 @@
 import { rateLimit } from "elysia-rate-limit";
 
-// Rate Limit global de 100 requisições por minuto por IP
-// Baseado na arquitetura Elysia In-Memory conforme aprovação do usuário
+function parsePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const rateLimitWindowMs = parsePositiveInt(
+  process.env.API_RATE_LIMIT_WINDOW_MS,
+  60_000,
+);
+const rateLimitMax = parsePositiveInt(process.env.API_RATE_LIMIT_MAX, 300);
+
+// Rate limit global por IP.
+// Continua in-memory, mas agora com configuração explícita e comentário coerente.
 export const rateLimitPlugin = rateLimit({
-  duration: 60000, // 60 segundos
-  max: 300, // limite de chamadas por duration
+  duration: rateLimitWindowMs,
+  max: rateLimitMax,
   generator: (req: Request) => {
-    // Tenta pegar o IP real caso esteja atrás de proxy/Vercel
-    const forwardedFor = req.headers.get("x-forwarded-for");
-    if (forwardedFor) {
-      return forwardedFor.split(",")[0].trim();
+    for (const headerName of [
+      "x-forwarded-for",
+      "cf-connecting-ip",
+      "x-real-ip",
+      "x-client-ip",
+    ]) {
+      const headerValue = req.headers.get(headerName);
+      if (!headerValue) {
+        continue;
+      }
+
+      const candidate =
+        headerName === "x-forwarded-for"
+          ? headerValue.split(",")[0]?.trim()
+          : headerValue.trim();
+
+      if (candidate) {
+        return candidate;
+      }
     }
-    const realIp = req.headers.get("x-real-ip");
-    if (realIp) {
-      return realIp;
-    }
-    // Fallback caso não venha IP no header (loopback)
+
     return "127.0.0.1";
   },
   skip: (req: Request) => {

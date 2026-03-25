@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { persistTelemetryEvent } from "@/lib/observability";
+import {
+  persistTelemetryEvents,
+  type TelemetryEventInput,
+} from "@/lib/observability";
 import { NextResponse } from "@/runtime/next-server";
 
 const telemetryEventSchema = z.object({
@@ -15,24 +18,37 @@ const telemetryEventSchema = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 
+const telemetryEventBatchSchema = z.union([
+  telemetryEventSchema,
+  z.array(telemetryEventSchema).min(1).max(50),
+]);
+
 export const POST = createSafeHandler(
   async ({ body }) => {
-    await persistTelemetryEvent({
-      eventType: body.eventType,
-      domain: body.domain,
-      journey: body.journey,
-      metricName: body.metricName,
-      metricValue: body.metricValue,
-      status: body.status,
-      releaseId: body.releaseId,
-      featureFlagSet: body.featureFlagSet,
-      payload: body.payload,
-    });
+    const events = (
+      Array.isArray(body) ? body : [body]
+    ) as TelemetryEventInput[];
+    await persistTelemetryEvents(
+      events.map((event) => ({
+        eventType: event.eventType,
+        domain: event.domain,
+        journey: event.journey,
+        metricName: event.metricName,
+        metricValue: event.metricValue,
+        status: event.status,
+        releaseId: event.releaseId,
+        featureFlagSet: event.featureFlagSet,
+        payload: event.payload,
+      })),
+    );
 
-    return NextResponse.json({ ok: true }, { status: 202 });
+    return NextResponse.json(
+      { ok: true, accepted: events.length },
+      { status: 202 },
+    );
   },
   {
     auth: "none",
-    schema: { body: telemetryEventSchema },
+    schema: { body: telemetryEventBatchSchema },
   },
 );

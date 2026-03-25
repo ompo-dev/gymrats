@@ -1,5 +1,7 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { log } from "./logger";
+import type { TelemetryEventInput } from "./telemetry-types";
 
 type JsonValue =
   | string
@@ -42,48 +44,51 @@ function sanitizePayload(value: unknown): JsonValue {
   return String(value);
 }
 
-export async function persistTelemetryEvent(input: {
-  eventType: string;
-  domain: string;
-  actorId?: string | null;
-  journey?: string | null;
-  requestId?: string | null;
-  releaseId?: string | null;
-  featureFlagSet?: string[];
-  metricName?: string | null;
-  metricValue?: number | null;
-  status?: string | null;
-  payload?: unknown;
-  occurredAt?: Date;
-}) {
+function toTelemetryEventCreateManyInput(
+  input: TelemetryEventInput,
+): Prisma.TelemetryEventCreateManyInput {
+  const payload = sanitizePayload(input.payload ?? {});
+
+  return {
+    eventType: input.eventType,
+    domain: input.domain,
+    actorId: input.actorId ?? null,
+    journey: input.journey ?? null,
+    requestId: input.requestId ?? null,
+    releaseId: input.releaseId ?? null,
+    featureFlagSet:
+      input.featureFlagSet && input.featureFlagSet.length > 0
+        ? JSON.stringify(input.featureFlagSet)
+        : null,
+    metricName: input.metricName ?? null,
+    metricValue: input.metricValue ?? null,
+    status: input.status ?? null,
+    payload: (payload === null ? {} : payload) as Prisma.InputJsonValue,
+    occurredAt: input.occurredAt ?? new Date(),
+  };
+}
+
+export async function persistTelemetryEvents(inputs: TelemetryEventInput[]) {
+  if (inputs.length === 0) {
+    return;
+  }
+
   try {
-    const payload = sanitizePayload(input.payload ?? {});
-    await db.telemetryEvent.create({
-      data: {
-        eventType: input.eventType,
-        domain: input.domain,
-        actorId: input.actorId ?? null,
-        journey: input.journey ?? null,
-        requestId: input.requestId ?? null,
-        releaseId: input.releaseId ?? null,
-        featureFlagSet:
-          input.featureFlagSet && input.featureFlagSet.length > 0
-            ? JSON.stringify(input.featureFlagSet)
-            : null,
-        metricName: input.metricName ?? null,
-        metricValue: input.metricValue ?? null,
-        status: input.status ?? null,
-        payload: payload === null ? {} : payload,
-        occurredAt: input.occurredAt ?? new Date(),
-      },
+    await db.telemetryEvent.createMany({
+      data: inputs.map(toTelemetryEventCreateManyInput),
     });
   } catch (error) {
     log.debug("Telemetry persistence skipped", {
       error: error instanceof Error ? error.message : "unknown",
-      eventType: input.eventType,
-      domain: input.domain,
+      eventType: inputs[0]?.eventType,
+      domain: inputs[0]?.domain,
+      batchSize: inputs.length,
     });
   }
+}
+
+export async function persistTelemetryEvent(input: TelemetryEventInput) {
+  await persistTelemetryEvents([input]);
 }
 
 export async function persistBusinessEvent(input: {

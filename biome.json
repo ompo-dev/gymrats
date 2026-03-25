@@ -58,9 +58,7 @@
       }
     },
     {
-      "includes": [
-        "apps/web/lib/api/generated/**/*.ts"
-      ],
+      "includes": ["apps/web/lib/api/generated/**/*.ts"],
       "linter": {
         "rules": {
           "suspicious": {

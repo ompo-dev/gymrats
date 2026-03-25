@@ -1,11 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
+import {
+  useBootstrapHydrationEffect,
+  useBootstrapTelemetry,
+} from "@/hooks/use-bootstrap-lifecycle";
 import { useStudent } from "@/hooks/use-student";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
-import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
 import type {
   PaymentMethod,
@@ -222,7 +225,7 @@ function normalizePayments(
   }));
 }
 
-export function selectStudentFinancialSnapshot(data?: Partial<StudentData>) {
+function selectStudentFinancialSnapshot(data?: Partial<StudentData>) {
   return {
     subscription:
       (data?.subscription as SubscriptionData | null | undefined) ?? null,
@@ -271,6 +274,44 @@ function resolveStudentFinancialSnapshot(
   };
 }
 
+function useHydrateStudentSnapshot(
+  sections: readonly StudentDataSection[] | undefined,
+  snapshot: Partial<StudentData> | null | undefined,
+  meta:
+    | {
+        requestId?: string | null;
+        generatedAt?: string | null;
+      }
+    | null
+    | undefined,
+  options?: {
+    initialize?: boolean;
+  },
+) {
+  const setState =
+    useStudentUnifiedStore.setState as unknown as StudentStoreSetter;
+  const handleHydrate = useCallback(() => {
+    if (!snapshot) {
+      return;
+    }
+
+    if (options?.initialize) {
+      hydrateStudentBootstrapData(setState, snapshot);
+      return;
+    }
+
+    updateStoreWithSection(setState, snapshot);
+  }, [options?.initialize, setState, snapshot]);
+
+  useBootstrapHydrationEffect({
+    domain: "student",
+    sections,
+    meta,
+    ready: Boolean(snapshot),
+    onHydrate: handleHydrate,
+  });
+}
+
 export function useStudentBootstrap(
   sections?: readonly StudentDataSection[],
   options?: {
@@ -283,33 +324,12 @@ export function useStudentBootstrap(
     enabled: options?.enabled ?? true,
     retry: false,
   });
-  const lastTrackedRequestId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (
-      !query.data?.meta.requestId ||
-      query.data.meta.requestId === lastTrackedRequestId.current
-    ) {
-      return;
-    }
-
-    lastTrackedRequestId.current = query.data.meta.requestId;
-    const payloadBytes = new Blob([JSON.stringify(query.data.data)]).size;
-
-    void recordClientTelemetryEvent({
-      eventType: "student.bootstrap_loaded",
-      domain: "student",
-      journey: "student",
-      metricName: "bootstrapBytes",
-      metricValue: payloadBytes,
-      payload: {
-        requestId: query.data.meta.requestId,
-        generatedAt: query.data.meta.generatedAt,
-        sections: sections ?? ["all"],
-        sectionTimings: query.data.meta.sectionTimings,
-      },
-    });
-  }, [query.data, sections]);
+  useBootstrapTelemetry({
+    domain: "student",
+    sections,
+    data: query.data?.data,
+    meta: query.data?.meta,
+  });
 
   return query;
 }
@@ -322,33 +342,9 @@ export function useStudentBootstrapBridge(
   },
 ) {
   const query = useStudentBootstrap(sections, options);
-  const lastHydratedRequestId = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!query.data?.data) {
-      return;
-    }
-
-    const requestId =
-      query.data.meta.requestId ??
-      query.data.meta.generatedAt ??
-      (sections?.join(",") || "all");
-    if (lastHydratedRequestId.current === requestId) {
-      return;
-    }
-
-    lastHydratedRequestId.current = requestId;
-
-    const setState =
-      useStudentUnifiedStore.setState as unknown as StudentStoreSetter;
-
-    if (options?.initialize) {
-      hydrateStudentBootstrapData(setState, query.data.data);
-      return;
-    }
-
-    updateStoreWithSection(setState, query.data.data);
-  }, [options?.initialize, query.data]);
+  useHydrateStudentSnapshot(sections, query.data?.data, query.data?.meta, {
+    initialize: options?.initialize,
+  });
 
   return query;
 }
@@ -386,50 +382,33 @@ export function useStudentGymsBootstrapBridge(options?: { enabled?: boolean }) {
   return useStudentBootstrapBridge(STUDENT_GYMS_BOOTSTRAP_SECTIONS, options);
 }
 
-export function useStudentPayments(options?: { enabled?: boolean }) {
-  const query = useStudentBootstrap(["payments"], options);
-  const storePayments =
-    (useStudent("payments") as StudentPayment[] | undefined) ?? [];
-
-  return {
-    ...query,
-    payments: resolveCollectionBridge(
-      normalizePayments(query.data?.data.payments),
-      storePayments,
-      ["status", "amount", "date", "dueDate", "planName"],
-    ),
-  };
-}
-
 export function useStudentMemberships(options?: { enabled?: boolean }) {
   const query = useStudentBootstrap(["memberships"], options);
   const storeMemberships =
     (useStudent("memberships") as StudentGymMembership[] | undefined) ?? [];
+  const memberships = useMemo(
+    () =>
+      resolveCollectionBridge(
+        normalizeMemberships(query.data?.data.memberships),
+        storeMemberships,
+        ["status", "planId", "amount", "gymId", "nextBillingDate"],
+      ),
+    [query.data?.data.memberships, storeMemberships],
+  );
+
+  useHydrateStudentSnapshot(
+    ["memberships"],
+    query.data?.data
+      ? {
+          memberships,
+        }
+      : null,
+    query.data?.meta,
+  );
 
   return {
     ...query,
-    memberships: resolveCollectionBridge(
-      normalizeMemberships(query.data?.data.memberships),
-      storeMemberships,
-      ["status", "planId", "amount", "gymId", "nextBillingDate"],
-    ),
-  };
-}
-
-export function useSubscriptionState(options?: { enabled?: boolean }) {
-  const query = useStudentBootstrap(["subscription"], options);
-  const storeSubscription = useStudent("subscription") as
-    | SubscriptionData
-    | null
-    | undefined;
-
-  return {
-    ...query,
-    subscription: resolveSubscriptionBridge(
-      (query.data?.data.subscription as SubscriptionData | null | undefined) ??
-        null,
-      storeSubscription,
-    ),
+    memberships,
   };
 }
 
@@ -439,14 +418,29 @@ export function useStudentReferralBootstrap(options?: { enabled?: boolean }) {
     | StudentReferralData
     | null
     | undefined;
+  const referral = useMemo(
+    () =>
+      resolveReferralBridge(
+        (query.data?.data.referral as StudentReferralData | null | undefined) ??
+          null,
+        storeReferral,
+      ),
+    [query.data?.data.referral, storeReferral],
+  );
+
+  useHydrateStudentSnapshot(
+    ["referral"],
+    query.data?.data
+      ? {
+          referral,
+        }
+      : null,
+    query.data?.meta,
+  );
 
   return {
     ...query,
-    referral: resolveReferralBridge(
-      (query.data?.data.referral as StudentReferralData | null | undefined) ??
-        null,
-      storeReferral,
-    ),
+    referral,
   };
 }
 
@@ -472,6 +466,11 @@ export function useStudentFinancialBootstrap(options?: { enabled?: boolean }) {
         storeFinancial,
       ),
     [query.data?.data, storeFinancial],
+  );
+  useHydrateStudentSnapshot(
+    STUDENT_FINANCIAL_BOOTSTRAP_SECTIONS,
+    query.data?.data ? financialData : null,
+    query.data?.meta,
   );
 
   return {

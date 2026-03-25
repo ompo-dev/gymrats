@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins/bearer";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
+import { provisionUserAccess } from "./provision-user-access";
 
 function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -238,63 +239,15 @@ function createAuth() {
               return;
             }
 
-            if (user.role === "STUDENT" || user.role === "ADMIN") {
-              try {
-                const existingStudent = await db.student.findUnique({
-                  where: { userId: user.id },
-                });
-
-                if (!existingStudent) {
-                  await db.student.create({
-                    data: {
-                      userId: user.id,
-                    },
-                  });
-                }
-              } catch (error) {
-                console.error("Error creating student profile:", error);
-              }
-            }
-
-            if (user.role === "GYM" || user.role === "ADMIN") {
-              try {
-                const existingGyms = await db.gym.findMany({
-                  where: { userId: user.id },
-                });
-
-                if (existingGyms.length === 0) {
-                  const newGym = await db.gym.create({
-                    data: {
-                      userId: user.id,
-                      name: user.name,
-                      address: "",
-                      phone: "",
-                      email: user.email,
-                      plan: "basic",
-                      isActive: true,
-                    },
-                  });
-
-                  await db.gymProfile.create({
-                    data: {
-                      gymId: newGym.id,
-                    },
-                  });
-
-                  await db.gymStats.create({
-                    data: {
-                      gymId: newGym.id,
-                    },
-                  });
-
-                  await db.user.update({
-                    where: { id: user.id },
-                    data: { activeGymId: newGym.id },
-                  });
-                }
-              } catch (error) {
-                console.error("Error creating gym profile:", error);
-              }
+            try {
+              await provisionUserAccess({
+                userId: user.id,
+                role: user.role as "STUDENT" | "GYM" | "PERSONAL" | "ADMIN",
+                userName: user.name,
+                userEmail: user.email,
+              });
+            } catch (error) {
+              console.error("Error provisioning user access:", error);
             }
           },
         },
@@ -387,3 +340,12 @@ export const auth = new Proxy(authTarget, {
 }) as AuthHandler;
 
 export type Session = AuthInstance["$Infer"]["Session"];
+export type {
+  ProvisionableRole,
+  ProvisionUserAccessInput,
+  ProvisionUserAccessResult,
+} from "./provision-user-access";
+export {
+  provisionUserAccess,
+  updateUserRoleAndProvisionAccess,
+} from "./provision-user-access";

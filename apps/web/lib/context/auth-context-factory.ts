@@ -1,44 +1,29 @@
+import type {
+  AuthContextPolicy,
+  AuthSession,
+  GymContext,
+  PersonalContext,
+  StudentContext,
+  UserOnlyContext,
+} from "@gymrats/domain/auth-context";
+import {
+  resolveGymContext,
+  resolvePersonalContext,
+  resolveStudentContext,
+} from "@gymrats/domain/auth-context";
+import { extractSessionTokenFromHeaders } from "@gymrats/domain/auth-tokens";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { getSession } from "@/lib/utils/session";
 
-type AuthRecord = Record<string, string | number | boolean | object | null>;
-type AuthStudentRecord = AuthRecord & { id: string };
-
-export type AuthSession = {
-  session: AuthRecord;
-  user: {
-    id: string;
-    student?: AuthStudentRecord | null;
-    personal?: { id: string } | null;
-    gyms?: { id: string }[];
-    role?: string;
-    activeGymId?: string;
-    name?: string;
-    email?: string;
-    [key: string]: string | number | boolean | object | null | undefined;
-  };
-};
-
-export type GymContext = {
-  gymId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
-};
-
-export type StudentContext = {
-  studentId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
-  student: AuthStudentRecord;
-};
-
-export type PersonalContext = {
-  personalId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
+export type {
+  AuthSession,
+  GymContext,
+  PersonalContext,
+  StudentContext,
+  UserOnlyContext,
 };
 
 export type GymContextResult =
@@ -53,14 +38,17 @@ export type PersonalContextResult =
   | { ctx: PersonalContext; errorResponse?: undefined }
   | { ctx?: undefined; errorResponse: NextResponse };
 
-export type UserOnlyContext = {
-  user: AuthSession["user"];
-  session: AuthSession["session"];
-};
-
 export type UserOnlyContextResult =
   | { ctx: UserOnlyContext; error?: undefined }
   | { ctx?: undefined; error: string };
+
+const WEB_AUTH_CONTEXT_POLICY = {
+  gymLookupWhenMissing: "always",
+  studentLookupWhenMissing: "always",
+  personalLookupWhenMissing: "always",
+  personalMissingStatus: 403,
+  personalMissingMessage: "Perfil de personal nao encontrado",
+} as const satisfies AuthContextPolicy;
 
 async function getRequestHeaders() {
   const headerList = await headers();
@@ -69,23 +57,7 @@ async function getRequestHeaders() {
 
 async function getSessionToken(): Promise<string | null> {
   const requestHeaders = await getRequestHeaders();
-  const authHeader = requestHeaders.get("authorization");
-  const cookieHeader = requestHeaders.get("cookie");
-
-  if (authHeader?.startsWith("Bearer ")) {
-    return authHeader.replace("Bearer ", "").trim();
-  }
-
-  if (cookieHeader) {
-    for (const cookie of cookieHeader.split(";")) {
-      const [rawKey, ...rest] = cookie.trim().split("=");
-      if (rawKey === "auth_token" || rawKey === "better-auth.session_token") {
-        return decodeURIComponent(rest.join("="));
-      }
-    }
-  }
-
-  return null;
+  return extractSessionTokenFromHeaders(requestHeaders);
 }
 
 async function getAuthSession(): Promise<AuthSession | null> {
@@ -135,6 +107,10 @@ async function getAuthSession(): Promise<AuthSession | null> {
   return null;
 }
 
+function toErrorResponse(message: string, status = 403) {
+  return NextResponse.json({ error: message }, { status });
+}
+
 export async function getAuthContext(options: {
   type: "gym";
 }): Promise<GymContextResult>;
@@ -151,96 +127,45 @@ export async function getAuthContext(options: {
   if (!auth) {
     if (options.type === "gym" || options.type === "personal") {
       return {
-        errorResponse: NextResponse.json(
-          { error: "Nao autenticado" },
-          { status: 401 },
-        ),
+        errorResponse: toErrorResponse("Nao autenticado", 401),
       };
     }
 
     return { error: "Nao autenticado." };
   }
 
-  const { session, user } = auth;
+  if (options.type === "gym") {
+    const result = await resolveGymContext(auth, WEB_AUTH_CONTEXT_POLICY);
+    if (!result.ok) {
+      return {
+        errorResponse: toErrorResponse(
+          result.error.message,
+          result.error.status ?? 403,
+        ),
+      };
+    }
+    return { ctx: result.ctx };
+  }
 
   if (options.type === "personal") {
-    const isAdmin = user.role === "ADMIN";
-    const isPersonalRole = user.role === "PERSONAL";
-    if (!isAdmin && !isPersonalRole) {
+    const result = await resolvePersonalContext(auth, WEB_AUTH_CONTEXT_POLICY);
+    if (!result.ok) {
       return {
-        errorResponse: NextResponse.json(
-          { error: "Usuario nao e um personal" },
-          { status: 403 },
+        errorResponse: toErrorResponse(
+          result.error.message,
+          result.error.status ?? 403,
         ),
       };
     }
-
-    const userWithPersonal = await db.user.findUnique({
-      where: { id: user.id },
-      include: { personal: { select: { id: true } } },
-    });
-
-    const personalId =
-      (user.personal as { id: string } | null | undefined)?.id ||
-      (userWithPersonal?.personal as { id: string } | null)?.id ||
-      (
-        await db.personal.findUnique({
-          where: { userId: user.id },
-          select: { id: true },
-        })
-      )?.id;
-
-    if (!personalId) {
-      return {
-        errorResponse: NextResponse.json(
-          { error: "Perfil de personal nao encontrado" },
-          { status: 403 },
-        ),
-      };
-    }
-
-    return {
-      ctx: { personalId, session, user },
-    };
+    return { ctx: result.ctx };
   }
 
-  if (options.type === "gym") {
-    const existingGym = await db.gym.findFirst({
-      where: { userId: user.id },
-      select: { id: true },
-    });
-    const gymId = user.activeGymId || user.gyms?.[0]?.id || existingGym?.id;
-
-    if (!gymId) {
-      return {
-        errorResponse: NextResponse.json(
-          { error: "Academia nao encontrada" },
-          { status: 403 },
-        ),
-      };
-    }
-
-    return {
-      ctx: { gymId, session, user },
-    };
+  const result = await resolveStudentContext(auth, WEB_AUTH_CONTEXT_POLICY);
+  if (!result.ok) {
+    return { error: result.error.message };
   }
 
-  const student =
-    user.student ??
-    (await db.student.findUnique({ where: { userId: user.id } }));
-
-  if (!student) {
-    return { error: "Perfil de aluno nao encontrado." };
-  }
-
-  return {
-    ctx: {
-      studentId: String(student.id),
-      session,
-      user,
-      student,
-    },
-  };
+  return { ctx: result.ctx };
 }
 
 export async function getUserContext(): Promise<UserOnlyContextResult> {

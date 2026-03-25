@@ -5,47 +5,30 @@
  * por requireAuth e /api/auth/session.
  */
 
+import type {
+  AuthContextPolicy,
+  AuthSession,
+  GymContext,
+  PersonalContext,
+  StudentContext,
+  UserOnlyContext,
+} from "@gymrats/domain/auth-context";
+import {
+  resolveGymContext,
+  resolvePersonalContext,
+  resolveStudentContext,
+} from "@gymrats/domain/auth-context";
 import { resolveAuthSessionFromHeaders } from "@/lib/auth/session-resolver";
-import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
 import { NextResponse } from "@/runtime/next-server";
 import { getRequestContextHeaders } from "../runtime/request-context";
 
-type AuthRecord = Record<string, string | number | boolean | object | null>;
-type AuthStudentRecord = AuthRecord & { id: string };
-
-export type AuthSession = {
-  session: AuthRecord;
-  user: {
-    id: string;
-    student?: AuthStudentRecord | null;
-    personal?: { id: string } | null;
-    gyms?: { id: string }[];
-    role?: string;
-    activeGymId?: string;
-    name?: string;
-    email?: string;
-    [key: string]: string | number | boolean | object | null | undefined;
-  };
-};
-
-export type GymContext = {
-  gymId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
-};
-
-export type StudentContext = {
-  studentId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
-  student: AuthStudentRecord;
-};
-
-export type PersonalContext = {
-  personalId: string;
-  session: AuthSession["session"];
-  user: AuthSession["user"];
+export type {
+  AuthSession,
+  GymContext,
+  PersonalContext,
+  StudentContext,
+  UserOnlyContext,
 };
 
 export type GymContextResult =
@@ -60,14 +43,17 @@ export type PersonalContextResult =
   | { ctx: PersonalContext; errorResponse?: undefined }
   | { ctx?: undefined; errorResponse: NextResponse };
 
-export type UserOnlyContext = {
-  user: AuthSession["user"];
-  session: AuthSession["session"];
-};
-
 export type UserOnlyContextResult =
   | { ctx: UserOnlyContext; error?: undefined }
   | { ctx?: undefined; error: string };
+
+const API_AUTH_CONTEXT_POLICY = {
+  gymLookupWhenMissing: "admin-only",
+  studentLookupWhenMissing: "admin-only",
+  personalLookupWhenMissing: "always",
+  personalMissingStatus: 500,
+  personalMissingMessage: "Personal ID nao encontrado",
+} as const satisfies AuthContextPolicy;
 
 async function getAuthSession(): Promise<AuthSession | null> {
   return getAuthSessionFromHeaders(getRequestContextHeaders());
@@ -89,6 +75,10 @@ async function getAuthSessionFromHeaders(
     session: result.data.session as AuthSession["session"],
     user: result.data.user as AuthSession["user"],
   };
+}
+
+function toErrorResponse(message: string, status = 403) {
+  return NextResponse.json({ error: message }, { status });
 }
 
 export async function getAuthContext(
@@ -121,102 +111,44 @@ export async function getAuthContext(
   if (!auth) {
     if (options.type === "gym" || options.type === "personal") {
       return {
-        errorResponse: NextResponse.json(
-          { error: "Nao autenticado" },
-          { status: 401 },
-        ),
+        errorResponse: toErrorResponse("Nao autenticado", 401),
       };
     }
     return { error: "Nao autenticado." };
   }
 
-  const { session, user } = auth;
+  if (options.type === "gym") {
+    const result = await resolveGymContext(auth, API_AUTH_CONTEXT_POLICY);
+    if (!result.ok) {
+      return {
+        errorResponse: toErrorResponse(
+          result.error.message,
+          result.error.status ?? 403,
+        ),
+      };
+    }
+    return { ctx: result.ctx };
+  }
 
   if (options.type === "personal") {
-    const isAdmin = user.role === "ADMIN";
-    const isPersonalRole = user.role === "PERSONAL";
-    if (!isAdmin && !isPersonalRole) {
+    const result = await resolvePersonalContext(auth, API_AUTH_CONTEXT_POLICY);
+    if (!result.ok) {
       return {
-        errorResponse: NextResponse.json(
-          { error: "Usuario nao e um personal" },
-          { status: 403 },
+        errorResponse: toErrorResponse(
+          result.error.message,
+          result.error.status ?? 403,
         ),
       };
     }
-
-    let personalId = (user.personal as { id: string } | null | undefined)?.id;
-    if (!personalId && (isAdmin || isPersonalRole)) {
-      const existing = await db.personal.findUnique({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (existing) {
-        personalId = existing.id;
-      }
-    }
-
-    if (!personalId) {
-      return {
-        errorResponse: NextResponse.json(
-          { error: "Personal ID nao encontrado" },
-          { status: 500 },
-        ),
-      };
-    }
-
-    return {
-      ctx: { personalId, session, user },
-    };
+    return { ctx: result.ctx };
   }
 
-  if (options.type === "gym") {
-    const isAdmin = user.role === "ADMIN";
-    let gymId = user.activeGymId || user.gyms?.[0]?.id;
-
-    if (isAdmin && !gymId) {
-      const existingGym = await db.gym.findFirst({
-        where: { userId: user.id },
-      });
-      if (existingGym) {
-        gymId = existingGym.id;
-      }
-    }
-
-    if (!gymId) {
-      return {
-        errorResponse: NextResponse.json(
-          { error: "Academia nao encontrada" },
-          { status: 403 },
-        ),
-      };
-    }
-
-    return {
-      ctx: { gymId, session, user },
-    };
+  const result = await resolveStudentContext(auth, API_AUTH_CONTEXT_POLICY);
+  if (!result.ok) {
+    return { error: result.error.message };
   }
 
-  const isAdmin = user.role === "ADMIN";
-  let student = user.student;
-
-  if (isAdmin && !student) {
-    student = (await db.student.findUnique({
-      where: { userId: user.id },
-    })) as AuthStudentRecord | null;
-  }
-
-  if (!student) {
-    return { error: "Perfil de aluno nao encontrado." };
-  }
-
-  return {
-    ctx: {
-      studentId: student.id,
-      session,
-      user,
-      student,
-    },
-  };
+  return { ctx: result.ctx };
 }
 
 export async function getUserContext(): Promise<UserOnlyContextResult> {

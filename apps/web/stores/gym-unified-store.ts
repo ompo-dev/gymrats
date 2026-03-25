@@ -1,5 +1,6 @@
 ﻿import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
+import { clearBootstrapHydrationState } from "@/lib/query/bootstrap-runtime";
 import type {
   BoostCampaign,
   CheckIn,
@@ -519,6 +520,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
 
     resetForGymChange: () => {
       clearLoadingState();
+      clearBootstrapHydrationState("gym");
       studentDetailPromises.clear();
       studentPaymentPromises.clear();
       set({ data: withGymResources(initialGymData) });
