@@ -12,12 +12,22 @@ import { GymStatsPage } from "@/components/organisms/gym/gym-stats";
 import { GymStudentsPage } from "@/components/organisms/gym/gym-students";
 import { GymMoreMenu } from "@/components/organisms/navigation/gym-more-menu";
 import { useGym } from "@/hooks/use-gym";
+import {
+  useGymBootstrapBridge,
+  useGymDashboardBootstrapBridge,
+  useGymFinancialBootstrapBridge,
+  useGymSettingsBootstrapBridge,
+  useGymStatsBootstrapBridge,
+  useGymStudentsBootstrapBridge,
+} from "@/hooks/use-gym-bootstrap";
 import { useGymInitializer } from "@/hooks/use-gym-initializer";
 import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
 function GymDashboardTab() {
+  useGymDashboardBootstrapBridge();
+
   const {
     profile,
     stats,
@@ -52,16 +62,22 @@ function GymDashboardTab() {
 }
 
 function GymStudentsTab() {
-  const { students = [] } = useGym("students");
+  useGymStudentsBootstrapBridge();
+
+  const students = useGym("students") ?? [];
   return <GymStudentsPage students={students} />;
 }
 
 function GymEquipmentTab() {
-  const { equipment: rawEquipment = [] } = useGym("equipment");
+  useGymBootstrapBridge(["equipment"]);
+
+  const rawEquipment = useGym("equipment") ?? [];
   return <GymEquipmentPage equipment={normalizeEquipmentList(rawEquipment)} />;
 }
 
 function GymFinancialTab() {
+  useGymFinancialBootstrapBridge();
+
   const {
     financialSummary,
     payments = [],
@@ -99,6 +115,8 @@ function GymFinancialTab() {
 }
 
 function GymStatsTab() {
+  useGymStatsBootstrapBridge();
+
   const { stats, equipment: rawEquipment = [] } = useGym("stats", "equipment");
 
   if (!stats) {
@@ -114,6 +132,8 @@ function GymStatsTab() {
 }
 
 function GymSettingsTab() {
+  useGymSettingsBootstrapBridge();
+
   const { profile, membershipPlans: plans = [] } = useGym(
     "profile",
     "membershipPlans",
@@ -127,7 +147,9 @@ function GymSettingsTab() {
 }
 
 function GymGamificationTab() {
-  const { profile } = useGym("profile");
+  useGymBootstrapBridge(["profile"]);
+
+  const profile = useGym("profile");
 
   if (!profile) {
     return null;
@@ -166,7 +188,7 @@ function GymHomeContent() {
   );
 }
 
-export default function GymHome({}: Record<string, never> = {}) {
+export default function GymHome() {
   return (
     <Suspense
       fallback={

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
+import { useStudent } from "@/hooks/use-student";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
@@ -24,6 +25,113 @@ export const STUDENT_FINANCIAL_BOOTSTRAP_SECTIONS = [
   "paymentMethods",
   "referral",
 ] as const satisfies readonly StudentDataSection[];
+
+function getComparableValue(value: Date | string | number | null | undefined) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+
+  return value ?? null;
+}
+
+function hasCollectionDelta<T extends { id: string }>(
+  remote: T[],
+  store: T[],
+  fields: Array<keyof T>,
+) {
+  if (remote.length !== store.length) {
+    return true;
+  }
+
+  const remoteById = new Map(remote.map((item) => [item.id, item]));
+
+  return store.some((item) => {
+    const remoteItem = remoteById.get(item.id);
+
+    if (!remoteItem) {
+      return true;
+    }
+
+    return fields.some(
+      (field) =>
+        getComparableValue(
+          remoteItem[field] as Date | string | number | null | undefined,
+        ) !==
+        getComparableValue(
+          item[field] as Date | string | number | null | undefined,
+        ),
+    );
+  });
+}
+
+function resolveCollectionBridge<T extends { id: string }>(
+  remote: T[],
+  store: T[],
+  fields: Array<keyof T>,
+) {
+  if (remote.length === 0) {
+    return store;
+  }
+
+  if (store.length === 0) {
+    return remote;
+  }
+
+  return hasCollectionDelta(remote, store, fields) ? store : remote;
+}
+
+function resolveSubscriptionBridge(
+  remote: SubscriptionData | null,
+  store: StudentData["subscription"] | null | undefined,
+) {
+  if (!remote) {
+    return (store as SubscriptionData | null | undefined) ?? null;
+  }
+
+  if (!store) {
+    return remote;
+  }
+
+  const hasDelta =
+    remote.id !== store.id ||
+    remote.status !== store.status ||
+    remote.cancelAtPeriodEnd !== store.cancelAtPeriodEnd ||
+    getComparableValue(remote.currentPeriodEnd) !==
+      getComparableValue(store.currentPeriodEnd) ||
+    getComparableValue(remote.trialEnd) !==
+      getComparableValue(store.trialEnd) ||
+    remote.daysRemaining !== store.daysRemaining;
+
+  return hasDelta ? (store as SubscriptionData) : remote;
+}
+
+function resolveReferralBridge(
+  remote: StudentReferralData | null,
+  store: StudentData["referral"] | null | undefined,
+) {
+  if (!remote) {
+    return (store as StudentReferralData | null | undefined) ?? null;
+  }
+
+  if (!store) {
+    return remote;
+  }
+
+  const hasDelta =
+    remote.referralCode !== store.referralCode ||
+    remote.pixKey !== store.pixKey ||
+    remote.pixKeyType !== store.pixKeyType ||
+    remote.balanceCents !== store.balanceCents ||
+    remote.totalEarnedCents !== store.totalEarnedCents ||
+    hasCollectionDelta(remote.withdraws, store.withdraws, [
+      "status",
+      "amount",
+      "createdAt",
+      "completedAt",
+    ]);
+
+  return hasDelta ? (store as StudentReferralData) : remote;
+}
 
 function normalizeMemberships(
   memberships: Partial<StudentData>["memberships"],
@@ -83,6 +191,41 @@ export function selectStudentFinancialSnapshot(data?: Partial<StudentData>) {
   };
 }
 
+function resolveStudentFinancialSnapshot(
+  remote: ReturnType<typeof selectStudentFinancialSnapshot>,
+  store: Pick<
+    StudentData,
+    "subscription" | "memberships" | "payments" | "paymentMethods" | "referral"
+  >,
+) {
+  return {
+    subscription: resolveSubscriptionBridge(
+      remote.subscription,
+      store.subscription,
+    ),
+    memberships: resolveCollectionBridge(
+      remote.memberships,
+      store.memberships,
+      ["status", "planId", "amount", "gymId", "nextBillingDate"],
+    ),
+    payments: resolveCollectionBridge(remote.payments, store.payments, [
+      "status",
+      "amount",
+      "date",
+      "dueDate",
+      "planName",
+    ]),
+    paymentMethods:
+      remote.paymentMethods.length === 0
+        ? store.paymentMethods
+        : store.paymentMethods.length > 0 &&
+            remote.paymentMethods.length !== store.paymentMethods.length
+          ? store.paymentMethods
+          : remote.paymentMethods,
+    referral: resolveReferralBridge(remote.referral, store.referral),
+  };
+}
+
 export function useStudentBootstrap(
   sections?: readonly StudentDataSection[],
   options?: {
@@ -128,36 +271,65 @@ export function useStudentBootstrap(
 
 export function useStudentPayments(options?: { enabled?: boolean }) {
   const query = useStudentBootstrap(["payments"], options);
+  const storePayments =
+    (useStudent("payments") as StudentPayment[] | undefined) ?? [];
+
   return {
     ...query,
-    payments: normalizePayments(query.data?.data.payments),
+    payments: resolveCollectionBridge(
+      normalizePayments(query.data?.data.payments),
+      storePayments,
+      ["status", "amount", "date", "dueDate", "planName"],
+    ),
   };
 }
 
 export function useStudentMemberships(options?: { enabled?: boolean }) {
   const query = useStudentBootstrap(["memberships"], options);
+  const storeMemberships =
+    (useStudent("memberships") as StudentGymMembership[] | undefined) ?? [];
+
   return {
     ...query,
-    memberships: normalizeMemberships(query.data?.data.memberships),
+    memberships: resolveCollectionBridge(
+      normalizeMemberships(query.data?.data.memberships),
+      storeMemberships,
+      ["status", "planId", "amount", "gymId", "nextBillingDate"],
+    ),
   };
 }
 
 export function useSubscriptionState(options?: { enabled?: boolean }) {
   const query = useStudentBootstrap(["subscription"], options);
+  const storeSubscription = useStudent("subscription") as
+    | SubscriptionData
+    | null
+    | undefined;
+
   return {
     ...query,
-    subscription: query.data?.data.subscription ?? null,
+    subscription: resolveSubscriptionBridge(
+      (query.data?.data.subscription as SubscriptionData | null | undefined) ??
+        null,
+      storeSubscription,
+    ),
   };
 }
 
 export function useStudentReferralBootstrap(options?: { enabled?: boolean }) {
   const query = useStudentBootstrap(["referral"], options);
+  const storeReferral = useStudent("referral") as
+    | StudentReferralData
+    | null
+    | undefined;
 
   return {
     ...query,
-    referral:
+    referral: resolveReferralBridge(
       (query.data?.data.referral as StudentReferralData | null | undefined) ??
-      null,
+        null,
+      storeReferral,
+    ),
   };
 }
 
@@ -166,9 +338,23 @@ export function useStudentFinancialBootstrap(options?: { enabled?: boolean }) {
     STUDENT_FINANCIAL_BOOTSTRAP_SECTIONS,
     options,
   );
+  const storeFinancial = useStudent(
+    "subscription",
+    "memberships",
+    "payments",
+    "paymentMethods",
+    "referral",
+  ) as Pick<
+    StudentData,
+    "subscription" | "memberships" | "payments" | "paymentMethods" | "referral"
+  >;
   const financialData = useMemo(
-    () => selectStudentFinancialSnapshot(query.data?.data),
-    [query.data?.data],
+    () =>
+      resolveStudentFinancialSnapshot(
+        selectStudentFinancialSnapshot(query.data?.data),
+        storeFinancial,
+      ),
+    [query.data?.data, storeFinancial],
   );
 
   return {

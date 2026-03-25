@@ -1,15 +1,18 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
 export function usePersonalFinancial() {
-  const subscription = usePersonal("subscription");
-  const students = usePersonal("students");
-  const affiliations = usePersonal("affiliations");
-  const actions = usePersonal("actions");
-  const loaders = usePersonal("loaders");
+  const { subscription, students, affiliations, actions } = usePersonal(
+    "subscription",
+    "students",
+    "affiliations",
+    "actions",
+  );
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -21,6 +24,15 @@ export function usePersonalFinancial() {
     expiresAt?: string;
   } | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+
+  const refreshFinancial = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      predicate: (query) =>
+        Array.isArray(query.queryKey) &&
+        query.queryKey[0] === "personal" &&
+        query.queryKey[1] === "bootstrap",
+    });
+  }, [queryClient]);
 
   const stats = useMemo(() => {
     const studentsViaGym = students.filter((item) => item.gym?.id).length;
@@ -34,7 +46,10 @@ export function usePersonalFinancial() {
   }, [affiliations.length, students]);
 
   const handleSubscribe = useCallback(
-    async (plan: "standard" | "pro_ai", billingPeriod: "monthly" | "annual") => {
+    async (
+      plan: "standard" | "pro_ai",
+      billingPeriod: "monthly" | "annual",
+    ) => {
       setIsSubmitting(true);
       try {
         const result = await actions.createPersonalSubscription({
@@ -55,6 +70,7 @@ export function usePersonalFinancial() {
             description: "Seu plano foi registrado.",
           });
         }
+        await refreshFinancial();
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
@@ -72,7 +88,7 @@ export function usePersonalFinancial() {
         setIsSubmitting(false);
       }
     },
-    [actions, toast],
+    [actions, refreshFinancial, toast],
   );
 
   const handleCancelConfirm = useCallback(async () => {
@@ -83,6 +99,7 @@ export function usePersonalFinancial() {
         title: "Assinatura cancelada",
         description: "Sua assinatura foi cancelada com sucesso.",
       });
+      await refreshFinancial();
       setCancelDialogOpen(false);
     } catch (err) {
       const msg =
@@ -100,11 +117,12 @@ export function usePersonalFinancial() {
     } finally {
       setIsCanceling(false);
     }
-  }, [actions, toast]);
+  }, [actions, refreshFinancial, toast]);
 
-  const handlePixConfirmed = useCallback(() => {
+  const handlePixConfirmed = useCallback(async () => {
     setPixModal(null);
-  }, []);
+    await refreshFinancial();
+  }, [refreshFinancial]);
 
   return {
     subscription,
@@ -118,6 +136,6 @@ export function usePersonalFinancial() {
     handleSubscribe,
     handleCancelConfirm,
     handlePixConfirmed,
-    loadSection: loaders.loadSection,
+    refreshFinancial,
   };
 }

@@ -282,6 +282,16 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/app/student/_payments/hooks/use-payments-page.ts`, `apps/web/app/student/_payments/hooks/use-student-referral.ts` e `apps/web/app/student/_profile/components/my-academias-card.tsx` passaram a consumir React Query como fonte canÃ´nica de leitura remota.
 - `apps/web/app/student/page-content.tsx` agora invalida as queries financeiras apÃ³s mutaÃ§Ãµes relevantes para evitar cache divergente.
 
+- O fluxo financeiro do student foi refinado para o mesmo modelo de ponte otimista: `apps/web/hooks/use-student-bootstrap.ts` agora prefere o snapshot do Zustand quando detecta delta real entre store e bootstrap em `subscription`, `memberships`, `payments` e `referral`.
+
+## Focus Update - Gym/Personal Optimistic Bridge
+
+- A estratÃ©gia foi refinada para preservar o papel certo do Zustand: ponte otimista entre usuÃ¡rio, API e componentes, e nÃ£o mais ponto isolado de fetch remoto.
+- `apps/web/hooks/use-gym-bootstrap.ts` e `apps/web/hooks/use-personal-bootstrap.ts` agora expÃµem bridge hooks que buscam o bootstrap canÃ´nico via React Query e hidratam o Zustand com `hydrateInitial`.
+- `apps/web/app/gym/page-content.tsx` passou a disparar bootstrap por aba enquanto os componentes continuam lendo do store, preservando resposta imediata para updates locais.
+- `apps/web/app/personal/page-content.tsx` passou a usar o mesmo padrÃ£o nas abas principais e a invalidar queries `personal/bootstrap` no refresh.
+- `apps/web/hooks/use-personal-financial.ts` e `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx` deixaram de recarregar seÃ§Ãµes manualmente e passaram a sincronizar o fluxo via invalidaÃ§Ã£o do bootstrap.
+
 ## Changes Implemented In This Pass
 
 - `apps/api/src/lib/auth/session-payload.ts`
@@ -323,6 +333,10 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/app/student/_payments/student-payments-page.tsx`
 - `apps/web/app/student/_profile/components/my-academias-card.tsx`
 - `apps/web/app/student/page-content.tsx`
+- `apps/web/hooks/use-personal-financial.ts`
+- `apps/web/app/gym/page-content.tsx`
+- `apps/web/app/personal/page-content.tsx`
+- `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx`
 
 ## Validation Status
 
@@ -335,6 +349,9 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `npx biome check` nos arquivos alterados nesta onda: verde
 - `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para os arquivos alterados nesta onda: sem erros correspondentes
 - busca textual por `useStudent("subscription" | "memberships" | "payments" | "paymentMethods" | "referral")` em `apps/web`: sem ocorrÃªncias remanescentes
+
+- `npx biome check` em `apps/web/hooks/use-gym-bootstrap.ts`, `apps/web/hooks/use-personal-bootstrap.ts`, `apps/web/app/gym/page-content.tsx`, `apps/web/app/personal/page-content.tsx`, `apps/web/hooks/use-personal-financial.ts` e `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx`: verde
+- `npm run test:unit`: verde apÃ³s introduzir o padrÃ£o `React Query bootstrap -> hydrateInitial -> Zustand otimista` em `gym/personal`
 
 ## Next Execution Order
 

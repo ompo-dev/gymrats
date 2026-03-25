@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import {
-  PERSONAL_PLANS_CONFIG,
-  centsToReais,
-} from "@/lib/access-control/plans-config";
-import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
+import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { usePersonalFinancial } from "@/hooks/use-personal-financial";
+import {
+  centsToReais,
+  PERSONAL_PLANS_CONFIG,
+} from "@/lib/access-control/plans-config";
 
 interface PersonalFinancialSubscriptionTabProps {
   onRefresh?: () => Promise<void>;
@@ -28,7 +28,7 @@ export function PersonalFinancialSubscriptionTab({
     handlePixConfirmed,
     isSubmitting,
     isCanceling,
-    loadSection,
+    refreshFinancial,
   } = usePersonalFinancial();
 
   const plans = useMemo(
@@ -67,8 +67,8 @@ export function PersonalFinancialSubscriptionTab({
     : null;
 
   const refreshSubscription = useCallback(
-    async () => loadSection("subscription", true),
-    [loadSection],
+    async () => refreshFinancial(),
+    [refreshFinancial],
   );
 
   const handlePaymentSuccess = useCallback(
@@ -82,13 +82,8 @@ export function PersonalFinancialSubscriptionTab({
   );
 
   const handlePaymentConfirmed = useCallback(async () => {
-    handlePixConfirmed();
-    await Promise.all([
-      loadSection("subscription", true),
-      loadSection("financialSummary", true),
-      loadSection("payments", true),
-    ]);
-  }, [handlePixConfirmed, loadSection]);
+    await handlePixConfirmed();
+  }, [handlePixConfirmed]);
 
   const pollConfig = useMemo(
     () => ({

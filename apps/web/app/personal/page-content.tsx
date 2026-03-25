@@ -1,19 +1,28 @@
 "use client";
 
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
+import { useQueryClient } from "@tanstack/react-query";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useCallback, useMemo } from "react";
+import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
+import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
+import { usePersonal } from "@/hooks/use-personal";
+import {
+  usePersonalDashboardBootstrapBridge,
+  usePersonalFinancialBootstrapBridge,
+  usePersonalGymsBootstrapBridge,
+  usePersonalSettingsBootstrapBridge,
+  usePersonalStatsBootstrapBridge,
+  usePersonalStudentsBootstrapBridge,
+} from "@/hooks/use-personal-bootstrap";
+import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
+import type { MembershipPlan, StudentData } from "@/lib/types";
 import { PersonalDashboardPageContent } from "./_dashboard/page-content";
 import { PersonalFinancialPageContent } from "./_financial/page-content";
 import { PersonalGymsPageContent } from "./_gyms/page-content";
 import { PersonalSettingsPageContent } from "./_settings/page-content";
 import { PersonalStatsPageContent } from "./_stats/page-content";
 import { PersonalStudentsPageContent } from "./_students/page-content";
-import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
-import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
-import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
-import { usePersonal } from "@/hooks/use-personal";
-import type { MembershipPlan, StudentData } from "@/lib/types";
-import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 
 function usePersonalStatsSnapshot() {
   const { affiliations, students } = usePersonal("affiliations", "students");
@@ -40,6 +49,8 @@ function PersonalDashboardTab({
 }: {
   onViewGym: (gymId: string) => void;
 }) {
+  usePersonalDashboardBootstrapBridge();
+
   const { profile, subscription, financialSummary } = usePersonal(
     "profile",
     "subscription",
@@ -61,6 +72,8 @@ function PersonalDashboardTab({
 }
 
 function PersonalStudentsTab() {
+  usePersonalStudentsBootstrapBridge();
+
   const { affiliations, studentDirectory } = usePersonal(
     "affiliations",
     "studentDirectory",
@@ -85,7 +98,9 @@ function PersonalGymsTab({
   onBackFromGym: () => void;
   onRefresh: () => Promise<void>;
 }) {
-  const { affiliations } = usePersonal("affiliations");
+  usePersonalGymsBootstrapBridge();
+
+  const affiliations = usePersonal("affiliations");
 
   return (
     <PersonalGymsPageContent
@@ -103,6 +118,8 @@ function PersonalFinancialTab({
 }: {
   onRefresh: () => Promise<void>;
 }) {
+  usePersonalFinancialBootstrapBridge();
+
   const {
     subscription,
     financialSummary,
@@ -140,7 +157,12 @@ function PersonalSettingsTab({
 }: {
   onRefresh: () => Promise<void>;
 }) {
-  const { profile, membershipPlans } = usePersonal("profile", "membershipPlans");
+  usePersonalSettingsBootstrapBridge();
+
+  const { profile, membershipPlans } = usePersonal(
+    "profile",
+    "membershipPlans",
+  );
 
   return (
     <PersonalSettingsPageContent
@@ -152,6 +174,8 @@ function PersonalSettingsTab({
 }
 
 function PersonalStatsTab() {
+  usePersonalStatsBootstrapBridge();
+
   const { stats } = usePersonalStatsSnapshot();
 
   return (
@@ -165,40 +189,28 @@ function PersonalStatsTab() {
 }
 
 function PersonalHomeContent() {
-  const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useQueryState(
+    "tab",
+    parseAsString.withDefault("dashboard"),
+  );
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
 
   usePersonalInitializer();
   useLoadPrioritizedPersonal({ onlyPriorities: true });
 
-  const { loadSection } = usePersonal("loaders");
+  const refreshPersonalBootstrap = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      predicate: (query) =>
+        Array.isArray(query.queryKey) &&
+        query.queryKey[0] === "personal" &&
+        query.queryKey[1] === "bootstrap",
+    });
+  }, [queryClient]);
 
-  const refreshGyms = useCallback(async () => {
-    await Promise.all([
-      loadSection("affiliations", true),
-      loadSection("students", true),
-    ]);
-  }, [loadSection]);
-
-  const refreshFinancial = useCallback(async () => {
-    await Promise.all([
-      loadSection("subscription", true),
-      loadSection("financialSummary", true),
-      loadSection("expenses", true),
-      loadSection("payments", true),
-      loadSection("coupons", true),
-      loadSection("campaigns", true),
-      loadSection("membershipPlans", true),
-    ]);
-  }, [loadSection]);
-
-  const refreshSettings = useCallback(async () => {
-    await Promise.all([
-      loadSection("profile", true),
-      loadSection("membershipPlans", true),
-      loadSection("subscription", true),
-    ]);
-  }, [loadSection]);
+  const refreshGyms = refreshPersonalBootstrap;
+  const refreshFinancial = refreshPersonalBootstrap;
+  const refreshSettings = refreshPersonalBootstrap;
 
   return (
     <div className="px-4 py-6">
@@ -228,7 +240,9 @@ function PersonalHomeContent() {
       {tab === "financial" && (
         <PersonalFinancialTab onRefresh={refreshFinancial} />
       )}
-      {tab === "settings" && <PersonalSettingsTab onRefresh={refreshSettings} />}
+      {tab === "settings" && (
+        <PersonalSettingsTab onRefresh={refreshSettings} />
+      )}
       {tab === "stats" && <PersonalStatsTab />}
       {tab === "more" && <PersonalMoreMenu.Simple />}
     </div>
