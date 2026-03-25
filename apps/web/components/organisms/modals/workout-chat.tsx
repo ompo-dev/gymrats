@@ -125,7 +125,11 @@ export function WorkoutChat({
   const effectiveWeeklyPlan =
     mode === "gym" ? weeklyPlanOverride : storeWeeklyPlan;
   const unitsArray =
-    mode === "gym" ? [] : Array.isArray(storeUnits) ? (storeUnits as Unit[]) : [];
+    mode === "gym"
+      ? []
+      : Array.isArray(storeUnits)
+        ? (storeUnits as Unit[])
+        : [];
   const slotsArray: PlanSlotData[] = Array.isArray(effectiveWeeklyPlan?.slots)
     ? (effectiveWeeklyPlan?.slots as unknown as PlanSlotData[])
     : [];
@@ -149,7 +153,10 @@ export function WorkoutChat({
   const _actions = useStudent("actions");
   const loaders =
     mode === "gym"
-      ? { loadWeeklyPlan: loadWeeklyPlanOverride, loadWorkouts: loadWorkoutsOverride }
+      ? {
+          loadWeeklyPlan: loadWeeklyPlanOverride,
+          loadWorkouts: loadWorkoutsOverride,
+        }
       : storeLoaders;
   const { can } = useAbility();
   const isGymMode = mode === "gym";
@@ -206,7 +213,7 @@ export function WorkoutChat({
       ? weeklyPlanRef.current
       : useStudentUnifiedStore.getState().data.weeklyPlan;
   const getLatestUnits = () =>
-    mode === "gym" ? [] : useStudentUnifiedStore.getState().data.units ?? [];
+    mode === "gym" ? [] : (useStudentUnifiedStore.getState().data.units ?? []);
   const getProfile = () =>
     mode === "gym"
       ? profileOverride
@@ -313,7 +320,9 @@ export function WorkoutChat({
         }
         const currentUnits = getLatestUnits();
         const currentUnit = currentUnits.find((u: Unit) => u.id === unitId);
-        const currentWorkouts = isGymMode ? workouts : currentUnit?.workouts || [];
+        const currentWorkouts = isGymMode
+          ? workouts
+          : currentUnit?.workouts || [];
 
         // Buscar pelo título ORIGINAL (antes da modificação) - isso é crítico!
         const workoutFromDb = currentWorkouts.find(
@@ -409,10 +418,10 @@ export function WorkoutChat({
           const updatedSlot = planSlotId
             ? updatedWeeklyPlan?.slots.find((s) => s.id === planSlotId)
             : null;
+          const updatedSlotWorkout = updatedSlot?.workout;
           const updatedWorkouts =
-            (updatedUnit?.workouts ?? updatedSlot?.workout)
-              ? [updatedSlot?.workout!]
-              : [];
+            updatedUnit?.workouts ??
+            (updatedSlotWorkout ? [updatedSlotWorkout] : []);
 
           // Atualizar targetWorkoutId se necessário após criar os novos
           if (
@@ -498,12 +507,14 @@ export function WorkoutChat({
         processPayload.unitId = unitId;
       }
 
-      const processResponse = await useAssistantTransportStore.getState().postJson({
-        key: `workout-process:${planSlotId ?? unitId ?? "root"}`,
-        url: processUrl,
-        body: processPayload,
-        timeoutMs: 120000,
-      });
+      const processResponse = await useAssistantTransportStore
+        .getState()
+        .postJson({
+          key: `workout-process:${planSlotId ?? unitId ?? "root"}`,
+          url: processUrl,
+          body: processPayload,
+          timeoutMs: 120000,
+        });
 
       console.log(
         "[WorkoutChat] ✅ Treino processado com sucesso:",
@@ -725,8 +736,7 @@ export function WorkoutChat({
     }
   }, [planSlotId, workouts]);
 
-  // Scroll para última mensagem
-  // biome-ignore lint/correctness/useExhaustiveDependencies: precisamos reagir à mudança de mensagens
+  // Scroll para a ultima mensagem
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -1671,7 +1681,3 @@ export function WorkoutChat({
     </AnimatePresence>
   );
 }
-
-
-
-

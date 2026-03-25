@@ -3,7 +3,7 @@
 import { Activity, ArrowRight, Layout, Zap } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { type ComponentProps, useCallback, useState } from "react";
 import { StaggerContainer } from "@/components/animations/stagger-container";
 import { StaggerItem } from "@/components/animations/stagger-item";
 import { DuoButton } from "@/components/duo";
@@ -12,6 +12,26 @@ import { WeeklyPlanSlotRow } from "@/components/organisms/modals/edit-unit-modal
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import type { DailyNutrition } from "@/lib/types";
+
+type WeeklyPlanSlotRowSlot = ComponentProps<typeof WeeklyPlanSlotRow>["slot"];
+type WorkoutNodeSimpleWorkout = NonNullable<
+  ComponentProps<typeof WorkoutNode.Simple>["workout"]
+>;
+type WorkoutNodeSimpleExercise = WorkoutNodeSimpleWorkout["exercises"][number];
+type NutritionTrackerSimpleNutrition = ComponentProps<
+  typeof NutritionTracker.Simple
+>["nutrition"];
+
+const createMockExercise = (
+  id: string,
+  name: string,
+): WorkoutNodeSimpleExercise => ({
+  id,
+  name,
+  sets: 3,
+  reps: "10-12",
+  rest: 60,
+});
 
 const MOCK_STUDENT_DATA = {
   id: "std-1",
@@ -37,7 +57,7 @@ const MOCK_STUDENT_DATA = {
   phone: "11999999999",
 };
 
-const MOCK_PLAN_SLOTS = [
+const MOCK_PLAN_SLOTS: WeeklyPlanSlotRowSlot[] = [
   {
     id: "s1",
     dayOfWeek: 0,
@@ -48,7 +68,7 @@ const MOCK_PLAN_SLOTS = [
       id: "w1",
       title: "Peito e Tríceps",
       exercises: [{}, {}, {}, {}, {}, {}],
-    } as any,
+    } as WorkoutNodeSimpleWorkout,
   },
   {
     id: "s2",
@@ -60,7 +80,7 @@ const MOCK_PLAN_SLOTS = [
       id: "w2",
       title: "Costas e Bíceps",
       exercises: [{}, {}, {}, {}, {}, {}, {}],
-    } as any,
+    } as WorkoutNodeSimpleWorkout,
   },
   {
     id: "s3",
@@ -79,7 +99,7 @@ const MOCK_PLAN_SLOTS = [
       id: "w3",
       title: "Pernas e Core",
       exercises: [{}, {}, {}, {}, {}, {}, {}, {}],
-    } as any,
+    } as WorkoutNodeSimpleWorkout,
   },
 ];
 
@@ -193,17 +213,32 @@ const MOCK_NUTRITION = {
   ],
 };
 
-const MOCK_WORKOUTS_PATH = [
+const MOCK_WORKOUTS_PATH: Array<
+  | { type: "rest" }
+  | {
+      type: "workout";
+      mockProgressPercent?: number;
+      workout: WorkoutNodeSimpleWorkout;
+    }
+> = [
   {
     type: "workout" as const,
     workout: {
       id: "pw1",
+      description: "Tecnica base para ganhar confianca e consistencia.",
+      muscleGroup: "peito",
+      difficulty: "iniciante",
       title: "Iniciação ao Supino",
-      exercises: [{}, {}, {}],
+      exercises: [
+        createMockExercise("pw1-e1", "Supino reto"),
+        createMockExercise("pw1-e2", "Supino inclinado com halteres"),
+        createMockExercise("pw1-e3", "Crucifixo na maquina"),
+      ],
       estimatedTime: 30,
+      xpReward: 120,
       completed: true,
       locked: false,
-      type: "hypertrophy",
+      type: "strength",
     },
   },
   {
@@ -211,9 +246,18 @@ const MOCK_WORKOUTS_PATH = [
     mockProgressPercent: 75,
     workout: {
       id: "pw2",
+      description: "Mobilidade, postura e forca para evoluir com seguranca.",
+      muscleGroup: "pernas",
+      difficulty: "intermediario",
       title: "Técnica de Agachamento",
-      exercises: [{}, {}, {}, {}],
+      exercises: [
+        createMockExercise("pw2-e1", "Agachamento livre"),
+        createMockExercise("pw2-e2", "Leg press"),
+        createMockExercise("pw2-e3", "Cadeira extensora"),
+        createMockExercise("pw2-e4", "Mesa flexora"),
+      ],
       estimatedTime: 40,
+      xpReward: 160,
       completed: false,
       locked: false,
       type: "strength",
@@ -506,7 +550,11 @@ export function StudentLandingPage() {
                 <StaggerContainer className="flex flex-col items-center space-y-16">
                   {MOCK_WORKOUTS_PATH.map((item, idx) => (
                     <StaggerItem
-                      key={item.type === "rest" ? "rest" : item.workout.id}
+                      key={
+                        item.type === "rest"
+                          ? `rest-${idx}`
+                          : `workout-${item.workout.id}`
+                      }
                       className="w-full"
                     >
                       {item.type === "rest" ? (
@@ -515,19 +563,24 @@ export function StudentLandingPage() {
                           position={idx % 2 === 0 ? "left" : "right"}
                         />
                       ) : (
-                        <WorkoutNode.Simple
-                          position={
-                            idx % 2 === 0
-                              ? idx === 0
-                                ? "center"
-                                : "left"
-                              : "right"
-                          }
-                          workout={item.workout as any}
-                          onClick={() => {}}
-                          isFirst={idx === 0}
-                          mockProgressPercent={item.mockProgressPercent}
-                        />
+                        (() => {
+                          const workout = item.workout;
+                          return (
+                            <WorkoutNode.Simple
+                              position={
+                                idx % 2 === 0
+                                  ? idx === 0
+                                    ? "center"
+                                    : "left"
+                                  : "right"
+                              }
+                              workout={workout}
+                              onClick={() => {}}
+                              isFirst={idx === 0}
+                              mockProgressPercent={item.mockProgressPercent}
+                            />
+                          );
+                        })()
                       )}
                     </StaggerItem>
                   ))}
@@ -595,7 +648,7 @@ export function StudentLandingPage() {
             <div className="relative w-full min-w-0">
               <div className="p-4 sm:p-5 lg:p-6">
                 <NutritionTracker.Simple
-                  nutrition={nutrition as any}
+                  nutrition={nutrition as NutritionTrackerSimpleNutrition}
                   onMealComplete={handleToggleMeal}
                   onAddMeal={handleAddMeal}
                   onAddFoodToMeal={handleAddFoodToMeal}

@@ -27,15 +27,23 @@ export async function setCachedJson<T>(
 ) {
   try {
     await ensureRedisConnection();
-    await redisConnection.set(cacheKey, JSON.stringify(payload), "EX", ttlSeconds);
+    await redisConnection.set(
+      cacheKey,
+      JSON.stringify(payload),
+      "EX",
+      ttlSeconds,
+    );
   } catch {
     // Cache failures should never break the request path.
   }
 }
 
-export async function deleteCacheKeys(cacheKeys: Array<string | null | undefined>) {
+export async function deleteCacheKeys(
+  cacheKeys: Array<string | null | undefined>,
+) {
   const filteredKeys = cacheKeys.filter(
-    (cacheKey): cacheKey is string => typeof cacheKey === "string" && cacheKey.length > 0,
+    (cacheKey): cacheKey is string =>
+      typeof cacheKey === "string" && cacheKey.length > 0,
   );
 
   if (filteredKeys.length === 0) {

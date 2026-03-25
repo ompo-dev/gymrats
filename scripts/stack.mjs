@@ -1,5 +1,5 @@
-import { copyFileSync, existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { copyFileSync, existsSync } from "node:fs";
 import path from "node:path";
 
 const rootDir = process.cwd();
@@ -73,11 +73,15 @@ function ensureEnvFile() {
   }
 
   if (!existsSync(examplePath)) {
-    throw new Error(`Nao encontrei ${exampleEnvFile} para inicializar o stack.`);
+    throw new Error(
+      `Nao encontrei ${exampleEnvFile} para inicializar o stack.`,
+    );
   }
 
   copyFileSync(examplePath, targetPath);
-  console.log(`Arquivo ${requestedEnvFile} criado a partir de ${exampleEnvFile}.`);
+  console.log(
+    `Arquivo ${requestedEnvFile} criado a partir de ${exampleEnvFile}.`,
+  );
 }
 
 function printHelp() {
@@ -134,7 +138,10 @@ switch (command) {
     break;
   }
   case "migrate": {
-    run("docker", composeArgs(["run", "--rm", "--build", "migrate"], { profiles: ["ops"] }));
+    run(
+      "docker",
+      composeArgs(["run", "--rm", "--build", "migrate"], { profiles: ["ops"] }),
+    );
     break;
   }
   case "up": {
@@ -198,7 +205,6 @@ switch (command) {
     run("docker", composeArgs(["run", "--rm", "cron"], { profiles: ["jobs"] }));
     break;
   }
-  case "help":
   default: {
     printHelp();
     if (command !== "help") {

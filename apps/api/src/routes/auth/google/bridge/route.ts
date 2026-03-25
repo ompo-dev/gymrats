@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateQuery } from "@/lib/api/middleware/validation.middleware";
 import { auth } from "@/lib/auth-config";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const bridgeQuerySchema = z.object({
   redirectTo: z.string().url().optional(),
@@ -9,10 +9,7 @@ const bridgeQuerySchema = z.object({
 });
 
 function getAppUrl(request: NextRequest) {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    getRequestOrigin(request)
-  );
+  return process.env.NEXT_PUBLIC_APP_URL || getRequestOrigin(request);
 }
 
 function getRequestOrigin(request: NextRequest) {

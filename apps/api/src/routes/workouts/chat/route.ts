@@ -221,9 +221,16 @@ export const POST = createSafeHandler(
 
     if (!parsed) {
       const MAX_HISTORY = 6;
+      const aiConversationHistory = conversationHistory
+        .filter(
+          (entry): entry is { role: "user" | "assistant"; content: string } =>
+            entry.role === "user" || entry.role === "assistant",
+        )
+        .slice(-MAX_HISTORY);
+
       const response = await chatCompletion({
         messages: [
-          ...conversationHistory.slice(-MAX_HISTORY),
+          ...aiConversationHistory,
           { role: "user", content: message },
         ],
         systemPrompt: enhancedSystemPrompt,

@@ -1,7 +1,4 @@
-import {
-  getCachedJson,
-  setCachedJson,
-} from "@/lib/cache/resource-cache";
+import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
 import { db } from "@/lib/db";
 
 type TelemetryEventRow = {
@@ -166,7 +163,7 @@ export async function getObservabilityDataset(
 
   try {
     const [telemetryEvents, businessEvents] = await Promise.all([
-      (db as any).telemetryEvent.findMany({
+      db.telemetryEvent.findMany({
         where: {
           occurredAt: {
             gte: occurredAt,
@@ -187,7 +184,7 @@ export async function getObservabilityDataset(
           payload: true,
         },
       }) as Promise<TelemetryEventRow[]>,
-      (db as any).businessEvent.findMany({
+      db.businessEvent.findMany({
         where: {
           occurredAt: {
             gte: occurredAt,
@@ -207,78 +204,90 @@ export async function getObservabilityDataset(
       }) as Promise<BusinessEventRow[]>,
     ]);
 
-    const apiEvents = telemetryEvents.filter((event) => event.eventType === "api.request");
-    const frontendEvents = telemetryEvents.filter((event) => event.domain === "web");
+    const apiEvents = telemetryEvents.filter(
+      (event) => event.eventType === "api.request",
+    );
+    const frontendEvents = telemetryEvents.filter(
+      (event) => event.domain === "web",
+    );
     const latencies = apiEvents
       .map(toLatency)
       .filter((value) => Number.isFinite(value) && value > 0);
-    const errorCount = apiEvents.filter((event) => toStatus(event) >= 400).length;
+    const errorCount = apiEvents.filter(
+      (event) => toStatus(event) >= 400,
+    ).length;
 
     const domains = Object.values(
-      telemetryEvents.reduce<Record<string, DomainSummary>>((accumulator, event) => {
-        const domain = toDomain(event);
-        if (!accumulator[domain]) {
-          accumulator[domain] = {
-            domain,
-            total: 0,
-            errors: 0,
-            apiRequests: 0,
-          };
-        }
-
-        accumulator[domain].total += 1;
-        if (event.eventType === "api.request") {
-          accumulator[domain].apiRequests += 1;
-          if (toStatus(event) >= 400) {
-            accumulator[domain].errors += 1;
-          }
-        }
-
-        return accumulator;
-      }, {}),
-    ).sort((left, right) => right.total - left.total);
-
-    const routes = Object.values(
-      apiEvents.reduce<Record<string, RouteSummary & { latencies: number[]; cacheHits: number }>>(
+      telemetryEvents.reduce<Record<string, DomainSummary>>(
         (accumulator, event) => {
-          const route = toRouteKey(event);
-          const method = toMethod(event);
           const domain = toDomain(event);
-          const key = `${method}:${route}`;
-          if (!accumulator[key]) {
-            accumulator[key] = {
-              route,
-              method,
+          if (!accumulator[domain]) {
+            accumulator[domain] = {
               domain,
-              count: 0,
-              errorCount: 0,
-              avgMs: 0,
-              p50Ms: 0,
-              p95Ms: 0,
-              lastSeenAt: event.occurredAt.toISOString(),
-              cacheHitRate: 0,
-              latencies: [],
-              cacheHits: 0,
+              total: 0,
+              errors: 0,
+              apiRequests: 0,
             };
           }
 
-          const latency = toLatency(event);
-          accumulator[key].count += 1;
-          accumulator[key].errorCount += toStatus(event) >= 400 ? 1 : 0;
-          accumulator[key].lastSeenAt = accumulator[key].lastSeenAt > event.occurredAt.toISOString()
-            ? accumulator[key].lastSeenAt
-            : event.occurredAt.toISOString();
-          if (latency > 0) {
-            accumulator[key].latencies.push(latency);
-          }
-          if (event.payload?.cacheHit === true) {
-            accumulator[key].cacheHits += 1;
+          accumulator[domain].total += 1;
+          if (event.eventType === "api.request") {
+            accumulator[domain].apiRequests += 1;
+            if (toStatus(event) >= 400) {
+              accumulator[domain].errors += 1;
+            }
           }
 
           return accumulator;
         },
         {},
       ),
+    ).sort((left, right) => right.total - left.total);
+
+    const routes = Object.values(
+      apiEvents.reduce<
+        Record<
+          string,
+          RouteSummary & { latencies: number[]; cacheHits: number }
+        >
+      >((accumulator, event) => {
+        const route = toRouteKey(event);
+        const method = toMethod(event);
+        const domain = toDomain(event);
+        const key = `${method}:${route}`;
+        if (!accumulator[key]) {
+          accumulator[key] = {
+            route,
+            method,
+            domain,
+            count: 0,
+            errorCount: 0,
+            avgMs: 0,
+            p50Ms: 0,
+            p95Ms: 0,
+            lastSeenAt: event.occurredAt.toISOString(),
+            cacheHitRate: 0,
+            latencies: [],
+            cacheHits: 0,
+          };
+        }
+
+        const latency = toLatency(event);
+        accumulator[key].count += 1;
+        accumulator[key].errorCount += toStatus(event) >= 400 ? 1 : 0;
+        accumulator[key].lastSeenAt =
+          accumulator[key].lastSeenAt > event.occurredAt.toISOString()
+            ? accumulator[key].lastSeenAt
+            : event.occurredAt.toISOString();
+        if (latency > 0) {
+          accumulator[key].latencies.push(latency);
+        }
+        if (event.payload?.cacheHit === true) {
+          accumulator[key].cacheHits += 1;
+        }
+
+        return accumulator;
+      }, {}),
     )
       .map((route) => ({
         route: route.route,
@@ -301,35 +310,44 @@ export async function getObservabilityDataset(
             ? Math.round((route.cacheHits / route.count) * 1000) / 1000
             : 0,
       }))
-      .sort((left, right) => right.p95Ms - left.p95Ms || right.count - left.count);
+      .sort(
+        (left, right) => right.p95Ms - left.p95Ms || right.count - left.count,
+      );
 
     const errors = Object.values(
-      telemetryEvents.reduce<Record<string, ErrorSummary>>((accumulator, event) => {
-        const isApiError = event.eventType === "api.request" && toStatus(event) >= 400;
-        const isFrontendError = event.eventType.includes("error");
-        if (!isApiError && !isFrontendError) {
+      telemetryEvents.reduce<Record<string, ErrorSummary>>(
+        (accumulator, event) => {
+          const isApiError =
+            event.eventType === "api.request" && toStatus(event) >= 400;
+          const isFrontendError = event.eventType.includes("error");
+          if (!isApiError && !isFrontendError) {
+            return accumulator;
+          }
+
+          const fingerprint = toFingerprint(event);
+          if (!accumulator[fingerprint]) {
+            accumulator[fingerprint] = {
+              fingerprint,
+              route: toRouteKey(event),
+              count: 0,
+              lastSeenAt: event.occurredAt.toISOString(),
+              sampleMessage: toSampleMessage(event),
+            };
+          }
+
+          accumulator[fingerprint].count += 1;
+          if (
+            accumulator[fingerprint].lastSeenAt < event.occurredAt.toISOString()
+          ) {
+            accumulator[fingerprint].lastSeenAt =
+              event.occurredAt.toISOString();
+            accumulator[fingerprint].sampleMessage = toSampleMessage(event);
+          }
+
           return accumulator;
-        }
-
-        const fingerprint = toFingerprint(event);
-        if (!accumulator[fingerprint]) {
-          accumulator[fingerprint] = {
-            fingerprint,
-            route: toRouteKey(event),
-            count: 0,
-            lastSeenAt: event.occurredAt.toISOString(),
-            sampleMessage: toSampleMessage(event),
-          };
-        }
-
-        accumulator[fingerprint].count += 1;
-        if (accumulator[fingerprint].lastSeenAt < event.occurredAt.toISOString()) {
-          accumulator[fingerprint].lastSeenAt = event.occurredAt.toISOString();
-          accumulator[fingerprint].sampleMessage = toSampleMessage(event);
-        }
-
-        return accumulator;
-      }, {}),
+        },
+        {},
+      ),
     ).sort((left, right) => right.count - left.count);
 
     const dataset: ObservabilityDataset = {
@@ -344,7 +362,10 @@ export async function getObservabilityDataset(
         errorCount,
         avgLatencyMs:
           latencies.length > 0
-            ? Math.round(latencies.reduce((sum, value) => sum + value, 0) / latencies.length)
+            ? Math.round(
+                latencies.reduce((sum, value) => sum + value, 0) /
+                  latencies.length,
+              )
             : 0,
         p50LatencyMs: percentile(latencies, 0.5),
         p95LatencyMs: percentile(latencies, 0.95),

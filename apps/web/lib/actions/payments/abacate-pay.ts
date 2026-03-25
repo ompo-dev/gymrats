@@ -24,7 +24,10 @@ export async function confirmAbacatePayment(): Promise<{
       return { success: false, error: "Assinatura não encontrada." };
     }
 
-    if (subscription.status === "active" || subscription.status === "canceled") {
+    if (
+      subscription.status === "active" ||
+      subscription.status === "canceled"
+    ) {
       return {
         success: true,
         subscription: {

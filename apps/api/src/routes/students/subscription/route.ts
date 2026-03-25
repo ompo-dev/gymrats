@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { getStudentSubscriptionSource } from "@/lib/utils/subscription";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ studentContext }) => {
@@ -52,7 +52,8 @@ export const GET = createSafeHandler(
     return NextResponse.json({
       subscription: {
         id:
-          sub?.id ?? (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
+          sub?.id ??
+          (isVirtualEnterprise ? "virtual-gym-enterprise" : undefined),
         ...subInfo,
         abacatePayBillingId: sub?.abacatePayBillingId,
         currentPeriodEnd:

@@ -1,11 +1,15 @@
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import { PersonalSubscriptionService } from "./personal-subscription.service";
 
-function getDiscountPercentByGymPlan(plan?: string | null, status?: string | null) {
+function getDiscountPercentByGymPlan(
+  plan?: string | null,
+  status?: string | null,
+) {
   const normalized = (plan || "").toLowerCase();
   const isEligible =
-    status === "active" && (normalized === "premium" || normalized === "enterprise");
+    status === "active" &&
+    (normalized === "premium" || normalized === "enterprise");
   return isEligible ? 50 : null;
 }
 
@@ -17,7 +21,9 @@ function buildPersonalGymCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -72,7 +78,10 @@ export class PersonalGymService {
     return affiliation;
   }
 
-  static async unlinkPersonalFromGym(input: { personalId: string; gymId: string }) {
+  static async unlinkPersonalFromGym(input: {
+    personalId: string;
+    gymId: string;
+  }) {
     const { personalId, gymId } = input;
 
     const affiliation = await db.$transaction(async (tx) => {
@@ -103,9 +112,9 @@ export class PersonalGymService {
 
     if (!options?.fresh) {
       const cached =
-        await getCachedJson<Awaited<ReturnType<typeof db.gymPersonalAffiliation.findMany>>>(
-          cacheKey,
-        );
+        await getCachedJson<
+          Awaited<ReturnType<typeof db.gymPersonalAffiliation.findMany>>
+        >(cacheKey);
       if (cached) {
         return cached;
       }

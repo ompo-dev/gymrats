@@ -14,7 +14,7 @@
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import { log } from "@/lib/observability";
-import type { ExerciseInfo } from "@/lib/types";
+import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 
 interface OnboardingProfile {
   // Dados pessoais
@@ -61,17 +61,6 @@ interface ExerciseSelection {
     reason: string;
     educationalId?: string;
   }>;
-}
-
-interface WorkoutPlan {
-  title: string;
-  description: string;
-  type: "strength" | "cardio" | "flexibility" | "rest";
-  muscleGroup: string;
-  difficulty: "iniciante" | "intermediario" | "avancado";
-  exercises: ExerciseSelection[];
-  estimatedTime: number;
-  xpReward: number;
 }
 
 /**
@@ -502,6 +491,20 @@ export function generateAlternatives(
 /**
  * Seleciona exercícios para um grupo muscular específico
  */
+function normalizeMuscleGroup(input: string): MuscleGroup {
+  switch (input) {
+    case "biceps":
+    case "triceps":
+      return "bracos";
+    case "quadriceps":
+    case "femoral":
+    case "panturrilha":
+      return "pernas";
+    default:
+      return input as MuscleGroup;
+  }
+}
+
 function selectExercisesForMuscleGroup(
   muscleGroup: string,
   profile: OnboardingProfile,
@@ -523,15 +526,19 @@ function selectExercisesForMuscleGroup(
   } = profile;
 
   // Definir grupos musculares que não devem aparecer
-  const forbiddenMuscleGroups = new Set(excludedMuscleGroups);
+  const normalizedMuscleGroup = normalizeMuscleGroup(muscleGroup);
+  const forbiddenMuscleGroups = new Set(
+    excludedMuscleGroups.map(normalizeMuscleGroup),
+  );
 
   // Filtrar exercícios por grupo muscular
   // Priorizar exercícios onde o grupo muscular é PRIMÁRIO, não secundário
   let availableExercises = exerciseDatabase.filter((ex) => {
     // O grupo muscular deve estar nos músculos primários (prioridade)
-    const isPrimary = ex.primaryMuscles.includes(muscleGroup);
+    const isPrimary = ex.primaryMuscles.includes(normalizedMuscleGroup);
     // Ou pelo menos nos secundários se não houver primários
-    const isSecondary = !isPrimary && ex.secondaryMuscles.includes(muscleGroup);
+    const isSecondary =
+      !isPrimary && ex.secondaryMuscles.includes(normalizedMuscleGroup);
 
     // Não pode ter grupos musculares proibidos nos primários
     const hasForbiddenPrimary = ex.primaryMuscles.some((m) =>
@@ -539,7 +546,7 @@ function selectExercisesForMuscleGroup(
     );
     // Não pode ter grupos musculares proibidos nos secundários (a menos que seja o grupo alvo)
     const hasForbiddenSecondary = ex.secondaryMuscles.some(
-      (m) => forbiddenMuscleGroups.has(m) && m !== muscleGroup,
+      (m) => forbiddenMuscleGroups.has(m) && m !== normalizedMuscleGroup,
     );
 
     // Não pode ser um exercício já selecionado
@@ -664,7 +671,6 @@ export async function generatePersonalizedWorkoutPlan(
     workoutDuration = 45,
     fitnessLevel = "iniciante",
     goals = [],
-    activityLevel = 5,
   } = profile;
 
   // Determinar divisão de treino

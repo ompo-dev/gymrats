@@ -133,10 +133,17 @@ async function applyNutritionLibraryMigration() {
       // constraint already exists
     }
 
-    console.log("[migration] Nutrition library migration completed successfully.");
-    console.log("[migration] Run 'npx prisma generate' after applying migrations.");
+    console.log(
+      "[migration] Nutrition library migration completed successfully.",
+    );
+    console.log(
+      "[migration] Run 'npx prisma generate' after applying migrations.",
+    );
   } catch (error) {
-    console.error("[migration] Error applying nutrition library migration:", error);
+    console.error(
+      "[migration] Error applying nutrition library migration:",
+      error,
+    );
     process.exit(1);
   } finally {
     await prisma.$disconnect();

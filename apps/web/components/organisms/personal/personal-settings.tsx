@@ -1,18 +1,18 @@
 "use client";
 
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { CreditCard, Loader2, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
-import { useAuthStore } from "@/stores/auth-store";
-import { useUserSession } from "@/hooks/use-user-session";
-import { useToast } from "@/hooks/use-toast";
 import { usePersonalSettings } from "@/hooks/use-personal-settings";
-import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
-import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
+import { useToast } from "@/hooks/use-toast";
+import { useUserSession } from "@/hooks/use-user-session";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import { PersonalSettingsAccountCard } from "./personal-settings/personal-settings-account-card";
 
 export interface PersonalProfileDisplay {
   id?: string;
@@ -27,6 +27,7 @@ export interface PersonalProfileDisplay {
   atendimentoPresencial?: boolean;
   atendimentoRemoto?: boolean;
 }
+
 import { PersonalMembershipPlansPage } from "./personal-membership-plans-page";
 
 export interface PersonalSettingsPageProps {
@@ -55,7 +56,9 @@ export function PersonalSettingsPage({
   const [bio, setBio] = useState(profile?.bio ?? "");
   const [address, setAddress] = useState(profile?.address ?? "");
   const [cref, setCref] = useState(profile?.cref ?? "");
-  const [pixKeyType, setPixKeyType] = useState<string>(profile?.pixKeyType ?? "");
+  const [pixKeyType, setPixKeyType] = useState<string>(
+    profile?.pixKeyType ?? "",
+  );
   const [pixKey, setPixKey] = useState(profile?.pixKey ?? "");
   const [atendimentoPresencial, setAtendimentoPresencial] = useState(
     profile?.atendimentoPresencial ?? true,
@@ -144,9 +147,7 @@ export function PersonalSettingsPage({
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
         <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-fg">
-            Configurações
-          </h1>
+          <h1 className="mb-2 text-3xl font-bold text-duo-fg">Configurações</h1>
           <p className="text-sm text-duo-fg-muted">
             Gerencie seu perfil, endereço e dados financeiros
           </p>
@@ -166,9 +167,7 @@ export function PersonalSettingsPage({
               placeholder="Seu nome"
             />
             <div className="space-y-1">
-              <label className="text-sm font-medium text-[var(--duo-fg)]">
-                E-mail
-              </label>
+              <p className="text-sm font-medium text-[var(--duo-fg)]">E-mail</p>
               <div className="px-3 py-2 text-sm text-[var(--duo-fg-muted)] bg-[var(--duo-bg-elevated)] rounded-xl border border-[var(--duo-border)] select-none">
                 {email}
               </div>
@@ -189,10 +188,14 @@ export function PersonalSettingsPage({
               placeholder="(00) 00000-0000"
             />
             <div>
-              <label className="mb-1 block text-sm font-medium text-duo-fg">
+              <label
+                htmlFor="personal-settings-bio"
+                className="mb-1 block text-sm font-medium text-duo-fg"
+              >
                 Bio
               </label>
               <textarea
+                id="personal-settings-bio"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Conte um pouco sobre você..."
@@ -272,10 +275,7 @@ export function PersonalSettingsPage({
                 ),
               },
             ].map((field, index) => (
-              <div
-                key={field.title}
-                className={index > 0 ? "pt-0" : undefined}
-              >
+              <div key={field.title} className={index > 0 ? "pt-0" : undefined}>
                 <DuoCard.Root
                   variant="default"
                   size="default"
@@ -314,9 +314,7 @@ export function PersonalSettingsPage({
       <SlideIn delay={0.2}>
         <DuoCard.Root variant="default" padding="md">
           <DuoCard.Header>
-            <h3 className="font-bold text-duo-fg">
-              Modalidade de atendimento
-            </h3>
+            <h3 className="font-bold text-duo-fg">Modalidade de atendimento</h3>
           </DuoCard.Header>
           <div className="space-y-3">
             {[
@@ -365,11 +363,7 @@ export function PersonalSettingsPage({
 
       {hasChanges && (
         <SlideIn delay={0.25}>
-          <DuoButton
-            onClick={onSave}
-            disabled={saving}
-            className="w-full"
-          >
+          <DuoButton onClick={onSave} disabled={saving} className="w-full">
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

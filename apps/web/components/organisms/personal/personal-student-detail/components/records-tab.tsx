@@ -42,7 +42,8 @@ export function PersonalRecordsTab({ records = [] }: PersonalRecordsTabProps) {
                     {record.exerciseName}
                   </p>
                   <p className="text-xs sm:text-sm text-duo-gray-dark">
-                    {formatDatePtBr(record.date) || "N/A"}
+                    {(record.date ? formatDatePtBr(record.date) : null) ||
+                      "N/A"}
                   </p>
                 </div>
                 <div className="text-left sm:text-right">

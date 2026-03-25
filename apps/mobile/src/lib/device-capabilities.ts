@@ -1,7 +1,7 @@
+import type { NativeCapabilities } from "../store/types";
 import { getPushCapability } from "./push";
 import { isDebugToolsEnabled } from "./runtime";
 import { getWidgetCapability } from "./widget";
-import type { NativeCapabilities } from "../store/types";
 
 export function getNativeCapabilities(): NativeCapabilities {
   const push = getPushCapability();

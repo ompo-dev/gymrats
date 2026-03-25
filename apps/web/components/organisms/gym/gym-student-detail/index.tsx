@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Activity, Flame, Target, Users } from "lucide-react";
+import { useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import {
@@ -127,7 +127,9 @@ export function GymStudentDetail({
           onMembershipAction={handleMembershipAction}
           onAssignWorkout={openWorkoutsEditor}
           onAssignDiet={openDietTab}
-          onAssignPersonal={variant === "personal" ? undefined : handleOpenAssignPersonal}
+          onAssignPersonal={
+            variant === "personal" ? undefined : handleOpenAssignPersonal
+          }
           isAssigningPersonal={isAssigningPersonal}
         />
         <AssignPersonalModal

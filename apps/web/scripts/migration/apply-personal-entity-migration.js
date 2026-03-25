@@ -202,7 +202,9 @@ async function applyMigration() {
     console.log("📝 Execute: npx prisma generate");
     console.log("\n📋 Resumo:");
     console.log("   - Role PERSONAL no UserRole");
-    console.log("   - Tabelas: personals, personal_subscriptions, gym_personal_affiliations, student_personal_assignments");
+    console.log(
+      "   - Tabelas: personals, personal_subscriptions, gym_personal_affiliations, student_personal_assignments",
+    );
   } catch (error) {
     console.error("❌ Erro ao aplicar migration:", error.message);
     process.exit(1);

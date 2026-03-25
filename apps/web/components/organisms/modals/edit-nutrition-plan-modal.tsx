@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { Save } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { DuoButton, DuoCard, DuoInput } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
@@ -9,8 +9,8 @@ import { Modal } from "@/components/organisms/modals/modal";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
 import { useStudent } from "@/hooks/use-student";
 import type { Meal, NutritionPlanData } from "@/lib/types";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { useStudentDetailStore } from "@/stores/student-detail-store";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 interface EditNutritionPlanModalProps {
   isOpen: boolean;
@@ -73,18 +73,19 @@ export function EditNutritionPlanModal({
     (state) => state.updateNutritionLibraryPlan,
   );
   const studentFoodDatabase = useStudent("foodDatabase");
-  const studentPlans =
-    useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[];
+  const studentPlans = useStudent(
+    "nutritionLibraryPlans",
+  ) as unknown as NutritionPlanData[];
   const updateDetailNutritionLibraryPlan = useStudentDetailStore(
     (state) => state.updateNutritionLibraryPlan,
   );
   const detailKey =
     apiMode !== "student" && studentId
-      ? `${apiMode}:${studentId}` as const
+      ? (`${apiMode}:${studentId}` as const)
       : null;
   const detailPlans = useStudentDetailStore((state) =>
     detailKey
-      ? state.nutritionLibraryPlans[detailKey] ?? EMPTY_NUTRITION_PLANS
+      ? (state.nutritionLibraryPlans[detailKey] ?? EMPTY_NUTRITION_PLANS)
       : EMPTY_NUTRITION_PLANS,
   );
 
@@ -109,7 +110,9 @@ export function EditNutritionPlanModal({
   }, [apiMode, detailPlans, nutritionPlan, studentPlans]);
 
   const [title, setTitle] = useState(currentPlan?.title ?? "");
-  const [description, setDescription] = useState(currentPlan?.description ?? "");
+  const [description, setDescription] = useState(
+    currentPlan?.description ?? "",
+  );
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showFoodSearch, setShowFoodSearch] = useState(false);
@@ -233,7 +236,9 @@ export function EditNutritionPlanModal({
 
   const handleRemoveMeal = async (mealId: string) => {
     await updateMeals(
-      planToTrackerNutrition(currentPlan).meals.filter((meal) => meal.id !== mealId),
+      planToTrackerNutrition(currentPlan).meals.filter(
+        (meal) => meal.id !== mealId,
+      ),
     );
   };
 
@@ -283,7 +288,10 @@ export function EditNutritionPlanModal({
                     onChange={(event) => setDescription(event.target.value)}
                   />
                 </div>
-                <DuoButton onClick={handleSaveDetails} disabled={isSavingDetails}>
+                <DuoButton
+                  onClick={handleSaveDetails}
+                  disabled={isSavingDetails}
+                >
                   <Save className="h-4 w-4" />
                   {isSavingDetails ? "Salvando..." : "Salvar detalhes"}
                 </DuoButton>

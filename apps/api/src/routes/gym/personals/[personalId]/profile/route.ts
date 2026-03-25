@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   personalId: z.string().min(1),
@@ -39,6 +39,10 @@ export const GET = createSafeHandler(
       );
     }
 
+    const personalWithCref = personal as typeof personal & {
+      cref?: string | null;
+    };
+
     const [gymsAffiliations, studentsCount] = await Promise.all([
       db.gymPersonalAffiliation.findMany({
         where: { personalId, status: "active" },
@@ -58,7 +62,7 @@ export const GET = createSafeHandler(
       bio: personal.bio,
       email: personal.email,
       phone: personal.phone,
-      cref: (personal as any).cref ?? null,
+      cref: personalWithCref.cref ?? null,
       atendimentoPresencial: personal.atendimentoPresencial,
       atendimentoRemoto: personal.atendimentoRemoto,
       gyms: gymsAffiliations.map((a) => ({

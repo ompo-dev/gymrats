@@ -83,7 +83,9 @@ interface StudentDiscoveryState {
   assignedPersonals: StudentPersonalAssignment[];
   personalDirectory: Record<string, StudentPersonalListItem[]>;
   resources: Record<string, ResourceState>;
-  loadAssignedPersonals: (force?: boolean) => Promise<StudentPersonalAssignment[]>;
+  loadAssignedPersonals: (
+    force?: boolean,
+  ) => Promise<StudentPersonalAssignment[]>;
   loadPersonalDirectory: (params: {
     filter: PersonalFilter;
     lat?: number;
@@ -114,9 +116,9 @@ export const useStudentDiscoveryStore = create<StudentDiscoveryState>(
       }
 
       if (!force && inflight.has(ASSIGNED_PERSONALS_KEY)) {
-        return inflight.get(
-          ASSIGNED_PERSONALS_KEY,
-        ) as Promise<StudentPersonalAssignment[]>;
+        return inflight.get(ASSIGNED_PERSONALS_KEY) as Promise<
+          StudentPersonalAssignment[]
+        >;
       }
 
       set((current) => ({
@@ -124,7 +126,9 @@ export const useStudentDiscoveryStore = create<StudentDiscoveryState>(
       }));
 
       const request = apiClient
-        .get<{ personals: StudentPersonalAssignment[] }>("/api/students/personals")
+        .get<{ personals: StudentPersonalAssignment[] }>(
+          "/api/students/personals",
+        )
         .then((response) => {
           const data = response.data.personals ?? [];
           set((current) => ({
@@ -138,8 +142,8 @@ export const useStudentDiscoveryStore = create<StudentDiscoveryState>(
             error &&
             typeof error === "object" &&
             "response" in error &&
-            (error as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
+            (error as { response?: { data?: { error?: string } } }).response
+              ?.data?.error
               ? (error as { response?: { data?: { error?: string } } }).response
                   ?.data?.error
               : error instanceof Error
@@ -169,7 +173,12 @@ export const useStudentDiscoveryStore = create<StudentDiscoveryState>(
       const cached = state.personalDirectory[cacheKey];
       const resource = state.resources[cacheKey];
 
-      if (!force && cached && resource?.status === "ready" && isFresh(resource)) {
+      if (
+        !force &&
+        cached &&
+        resource?.status === "ready" &&
+        isFresh(resource)
+      ) {
         return cached;
       }
 
@@ -208,8 +217,8 @@ export const useStudentDiscoveryStore = create<StudentDiscoveryState>(
             error &&
             typeof error === "object" &&
             "response" in error &&
-            (error as { response?: { data?: { error?: string } } }).response?.data
-              ?.error
+            (error as { response?: { data?: { error?: string } } }).response
+              ?.data?.error
               ? (error as { response?: { data?: { error?: string } } }).response
                   ?.data?.error
               : error instanceof Error

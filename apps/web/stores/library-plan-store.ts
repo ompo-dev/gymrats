@@ -11,10 +11,7 @@ import type {
 } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
-type LibraryMutationType =
-  | "plan"
-  | "workout"
-  | "exercise";
+type LibraryMutationType = "plan" | "workout" | "exercise";
 
 interface LibraryPlanMutationState {
   mutationLoadingByPlan: Record<string, boolean>;
@@ -135,7 +132,11 @@ const patchWorkoutInLibraryPlans = (
     plans.map((plan) => ({
       ...plan,
       slots: plan.slots.map((slot) => {
-        if (slot.type !== "workout" || !slot.workout || slot.workout.id !== workoutId) {
+        if (
+          slot.type !== "workout" ||
+          !slot.workout ||
+          slot.workout.id !== workoutId
+        ) {
           return slot;
         }
 
@@ -153,7 +154,11 @@ const removeWorkoutFromLibraryPlans = (workoutId: string) => {
     plans.map((plan) => ({
       ...plan,
       slots: plan.slots.map((slot) => {
-        if (slot.type !== "workout" || !slot.workout || slot.workout.id !== workoutId) {
+        if (
+          slot.type !== "workout" ||
+          !slot.workout ||
+          slot.workout.id !== workoutId
+        ) {
           return slot;
         }
 
@@ -200,7 +205,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   mutationTypeByPlan: {},
 
   updatePlan: async ({ planId, payload }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     setLibraryMutationState(planId, "plan", true);
 
     updateStudentLibraryPlans((plans) =>
@@ -231,7 +237,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   addWorkoutToSlot: async ({ planId, payload }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     const { workoutId, workout } = createOptimisticWorkout(payload);
 
     setLibraryMutationState(planId, "workout", true);
@@ -286,7 +293,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   updateWorkout: async ({ planId, workoutId, payload }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     setLibraryMutationState(planId, "workout", true);
 
     patchWorkoutInLibraryPlans(workoutId, (workout) => ({
@@ -311,7 +319,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   deleteWorkout: async ({ planId, workoutId }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     setLibraryMutationState(planId, "workout", true);
 
     removeWorkoutFromLibraryPlans(workoutId);
@@ -333,7 +342,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   addWorkoutExercise: async ({ planId, workoutId, payload }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     const tempExerciseId = `temp-library-exercise-${Date.now()}`;
     setLibraryMutationState(planId, "exercise", true);
 
@@ -397,7 +407,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   updateWorkoutExercise: async ({ planId, exerciseId, payload }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     setLibraryMutationState(planId, "exercise", true);
 
     patchExerciseInLibraryPlans(exerciseId, (exercise) => ({
@@ -422,7 +433,8 @@ export const useLibraryPlanStore = create<LibraryPlanMutationState>(() => ({
   },
 
   deleteWorkoutExercise: async ({ planId, exerciseId }) => {
-    const previousPlans = useStudentUnifiedStore.getState().data.libraryPlans ?? [];
+    const previousPlans =
+      useStudentUnifiedStore.getState().data.libraryPlans ?? [];
     setLibraryMutationState(planId, "exercise", true);
 
     patchExerciseInLibraryPlans(exerciseId, () => null);

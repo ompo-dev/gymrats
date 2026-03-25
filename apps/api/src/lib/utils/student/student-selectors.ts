@@ -151,10 +151,7 @@ export function selectRole(d: StudentData) {
   return d.user.role;
 }
 
-export const selectorMap: Record<
-  string,
-  (data: StudentData) => import("@/lib/types/api-error").JsonValue
-> = {
+export const selectorMap: Record<string, (data: StudentData) => unknown> = {
   user: selectUser,
   student: selectStudent,
   progress: selectProgress,
@@ -207,30 +204,19 @@ export const selectorMap: Record<
   role: selectRole,
 };
 
-export function selectFromData(
-  data: StudentData,
-  selector: string,
-): string | number | boolean | object | null | undefined {
+export function selectFromData(data: StudentData, selector: string): unknown {
   const selectFn = selectorMap[selector];
   if (selectFn) return selectFn(data);
   if (selector in data)
-    return (
-      data as Record<
-        string,
-        string | number | boolean | object | null | undefined
-      >
-    )[selector];
+    return (data as unknown as Record<string, unknown>)[selector];
   return undefined;
 }
 
 export function selectMultiple(
   data: StudentData,
   selectors: string[],
-): Record<string, string | number | boolean | object | null | undefined> {
-  const result: Record<
-    string,
-    string | number | boolean | object | null | undefined
-  > = {};
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   for (const selector of selectors) {
     result[selector] = selectFromData(data, selector);
   }

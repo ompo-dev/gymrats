@@ -1,10 +1,15 @@
 import { db } from "@/lib/db";
+import type { StudentProfileData } from "@/lib/types/student-unified";
 
-export class StudentProfileService {
+function serializeStringArray(value: string[] | undefined): string | null {
+  return value && value.length > 0 ? JSON.stringify(value) : null;
+}
+
+export const StudentProfileService = {
   /**
    * Busca dados do perfil do aluno
    */
-  static async getProfile(studentId: string) {
+  async getProfile(studentId: string) {
     const student = await db.student.findUnique({
       where: { id: studentId },
       include: { profile: true },
@@ -18,12 +23,12 @@ export class StudentProfileService {
       goals: p.goals ? JSON.parse(p.goals) : [],
       hasWeightLossGoal: p.goals ? p.goals.includes("perder-peso") : false,
     };
-  }
+  },
 
   /**
    * Busca histórico de peso e ganho/perda mensal
    */
-  static async getWeightHistory(studentId: string) {
+  async getWeightHistory(studentId: string) {
     const data = await db.weightHistory.findMany({
       where: { studentId },
       orderBy: { date: "desc" },
@@ -48,12 +53,12 @@ export class StudentProfileService {
       history: data,
       weightGain,
     };
-  }
+  },
 
   /**
    * Busca nutrição diária e metas
    */
-  static async getDailyNutrition(studentId: string) {
+  async getDailyNutrition(studentId: string) {
     const dateStr = new Date().toISOString().split("T")[0];
     const daily = await db.dailyNutrition.findFirst({
       where: { studentId, date: { gte: new Date(dateStr) } },
@@ -66,50 +71,35 @@ export class StudentProfileService {
           waterIntake: daily.waterIntake,
         }
       : null;
-  }
+  },
 
   /**
    * Salva dados de onboarding do aluno
    */
-  static async saveOnboardingData(
+  async saveOnboardingData(
     studentId: string,
-    data: Record<
-      string,
-      | string
-      | number
-      | boolean
-      | string[]
-      | Record<string, string | string[]>
-      | null
-      | undefined
-    >,
+    data: Partial<StudentProfileData>,
   ) {
     const profileData = {
       studentId,
-      height: data.height || null,
-      weight: data.weight || null,
-      fitnessLevel: data.fitnessLevel || null,
-      weeklyWorkoutFrequency: data.weeklyWorkoutFrequency || null,
-      workoutDuration: data.workoutDuration || null,
-      goals: data.goals?.length ? JSON.stringify(data.goals) : null,
-      gymType: data.gymType || null,
+      height: data.height ?? null,
+      weight: data.weight ?? null,
+      fitnessLevel: data.fitnessLevel ?? null,
+      weeklyWorkoutFrequency: data.weeklyWorkoutFrequency ?? null,
+      workoutDuration: data.workoutDuration ?? null,
+      goals: serializeStringArray(data.goals),
+      gymType: data.gymType ?? null,
       preferredSets: data.preferredSets ?? null,
-      preferredRepRange: data.preferredRepRange || null,
-      restTime: data.restTime || null,
-      targetCalories: data.targetCalories || null,
-      targetProtein: data.targetProtein || null,
-      targetCarbs: data.targetCarbs || null,
-      targetFats: data.targetFats || null,
-      activityLevel: data.activityLevel || null,
-      physicalLimitations: data.physicalLimitations?.length
-        ? JSON.stringify(data.physicalLimitations)
-        : null,
-      motorLimitations: data.motorLimitations?.length
-        ? JSON.stringify(data.motorLimitations)
-        : null,
-      medicalConditions: data.medicalConditions?.length
-        ? JSON.stringify(data.medicalConditions)
-        : null,
+      preferredRepRange: data.preferredRepRange ?? null,
+      restTime: data.restTime ?? null,
+      targetCalories: data.targetCalories ?? null,
+      targetProtein: data.targetProtein ?? null,
+      targetCarbs: data.targetCarbs ?? null,
+      targetFats: data.targetFats ?? null,
+      activityLevel: data.activityLevel ?? null,
+      physicalLimitations: serializeStringArray(data.physicalLimitations),
+      motorLimitations: serializeStringArray(data.motorLimitations),
+      medicalConditions: serializeStringArray(data.medicalConditions),
     };
 
     return db.studentProfile.upsert({
@@ -117,5 +107,5 @@ export class StudentProfileService {
       create: profileData,
       update: profileData,
     });
-  }
-}
+  },
+};

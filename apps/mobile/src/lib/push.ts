@@ -2,7 +2,23 @@ import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform, Linking } from "react-native";
+import { Linking, Platform } from "react-native";
+import type {
+  MobileInstallationPayload,
+  NativeCapabilities,
+  PushPermissionStatus,
+  StoredPushState,
+} from "../store/types";
+import {
+  deactivateMobileInstallation,
+  registerMobileInstallation,
+  sendTestMobileNotification,
+} from "./native-api";
+import {
+  getAppOwnership,
+  getAppVersionLabel,
+  isDebugToolsEnabled,
+} from "./runtime";
 import {
   clearStoredInstallationId,
   readNativeNamespace,
@@ -10,18 +26,6 @@ import {
   writeNativeNamespace,
   writeStoredInstallationId,
 } from "./storage";
-import {
-  deactivateMobileInstallation,
-  registerMobileInstallation,
-  sendTestMobileNotification,
-} from "./native-api";
-import { getAppOwnership, getAppVersionLabel, isDebugToolsEnabled } from "./runtime";
-import type {
-  MobileInstallationPayload,
-  NativeCapabilities,
-  PushPermissionStatus,
-  StoredPushState,
-} from "../store/types";
 
 const PUSH_CHANNEL_ID = "gymrats-default";
 
@@ -115,7 +119,10 @@ function getDeviceMetadata() {
   return {
     appVersion: getAppVersionLabel(),
     deviceName:
-      Device.deviceName || Constants.expoConfig?.name || Application.applicationName || null,
+      Device.deviceName ||
+      Constants.expoConfig?.name ||
+      Application.applicationName ||
+      null,
     locale,
     timezone,
   };
@@ -270,10 +277,7 @@ export async function enablePushNotifications(options: {
   const existingPermissions = await Notifications.getPermissionsAsync();
   let permissionStatus = normalizePermissionStatus(existingPermissions);
 
-  if (
-    permissionStatus !== "granted" &&
-    permissionStatus !== "provisional"
-  ) {
+  if (permissionStatus !== "granted" && permissionStatus !== "provisional") {
     const requestedPermissions = await Notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,
@@ -285,10 +289,7 @@ export async function enablePushNotifications(options: {
     permissionStatus = normalizePermissionStatus(requestedPermissions);
   }
 
-  if (
-    permissionStatus !== "granted" &&
-    permissionStatus !== "provisional"
-  ) {
+  if (permissionStatus !== "granted" && permissionStatus !== "provisional") {
     const deniedState: StoredPushState = {
       ...registeringState,
       enabled: false,

@@ -67,11 +67,11 @@ export function WorkoutNodeButton({
           ? "0px 8px 0px rgba(0, 0, 0, 0.1), 0px 8px 0px #D1D5DB"
           : isMissed
             ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FCA5A5"
-          : isCurrent || (!isLocked && !isCompleted)
-            ? `0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px ${activeColor}`
-            : isCompleted
-              ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FFA500"
-              : "none",
+            : isCurrent || (!isLocked && !isCompleted)
+              ? `0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px ${activeColor}`
+              : isCompleted
+                ? "0px 8px 0px rgba(0, 0, 0, 0.2), 0px 8px 0px #FFA500"
+                : "none",
       }}
     >
       {isMissed ? (

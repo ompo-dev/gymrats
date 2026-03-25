@@ -140,7 +140,7 @@ export function GymSettingsPage({
   } = useUserSession();
 
   const isAdmin = serverIsAdmin || serverRole === "ADMIN";
-  const canSwitchToStudent = isAdmin || serverRole === "GYM";
+  const _canSwitchToStudent = isAdmin || serverRole === "GYM";
 
   const updateDaySchedule = (
     dayId: string,

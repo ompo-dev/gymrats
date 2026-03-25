@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { personalStudentsSearchQuerySchema } from "@/lib/api/schemas/personals.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
 import { featureFlags } from "@/lib/feature-flags";
+import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ personalContext, query }) => {

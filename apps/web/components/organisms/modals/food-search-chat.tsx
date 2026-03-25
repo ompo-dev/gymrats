@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Check,
-  Loader2,
-  RotateCcw,
-  Send,
-  Sparkles,
-} from "lucide-react";
+import { Check, Loader2, RotateCcw, Send, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DuoButton } from "@/components/duo";
@@ -15,14 +9,14 @@ import {
   buildNutritionPreviewPlan,
   getNutritionMealName,
   getNutritionMealTime,
-  parsedFoodToFoodItem,
   type NutritionPreviewMeal,
   type NutritionPreviewPlan,
+  parsedFoodToFoodItem,
 } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_INITIAL_MESSAGE } from "@/lib/ai/prompts/nutrition";
 import type { DietType, FoodItem, Meal, NutritionPlanData } from "@/lib/types";
-import { nutritionPlanToMeals } from "@/lib/utils/nutrition/nutrition-plan";
 import { cn } from "@/lib/utils";
+import { nutritionPlanToMeals } from "@/lib/utils/nutrition/nutrition-plan";
 import { useAssistantTransportStore } from "@/stores/assistant-transport-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { NutritionPreviewCard } from "./nutrition-preview-card";
@@ -134,9 +128,12 @@ function mergePreviewMeals(
   const previewByType = new Map(
     previewMeals.map((meal) => [meal.type, meal] as const),
   );
-  const mergedMeals = skeletonMeals.map((meal) => previewByType.get(meal.type) ?? meal);
+  const mergedMeals = skeletonMeals.map(
+    (meal) => previewByType.get(meal.type) ?? meal,
+  );
   const extraMeals = previewMeals.filter(
-    (meal) => !skeletonMeals.some((skeletonMeal) => skeletonMeal.type === meal.type),
+    (meal) =>
+      !skeletonMeals.some((skeletonMeal) => skeletonMeal.type === meal.type),
   );
 
   return [...mergedMeals, ...extraMeals];
@@ -156,8 +153,7 @@ function syncPreviewMessages(
   previewMeals.forEach((meal, index) => {
     const existingIndex = nextMessages.findIndex(
       (message) =>
-        message.nutritionPreview &&
-        message.nutritionPreviewIndex === index,
+        message.nutritionPreview && message.nutritionPreviewIndex === index,
     );
     const nextPreviewMessage: ChatMessage = {
       id: `nutrition-preview-${index}`,
@@ -224,7 +220,7 @@ function mergeMealsForChat(baseMeals: Meal[], overlayMeals: Meal[]) {
   return mergedMeals;
 }
 
-function upsertPreviewMeal(
+function _upsertPreviewMeal(
   currentMeals: NutritionPreviewMeal[],
   skeletonMeals: NutritionPreviewMeal[],
   nextMeal: NutritionPreviewMeal,
@@ -237,7 +233,8 @@ function upsertPreviewMeal(
     typeof targetIndex === "number" && targetIndex >= 0
       ? targetIndex
       : nextMeals.findIndex(
-          (meal) => normalizeMealIdentity(meal) === normalizeMealIdentity(nextMeal),
+          (meal) =>
+            normalizeMealIdentity(meal) === normalizeMealIdentity(nextMeal),
         );
 
   if (resolvedIndex >= 0) {
@@ -264,7 +261,10 @@ function buildDailyTotals(meals: Meal[]) {
       (sum, meal) => sum + (meal.protein || 0),
       0,
     ),
-    totalCarbs: completedMeals.reduce((sum, meal) => sum + (meal.carbs || 0), 0),
+    totalCarbs: completedMeals.reduce(
+      (sum, meal) => sum + (meal.carbs || 0),
+      0,
+    ),
     totalFats: completedMeals.reduce((sum, meal) => sum + (meal.fats || 0), 0),
   };
 }
@@ -275,7 +275,10 @@ function buildFoodsFromPreviewMeal(
   existingFoodsCount: number,
 ) {
   return previewMeal.foods.map((food, foodIndex) => {
-    const parsedFood = parsedFoodToFoodItem(food, existingFoodsCount + foodIndex);
+    const parsedFood = parsedFoodToFoodItem(
+      food,
+      existingFoodsCount + foodIndex,
+    );
     return {
       id: `food-${Date.now()}-${mealIndex}-${foodIndex}`,
       foodId: parsedFood.id,
@@ -334,7 +337,11 @@ function replaceMealsWithPreviewPlan(
   previewMeals.forEach((previewMeal, mealIndex) => {
     const matchIndex = findMatchingMealIndex(nextMeals, previewMeal);
     const existingMeal = matchIndex >= 0 ? nextMeals[matchIndex] : null;
-    const nextMeal = createMealFromPreview(previewMeal, mealIndex, existingMeal);
+    const nextMeal = createMealFromPreview(
+      previewMeal,
+      mealIndex,
+      existingMeal,
+    );
 
     if (matchIndex >= 0) {
       nextMeals[matchIndex] = nextMeal;
@@ -362,7 +369,9 @@ function appendPreviewPlanToMeals(
       previewMeal.type === selectedMeal.type &&
       previewMeal.name === selectedMeal.name
     ) {
-      targetMealIndex = nextMeals.findIndex((meal) => meal.id === selectedMeal.id);
+      targetMealIndex = nextMeals.findIndex(
+        (meal) => meal.id === selectedMeal.id,
+      );
     }
 
     if (targetMealIndex === -1) {
@@ -386,10 +395,13 @@ function appendPreviewPlanToMeals(
     }
 
     const meal = nextMeals[targetMealIndex];
+    if (!meal) {
+      return;
+    }
     const newFoods = buildFoodsFromPreviewMeal(
       previewMeal,
       mealIndex,
-      meal.foods.length,
+      (meal.foods ?? []).length,
     );
 
     meal.foods = [...(meal.foods || []), ...newFoods];
@@ -416,8 +428,9 @@ export function FoodSearchChat({
   const studentDailyNutrition =
     (useStudent("dailyNutrition") as { meals?: Meal[] } | null) ?? null;
   const studentActiveNutritionPlan =
-    (useStudent("activeNutritionPlan") as unknown as NutritionPlanData | null) ??
-    null;
+    (useStudent(
+      "activeNutritionPlan",
+    ) as unknown as NutritionPlanData | null) ?? null;
   const storeMeals = Array.isArray(studentDailyNutrition?.meals)
     ? studentDailyNutrition.meals
     : EMPTY_MEALS;
@@ -459,7 +472,9 @@ export function FoodSearchChat({
     "append" | "replace-plan"
   >("append");
   const [allPreviewComplete, setAllPreviewComplete] = useState(false);
-  const [missingExpectedMeals, setMissingExpectedMeals] = useState<string[]>([]);
+  const [missingExpectedMeals, setMissingExpectedMeals] = useState<string[]>(
+    [],
+  );
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       role: "user" | "assistant";
@@ -478,7 +493,7 @@ export function FoodSearchChat({
   const approveInFlightRef = useRef(false);
 
   const selectedMeal = localSelectedMealId
-    ? meals.find((meal) => meal.id === localSelectedMealId) ?? null
+    ? (meals.find((meal) => meal.id === localSelectedMealId) ?? null)
     : null;
 
   useEffect(() => {
@@ -526,7 +541,7 @@ export function FoodSearchChat({
     const applyMode = shouldCoverAllMeals ? "replace-plan" : "append";
     const fallbackMealTypeForPreview = shouldCoverAllMeals
       ? null
-      : selectedMeal?.type ?? null;
+      : (selectedMeal?.type ?? null);
 
     setInputMessage("");
     setAllPreviewComplete(false);
@@ -577,12 +592,12 @@ export function FoodSearchChat({
           selectedMeal: shouldCoverAllMeals
             ? null
             : selectedMeal
-            ? {
-                id: selectedMeal.id,
-                type: selectedMeal.type,
-                name: selectedMeal.name,
-              }
-            : null,
+              ? {
+                  id: selectedMeal.id,
+                  type: selectedMeal.type,
+                  name: selectedMeal.name,
+                }
+              : null,
         },
       });
 
@@ -653,7 +668,10 @@ export function FoodSearchChat({
 
           if (event === "meal_progress" && data.meals) {
             const streamingMeals = (data.meals as NutritionPreviewMeal[]) ?? [];
-            const mergedMeals = mergePreviewMeals(mealSkeletons, streamingMeals);
+            const mergedMeals = mergePreviewMeals(
+              mealSkeletons,
+              streamingMeals,
+            );
 
             setPreviewMeals(mergedMeals);
             setMessages((prev) => syncPreviewMessages(prev, mergedMeals));
@@ -687,7 +705,12 @@ export function FoodSearchChat({
               previewPlan.meals,
             );
             const missingMeals = mealSkeletons
-              .filter((meal) => !previewPlan.meals.some((preview) => preview.type === meal.type))
+              .filter(
+                (meal) =>
+                  !previewPlan.meals.some(
+                    (preview) => preview.type === meal.type,
+                  ),
+              )
               .map((meal) => meal.name);
             const finalAssistantMessage =
               missingMeals.length > 0
@@ -795,7 +818,11 @@ export function FoodSearchChat({
       const nextMeals =
         pendingApplyMode === "replace-plan"
           ? replaceMealsWithPreviewPlan(meals, pendingNutritionPlan.meals)
-          : appendPreviewPlanToMeals(meals, pendingNutritionPlan.meals, selectedMeal);
+          : appendPreviewPlanToMeals(
+              meals,
+              pendingNutritionPlan.meals,
+              selectedMeal,
+            );
 
       const totals = buildDailyTotals(nextMeals);
 

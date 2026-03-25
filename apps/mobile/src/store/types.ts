@@ -58,10 +58,7 @@ export type AppStore = {
   clearSession: () => Promise<void>;
 };
 
-export type NativeStorageNamespace =
-  | "preferences"
-  | "notification"
-  | "widget";
+export type NativeStorageNamespace = "preferences" | "notification" | "widget";
 
 export type CapabilitySupportStatus =
   | "supported"

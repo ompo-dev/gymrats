@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { persistBusinessEvent } from "@/lib/observability";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   paymentId: z.string().min(1),
@@ -58,10 +58,7 @@ export const PATCH = createSafeHandler(
     patchBodySchema.parse(body);
     const studentId = studentContext?.studentId;
     if (!studentId) {
-      return NextResponse.json(
-        { error: "Não autorizado" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
     const payment = await db.payment.findFirst({

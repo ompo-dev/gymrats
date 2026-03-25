@@ -87,7 +87,7 @@ export class GymMemberService {
           age: student.age ?? 0,
           gender: student.gender ?? "",
           phone: student.phone || "",
-          membershipStatus: "network_pro" as any, // Adicionamos status especial
+          membershipStatus: "network_pro" as const,
           joinDate: a.createdAt,
           currentStreak: progress?.currentStreak || 0,
           currentWeight: profile?.weight ?? 0,

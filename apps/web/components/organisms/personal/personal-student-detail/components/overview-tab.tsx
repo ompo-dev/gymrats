@@ -57,7 +57,9 @@ export function PersonalOverviewTab({
             <div className="flex justify-between items-center">
               <span className="font-bold text-duo-gray-dark">Vínculo</span>
               <span className="text-duo-text font-bold">
-                {gymName ? `Via academia ${gymName}` : "Atendimento independente"}
+                {gymName
+                  ? `Via academia ${gymName}`
+                  : "Atendimento independente"}
               </span>
             </div>
           </DuoCard.Root>
@@ -90,13 +92,17 @@ export function PersonalOverviewTab({
             </span>
           )}
         </div>
-        <h3 className="mb-3 mt-6 font-bold text-duo-text">
-          Dados do perfil
-        </h3>
+        <h3 className="mb-3 mt-6 font-bold text-duo-text">Dados do perfil</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: "Altura", value: profile?.height ? `${profile.height} cm` : "—" },
-            { label: "Peso", value: profile?.weight ? `${profile.weight} kg` : "—" },
+            {
+              label: "Altura",
+              value: profile?.height ? `${profile.height} cm` : "—",
+            },
+            {
+              label: "Peso",
+              value: profile?.weight ? `${profile.weight} kg` : "—",
+            },
             {
               label: "Nível",
               value: String(profile?.fitnessLevel ?? "iniciante").replace(

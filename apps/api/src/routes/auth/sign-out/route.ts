@@ -1,7 +1,7 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { auth } from "@/lib/auth-config";
 import { signOutUseCase } from "@/lib/use-cases/auth";
 import { deleteSession } from "@/lib/utils/session";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {

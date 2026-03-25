@@ -9,7 +9,6 @@
  */
 
 import type { Subscription } from "@prisma/client";
-import type { NextRequest } from "@/runtime/next-server";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import {
   internalErrorResponse,
@@ -17,6 +16,7 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {

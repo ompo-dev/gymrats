@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymMemberService } from "@/lib/services/gym/gym-member.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   id: z.string().min(1),
@@ -10,7 +10,10 @@ const paramsSchema = z.object({
 export const GET = createSafeHandler(
   async ({ gymContext, params }) => {
     const { id } = paramsSchema.parse(params);
-    const student = await GymMemberService.getStudentById(gymContext!.gymId, id);
+    const student = await GymMemberService.getStudentById(
+      gymContext!.gymId,
+      id,
+    );
 
     if (!student) {
       return NextResponse.json(

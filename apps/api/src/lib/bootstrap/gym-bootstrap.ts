@@ -1,14 +1,20 @@
-import type { GymDataSection, GymUnifiedData } from "@gymrats/types/gym-unified";
-import { createBootstrapResponse, measureBootstrapSection } from "@gymrats/domain";
+import {
+  createBootstrapResponse,
+  measureBootstrapSection,
+} from "@gymrats/domain";
+import type {
+  GymDataSection,
+  GymUnifiedData,
+} from "@gymrats/types/gym-unified";
 import {
   centsToReais,
   getGymPlanConfig,
 } from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
-import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { GymMemberService } from "@/lib/services/gym/gym-member.service";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { getTimeMs } from "@/lib/utils/date-safe";
 
 export const DEFAULT_GYM_BOOTSTRAP_SECTIONS: GymDataSection[] = [
@@ -62,7 +68,6 @@ function normalizeMembershipPlanType(
       return "semi-annual";
     case "trial":
       return "trial";
-    case "monthly":
     default:
       return "monthly";
   }
@@ -121,14 +126,10 @@ function transformMembersToStudents(
     const user = student.user ?? {};
     const profile = student.profile ?? {};
     const progress = student.progress ?? {};
-    const status =
-      membership.status ?? membership.membershipStatus ?? "active";
+    const status = membership.status ?? membership.membershipStatus ?? "active";
 
     return {
-      id:
-        student.id ??
-        membership.studentId ??
-        "",
+      id: student.id ?? membership.studentId ?? "",
       name: (user.name as string) ?? (student.name as string) ?? "",
       email: (user.email as string) ?? (student.email as string) ?? "",
       avatar: (student.avatar ?? user.image) as string | undefined,
@@ -181,7 +182,9 @@ function transformMembersToStudents(
   }) as unknown as GymUnifiedData["students"];
 }
 
-export function parseGymBootstrapSections(sectionsParam?: string): GymDataSection[] {
+export function parseGymBootstrapSections(
+  sectionsParam?: string,
+): GymDataSection[] {
   if (!sectionsParam) {
     return DEFAULT_GYM_BOOTSTRAP_SECTIONS;
   }
@@ -190,12 +193,13 @@ export function parseGymBootstrapSections(sectionsParam?: string): GymDataSectio
   const sections = sectionsParam
     .split(",")
     .map((section) => section.trim())
-    .filter(
-      (section): section is GymDataSection =>
-        allowed.has(section as GymDataSection),
+    .filter((section): section is GymDataSection =>
+      allowed.has(section as GymDataSection),
     );
 
-  return sections.length > 0 ? [...new Set(sections)] : DEFAULT_GYM_BOOTSTRAP_SECTIONS;
+  return sections.length > 0
+    ? [...new Set(sections)]
+    : DEFAULT_GYM_BOOTSTRAP_SECTIONS;
 }
 
 async function getGymSubscriptionSnapshot(gymId: string) {
@@ -302,15 +306,26 @@ async function loadGymBootstrapSection(
         recentCheckIns: (await GymMemberService.getRecentCheckIns(gymId)).map(
           (checkIn) => ({
             ...checkIn,
-            checkOut: checkIn.checkOut ?? undefined,
+            timestamp:
+              checkIn.timestamp instanceof Date
+                ? checkIn.timestamp
+                : new Date(checkIn.timestamp),
+            checkOut:
+              checkIn.checkOut == null
+                ? undefined
+                : checkIn.checkOut instanceof Date
+                  ? checkIn.checkOut
+                  : new Date(checkIn.checkOut),
           }),
         ),
       };
     case "membershipPlans":
       return {
-        membershipPlans: (await GymDomainService.getPlans(gymId, {
-          includeInactive: true,
-        })).map((plan) => ({
+        membershipPlans: (
+          await GymDomainService.getPlans(gymId, {
+            includeInactive: true,
+          })
+        ).map((plan) => ({
           id: plan.id,
           name: plan.name,
           type: normalizeMembershipPlanType(plan.type),
@@ -326,52 +341,86 @@ async function loadGymBootstrapSection(
       };
     case "payments":
       return {
-        payments: (await GymDomainService.getPayments(gymId, { limit: 50 })).map(
-          (payment) => ({
-            id: payment.id,
-            studentId: payment.studentId,
-            studentName: payment.studentName,
-            planId: payment.planId ?? "",
-            planName: payment.plan?.name ?? "",
-            amount: payment.amount,
-            date: payment.date,
-            dueDate: payment.dueDate,
-            status: normalizePaymentStatus(
-              payment.withdrawnAt ? "withdrawn" : payment.status,
-            ),
-            paymentMethod: normalizePaymentMethod(payment.paymentMethod),
-            reference: payment.reference ?? undefined,
-            abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
-            withdrawnAt: payment.withdrawnAt ?? undefined,
-            withdrawId: payment.withdrawId ?? undefined,
-          }),
-        ),
+        payments: (
+          await GymDomainService.getPayments(gymId, { limit: 50 })
+        ).map((payment) => ({
+          id: payment.id,
+          studentId: payment.studentId,
+          studentName: payment.studentName,
+          planId: payment.planId ?? "",
+          planName:
+            "plan" in payment &&
+            payment.plan &&
+            typeof payment.plan === "object" &&
+            "name" in payment.plan
+              ? String(payment.plan.name ?? "")
+              : "",
+          amount: payment.amount,
+          date: payment.date,
+          dueDate: payment.dueDate,
+          status: normalizePaymentStatus(
+            payment.withdrawnAt ? "withdrawn" : payment.status,
+          ),
+          paymentMethod: normalizePaymentMethod(payment.paymentMethod),
+          reference: payment.reference ?? undefined,
+          abacatePayBillingId: payment.abacatePayBillingId ?? undefined,
+          withdrawnAt: payment.withdrawnAt ?? undefined,
+          withdrawId: payment.withdrawId ?? undefined,
+        })),
       };
     case "expenses":
       return {
-        expenses: (await GymDomainService.getExpenses(gymId, { limit: 50 })).map(
-          (expense) => ({
-            id: expense.id,
-            type: normalizeExpenseType(expense.type),
-            description: expense.description ?? "",
-            amount: expense.amount,
-            date: expense.date,
-            category: expense.category ?? "",
-          }),
-        ),
+        expenses: (
+          await GymDomainService.getExpenses(gymId, { limit: 50 })
+        ).map((expense) => ({
+          id: expense.id,
+          type: normalizeExpenseType(expense.type),
+          description: expense.description ?? "",
+          amount: expense.amount,
+          date: expense.date,
+          category: expense.category ?? "",
+        })),
       };
     case "coupons": {
       return {
-        coupons: (await GymFinancialService.getCoupons(gymId)) as GymUnifiedData["coupons"],
+        coupons: (await GymFinancialService.getCoupons(
+          gymId,
+        )) as GymUnifiedData["coupons"],
       };
     }
     case "campaigns":
       return {
-        campaigns: await GymFinancialService.getBoostCampaigns(gymId),
+        campaigns: (await GymFinancialService.getBoostCampaigns(gymId)).map(
+          (campaign) => ({
+            ...campaign,
+            radiusKm: campaign.radiusKm ?? undefined,
+            startsAt:
+              campaign.startsAt == null
+                ? null
+                : campaign.startsAt instanceof Date
+                  ? campaign.startsAt
+                  : new Date(campaign.startsAt),
+            endsAt:
+              campaign.endsAt == null
+                ? null
+                : campaign.endsAt instanceof Date
+                  ? campaign.endsAt
+                  : new Date(campaign.endsAt),
+            createdAt:
+              campaign.createdAt instanceof Date
+                ? campaign.createdAt
+                : new Date(campaign.createdAt),
+            updatedAt:
+              campaign.updatedAt instanceof Date
+                ? campaign.updatedAt
+                : new Date(campaign.updatedAt),
+          }),
+        ),
       };
     case "balanceWithdraws":
       return {
-        balanceWithdraws: await GymFinancialService.getBalanceAndWithdraws(gymId),
+        balanceWithdraws:
+          await GymFinancialService.getBalanceAndWithdraws(gymId),
       };
     case "subscription":
       return {

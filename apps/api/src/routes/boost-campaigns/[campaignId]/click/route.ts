@@ -1,6 +1,6 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 /**
  * POST /api/boost-campaigns/[campaignId]/click
@@ -17,7 +17,7 @@ export const POST = createSafeHandler(
     if (!campaignId) {
       return NextResponse.json(
         { error: "campaignId é obrigatório" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,7 +27,7 @@ export const POST = createSafeHandler(
     if (!campaign) {
       return NextResponse.json(
         { error: "Campanha não encontrada ou inativa" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -63,5 +63,5 @@ export const POST = createSafeHandler(
 
     return NextResponse.json({ ok: true });
   },
-  { auth: "student" }
+  { auth: "student" },
 );

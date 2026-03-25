@@ -1,9 +1,9 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const createEquipmentSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -16,10 +16,16 @@ const createEquipmentSchema = z.object({
 
 export const GET = createSafeHandler(
   async ({ gymContext, req }) => {
+    const gymId = gymContext?.gymId;
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "Contexto da academia invalido" },
+        { status: 400 },
+      );
+    }
+
     const fresh = new URL(req.url).searchParams.get("fresh") === "1";
-    const equipment = await GymInventoryService.getEquipment(gymContext?.gymId, {
-      fresh,
-    });
+    const equipment = await GymInventoryService.getEquipment(gymId, { fresh });
     return NextResponse.json({ equipment });
   },
   {

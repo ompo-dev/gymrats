@@ -1,6 +1,6 @@
+import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import type { Job } from "bullmq";
 import { Worker } from "bullmq";
-import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import { log } from "@/lib/observability/logger";
 import { activateNutritionLibraryPlanForStudent } from "@/lib/services/nutrition/nutrition-plan.service";
 import { activateTrainingLibraryPlanForStudent } from "@/lib/services/workouts/training-library-activation.service";

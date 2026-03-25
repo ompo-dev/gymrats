@@ -108,7 +108,10 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                 );
                 const percent = Math.round((day.checkins / maxCheckins) * 100);
                 return (
-                  <div key={day.dayKey} className={index > 0 ? "pt-0" : undefined}>
+                  <div
+                    key={day.dayKey}
+                    className={index > 0 ? "pt-0" : undefined}
+                  >
                     <DuoCard.Root variant="default" size="default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-green/10">
@@ -181,7 +184,10 @@ export function GymStatsPage({ stats, equipment }: GymStatsPageProps) {
                 );
                 const percent = Math.round((item.checkins / maxCheckins) * 100);
                 return (
-                  <div key={item.hour} className={index > 0 ? "pt-0" : undefined}>
+                  <div
+                    key={item.hour}
+                    className={index > 0 ? "pt-0" : undefined}
+                  >
                     <DuoCard.Root variant="default" size="default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-duo-orange/10">

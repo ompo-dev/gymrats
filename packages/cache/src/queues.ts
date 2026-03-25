@@ -92,7 +92,9 @@ export const emailQueue = createLazyQueue(getEmailQueue);
 export const webhookQueue = createLazyQueue(getWebhookQueue);
 export const planOperationQueue = createLazyQueue(getPlanOperationQueue);
 export const emailDeadLetterQueue = createLazyQueue(getEmailDeadLetterQueue);
-export const webhookDeadLetterQueue = createLazyQueue(getWebhookDeadLetterQueue);
+export const webhookDeadLetterQueue = createLazyQueue(
+  getWebhookDeadLetterQueue,
+);
 export const planOperationDeadLetterQueue = createLazyQueue(
   getPlanOperationDeadLetterQueue,
 );

@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { persistTelemetryEvent } from "@/lib/observability";
+import { NextResponse } from "@/runtime/next-server";
 
 const telemetryEventSchema = z.object({
   eventType: z.string().min(1),

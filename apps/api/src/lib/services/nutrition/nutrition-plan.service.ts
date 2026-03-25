@@ -21,7 +21,7 @@ const DEFAULT_NUTRITION_TARGETS = {
   targetCarbs: 250,
   targetFats: 65,
   targetWater: 3000,
-} as const;
+};
 const pendingNutritionWriteQueues = new Map<string, Promise<void>>();
 const NUTRITION_TRANSACTION_OPTIONS = {
   maxWait: 10_000,
@@ -154,7 +154,10 @@ async function retryNutritionWrite<T>(
     } catch (error) {
       lastError = error;
 
-      if (!isRetryableNutritionTransactionError(error) || attempt >= maxAttempts) {
+      if (
+        !isRetryableNutritionTransactionError(error) ||
+        attempt >= maxAttempts
+      ) {
         throw error;
       }
 
@@ -172,7 +175,8 @@ async function queueNutritionWrite<T>(
   key: string,
   operation: () => Promise<T>,
 ) {
-  const previousWrite = pendingNutritionWriteQueues.get(key) ?? Promise.resolve();
+  const previousWrite =
+    pendingNutritionWriteQueues.get(key) ?? Promise.resolve();
   let result!: T;
 
   const request = previousWrite
@@ -222,7 +226,9 @@ function normalizeFoods(
   }));
 }
 
-function normalizeMeals(meals: NutritionMealInput[]): NormalizedNutritionMeal[] {
+function normalizeMeals(
+  meals: NutritionMealInput[],
+): NormalizedNutritionMeal[] {
   return meals.map((meal, index) => {
     const foods = normalizeFoods(meal.foods);
     const totalsFromFoods = foods.reduce(
@@ -306,9 +312,9 @@ function computeCompletedTotals(
 
 function serializeNutritionPlan(plan: NutritionPlanWithRelations) {
   return {
-      id: plan.id,
-      title: plan.title,
-      description: plan.description,
+    id: plan.id,
+    title: plan.title,
+    description: plan.description,
     totalCalories: roundNutritionNumber(plan.totalCalories),
     targetProtein: roundNutritionNumber(plan.targetProtein),
     targetCarbs: roundNutritionNumber(plan.targetCarbs),
@@ -430,8 +436,10 @@ async function getNutritionTargets(studentId: string) {
   });
 
   return {
-    targetCalories: profile?.targetCalories ?? DEFAULT_NUTRITION_TARGETS.targetCalories,
-    targetProtein: profile?.targetProtein ?? DEFAULT_NUTRITION_TARGETS.targetProtein,
+    targetCalories:
+      profile?.targetCalories ?? DEFAULT_NUTRITION_TARGETS.targetCalories,
+    targetProtein:
+      profile?.targetProtein ?? DEFAULT_NUTRITION_TARGETS.targetProtein,
     targetCarbs: profile?.targetCarbs ?? DEFAULT_NUTRITION_TARGETS.targetCarbs,
     targetFats: profile?.targetFats ?? DEFAULT_NUTRITION_TARGETS.targetFats,
     targetWater: profile?.targetWater ?? DEFAULT_NUTRITION_TARGETS.targetWater,
@@ -671,7 +679,11 @@ async function getOrCreateDailyNutrition(
   dateKey: string,
   waterIntake: number,
 ) {
-  const existing = await findDailyNutritionWithRelations(tx, studentId, dateKey);
+  const existing = await findDailyNutritionWithRelations(
+    tx,
+    studentId,
+    dateKey,
+  );
   if (existing) {
     return existing;
   }
@@ -805,7 +817,10 @@ export async function getActiveNutritionPlan(studentId: string) {
     return null;
   }
 
-  const plan = await findNutritionPlanWithRelations(db, student.activeNutritionPlanId);
+  const plan = await findNutritionPlanWithRelations(
+    db,
+    student.activeNutritionPlanId,
+  );
   return plan ? serializeNutritionPlan(plan) : null;
 }
 
@@ -954,7 +969,7 @@ export async function activateNutritionLibraryPlanForStudent(
   }
 
   await runNutritionTransaction(async (tx) => {
-    const student = await tx.student.findUnique({
+    const _student = await tx.student.findUnique({
       where: { id: studentId },
       select: { activeNutritionPlanId: true },
     });
@@ -1019,9 +1034,6 @@ export async function activateNutritionLibraryPlanForStudent(
       currentDateKey,
       currentSnapshot?.waterIntake ?? 0,
     );
-  }, {
-    maxWait: 10_000,
-    timeout: 20_000,
   });
 
   await invalidateDailyNutritionCache(studentId, getBrazilNutritionDateKey());
@@ -1032,7 +1044,9 @@ export async function activateNutritionLibraryPlanForStudent(
   return getActiveNutritionPlan(studentId);
 }
 
-export async function syncActiveNutritionPlanFromLibrary(libraryPlanId: string) {
+export async function syncActiveNutritionPlanFromLibrary(
+  libraryPlanId: string,
+) {
   const libraryPlan = await db.nutritionPlan.findUnique({
     where: { id: libraryPlanId },
     select: {
@@ -1071,7 +1085,10 @@ export async function syncActiveNutritionPlanFromLibrary(libraryPlanId: string) 
     return { synced: false };
   }
 
-  await activateNutritionLibraryPlanForStudent(libraryPlan.studentId, libraryPlanId);
+  await activateNutritionLibraryPlanForStudent(
+    libraryPlan.studentId,
+    libraryPlanId,
+  );
   return { synced: true };
 }
 
@@ -1129,9 +1146,10 @@ export async function getDailyNutritionForStudent(
 ) {
   const cacheKey = buildDailyNutritionCacheKey(studentId, dateKey);
   if (!options.fresh) {
-    const cached = await getCachedJson<ReturnType<typeof serializeDailyNutritionSnapshot>>(
-      cacheKey,
-    );
+    const cached =
+      await getCachedJson<ReturnType<typeof serializeDailyNutritionSnapshot>>(
+        cacheKey,
+      );
     if (cached) {
       return cached;
     }
@@ -1164,12 +1182,18 @@ export async function getDailyNutritionForStudent(
       : {}),
   };
 
-  const dailyNutrition = await findDailyNutritionWithRelations(db, studentId, dateKey);
+  const dailyNutrition = await findDailyNutritionWithRelations(
+    db,
+    studentId,
+    dateKey,
+  );
 
   let payload = serializeDailyNutritionSnapshot(dailyNutrition, targets, {
     dateKey,
     hasActiveNutritionPlan: Boolean(student?.activeNutritionPlanId),
-    isLegacyFallback: Boolean(dailyNutrition && !dailyNutrition.sourceNutritionPlanId),
+    isLegacyFallback: Boolean(
+      dailyNutrition && !dailyNutrition.sourceNutritionPlanId,
+    ),
   });
 
   if (!dailyNutrition && student?.activeNutritionPlanId) {
@@ -1198,7 +1222,10 @@ export async function saveDailyNutritionForStudent(params: {
   waterIntake?: number;
   actor: NutritionActorMeta;
 }) {
-  if (!isTodayDateKey(params.dateKey) && (params.meals !== undefined || params.waterIntake !== undefined)) {
+  if (
+    !isTodayDateKey(params.dateKey) &&
+    (params.meals !== undefined || params.waterIntake !== undefined)
+  ) {
     throw new NutritionDomainError(
       "PAST_DATE_READ_ONLY",
       "Past nutrition dates are read-only",
@@ -1233,7 +1260,11 @@ export async function saveDailyNutritionForStudent(params: {
               params.meals,
             );
           } else if (shouldSyncPlan && activeNutritionPlanId) {
-            await replaceNutritionPlanMeals(db, activeNutritionPlanId, params.meals);
+            await replaceNutritionPlanMeals(
+              db,
+              activeNutritionPlanId,
+              params.meals,
+            );
           }
         }
 
@@ -1267,9 +1298,17 @@ export async function saveDailyNutritionForStudent(params: {
             hasSameDailyMealStructure(currentSnapshot.meals, params.meals);
 
           if (canFastUpdateChecksOnly) {
-            await updateDailyNutritionMealChecks(db, currentSnapshot, params.meals);
+            await updateDailyNutritionMealChecks(
+              db,
+              currentSnapshot,
+              params.meals,
+            );
           } else {
-            await replaceDailyNutritionMeals(db, dailyNutrition.id, params.meals);
+            await replaceDailyNutritionMeals(
+              db,
+              dailyNutrition.id,
+              params.meals,
+            );
           }
         } else if (!currentSnapshot && activeNutritionPlanId) {
           await createDailySnapshotFromPlan(
@@ -1307,10 +1346,7 @@ export async function getNutritionLibraryPlanById(planId: string) {
 }
 
 export function isNutritionLibraryError(error: unknown, code: string) {
-  return (
-    error instanceof NutritionDomainError &&
-    error.code === code
-  );
+  return error instanceof NutritionDomainError && error.code === code;
 }
 
 export function getNutritionLibraryErrorMessage(error: unknown) {

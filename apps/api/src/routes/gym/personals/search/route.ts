@@ -1,9 +1,9 @@
-import { NextResponse } from "@/runtime/next-server";
-import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { NextResponse } from "@/runtime/next-server";
 
 const querySchema = z.object({
   q: z.string().max(100).default(""),

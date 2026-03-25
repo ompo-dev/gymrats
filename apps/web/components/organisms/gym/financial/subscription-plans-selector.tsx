@@ -3,11 +3,11 @@
 import { CheckCircle, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
-import { cn } from "@/lib/utils";
 import {
-  GYM_PLANS_CONFIG,
   centsToReais,
+  GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
+import { cn } from "@/lib/utils";
 
 interface SubscriptionPlansSelectorProps {
   onSubscribe: (

@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   paymentId: z.string().min(1),
@@ -17,10 +17,7 @@ export const GET = createSafeHandler(
     const studentId = studentContext?.studentId;
 
     if (!studentId) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const payment = await db.personalStudentPayment.findFirst({

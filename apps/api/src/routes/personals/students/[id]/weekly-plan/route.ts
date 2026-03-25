@@ -1,14 +1,14 @@
-import type { NextRequest } from "@/runtime/next-server";
+import { createWeeklyPlanSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
-import { createWeeklyPlanSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
-import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
+import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * GET /api/personals/students/[id]/weekly-plan
@@ -112,7 +112,10 @@ export async function POST(
     if (!validation.success) {
       return badRequestResponse(
         "Dados inválidos",
-        validation.error.flatten() as Record<string, string | number | boolean | object | null>,
+        validation.error.flatten() as Record<
+          string,
+          string | number | boolean | object | null
+        >,
       );
     }
 

@@ -1,1 +1,3 @@
-// Generators AI removidos - não utilizados na aplicação atual
+// Generators AI removidos - nao utilizados na aplicacao atual
+
+export {};

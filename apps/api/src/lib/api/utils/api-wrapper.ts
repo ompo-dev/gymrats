@@ -1,7 +1,7 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import type { ZodType } from "zod";
-import { getRequestId } from "@/lib/runtime/request-context";
 import { log, recordApiRequest } from "@/lib/observability";
+import { getRequestId } from "@/lib/runtime/request-context";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import {
   requireAdmin,
   requireGym,

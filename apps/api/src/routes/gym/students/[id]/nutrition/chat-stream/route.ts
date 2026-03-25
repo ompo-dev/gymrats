@@ -3,6 +3,11 @@ import type { NextRequest } from "@/runtime/next-server";
 export const maxDuration = 60;
 export const runtime = "nodejs";
 
+import { Features } from "@/lib/access-control/features";
+import {
+  AuthorizationError,
+  requireAbility,
+} from "@/lib/access-control/server";
 import { chatCompletionStream } from "@/lib/ai/client";
 import {
   buildNutritionMealProgress,
@@ -16,11 +21,6 @@ import {
   parseNutritionResponse,
 } from "@/lib/ai/parsers/nutrition-parser";
 import { NUTRITION_SYSTEM_PROMPT } from "@/lib/ai/prompts/nutrition";
-import {
-  AuthorizationError,
-  requireAbility,
-} from "@/lib/access-control/server";
-import { Features } from "@/lib/access-control/features";
 import { db } from "@/lib/db";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 
@@ -250,9 +250,10 @@ export async function POST(
             checkpoints.push(contentLen);
 
             for (const len of checkpoints) {
-              const { foods: extractedFoods } = extractFoodsAndPartialFromStream(
-                accumulatedContent.slice(0, len),
-              );
+              const { foods: extractedFoods } =
+                extractFoodsAndPartialFromStream(
+                  accumulatedContent.slice(0, len),
+                );
 
               if (
                 extractedFoods.length > 0 &&

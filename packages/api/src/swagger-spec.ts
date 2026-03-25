@@ -713,38 +713,6 @@ export function getSwaggerSpec(baseUrlParam: string) {
       // ============================================
       // STUDENTS ENDPOINTS
       // ============================================
-      "/api/students/all": {
-        get: {
-          tags: ["Students"],
-          summary: "Buscar todos os dados do student",
-          description:
-            "Retorna todos os dados do student ou seções específicas via query params",
-          operationId: "getAllStudentData",
-          security: [{ bearerAuth: [] }, { cookieAuth: [] }],
-          parameters: [
-            {
-              name: "sections",
-              in: "query",
-              description:
-                "Seções específicas para buscar (ex: progress,profile,workouts)",
-              required: false,
-              schema: { type: "string" },
-            },
-          ],
-          responses: {
-            "200": {
-              description: "Dados do student",
-              content: {
-                "application/json": {
-                  schema: { type: "object" },
-                },
-              },
-            },
-            "401": { $ref: "#/components/responses/UnauthorizedError" },
-            "500": { $ref: "#/components/responses/InternalError" },
-          },
-        },
-      },
       "/api/students/profile": {
         get: {
           tags: ["Students"],

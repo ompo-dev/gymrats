@@ -1,4 +1,3 @@
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
@@ -7,9 +6,10 @@ import {
   calculateSets,
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
+import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
-import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   createUnitSchema,
@@ -172,7 +172,7 @@ export async function createWeeklyPlanHandler(
 
     const studentId = auth.user.student.id;
 
-    const existing = await db.weeklyPlan.findUnique({
+    const existing = await db.weeklyPlan.findFirst({
       where: { studentId },
     });
 
@@ -231,12 +231,14 @@ export async function updateWeeklyPlanHandler(
       select: { activeWeeklyPlanId: true },
     });
 
-    let activePlanId = studentData?.activeWeeklyPlanId;
+    const activePlanId = studentData?.activeWeeklyPlanId;
 
-    let weeklyPlan = activePlanId ? await db.weeklyPlan.findUnique({
-      where: { id: activePlanId },
-      include: { slots: { orderBy: { dayOfWeek: "asc" } } },
-    }) : null;
+    let weeklyPlan = activePlanId
+      ? await db.weeklyPlan.findUnique({
+          where: { id: activePlanId },
+          include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+        })
+      : null;
 
     if (!weeklyPlan) {
       weeklyPlan = await db.weeklyPlan.create({
@@ -350,7 +352,10 @@ export async function createWorkoutHandler(
       }
 
       order = planSlot.dayOfWeek;
-      if ((planSlot.weeklyPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate) {
+      if (
+        (planSlot.weeklyPlan as { isLibraryTemplate?: boolean })
+          .isLibraryTemplate
+      ) {
         libraryPlanToSyncId = planSlot.weeklyPlan.id;
       }
     } else if (unitId) {
@@ -441,11 +446,11 @@ export async function updateWorkoutHandler(
       data: validation.data,
     });
 
-    const libraryPlanToSyncId =
-      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
-        ?.isLibraryTemplate
-        ? workout.planSlot?.weeklyPlan.id ?? null
-        : null;
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
 
     if (libraryPlanToSyncId) {
       await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
@@ -494,11 +499,11 @@ export async function deleteWorkoutHandler(
       });
     }
 
-    const libraryPlanToSyncId =
-      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
-        ?.isLibraryTemplate
-        ? workout.planSlot?.weeklyPlan.id ?? null
-        : null;
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
 
     await db.workout.delete({
       where: { id },
@@ -1080,11 +1085,11 @@ export async function createExerciseHandler(
         }
       : null;
 
-    const libraryPlanToSyncId =
-      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
-        ?.isLibraryTemplate
-        ? workout.planSlot?.weeklyPlan.id ?? null
-        : null;
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
 
     if (libraryPlanToSyncId) {
       await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
@@ -1121,7 +1126,11 @@ export async function updateExerciseHandler(
 
     const exercise = await db.workoutExercise.findUnique({
       where: { id },
-      include: { workout: { include: { unit: true, planSlot: { include: { weeklyPlan: true } } } } },
+      include: {
+        workout: {
+          include: { unit: true, planSlot: { include: { weeklyPlan: true } } },
+        },
+      },
     });
 
     if (!exercise) return notFoundResponse("Exercício não encontrado");
@@ -1131,9 +1140,11 @@ export async function updateExerciseHandler(
     }
 
     const ownsWorkout =
-      (exercise.workout.unit && exercise.workout.unit.studentId === auth.user.student.id) ||
+      (exercise.workout.unit &&
+        exercise.workout.unit.studentId === auth.user.student.id) ||
       (exercise.workout.planSlot &&
-        exercise.workout.planSlot.weeklyPlan.studentId === auth.user.student.id);
+        exercise.workout.planSlot.weeklyPlan.studentId ===
+          auth.user.student.id);
 
     if (!ownsWorkout) {
       return unauthorizedResponse("Você não pode editar este exercício");
@@ -1147,12 +1158,13 @@ export async function updateExerciseHandler(
       data: normalizedData,
     });
 
-    const libraryPlanToSyncId =
-      (exercise.workout.planSlot?.weeklyPlan as {
+    const libraryPlanToSyncId = (
+      exercise.workout.planSlot?.weeklyPlan as {
         isLibraryTemplate?: boolean;
-      } | null)?.isLibraryTemplate
-        ? exercise.workout.planSlot?.weeklyPlan.id ?? null
-        : null;
+      } | null
+    )?.isLibraryTemplate
+      ? (exercise.workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
 
     if (libraryPlanToSyncId) {
       await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);
@@ -1215,11 +1227,11 @@ export async function deleteExerciseHandler(
       where: { id },
     });
 
-    const libraryPlanToSyncId =
-      (workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null)
-        ?.isLibraryTemplate
-        ? workout.planSlot?.weeklyPlan.id ?? null
-        : null;
+    const libraryPlanToSyncId = (
+      workout.planSlot?.weeklyPlan as { isLibraryTemplate?: boolean } | null
+    )?.isLibraryTemplate
+      ? (workout.planSlot?.weeklyPlan.id ?? null)
+      : null;
 
     if (libraryPlanToSyncId) {
       await syncActiveWeeklyPlanFromLibrary(libraryPlanToSyncId);

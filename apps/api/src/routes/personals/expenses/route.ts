@@ -1,18 +1,24 @@
-import { NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
-import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import { NextResponse } from "@/runtime/next-server";
 
 export async function GET(request: Request) {
   try {
     const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
-      return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+      return (
+        errorResponse ??
+        NextResponse.json({ error: "Não autenticado" }, { status: 401 })
+      );
     }
     const fresh = new URL(request.url).searchParams.get("fresh") === "1";
-    const expenses = await PersonalFinancialService.getExpenses(ctx.personalId, {
-      fresh,
-    });
+    const expenses = await PersonalFinancialService.getExpenses(
+      ctx.personalId,
+      {
+        fresh,
+      },
+    );
     return NextResponse.json({ expenses });
   } catch (error) {
     console.error("[GET /api/personals/expenses] Erro:", error);
@@ -24,7 +30,10 @@ export async function POST(request: Request) {
   try {
     const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
-      return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+      return (
+        errorResponse ??
+        NextResponse.json({ error: "Não autenticado" }, { status: 401 })
+      );
     }
 
     const body = await request.json();
@@ -51,6 +60,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ expense }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/personals/expenses] Erro:", error);
-    return NextResponse.json({ error: "Erro ao criar despesa" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Erro ao criar despesa" },
+      { status: 500 },
+    );
   }
 }

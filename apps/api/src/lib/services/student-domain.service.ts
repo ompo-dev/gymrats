@@ -1,10 +1,10 @@
 import { db } from "@/lib/db";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import {
   getActiveNutritionPlan as getActiveNutritionPlanForStudent,
   getDailyNutritionForStudent,
   listNutritionLibraryPlans,
 } from "@/lib/services/nutrition/nutrition-plan.service";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 
 function calculateStreakFromWorkoutDates(dates: Date[]) {
   const workoutDays = new Set<string>();
@@ -47,7 +47,9 @@ function calculateStreakFromWorkoutDates(dates: Date[]) {
 type ScalarUpdateValue = string | number | boolean | null | undefined;
 
 function toOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function toNullableNumber(value: unknown): number | null | undefined {
@@ -361,7 +363,7 @@ export class StudentDomainService {
   }
 
   /**
-   * Aggregate method to fetch all student data (replacement for getAllStudentData)
+   * Aggregate method to fetch canonical student bootstrap data.
    */
   static async getAllData(
     studentId: string,
@@ -464,12 +466,18 @@ export class StudentDomainService {
         await StudentDomainService.getDailyNutrition(studentId);
     }
 
-    if (!requestedSections || requestedSections.includes("activeNutritionPlan")) {
+    if (
+      !requestedSections ||
+      requestedSections.includes("activeNutritionPlan")
+    ) {
       result.activeNutritionPlan =
         await StudentDomainService.getActiveNutritionPlan(studentId);
     }
 
-    if (!requestedSections || requestedSections.includes("nutritionLibraryPlans")) {
+    if (
+      !requestedSections ||
+      requestedSections.includes("nutritionLibraryPlans")
+    ) {
       result.nutritionLibraryPlans =
         await StudentDomainService.getNutritionLibraryPlans(studentId);
     }

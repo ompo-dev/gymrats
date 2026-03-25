@@ -11,9 +11,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function applyBoostCampaignEngagementMigration() {
-  console.log(
-    "🔄 Aplicando migration: Tabela boost_campaign_engagements...\n",
-  );
+  console.log("🔄 Aplicando migration: Tabela boost_campaign_engagements...\n");
 
   try {
     const tableExistsResult = await prisma.$queryRawUnsafe(`

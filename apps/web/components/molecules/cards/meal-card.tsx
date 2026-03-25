@@ -191,10 +191,7 @@ function MealCardSimple({
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div
-                className="mt-3 space-y-2 border-t border-duo-border pt-3"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="mt-3 space-y-2 border-t border-duo-border pt-3">
                 <AnimatePresence mode="popLayout">
                   {foods.map((food, index) => (
                     <motion.div
@@ -245,10 +242,7 @@ function MealCardSimple({
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
             >
-              <div
-                className="mt-3 border-t border-duo-border pt-3"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="mt-3 border-t border-duo-border pt-3">
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}

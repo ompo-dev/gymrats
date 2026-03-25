@@ -110,7 +110,12 @@ export const useDiscoveryProfilesStore = create<DiscoveryProfilesState>(
       const cached = state.gymProfiles[cacheKey];
       const resource = state.resources[cacheKey];
 
-      if (!force && cached && resource?.status === "ready" && isFresh(resource)) {
+      if (
+        !force &&
+        cached &&
+        resource?.status === "ready" &&
+        isFresh(resource)
+      ) {
         return cached;
       }
 
@@ -171,12 +176,19 @@ export const useDiscoveryProfilesStore = create<DiscoveryProfilesState>(
       const cached = state.personalProfiles[cacheKey];
       const resource = state.resources[cacheKey];
 
-      if (!force && cached && resource?.status === "ready" && isFresh(resource)) {
+      if (
+        !force &&
+        cached &&
+        resource?.status === "ready" &&
+        isFresh(resource)
+      ) {
         return cached;
       }
 
       if (!force && inflightRequests.has(cacheKey)) {
-        return inflightRequests.get(cacheKey) as Promise<DiscoveryPersonalProfile>;
+        return inflightRequests.get(
+          cacheKey,
+        ) as Promise<DiscoveryPersonalProfile>;
       }
 
       set((current) => ({
@@ -184,7 +196,9 @@ export const useDiscoveryProfilesStore = create<DiscoveryProfilesState>(
       }));
 
       const request = apiClient
-        .get<DiscoveryPersonalProfile>(`/api/students/personals/${personalId}/profile`)
+        .get<DiscoveryPersonalProfile>(
+          `/api/students/personals/${personalId}/profile`,
+        )
         .then((response) => {
           set((current) => ({
             personalProfiles: {

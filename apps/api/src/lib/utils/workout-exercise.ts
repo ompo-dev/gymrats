@@ -3,14 +3,14 @@
  */
 
 export interface EducationalDataInput {
-  primaryMuscles?: string[] | string;
-  secondaryMuscles?: string[] | string;
-  equipment?: string[] | string;
-  instructions?: string[] | string;
-  tips?: string[] | string;
-  commonMistakes?: string[] | string;
-  benefits?: string[] | string;
-  [key: string]: string | string[] | null | undefined;
+  primaryMuscles?: string[] | string | null;
+  secondaryMuscles?: string[] | string | null;
+  equipment?: string[] | string | null;
+  instructions?: string[] | string | null;
+  tips?: string[] | string | null;
+  commonMistakes?: string[] | string | null;
+  benefits?: string[] | string | null;
+  [key: string]: string | string[] | number | null | undefined;
 }
 
 /**
@@ -19,7 +19,10 @@ export interface EducationalDataInput {
 export function normalizeEducationalData(
   data: EducationalDataInput,
 ): Record<string, string | null> {
-  const normalized: Record<string, string | string[] | null | undefined> = {
+  const normalized: Record<
+    string,
+    string | string[] | number | null | undefined
+  > = {
     ...data,
   };
 

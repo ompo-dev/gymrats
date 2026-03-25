@@ -1,11 +1,8 @@
 "use server";
 
-import type { BoostCampaign, GymLocation } from "@/lib/types";
 import { serverApiGet, serverApiPost } from "@/lib/api/server";
-import {
-  getApiErrorMessage,
-  reviveDate,
-} from "@/lib/api/server-action-utils";
+import { getApiErrorMessage, reviveDate } from "@/lib/api/server-action-utils";
+import type { BoostCampaign, GymLocation } from "@/lib/types";
 
 type SessionPayload = {
   user?: {
@@ -122,7 +119,9 @@ export async function getStudentProgress() {
 
 export async function getStudentUnits() {
   try {
-    const payload = await serverApiGet<{ units: unknown[] }>("/api/workouts/units");
+    const payload = await serverApiGet<{ units: unknown[] }>(
+      "/api/workouts/units",
+    );
     return payload.units;
   } catch (error) {
     console.error("[getStudentUnits] Erro:", error);

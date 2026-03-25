@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { createNutritionLibraryPlanSchema } from "@/lib/api/schemas";
 import {
@@ -6,14 +5,11 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { assertGymStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
-import {
-  listNutritionLibraryPlans,
-} from "@/lib/services/nutrition/nutrition-library-read.service";
-import {
-  createNutritionLibraryPlan,
-} from "@/lib/services/nutrition/nutrition-plan.service";
+import { listNutritionLibraryPlans } from "@/lib/services/nutrition/nutrition-library-read.service";
+import { createNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,

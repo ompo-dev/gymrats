@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { personalAffiliationSchema } from "@/lib/api/schemas/personals.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const deleteAffiliationSchema = z.object({
   gymId: z.string().min(1),
@@ -67,12 +67,25 @@ export const POST = createSafeHandler(
         gymId,
       });
       return NextResponse.json({ affiliation });
-    } catch (error: any) {
-      if (error.message === "Gym not found") {
-         return NextResponse.json({ error: "Academia não encontrada" }, { status: 404 });
+    } catch (error) {
+      if (error instanceof Error && error.message === "Gym not found") {
+        return NextResponse.json(
+          { error: "Academia não encontrada" },
+          { status: 404 },
+        );
       }
-      if (error.code === "P2002") {
-         return NextResponse.json({ error: "Você já está vinculado a essa academia" }, { status: 400 });
+      const errorCode =
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "string"
+          ? error.code
+          : undefined;
+      if (errorCode === "P2002") {
+        return NextResponse.json(
+          { error: "Você já está vinculado a essa academia" },
+          { status: 400 },
+        );
       }
       throw error;
     }

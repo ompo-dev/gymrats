@@ -108,7 +108,7 @@ function LimitationSelectorSimple({
     >
       <div className="flex items-center gap-2">
         <Icon className={`h-5 w-5 ${iconColor}`} />
-        <label className="block text-sm font-bold text-duo-fg">{title}</label>
+        <p className="block text-sm font-bold text-duo-fg">{title}</p>
       </div>
 
       {/* Pergunta inicial: Tem limitações? - Seguindo padrão do Step 1 */}

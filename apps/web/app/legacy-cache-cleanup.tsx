@@ -27,7 +27,8 @@ export function LegacyCacheCleanup() {
 
       if ("serviceWorker" in navigator) {
         try {
-          const registrations = await navigator.serviceWorker.getRegistrations();
+          const registrations =
+            await navigator.serviceWorker.getRegistrations();
 
           if (registrations.length > 0) {
             hadLegacyArtifacts = true;
@@ -46,7 +47,9 @@ export function LegacyCacheCleanup() {
 
           if (cacheKeys.length > 0) {
             hadLegacyArtifacts = true;
-            await Promise.all(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
+            await Promise.all(
+              cacheKeys.map((cacheKey) => caches.delete(cacheKey)),
+            );
           }
         } catch {
           // Best-effort cleanup only.

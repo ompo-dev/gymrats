@@ -3,12 +3,36 @@ import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.serv
 import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { ReferralService } from "@/lib/services/referral.service";
 
+type AbacatePayMetadata = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
+interface AbacatePayWebhookPayload {
+  pixQrCode?: {
+    id?: string;
+    amount?: number;
+    metadata?: AbacatePayMetadata | null;
+  } | null;
+  billing?: {
+    id?: string;
+    amount?: number;
+    metadata?: AbacatePayMetadata | null;
+    payment?: { method?: string | null } | null;
+    customer?: { id?: string | null } | null;
+  } | null;
+  payment?: { amount?: number | null } | null;
+}
+
 /**
  * Lógica pesada de processamento de Webhooks movida para o Worker BullMQ.
  * Centraliza as transações no banco, cálculos de comissão e atualizações de planos.
  */
 export class WebhookService {
-  static async processAbacatePayEvent(event: string, data: any): Promise<void> {
+  static async processAbacatePayEvent(
+    event: string,
+    data: AbacatePayWebhookPayload,
+  ): Promise<void> {
     if (event !== "billing.paid") {
       console.log(`[WebhookService] Evento ignorado: ${event}`);
       return;
@@ -17,11 +41,19 @@ export class WebhookService {
     const pixQrCode = data.pixQrCode;
     const billing = data.billing;
     const paymentId = pixQrCode?.id ?? billing?.id;
-    const amount = data.payment?.amount ?? billing?.amount ?? pixQrCode?.amount ?? 0;
+    const amount =
+      data.payment?.amount ?? billing?.amount ?? pixQrCode?.amount ?? 0;
     const metadata = billing?.metadata ?? pixQrCode?.metadata ?? {};
+    const kind = typeof metadata.kind === "string" ? metadata.kind : undefined;
+    const metadataStudentId =
+      typeof metadata.studentId === "string" ? metadata.studentId : undefined;
+    const metadataBillingPeriod =
+      metadata.billingPeriod === "annual" ? "annual" : "monthly";
 
     if (!paymentId) {
-      console.error("[WebhookService] billing.paid sem id em billing ou pixQrCode");
+      console.error(
+        "[WebhookService] billing.paid sem id em billing ou pixQrCode",
+      );
       return;
     }
 
@@ -32,10 +64,11 @@ export class WebhookService {
     });
 
     if (payment && payment.status === "pending") {
-      const kind = metadata.kind as string | undefined;
-
       if (kind === "membership-payment") {
-        const membershipId = metadata.membershipId as string | undefined;
+        const membershipId =
+          typeof metadata.membershipId === "string"
+            ? metadata.membershipId
+            : undefined;
         if (membershipId) {
           const now = new Date();
           await db.$transaction([
@@ -52,20 +85,30 @@ export class WebhookService {
               },
             }),
           ]);
-          console.log(`[WebhookService] Membership ${membershipId} ativado via PIX (payment ${payment.id})`);
+          console.log(
+            `[WebhookService] Membership ${membershipId} ativado via PIX (payment ${payment.id})`,
+          );
           await GymDomainService.incrementActiveStudentsOnly(payment.gymId);
-          await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+          await GymSubscriptionService.syncStudentEnterpriseBenefit(
+            payment.studentId,
+          );
           return;
         }
       }
 
       if (kind === "membership-change-plan") {
-        const membershipId = metadata.membershipId as string | undefined;
-        const planId = metadata.planId as string | undefined;
+        const membershipId =
+          typeof metadata.membershipId === "string"
+            ? metadata.membershipId
+            : undefined;
+        const planId =
+          typeof metadata.planId === "string" ? metadata.planId : undefined;
         if (membershipId && planId && payment.plan) {
           const now = new Date();
           const nextBillingDate = new Date();
-          nextBillingDate.setDate(nextBillingDate.getDate() + payment.plan.duration);
+          nextBillingDate.setDate(
+            nextBillingDate.getDate() + payment.plan.duration,
+          );
           await db.$transaction([
             db.payment.update({
               where: { id: payment.id },
@@ -81,9 +124,13 @@ export class WebhookService {
               },
             }),
           ]);
-          console.log(`[WebhookService] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`);
+          console.log(
+            `[WebhookService] Membership ${membershipId} plano alterado via PIX (payment ${payment.id})`,
+          );
           if (payment.studentId) {
-            await GymSubscriptionService.syncStudentEnterpriseBenefit(payment.studentId);
+            await GymSubscriptionService.syncStudentEnterpriseBenefit(
+              payment.studentId,
+            );
           }
           return;
         }
@@ -137,16 +184,30 @@ export class WebhookService {
         },
       });
 
-      const planQualified = ["premium", "enterprise"].includes(gymSub.plan?.toLowerCase() ?? "");
+      const planQualified = ["premium", "enterprise"].includes(
+        gymSub.plan?.toLowerCase() ?? "",
+      );
       if (planQualified) {
-        await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(gymSub.gym.userId);
+        await GymSubscriptionService.restoreSubscriptionsSuspendedByPrincipalCancel(
+          gymSub.gym.userId,
+        );
       } else {
-        await GymSubscriptionService.suspendOtherGymsBecausePrincipalDowngraded(gymSub.gym.userId, gymSub.gymId);
+        await GymSubscriptionService.suspendOtherGymsBecausePrincipalDowngraded(
+          gymSub.gym.userId,
+          gymSub.gymId,
+        );
       }
       await GymSubscriptionService.handleGymDowngrade(gymSub.gymId);
 
-      console.log(`[WebhookService] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`);
-      await ReferralService.onFirstPaymentConfirmed("GYM", gymSub.gymId, amount, paymentId);
+      console.log(
+        `[WebhookService] Processando indicação GYM: ${gymSub.gymId} | Amount: ${amount}`,
+      );
+      await ReferralService.onFirstPaymentConfirmed(
+        "GYM",
+        gymSub.gymId,
+        amount,
+        paymentId,
+      );
       return;
     }
 
@@ -173,7 +234,9 @@ export class WebhookService {
           canceledAt: null,
         },
       });
-      console.log(`[WebhookService] PersonalSubscription ${personalSub.id} ativada`);
+      console.log(
+        `[WebhookService] PersonalSubscription ${personalSub.id} ativada`,
+      );
       return;
     }
 
@@ -185,9 +248,9 @@ export class WebhookService {
       include: { student: true },
     });
 
-    if (!subscription && metadata.studentId) {
+    if (!subscription && metadataStudentId) {
       subscription = await db.subscription.findUnique({
-        where: { studentId: metadata.studentId },
+        where: { studentId: metadataStudentId },
         include: { student: true },
       });
     }
@@ -200,7 +263,9 @@ export class WebhookService {
 
       if (boostCampaign && boostCampaign.status === "pending_payment") {
         const now = new Date();
-        const endsAt = new Date(now.getTime() + boostCampaign.durationHours * 60 * 60 * 1000);
+        const endsAt = new Date(
+          now.getTime() + boostCampaign.durationHours * 60 * 60 * 1000,
+        );
 
         await db.boostCampaign.update({
           where: { id: boostCampaign.id },
@@ -211,12 +276,14 @@ export class WebhookService {
             updatedAt: now,
           },
         });
-        console.log(`[WebhookService] BoostCampaign ${boostCampaign.id} ativada via PIX`);
+        console.log(
+          `[WebhookService] BoostCampaign ${boostCampaign.id} ativada via PIX`,
+        );
         return;
       }
 
       // --- 4. Tentar PersonalStudentPayment ---
-      if (metadata.kind === "personal-subscription") {
+      if (kind === "personal-subscription") {
         const personalPayment = await db.personalStudentPayment.findFirst({
           where: { abacatePayBillingId: paymentId, status: "pending" },
         });
@@ -252,20 +319,28 @@ export class WebhookService {
             data: { status: "paid", assignmentId: assignment.id },
           });
 
-          console.log(`[WebhookService] PersonalStudentPayment ${personalPayment.id} pago`);
+          console.log(
+            `[WebhookService] PersonalStudentPayment ${personalPayment.id} pago`,
+          );
           return;
         }
       }
 
-      console.error(`[WebhookService] Registro não encontrado para paymentId: ${paymentId} ou metadata id`);
+      console.error(
+        `[WebhookService] Registro não encontrado para paymentId: ${paymentId} ou metadata id`,
+      );
       return;
     }
 
     // --- Concluir Subscription Aluno ---
     const now = new Date();
     const periodEnd = new Date(now);
-    const isAnnual = metadata.billingPeriod === "annual";
-    const planType = typeof metadata.planId === "string" && metadata.planId.toLowerCase() === "pro" ? "Pro" : "Premium";
+    const isAnnual = metadataBillingPeriod === "annual";
+    const planType =
+      typeof metadata.planId === "string" &&
+      metadata.planId.toLowerCase() === "pro"
+        ? "Pro"
+        : "Premium";
 
     if (isAnnual) periodEnd.setFullYear(periodEnd.getFullYear() + 1);
     else periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -276,14 +351,15 @@ export class WebhookService {
       where: { id: subscription.id },
       data: {
         plan: updatedPlanName,
-        billingPeriod: metadata.billingPeriod,
+        billingPeriod: metadataBillingPeriod,
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,
         cancelAtPeriodEnd: false,
         canceledAt: null,
         abacatePayBillingId: paymentId,
-        abacatePayCustomerId: billing?.customer?.id || subscription.abacatePayCustomerId,
+        abacatePayCustomerId:
+          billing?.customer?.id || subscription.abacatePayCustomerId,
       },
     });
 
@@ -298,9 +374,18 @@ export class WebhookService {
       },
     });
 
-    console.log(`[WebhookService] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName}.`);
-    console.log(`[WebhookService] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`);
-    
-    await ReferralService.onFirstPaymentConfirmed("STUDENT", subscription.studentId, amount, paymentId);
+    console.log(
+      `[WebhookService] Assinatura do aluno ${subscription.studentId} atualizada para ${updatedPlanName}.`,
+    );
+    console.log(
+      `[WebhookService] Processando indicação STUDENT: ${subscription.studentId} | Amount: ${amount}`,
+    );
+
+    await ReferralService.onFirstPaymentConfirmed(
+      "STUDENT",
+      subscription.studentId,
+      amount,
+      paymentId,
+    );
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { Apple, Check, Edit, Loader2, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
 import { useModalState } from "@/hooks/use-modal-state";
@@ -85,8 +85,12 @@ function NutritionLibraryShell({
             <DuoText variant="h4" className="text-duo-fg">
               Nenhum plano salvo
             </DuoText>
-            <DuoText variant="body-sm" className="mt-2 max-w-sm text-duo-fg-muted">
-              Crie um plano alimentar em branco e monte as refeicoes da biblioteca.
+            <DuoText
+              variant="body-sm"
+              className="mt-2 max-w-sm text-duo-fg-muted"
+            >
+              Crie um plano alimentar em branco e monte as refeicoes da
+              biblioteca.
             </DuoText>
             <DuoButton
               onClick={() => void onCreate()}
@@ -142,8 +146,9 @@ function NutritionLibraryShell({
                 className="bg-duo-bg-card transition-colors hover:border-duo-green/50"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <div
-                    className="min-w-0 flex-1 cursor-pointer"
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 cursor-pointer text-left"
                     onClick={() => void onEditRequest(plan.id)}
                   >
                     <div className="flex items-center gap-3">
@@ -171,7 +176,7 @@ function NutritionLibraryShell({
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
 
                   <div className="flex items-center gap-2">
                     <DuoButton
@@ -237,22 +242,22 @@ function StudentNutritionLibraryModal() {
     (useStudent("nutritionLibraryPlans") as unknown as NutritionPlanData[]) ??
     EMPTY_NUTRITION_PLANS;
   const activePlan =
-    (useStudent("activeNutritionPlan") as unknown as NutritionPlanData | null) ??
-    null;
+    (useStudent(
+      "activeNutritionPlan",
+    ) as unknown as NutritionPlanData | null) ?? null;
   const {
     createNutritionLibraryPlan,
     deleteNutritionLibraryPlan,
     activateNutritionLibraryPlan,
   } = useStudent("actions");
-  const {
-    loadNutritionLibraryPlans,
-    loadActiveNutritionPlan,
-    loadNutrition,
-  } = useStudent("loaders");
+  const { loadNutritionLibraryPlans, loadActiveNutritionPlan, loadNutrition } =
+    useStudent("loaders");
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
-  const [editingPlan, setEditingPlan] = useState<NutritionPlanData | null>(null);
+  const [editingPlan, setEditingPlan] = useState<NutritionPlanData | null>(
+    null,
+  );
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
 
@@ -385,7 +390,10 @@ function ScopedNutritionLibraryModal({
   onClose,
   onPlansSynced,
 }: Required<
-  Pick<NutritionLibraryModalProps, "apiMode" | "studentId" | "isOpen" | "onClose">
+  Pick<
+    NutritionLibraryModalProps,
+    "apiMode" | "studentId" | "isOpen" | "onClose"
+  >
 > &
   Pick<NutritionLibraryModalProps, "onPlansSynced">) {
   const scope = apiMode as StudentDetailScope;
@@ -415,7 +423,9 @@ function ScopedNutritionLibraryModal({
 
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
-  const [editingPlan, setEditingPlan] = useState<NutritionPlanData | null>(null);
+  const [editingPlan, setEditingPlan] = useState<NutritionPlanData | null>(
+    null,
+  );
   const [creatingPlan, setCreatingPlan] = useState(false);
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
 
@@ -440,7 +450,9 @@ function ScopedNutritionLibraryModal({
   const loadScopedPlanDetail = async (planId: string) => {
     const response = await apiClient.get<{
       data?: NutritionPlanData | null;
-    }>(`/api/${scope}/students/${studentId}/nutrition/library/${planId}?fresh=1`);
+    }>(
+      `/api/${scope}/students/${studentId}/nutrition/library/${planId}?fresh=1`,
+    );
     return response.data.data ?? null;
   };
 
@@ -562,9 +574,7 @@ function ScopedNutritionLibraryModal({
   );
 }
 
-export function NutritionLibraryModal(
-  props: NutritionLibraryModalProps = {},
-) {
+export function NutritionLibraryModal(props: NutritionLibraryModalProps = {}) {
   if (props.apiMode && props.apiMode !== "student") {
     if (!props.studentId || props.isOpen === undefined || !props.onClose) {
       return null;

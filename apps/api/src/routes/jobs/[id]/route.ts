@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import {
   notFoundResponse,
@@ -6,6 +5,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
 import { planOperationQueue } from "@/lib/queue/queues";
+import type { NextRequest } from "@/runtime/next-server";
 
 type JobPayload = {
   studentId?: string;

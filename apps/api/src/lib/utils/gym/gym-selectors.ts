@@ -18,30 +18,30 @@ import type {
   GymSubscriptionSnapshot,
 } from "@/lib/types/gym-unified";
 
-export type GymActions = Pick<
-  import("@/stores/gym-unified-store").GymUnifiedState,
-  | "createExpense"
-  | "createPayment"
-  | "checkInStudent"
-  | "checkOutStudent"
-  | "updatePaymentStatus"
-  | "updateMemberStatus"
-  | "createEquipment"
-  | "updateEquipment"
-  | "createMaintenance"
-  | "createMembershipPlan"
-  | "updateMembershipPlan"
-  | "deleteMembershipPlan"
-  | "enrollStudent"
-  | "createGymSubscription"
-  | "cancelGymSubscription"
-  | "hydrateInitial"
->;
+export interface GymActions {
+  createExpense: (...args: unknown[]) => unknown;
+  createPayment: (...args: unknown[]) => unknown;
+  checkInStudent: (...args: unknown[]) => unknown;
+  checkOutStudent: (...args: unknown[]) => unknown;
+  updatePaymentStatus: (...args: unknown[]) => unknown;
+  updateMemberStatus: (...args: unknown[]) => unknown;
+  createEquipment: (...args: unknown[]) => unknown;
+  updateEquipment: (...args: unknown[]) => unknown;
+  createMaintenance: (...args: unknown[]) => unknown;
+  createMembershipPlan: (...args: unknown[]) => unknown;
+  updateMembershipPlan: (...args: unknown[]) => unknown;
+  deleteMembershipPlan: (...args: unknown[]) => unknown;
+  enrollStudent: (...args: unknown[]) => unknown;
+  createGymSubscription: (...args: unknown[]) => unknown;
+  cancelGymSubscription: (...args: unknown[]) => unknown;
+  hydrateInitial: (...args: unknown[]) => unknown;
+}
 
-export type GymLoaders = Pick<
-  import("@/stores/gym-unified-store").GymUnifiedState,
-  "loadAll" | "loadAllPrioritized" | "loadSection"
->;
+export interface GymLoaders {
+  loadAll: (...args: unknown[]) => unknown;
+  loadAllPrioritized: (...args: unknown[]) => unknown;
+  loadSection: (...args: unknown[]) => unknown;
+}
 
 export interface GymSelectorReturnMap {
   profile: GymProfile | null;

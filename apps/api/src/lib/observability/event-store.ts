@@ -10,8 +10,11 @@ type JsonValue =
   | { [key: string]: JsonValue };
 
 function sanitizePayload(value: unknown): JsonValue {
+  if (value == null) {
+    return null;
+  }
+
   if (
-    value == null ||
     typeof value === "string" ||
     typeof value === "number" ||
     typeof value === "boolean"
@@ -54,7 +57,8 @@ export async function persistTelemetryEvent(input: {
   occurredAt?: Date;
 }) {
   try {
-    await (db as any).telemetryEvent.create({
+    const payload = sanitizePayload(input.payload ?? {});
+    await db.telemetryEvent.create({
       data: {
         eventType: input.eventType,
         domain: input.domain,
@@ -69,7 +73,7 @@ export async function persistTelemetryEvent(input: {
         metricName: input.metricName ?? null,
         metricValue: input.metricValue ?? null,
         status: input.status ?? null,
-        payload: sanitizePayload(input.payload ?? {}),
+        payload: payload === null ? {} : payload,
         occurredAt: input.occurredAt ?? new Date(),
       },
     });
@@ -93,7 +97,8 @@ export async function persistBusinessEvent(input: {
   occurredAt?: Date;
 }) {
   try {
-    await (db as any).businessEvent.create({
+    const payload = sanitizePayload(input.payload ?? {});
+    await db.businessEvent.create({
       data: {
         eventType: input.eventType,
         domain: input.domain,
@@ -101,7 +106,7 @@ export async function persistBusinessEvent(input: {
         requestId: input.requestId ?? null,
         releaseId: input.releaseId ?? null,
         status: input.status ?? null,
-        payload: sanitizePayload(input.payload ?? {}),
+        payload: payload === null ? {} : payload,
         occurredAt: input.occurredAt ?? new Date(),
       },
     });

@@ -4,9 +4,9 @@
  * Centraliza a logica de autenticacao para todas as rotas da API
  */
 
+import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { getRequestContextCookie } from "../../runtime/request-context";
-import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 
 export interface AuthResult {
   userId: string;
@@ -24,6 +24,20 @@ export interface AuthResult {
 export interface AuthError {
   response: NextResponse;
   error: string;
+}
+
+export interface StudentAuthResult extends AuthResult {
+  user: AuthResult["user"] & {
+    studentId: string;
+    student: { id: string };
+  };
+}
+
+export interface PersonalAuthResult extends AuthResult {
+  user: AuthResult["user"] & {
+    personalId: string;
+    personal: { id: string };
+  };
 }
 
 /**
@@ -97,7 +111,7 @@ export async function requireAuth(
  */
 export async function requireStudent(
   request: NextRequest,
-): Promise<AuthResult | AuthError> {
+): Promise<StudentAuthResult | AuthError> {
   const auth = await requireAuth(request);
 
   if ("error" in auth) {
@@ -186,7 +200,7 @@ export async function requireGym(
  */
 export async function requirePersonal(
   request: NextRequest,
-): Promise<AuthResult | AuthError> {
+): Promise<PersonalAuthResult | AuthError> {
   const auth = await requireAuth(request);
 
   if ("error" in auth) {

@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const querySchema = z.object({
   lat: z
@@ -69,8 +69,7 @@ export const GET = createSafeHandler(
     if (filter === "near" && latNum != null && lngNum != null) {
       const latitudeDelta = RADIUS_KM / 111;
       const longitudeDelta =
-        RADIUS_KM /
-        Math.max(1, 111 * Math.cos((latNum * Math.PI) / 180));
+        RADIUS_KM / Math.max(1, 111 * Math.cos((latNum * Math.PI) / 180));
 
       where.latitude = {
         gte: latNum - latitudeDelta,

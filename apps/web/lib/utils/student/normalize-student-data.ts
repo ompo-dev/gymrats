@@ -27,8 +27,7 @@ function normalizeFriends(value: unknown): StudentData["friends"] {
     id: String(friend.id ?? ""),
     name: String(friend.name ?? ""),
     avatar: typeof friend.avatar === "string" ? friend.avatar : undefined,
-    username:
-      typeof friend.username === "string" ? friend.username : undefined,
+    username: typeof friend.username === "string" ? friend.username : undefined,
   }));
 
   return {
@@ -49,7 +48,9 @@ export function normalizeStudentProfileData(
     ...source,
     goals: source.goals !== undefined ? asStringArray(source.goals) : undefined,
     injuries:
-      source.injuries !== undefined ? asStringArray(source.injuries) : undefined,
+      source.injuries !== undefined
+        ? asStringArray(source.injuries)
+        : undefined,
     availableEquipment:
       source.availableEquipment !== undefined
         ? asStringArray(source.availableEquipment)

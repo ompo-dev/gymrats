@@ -10,7 +10,7 @@ import {
   calculateSets,
   generateAlternatives,
 } from "@/lib/services/personalized-workout-generator";
-import type { ExerciseInfo } from "@/lib/types";
+import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 
 export interface CreateExercisesProfile {
   preferredSets?: number | null;
@@ -32,6 +32,27 @@ export interface ExercisePlan {
   rest?: number;
   notes?: string;
   alternatives?: string[] | Array<{ name: string; reason?: string }>;
+}
+
+function parseStringArray(
+  value: string | string[] | null | undefined,
+): string[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((item): item is string => typeof item === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
 }
 
 function findOrCreateExercise(exerciseName: string): ExerciseInfo {
@@ -63,13 +84,13 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
 
-    const inferMuscleGroup = (name: string): string[] => {
+    const inferMuscleGroup = (name: string): MuscleGroup[] => {
       const normalized = name
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
-      const rules: Array<{ muscles: string[]; keywords: string[] }> = [
+      const rules: Array<{ muscles: MuscleGroup[]; keywords: string[] }> = [
         { muscles: ["peito"], keywords: ["peito", "supino", "crucifixo"] },
         {
           muscles: ["costas"],
@@ -119,7 +140,7 @@ function findOrCreateExercise(exerciseName: string): ExerciseInfo {
           return rule.muscles;
         }
       }
-      return ["full-body"];
+      return ["funcional"];
     };
 
     const inferEquipment = (name: string): string[] => {
@@ -278,15 +299,11 @@ export async function createExercisesInBatch(
             educationalId: null,
           }));
         } else if (profile && exerciseInfo) {
-          const physicalLimitations = profile.physicalLimitations
-            ? JSON.parse(profile.physicalLimitations)
-            : [];
-          const motorLimitations = profile.motorLimitations
-            ? JSON.parse(profile.motorLimitations)
-            : [];
-          const medicalConditions = profile.medicalConditions
-            ? JSON.parse(profile.medicalConditions)
-            : [];
+          const physicalLimitations = parseStringArray(
+            profile.physicalLimitations,
+          );
+          const motorLimitations = parseStringArray(profile.motorLimitations);
+          const medicalConditions = parseStringArray(profile.medicalConditions);
           const limitations = [
             ...physicalLimitations,
             ...motorLimitations,

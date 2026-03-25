@@ -4,7 +4,6 @@
  * Centraliza toda a lógica das rotas relacionadas a students
  */
 
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
 import { addWeightUseCase } from "@/lib/use-cases/students/add-weight";
 import { getDayPassesUseCase } from "@/lib/use-cases/students/get-day-passes";
@@ -17,7 +16,7 @@ import { getWeightHistoryUseCase } from "@/lib/use-cases/students/get-weight-his
 import { updateStudentProfileUseCase } from "@/lib/use-cases/students/update-profile";
 import { updateStudentProgressUseCase } from "@/lib/use-cases/students/update-progress";
 import { getNextMonday } from "@/lib/utils/week";
-import { getAllStudentDataForUser } from "@/server/handlers/students";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   validateBody,
@@ -25,7 +24,6 @@ import {
 } from "../middleware/validation.middleware";
 import {
   addWeightSchema,
-  studentSectionsQuerySchema,
   updateStudentProfileSchema,
   updateStudentProgressSchema,
   weightHistoryQuerySchema,
@@ -35,54 +33,6 @@ import {
   internalErrorResponse,
   successResponse,
 } from "../utils/response.utils";
-
-/**
- * GET /api/students/all
- * Retorna todos os dados do student ou seções específicas
- */
-export async function getAllStudentDataHandler(
-  request: NextRequest,
-): Promise<NextResponse> {
-  try {
-    const auth = await requireStudent(request);
-    if ("error" in auth) {
-      return auth.response;
-    }
-
-    // Validar query params com Zod
-    const queryValidation = await validateQuery(
-      request,
-      studentSectionsQuerySchema,
-    );
-    if (!queryValidation.success) {
-      return queryValidation.response;
-    }
-
-    const sectionsParam = queryValidation.data.sections;
-    let sections: string[] | undefined;
-    if (sectionsParam) {
-      sections = sectionsParam.split(",").map((s: string) => s.trim());
-    }
-
-    // Buscar dados
-    const data = await getAllStudentDataForUser({
-      studentId: auth.user.student?.id!,
-      userId: auth.userId,
-      sections,
-    });
-
-    return NextResponse.json(data, {
-      status: 200,
-      headers: {
-        "Cache-Control": "private, no-cache, no-store, must-revalidate",
-        "Content-Type": "application/json",
-      },
-    });
-  } catch (error) {
-    console.error("[getAllStudentDataHandler] Erro:", error);
-    return internalErrorResponse("Erro ao buscar dados do student", error);
-  }
-}
 
 /**
  * GET /api/students/profile

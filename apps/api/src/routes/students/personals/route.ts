@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
 import { featureFlags } from "@/lib/feature-flags";
+import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ studentContext }) => {
@@ -12,9 +12,8 @@ export const GET = createSafeHandler(
       );
     }
     const studentId = studentContext?.studentId || "";
-    const assignments = await StudentPersonalService.listPersonalsByStudent(
-      studentId,
-    );
+    const assignments =
+      await StudentPersonalService.listPersonalsByStudent(studentId);
     return NextResponse.json({
       personals: assignments.map((a) => ({
         id: a.id,

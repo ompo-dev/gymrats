@@ -3,12 +3,7 @@ import type { StyleProp, ViewStyle } from "react-native";
 import { StyleSheet, View } from "react-native";
 import { colors, radius, shadow, spacing } from "../theme";
 
-type DuoCardVariant =
-  | "default"
-  | "highlighted"
-  | "blue"
-  | "orange"
-  | "yellow";
+type DuoCardVariant = "default" | "highlighted" | "blue" | "orange" | "yellow";
 
 type DuoCardPadding = "none" | "sm" | "md" | "lg";
 
@@ -21,24 +16,24 @@ type DuoCardProps = {
 
 const paddingStyles = StyleSheet.create({
   none: {
-    padding: 0
+    padding: 0,
   },
   sm: {
-    padding: spacing.sm
+    padding: spacing.sm,
   },
   md: {
-    padding: spacing.md
+    padding: spacing.md,
   },
   lg: {
-    padding: 20
-  }
+    padding: 20,
+  },
 });
 
 const variantStyles = StyleSheet.create({
   default: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    ...shadow.soft
+    ...shadow.soft,
   },
   highlighted: {
     backgroundColor: colors.primarySoft,
@@ -47,11 +42,11 @@ const variantStyles = StyleSheet.create({
     shadowColor: colors.primary,
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.16,
     shadowRadius: 0,
-    elevation: 2
+    elevation: 2,
   },
   blue: {
     backgroundColor: colors.blueSoft,
@@ -60,11 +55,11 @@ const variantStyles = StyleSheet.create({
     shadowColor: colors.secondary,
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.16,
     shadowRadius: 0,
-    elevation: 2
+    elevation: 2,
   },
   orange: {
     backgroundColor: colors.orangeSoft,
@@ -73,11 +68,11 @@ const variantStyles = StyleSheet.create({
     shadowColor: colors.orange,
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.16,
     shadowRadius: 0,
-    elevation: 2
+    elevation: 2,
   },
   yellow: {
     backgroundColor: "rgba(255, 200, 0, 0.1)",
@@ -86,22 +81,29 @@ const variantStyles = StyleSheet.create({
     shadowColor: colors.warning,
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.16,
     shadowRadius: 0,
-    elevation: 2
-  }
+    elevation: 2,
+  },
 });
 
 export function DuoCard({
   children,
   padding = "lg",
   style,
-  variant = "default"
+  variant = "default",
 }: DuoCardProps) {
   return (
-    <View style={[styles.card, variantStyles[variant], paddingStyles[padding], style]}>
+    <View
+      style={[
+        styles.card,
+        variantStyles[variant],
+        paddingStyles[padding],
+        style,
+      ]}
+    >
       {children}
     </View>
   );
@@ -111,6 +113,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
     borderWidth: 1,
-    gap: spacing.md
-  }
+    gap: spacing.md,
+  },
 });

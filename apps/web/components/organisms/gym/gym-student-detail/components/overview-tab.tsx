@@ -104,9 +104,7 @@ export function OverviewTab({ student }: OverviewTabProps) {
                 <UserPlus className="h-3.5 w-3.5" />
                 {p.name}
                 {p.gym && (
-                  <span className="text-xs opacity-80">
-                    (via {p.gym.name})
-                  </span>
+                  <span className="text-xs opacity-80">(via {p.gym.name})</span>
                 )}
               </span>
             ))}

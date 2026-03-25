@@ -1,13 +1,13 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
-  GYM_PLANS_CONFIG,
   centsToReais,
+  GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
 import { createGymSubscriptionSchema } from "@/lib/api/schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { ReferralService } from "@/lib/services/referral.service";
 import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
+import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
   async ({ gymContext, body }) => {
@@ -60,9 +60,11 @@ export const POST = createSafeHandler(
         existingSubscription.status === "trialing" &&
         !!existingSubscription.trialEnd &&
         new Date(existingSubscription.trialEnd).getTime() > Date.now();
-      const hasHistoricalPaidStatus = ["active", "canceled", "expired"].includes(
-        existingSubscription.status,
-      );
+      const hasHistoricalPaidStatus = [
+        "active",
+        "canceled",
+        "expired",
+      ].includes(existingSubscription.status);
       canApplyReferral =
         isTrialActive || (!hasHistoricalPaidStatus && hasEverPaid === 0);
     }

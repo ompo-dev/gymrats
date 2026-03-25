@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
-import { z } from "zod";
 import { abacatePay } from "@gymrats/api/abacatepay";
+import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   paymentId: z.string().min(1),
@@ -19,10 +19,7 @@ export const POST = createSafeHandler(
     const pixId = req.nextUrl.searchParams.get("pixId");
 
     if (!studentId) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 },
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const payment = await db.personalStudentPayment.findFirst({

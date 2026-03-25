@@ -1,11 +1,17 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
   async ({ gymContext }) => {
     const gymId = gymContext?.gymId;
+    if (!gymId) {
+      return NextResponse.json(
+        { error: "Contexto da academia invalido" },
+        { status: 400 },
+      );
+    }
 
     const gym = await db.gym.findUnique({
       where: { id: gymId },

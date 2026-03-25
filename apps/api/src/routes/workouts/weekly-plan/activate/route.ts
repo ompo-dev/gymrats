@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { activateLibraryPlanSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
@@ -9,6 +8,7 @@ import {
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { planOperationQueue } from "@/lib/queue/queues";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   const auth = await requireStudent(request);
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const validation = activateLibraryPlanSchema.safeParse(body);
   if (!validation.success) {
-    return badRequestResponse("Dados invalidos", validation.error.flatten() as any);
+    return badRequestResponse("Dados invalidos", validation.error.flatten());
   }
 
   const { libraryPlanId } = validation.data;

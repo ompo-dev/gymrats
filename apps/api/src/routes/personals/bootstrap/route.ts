@@ -1,4 +1,3 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import {
   buildBootstrapCacheKey,
@@ -10,6 +9,7 @@ import {
   buildPersonalBootstrap,
   parsePersonalBootstrapSections,
 } from "@/lib/bootstrap/personal-bootstrap";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ query, personalContext }) => {
@@ -21,9 +21,10 @@ export const GET = createSafeHandler(
       actorId: personalContext!.personalId,
       sections,
     });
-    const cached = await getCachedBootstrap<
-      Awaited<ReturnType<typeof buildPersonalBootstrap>>["data"]
-    >(cacheKey);
+    const cached =
+      await getCachedBootstrap<
+        Awaited<ReturnType<typeof buildPersonalBootstrap>>["data"]
+      >(cacheKey);
 
     if (cached) {
       return NextResponse.json(

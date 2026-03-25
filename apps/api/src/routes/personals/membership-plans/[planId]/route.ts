@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   planId: z.string().min(1),
@@ -9,7 +9,6 @@ const paramsSchema = z.object({
 
 type MembershipPlanPatchBody = {
   name?: string;
-  description?: string | null;
   type?: string;
   price?: number;
   duration?: number;
@@ -52,13 +51,10 @@ export const PATCH = createSafeHandler(
     const personalId = personalContext!.personalId;
     const payload = body as MembershipPlanPatchBody;
 
-    const plan = await (db as any).personalMembershipPlan.update({
+    const plan = await db.personalMembershipPlan.update({
       where: { id: planId, personalId },
       data: {
         ...(payload.name !== undefined ? { name: payload.name } : {}),
-        ...(payload.description !== undefined
-          ? { description: payload.description }
-          : {}),
         ...(payload.type !== undefined ? { type: payload.type } : {}),
         ...(payload.price !== undefined ? { price: payload.price } : {}),
         ...(payload.duration !== undefined
@@ -75,14 +71,8 @@ export const PATCH = createSafeHandler(
 
     return NextResponse.json({
       plan: {
-        ...(plan as Record<string, unknown>),
-        benefits: parseBenefits(
-          (plan as Record<string, unknown>).benefits as
-            | string
-            | string[]
-            | null
-            | undefined,
-        ),
+        ...plan,
+        benefits: parseBenefits(plan.benefits),
       },
     });
   },
@@ -97,7 +87,7 @@ export const DELETE = createSafeHandler(
     const { planId } = paramsSchema.parse(params);
     const personalId = personalContext!.personalId;
 
-    await (db as any).personalMembershipPlan.update({
+    await db.personalMembershipPlan.update({
       where: { id: planId, personalId },
       data: { isActive: false },
     });

@@ -1,4 +1,4 @@
-import type { DateLike, JsonValue } from "@/lib/types/api-error";
+import type { DateLike } from "@/lib/types/api-error";
 
 export function toValidDate(value: DateLike): Date | null {
   if (!value) return null;
@@ -54,7 +54,7 @@ export function normalizeGymDates<T>(data: T): T {
     return data.map((item) => normalizeGymDates(item)) as T;
   }
   if (typeof data === "object" && !(data instanceof Date)) {
-    const out: Record<string, JsonValue> = {};
+    const out: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(data)) {
       if (
         DATE_FIELDS.has(key) &&

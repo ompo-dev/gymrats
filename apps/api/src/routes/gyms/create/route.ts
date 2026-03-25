@@ -1,11 +1,18 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createGymSchema } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
   async ({ body, gymContext }) => {
     const userId = gymContext?.user.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Usuario da academia nao encontrado" },
+        { status: 400 },
+      );
+    }
+
     const { name, address, phone, email, cnpj } = body;
 
     const existingGyms = await db.gym.findMany({

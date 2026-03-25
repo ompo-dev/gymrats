@@ -1,9 +1,9 @@
-import type { NextRequest } from "@/runtime/next-server";
 import {
   deleteLibraryPlanHandler,
   getLibraryPlanDetailHandler,
   updateLibraryPlanHandler,
 } from "@/lib/api/handlers/training-library.handler";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,

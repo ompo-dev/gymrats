@@ -1,6 +1,4 @@
-import type {
-  ParsedFood,
-} from "@/lib/ai/parsers/nutrition-parser";
+import type { ParsedFood } from "@/lib/ai/parsers/nutrition-parser";
 
 export interface NutritionChatMealReference {
   type: string;
@@ -55,7 +53,9 @@ export function isCompleteNutritionPlanRequest(message: string): boolean {
   );
 }
 
-export function parseJsonStringArray(value: string | null | undefined): string[] {
+export function parseJsonStringArray(
+  value: string | null | undefined,
+): string[] {
   if (!value) return [];
 
   try {
@@ -101,10 +101,7 @@ export function getNutritionMealTime(mealType: string): string | undefined {
   return DEFAULT_MEAL_TIMES[normalizeNutritionMealType(mealType)];
 }
 
-function mealRefKey(meal: {
-  type?: string | null;
-  name?: string | null;
-}) {
+function mealRefKey(meal: { type?: string | null; name?: string | null }) {
   return `${normalizeNutritionMealType(meal.type)}::${meal.name?.trim().toLowerCase() || ""}`;
 }
 
@@ -232,7 +229,7 @@ export function buildNutritionSystemPrompt(params: {
     prompt +=
       "\n\nREGRA FORTE PARA ESTE PEDIDO: o usuario quer um plano alimentar completo. Use todas as refeicoes existentes acima e devolva pelo menos um alimento para cada uma delas. Nao omita cafe da tarde, pre treino, pos treino ou qualquer outra refeicao existente.";
   } else if (selectedMeal?.type && selectedMeal.name) {
-    prompt += `\n\nREFEICAO PADRAO: \"${selectedMeal.name}\" (${selectedMeal.type}). Se o usuario nao especificar a refeicao, use mealType: \"${normalizeNutritionMealType(selectedMeal.type)}\".`;
+    prompt += `\n\nREFEICAO PADRAO: "${selectedMeal.name}" (${selectedMeal.type}). Se o usuario nao especificar a refeicao, use mealType: "${normalizeNutritionMealType(selectedMeal.type)}".`;
   }
 
   return prompt;
@@ -267,18 +264,16 @@ export function buildNutritionMealProgress(
     const existingMeal = options?.existingMeals?.find(
       (meal) => normalizeNutritionMealType(meal.type) === mealType,
     );
-    const currentMeal =
-      groupedMeals.get(mealType) ??
-      {
-        type: mealType,
-        name: existingMeal?.name || getNutritionMealName(mealType),
-        time: existingMeal?.time || getNutritionMealTime(mealType),
-        foods: [],
-        totalCalories: 0,
-        totalProtein: 0,
-        totalCarbs: 0,
-        totalFats: 0,
-      };
+    const currentMeal = groupedMeals.get(mealType) ?? {
+      type: mealType,
+      name: existingMeal?.name || getNutritionMealName(mealType),
+      time: existingMeal?.time || getNutritionMealTime(mealType),
+      foods: [],
+      totalCalories: 0,
+      totalProtein: 0,
+      totalCarbs: 0,
+      totalFats: 0,
+    };
 
     currentMeal.foods.push({
       ...food,
@@ -293,7 +288,9 @@ export function buildNutritionMealProgress(
     currentMeal.totalCarbs += roundNutritionChatNumber(
       food.carbs * food.servings,
     );
-    currentMeal.totalFats += roundNutritionChatNumber(food.fats * food.servings);
+    currentMeal.totalFats += roundNutritionChatNumber(
+      food.fats * food.servings,
+    );
     groupedMeals.set(mealType, currentMeal);
   }
 

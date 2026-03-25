@@ -293,11 +293,7 @@ export async function createPixForPendingPayment(
     pixBrCodeBase64?: string | null;
     pixExpiresAt?: Date | null;
   };
-  if (
-    cached.pixBrCode &&
-    cached.pixBrCodeBase64 &&
-    cached.pixExpiresAt
-  ) {
+  if (cached.pixBrCode && cached.pixBrCodeBase64 && cached.pixExpiresAt) {
     const now = Date.now();
     const expiresAtMs = cached.pixExpiresAt.getTime();
     const secondsRemaining = Math.floor((expiresAtMs - now) / 1000);

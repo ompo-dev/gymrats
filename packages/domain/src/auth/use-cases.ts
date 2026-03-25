@@ -504,7 +504,7 @@ export async function getSessionUseCase(
   } catch (_betterAuthError) {
     console.log(
       "[session] Better Auth nao encontrou sessao, tentando metodo antigo",
-      );
+    );
   }
 
   if (!legacyToken) {

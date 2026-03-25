@@ -1,5 +1,5 @@
-import Constants from "expo-constants";
 import * as Application from "expo-application";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 type RuntimeExtra = {

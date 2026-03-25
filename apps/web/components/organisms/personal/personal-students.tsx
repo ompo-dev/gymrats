@@ -48,7 +48,6 @@ export function PersonalStudentsPage({
     setAssignModalOpen,
     removingId,
     studentId,
-    setStudentId,
     selectedAssignment,
     isLoadingAssignment,
     filteredStudents,
@@ -122,9 +121,7 @@ export function PersonalStudentsPage({
                 style={{ color: "var(--duo-secondary)" }}
                 aria-hidden
               />
-              <h2 className="font-bold text-duo-fg">
-                Buscar e Filtrar
-              </h2>
+              <h2 className="font-bold text-duo-fg">Buscar e Filtrar</h2>
             </div>
           </DuoCard.Header>
           <div className="space-y-4">
@@ -199,10 +196,7 @@ export function PersonalStudentsPage({
                   <div className="mb-4 flex items-start gap-4">
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full">
                       <Image
-                        src={
-                          item.student?.avatar ||
-                          "/placeholder.svg"
-                        }
+                        src={item.student?.avatar || "/placeholder.svg"}
                         alt={item.student?.user?.name ?? "Aluno"}
                         fill
                         className="object-cover"

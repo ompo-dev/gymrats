@@ -212,7 +212,11 @@ function NutritionTrackerSimple({
             {!readOnly && (
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {onOpenLibrary && (
-                  <DuoButton onClick={onOpenLibrary} variant="outline" className="w-fit">
+                  <DuoButton
+                    onClick={onOpenLibrary}
+                    variant="outline"
+                    className="w-fit"
+                  >
                     {libraryButtonLabel}
                   </DuoButton>
                 )}

@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { NextRequest } from "@/runtime/next-server";
 import { requireAdmin } from "@/lib/api/middleware/auth.middleware";
 import {
   badRequestResponse,
@@ -8,6 +7,7 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { uploadFoodsFromCSVContent } from "@/lib/services/upload-foods-from-csv";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * POST /api/foods/upload

@@ -58,10 +58,14 @@ export function ExerciseEditCard({
         </div>
         <div className="grid grid-cols-3 gap-3 mt-4">
           <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border items-center justify-center">
-            <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
+            <label
+              htmlFor={`exercise-${exercise.id}-sets`}
+              className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full"
+            >
               Séries
             </label>
             <input
+              id={`exercise-${exercise.id}-sets`}
               type="number"
               defaultValue={exercise.sets ?? 0}
               onBlur={(e) =>
@@ -74,10 +78,14 @@ export function ExerciseEditCard({
             />
           </div>
           <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border items-center justify-center">
-            <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
+            <label
+              htmlFor={`exercise-${exercise.id}-reps`}
+              className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full"
+            >
               Repetições
             </label>
             <input
+              id={`exercise-${exercise.id}-reps`}
               type="text"
               defaultValue={exercise.reps ?? ""}
               onBlur={(e) => onUpdate(exercise.id, { reps: e.target.value })}
@@ -86,11 +94,15 @@ export function ExerciseEditCard({
             />
           </div>
           <div className="flex flex-col gap-1.5 bg-duo-bg-elevated rounded-xl p-3 border border-duo-border items-center justify-center">
-            <label className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full">
+            <label
+              htmlFor={`exercise-${exercise.id}-rest`}
+              className="text-xs font-bold text-duo-fg-muted uppercase tracking-wider text-center w-full"
+            >
               Descanso
             </label>
             <div className="flex items-center justify-center gap-1">
               <input
+                id={`exercise-${exercise.id}-rest`}
                 type="number"
                 defaultValue={exercise.rest ?? 0}
                 onBlur={(e) =>

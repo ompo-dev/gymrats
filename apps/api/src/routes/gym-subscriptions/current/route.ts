@@ -1,11 +1,11 @@
-import { NextResponse } from "@/runtime/next-server";
-import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import {
   centsToReais,
   getGymPlanConfig,
 } from "@/lib/access-control/plans-config";
+import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { getTimeMs } from "@/lib/utils/date-safe";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {

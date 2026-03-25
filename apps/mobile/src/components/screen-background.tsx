@@ -13,6 +13,6 @@ export function ScreenBackground({ children }: ScreenBackgroundProps) {
 const styles = StyleSheet.create({
   background: {
     backgroundColor: colors.background,
-    flex: 1
-  }
+    flex: 1,
+  },
 });

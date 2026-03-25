@@ -6,13 +6,14 @@ import type { GymOnboardingData } from "./steps/types";
 
 export async function submitNewGym(formData: GymOnboardingData) {
   try {
-    return await serverApiPost<{ success: boolean; gymId?: string; error?: string }>(
-      "/api/gyms/onboarding",
-      {
-        ...formData,
-        createAdditional: true,
-      },
-    );
+    return await serverApiPost<{
+      success: boolean;
+      gymId?: string;
+      error?: string;
+    }>("/api/gyms/onboarding", {
+      ...formData,
+      createAdditional: true,
+    });
   } catch (error) {
     console.error("Erro ao criar nova academia:", error);
     return {
@@ -24,10 +25,11 @@ export async function submitNewGym(formData: GymOnboardingData) {
 
 export async function submitGymOnboarding(formData: GymOnboardingData) {
   try {
-    return await serverApiPost<{ success: boolean; gymId?: string; error?: string }>(
-      "/api/gyms/onboarding",
-      formData,
-    );
+    return await serverApiPost<{
+      success: boolean;
+      gymId?: string;
+      error?: string;
+    }>("/api/gyms/onboarding", formData);
   } catch (error) {
     console.error("Erro ao salvar perfil da academia:", error);
     return {

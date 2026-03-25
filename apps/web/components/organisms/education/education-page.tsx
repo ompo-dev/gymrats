@@ -6,7 +6,7 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoCard } from "@/components/duo";
 import { cn } from "@/lib/utils";
 
-interface EducationPageProps {
+export interface EducationPageProps {
   onSelectView: (view: "muscles" | "lessons") => void;
 }
 

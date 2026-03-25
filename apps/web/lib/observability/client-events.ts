@@ -7,8 +7,11 @@ import {
   isClientApiCapabilityEnabled,
 } from "@/lib/api/route-capabilities";
 
-let observabilityEndpointState: "unknown" | "probing" | "available" | "missing" =
-  "unknown";
+let observabilityEndpointState:
+  | "unknown"
+  | "probing"
+  | "available"
+  | "missing" = "unknown";
 let flushHandle: number | null = null;
 const pendingEvents: Array<Record<string, unknown>> = [];
 
@@ -22,14 +25,21 @@ function scheduleFlush() {
     void flushTelemetryQueue();
   };
 
-  if ("requestIdleCallback" in window) {
-    flushHandle = window.requestIdleCallback(flush, {
+  const windowWithIdleCallback = window as Window & {
+    requestIdleCallback?: (
+      callback: () => void,
+      options?: { timeout: number },
+    ) => number;
+  };
+
+  if (windowWithIdleCallback.requestIdleCallback) {
+    flushHandle = windowWithIdleCallback.requestIdleCallback(flush, {
       timeout: 2_000,
-    }) as unknown as number;
+    });
     return;
   }
 
-  flushHandle = window.setTimeout(flush, 750);
+  flushHandle = globalThis.setTimeout(flush, 750) as unknown as number;
 }
 
 async function flushTelemetryQueue() {

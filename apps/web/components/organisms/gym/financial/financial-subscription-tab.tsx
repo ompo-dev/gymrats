@@ -1,48 +1,49 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  GYM_PLANS_CONFIG,
-  centsToReais,
-} from "@/lib/access-control/plans-config";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
 import { useGym } from "@/hooks/use-gym";
 import { useGymSubscription } from "@/hooks/use-gym-subscription";
 import { useToast } from "@/hooks/use-toast";
+import {
+  centsToReais,
+  GYM_PLANS_CONFIG,
+} from "@/lib/access-control/plans-config";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
-import { useSubscriptionStore } from "@/stores/subscription-store";
-import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import {
+  type GymSubscriptionData,
+  useSubscriptionStore,
+} from "@/stores/subscription-store";
 
 interface FinancialSubscriptionTabProps {
-  subscription?: {
-    id: string;
-    plan: string;
-    status:
-      | "active"
-      | "canceled"
-      | "expired"
-      | "past_due"
-      | "trialing"
-      | "pending_payment"
-      | string;
-    currentPeriodStart: Date;
-    currentPeriodEnd: Date;
-    cancelAtPeriodEnd: boolean;
-    canceledAt: Date | null;
-    trialStart: Date | null;
-    trialEnd: Date | null;
-    isTrial: boolean;
-    daysRemaining: number | null;
-    activeStudents: number;
-    activePersonals: number;
-    basePrice: number;
-    pricePerStudent: number;
-    pricePerPersonal: number;
-    totalAmount: number;
-  } | null;
+  subscription?: GymSubscriptionData | null;
 }
 
 const PENDING_PIX_KEY = "gym-pending-pix";
+type SubscriptionSectionStatus =
+  | "active"
+  | "canceled"
+  | "expired"
+  | "past_due"
+  | "trialing"
+  | "pending_payment";
+
+function normalizeSubscriptionStatus(
+  status: string,
+): SubscriptionSectionStatus {
+  switch (status) {
+    case "active":
+    case "canceled":
+    case "expired":
+    case "past_due":
+    case "trialing":
+    case "pending_payment":
+      return status;
+    default:
+      return "pending_payment";
+  }
+}
 
 function loadPendingPixFromStorage(): {
   pixId: string;
@@ -402,7 +403,7 @@ export function FinancialSubscriptionTab({
             ? {
                 id: subscription.id,
                 plan: subscription.plan,
-                status: subscription.status as any,
+                status: normalizeSubscriptionStatus(subscription.status),
                 currentPeriodStart: subscription.currentPeriodStart,
                 currentPeriodEnd: subscription.currentPeriodEnd,
                 cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
@@ -413,9 +414,7 @@ export function FinancialSubscriptionTab({
                 daysRemaining: subscription.daysRemaining,
                 activeStudents: subscription.activeStudents,
                 totalAmount: subscription.totalAmount,
-                billingPeriod:
-                  (subscription as { billingPeriod?: "monthly" | "annual" })
-                    .billingPeriod ?? "monthly",
+                billingPeriod: subscription.billingPeriod ?? "monthly",
               }
             : null
         }

@@ -136,10 +136,14 @@ export function CreateUnitModal({
               className="space-y-4"
             >
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">
+                <label
+                  htmlFor="create-unit-title"
+                  className="block text-sm font-bold text-gray-600 mb-2"
+                >
                   Nome do Plano
                 </label>
                 <input
+                  id="create-unit-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -153,10 +157,14 @@ export function CreateUnitModal({
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">
+                <label
+                  htmlFor="create-unit-description"
+                  className="block text-sm font-bold text-gray-600 mb-2"
+                >
                   Descrição (Opcional)
                 </label>
                 <textarea
+                  id="create-unit-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Descreva o objetivo deste plano de treino..."

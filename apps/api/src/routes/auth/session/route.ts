@@ -1,4 +1,3 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { createSessionPayload } from "@/lib/auth/session-payload";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import {
@@ -6,6 +5,7 @@ import {
   hasActivePremiumStatus,
   isPremiumPlan,
 } from "@/lib/utils/subscription";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 type StudentSubscriptionRecord = {
   plan: string;

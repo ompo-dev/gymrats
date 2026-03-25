@@ -191,12 +191,12 @@ function EquipmentSearchSimple({
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <label className="mb-3 block text-sm font-bold text-duo-fg-muted">
+                  <p className="mb-3 block text-sm font-bold text-duo-fg-muted">
                     Ajustar Quantidade ({selectedEquipmentIds.length}{" "}
                     equipamento
                     {selectedEquipmentIds.length !== 1 ? "s" : ""} selecionado
                     {selectedEquipmentIds.length !== 1 ? "s" : ""})
-                  </label>
+                  </p>
                   <div
                     className="space-y-3 overflow-y-auto scrollbar-hide"
                     style={{ maxHeight: "240px" }}

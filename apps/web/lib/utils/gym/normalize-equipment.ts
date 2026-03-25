@@ -60,7 +60,9 @@ export function normalizeEquipmentItem(value: unknown): Equipment {
     brand: typeof source?.brand === "string" ? source.brand : undefined,
     model: typeof source?.model === "string" ? source.model : undefined,
     serialNumber:
-      typeof source?.serialNumber === "string" ? source.serialNumber : undefined,
+      typeof source?.serialNumber === "string"
+        ? source.serialNumber
+        : undefined,
     purchaseDate: asDate(source?.purchaseDate),
     lastMaintenance: asDate(source?.lastMaintenance),
     nextMaintenance: asDate(source?.nextMaintenance),

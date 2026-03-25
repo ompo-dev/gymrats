@@ -33,7 +33,9 @@ async function runSql(cmd, description) {
 
 async function applyMigration() {
   try {
-    console.log("📦 Aplicando migration de FK gymId em student_personal_assignments...\n");
+    console.log(
+      "📦 Aplicando migration de FK gymId em student_personal_assignments...\n",
+    );
 
     await runSql(
       `CREATE INDEX IF NOT EXISTS "student_personal_assignments_gymId_idx" ON "student_personal_assignments"("gymId")`,

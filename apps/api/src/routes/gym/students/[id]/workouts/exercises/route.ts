@@ -1,4 +1,4 @@
-import type { NextRequest } from "@/runtime/next-server";
+import { createWorkoutExerciseSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
@@ -7,7 +7,6 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
-import { createWorkoutExerciseSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/lib/services/personalized-workout-generator";
 import type { ExerciseInfo, MuscleGroup } from "@/lib/types";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * POST /api/gym/students/[id]/workouts/exercises
@@ -447,7 +447,8 @@ export async function POST(
           ? JSON.stringify(exerciseInfo.primaryMuscles)
           : null,
       secondaryMuscles:
-        exerciseInfo.secondaryMuscles && exerciseInfo.secondaryMuscles.length > 0
+        exerciseInfo.secondaryMuscles &&
+        exerciseInfo.secondaryMuscles.length > 0
           ? JSON.stringify(exerciseInfo.secondaryMuscles)
           : null,
       difficulty: exerciseInfo.difficulty || null,

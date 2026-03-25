@@ -23,9 +23,9 @@ import {
   DuoStatsGrid,
 } from "@/components/duo";
 import type { Equipment } from "@/lib/types";
-import { normalizeEquipmentItem } from "@/lib/utils/gym/normalize-equipment";
 import { cn } from "@/lib/utils";
 import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
+import { normalizeEquipmentItem } from "@/lib/utils/gym/normalize-equipment";
 import { AddEquipmentModal } from "./add-equipment-modal";
 import { MaintenanceModal } from "./maintenance-modal"; // Import
 

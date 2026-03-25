@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { createChangePlanPaymentPix } from "@/lib/services/gym/gym-membership-payment.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   membershipId: z.string().min(1),

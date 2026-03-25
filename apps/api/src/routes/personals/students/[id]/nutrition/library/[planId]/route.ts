@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,
@@ -49,7 +49,10 @@ export async function GET(
 
     return successResponse({ data });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro GET:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/library/[planId]] Erro GET:",
+      error,
+    );
     return mapNutritionRouteError(error, "Erro ao buscar plano alimentar");
   }
 }
@@ -89,7 +92,10 @@ export async function PATCH(
       message: "Plano alimentar atualizado com sucesso",
     });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro PATCH:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/library/[planId]] Erro PATCH:",
+      error,
+    );
     return mapNutritionRouteError(error, "Erro ao atualizar plano alimentar");
   }
 }
@@ -118,7 +124,10 @@ export async function DELETE(
     await deleteNutritionLibraryPlan(planId);
     return successResponse({ message: "Plano alimentar removido com sucesso" });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/library/[planId]] Erro DELETE:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/library/[planId]] Erro DELETE:",
+      error,
+    );
     return mapNutritionRouteError(error, "Erro ao remover plano alimentar");
   }
 }

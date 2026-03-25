@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import type {
   BoostCampaign,
   Coupon,
@@ -16,7 +16,9 @@ function buildPersonalFinancialCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -59,7 +61,7 @@ export class PersonalFinancialService {
         where: { personalId, date: { gte: startOfMonth } },
         _sum: { amount: true },
       }),
-      (db as any).personalMembershipPlan.findMany({
+      db.personalMembershipPlan.findMany({
         where: { personalId, isActive: true },
         select: { price: true },
       }),
@@ -68,11 +70,7 @@ export class PersonalFinancialService {
     const totalDespesas = expenses._sum.amount ?? 0;
     const totalReceitas = 0; // TODO: Implement when PersonalPayment model exists
 
-    const mrr = (membershipPlans as any[]).reduce(
-      (sum: number, plan: any) => sum + plan.price,
-      0,
-    );
-    const totalPayments = 0; // TODO: Implement when PersonalPayment model exists
+    const mrr = membershipPlans.reduce((sum, plan) => sum + plan.price, 0);
     const avgTicket = 0;
 
     const summary = {
@@ -143,10 +141,7 @@ export class PersonalFinancialService {
     return payload;
   }
 
-  static async getPayments(
-    personalId: string,
-    options?: { fresh?: boolean },
-  ) {
+  static async getPayments(personalId: string, options?: { fresh?: boolean }) {
     const cacheKey = buildPersonalFinancialCacheKey(personalId, "payments");
 
     if (!options?.fresh) {
@@ -172,31 +167,30 @@ export class PersonalFinancialService {
     const cacheKey = buildPersonalFinancialCacheKey(personalId, "plans");
 
     if (!options?.fresh) {
-      const cached = await getCachedJson<Array<Record<string, unknown>>>(
-        cacheKey,
-      );
+      const cached =
+        await getCachedJson<Array<Record<string, unknown>>>(cacheKey);
       if (cached) {
         return cached;
       }
     }
 
-    const plans = await (db as any).personalMembershipPlan.findMany({
+    const plans = await db.personalMembershipPlan.findMany({
       where: { personalId },
       orderBy: { price: "asc" },
     });
-    const payload = (plans as any[]).map((p: any) => {
+    const payload = plans.map((plan) => {
       let benefits: string[] = [];
-      if (typeof p.benefits === "string") {
+      if (typeof plan.benefits === "string") {
         try {
-          benefits = JSON.parse(p.benefits);
+          benefits = JSON.parse(plan.benefits);
         } catch {
           benefits = [];
         }
-      } else if (Array.isArray(p.benefits)) {
-        benefits = p.benefits;
+      } else if (Array.isArray(plan.benefits)) {
+        benefits = plan.benefits;
       }
       return {
-        ...p,
+        ...plan,
         benefits,
       };
     });

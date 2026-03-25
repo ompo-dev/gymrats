@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { updateStudentProgressSchema } from "@/lib/api/schemas/students.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { StudentDomainService } from "@/lib/services/student-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ studentContext }) => {

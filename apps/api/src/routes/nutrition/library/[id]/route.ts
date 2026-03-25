@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
@@ -13,6 +12,7 @@ import {
   updateNutritionLibraryPlan,
 } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,

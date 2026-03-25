@@ -45,7 +45,7 @@ export function ActiveGymProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<ActiveGymContextType>(() => {
     const gyms = Object.values(gymsData) as GymInfo[];
-    const activeGym = activeGymId ? gymsData[activeGymId] ?? null : null;
+    const activeGym = activeGymId ? (gymsData[activeGymId] ?? null) : null;
 
     return {
       activeGymId,

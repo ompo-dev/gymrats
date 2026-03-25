@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
   createGymPlanSchema,
   gymPlansQuerySchema,
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 // GET — listar planos da academia
 export const GET = createSafeHandler(
@@ -12,7 +12,7 @@ export const GET = createSafeHandler(
     const { gymId } = gymContext!;
     const fresh = new URL(req.url).searchParams.get("fresh") === "1";
     const plans = await GymDomainService.getPlans(gymId, {
-      ...(query as Record<string, string | undefined>),
+      includeInactive: query.includeInactive,
       fresh,
     });
     return NextResponse.json({ plans });

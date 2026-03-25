@@ -1,4 +1,4 @@
-import type { NextRequest } from "@/runtime/next-server";
+import { updateWorkoutExerciseSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
@@ -7,10 +7,10 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
-import { updateWorkoutExerciseSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
-import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import { normalizeEducationalData } from "@/lib/utils/workout-exercise";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * PUT /api/gym/students/[id]/workouts/exercises/[exerciseId]
@@ -18,9 +18,7 @@ import { getGymContext } from "@/lib/utils/gym/gym-context";
  */
 export async function PUT(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; exerciseId: string }> },
+  { params }: { params: Promise<{ id: string; exerciseId: string }> },
 ) {
   try {
     const { ctx, errorResponse } = await getGymContext(request);
@@ -96,9 +94,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; exerciseId: string }> },
+  { params }: { params: Promise<{ id: string; exerciseId: string }> },
 ) {
   try {
     const { ctx, errorResponse } = await getGymContext(request);

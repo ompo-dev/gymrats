@@ -1,15 +1,34 @@
-import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import type {
+  ExerciseLog,
+  MuscleGroup,
   StudentData,
   UserProfile,
   UserProgress,
-  ExerciseLog,
-  MuscleGroup,
   WorkoutHistory,
 } from "@/lib/types";
 
 const PERSONAL_STUDENTS_CACHE_TTL_SECONDS = 20;
+
+const personalStudentListInclude = {
+  student: {
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      profile: true,
+      progress: true,
+    },
+  },
+  gym: {
+    select: { id: true, name: true, image: true, logo: true },
+  },
+} satisfies Prisma.StudentPersonalAssignmentInclude;
+
+type PersonalStudentListAssignment =
+  Prisma.StudentPersonalAssignmentGetPayload<{
+    include: typeof personalStudentListInclude;
+  }>;
 
 function buildPersonalStudentCacheKey(
   personalId: string,
@@ -17,7 +36,9 @@ function buildPersonalStudentCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -39,7 +60,9 @@ const EXERCISE_DIFFICULTY = [
 ] as const;
 type ExerciseDifficulty = (typeof EXERCISE_DIFFICULTY)[number];
 
-function toExerciseDifficulty(v: string | null | undefined): ExerciseDifficulty {
+function toExerciseDifficulty(
+  v: string | null | undefined,
+): ExerciseDifficulty {
   if (v && EXERCISE_DIFFICULTY.includes(v as ExerciseDifficulty))
     return v as ExerciseDifficulty;
   return "ideal";
@@ -58,8 +81,9 @@ function toMuscleGroups(arr: unknown): MuscleGroup[] {
     "funcional",
   ];
   if (!Array.isArray(arr)) return [];
-  return arr.filter((x): x is MuscleGroup =>
-    typeof x === "string" && valid.includes(x as MuscleGroup),
+  return arr.filter(
+    (x): x is MuscleGroup =>
+      typeof x === "string" && valid.includes(x as MuscleGroup),
   );
 }
 
@@ -75,22 +99,30 @@ type GoalType = (typeof VALID_GOALS)[number];
 
 function toGoals(arr: unknown): UserProfile["goals"] {
   if (!Array.isArray(arr)) return [];
-  return arr.filter((x): x is GoalType =>
-    typeof x === "string" && VALID_GOALS.includes(x as GoalType),
+  return arr.filter(
+    (x): x is GoalType =>
+      typeof x === "string" && VALID_GOALS.includes(x as GoalType),
   );
 }
 
 const VALID_FEEDBACK = ["excelente", "bom", "regular", "ruim"] as const;
 type FeedbackType = (typeof VALID_FEEDBACK)[number];
 
-function toOverallFeedback(v: string | null | undefined): FeedbackType | undefined {
+function toOverallFeedback(
+  v: string | null | undefined,
+): FeedbackType | undefined {
   if (!v) return undefined;
   if (VALID_FEEDBACK.includes(v as FeedbackType)) return v as FeedbackType;
   return undefined;
 }
 
 function buildUserProfile(
-  student: { id: string; user?: { name: string | null } | null; age: number | null; gender: string | null },
+  student: {
+    id: string;
+    user?: { name: string | null } | null;
+    age: number | null;
+    gender: string | null;
+  },
   profile: {
     height?: number | null;
     weight?: number | null;
@@ -108,17 +140,21 @@ function buildUserProfile(
     ? (() => {
         try {
           const arr = JSON.parse(profile.availableEquipment);
-          return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === "string") : [];
+          return Array.isArray(arr)
+            ? arr.filter((x: unknown) => typeof x === "string")
+            : [];
         } catch {
           return [];
         }
       })()
     : [];
-  const gender = (["male", "female", "non-binary", "prefer-not-to-say"].includes(
-    student.gender ?? "",
-  )
-    ? student.gender
-    : "prefer-not-to-say") as UserProfile["gender"];
+  const gender = (
+    ["male", "female", "non-binary", "prefer-not-to-say"].includes(
+      student.gender ?? "",
+    )
+      ? student.gender
+      : "prefer-not-to-say"
+  ) as UserProfile["gender"];
   return {
     id: student.id,
     name: student.user?.name ?? "",
@@ -126,7 +162,8 @@ function buildUserProfile(
     gender,
     height: profile?.height ?? 0,
     weight: profile?.weight ?? 0,
-    fitnessLevel: (profile?.fitnessLevel ?? "iniciante") as UserProfile["fitnessLevel"],
+    fitnessLevel: (profile?.fitnessLevel ??
+      "iniciante") as UserProfile["fitnessLevel"],
     weeklyWorkoutFrequency: profile?.weeklyWorkoutFrequency ?? 3,
     workoutDuration: 45,
     goals,
@@ -219,7 +256,7 @@ export class StudentPersonalService {
 
     const assignments = user.student.personalAssignments;
     const assignedGymIds = assignments.map((a) => a.gymId ?? "independent");
-    
+
     return {
       found: true,
       assignedGymIds,
@@ -250,7 +287,7 @@ export class StudentPersonalService {
       throw new Error("Personal não está filiado à academia");
     }
 
-    const existing = await (db.studentPersonalAssignment as any).findUnique({
+    const existing = await db.studentPersonalAssignment.findUnique({
       where: { studentId_personalId_gymId: { studentId, personalId, gymId } },
     });
 
@@ -293,8 +330,12 @@ export class StudentPersonalService {
       }
     }
 
-    const existing = await (db.studentPersonalAssignment as any).findUnique({
-      where: { studentId_personalId_gymId: { studentId, personalId, gymId: gymId ?? null } },
+    const existing = await db.studentPersonalAssignment.findFirst({
+      where: {
+        studentId,
+        personalId,
+        gymId: gymId ?? null,
+      },
     });
 
     if (existing) {
@@ -319,11 +360,15 @@ export class StudentPersonalService {
     });
   }
 
-  static async removeAssignment(input: { studentId: string; personalId: string; gymId?: string }) {
+  static async removeAssignment(input: {
+    studentId: string;
+    personalId: string;
+    gymId?: string;
+  }) {
     const { studentId, personalId, gymId = null } = input;
 
-    const existing = await (db.studentPersonalAssignment as any).findUnique({
-      where: { studentId_personalId_gymId: { studentId, personalId, gymId } },
+    const existing = await db.studentPersonalAssignment.findFirst({
+      where: { studentId, personalId, gymId },
     });
     if (!existing) return null;
 
@@ -385,17 +430,13 @@ export class StudentPersonalService {
     gymId?: string | null,
     options?: { fresh?: boolean },
   ) {
-    const cacheKey = buildPersonalStudentCacheKey(
-      personalId,
-      "assignments",
-      { gymId: gymId ?? "all" },
-    );
+    const cacheKey = buildPersonalStudentCacheKey(personalId, "assignments", {
+      gymId: gymId ?? "all",
+    });
 
     if (!options?.fresh) {
       const cached =
-        await getCachedJson<Awaited<ReturnType<typeof db.studentPersonalAssignment.findMany>>>(
-          cacheKey,
-        );
+        await getCachedJson<PersonalStudentListAssignment[]>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -407,18 +448,7 @@ export class StudentPersonalService {
         status: "active",
         ...(gymId !== undefined ? { gymId } : {}),
       },
-      include: {
-        student: {
-          include: {
-            user: { select: { id: true, name: true, email: true } },
-            profile: true,
-            progress: true,
-          },
-        },
-        gym: {
-          select: { id: true, name: true, image: true, logo: true },
-        },
-      },
+      include: personalStudentListInclude,
       orderBy: { createdAt: "desc" },
     });
 
@@ -439,11 +469,9 @@ export class StudentPersonalService {
     gymId?: string,
     options?: { fresh?: boolean },
   ): Promise<StudentData[]> {
-    const cacheKey = buildPersonalStudentCacheKey(
-      personalId,
-      "student-data",
-      { gymId: gymId ?? "all" },
-    );
+    const cacheKey = buildPersonalStudentCacheKey(personalId, "student-data", {
+      gymId: gymId ?? "all",
+    });
 
     if (!options?.fresh) {
       const cached = await getCachedJson<StudentData[]>(cacheKey);
@@ -452,9 +480,13 @@ export class StudentPersonalService {
       }
     }
 
-    const assignments = await this.listStudentsByPersonal(personalId, gymId, {
-      fresh: options?.fresh,
-    });
+    const assignments = await StudentPersonalService.listStudentsByPersonal(
+      personalId,
+      gymId,
+      {
+        fresh: options?.fresh,
+      },
+    );
     const result: StudentData[] = [];
 
     const parseJson = <T>(s: string | null | undefined, fallback: T): T => {
@@ -476,7 +508,10 @@ export class StudentPersonalService {
       const expectedMonthly = weeklyFreq * 4;
       const attendanceRate =
         expectedMonthly > 0
-          ? Math.min(100, Math.round((workoutsCompleted / expectedMonthly) * 100))
+          ? Math.min(
+              100,
+              Math.round((workoutsCompleted / expectedMonthly) * 100),
+            )
           : 0;
 
       result.push({
@@ -496,20 +531,51 @@ export class StudentPersonalService {
               id: student.id,
               name: student.user?.name ?? "",
               age: student.age ?? 0,
-              gender: (student.gender as "male" | "female" | "non-binary" | "prefer-not-to-say") ?? "prefer-not-to-say",
+              gender:
+                (student.gender as
+                  | "male"
+                  | "female"
+                  | "non-binary"
+                  | "prefer-not-to-say") ?? "prefer-not-to-say",
               height: profile.height ?? 0,
               weight: profile.weight ?? 0,
-              fitnessLevel: (profile.fitnessLevel as "iniciante" | "intermediario" | "avancado") ?? "iniciante",
+              fitnessLevel:
+                (profile.fitnessLevel as
+                  | "iniciante"
+                  | "intermediario"
+                  | "avancado") ?? "iniciante",
               weeklyWorkoutFrequency: profile.weeklyWorkoutFrequency ?? 3,
               workoutDuration: profile.workoutDuration ?? 60,
-              goals: goals as ("perder-peso" | "ganhar-massa" | "definir" | "saude" | "forca" | "resistencia")[],
+              goals: goals as (
+                | "perder-peso"
+                | "ganhar-massa"
+                | "definir"
+                | "saude"
+                | "forca"
+                | "resistencia"
+              )[],
               injuries: parseJson<string[]>(profile.injuries, []),
-              availableEquipment: parseJson<string[]>(profile.availableEquipment, []),
-              gymType: (profile.gymType as "academia-completa" | "academia-basica" | "home-gym" | "peso-corporal") ?? "academia-completa",
-              preferredWorkoutTime: (profile.preferredWorkoutTime as "manha" | "tarde" | "noite") ?? "manha",
+              availableEquipment: parseJson<string[]>(
+                profile.availableEquipment,
+                [],
+              ),
+              gymType:
+                (profile.gymType as
+                  | "academia-completa"
+                  | "academia-basica"
+                  | "home-gym"
+                  | "peso-corporal") ?? "academia-completa",
+              preferredWorkoutTime:
+                (profile.preferredWorkoutTime as "manha" | "tarde" | "noite") ??
+                "manha",
               preferredSets: profile.preferredSets ?? 3,
-              preferredRepRange: (profile.preferredRepRange as "forca" | "hipertrofia" | "resistencia") ?? "hipertrofia",
-              restTime: (profile.restTime as "curto" | "medio" | "longo") ?? "medio",
+              preferredRepRange:
+                (profile.preferredRepRange as
+                  | "forca"
+                  | "hipertrofia"
+                  | "resistencia") ?? "hipertrofia",
+              restTime:
+                (profile.restTime as "curto" | "medio" | "longo") ?? "medio",
               targetCalories: profile.targetCalories ?? 2000,
               targetProtein: profile.targetProtein ?? 150,
               targetCarbs: profile.targetCarbs ?? 250,
@@ -591,11 +657,7 @@ export class StudentPersonalService {
       });
     }
 
-    await setCachedJson(
-      cacheKey,
-      result,
-      PERSONAL_STUDENTS_CACHE_TTL_SECONDS,
-    );
+    await setCachedJson(cacheKey, result, PERSONAL_STUDENTS_CACHE_TTL_SECONDS);
 
     return result;
   }
@@ -687,7 +749,7 @@ export class StudentPersonalService {
         : 0;
 
     const personalsAssignments =
-      await this.listPersonalsByStudent(student.id);
+      await StudentPersonalService.listPersonalsByStudent(student.id);
     const assignedPersonals = personalsAssignments.map((a) => ({
       id: a.personal.id,
       name: a.personal.name,
@@ -700,17 +762,12 @@ export class StudentPersonalService {
         try {
           const s = JSON.parse(ex.sets);
           return Array.isArray(s)
-            ? s.map(
-                (
-                  set: { weight?: number; reps?: number },
-                  i: number,
-                ) => ({
-                  setNumber: i + 1,
-                  weight: set.weight ?? 0,
-                  reps: set.reps ?? 0,
-                  completed: true,
-                }),
-              )
+            ? s.map((set: { weight?: number; reps?: number }, i: number) => ({
+                setNumber: i + 1,
+                weight: set.weight ?? 0,
+                reps: set.reps ?? 0,
+                completed: true,
+              }))
             : [];
         } catch {
           return [];
@@ -756,8 +813,7 @@ export class StudentPersonalService {
       age: student.age ?? 0,
       gender: student.gender ?? "",
       phone: student.phone ?? "",
-      membershipStatus:
-        assignment.status === "active" ? "active" : "inactive",
+      membershipStatus: assignment.status === "active" ? "active" : "inactive",
       joinDate: assignment.createdAt,
       totalVisits,
       currentStreak: progress?.currentStreak ?? 0,
@@ -775,7 +831,9 @@ export class StudentPersonalService {
         ? (() => {
             try {
               const arr = JSON.parse(profile.availableEquipment);
-              return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === "string") : [];
+              return Array.isArray(arr)
+                ? arr.filter((x: unknown) => typeof x === "string")
+                : [];
             } catch {
               return [];
             }
@@ -787,7 +845,8 @@ export class StudentPersonalService {
         exerciseName: r.exerciseName ?? "",
         date: r.date,
         value: r.value ?? 0,
-        type: (r.type as "max-weight" | "max-reps" | "max-volume") ?? "max-weight",
+        type:
+          (r.type as "max-weight" | "max-reps" | "max-volume") ?? "max-weight",
       })),
       gymMembership: assignment.gym
         ? {

@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { createMembershipPaymentPix } from "@/lib/services/gym/gym-membership-payment.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   gymId: z.string().min(1),
@@ -21,7 +21,7 @@ export const POST = createSafeHandler(
     if (!studentId) {
       return NextResponse.json(
         { error: "Estudante não autenticado" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -58,21 +58,28 @@ export const POST = createSafeHandler(
       if (coupon) {
         const now = new Date();
         const isExpired = !!coupon.expiresAt && coupon.expiresAt <= now;
-        const isMaxed = coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
+        const isMaxed =
+          coupon.maxUses !== -1 && coupon.currentUses >= coupon.maxUses;
         if (isExpired || isMaxed) {
           await db.gymCoupon.update({
             where: { id: coupon.id },
             data: { isActive: false },
           });
         } else {
-        if (coupon.discountType === "percentage") {
-          finalPrice = finalPrice * (1 - coupon.discountValue / 100);
-          appliedCouponInfo = { code: coupon.code, discountString: `${coupon.discountValue}%` };
-        } else {
-          finalPrice = finalPrice - coupon.discountValue;
-          appliedCouponInfo = { code: coupon.code, discountString: `R$ ${coupon.discountValue.toFixed(2)}` };
-        }
-        if (finalPrice < 3.5) finalPrice = 3.5;
+          if (coupon.discountType === "percentage") {
+            finalPrice = finalPrice * (1 - coupon.discountValue / 100);
+            appliedCouponInfo = {
+              code: coupon.code,
+              discountString: `${coupon.discountValue}%`,
+            };
+          } else {
+            finalPrice = finalPrice - coupon.discountValue;
+            appliedCouponInfo = {
+              code: coupon.code,
+              discountString: `R$ ${coupon.discountValue.toFixed(2)}`,
+            };
+          }
+          if (finalPrice < 3.5) finalPrice = 3.5;
           // Incrementa uso e inativa automaticamente se atingiu o limite
           const updatedCoupon = await db.gymCoupon.update({
             where: { id: coupon.id },

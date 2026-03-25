@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { ReferralService } from "@/lib/services/referral.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const pixKeySchema = z.object({
   pixKey: z.string().min(1, "Chave PIX é obrigatória"),

@@ -29,7 +29,8 @@ function FoodPreviewItemCard({
 }: FoodPreviewItemCardProps) {
   return (
     <div>
-      <div
+      <button
+        type="button"
         onClick={onToggle}
         className={cn(
           "w-full cursor-pointer rounded-xl border p-3 text-left transition-all active:scale-[0.98]",
@@ -37,14 +38,6 @@ function FoodPreviewItemCard({
             ? "border-duo-green bg-duo-green/10 shadow-sm"
             : "border-duo-border bg-duo-bg-card hover:border-duo-green/50",
         )}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onToggle();
-          }
-        }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -89,7 +82,7 @@ function FoodPreviewItemCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </button>
     </div>
   );
 }
@@ -102,7 +95,9 @@ export function NutritionPreviewCard({
 }: NutritionPreviewCardProps) {
   const [userToggled, setUserToggled] = useState(false);
   const [userExpanded, setUserExpanded] = useState(false);
-  const [expandedFoodIndex, setExpandedFoodIndex] = useState<number | null>(null);
+  const [expandedFoodIndex, setExpandedFoodIndex] = useState<number | null>(
+    null,
+  );
   const isExpanded = userToggled ? userExpanded : defaultExpanded;
   const hasFoods = meal.foods.length > 0;
 
@@ -143,7 +138,8 @@ export function NutritionPreviewCard({
                   </h4>
                 </div>
                 <p className="text-sm text-duo-fg-muted">
-                  {meal.foods.length} alimento{meal.foods.length !== 1 ? "s" : ""}
+                  {meal.foods.length} alimento
+                  {meal.foods.length !== 1 ? "s" : ""}
                   {meal.time ? ` • ${meal.time}` : ""}
                 </p>
               </div>
@@ -153,8 +149,9 @@ export function NutritionPreviewCard({
                   {Math.round(meal.totalCalories)} cal
                 </div>
                 <div className="text-xs text-duo-fg-muted">
-                  P {Math.round(meal.totalProtein)}g • C {Math.round(meal.totalCarbs)}g
-                  {" "}• G {Math.round(meal.totalFats)}g
+                  P {Math.round(meal.totalProtein)}g • C{" "}
+                  {Math.round(meal.totalCarbs)}g • G{" "}
+                  {Math.round(meal.totalFats)}g
                 </div>
               </div>
 

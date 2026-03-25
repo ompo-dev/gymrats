@@ -1,5 +1,5 @@
-import { NextResponse } from "@/runtime/next-server";
 import { resetStudentWeeklyOverride } from "@gymrats/workflows";
+import { NextResponse } from "@/runtime/next-server";
 
 /**
  * Cron: Reset semanal - Segunda 3h BRT

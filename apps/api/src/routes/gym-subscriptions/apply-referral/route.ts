@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { GYM_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { ReferralService } from "@/lib/services/referral.service";
 import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
+import { NextResponse } from "@/runtime/next-server";
 
 const applyReferralSchema = z.object({
   referralCode: z.string().min(1, "Informe o @ do aluno indicador"),
@@ -21,12 +21,14 @@ export const POST = createSafeHandler(
     if (!gymId) {
       return NextResponse.json(
         { error: "Academia não autenticada" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const referralCode = (body as { referralCode: string }).referralCode.trim();
-    const normalized = referralCode.startsWith("@") ? referralCode : `@${referralCode}`;
+    const normalized = referralCode.startsWith("@")
+      ? referralCode
+      : `@${referralCode}`;
 
     const subscription = await db.gymSubscription.findUnique({
       where: { gymId },
@@ -38,7 +40,7 @@ export const POST = createSafeHandler(
     if (!subscription || !isPending) {
       return NextResponse.json(
         { error: "Não há assinatura pendente para aplicar indicação" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -64,7 +66,7 @@ export const POST = createSafeHandler(
           error:
             "Indicação disponível apenas para primeira assinatura ou trial ativo.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,7 +79,7 @@ export const POST = createSafeHandler(
           error: "Código de indicação inválido",
           referralCodeInvalid: true,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -95,7 +97,7 @@ export const POST = createSafeHandler(
     if (!config) {
       return NextResponse.json(
         { error: "Configuração do plano inválida" },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const basePrice =
@@ -116,13 +118,13 @@ export const POST = createSafeHandler(
       activeStudents,
       subscription.billingPeriod as "monthly" | "annual",
       subscription.id,
-      { referralCode: normalized }
+      { referralCode: normalized },
     );
 
     if (!pix || !pix.id) {
       return NextResponse.json(
         { error: "Erro ao gerar novo PIX" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -149,5 +151,5 @@ export const POST = createSafeHandler(
   {
     auth: "gym",
     schema: { body: applyReferralSchema },
-  }
+  },
 );

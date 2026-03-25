@@ -1,5 +1,5 @@
-import { readdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,13 +36,17 @@ function selectScripts(availableMigrations) {
     return availableMigrations;
   }
 
-  const requested = [...scriptFlags, ...positionalScripts].map(normalizeScriptName);
+  const requested = [...scriptFlags, ...positionalScripts].map(
+    normalizeScriptName,
+  );
 
   if (requested.length === 0) {
     return [];
   }
 
-  const invalid = requested.filter((name) => !availableMigrations.includes(name));
+  const invalid = requested.filter(
+    (name) => !availableMigrations.includes(name),
+  );
 
   if (invalid.length > 0) {
     throw new Error(
@@ -56,12 +60,16 @@ function selectScripts(availableMigrations) {
 function runScript(scriptName) {
   console.log(`\n[migration] executando ${scriptName}`);
 
-  const result = spawnSync(process.execPath, [path.join(__dirname, scriptName)], {
-    cwd: rootDir,
-    stdio: "inherit",
-    env: process.env,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [path.join(__dirname, scriptName)],
+    {
+      cwd: rootDir,
+      stdio: "inherit",
+      env: process.env,
+      encoding: "utf8",
+    },
+  );
 
   if (result.error) {
     throw result.error;

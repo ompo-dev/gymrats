@@ -1,4 +1,3 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import {
   internalErrorResponse,
@@ -9,6 +8,7 @@ import {
   generatePersonalizedWorkoutPlan,
   updateExercisesWithAlternatives,
 } from "@/lib/services/personalized-workout-generator";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 /**
  * POST /api/workouts/generate

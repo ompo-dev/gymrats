@@ -10,7 +10,7 @@ import { NextResponse } from "@/runtime/next-server";
  * Resposta de sucesso
  */
 export function successResponse(
-  data: Record<string, string | number | boolean | object | null>,
+  data: Record<string, unknown>,
   status: number = 200,
   headers?: Record<string, string>,
 ): NextResponse {
@@ -32,9 +32,9 @@ export function successResponse(
 export function errorResponse(
   message: string,
   status: number = 500,
-  details?: Record<string, string | number | boolean | object | null>,
+  details?: unknown,
 ): NextResponse {
-  const response: Record<string, string | number | boolean | object | null> = {
+  const response: Record<string, unknown> = {
     error: message,
   };
 
@@ -50,7 +50,7 @@ export function errorResponse(
  */
 export function badRequestResponse(
   message: string = "Dados inválidos",
-  details?: Record<string, string | number | boolean | object | null>,
+  details?: unknown,
 ): NextResponse {
   return errorResponse(message, 400, details);
 }

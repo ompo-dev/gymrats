@@ -1,13 +1,10 @@
 import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
-import {
-  createRouteModulesPlugin,
-  getRouteModuleCount,
-} from "./route-modules";
 import { corsPlugin } from "./plugins/cors";
 import { dbPlugin } from "./plugins/db";
 import { rateLimitPlugin } from "./plugins/rate-limit";
 import { requestLoggerPlugin } from "./plugins/request-logger";
+import { createRouteModulesPlugin, getRouteModuleCount } from "./route-modules";
 
 const routeModuleOverrides = [
   "/api/cron/week-reset",

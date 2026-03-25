@@ -10,7 +10,9 @@ import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 export function GymSettingsTeamCard() {
   const personals = useGymDirectoryStore((state) => state.teamPersonals);
   const loading = useGymDirectoryStore((state) => state.isLoadingTeam);
-  const searchResults = useGymDirectoryStore((state) => state.teamSearchResults);
+  const searchResults = useGymDirectoryStore(
+    (state) => state.teamSearchResults,
+  );
   const searching = useGymDirectoryStore((state) => state.isSearchingTeam);
   const error = useGymDirectoryStore((state) => state.teamError);
   const personalProfilesById = useGymDirectoryStore(
@@ -28,7 +30,9 @@ export function GymSettingsTeamCard() {
   const loadPersonalProfile = useGymDirectoryStore(
     (state) => state.loadPersonalProfile,
   );
-  const linkTeamPersonal = useGymDirectoryStore((state) => state.linkTeamPersonal);
+  const linkTeamPersonal = useGymDirectoryStore(
+    (state) => state.linkTeamPersonal,
+  );
   const unlinkTeamPersonal = useGymDirectoryStore(
     (state) => state.unlinkTeamPersonal,
   );
@@ -110,7 +114,9 @@ export function GymSettingsTeamCard() {
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-duo-fg">{personalProfile.name}</h3>
+                <h3 className="font-bold text-duo-fg">
+                  {personalProfile.name}
+                </h3>
                 {personalProfile.email && (
                   <p className="text-xs text-duo-fg-muted">
                     {personalProfile.email}

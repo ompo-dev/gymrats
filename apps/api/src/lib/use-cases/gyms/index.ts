@@ -4,10 +4,7 @@
  */
 
 import { db } from "@/lib/db";
-import {
-  parseJsonArray,
-  parseJsonSafe,
-} from "@/lib/utils/json";
+import { parseJsonArray, parseJsonSafe } from "@/lib/utils/json";
 
 /* ─── List Gyms ─────────────────────────────────────────────────────────── */
 

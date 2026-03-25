@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import { clearNativeNamespace, readNativeNamespace, writeNativeNamespace } from "./storage";
 import type {
   SessionUser,
   StoredWidgetState,
@@ -7,6 +6,11 @@ import type {
   WidgetSnapshot,
 } from "../store/types";
 import { getRoleHomePath } from "../utils/role";
+import {
+  clearNativeNamespace,
+  readNativeNamespace,
+  writeNativeNamespace,
+} from "./storage";
 
 export function getDefaultWidgetState(): StoredWidgetState {
   return {

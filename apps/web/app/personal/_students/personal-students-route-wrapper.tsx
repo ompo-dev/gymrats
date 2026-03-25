@@ -1,8 +1,8 @@
 "use client";
 
-import { PersonalStudentsPageContent } from "./page-content";
 import type { StudentData } from "@/lib/types";
 import type { PersonalAffiliation, PersonalStudentAssignment } from "../types";
+import { PersonalStudentsPageContent } from "./page-content";
 
 export function PersonalStudentsRouteWrapper({
   students,

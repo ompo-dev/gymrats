@@ -251,9 +251,10 @@ export async function POST(request: NextRequest) {
             checkpoints.push(contentLen);
 
             for (const len of checkpoints) {
-              const { foods: extractedFoods } = extractFoodsAndPartialFromStream(
-                accumulatedContent.slice(0, len),
-              );
+              const { foods: extractedFoods } =
+                extractFoodsAndPartialFromStream(
+                  accumulatedContent.slice(0, len),
+                );
 
               if (
                 extractedFoods.length > 0 &&

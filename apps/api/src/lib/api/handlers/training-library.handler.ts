@@ -1,23 +1,4 @@
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
-import {
-  badRequestResponse,
-  internalErrorResponse,
-  notFoundResponse,
-  successResponse,
-  unauthorizedResponse,
-} from "../utils/response.utils";
-import {
-  requireStudent,
-  requireGym,
-  requirePersonal,
-  requireAuth,
-} from "../middleware/auth.middleware";
-import {
-  createWeeklyPlanSchema,
-  updateWeeklyPlanSchema,
-  activateLibraryPlanSchema,
-} from "../schemas/workouts.schemas";
 import { syncActiveWeeklyPlanFromLibrary } from "@/lib/services/workouts/library-plan-sync.service";
 import {
   getTrainingLibraryPlanDetail,
@@ -25,6 +6,20 @@ import {
   listTrainingLibraryPlans,
 } from "@/lib/services/workouts/training-library-read.service";
 import { invalidateWeeklyPlanCache } from "@/lib/use-cases/workouts/get-weekly-plan";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
+import { requireAuth, requireStudent } from "../middleware/auth.middleware";
+import {
+  activateLibraryPlanSchema,
+  createWeeklyPlanSchema,
+  updateWeeklyPlanSchema,
+} from "../schemas/workouts.schemas";
+import {
+  badRequestResponse,
+  internalErrorResponse,
+  notFoundResponse,
+  successResponse,
+  unauthorizedResponse,
+} from "../utils/response.utils";
 
 // ==========================================
 // LIBRARY (CRUD)
@@ -39,11 +34,13 @@ export async function getLibraryPlansHandler(
 
     const url = new URL(request.url);
     const studentIdParam = url.searchParams.get("studentId");
-    
-    let studentId = studentIdParam || auth.user.student?.id || "";
+
+    const studentId = studentIdParam || auth.user.student?.id || "";
 
     if (!studentId) {
-      return badRequestResponse("studentId não identificado ou ausente para este usuário");
+      return badRequestResponse(
+        "studentId não identificado ou ausente para este usuário",
+      );
     }
 
     const libraryPlans = await listTrainingLibraryPlans(studentId, {
@@ -75,8 +72,13 @@ export async function getLibraryPlanDetailHandler(
       return notFoundResponse("Plano nÃ£o encontrado");
     }
 
-    if (auth.user.role === "STUDENT" && plan.studentId !== auth.user.student?.id) {
-      return unauthorizedResponse("Sem permissÃ£o para acessar treino de outro aluno");
+    if (
+      auth.user.role === "STUDENT" &&
+      plan.studentId !== auth.user.student?.id
+    ) {
+      return unauthorizedResponse(
+        "Sem permissÃ£o para acessar treino de outro aluno",
+      );
     }
 
     return successResponse({ data: plan });
@@ -97,34 +99,53 @@ export async function createLibraryPlanHandler(
     const validation = createWeeklyPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error.flatten() as any);
+      return badRequestResponse("Dados inválidos", validation.error.flatten());
     }
 
-    const { title, isLibraryTemplate, studentId: bodyStudentId, sourceWeeklyPlanId } = validation.data;
+    const {
+      title,
+      isLibraryTemplate,
+      studentId: bodyStudentId,
+      sourceWeeklyPlanId,
+    } = validation.data;
     const isLibrary = isLibraryTemplate ?? true;
 
-    let targetStudentId = bodyStudentId || auth.user.student?.id;
+    const targetStudentId = bodyStudentId || auth.user.student?.id;
     let createdById: string | null = null;
-    let creatorType: string | null = ("STUDENT" as string | null);
+    let creatorType: string | null = "STUDENT" as string | null;
 
     if (!targetStudentId) {
-       return badRequestResponse("Destino não identificado");
+      return badRequestResponse("Destino não identificado");
     }
 
     if (bodyStudentId && auth.user.role === "GYM") {
       createdById = auth.user.gyms?.[0]?.id ?? null;
       creatorType = "GYM";
       const hasPlan = await db.weeklyPlan.findFirst({
-        where: { studentId: targetStudentId, ...({ createdById, isLibraryTemplate: true } as any) },
+        where: {
+          studentId: targetStudentId,
+          createdById,
+          isLibraryTemplate: true,
+        },
       });
-      if (hasPlan) return badRequestResponse("A academia só pode ter 1 treino na biblioteca deste aluno.");
+      if (hasPlan)
+        return badRequestResponse(
+          "A academia só pode ter 1 treino na biblioteca deste aluno.",
+        );
     } else if (bodyStudentId && auth.user.role === "PERSONAL") {
       createdById = auth.user.personal?.id ?? null;
       creatorType = "PERSONAL";
       const hasPlan = await db.weeklyPlan.findFirst({
-        where: { studentId: targetStudentId, ...({ createdById, isLibraryTemplate: true } as any) },
+        where: {
+          studentId: targetStudentId,
+          createdById,
+          isLibraryTemplate: true,
+        },
       });
-      if (hasPlan) return badRequestResponse("O personal só pode ter 1 treino na biblioteca deste aluno.");
+      if (hasPlan)
+        return badRequestResponse(
+          "O personal só pode ter 1 treino na biblioteca deste aluno.",
+        );
     } else {
       createdById = auth.user.student?.id ?? null;
       creatorType = "STUDENT";
@@ -135,8 +156,8 @@ export async function createLibraryPlanHandler(
       const masterPlan = await db.weeklyPlan.findUnique({
         where: { id: sourceWeeklyPlanId },
         include: {
-          slots: { include: { workout: { include: { exercises: true } } } }
-        }
+          slots: { include: { workout: { include: { exercises: true } } } },
+        },
       });
 
       if (!masterPlan) {
@@ -149,12 +170,10 @@ export async function createLibraryPlanHandler(
             studentId: targetStudentId,
             title: title || masterPlan.title || "Cópia do Plano",
             description: masterPlan.description,
-            ...({
-              isLibraryTemplate: isLibrary,
-              createdById,
-              creatorType,
-            } as any)
-          }
+            isLibraryTemplate: isLibrary,
+            createdById,
+            creatorType,
+          },
         });
 
         // 2.B - Clona cada slot e seus workouts
@@ -173,12 +192,12 @@ export async function createLibraryPlanHandler(
                 estimatedTime: masterWorkout.estimatedTime,
                 order: masterWorkout.order,
                 locked: masterWorkout.locked,
-              }
+              },
             });
             newWorkoutId = cloneWorkout.id;
 
             if (masterWorkout.exercises && masterWorkout.exercises.length > 0) {
-              const exerciseCopies = masterWorkout.exercises.map(ex => ({
+              const exerciseCopies = masterWorkout.exercises.map((ex) => ({
                 workoutId: cloneWorkout.id,
                 name: ex.name,
                 sets: ex.sets,
@@ -200,7 +219,7 @@ export async function createLibraryPlanHandler(
               }));
 
               await tx.workoutExercise.createMany({
-                data: exerciseCopies
+                data: exerciseCopies,
               });
             }
           }
@@ -212,7 +231,7 @@ export async function createLibraryPlanHandler(
               type: masterSlot.type,
               workoutId: newWorkoutId,
               order: masterSlot.order,
-            }
+            },
           });
         }
         return cloneWeeklyPlan;
@@ -233,11 +252,9 @@ export async function createLibraryPlanHandler(
       data: {
         studentId: targetStudentId,
         title: title || "Meu Plano Semanal (Biblioteca)",
-        ...({
-          isLibraryTemplate: isLibrary,
-          createdById,
-          creatorType,
-        } as any),
+        isLibraryTemplate: isLibrary,
+        createdById,
+        creatorType,
         slots: {
           create: Array.from({ length: 7 }, (_, i) => ({
             dayOfWeek: i,
@@ -278,38 +295,56 @@ export async function updateLibraryPlanHandler(
     const validation = updateWeeklyPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error.flatten() as any);
+      return badRequestResponse("Dados inválidos", validation.error.flatten());
     }
 
     const plan = await db.weeklyPlan.findUnique({ where: { id } });
     if (!plan) return notFoundResponse("Plano não encontrado");
-    if (!(plan as any).isLibraryTemplate) return badRequestResponse("Plano não está na biblioteca");
+    if (!plan.isLibraryTemplate)
+      return badRequestResponse("Plano não está na biblioteca");
 
     // Access control
-    if (auth.user.role === "STUDENT" && plan.studentId !== auth.user.student?.id) {
-       return unauthorizedResponse("Sem permissão para editar treino de outro aluno");
+    if (
+      auth.user.role === "STUDENT" &&
+      plan.studentId !== auth.user.student?.id
+    ) {
+      return unauthorizedResponse(
+        "Sem permissão para editar treino de outro aluno",
+      );
     }
-    if (auth.user.role === "GYM" && (plan as any).createdById !== auth.user.gyms?.[0]?.id) {
-       return unauthorizedResponse("Sem permissão para editar treino de outra academia");
+    if (
+      auth.user.role === "GYM" &&
+      plan.createdById !== auth.user.gyms?.[0]?.id
+    ) {
+      return unauthorizedResponse(
+        "Sem permissão para editar treino de outra academia",
+      );
     }
     if (auth.user.role === "PERSONAL") {
-       if ((plan as any).createdById !== auth.user.personal?.id) {
-         let isAffiliated = false;
-         if ((plan as any).creatorType === "GYM") {
-            const rel = await db.gymPersonalAffiliation.findFirst({
-              where: { personalId: auth.user.personal?.id, gymId: (plan as any).createdById! }
-            });
-            if (rel) isAffiliated = true;
-         }
-         if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
-       }
+      if (plan.createdById !== auth.user.personal?.id) {
+        let isAffiliated = false;
+        if (plan.creatorType === "GYM") {
+          const rel = await db.gymPersonalAffiliation.findFirst({
+            where: {
+              personalId: auth.user.personal?.id,
+              gymId: plan.createdById!,
+            },
+          });
+          if (rel) isAffiliated = true;
+        }
+        if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
+      }
     }
 
     const updatedPlan = await db.weeklyPlan.update({
       where: { id },
       data: {
-        ...(validation.data.title !== undefined && { title: validation.data.title }),
-        ...(validation.data.description !== undefined && { description: validation.data.description }),
+        ...(validation.data.title !== undefined && {
+          title: validation.data.title,
+        }),
+        ...(validation.data.description !== undefined && {
+          description: validation.data.description,
+        }),
       },
       include: { slots: { orderBy: { dayOfWeek: "asc" } } },
     });
@@ -321,13 +356,15 @@ export async function updateLibraryPlanHandler(
     });
     await invalidateWeeklyPlanCache(updatedPlan.studentId);
 
-    return successResponse({ data: updatedPlan, message: "Plano editado com sucesso" });
+    return successResponse({
+      data: updatedPlan,
+      message: "Plano editado com sucesso",
+    });
   } catch (error) {
     console.error("Error updating library plan:", error);
     return internalErrorResponse("Erro ao editar");
   }
 }
-
 
 export async function deleteLibraryPlanHandler(
   request: NextRequest,
@@ -341,27 +378,41 @@ export async function deleteLibraryPlanHandler(
     const plan = await db.weeklyPlan.findUnique({ where: { id } });
 
     if (!plan) return notFoundResponse("Plano não encontrado");
-    if (!(plan as any).isLibraryTemplate) return badRequestResponse("Plano não está na biblioteca");
+    if (!plan.isLibraryTemplate)
+      return badRequestResponse("Plano não está na biblioteca");
 
     // Access control
-    if (auth.user.role === "STUDENT" && plan.studentId !== auth.user.student?.id) {
-       return unauthorizedResponse("Sem permissão para deletar treino de outro aluno");
+    if (
+      auth.user.role === "STUDENT" &&
+      plan.studentId !== auth.user.student?.id
+    ) {
+      return unauthorizedResponse(
+        "Sem permissão para deletar treino de outro aluno",
+      );
     }
-    if (auth.user.role === "GYM" && (plan as any).createdById !== auth.user.gyms?.[0]?.id) {
-       return unauthorizedResponse("Sem permissão para deletar treino de outra academia");
+    if (
+      auth.user.role === "GYM" &&
+      plan.createdById !== auth.user.gyms?.[0]?.id
+    ) {
+      return unauthorizedResponse(
+        "Sem permissão para deletar treino de outra academia",
+      );
     }
     if (auth.user.role === "PERSONAL") {
-       if ((plan as any).createdById !== auth.user.personal?.id) {
-         // Não é dele, ele é afiliado da gym que criou?
-         let isAffiliated = false;
-         if ((plan as any).creatorType === "GYM") {
-            const rel = await db.gymPersonalAffiliation.findFirst({
-              where: { personalId: auth.user.personal?.id, gymId: (plan as any).createdById! }
-            });
-            if (rel) isAffiliated = true;
-         }
-         if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
-       }
+      if (plan.createdById !== auth.user.personal?.id) {
+        // Não é dele, ele é afiliado da gym que criou?
+        let isAffiliated = false;
+        if (plan.creatorType === "GYM") {
+          const rel = await db.gymPersonalAffiliation.findFirst({
+            where: {
+              personalId: auth.user.personal?.id,
+              gymId: plan.createdById!,
+            },
+          });
+          if (rel) isAffiliated = true;
+        }
+        if (!isAffiliated) return unauthorizedResponse("Sem permissão.");
+      }
     }
 
     await db.weeklyPlan.delete({ where: { id } });
@@ -389,12 +440,12 @@ export async function activateLibraryPlanHandler(
 
     const studentId = auth.user.student?.id;
     if (!studentId) return unauthorizedResponse("Student não encontrado");
-    
+
     const body = await request.json();
     const validation = activateLibraryPlanSchema.safeParse(body);
 
     if (!validation.success) {
-      return badRequestResponse("Dados inválidos", validation.error.flatten() as any);
+      return badRequestResponse("Dados inválidos", validation.error.flatten());
     }
 
     const { libraryPlanId } = validation.data;
@@ -406,14 +457,14 @@ export async function activateLibraryPlanHandler(
         slots: {
           include: {
             workout: {
-              include: { exercises: true }
-            }
-          }
-        }
-      }
+              include: { exercises: true },
+            },
+          },
+        },
+      },
     });
 
-    if (!masterPlan || !(masterPlan as any).isLibraryTemplate) {
+    if (!masterPlan || !masterPlan.isLibraryTemplate) {
       return notFoundResponse("Plano da biblioteca não encontrado");
     }
 
@@ -431,13 +482,11 @@ export async function activateLibraryPlanHandler(
           studentId,
           title: masterPlan.title,
           description: masterPlan.description,
-          ...({
-            isLibraryTemplate: false,
-            createdById: (masterPlan as any).createdById,
-            creatorType: (masterPlan as any).creatorType,
-            sourceLibraryPlanId: libraryPlanId,
-          } as any)
-        }
+          isLibraryTemplate: false,
+          createdById: masterPlan.createdById,
+          creatorType: masterPlan.creatorType,
+          sourceLibraryPlanId: libraryPlanId,
+        },
       });
 
       // 2.B - Clona cada slot e seus workouts
@@ -458,13 +507,13 @@ export async function activateLibraryPlanHandler(
               estimatedTime: masterWorkout.estimatedTime,
               order: masterWorkout.order,
               locked: masterWorkout.locked,
-            }
+            },
           });
           newWorkoutId = cloneWorkout.id;
 
           // Clona os exercicios
           if (masterWorkout.exercises && masterWorkout.exercises.length > 0) {
-            const exerciseCopies = masterWorkout.exercises.map(ex => ({
+            const exerciseCopies = masterWorkout.exercises.map((ex) => ({
               workoutId: cloneWorkout.id,
               name: ex.name,
               sets: ex.sets,
@@ -486,7 +535,7 @@ export async function activateLibraryPlanHandler(
             }));
 
             await tx.workoutExercise.createMany({
-              data: exerciseCopies
+              data: exerciseCopies,
             });
           }
         }
@@ -499,29 +548,31 @@ export async function activateLibraryPlanHandler(
             type: masterSlot.type,
             workoutId: newWorkoutId,
             order: masterSlot.order,
-          }
+          },
         });
       }
 
       // 2.C Set as active na student e busca o velho ativo p limpar
       const student = await tx.student.findUnique({
-         where: { id: studentId },
-         ...({ select: { activeWeeklyPlanId: true } } as any)
+        where: { id: studentId },
+        select: { activeWeeklyPlanId: true },
       });
-      const oldActivePlanId = (student as any)?.activeWeeklyPlanId;
+      const oldActivePlanId = student?.activeWeeklyPlanId;
 
       await tx.student.update({
         where: { id: studentId },
-        ...({ data: { activeWeeklyPlanId: cloneWeeklyPlan.id } } as any)
+        data: { activeWeeklyPlanId: cloneWeeklyPlan.id },
       });
 
       // Se havia um velho ativo e nao era library, a gente limpa do db
       if (oldActivePlanId && oldActivePlanId !== cloneWeeklyPlan.id) {
-        const old = await tx.weeklyPlan.findUnique({ where: { id: oldActivePlanId }});
-        if (old && !(old as any).isLibraryTemplate) {
-           // As delecoes em cascade darão conta dos Slots e Workouts caso configuradas em cascade, 
-           // senao precisariamos deletar manual, assumindo CASCADE do Prisma:
-           await tx.weeklyPlan.delete({ where: { id: oldActivePlanId }});
+        const old = await tx.weeklyPlan.findUnique({
+          where: { id: oldActivePlanId },
+        });
+        if (old && !old.isLibraryTemplate) {
+          // As delecoes em cascade darão conta dos Slots e Workouts caso configuradas em cascade,
+          // senao precisariamos deletar manual, assumindo CASCADE do Prisma:
+          await tx.weeklyPlan.delete({ where: { id: oldActivePlanId } });
         }
       }
 

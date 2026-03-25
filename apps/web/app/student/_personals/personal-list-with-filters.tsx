@@ -1,15 +1,11 @@
 "use client";
 
-import {
-  ChevronRight,
-  MapPin,
-  Monitor,
-  Users,
-} from "lucide-react";
+import { ChevronRight, MapPin, Monitor, Users } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import { DuoButton, DuoCard, DuoSelect } from "@/components/duo";
+import { DuoCard, DuoSelect } from "@/components/duo";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import type {
   PersonalFilter,
@@ -20,7 +16,6 @@ import {
   getPersonalDirectoryCacheKey,
   useStudentDiscoveryStore,
 } from "@/stores/student-discovery-store";
-import Image from "next/image";
 
 interface PersonalListWithFiltersProps {
   onViewPersonal: (personalId: string) => void;
@@ -56,9 +51,13 @@ export function PersonalListWithFilters({
   );
   const personals = useStudentDiscoveryStore(
     (state) =>
-      state.personalDirectory[cacheKey] as StudentPersonalListItem[] | undefined,
+      state.personalDirectory[cacheKey] as
+        | StudentPersonalListItem[]
+        | undefined,
   );
-  const resource = useStudentDiscoveryStore((state) => state.resources[cacheKey]);
+  const resource = useStudentDiscoveryStore(
+    (state) => state.resources[cacheKey],
+  );
   const loadPersonalDirectory = useStudentDiscoveryStore(
     (state) => state.loadPersonalDirectory,
   );
@@ -86,9 +85,7 @@ export function PersonalListWithFilters({
     <div className="mx-auto max-w-4xl space-y-6">
       <FadeIn>
         <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-text">
-            Personais
-          </h1>
+          <h1 className="mb-2 text-3xl font-bold text-duo-text">Personais</h1>
           <p className="text-sm text-duo-gray-dark">
             Encontre personais próximos ou com atendimento remoto
           </p>
@@ -132,10 +129,11 @@ export function PersonalListWithFilters({
           ) : (
             <div className="space-y-3">
               {(personals ?? []).map((p) => (
-                <div
+                <button
+                  type="button"
                   key={p.id}
                   className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-xl border-2 border-duo-border p-4 transition-all hover:border-duo-primary/40 active:scale-[0.99]",
+                    "flex w-full cursor-pointer items-center gap-3 rounded-xl border-2 border-duo-border p-4 text-left transition-all hover:border-duo-primary/40 active:scale-[0.99]",
                   )}
                   onClick={() => onViewPersonal(p.id)}
                 >
@@ -180,7 +178,7 @@ export function PersonalListWithFilters({
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 shrink-0 text-duo-gray-dark" />
-                </div>
+                </button>
               ))}
             </div>
           )}

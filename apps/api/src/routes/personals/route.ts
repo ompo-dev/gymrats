@@ -1,4 +1,3 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
   createPersonalSchema,
   updatePersonalSchema,
@@ -6,6 +5,7 @@ import {
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ personalContext }) => {
@@ -43,9 +43,15 @@ export const POST = createSafeHandler(
       where: { id: personalId },
       data: {
         ...(payload.name !== undefined ? { name: payload.name as string } : {}),
-        ...(payload.email !== undefined ? { email: payload.email as string } : {}),
-        ...(payload.phone !== undefined ? { phone: payload.phone as string } : {}),
-        ...(payload.avatar !== undefined ? { avatar: payload.avatar as string } : {}),
+        ...(payload.email !== undefined
+          ? { email: payload.email as string }
+          : {}),
+        ...(payload.phone !== undefined
+          ? { phone: payload.phone as string }
+          : {}),
+        ...(payload.avatar !== undefined
+          ? { avatar: payload.avatar as string }
+          : {}),
         ...(payload.bio !== undefined ? { bio: payload.bio as string } : {}),
         ...(payload.address !== undefined
           ? { address: payload.address as string }
@@ -85,9 +91,15 @@ export const PATCH = createSafeHandler(
       where: { id: personalId },
       data: {
         ...(payload.name !== undefined ? { name: payload.name as string } : {}),
-        ...(payload.email !== undefined ? { email: payload.email as string } : {}),
-        ...(payload.phone !== undefined ? { phone: payload.phone as string } : {}),
-        ...(payload.avatar !== undefined ? { avatar: payload.avatar as string } : {}),
+        ...(payload.email !== undefined
+          ? { email: payload.email as string }
+          : {}),
+        ...(payload.phone !== undefined
+          ? { phone: payload.phone as string }
+          : {}),
+        ...(payload.avatar !== undefined
+          ? { avatar: payload.avatar as string }
+          : {}),
         ...(payload.bio !== undefined ? { bio: payload.bio as string } : {}),
         ...(payload.address !== undefined
           ? { address: payload.address as string }

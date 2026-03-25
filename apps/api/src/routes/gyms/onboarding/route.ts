@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
 import { geocodeAddress } from "@/lib/services/geocoding.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
 import { ensureGymRole } from "@/lib/utils/ensure-user-role";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 type GymEquipmentInput = {
   name: string;

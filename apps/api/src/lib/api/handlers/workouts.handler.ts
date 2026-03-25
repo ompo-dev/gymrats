@@ -4,7 +4,6 @@
  * Centraliza toda a lógica das rotas relacionadas a workouts
  */
 
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import type { z } from "zod";
 import { db } from "@/lib/db";
 import { completeWorkoutUseCase } from "@/lib/use-cases/workouts/complete-workout";
@@ -15,6 +14,7 @@ import { getWorkoutHistoryUseCase } from "@/lib/use-cases/workouts/get-workout-h
 import { getWorkoutProgressUseCase } from "@/lib/use-cases/workouts/get-workout-progress";
 import { saveWorkoutProgressUseCase } from "@/lib/use-cases/workouts/save-workout-progress";
 import { updateExerciseLogUseCase } from "@/lib/use-cases/workouts/update-exercise-log";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireStudent } from "../middleware/auth.middleware";
 import {
   validateBody,

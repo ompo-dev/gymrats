@@ -1,5 +1,5 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { updateExerciseLogHandler } from "@/lib/api/handlers/workouts.handler";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function PUT(
   request: NextRequest,

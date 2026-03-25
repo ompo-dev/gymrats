@@ -42,6 +42,7 @@ function DuoTabsSimple({
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             role="tab"
             aria-selected={tab.id === activeTab}
             className={cn(

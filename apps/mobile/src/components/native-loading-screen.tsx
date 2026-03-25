@@ -25,17 +25,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.md,
     justifyContent: "center",
-    padding: spacing.lg
+    padding: spacing.lg,
   },
   spinnerWrap: {
     backgroundColor: "rgba(88, 194, 125, 0.12)",
     borderRadius: 48,
-    padding: spacing.lg
+    padding: spacing.lg,
   },
   message: {
     color: colors.foregroundMuted,
     fontSize: typography.body.fontSize,
     fontWeight: "700",
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });

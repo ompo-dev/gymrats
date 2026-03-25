@@ -3,8 +3,8 @@
 import { Apple, Dumbbell, Loader2, UserMinus, Users } from "lucide-react";
 import Image from "next/image";
 import { DuoButton, DuoCard } from "@/components/duo";
-import type { PersonalStudentAssignmentForDetail } from "../hooks/use-personal-student-detail";
 import { cn } from "@/lib/utils";
+import type { PersonalStudentAssignmentForDetail } from "../hooks/use-personal-student-detail";
 
 export interface PersonalStudentHeaderCardProps {
   assignment: PersonalStudentAssignmentForDetail;
@@ -23,7 +23,8 @@ export function PersonalStudentHeaderCard({
 }: PersonalStudentHeaderCardProps) {
   const studentName = assignment.student?.user?.name ?? "Aluno";
   const studentEmail = assignment.student?.user?.email ?? "";
-  const avatar = (assignment.student as { avatar?: string | null })?.avatar ?? null;
+  const avatar =
+    (assignment.student as { avatar?: string | null })?.avatar ?? null;
   const gymName = assignment.gym?.name;
 
   return (

@@ -9,7 +9,7 @@ interface ShopCardProps {
 }
 
 export function ShopCard({ totalXP }: ShopCardProps) {
-  const { totalXP: storeXP } = useStudent("totalXP");
+  const storeXP = useStudent("totalXP");
   const currentXP =
     typeof totalXP === "number"
       ? totalXP

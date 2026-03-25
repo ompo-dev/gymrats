@@ -31,9 +31,12 @@ export function AssignPersonalModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    const timer = setTimeout(() => {
-      searchLinkedTeamPersonals(searchQuery).catch(() => undefined);
-    }, searchQuery.trim() ? 300 : 0);
+    const timer = setTimeout(
+      () => {
+        searchLinkedTeamPersonals(searchQuery).catch(() => undefined);
+      },
+      searchQuery.trim() ? 300 : 0,
+    );
     return () => clearTimeout(timer);
   }, [isOpen, searchQuery, searchLinkedTeamPersonals]);
 

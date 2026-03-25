@@ -10,20 +10,20 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  WebView,
   type WebViewMessageEvent,
   type WebViewNavigation,
-  WebView,
 } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 import { SecondaryButton } from "../src/components/buttons";
 import { NativeLoadingScreen } from "../src/components/native-loading-screen";
 import { ScreenBackground } from "../src/components/screen-background";
-import { getNativeCapabilities } from "../src/lib/device-capabilities";
 import {
   consumeOneTimeToken,
   isAuthCallbackUrl,
   startGoogleAuthSession,
 } from "../src/lib/auth";
+import { getNativeCapabilities } from "../src/lib/device-capabilities";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -31,12 +31,7 @@ import {
   openPushSystemSettings,
   unlinkPushInstallationForLogout,
 } from "../src/lib/push";
-import {
-  clearWidgetSnapshot,
-  configureWidgetPreset,
-  getWidgetStateSnapshot,
-  refreshWidgetSnapshot,
-} from "../src/lib/widget";
+import { readNativeNamespace, writeNativeNamespace } from "../src/lib/storage";
 import {
   buildBridgeEventScript,
   buildBridgeResponseScript,
@@ -44,9 +39,11 @@ import {
   parseBridgeMessage,
 } from "../src/lib/webview-bridge";
 import {
-  readNativeNamespace,
-  writeNativeNamespace,
-} from "../src/lib/storage";
+  clearWidgetSnapshot,
+  configureWidgetPreset,
+  getWidgetStateSnapshot,
+  refreshWidgetSnapshot,
+} from "../src/lib/widget";
 import { useAppStore } from "../src/store/app-store";
 import type {
   NativeBridgeEventType,
@@ -109,12 +106,16 @@ export default function WebScreen() {
     [config.apiUrl, config.webUrl],
   );
   const allowedOrigins = useMemo(() => {
-    const origins = allowedHosts.map((url) => getUrlOrigin(url)).filter(Boolean);
+    const origins = allowedHosts
+      .map((url) => getUrlOrigin(url))
+      .filter(Boolean);
     return [...new Set([...origins, "gymrats-mobile://*"])];
   }, [allowedHosts]);
 
   const initialUrl = useMemo(() => {
-    const forcedPath = Array.isArray(params.path) ? params.path[0] : params.path;
+    const forcedPath = Array.isArray(params.path)
+      ? params.path[0]
+      : params.path;
     const rolePath = getRoleHomePath(session.user?.role ?? null);
     const baseUrl = normalizeUrl(config.webUrl);
     const resolvedPath =
@@ -472,7 +473,13 @@ export default function WebScreen() {
 
       return true;
     },
-    [allowedHosts, config.apiUrl, config.webUrl, handleDeepLinkCallback, handleGoogleAuth],
+    [
+      allowedHosts,
+      config.apiUrl,
+      config.webUrl,
+      handleDeepLinkCallback,
+      handleGoogleAuth,
+    ],
   );
 
   const handleMessage = useCallback(
@@ -499,11 +506,14 @@ export default function WebScreen() {
     [clearSession, config.apiUrl, handleBridgeRequest, session.token],
   );
 
-  const handleNavigationChange = useCallback((navigation: WebViewNavigation) => {
-    if (!navigation.loading) {
-      setIsPageLoading(false);
-    }
-  }, []);
+  const handleNavigationChange = useCallback(
+    (navigation: WebViewNavigation) => {
+      if (!navigation.loading) {
+        setIsPageLoading(false);
+      }
+    },
+    [],
+  );
 
   if (!hydrated) {
     return <NativeLoadingScreen message="Iniciando GymRats Mobile..." />;
@@ -511,10 +521,7 @@ export default function WebScreen() {
 
   return (
     <ScreenBackground>
-      <SafeAreaView
-        edges={["top", "left", "right"]}
-        style={styles.container}
-      >
+      <SafeAreaView edges={["top", "left", "right"]} style={styles.container}>
         <View style={styles.webViewWrapper}>
           <WebView
             allowsBackForwardNavigationGestures
@@ -526,8 +533,7 @@ export default function WebScreen() {
             key={`${webViewKey}:${session.token ?? "guest"}`}
             onError={(event) => {
               setErrorMessage(
-                event.nativeEvent.description ||
-                  "Erro ao abrir a plataforma.",
+                event.nativeEvent.description || "Erro ao abrir a plataforma.",
               );
             }}
             onLoadEnd={() => {

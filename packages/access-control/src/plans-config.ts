@@ -1,4 +1,4 @@
-import type { StudentPlan, GymPlan, PersonalPlan } from "./types";
+import type { GymPlan, PersonalPlan, StudentPlan } from "./types";
 
 /**
  * plans-config.ts

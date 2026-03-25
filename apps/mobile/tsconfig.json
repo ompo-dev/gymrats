@@ -4,20 +4,11 @@
     "strict": true,
     "target": "ES2022",
     "module": "ESNext",
-    "lib": [
-      "ES2022"
-    ],
+    "lib": ["ES2022"],
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
-    "types": [
-      "expo-router"
-    ],
+    "types": ["expo-router"],
     "skipLibCheck": true
   },
-  "include": [
-    "app",
-    "src",
-    "expo-env.d.ts",
-    ".expo/types/**/*.ts"
-  ]
+  "include": ["app", "src", "expo-env.d.ts", ".expo/types/**/*.ts"]
 }

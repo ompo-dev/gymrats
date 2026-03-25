@@ -5,17 +5,17 @@ import type { NextRequest } from "@/runtime/next-server";
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
+import { Features } from "@/lib/access-control/features";
+import {
+  AuthorizationError,
+  requireAbility,
+} from "@/lib/access-control/server";
 import { chatCompletionStream } from "@/lib/ai/client";
 import {
   extractWorkoutsAndPartialFromStream,
   parseWorkoutResponse,
 } from "@/lib/ai/parsers/workout-parser";
 import { WORKOUT_SYSTEM_PROMPT } from "@/lib/ai/prompts/workout";
-import {
-  AuthorizationError,
-  requireAbility,
-} from "@/lib/access-control/server";
-import { Features } from "@/lib/access-control/features";
 import { db } from "@/lib/db";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
 
@@ -224,16 +224,18 @@ export async function POST(
           enhancedSystemPrompt += `\n\nPERFIL DO USUÁRIO:\n${JSON.stringify(student.profile)}\n\nUse essas informações como padrão.`;
         }
 
-        const messagesArr: Array<{ role: "user" | "assistant"; content: string }> =
-          [
-            ...(Array.isArray(conversationHistory)
-              ? (conversationHistory as Array<{
-                  role: "user" | "assistant";
-                  content: string;
-                }>)
-              : []),
-            { role: "user", content: message },
-          ];
+        const messagesArr: Array<{
+          role: "user" | "assistant";
+          content: string;
+        }> = [
+          ...(Array.isArray(conversationHistory)
+            ? (conversationHistory as Array<{
+                role: "user" | "assistant";
+                content: string;
+              }>)
+            : []),
+          { role: "user", content: message },
+        ];
 
         sendSSE(controller, "status", {
           status: "calling_ai",

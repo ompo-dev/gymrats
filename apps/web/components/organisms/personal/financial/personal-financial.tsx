@@ -25,10 +25,7 @@ export function PersonalFinancialPage({
     parseAsString.withDefault("overview"),
   );
   const viewMode = useMemo<PersonalFinancialViewMode>(() => {
-    if (
-      querySubTab === "overview" ||
-      querySubTab === "subscription"
-    ) {
+    if (querySubTab === "overview" || querySubTab === "subscription") {
       return querySubTab;
     }
 
@@ -71,7 +68,10 @@ export function PersonalFinancialPage({
       </SlideIn>
 
       {viewMode === "overview" && (
-        <PersonalFinancialOverviewTab stats={stats} subscription={subscription} />
+        <PersonalFinancialOverviewTab
+          stats={stats}
+          subscription={subscription}
+        />
       )}
 
       {viewMode === "subscription" && (

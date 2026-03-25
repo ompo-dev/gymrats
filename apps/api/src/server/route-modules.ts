@@ -1,5 +1,5 @@
-import { existsSync, readdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
+import { existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Elysia } from "elysia";
@@ -128,10 +128,18 @@ function toElysiaPath(segments: RouteSegment[]) {
   );
 }
 
-function rankSegments(segments: RouteSegment[]): [number, number, number, number] {
-  const staticCount = segments.filter((segment) => segment.type === "static").length;
-  const dynamicCount = segments.filter((segment) => segment.type === "dynamic").length;
-  const catchallCount = segments.filter((segment) => segment.type === "catchall").length;
+function rankSegments(
+  segments: RouteSegment[],
+): [number, number, number, number] {
+  const staticCount = segments.filter(
+    (segment) => segment.type === "static",
+  ).length;
+  const dynamicCount = segments.filter(
+    (segment) => segment.type === "dynamic",
+  ).length;
+  const catchallCount = segments.filter(
+    (segment) => segment.type === "catchall",
+  ).length;
 
   return [staticCount, segments.length, -dynamicCount, -catchallCount];
 }
@@ -176,7 +184,11 @@ function matchRoute(
   const params: Record<string, string | string[]> = {};
   let requestIndex = 0;
 
-  for (let entryIndex = 0; entryIndex < entry.segments.length; entryIndex += 1) {
+  for (
+    let entryIndex = 0;
+    entryIndex < entry.segments.length;
+    entryIndex += 1
+  ) {
     const segment = entry.segments[entryIndex];
 
     if (segment.type === "catchall") {
@@ -277,9 +289,9 @@ async function executeRouteModule(
       startedAt: Date.now(),
     },
     () =>
-    handler(nextRequest, {
-      params: Promise.resolve(params),
-    }),
+      handler(nextRequest, {
+        params: Promise.resolve(params),
+      }),
   );
 
   return toResponse(result);

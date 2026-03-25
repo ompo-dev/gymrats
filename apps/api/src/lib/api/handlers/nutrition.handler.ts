@@ -1,19 +1,4 @@
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
-import { validateBody, validateQuery } from "../middleware/validation.middleware";
-import {
-  dailyNutritionQuerySchema,
-  searchFoodsQuerySchema,
-  updateDailyNutritionSchema,
-} from "../schemas";
-import { requireStudent } from "../middleware/auth.middleware";
-import {
-  badRequestResponse,
-  internalErrorResponse,
-  notFoundResponse,
-  successResponse,
-} from "../utils/response.utils";
 import { db } from "@/lib/db";
-import { searchFoodsUseCase } from "@/lib/use-cases/nutrition/search-foods";
 import {
   getActiveNutritionPlan,
   getDailyNutritionForStudent,
@@ -22,7 +7,25 @@ import {
   saveDailyNutritionForStudent,
   updateStudentTargetWater,
 } from "@/lib/services/nutrition/nutrition-plan.service";
+import { searchFoodsUseCase } from "@/lib/use-cases/nutrition/search-foods";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
+import { requireStudent } from "../middleware/auth.middleware";
+import {
+  validateBody,
+  validateQuery,
+} from "../middleware/validation.middleware";
+import {
+  dailyNutritionQuerySchema,
+  searchFoodsQuerySchema,
+  updateDailyNutritionSchema,
+} from "../schemas";
+import {
+  badRequestResponse,
+  internalErrorResponse,
+  notFoundResponse,
+  successResponse,
+} from "../utils/response.utils";
 
 export async function getDailyNutritionHandler(
   request: NextRequest,
@@ -95,9 +98,13 @@ export async function updateDailyNutritionHandler(
     }
 
     if (meals === undefined && waterIntake === undefined) {
-      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
-        fresh: true,
-      });
+      const dailyNutrition = await getDailyNutritionForStudent(
+        studentId,
+        dateKey,
+        {
+          fresh: true,
+        },
+      );
       return successResponse({
         data: dailyNutrition,
         message: "Meta de agua atualizada com sucesso",
@@ -155,7 +162,10 @@ export async function searchFoodsHandler(
   request: NextRequest,
 ): Promise<NextResponse> {
   try {
-    const queryValidation = await validateQuery(request, searchFoodsQuerySchema);
+    const queryValidation = await validateQuery(
+      request,
+      searchFoodsQuerySchema,
+    );
     if (!queryValidation.success) {
       return queryValidation.response;
     }

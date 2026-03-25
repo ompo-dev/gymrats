@@ -1,6 +1,6 @@
+import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import type { Job } from "bullmq";
 import { Worker } from "bullmq";
-import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import { log } from "@/lib/observability/logger";
 import { WebhookService } from "@/lib/services/webhook.service";
 

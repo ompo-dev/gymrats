@@ -5,9 +5,7 @@ import { useEffect, useRef } from "react";
 import { DuoCard } from "@/components/duo";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import {
-  confirmAbacatePayment,
-} from "@/lib/actions/payments/abacate-pay";
+import { confirmAbacatePayment } from "@/lib/actions/payments/abacate-pay";
 import type { SubscriptionData as StudentSubscriptionData } from "@/lib/types/student-unified";
 import { useSubscriptionUIStore } from "@/stores/subscription-ui-store";
 import { PlansSelector } from "./subscription/plans-selector";
@@ -111,7 +109,6 @@ function SubscriptionSectionSimple({
   const {
     selectedPlan,
     selectedBillingPeriod,
-    isProcessingPayment,
     setSelectedPlan,
     setSelectedBillingPeriod,
     setIsProcessingPayment,
@@ -267,7 +264,8 @@ function SubscriptionSectionSimple({
     userType === "personal"
       ? false
       : subscription == null ||
-        ("canStartTrial" in subscription && subscription.canStartTrial !== false);
+        ("canStartTrial" in subscription &&
+          subscription.canStartTrial !== false);
 
   const daysRemaining = subscription?.daysRemaining ?? null;
   const isTrialEnding =
@@ -495,4 +493,3 @@ function SubscriptionSectionSimple({
 export const SubscriptionSection = {
   Simple: SubscriptionSectionSimple,
 };
-

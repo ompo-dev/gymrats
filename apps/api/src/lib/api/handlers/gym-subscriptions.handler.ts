@@ -4,14 +4,14 @@
  * Centraliza toda a lógica das rotas relacionadas a subscriptions de gyms
  */
 
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
-import { db } from "@/lib/db";
-import { ReferralService } from "@/lib/services/referral.service";
 import {
   centsToReais,
   getGymPlanConfig,
 } from "@/lib/access-control/plans-config";
+import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 import { createGymSubscriptionPix } from "@/lib/utils/subscription";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validation.middleware";
 import { createGymSubscriptionSchema } from "../schemas";
@@ -355,7 +355,9 @@ export async function startGymTrialHandler(
         billingPeriod: "monthly",
         status: "trialing",
         basePrice: centsToReais(getGymPlanConfig("basic")!.prices.monthly),
-        pricePerStudent: centsToReais(getGymPlanConfig("basic")!.pricePerStudent),
+        pricePerStudent: centsToReais(
+          getGymPlanConfig("basic")!.pricePerStudent,
+        ),
         pricePerPersonal: centsToReais(
           getGymPlanConfig("basic")!.pricePerPersonal ?? 0,
         ),

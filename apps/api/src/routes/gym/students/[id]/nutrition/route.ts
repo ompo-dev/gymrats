@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateDailyNutritionSchema } from "@/lib/api/schemas";
 import {
@@ -15,6 +14,7 @@ import {
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,
@@ -39,9 +39,13 @@ export async function GET(
       return badRequestResponse("Data invalida fornecida");
     }
 
-    const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
-      fresh: searchParams.get("fresh") === "1",
-    });
+    const dailyNutrition = await getDailyNutritionForStudent(
+      studentId,
+      dateKey,
+      {
+        fresh: searchParams.get("fresh") === "1",
+      },
+    );
     return successResponse(
       dailyNutrition as unknown as Record<
         string,
@@ -86,9 +90,13 @@ export async function POST(
     }
 
     if (meals === undefined && waterIntake === undefined) {
-      const dailyNutrition = await getDailyNutritionForStudent(studentId, dateKey, {
-        fresh: true,
-      });
+      const dailyNutrition = await getDailyNutritionForStudent(
+        studentId,
+        dateKey,
+        {
+          fresh: true,
+        },
+      );
       return successResponse({
         data: dailyNutrition,
         message: "Meta de agua atualizada com sucesso",

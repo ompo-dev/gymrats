@@ -1,9 +1,10 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
+import type { StudentProfileData } from "@gymrats/types";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
 import { db } from "@/lib/db";
 import { sendWelcomeEmail } from "@/lib/services/email.service";
 import { StudentProfileService } from "@/lib/services/student/student-profile.service";
 import { ensureStudentRole } from "@/lib/utils/ensure-user-role";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 type StudentOnboardingBody = {
   age?: number | "";
@@ -105,7 +106,38 @@ export async function POST(request: NextRequest) {
       update: studentData,
     });
 
-    await StudentProfileService.saveOnboardingData(student.id, normalizedData);
+    const profileData: Partial<StudentProfileData> = {
+      height:
+        typeof normalizedData.height === "number"
+          ? normalizedData.height
+          : undefined,
+      weight:
+        typeof normalizedData.weight === "number"
+          ? normalizedData.weight
+          : undefined,
+      fitnessLevel:
+        typeof normalizedData.fitnessLevel === "string"
+          ? normalizedData.fitnessLevel
+          : undefined,
+      weeklyWorkoutFrequency: normalizedData.weeklyWorkoutFrequency,
+      workoutDuration: normalizedData.workoutDuration,
+      goals: normalizedData.goals,
+      gymType: normalizedData.gymType,
+      preferredSets: normalizedData.preferredSets,
+      preferredRepRange: normalizedData.preferredRepRange,
+      restTime: normalizedData.restTime,
+      targetCalories: normalizedData.targetCalories,
+      targetProtein: normalizedData.targetProtein,
+      targetCarbs: normalizedData.targetCarbs,
+      targetFats: normalizedData.targetFats,
+      activityLevel: normalizedData.activityLevel,
+      hormoneTreatmentDuration: normalizedData.hormoneTreatmentDuration,
+      physicalLimitations: normalizedData.physicalLimitations,
+      motorLimitations: normalizedData.motorLimitations,
+      medicalConditions: normalizedData.medicalConditions,
+    };
+
+    await StudentProfileService.saveOnboardingData(student.id, profileData);
 
     if (typeof normalizedData.weight === "number") {
       await db.weightHistory

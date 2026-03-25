@@ -202,7 +202,7 @@ if (require.main === module) {
     })
     .catch(async (error) => {
       console.error(
-        '\n[migration] erro ao aplicar mobile installations:',
+        "\n[migration] erro ao aplicar mobile installations:",
         error.message,
       );
       await prisma.$disconnect();

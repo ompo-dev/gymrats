@@ -5,5 +5,5 @@ export type {
   StudentPlan,
   UserContext,
   UserPlan,
-  UserRole
+  UserRole,
 } from "@gymrats/access-control";

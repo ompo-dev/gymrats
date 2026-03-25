@@ -1,6 +1,6 @@
-import type { BootstrapSectionTimings } from "@gymrats/types/bootstrap";
-import { createBootstrapResponse } from "@gymrats/domain";
 import { redisConnection } from "@gymrats/cache";
+import { createBootstrapResponse } from "@gymrats/domain";
+import type { BootstrapSectionTimings } from "@gymrats/types/bootstrap";
 
 type CachedBootstrapPayload<T> = {
   data: T;

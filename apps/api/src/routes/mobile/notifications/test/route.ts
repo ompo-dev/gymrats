@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const expoPushApiUrl = "https://exp.host/--/api/v2/push/send";
 

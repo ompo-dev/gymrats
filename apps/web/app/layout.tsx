@@ -94,7 +94,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={nunito.variable}>
       <head>
-        {runtimeApiBaseUrl ? <meta name="gymrats-api-base-url" content={runtimeApiBaseUrl} /> : null}
+        {runtimeApiBaseUrl ? (
+          <meta name="gymrats-api-base-url" content={runtimeApiBaseUrl} />
+        ) : null}
         <meta name="gymrats-api-base-source" content={runtimeApiBaseSource} />
       </head>
       <body

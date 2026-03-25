@@ -1,13 +1,5 @@
 "use server";
 
-import type {
-  BoostCampaign,
-  Coupon,
-  Expense,
-  FinancialSummary,
-  Payment,
-  StudentData,
-} from "@/lib/types";
 import {
   serverApiDelete,
   serverApiGet,
@@ -19,6 +11,14 @@ import {
   getApiErrorMessage,
   reviveDate,
 } from "@/lib/api/server-action-utils";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  Payment,
+  StudentData,
+} from "@/lib/types";
 import type {
   PersonalAffiliation,
   PersonalProfile,
@@ -43,7 +43,8 @@ function revivePayments(payments: Payment[]): Payment[] {
     ...payment,
     date: reviveDate(payment.date) as Date,
     dueDate: reviveDate(payment.dueDate) as Date,
-    withdrawnAt: (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
+    withdrawnAt:
+      (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
   }));
 }
 
@@ -115,7 +116,9 @@ export async function getPersonalProfile(): Promise<PersonalProfile | null> {
   }
 }
 
-export async function getPersonalAffiliations(): Promise<PersonalAffiliation[]> {
+export async function getPersonalAffiliations(): Promise<
+  PersonalAffiliation[]
+> {
   try {
     const payload = await serverApiGet<{
       affiliations: Array<{
@@ -168,7 +171,11 @@ export async function getPersonalStudentAssignments(
         student: {
           id: string;
           avatar?: string | null;
-          user?: { id: string; name?: string | null; email?: string | null } | null;
+          user?: {
+            id: string;
+            name?: string | null;
+            email?: string | null;
+          } | null;
         };
         gym?: { id: string; name: string } | null;
       }>;
@@ -189,7 +196,9 @@ export async function getPersonalStudentAssignments(
   }
 }
 
-export async function getPersonalStudentsAsStudentData(): Promise<StudentData[]> {
+export async function getPersonalStudentsAsStudentData(): Promise<
+  StudentData[]
+> {
   return getPersonalStudents();
 }
 
@@ -258,7 +267,10 @@ export async function createPersonalCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiPost<{ success: true }>("/api/personals/coupons", data);
+    return await serverApiPost<{ success: true }>(
+      "/api/personals/coupons",
+      data,
+    );
   } catch (error) {
     console.error("[createPersonalCoupon] Erro:", error);
     return {
@@ -356,9 +368,7 @@ export async function deletePersonalBoostCampaign(
   }
 }
 
-export async function getPersonalBoostCampaignPix(
-  campaignId: string,
-): Promise<
+export async function getPersonalBoostCampaignPix(campaignId: string): Promise<
   | {
       success: true;
       brCode: string;
@@ -390,7 +400,9 @@ export async function getPersonalBoostCampaignPix(
   }
 }
 
-export async function getPersonalMembershipPlans(): Promise<PersonalMembershipPlan[]> {
+export async function getPersonalMembershipPlans(): Promise<
+  PersonalMembershipPlan[]
+> {
   try {
     const payload = await serverApiGet<{ plans: PersonalMembershipPlan[] }>(
       "/api/personals/membership-plans",

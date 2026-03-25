@@ -338,27 +338,27 @@ function ExerciseSearchSimple({
         : actions.addWorkoutExercise(workoutId, payload);
 
       return addPromise.catch((e: Error) => {
-          // Tratar erros em background (não bloqueia UI)
-          console.error("Erro ao adicionar exercício:", e);
-          const err = e as {
-            message?: string;
-            response?: { data?: { message?: string } };
-          };
-          const errorMessage =
-            err?.message ||
-            err?.response?.data?.message ||
-            "Falha ao adicionar exercício";
+        // Tratar erros em background (não bloqueia UI)
+        console.error("Erro ao adicionar exercício:", e);
+        const err = e as {
+          message?: string;
+          response?: { data?: { message?: string } };
+        };
+        const errorMessage =
+          err?.message ||
+          err?.response?.data?.message ||
+          "Falha ao adicionar exercício";
 
-          // Mensagem específica para workout ainda não criado
-          if (errorMessage.includes("ainda está sendo criado")) {
-            toast.error(
-              "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente.",
-              { duration: 5000 },
-            );
-          } else {
-            toast.error(errorMessage);
-          }
-        });
+        // Mensagem específica para workout ainda não criado
+        if (errorMessage.includes("ainda está sendo criado")) {
+          toast.error(
+            "O dia de treino ainda está sendo criado. Aguarde alguns segundos e tente novamente.",
+            { duration: 5000 },
+          );
+        } else {
+          toast.error(errorMessage);
+        }
+      });
     });
 
     // Toast apenas para feedback - UI já atualizou via optimistic update
@@ -401,9 +401,9 @@ function ExerciseSearchSimple({
         >
           {viewMode === "main" ? (
             <>
-              <label className="mb-2 block text-sm font-bold text-[var(--duo-fg-muted)]">
+              <p className="mb-2 block text-sm font-bold text-[var(--duo-fg-muted)]">
                 Categoria:
-              </label>
+              </p>
               <div className="flex flex-wrap gap-2">
                 {muscleCategories.map((category) => (
                   <DuoButton
@@ -436,9 +436,9 @@ function ExerciseSearchSimple({
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </DuoButton>
-                <label className="text-sm font-bold text-[var(--duo-fg-muted)]">
+                <p className="text-sm font-bold text-[var(--duo-fg-muted)]">
                   {muscleGroupLabels[selectedGroup]} - Selecione o músculo:
-                </label>
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {musclesByGroup.map((muscle: MuscleInfo) => (
@@ -633,10 +633,10 @@ function ExerciseSearchSimple({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
             >
-              <label className="mb-3 block text-sm font-bold text-[var(--duo-fg-muted)]">
+              <p className="mb-3 block text-sm font-bold text-[var(--duo-fg-muted)]">
                 Exercícios Selecionados ({selectedExerciseIds.length} exercício
                 {selectedExerciseIds.length !== 1 ? "s" : ""})
-              </label>
+              </p>
               <div
                 className="space-y-2 overflow-y-auto scrollbar-hide"
                 style={{ maxHeight: "200px" }}

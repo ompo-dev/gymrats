@@ -1,9 +1,8 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, StyleSheet, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { consumeOneTimeToken } from "../../src/lib/auth";
+import { StyleSheet, Text, View } from "react-native";
 import { NativeLoadingScreen } from "../../src/components/native-loading-screen";
+import { consumeOneTimeToken } from "../../src/lib/auth";
 import { useAppStore } from "../../src/store/app-store";
 import { colors, spacing, typography } from "../../src/theme";
 
@@ -39,13 +38,20 @@ export default function AuthCallbackScreen() {
         setError(
           callbackError instanceof Error
             ? callbackError.message
-            : "Nao foi possivel concluir o login."
+            : "Nao foi possivel concluir o login.",
         );
       }
     };
 
     void run();
-  }, [config.apiUrl, params.error, params.oneTimeToken, params.token, router, upsertSession]);
+  }, [
+    config.apiUrl,
+    params.error,
+    params.oneTimeToken,
+    params.token,
+    router,
+    upsertSession,
+  ]);
 
   if (!error) {
     return <NativeLoadingScreen message="Finalizando autenticacao..." />;
@@ -66,18 +72,18 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.sm,
     justifyContent: "center",
-    padding: spacing.lg
+    padding: spacing.lg,
   },
   title: {
     color: colors.foreground,
     fontSize: typography.heading.fontSize,
     fontWeight: "900",
-    textAlign: "center"
+    textAlign: "center",
   },
   description: {
     color: colors.foregroundMuted,
     fontSize: typography.body.fontSize,
     lineHeight: 22,
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });

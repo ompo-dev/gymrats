@@ -1,4 +1,4 @@
-import type { NextRequest } from "@/runtime/next-server";
+import { createWorkoutSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
@@ -7,9 +7,9 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
-import { createWorkoutSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * POST /api/gym/students/[id]/workouts/manage

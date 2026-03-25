@@ -1,10 +1,10 @@
 import {
-  GYM_PLANS_CONFIG,
   centsToReais,
+  GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
   async ({ gymContext }) => {

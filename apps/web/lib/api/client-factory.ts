@@ -1,6 +1,6 @@
 export {
+  type ApiClient,
   createApiClient,
   getAxiosInstance,
   resolveApiBaseUrl,
-  type ApiClient,
 } from "@gymrats/api";

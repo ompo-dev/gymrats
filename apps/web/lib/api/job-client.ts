@@ -18,9 +18,12 @@ type JobStatusResponse<T> = {
 };
 
 async function getJobStatus<T>(jobId: string) {
-  const response = await apiClient.get<JobStatusResponse<T>>(`/api/jobs/${jobId}`, {
-    timeout: 30000,
-  });
+  const response = await apiClient.get<JobStatusResponse<T>>(
+    `/api/jobs/${jobId}`,
+    {
+      timeout: 30000,
+    },
+  );
   return response.data;
 }
 

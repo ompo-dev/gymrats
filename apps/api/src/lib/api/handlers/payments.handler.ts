@@ -4,9 +4,9 @@
  * Centraliza toda a lógica das rotas relacionadas a pagamentos
  */
 
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import type { z } from "zod";
 import { db } from "@/lib/db";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth, requireStudent } from "../middleware/auth.middleware";
 import {
   validateBody,

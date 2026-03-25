@@ -4,8 +4,8 @@
  * Centraliza toda a lógica das rotas relacionadas a gyms
  */
 
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth } from "../middleware/auth.middleware";
 import {
   validateBody,

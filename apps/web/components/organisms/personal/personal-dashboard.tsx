@@ -9,13 +9,7 @@ import {
 } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
-import {
-  DuoAlert,
-  DuoButton,
-  DuoCard,
-  DuoStatCard,
-  DuoStatsGrid,
-} from "@/components/duo";
+import { DuoAlert, DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import {
   AcademyListItemCard,
   StudentListItemCard,

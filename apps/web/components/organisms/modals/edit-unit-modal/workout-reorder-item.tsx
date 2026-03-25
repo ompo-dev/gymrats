@@ -34,8 +34,9 @@ export function WorkoutReorderItem({
           <div className="flex-none flex items-center justify-center w-10 h-10 rounded-2xl bg-duo-green/10 text-duo-green font-bold text-lg">
             {index + 1}
           </div>
-          <div
-            className="flex-1 min-w-0 cursor-pointer"
+          <button
+            type="button"
+            className="flex-1 min-w-0 cursor-pointer text-left"
             onClick={() => onEdit(workout.id)}
           >
             <h4 className="font-bold text-duo-text truncate text-lg">
@@ -44,7 +45,7 @@ export function WorkoutReorderItem({
             <p className="text-sm text-duo-fg-muted truncate">
               {workout.exercises.length} exercícios • {workout.muscleGroup}
             </p>
-          </div>
+          </button>
           <div className="flex items-center gap-2 z-10 relative">
             <DuoButton
               variant="ghost"

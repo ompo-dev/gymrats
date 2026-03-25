@@ -61,7 +61,9 @@ interface GymFinancialPageProps {
     isTrial?: boolean;
     daysRemaining?: number | null;
     activeStudents?: number;
+    activePersonals?: number;
     totalAmount?: number;
+    pricePerPersonal?: number;
   } | null;
 }
 
@@ -174,6 +176,14 @@ export function GymFinancialPage({
                   isTrial: subscription.isTrial ?? false,
                   daysRemaining: subscription.daysRemaining ?? null,
                   activeStudents: subscription.activeStudents ?? 0,
+                  activePersonals:
+                    "activePersonals" in subscription
+                      ? (subscription.activePersonals ?? 0)
+                      : 0,
+                  pricePerPersonal:
+                    "pricePerPersonal" in subscription
+                      ? (subscription.pricePerPersonal ?? 0)
+                      : 0,
                   totalAmount: subscription.totalAmount ?? 0,
                 }
               : undefined

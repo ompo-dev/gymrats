@@ -1,11 +1,11 @@
-import type { Prisma } from "@prisma/client";
 import type { WeeklyPlanData } from "@gymrats/types";
-import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 import {
   deleteCacheKeys,
   getCachedJson,
   setCachedJson,
 } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 
 const TRAINING_LIBRARY_LIST_TTL_SECONDS = 30;
 const TRAINING_LIBRARY_DETAIL_TTL_SECONDS = 30;
@@ -37,7 +37,7 @@ type TrainingLibraryPlanDetail = Prisma.WeeklyPlanGetPayload<{
 
 function buildTrainingLibraryPreview(
   slots: Array<{
-    type: "workout" | "rest";
+    type: string;
     workout?: { title: string | null } | null;
   }>,
 ) {
@@ -64,9 +64,9 @@ export async function listTrainingLibraryPlans(
   options: { fresh?: boolean } = {},
 ) {
   if (!options.fresh) {
-    const cached = await getCachedJson<Array<WeeklyPlanData & Record<string, unknown>>>(
-      buildTrainingLibraryListCacheKey(studentId),
-    );
+    const cached = await getCachedJson<
+      Array<WeeklyPlanData & Record<string, unknown>>
+    >(buildTrainingLibraryListCacheKey(studentId));
     if (cached) {
       return cached;
     }
@@ -104,7 +104,9 @@ export async function listTrainingLibraryPlans(
   });
 
   const payload = plans.map((plan) => {
-    const workoutDays = plan.slots.filter((slot) => slot.type === "workout").length;
+    const workoutDays = plan.slots.filter(
+      (slot) => slot.type === "workout",
+    ).length;
     return {
       id: plan.id,
       title: plan.title,

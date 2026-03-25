@@ -1,5 +1,5 @@
-import { apiClient } from "./client";
 import type { BoostCampaign } from "@/lib/types";
+import { apiClient } from "./client";
 
 export async function getActiveBoostCampaignsRequest() {
   const response = await apiClient.get<{ campaigns: BoostCampaign[] }>(

@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
-import { createSessionPayload } from "@/lib/auth/session-payload";
 import { signInSchema } from "@/lib/api/schemas";
+import { createSessionPayload } from "@/lib/auth/session-payload";
 import { db } from "@/lib/db";
 import { type SignInInput, signInUseCase } from "@/lib/use-cases/auth";
 import { createSession } from "@/lib/utils/session";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {

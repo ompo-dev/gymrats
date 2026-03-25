@@ -1,6 +1,6 @@
 import {
-  GYM_PLANS_CONFIG,
   centsToReais,
+  GYM_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
 import { db } from "@/lib/db";
 

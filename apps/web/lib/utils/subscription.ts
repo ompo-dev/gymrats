@@ -1,13 +1,11 @@
+import type { CreateBillingRequest } from "@gymrats/api/abacatepay";
+import { abacatePay } from "@gymrats/api/abacatepay";
 import {
-  GYM_PLANS_CONFIG,
-  PERSONAL_PLANS_CONFIG,
-  STUDENT_PLANS_CONFIG,
   getGymPlanConfig,
   getPersonalPlanConfig,
   getStudentPlanConfig,
+  PERSONAL_PLANS_CONFIG,
 } from "@/lib/access-control/plans-config";
-import type { CreateBillingRequest } from "@gymrats/api/abacatepay";
-import { abacatePay } from "@gymrats/api/abacatepay";
 import { db } from "@/lib/db";
 
 /** Tempo de expiração do PIX em segundos (4 minutos) */
@@ -374,7 +372,8 @@ export function calculateGymSubscriptionPricing({
   }
 
   const basePrice = config.prices[billingPeriod];
-  const perStudentPrice = billingPeriod === "annual" ? 0 : config.pricePerStudent;
+  const perStudentPrice =
+    billingPeriod === "annual" ? 0 : config.pricePerStudent;
   const perPersonalPrice =
     billingPeriod === "annual" ? 0 : (config.pricePerPersonal ?? 0);
 
@@ -399,8 +398,9 @@ export function calculatePersonalSubscriptionPricing({
   hasPremiumOrEnterpriseAffiliation,
 }: PersonalSubscriptionPricingInput): PersonalSubscriptionPricingResult {
   const config =
-    PERSONAL_PLANS_CONFIG[plan.toUpperCase() as keyof typeof PERSONAL_PLANS_CONFIG] ||
-    getPersonalPlanConfig(plan);
+    PERSONAL_PLANS_CONFIG[
+      plan.toUpperCase() as keyof typeof PERSONAL_PLANS_CONFIG
+    ] || getPersonalPlanConfig(plan);
 
   if (!config) {
     throw new Error(`Plano inválido: ${plan}`);
@@ -445,12 +445,15 @@ export async function createStudentSubscriptionPix(
   if (options?.referralCode) {
     const referrer = await db.student.findUnique({
       where: {
-        referralCode:
-          options.referralCode.startsWith("@") ? options.referralCode : `@${options.referralCode}`,
+        referralCode: options.referralCode.startsWith("@")
+          ? options.referralCode
+          : `@${options.referralCode}`,
       },
     });
     if (referrer && referrer.id !== studentId) {
-      selectedPrice = Math.floor(selectedPrice * (1 - REFERRAL_DISCOUNT_PERCENT));
+      selectedPrice = Math.floor(
+        selectedPrice * (1 - REFERRAL_DISCOUNT_PERCENT),
+      );
     }
   }
   const planName = planType.charAt(0).toUpperCase() + planType.slice(1);
@@ -531,7 +534,10 @@ export async function createPersonalSubscriptionPix(
 
   const planName = plan === "pro_ai" ? "Pro AI" : "Standard";
   const periodLabel = billingPeriod === "annual" ? "Anual" : "Mensal";
-  const description = `GymRats Personal ${planName} ${periodLabel}`.slice(0, 37);
+  const description = `GymRats Personal ${planName} ${periodLabel}`.slice(
+    0,
+    37,
+  );
 
   const pixResponse = await abacatePay.createPixQrCode({
     amount: amountCents,
@@ -710,8 +716,9 @@ export async function createGymSubscriptionPix(
   if (options?.referralCode) {
     const referrer = await db.student.findUnique({
       where: {
-        referralCode:
-          options.referralCode.startsWith("@") ? options.referralCode : `@${options.referralCode}`,
+        referralCode: options.referralCode.startsWith("@")
+          ? options.referralCode
+          : `@${options.referralCode}`,
       },
     });
     if (referrer) {

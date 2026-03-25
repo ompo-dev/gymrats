@@ -116,7 +116,9 @@ export function DietTab({
                 style={{ color: "var(--duo-secondary)" }}
                 aria-hidden
               />
-              <h2 className="font-bold text-duo-fg">Nutricao e Dieta do Aluno</h2>
+              <h2 className="font-bold text-duo-fg">
+                Nutricao e Dieta do Aluno
+              </h2>
             </div>
             <input
               type="date"
@@ -170,7 +172,8 @@ export function DietTab({
 
             {isReadOnly && (
               <p className="mb-4 text-xs font-medium text-duo-fg-muted">
-                Voce esta visualizando um snapshot historico. Refeicoes, alimentos e trocas de plano so podem ser editados na data atual.
+                Voce esta visualizando um snapshot historico. Refeicoes,
+                alimentos e trocas de plano so podem ser editados na data atual.
               </p>
             )}
 

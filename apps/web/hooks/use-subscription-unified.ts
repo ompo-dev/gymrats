@@ -27,7 +27,9 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
   const meta = useSubscriptionStore((state) =>
     userType === "student" ? state.studentMeta : state.gymMeta,
   );
-  const loadSubscription = useSubscriptionStore((state) => state.loadSubscription);
+  const loadSubscription = useSubscriptionStore(
+    (state) => state.loadSubscription,
+  );
   const startTrialStore = useSubscriptionStore((state) => state.startTrial);
   const createSubscriptionStore = useSubscriptionStore(
     (state) => state.createSubscription,
@@ -41,15 +43,15 @@ export function useSubscriptionUnified(options: UseSubscriptionOptions) {
     void loadSubscription(userType);
   }, [enabled, loadSubscription, userType]);
 
-  const refetch = useCallback(() => loadSubscription(userType, true), [
-    loadSubscription,
-    userType,
-  ]);
+  const refetch = useCallback(
+    () => loadSubscription(userType, true),
+    [loadSubscription, userType],
+  );
 
-  const startTrial = useCallback(() => startTrialStore(userType), [
-    startTrialStore,
-    userType,
-  ]);
+  const startTrial = useCallback(
+    () => startTrialStore(userType),
+    [startTrialStore, userType],
+  );
 
   const createSubscription = useCallback(
     (

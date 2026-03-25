@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
   createGymPaymentSchema,
   gymPaymentsQuerySchema,
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 // GET — listar pagamentos
 export const GET = createSafeHandler(

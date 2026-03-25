@@ -224,7 +224,8 @@ export function Select<T = string>({
               );
 
               return (
-                <div
+                <button
+                  type="button"
                   key={index}
                   onClick={() => handleSelect(option)}
                   className={cn(
@@ -239,9 +240,10 @@ export function Select<T = string>({
                   style={{
                     animationDelay: `${index * 50}ms`,
                   }}
+                  disabled={option.disabled}
                 >
                   {renderOption?.(option) || defaultOptionContent}
-                </div>
+                </button>
               );
             })}
           </div>

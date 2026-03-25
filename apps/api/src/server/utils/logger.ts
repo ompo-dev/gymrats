@@ -28,7 +28,7 @@ export function logApiRequest(ctx: {
 
 export function logApiError(ctx: {
   request: Request;
-  error?: Error | { message?: string };
+  error?: unknown;
   code?: string | number;
   _requestStart?: number;
 }) {

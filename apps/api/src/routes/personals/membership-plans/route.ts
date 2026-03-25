@@ -1,11 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { NextResponse } from "@/runtime/next-server";
 
 type MembershipPlanBody = {
   name: string;
-  description?: string | null;
   type: string;
   price: number;
   duration: number;
@@ -41,9 +40,12 @@ export const GET = createSafeHandler(
   async ({ personalContext, req }) => {
     const personalId = personalContext!.personalId;
     const fresh = new URL(req.url).searchParams.get("fresh") === "1";
-    const plans = await PersonalFinancialService.getMembershipPlans(personalId, {
-      fresh,
-    });
+    const plans = await PersonalFinancialService.getMembershipPlans(
+      personalId,
+      {
+        fresh,
+      },
+    );
 
     return NextResponse.json({
       plans: (plans as Array<Record<string, unknown>>).map((plan) => ({
@@ -61,11 +63,10 @@ export const POST = createSafeHandler(
   async ({ personalContext, body }) => {
     const personalId = personalContext!.personalId;
     const payload = body as MembershipPlanBody;
-    const plan = await (db as any).personalMembershipPlan.create({
+    const plan = await db.personalMembershipPlan.create({
       data: {
         personalId,
         name: payload.name,
-        description: payload.description ?? null,
         type: payload.type,
         price: payload.price,
         duration: payload.duration,
@@ -77,14 +78,8 @@ export const POST = createSafeHandler(
     return NextResponse.json(
       {
         plan: {
-          ...(plan as Record<string, unknown>),
-          benefits: parseBenefits(
-            (plan as Record<string, unknown>).benefits as
-              | string
-              | string[]
-              | null
-              | undefined,
-          ),
+          ...plan,
+          benefits: parseBenefits(plan.benefits),
         },
       },
       { status: 201 },

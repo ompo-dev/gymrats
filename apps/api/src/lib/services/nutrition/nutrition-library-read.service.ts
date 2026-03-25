@@ -1,5 +1,5 @@
-import type { Prisma } from "@prisma/client";
 import type { NutritionPlanData } from "@gymrats/types";
+import type { Prisma } from "@prisma/client";
 import {
   deleteCacheKeys,
   getCachedJson,
@@ -35,7 +35,9 @@ function buildNutritionLibraryDetailCacheKey(planId: string) {
   return `nutrition-library:${planId}:detail:v1`;
 }
 
-function serializeNutritionPlan(plan: NutritionPlanWithRelations): NutritionPlanData {
+function serializeNutritionPlan(
+  plan: NutritionPlanWithRelations,
+): NutritionPlanData {
   return {
     id: plan.id,
     title: plan.title,
@@ -51,7 +53,7 @@ function serializeNutritionPlan(plan: NutritionPlanWithRelations): NutritionPlan
     meals: plan.meals.map((meal) => ({
       id: meal.id,
       name: meal.name,
-      type: meal.type,
+      type: meal.type as NutritionPlanData["meals"][number]["type"],
       calories: roundNutritionNumber(meal.calories),
       protein: roundNutritionNumber(meal.protein),
       carbs: roundNutritionNumber(meal.carbs),
@@ -88,9 +90,7 @@ export async function invalidateNutritionLibraryCache(options: {
 }) {
   await deleteCacheKeys([
     buildNutritionLibraryListCacheKey(options.studentId),
-    options.planId
-      ? buildNutritionLibraryDetailCacheKey(options.planId)
-      : null,
+    options.planId ? buildNutritionLibraryDetailCacheKey(options.planId) : null,
   ]);
 }
 

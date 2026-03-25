@@ -104,10 +104,7 @@ export function MembershipCard({
             </div>
 
             {isExpanded && isActive && !readOnly && (
-              <div
-                className="mt-4 pt-4 border-t-2 border-duo-border space-y-3"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="mt-4 pt-4 border-t-2 border-duo-border space-y-3">
                 {isChangePlanSelecting ? (
                   <div className="space-y-2">
                     <p className="text-xs font-bold text-duo-gray-dark">

@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { STUDENT_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { ReferralService } from "@/lib/services/referral.service";
 import { db } from "@/lib/db";
+import { ReferralService } from "@/lib/services/referral.service";
 import { createStudentSubscriptionPix } from "@/lib/utils/subscription";
+import { NextResponse } from "@/runtime/next-server";
 
 const applyReferralSchema = z.object({
   referralCode: z.string().min(1, "Informe o @ do indicador"),
@@ -21,7 +21,7 @@ export const POST = createSafeHandler(
     if (!studentId) {
       return NextResponse.json(
         { error: "Aluno não autenticado" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -37,7 +37,7 @@ export const POST = createSafeHandler(
     if (!subscription || subscription.status !== "pending_payment") {
       return NextResponse.json(
         { error: "Não há assinatura pendente para aplicar indicação" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -49,7 +49,7 @@ export const POST = createSafeHandler(
     });
     const canApplyReferral =
       subscription.source === "GYM_ENTERPRISE" ||
-      subscription.status === "trialing" ||
+      (subscription.trialEnd !== null && subscription.trialEnd > new Date()) ||
       hasEverPaid === 0;
 
     if (!canApplyReferral) {
@@ -58,7 +58,7 @@ export const POST = createSafeHandler(
           error:
             "Indicação disponível apenas para primeira assinatura, trial ativo ou benefício Enterprise.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,13 +71,13 @@ export const POST = createSafeHandler(
           error: "Código de indicação inválido",
           referralCodeInvalid: true,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (referrer.id === studentId) {
       return NextResponse.json(
         { error: "Não é possível usar seu próprio código" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -92,13 +92,13 @@ export const POST = createSafeHandler(
       "premium",
       billingPeriod,
       subscription.id,
-      { referralCode: normalized }
+      { referralCode: normalized },
     );
 
     if (!pix || !pix.id) {
       return NextResponse.json(
         { error: "Erro ao gerar novo PIX" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -125,5 +125,5 @@ export const POST = createSafeHandler(
   {
     auth: "student",
     schema: { body: applyReferralSchema },
-  }
+  },
 );

@@ -139,7 +139,10 @@ export function buildNutritionPreviewPlan(
   const groupedMeals = new Map<string, NutritionPreviewMeal>();
 
   for (const food of foods) {
-    const mealType = normalizeMealType(food.mealType, options?.fallbackMealType);
+    const mealType = normalizeMealType(
+      food.mealType,
+      options?.fallbackMealType,
+    );
     const existingMeal = options?.existingMeals?.find(
       (meal) => normalizeMealType(meal.type) === mealType,
     );
@@ -147,8 +150,7 @@ export function buildNutritionPreviewPlan(
       groupedMeals.get(mealType) ??
       ({
         type: mealType,
-        name:
-          existingMeal?.name?.trim() || getNutritionMealName(mealType),
+        name: existingMeal?.name?.trim() || getNutritionMealName(mealType),
         time: existingMeal?.time || getNutritionMealTime(mealType),
         foods: [],
         totalCalories: 0,

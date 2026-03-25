@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const createWithdrawSchema = z.object({
   amountCents: z

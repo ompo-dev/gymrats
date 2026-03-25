@@ -1,14 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  FinancialSummary,
+  Payment,
+} from "@/lib/types";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
-import { PersonalFinancialPageContent } from "./page-content";
 import type {
   PersonalAffiliation,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "../types";
+import { PersonalFinancialPageContent } from "./page-content";
 
 export function PersonalFinancialRouteWrapper({
   subscription,
@@ -24,12 +32,12 @@ export function PersonalFinancialRouteWrapper({
   subscription: PersonalSubscriptionData | null;
   students: PersonalStudentAssignment[];
   affiliations: PersonalAffiliation[];
-  payments?: any[];
-  coupons?: any[];
-  campaigns?: any[];
-  plans?: any[];
-  expenses?: any[];
-  financialSummary?: any;
+  payments?: Payment[];
+  coupons?: Coupon[];
+  campaigns?: BoostCampaign[];
+  plans?: PersonalMembershipPlan[];
+  expenses?: Expense[];
+  financialSummary?: FinancialSummary | null;
 }) {
   const router = useRouter();
   const hydrateInitial = usePersonalUnifiedStore((s) => s.hydrateInitial);

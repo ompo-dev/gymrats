@@ -70,7 +70,9 @@ function ensureDatabaseEnv() {
   }
 
   if (!process.env.DATABASE_URL && !process.env.DIRECT_URL) {
-    throw new Error("DATABASE_URL ou DIRECT_URL nao configurado para a migration.");
+    throw new Error(
+      "DATABASE_URL ou DIRECT_URL nao configurado para a migration.",
+    );
   }
 }
 
@@ -239,7 +241,10 @@ if (require.main === module) {
       process.exit(0);
     })
     .catch(async (error) => {
-      console.error("\n[migration] erro ao aplicar observability tables:", error.message);
+      console.error(
+        "\n[migration] erro ao aplicar observability tables:",
+        error.message,
+      );
       await prisma.$disconnect();
       process.exit(1);
     });

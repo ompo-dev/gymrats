@@ -39,7 +39,10 @@ export async function sendWelcomeEmail({
 }
 
 // Usado exclusivamente pelo Worker (Background Job)
-export async function processWelcomeEmailSync(to: string, name: string): Promise<void> {
+export async function processWelcomeEmailSync(
+  to: string,
+  name: string,
+): Promise<void> {
   const transporter = createTransporter();
   const mailOptions = {
     from: '"Gym Rats" <gym.rats.workout@gmail.com>',
@@ -262,13 +265,20 @@ export async function sendResetPasswordEmail({
     await emailQueue.add("send-reset-password", { to, name, code });
     log.info("Email de recuperação de senha enfileirado", { to });
   } catch (error) {
-    log.error("Erro ao enfileirar email de recuperação de senha", { to, error });
+    log.error("Erro ao enfileirar email de recuperação de senha", {
+      to,
+      error,
+    });
     throw error;
   }
 }
 
 // Usado exclusivamente pelo Worker (Background Job)
-export async function processResetPasswordEmailSync(to: string, name: string, code: string): Promise<void> {
+export async function processResetPasswordEmailSync(
+  to: string,
+  name: string,
+  code: string,
+): Promise<void> {
   const transporter = createTransporter();
   const mailOptions = {
     from: '"Gym Rats" <gym.rats.workout@gmail.com>',

@@ -20,12 +20,17 @@ import {
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
-import type { BoostCampaign, Coupon, MembershipPlan } from "@/lib/types";
+import type { BoostCampaign, Coupon } from "@/lib/types";
+
+type BoostCampaignPlanOption = {
+  id: string;
+  name: string;
+};
 
 interface FinancialAdsTabProps {
   campaigns?: BoostCampaign[];
   coupons?: Coupon[];
-  plans?: MembershipPlan[];
+  plans?: BoostCampaignPlanOption[];
   variant?: "gym" | "personal";
 }
 

@@ -5,26 +5,26 @@
 
 :root {
   /* Duolingo Design System - variáveis dinâmicas (fallback light até DuoThemeProvider carregar) */
-  --duo-primary: #58CC02;
-  --duo-primary-dark: #46A302;
-  --duo-primary-light: #89E219;
-  --duo-secondary: #1CB0F6;
-  --duo-secondary-dark: #1899D6;
-  --duo-accent: #FF9600;
-  --duo-accent-dark: #E08600;
-  --duo-success: #58CC02;
-  --duo-success-dark: #46A302;
-  --duo-warning: #FFC800;
-  --duo-warning-dark: #E0B000;
-  --duo-danger: #FF4B4B;
-  --duo-danger-dark: #E04040;
+  --duo-primary: #58cc02;
+  --duo-primary-dark: #46a302;
+  --duo-primary-light: #89e219;
+  --duo-secondary: #1cb0f6;
+  --duo-secondary-dark: #1899d6;
+  --duo-accent: #ff9600;
+  --duo-accent-dark: #e08600;
+  --duo-success: #58cc02;
+  --duo-success-dark: #46a302;
+  --duo-warning: #ffc800;
+  --duo-warning-dark: #e0b000;
+  --duo-danger: #ff4b4b;
+  --duo-danger-dark: #e04040;
   /* Padrão light: fundo claro, texto escuro */
-  --duo-bg: #F5F7F6;
-  --duo-bg-card: #FFFFFF;
-  --duo-bg-elevated: #E8ECEA;
-  --duo-fg: #131F24;
-  --duo-fg-muted: #5A6B63;
-  --duo-border: #D1D9D6;
+  --duo-bg: #f5f7f6;
+  --duo-bg-card: #ffffff;
+  --duo-bg-elevated: #e8ecea;
+  --duo-fg: #131f24;
+  --duo-fg-muted: #5a6b63;
+  --duo-border: #d1d9d6;
 
   /* Aliases legados (compatibilidade com duo-button-green, duo-node, etc.) */
   --duo-green: var(--duo-primary);
@@ -227,7 +227,14 @@
     display: none; /* Chrome, Safari and Opera */
   }
   /* Hide scrollbar for all scrollable elements */
-  div, section, main, article, aside, nav, header, footer {
+  div,
+  section,
+  main,
+  article,
+  aside,
+  nav,
+  header,
+  footer {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
@@ -253,10 +260,8 @@
   /* Desabilitar drag de imagens */
   img {
     -webkit-user-drag: none;
-    -khtml-user-drag: none;
     -moz-user-drag: none;
     -o-user-drag: none;
-    user-drag: none;
   }
 }
 
@@ -378,7 +383,8 @@
 }
 
 @keyframes glow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 0 rgba(88, 204, 2, 0.4);
   }
   50% {

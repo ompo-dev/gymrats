@@ -90,7 +90,9 @@ export async function buildStudentBootstrap(options: {
           }
 
           if (section === "libraryPlans") {
-            const libraryPlans = await listTrainingLibraryPlans(options.studentId);
+            const libraryPlans = await listTrainingLibraryPlans(
+              options.studentId,
+            );
             return {
               libraryPlans,
             } as Partial<StudentData>;

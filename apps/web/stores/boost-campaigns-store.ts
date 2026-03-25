@@ -97,7 +97,12 @@ export const useBoostCampaignsStore = create<BoostCampaignsState>(
       const cached = state.campaignsByKey[cacheKey];
       const resource = state.resources[cacheKey];
 
-      if (!force && cached && resource?.status === "ready" && isFresh(resource)) {
+      if (
+        !force &&
+        cached &&
+        resource?.status === "ready" &&
+        isFresh(resource)
+      ) {
         return cached;
       }
 
@@ -161,7 +166,10 @@ export const useBoostCampaignsStore = create<BoostCampaignsState>(
       impressionIds.add(campaignId);
 
       try {
-        await apiClient.post(`/api/boost-campaigns/${campaignId}/impression`, {});
+        await apiClient.post(
+          `/api/boost-campaigns/${campaignId}/impression`,
+          {},
+        );
       } catch {
         impressionIds.delete(campaignId);
       }

@@ -1,8 +1,9 @@
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const registerInstallationSchema = z.object({
   installationId: z.string().min(1, "installationId eh obrigatorio"),
@@ -65,7 +66,9 @@ export async function POST(request: NextRequest) {
         body.expoPushToken === undefined ? undefined : body.expoPushToken,
       pushPermission: body.pushPermission,
       capabilities:
-        body.capabilities === undefined ? undefined : body.capabilities,
+        body.capabilities === undefined
+          ? undefined
+          : (body.capabilities as Prisma.InputJsonValue),
       appVersion: body.appVersion === undefined ? undefined : body.appVersion,
       deviceName: body.deviceName === undefined ? undefined : body.deviceName,
       locale: body.locale === undefined ? undefined : body.locale,
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
       platform: body.platform,
       expoPushToken: body.expoPushToken ?? null,
       pushPermission: body.pushPermission,
-      capabilities: body.capabilities,
+      capabilities: body.capabilities as Prisma.InputJsonValue | undefined,
       appVersion: body.appVersion ?? null,
       deviceName: body.deviceName ?? null,
       locale: body.locale ?? null,

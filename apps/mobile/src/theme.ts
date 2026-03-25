@@ -31,7 +31,7 @@ export const colors = {
   dangerSoft: "rgba(255, 75, 75, 0.1)",
   gray: "#E5E5E5",
   grayDark: "#AFAFAF",
-  white: "#FFFFFF"
+  white: "#FFFFFF",
 };
 
 export const fontFamilies = {
@@ -46,7 +46,7 @@ export const fontFamilies = {
   semiboldItalic: "Nunito_600SemiBold_Italic",
   boldItalic: "Nunito_700Bold_Italic",
   extraBoldItalic: "Nunito_800ExtraBold_Italic",
-  blackItalic: "Nunito_900Black_Italic"
+  blackItalic: "Nunito_900Black_Italic",
 } as const;
 
 export const spacing = {
@@ -54,7 +54,7 @@ export const spacing = {
   sm: 12,
   md: 16,
   lg: 24,
-  xl: 32
+  xl: 32,
 };
 
 export const radius = {
@@ -62,7 +62,7 @@ export const radius = {
   md: 12,
   lg: 16,
   xl: 20,
-  round: 999
+  round: 999,
 };
 
 export const layout = {
@@ -70,50 +70,50 @@ export const layout = {
   pagePaddingHorizontal: spacing.md,
   pagePaddingTop: spacing.lg,
   pagePaddingBottom: spacing.xl,
-  pageGap: spacing.lg
+  pageGap: spacing.lg,
 } as const;
 
 export const typography = {
   caption: {
     fontSize: 12,
-    lineHeight: 16
+    lineHeight: 16,
   },
   body: {
     fontSize: 16,
     lineHeight: 22,
-    letterSpacing: 0
+    letterSpacing: 0,
   },
   heading: {
     fontSize: 28,
     lineHeight: 32,
-    letterSpacing: -0.3
+    letterSpacing: -0.3,
   },
   display: {
     fontSize: 30,
     lineHeight: 36,
-    letterSpacing: -0.4
-  }
+    letterSpacing: -0.4,
+  },
 };
 
 export const fontWeights = {
   regular: {
-    fontFamily: fontFamilies.regular
+    fontFamily: fontFamilies.regular,
   },
   medium: {
-    fontFamily: fontFamilies.medium
+    fontFamily: fontFamilies.medium,
   },
   semibold: {
-    fontFamily: fontFamilies.semibold
+    fontFamily: fontFamilies.semibold,
   },
   bold: {
-    fontFamily: fontFamilies.bold
+    fontFamily: fontFamilies.bold,
   },
   extraBold: {
-    fontFamily: fontFamilies.extraBold
+    fontFamily: fontFamilies.extraBold,
   },
   black: {
-    fontFamily: fontFamilies.black
-  }
+    fontFamily: fontFamilies.black,
+  },
 } as const;
 
 export const shadow = {
@@ -121,22 +121,22 @@ export const shadow = {
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 2
+    elevation: 2,
   },
   topNav: {
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
-      height: -2
+      height: -2,
     },
     shadowOpacity: 0.08,
     shadowRadius: 10,
-    elevation: 6
-  }
+    elevation: 6,
+  },
 };
 
 type NamedStyles = Record<string, ViewStyle | TextStyle | ImageStyle>;
@@ -152,7 +152,9 @@ function isTextLikeStyle(style: ViewStyle | TextStyle | ImageStyle) {
   );
 }
 
-export function resolveNunitoFontFamily(style: Pick<TextStyle, "fontStyle" | "fontWeight"> = {}) {
+export function resolveNunitoFontFamily(
+  style: Pick<TextStyle, "fontStyle" | "fontWeight"> = {},
+) {
   const isItalic = style.fontStyle === "italic";
   const rawWeight = style.fontWeight;
   const weight =
@@ -196,8 +198,8 @@ export function withNunitoStyles<T extends NamedStyles>(styles: T): T {
       {
         ...value,
         fontFamily: resolveNunitoFontFamily(value as TextStyle),
-        fontWeight: undefined
-      }
+        fontWeight: undefined,
+      },
     ];
   });
 

@@ -1,9 +1,9 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const linkSchema = z.object({
   personalId: z.string().min(1),
@@ -68,7 +68,10 @@ export const DELETE = createSafeHandler(
       },
     });
     if (!affiliation) {
-      return NextResponse.json({ error: "Vínculo não encontrado" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Vínculo não encontrado" },
+        { status: 404 },
+      );
     }
 
     const removed = await PersonalGymService.unlinkPersonalFromGym({

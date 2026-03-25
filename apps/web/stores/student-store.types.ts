@@ -5,14 +5,16 @@
 
 import type { DailyNutrition, PersonalRecord, UserProgress } from "@/lib/types";
 import type {
-  StudentJoinGymResult,
   StudentData,
   StudentDataSection,
+  StudentJoinGymResult,
   StudentPaymentPlanOption,
   StudentPixPaymentPayload,
   StudentReferralApplyResult,
   WorkoutCompletionData,
 } from "@/lib/types/student-unified";
+
+type LibraryPlanPayload = Record<string, unknown>;
 
 export interface StudentUnifiedState {
   data: StudentData;
@@ -76,8 +78,11 @@ export interface StudentUnifiedState {
   }) => Promise<void>;
   requestReferralWithdraw: (amountCents: number) => Promise<void>;
   addDayPass: (dayPass: StudentData["dayPasses"][0]) => void;
-  createLibraryPlan: (data: any) => Promise<string>;
-  updateLibraryPlan: (planId: string, data: any) => Promise<void>;
+  createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
+  updateLibraryPlan: (
+    planId: string,
+    data: LibraryPlanPayload,
+  ) => Promise<void>;
   deleteLibraryPlan: (planId: string) => Promise<void>;
   activateLibraryPlan: (planId: string) => Promise<void>;
   createNutritionLibraryPlan: (data: {

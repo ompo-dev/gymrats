@@ -1,9 +1,9 @@
 import type {
   PersonalAffiliation,
+  PersonalMembershipPlan,
   PersonalProfile,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
-  PersonalMembershipPlan,
 } from "@gymrats/types/personal-module";
 import type {
   BoostCampaign,

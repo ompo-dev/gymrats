@@ -1,6 +1,6 @@
 import type { AxiosError } from "axios";
-import { apiClient } from "./client";
 import type { Payment, StudentData } from "@/lib/types";
+import { apiClient } from "./client";
 
 function getErrorMessage(error: unknown, fallback: string) {
   const payload = (error as AxiosError<{ error?: string }>)?.response?.data;
@@ -21,7 +21,7 @@ export async function createGymCouponRequest(data: {
       expiresAt:
         typeof data.expiresAt === "string"
           ? data.expiresAt
-          : data.expiresAt?.toISOString() ?? null,
+          : (data.expiresAt?.toISOString() ?? null),
     });
     return { success: true } as const;
   } catch (error) {

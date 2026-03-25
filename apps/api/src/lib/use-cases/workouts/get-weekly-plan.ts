@@ -2,12 +2,12 @@
  * Caso de uso: buscar WeeklyPlan com slots formatados
  */
 
-import { db } from "@/lib/db";
 import {
   deleteCacheKeysByPrefix,
   getCachedJson,
   setCachedJson,
 } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import { addDays, getWeekStart } from "@/lib/utils/week";
 
 export interface GetWeeklyPlanInput {
@@ -33,7 +33,9 @@ function buildWeeklyPlanCacheKey(
   ].join(":");
 }
 
-function parseJsonArray(value: string | null | undefined): string[] | undefined {
+function parseJsonArray(
+  value: string | null | undefined,
+): string[] | undefined {
   if (!value) {
     return undefined;
   }
@@ -275,7 +277,9 @@ export async function getWeeklyPlanUseCase(input: GetWeeklyPlanInput) {
       title: weeklyPlan.title,
       description: weeklyPlan.description ?? null,
       slots: formattedSlots,
-      sourceLibraryPlanId: (weeklyPlan as { sourceLibraryPlanId?: string | null }).sourceLibraryPlanId ?? null,
+      sourceLibraryPlanId:
+        (weeklyPlan as { sourceLibraryPlanId?: string | null })
+          .sourceLibraryPlanId ?? null,
     },
     weekStart,
   };

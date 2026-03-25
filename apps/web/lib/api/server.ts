@@ -19,17 +19,16 @@ function buildUrl(path: string): string {
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function extractSessionTokenFromCookie(cookieHeader: string | null): string | null {
+function extractSessionTokenFromCookie(
+  cookieHeader: string | null,
+): string | null {
   if (!cookieHeader) {
     return null;
   }
 
   for (const cookieChunk of cookieHeader.split(";")) {
     const [rawName, ...rawValueParts] = cookieChunk.trim().split("=");
-    if (
-      rawName === "auth_token" ||
-      rawName === "better-auth.session_token"
-    ) {
+    if (rawName === "auth_token" || rawName === "better-auth.session_token") {
       const rawValue = rawValueParts.join("=");
       return rawValue ? decodeURIComponent(rawValue) : null;
     }
@@ -139,7 +138,8 @@ export async function serverApiDelete<T>(
 ): Promise<T> {
   return serverApiRequest<T>(path, {
     method: "DELETE",
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers:
+      body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }

@@ -1,18 +1,27 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
   gymEquipmentIdParamsSchema,
   updateGymEquipmentSchema,
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
-import { GymDomainService } from "@/lib/services/gym-domain.service";
 import { GymInventoryService } from "@/lib/services/gym/gym-inventory.service";
+import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ gymContext, params }) => {
+    const gymId = gymContext?.gymId;
+    const equipId = params?.equipId;
+    if (!gymId || !equipId) {
+      return NextResponse.json(
+        { error: "Contexto do equipamento invalido" },
+        { status: 400 },
+      );
+    }
+
     const equipment = await GymInventoryService.getEquipmentById(
-      gymContext?.gymId,
-      params.equipId,
+      gymId,
+      equipId,
     );
 
     if (!equipment) {
@@ -34,13 +43,22 @@ export const GET = createSafeHandler(
 
 export const PATCH = createSafeHandler(
   async ({ gymContext, params, body }) => {
+    const gymId = gymContext?.gymId;
+    const equipId = params?.equipId;
+    if (!gymId || !equipId) {
+      return NextResponse.json(
+        { error: "Contexto do equipamento invalido" },
+        { status: 400 },
+      );
+    }
+
     const serialNumber = body.serialNumber?.trim() || null;
 
     if (serialNumber) {
       const duplicatedEquipment = await db.equipment.findFirst({
         where: {
           serialNumber,
-          id: { not: params.equipId },
+          id: { not: equipId },
         },
         select: { id: true },
       });
@@ -53,14 +71,10 @@ export const PATCH = createSafeHandler(
       }
     }
 
-    const equipment = await GymDomainService.updateEquipment(
-      gymContext?.gymId,
-      params.equipId,
-      {
-        ...body,
-        ...(body.serialNumber !== undefined ? { serialNumber } : {}),
-      },
-    );
+    const equipment = await GymDomainService.updateEquipment(gymId, equipId, {
+      ...body,
+      ...(body.serialNumber !== undefined ? { serialNumber } : {}),
+    });
     return NextResponse.json({ equipment });
   },
   {
@@ -74,7 +88,16 @@ export const PATCH = createSafeHandler(
 
 export const DELETE = createSafeHandler(
   async ({ gymContext, params }) => {
-    await GymDomainService.deleteEquipment(gymContext?.gymId, params.equipId);
+    const gymId = gymContext?.gymId;
+    const equipId = params?.equipId;
+    if (!gymId || !equipId) {
+      return NextResponse.json(
+        { error: "Contexto do equipamento invalido" },
+        { status: 400 },
+      );
+    }
+
+    await GymDomainService.deleteEquipment(gymId, equipId);
     return NextResponse.json({ success: true });
   },
   {

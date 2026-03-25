@@ -1,6 +1,6 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { getAuthContext } from "@/lib/context/auth-context-factory";
 import { log } from "@/lib/observability";
+import type { NextRequest } from "@/runtime/next-server";
 
 export type { StudentContext } from "@/lib/context/auth-context-factory";
 

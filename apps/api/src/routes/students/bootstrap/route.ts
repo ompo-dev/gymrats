@@ -1,4 +1,3 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import {
   buildBootstrapCacheKey,
@@ -10,19 +9,23 @@ import {
   buildStudentBootstrap,
   parseStudentBootstrapSections,
 } from "@/lib/bootstrap/student-bootstrap";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ query, studentContext }) => {
-    const sections = parseStudentBootstrapSections(query.sections as string | undefined);
+    const sections = parseStudentBootstrapSections(
+      query.sections as string | undefined,
+    );
     const cacheKey = buildBootstrapCacheKey({
       domain: "student",
       actorId: studentContext!.studentId,
       secondaryId: String(studentContext!.user.id),
       sections,
     });
-    const cached = await getCachedBootstrap<Awaited<ReturnType<typeof buildStudentBootstrap>>["data"]>(
-      cacheKey,
-    );
+    const cached =
+      await getCachedBootstrap<
+        Awaited<ReturnType<typeof buildStudentBootstrap>>["data"]
+      >(cacheKey);
 
     if (cached) {
       return NextResponse.json(

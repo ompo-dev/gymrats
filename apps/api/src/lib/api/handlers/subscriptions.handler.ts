@@ -4,12 +4,12 @@
  * Centraliza toda a lógica das rotas relacionadas a subscriptions de students
  */
 
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
-import { initializeStudentTrial } from "@/lib/utils/auto-trial";
-import { createStudentSubscriptionPix } from "@/lib/utils/subscription";
 import { ReferralService } from "@/lib/services/referral.service";
 import { getCurrentSubscriptionUseCase } from "@/lib/use-cases/subscriptions";
+import { initializeStudentTrial } from "@/lib/utils/auto-trial";
+import { createStudentSubscriptionPix } from "@/lib/utils/subscription";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { requireAuth } from "../middleware/auth.middleware";
 import { validateBody } from "../middleware/validation.middleware";
 import { createSubscriptionSchema } from "../schemas";

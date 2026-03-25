@@ -5,13 +5,13 @@
 import { apiClient } from "@/lib/api/client";
 import { waitForJobCompletion } from "@/lib/api/job-client";
 import type { DailyNutrition, Meal, NutritionPlanData } from "@/lib/types";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import {
   createDailyNutritionFromPlan,
   hasNutritionMealStructureChanged,
   mealsToNutritionPlanData,
   normalizeDailyNutrition,
 } from "@/lib/utils/nutrition/nutrition-plan";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import { deduplicateMeals, loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
 
@@ -89,8 +89,12 @@ function settleDailyNutritionResolvers(
     return;
   }
 
-  const settledResolvers = resolvers.filter((resolver) => resolver.version <= version);
-  const remainingResolvers = resolvers.filter((resolver) => resolver.version > version);
+  const settledResolvers = resolvers.filter(
+    (resolver) => resolver.version <= version,
+  );
+  const remainingResolvers = resolvers.filter(
+    (resolver) => resolver.version > version,
+  );
 
   if (remainingResolvers.length > 0) {
     pendingDailyNutritionResolvers.set(key, remainingResolvers);
@@ -155,8 +159,10 @@ function syncLinkedActivePlan(params: {
           id: currentActivePlan.id,
           isLibraryTemplate: false,
           sourceLibraryPlanId: updatedLibraryPlan.id,
-          createdById: currentActivePlan.createdById ?? updatedLibraryPlan.createdById,
-          creatorType: currentActivePlan.creatorType ?? updatedLibraryPlan.creatorType,
+          createdById:
+            currentActivePlan.createdById ?? updatedLibraryPlan.createdById,
+          creatorType:
+            currentActivePlan.creatorType ?? updatedLibraryPlan.creatorType,
         };
 
   return {
@@ -247,7 +253,9 @@ export function createNutritionSlice(
       const previousNutrition = get().data.dailyNutrition;
       const resolvedDate = (() => {
         try {
-          return getBrazilNutritionDateKey(updates.date || previousNutrition.date);
+          return getBrazilNutritionDateKey(
+            updates.date || previousNutrition.date,
+          );
         } catch {
           return getBrazilNutritionDateKey();
         }
@@ -277,13 +285,12 @@ export function createNutritionSlice(
         data: {
           ...state.data,
           dailyNutrition: nextDailyNutrition,
-          activeNutritionPlan:
-            shouldSyncPlan
-              ? mealsToNutritionPlanData({
-                  meals: nextMeals,
-                  basePlan: state.data.activeNutritionPlan,
-                })
-              : state.data.activeNutritionPlan,
+          activeNutritionPlan: shouldSyncPlan
+            ? mealsToNutritionPlanData({
+                meals: nextMeals,
+                basePlan: state.data.activeNutritionPlan,
+              })
+            : state.data.activeNutritionPlan,
         },
       }));
 
@@ -291,17 +298,20 @@ export function createNutritionSlice(
       latestDailyNutritionVersions.set(resolvedDate, version);
       latestDailyNutritionSyncPlanFlags.set(
         resolvedDate,
-        (latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false) || shouldSyncPlan,
+        (latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false) ||
+          shouldSyncPlan,
       );
 
       const flushPromise = new Promise<void>((resolve, reject) => {
-        const resolvers = pendingDailyNutritionResolvers.get(resolvedDate) ?? [];
+        const resolvers =
+          pendingDailyNutritionResolvers.get(resolvedDate) ?? [];
         resolvers.push({ version, resolve, reject });
         pendingDailyNutritionResolvers.set(resolvedDate, resolvers);
       });
 
       const scheduleFlush = () => {
-        const existingTimer = pendingDailyNutritionFlushTimers.get(resolvedDate);
+        const existingTimer =
+          pendingDailyNutritionFlushTimers.get(resolvedDate);
         if (existingTimer) {
           clearTimeout(existingTimer);
         }
@@ -314,7 +324,8 @@ export function createNutritionSlice(
             return;
           }
 
-          const flushVersion = latestDailyNutritionVersions.get(resolvedDate) ?? version;
+          const flushVersion =
+            latestDailyNutritionVersions.get(resolvedDate) ?? version;
           const currentNutrition = get().data.dailyNutrition;
 
           if (!currentNutrition || currentNutrition.date !== resolvedDate) {
@@ -327,10 +338,12 @@ export function createNutritionSlice(
               data?: Partial<DailyNutrition>;
             }>("/api/nutrition/daily", {
               ...buildDailyNutritionPayload(currentNutrition),
-              syncPlan: latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false,
+              syncPlan:
+                latestDailyNutritionSyncPlanFlags.get(resolvedDate) ?? false,
             })
             .then((response) => {
-              const latestVersion = latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
+              const latestVersion =
+                latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
               const responseNutrition = normalizeDailyNutrition(
                 response.data.data ?? currentNutrition,
                 currentNutrition,
@@ -356,7 +369,8 @@ export function createNutritionSlice(
                 pendingDailyNutritionSyncs.delete(resolvedDate);
               }
 
-              const latestVersion = latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
+              const latestVersion =
+                latestDailyNutritionVersions.get(resolvedDate) ?? flushVersion;
               const needsAnotherFlush =
                 pendingDailyNutritionNeedsFlush.has(resolvedDate) ||
                 latestVersion > flushVersion;
@@ -384,7 +398,11 @@ export function createNutritionSlice(
       await flushPromise;
     },
 
-    createNutritionLibraryPlan: async (data) => {
+    createNutritionLibraryPlan: async (data: {
+      title?: string;
+      description?: string | null;
+      meals?: Meal[];
+    }) => {
       const payload = {
         title: data.title || "Novo Plano Alimentar",
         description: data.description ?? null,
@@ -415,7 +433,14 @@ export function createNutritionSlice(
       return "";
     },
 
-    updateNutritionLibraryPlan: async (planId, data) => {
+    updateNutritionLibraryPlan: async (
+      planId: string,
+      data: {
+        title?: string;
+        description?: string | null;
+        meals?: Meal[];
+      },
+    ) => {
       const requestKey = `student:${planId}`;
       const pendingRequest = pendingNutritionLibraryUpdates.get(requestKey);
       if (pendingRequest) {
@@ -509,7 +534,7 @@ export function createNutritionSlice(
       await request;
     },
 
-    deleteNutritionLibraryPlan: async (planId) => {
+    deleteNutritionLibraryPlan: async (planId: string) => {
       const previousPlans = get().data.nutritionLibraryPlans;
       set((state) => ({
         data: {
@@ -533,7 +558,7 @@ export function createNutritionSlice(
       }
     },
 
-    activateNutritionLibraryPlan: async (planId) => {
+    activateNutritionLibraryPlan: async (planId: string) => {
       const currentNutrition = get().data.dailyNutrition;
       const sourcePlan =
         get().data.nutritionLibraryPlans.find((plan) => plan.id === planId) ??

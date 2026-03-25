@@ -218,7 +218,7 @@ export function GymDashboardPage({
                         </p>
                       </div>
                     </div>
-                    </DuoCard.Root>
+                  </DuoCard.Root>
                 </div>
               ))}
 
@@ -229,10 +229,7 @@ export function GymDashboardPage({
                     Em Manutenção
                   </h3>
                   {equipmentMaintenance.map((eq, index) => (
-                    <div
-                      key={eq.id}
-                      className={index > 0 ? "pt-0" : undefined}
-                    >
+                    <div key={eq.id} className={index > 0 ? "pt-0" : undefined}>
                       <DuoCard.Root variant="orange" size="sm">
                         <p className="text-sm font-bold text-duo-text">
                           {eq.name}

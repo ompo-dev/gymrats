@@ -1,4 +1,3 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import {
   buildBootstrapCacheKey,
@@ -10,18 +9,22 @@ import {
   buildGymBootstrap,
   parseGymBootstrapSections,
 } from "@/lib/bootstrap/gym-bootstrap";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ query, gymContext }) => {
-    const sections = parseGymBootstrapSections(query.sections as string | undefined);
+    const sections = parseGymBootstrapSections(
+      query.sections as string | undefined,
+    );
     const cacheKey = buildBootstrapCacheKey({
       domain: "gym",
       actorId: gymContext!.gymId,
       sections,
     });
-    const cached = await getCachedBootstrap<Awaited<ReturnType<typeof buildGymBootstrap>>["data"]>(
-      cacheKey,
-    );
+    const cached =
+      await getCachedBootstrap<
+        Awaited<ReturnType<typeof buildGymBootstrap>>["data"]
+      >(cacheKey);
 
     if (cached) {
       return NextResponse.json(

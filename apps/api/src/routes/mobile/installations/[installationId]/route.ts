@@ -1,8 +1,9 @@
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const updateInstallationSchema = z.object({
   expoPushToken: z.string().min(1).max(512).nullable().optional(),
@@ -85,7 +86,9 @@ async function requireOwnedInstallation(
 
 export async function PATCH(
   request: NextRequest,
-  context: { params: Promise<{ installationId: string }> | { installationId: string } },
+  context: {
+    params: Promise<{ installationId: string }> | { installationId: string };
+  },
 ) {
   const validation = await validateBody(request, updateInstallationSchema);
   if (!validation.success) {
@@ -110,7 +113,9 @@ export async function PATCH(
       pushPermission:
         body.pushPermission === undefined ? undefined : body.pushPermission,
       capabilities:
-        body.capabilities === undefined ? undefined : body.capabilities,
+        body.capabilities === undefined
+          ? undefined
+          : (body.capabilities as Prisma.InputJsonValue),
       appVersion: body.appVersion === undefined ? undefined : body.appVersion,
       deviceName: body.deviceName === undefined ? undefined : body.deviceName,
       locale: body.locale === undefined ? undefined : body.locale,
@@ -127,7 +132,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ installationId: string }> | { installationId: string } },
+  context: {
+    params: Promise<{ installationId: string }> | { installationId: string };
+  },
 ) {
   const { installationId } = await Promise.resolve(context.params);
   const ownership = await requireOwnedInstallation(request, installationId);

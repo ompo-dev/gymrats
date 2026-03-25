@@ -1,12 +1,12 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import {
   badRequestResponse,
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
-import { webhookQueue } from "@/lib/queue/queues";
 import { log } from "@/lib/observability";
+import { webhookQueue } from "@/lib/queue/queues";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,10 +19,15 @@ export async function POST(request: NextRequest) {
       return badRequestResponse("Missing webhook signature");
     }
 
-    const isSignatureValid = abacatePay.verifyWebhookSignature(rawBody, signature);
+    const isSignatureValid = abacatePay.verifyWebhookSignature(
+      rawBody,
+      signature,
+    );
 
     if (!isSignatureValid) {
-      log.warn("[Webhook] Falha na verificação criptográfica de assinatura (HMAC).");
+      log.warn(
+        "[Webhook] Falha na verificação criptográfica de assinatura (HMAC).",
+      );
       return badRequestResponse("Invalid cryptographic signature");
     }
 

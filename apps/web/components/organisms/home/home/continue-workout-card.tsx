@@ -17,7 +17,9 @@ function ContinueWorkoutCardSimple({
 }: ContinueWorkoutCardProps) {
   const router = useRouter();
   const safeUnits = Array.isArray(units) ? units : [];
-  const safeWorkoutHistory = Array.isArray(workoutHistory) ? workoutHistory : [];
+  const safeWorkoutHistory = Array.isArray(workoutHistory)
+    ? workoutHistory
+    : [];
 
   const findNextWorkout = () => {
     for (const unit of safeUnits) {

@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { activateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
@@ -7,9 +6,10 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
-import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { db } from "@/lib/db";
 import { planOperationQueue } from "@/lib/queue/queues";
+import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,10 +43,13 @@ export async function POST(request: NextRequest) {
       return unauthorizedResponse("Voce nao tem acesso a este plano alimentar");
     }
 
-    const job = await planOperationQueue.add("activate-nutrition-library-plan", {
-      studentId,
-      libraryPlanId: validation.data.libraryPlanId,
-    });
+    const job = await planOperationQueue.add(
+      "activate-nutrition-library-plan",
+      {
+        studentId,
+        libraryPlanId: validation.data.libraryPlanId,
+      },
+    );
 
     return successResponse(
       {

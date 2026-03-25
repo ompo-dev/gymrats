@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { createNutritionLibraryPlanSchema } from "@/lib/api/schemas";
 import {
@@ -6,14 +5,11 @@ import {
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { assertPersonalStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
-import {
-  listNutritionLibraryPlans,
-} from "@/lib/services/nutrition/nutrition-library-read.service";
-import {
-  createNutritionLibraryPlan,
-} from "@/lib/services/nutrition/nutrition-plan.service";
+import { listNutritionLibraryPlans } from "@/lib/services/nutrition/nutrition-library-read.service";
+import { createNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,
@@ -34,7 +30,10 @@ export async function GET(
     });
     return successResponse({ data });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/library] Erro GET:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/library] Erro GET:",
+      error,
+    );
     return mapNutritionRouteError(
       error,
       "Erro ao buscar biblioteca de alimentacao do aluno",
@@ -79,7 +78,10 @@ export async function POST(
       201,
     );
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/library] Erro POST:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/library] Erro POST:",
+      error,
+    );
     return mapNutritionRouteError(error, "Erro ao criar plano alimentar");
   }
 }

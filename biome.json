@@ -37,5 +37,37 @@
     "formatter": {
       "quoteStyle": "double"
     }
-  }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/api/src/lib/services/**/*.ts",
+        "apps/web/lib/services/**/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noStaticOnlyClass": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/lib/api/generated/**/*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noShadowRestrictedNames": "off"
+          }
+        }
+      }
+    }
+  ]
 }

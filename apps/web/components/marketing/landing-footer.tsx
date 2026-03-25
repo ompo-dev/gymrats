@@ -39,13 +39,13 @@ export function LandingFooter() {
           </p>
           <div className="flex items-center gap-6">
             <a
-              href="#"
+              href="/terms"
               className="text-xs font-bold text-[var(--duo-fg-muted)] hover:text-[var(--duo-primary)] transition-colors"
             >
               Termos
             </a>
             <a
-              href="#"
+              href="/privacy"
               className="text-xs font-bold text-[var(--duo-fg-muted)] hover:text-[var(--duo-primary)] transition-colors"
             >
               Privacidade

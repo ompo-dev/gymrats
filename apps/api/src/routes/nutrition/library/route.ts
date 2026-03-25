@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { createNutritionLibraryPlanSchema } from "@/lib/api/schemas";
@@ -6,13 +5,10 @@ import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
-import {
-  listNutritionLibraryPlans,
-} from "@/lib/services/nutrition/nutrition-library-read.service";
-import {
-  createNutritionLibraryPlan,
-} from "@/lib/services/nutrition/nutrition-plan.service";
+import { listNutritionLibraryPlans } from "@/lib/services/nutrition/nutrition-library-read.service";
+import { createNutritionLibraryPlan } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +24,10 @@ export async function GET(request: NextRequest) {
     return successResponse({ data });
   } catch (error) {
     console.error("[nutrition/library] Erro GET:", error);
-    return internalErrorResponse("Erro ao buscar biblioteca de alimentacao", error);
+    return internalErrorResponse(
+      "Erro ao buscar biblioteca de alimentacao",
+      error,
+    );
   }
 }
 

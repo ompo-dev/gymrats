@@ -33,7 +33,8 @@ export function SubscriptionStatusCard({
 }: SubscriptionStatusCardProps) {
   const isTrialActive =
     subscription.isTrial && subscription.status === "trialing";
-  const isPremiumActive = subscription.status === "active" && !subscription.isTrial;
+  const isPremiumActive =
+    subscription.status === "active" && !subscription.isTrial;
   const studentVariableAmount =
     subscription.pricePerStudent * subscription.activeStudents;
   const personalVariableAmount =

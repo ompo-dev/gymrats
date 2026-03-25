@@ -30,8 +30,5 @@ export const studentPersonalAssignmentSchema = z.object({
 });
 
 export const personalStudentsSearchQuerySchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .min(3, "Informe ao menos 3 caracteres para buscar"),
+  email: z.string().trim().min(3, "Informe ao menos 3 caracteres para buscar"),
 });

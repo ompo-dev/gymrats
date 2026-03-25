@@ -1,11 +1,17 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { GymSubscriptionService } from "@/lib/services/gym/gym-subscription.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ gymContext }) => {
     const userId = gymContext?.user.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Usuario da academia nao encontrado" },
+        { status: 400 },
+      );
+    }
 
     // Sincronizar isActive: com Premium/Enterprise todas as academias ficam ativas
     await GymSubscriptionService.enforceActiveGymLimit(userId);

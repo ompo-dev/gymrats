@@ -1,5 +1,11 @@
 "use server";
 
+import { serverApiDelete, serverApiGet, serverApiPost } from "@/lib/api/server";
+import {
+  buildApiPath,
+  getApiErrorMessage,
+  reviveDate,
+} from "@/lib/api/server-action-utils";
 import type {
   BoostCampaign,
   CheckIn,
@@ -12,16 +18,6 @@ import type {
   Payment,
   StudentData,
 } from "@/lib/types";
-import {
-  serverApiDelete,
-  serverApiGet,
-  serverApiPost,
-} from "@/lib/api/server";
-import {
-  buildApiPath,
-  getApiErrorMessage,
-  reviveDate,
-} from "@/lib/api/server-action-utils";
 import {
   normalizeEquipmentItem,
   normalizeEquipmentList,
@@ -63,7 +59,8 @@ function reviveCheckIns(checkIns: CheckIn[]): CheckIn[] {
   return checkIns.map((checkIn) => ({
     ...checkIn,
     timestamp: reviveDate(checkIn.timestamp) as Date,
-    checkOut: (reviveDate(checkIn.checkOut) as Date | null | undefined) ?? undefined,
+    checkOut:
+      (reviveDate(checkIn.checkOut) as Date | null | undefined) ?? undefined,
   }));
 }
 
@@ -72,7 +69,8 @@ function revivePayments(payments: Payment[]): Payment[] {
     ...payment,
     date: reviveDate(payment.date) as Date,
     dueDate: reviveDate(payment.dueDate) as Date,
-    withdrawnAt: (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
+    withdrawnAt:
+      (reviveDate(payment.withdrawnAt) as Date | null | undefined) ?? undefined,
   }));
 }
 
@@ -305,7 +303,9 @@ export async function getGymStats(): Promise<GymStats | null> {
 
 export async function getGymCoupons(): Promise<Coupon[]> {
   try {
-    const payload = await serverApiGet<{ coupons: Coupon[] }>("/api/gyms/coupons");
+    const payload = await serverApiGet<{ coupons: Coupon[] }>(
+      "/api/gyms/coupons",
+    );
     return reviveCoupons(payload.coupons);
   } catch (error) {
     console.error("[getGymCoupons] Erro:", error);
@@ -322,10 +322,7 @@ export async function createGymCoupon(data: {
   expiresAt?: Date | string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   try {
-    return await serverApiPost<{ success: true }>(
-      "/api/gyms/coupons",
-      data,
-    );
+    return await serverApiPost<{ success: true }>("/api/gyms/coupons", data);
   } catch (error) {
     console.error("[createGymCoupon] Erro:", error);
     return {
@@ -415,9 +412,7 @@ export async function deleteBoostCampaign(
   }
 }
 
-export async function getBoostCampaignPix(
-  campaignId: string,
-): Promise<
+export async function getBoostCampaignPix(campaignId: string): Promise<
   | {
       success: true;
       brCode: string;
@@ -468,7 +463,10 @@ export async function createGymWithdraw(data: {
 > {
   try {
     return await serverApiPost<
-      | { success: true; withdraw: { id: string; amount: number; status: string } }
+      | {
+          success: true;
+          withdraw: { id: string; amount: number; status: string };
+        }
       | { success: false; error: string }
     >("/api/gyms/withdraws", data);
   } catch (error) {
@@ -511,8 +509,7 @@ export async function startGymTrial() {
 export async function syncGymSubscriptionPrices() {
   try {
     return await serverApiPost<
-      | { success: true; updated: boolean; message?: string }
-      | { error: string }
+      { success: true; updated: boolean; message?: string } | { error: string }
     >("/api/gym-subscriptions/sync-prices");
   } catch (error) {
     console.error("[syncGymSubscriptionPrices] Erro:", error);

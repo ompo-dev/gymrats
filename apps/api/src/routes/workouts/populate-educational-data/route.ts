@@ -1,10 +1,10 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { requireStudent } from "@/lib/api/middleware/auth.middleware";
 import {
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
 import { populateWorkoutExercisesWithEducationalData } from "@/lib/services/populate-workout-exercises-educational-data";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * POST /api/workouts/populate-educational-data

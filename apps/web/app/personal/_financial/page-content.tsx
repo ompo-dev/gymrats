@@ -16,10 +16,14 @@ import type {
   Coupon,
   Expense,
   FinancialSummary,
-  MembershipPlan,
   Payment,
 } from "@/lib/types";
 import type { PersonalSubscriptionData } from "../types";
+
+type BoostCampaignPlanOption = {
+  id: string;
+  name: string;
+};
 
 const EMPTY_FINANCIAL_SUMMARY: FinancialSummary = {
   totalRevenue: 0,
@@ -38,7 +42,7 @@ interface PersonalFinancialPageContentProps {
   payments?: Payment[];
   coupons?: Coupon[];
   campaigns?: BoostCampaign[];
-  plans?: MembershipPlan[];
+  plans?: BoostCampaignPlanOption[];
   expenses?: Expense[];
   financialSummary?: FinancialSummary | null;
   onRefresh?: () => Promise<void>;
@@ -133,9 +137,7 @@ export function PersonalFinancialPageContent({
         />
       )}
 
-      {viewMode === "payments" && (
-        <FinancialPaymentsTab payments={payments} />
-      )}
+      {viewMode === "payments" && <FinancialPaymentsTab payments={payments} />}
 
       {viewMode === "coupons" && (
         <FinancialCouponsTab coupons={coupons} variant="personal" />
@@ -160,4 +162,3 @@ export function PersonalFinancialPageContent({
     </div>
   );
 }
-

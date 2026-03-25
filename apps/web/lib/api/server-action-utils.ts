@@ -2,10 +2,7 @@ import { ServerApiError } from "./server";
 
 type DateLike = Date | string | null | undefined;
 
-export function getApiErrorMessage(
-  error: unknown,
-  fallback: string,
-): string {
+export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof ServerApiError) {
     return error.message;
   }

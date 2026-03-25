@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
-import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateRoleSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import { type UpdateRoleInput, updateRoleUseCase } from "@/lib/use-cases/auth";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {

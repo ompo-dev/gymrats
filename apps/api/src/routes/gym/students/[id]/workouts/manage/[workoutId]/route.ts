@@ -1,4 +1,4 @@
-import type { NextRequest } from "@/runtime/next-server";
+import { updateWorkoutSchema } from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
@@ -7,9 +7,9 @@ import {
   successResponse,
   unauthorizedResponse,
 } from "@/lib/api/utils/response.utils";
-import { updateWorkoutSchema } from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * PUT /api/gym/students/[id]/workouts/manage/[workoutId]
@@ -17,9 +17,7 @@ import { getGymContext } from "@/lib/utils/gym/gym-context";
  */
 export async function PUT(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; workoutId: string }> },
+  { params }: { params: Promise<{ id: string; workoutId: string }> },
 ) {
   try {
     const { ctx, errorResponse } = await getGymContext(request);
@@ -53,8 +51,7 @@ export async function PUT(
 
     const ownsWorkout =
       (workout.unit && workout.unit.studentId === studentId) ||
-      (workout.planSlot &&
-        workout.planSlot.weeklyPlan.studentId === studentId);
+      (workout.planSlot && workout.planSlot.weeklyPlan.studentId === studentId);
 
     if (!ownsWorkout) {
       return unauthorizedResponse("Você não pode editar este treino");
@@ -81,9 +78,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  {
-    params,
-  }: { params: Promise<{ id: string; workoutId: string }> },
+  { params }: { params: Promise<{ id: string; workoutId: string }> },
 ) {
   try {
     const { ctx, errorResponse } = await getGymContext(request);
@@ -110,8 +105,7 @@ export async function DELETE(
 
     const ownsWorkout =
       (workout.unit && workout.unit.studentId === studentId) ||
-      (workout.planSlot &&
-        workout.planSlot.weeklyPlan.studentId === studentId);
+      (workout.planSlot && workout.planSlot.weeklyPlan.studentId === studentId);
 
     if (!ownsWorkout) {
       return unauthorizedResponse("Você não pode excluir este treino");

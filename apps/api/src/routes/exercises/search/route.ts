@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;

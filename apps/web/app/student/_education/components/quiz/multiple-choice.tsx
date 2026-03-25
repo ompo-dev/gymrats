@@ -10,6 +10,7 @@ export interface QuizExercise {
   correctAnswer: string;
   options?: string[];
   imageUrl?: string;
+  explanation?: string;
 }
 
 interface MultipleChoiceProps {
@@ -103,7 +104,8 @@ export function MultipleChoice({ exercise, onAnswer }: MultipleChoiceProps) {
             {isCorrect ? "Correto!" : "Incorreto"}
           </h3>
           <p className={isCorrect ? "text-foreground" : "text-foreground"}>
-            {exercise.explanation}
+            {exercise.explanation ??
+              "Continue para revisar a explicacao completa."}
           </p>
         </div>
       )}

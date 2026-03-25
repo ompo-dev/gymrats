@@ -46,9 +46,7 @@ export function GymMarker({ gym, isSelected, onClick }: GymMarkerProps) {
       <Popup>
         <div className="min-w-[160px]">
           <p className="font-bold text-sm">{name}</p>
-          {address && (
-            <p className="text-xs text-gray-600 mt-0.5">{address}</p>
-          )}
+          {address && <p className="text-xs text-gray-600 mt-0.5">{address}</p>}
           {distance != null && (
             <p className="text-xs text-gray-500 mt-1">
               {distance.toFixed(1)} km

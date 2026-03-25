@@ -48,7 +48,10 @@ export function hasNutritionMealStructureChanged(
   }
 
   for (let index = 0; index < previousMeals.length; index += 1) {
-    const previousMeal = normalizeComparableNutritionMeal(previousMeals[index], index);
+    const previousMeal = normalizeComparableNutritionMeal(
+      previousMeals[index],
+      index,
+    );
     const nextMeal = normalizeComparableNutritionMeal(nextMeals[index], index);
 
     if (
@@ -65,7 +68,11 @@ export function hasNutritionMealStructureChanged(
       return true;
     }
 
-    for (let foodIndex = 0; foodIndex < previousMeal.foods.length; foodIndex += 1) {
+    for (
+      let foodIndex = 0;
+      foodIndex < previousMeal.foods.length;
+      foodIndex += 1
+    ) {
       const previousFood = previousMeal.foods[foodIndex];
       const nextFood = nextMeal.foods[foodIndex];
 
@@ -127,7 +134,9 @@ export function normalizeDailyNutrition(
   data: Partial<DailyNutrition> | null | undefined,
   fallback?: Partial<DailyNutrition>,
 ): DailyNutrition {
-  const meals = Array.isArray(data?.meals) ? data.meals : fallback?.meals ?? [];
+  const meals = Array.isArray(data?.meals)
+    ? data.meals
+    : (fallback?.meals ?? []);
   const completedTotals = calculateCompletedNutritionTotals(meals);
 
   return {
@@ -147,7 +156,9 @@ export function normalizeDailyNutrition(
     totalCarbs: roundNutritionValue(
       data?.totalCarbs ?? completedTotals.totalCarbs,
     ),
-    totalFats: roundNutritionValue(data?.totalFats ?? completedTotals.totalFats),
+    totalFats: roundNutritionValue(
+      data?.totalFats ?? completedTotals.totalFats,
+    ),
     waterIntake: data?.waterIntake ?? fallback?.waterIntake ?? 0,
     targetCalories: roundNutritionValue(
       data?.targetCalories ?? fallback?.targetCalories ?? 2000,
@@ -171,7 +182,9 @@ export function normalizeDailyNutrition(
   };
 }
 
-export function mealFoodToPlanFood(food: MealFoodItem): NutritionPlanFoodItemData {
+export function mealFoodToPlanFood(
+  food: MealFoodItem,
+): NutritionPlanFoodItemData {
   return {
     id: food.id,
     foodId: food.foodId,
@@ -185,7 +198,10 @@ export function mealFoodToPlanFood(food: MealFoodItem): NutritionPlanFoodItemDat
   };
 }
 
-export function mealToNutritionPlanMeal(meal: Meal, order: number): NutritionPlanMealData {
+export function mealToNutritionPlanMeal(
+  meal: Meal,
+  order: number,
+): NutritionPlanMealData {
   return {
     id: meal.id,
     name: meal.name,

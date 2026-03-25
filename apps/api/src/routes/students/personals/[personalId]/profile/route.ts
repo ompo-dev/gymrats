@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   personalId: z.string().min(1),
@@ -17,21 +17,21 @@ export const GET = createSafeHandler(
     const studentId = studentContext?.studentId ?? "";
 
     const [personal, studentsCount] = await Promise.all([
-      (db.personal as any).findUnique({
+      db.personal.findUnique({
         where: { id: personalId, isActive: true },
         include: {
           gymAffiliations: {
             where: { status: "active" },
             include: {
               gym: {
-              select: {
-                id: true,
-                name: true,
-                address: true,
-                logo: true,
-                image: true,
+                select: {
+                  id: true,
+                  name: true,
+                  address: true,
+                  logo: true,
+                  image: true,
+                },
               },
-            },
             },
           },
           membershipPlans: {
@@ -51,14 +51,22 @@ export const GET = createSafeHandler(
 
     // Buscar pagamento ativo para descobrir qual plano o aluno contratou
     const activePaidPayment = studentId
-      ? await (db as any).personalStudentPayment.findFirst({
+      ? await db.personalStudentPayment.findFirst({
           where: {
             personalId,
             studentId,
             status: "paid",
           },
           include: {
-            plan: { select: { id: true, name: true, type: true, price: true, duration: true } },
+            plan: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                price: true,
+                duration: true,
+              },
+            },
           },
           orderBy: { createdAt: "desc" },
         })
@@ -71,24 +79,24 @@ export const GET = createSafeHandler(
       );
     }
 
-    const plans = (personal as any).membershipPlans.map((p: any) => {
+    const plans = personal.membershipPlans.map((plan) => {
       let benefits: string[] = [];
-      if (p.benefits) {
+      if (plan.benefits) {
         try {
-          benefits = JSON.parse(p.benefits);
+          benefits = JSON.parse(plan.benefits);
         } catch {}
       }
       return {
-        id: p.id,
-        name: p.name,
-        type: p.type,
-        price: p.price,
-        duration: p.duration,
+        id: plan.id,
+        name: plan.name,
+        type: plan.type,
+        price: plan.price,
+        duration: plan.duration,
         benefits,
       };
     });
 
-    const assignment = (personal as any).studentAssignments[0];
+    const assignment = personal.studentAssignments[0];
     const isSubscribed = !!assignment;
 
     return NextResponse.json({
@@ -98,12 +106,12 @@ export const GET = createSafeHandler(
       bio: personal.bio,
       atendimentoPresencial: personal.atendimentoPresencial,
       atendimentoRemoto: personal.atendimentoRemoto,
-      gyms: (personal as any).gymAffiliations.map((a: any) => ({
-        id: a.gym.id,
-        name: a.gym.name,
-        address: a.gym.address,
-        logo: a.gym.logo,
-        image: a.gym.image,
+      gyms: personal.gymAffiliations.map((affiliation) => ({
+        id: affiliation.gym.id,
+        name: affiliation.gym.name,
+        address: affiliation.gym.address,
+        logo: affiliation.gym.logo,
+        image: affiliation.gym.image,
       })),
       plans,
       isSubscribed,

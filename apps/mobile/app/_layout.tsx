@@ -13,10 +13,10 @@ import {
   Nunito_900Black_Italic,
 } from "@expo-google-fonts/nunito";
 import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
-import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useBootstrapApp } from "../src/hooks/use-bootstrap-app";
@@ -67,8 +67,8 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor: colors.background
-          }
+            backgroundColor: colors.background,
+          },
         }}
       />
     </SafeAreaProvider>

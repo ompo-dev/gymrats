@@ -1,9 +1,9 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { updatePersonalSchema } from "@/lib/api/schemas/personals.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   id: z.string().min(1),
@@ -33,7 +33,10 @@ export const GET = createSafeHandler(
     });
 
     if (!personal) {
-      return NextResponse.json({ error: "Personal não encontrado" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Personal não encontrado" },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json({ personal });
@@ -63,9 +66,15 @@ export const PATCH = createSafeHandler(
       where: { id: requestedId },
       data: {
         ...(payload.name !== undefined ? { name: payload.name as string } : {}),
-        ...(payload.email !== undefined ? { email: payload.email as string } : {}),
-        ...(payload.phone !== undefined ? { phone: payload.phone as string } : {}),
-        ...(payload.avatar !== undefined ? { avatar: payload.avatar as string } : {}),
+        ...(payload.email !== undefined
+          ? { email: payload.email as string }
+          : {}),
+        ...(payload.phone !== undefined
+          ? { phone: payload.phone as string }
+          : {}),
+        ...(payload.avatar !== undefined
+          ? { avatar: payload.avatar as string }
+          : {}),
         ...(payload.bio !== undefined ? { bio: payload.bio as string } : {}),
         ...(payload.address !== undefined
           ? { address: payload.address as string }
@@ -81,5 +90,8 @@ export const PATCH = createSafeHandler(
 
     return NextResponse.json({ personal });
   },
-  { auth: "personal", schema: { params: paramsSchema, body: updatePersonalSchema } },
+  {
+    auth: "personal",
+    schema: { params: paramsSchema, body: updatePersonalSchema },
+  },
 );

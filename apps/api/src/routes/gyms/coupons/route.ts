@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { GymFinancialService } from "@/lib/services/gym/gym-financial.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const createGymCouponSchema = z.object({
   code: z.string().min(1, "Codigo do cupom e obrigatorio"),

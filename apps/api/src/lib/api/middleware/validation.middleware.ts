@@ -1,11 +1,11 @@
-import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { ZodError, type ZodSchema, type ZodType } from "zod";
+import type { NextRequest, NextResponse } from "@/runtime/next-server";
 import { badRequestResponse } from "../utils/response.utils";
 
 /**
- * Middleware de validação usando Zod
+ * Middleware de validacao usando Zod
  *
- * Valida o body, query params ou path params de uma requisição
+ * Valida o body, query params ou path params de uma requisicao
  */
 
 export interface ValidationOptions {
@@ -15,10 +15,10 @@ export interface ValidationOptions {
 }
 
 /**
- * Valida os dados da requisição usando schemas Zod
+ * Valida os dados da requisicao usando schemas Zod
  *
- * @param request - Requisição Next.js
- * @param options - Opções de validação (body, query, params)
+ * @param request - Requisicao Next.js
+ * @param options - Opcoes de validacao (body, query, params)
  * @returns Objeto com dados validados ou resposta de erro
  */
 export async function validateRequest<
@@ -45,7 +45,7 @@ export async function validateRequest<
         );
         errors.push(...formattedErrors);
       } else {
-        errors.push("Erro ao validar body da requisição");
+        errors.push("Erro ao validar body da requisicao");
       }
     }
   }
@@ -72,26 +72,15 @@ export async function validateRequest<
     }
   }
 
-  // Validar path params se fornecido
+  // Path params continuam sendo validados no handler por enquanto.
   if (options.params) {
-    try {
-      // Path params precisam ser passados separadamente
-      // Por enquanto, assumimos que serão validados no handler
-      // Isso pode ser melhorado no futuro
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const formattedErrors = error.errors.map(
-          (err) => `params.${err.path.join(".")}: ${err.message}`,
-        );
-        errors.push(...formattedErrors);
-      }
-    }
+    void options.params;
   }
 
   if (errors.length > 0) {
     return {
       success: false,
-      response: badRequestResponse(`Erros de validação: ${errors.join("; ")}`, {
+      response: badRequestResponse(`Erros de validacao: ${errors.join("; ")}`, {
         errors,
       }),
     };
@@ -105,7 +94,7 @@ export async function validateRequest<
 
 /**
  * Helper para validar apenas o body
- * IMPORTANTE: Esta função lê o body, então não pode ser chamada duas vezes na mesma requisição
+ * IMPORTANTE: Esta funcao le o body, entao nao pode ser chamada duas vezes na mesma requisicao
  * Usa ZodType<T, ZodTypeDef, unknown> para aceitar schemas com transform (input diferente do output)
  */
 export async function validateBody<T>(

@@ -5,18 +5,20 @@ import {
   readStoredConfig,
   readStoredSession,
   writeStoredConfig,
-  writeStoredSession
+  writeStoredSession,
 } from "../lib/storage";
 import { normalizeUrl } from "../utils/url";
 import type {
   AppConfig,
   AppStore,
   AuthSessionPayload,
-  PersistedSession
+  PersistedSession,
 } from "./types";
 
 function createDefaultConfig(): AppConfig {
-  const extra = Constants.expoConfig?.extra as Record<string, unknown> | undefined;
+  const extra = Constants.expoConfig?.extra as
+    | Record<string, unknown>
+    | undefined;
   const defaultWebUrl =
     typeof extra?.defaultWebUrl === "string"
       ? extra.defaultWebUrl
@@ -29,14 +31,15 @@ function createDefaultConfig(): AppConfig {
   return {
     webUrl: normalizeUrl(defaultWebUrl) || "https://gym-rats-testes.vercel.app",
     apiUrl:
-      normalizeUrl(defaultApiUrl) || "https://gymrats-production.up.railway.app"
+      normalizeUrl(defaultApiUrl) ||
+      "https://gymrats-production.up.railway.app",
   };
 }
 
 function toPersistedSession(payload: AuthSessionPayload): PersistedSession {
   return {
     token: payload.session.token,
-    user: payload.user
+    user: payload.user,
   };
 }
 
@@ -45,12 +48,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
   config: createDefaultConfig(),
   session: {
     token: null,
-    user: null
+    user: null,
   },
   hydrate: async () => {
     const [storedConfig, storedSession] = await Promise.all([
       readStoredConfig<AppConfig>(),
-      readStoredSession<PersistedSession>()
+      readStoredSession<PersistedSession>(),
     ]);
     const defaults = createDefaultConfig();
 
@@ -59,31 +62,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
       config: storedConfig
         ? {
             webUrl: normalizeUrl(storedConfig.webUrl) || defaults.webUrl,
-            apiUrl: normalizeUrl(storedConfig.apiUrl) || defaults.apiUrl
+            apiUrl: normalizeUrl(storedConfig.apiUrl) || defaults.apiUrl,
           }
         : defaults,
       session: storedSession || {
         token: null,
-        user: null
-      }
+        user: null,
+      },
     });
   },
   updateConfig: async (nextConfig) => {
     const normalizedConfig: AppConfig = {
       webUrl: normalizeUrl(nextConfig.webUrl) || get().config.webUrl,
-      apiUrl: normalizeUrl(nextConfig.apiUrl) || get().config.apiUrl
+      apiUrl: normalizeUrl(nextConfig.apiUrl) || get().config.apiUrl,
     };
 
     await writeStoredConfig(normalizedConfig);
     set({
-      config: normalizedConfig
+      config: normalizedConfig,
     });
   },
   upsertSession: async (payload) => {
     const persistedSession = toPersistedSession(payload);
     await writeStoredSession(persistedSession);
     set({
-      session: persistedSession
+      session: persistedSession,
     });
   },
   clearSession: async () => {
@@ -91,8 +94,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       session: {
         token: null,
-        user: null
-      }
+        user: null,
+      },
     });
-  }
+  },
 }));

@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import type {
   Equipment,
   GymProfile,
@@ -39,7 +39,9 @@ function buildGymInventoryCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>

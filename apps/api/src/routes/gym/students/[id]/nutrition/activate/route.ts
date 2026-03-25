@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { activateNutritionLibraryPlanSchema } from "@/lib/api/schemas";
 import {
@@ -6,11 +5,12 @@ import {
   notFoundResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
+import { db } from "@/lib/db";
+import { planOperationQueue } from "@/lib/queue/queues";
 import { assertGymStudentAccess } from "@/lib/services/nutrition/nutrition-access.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
-import { db } from "@/lib/db";
-import { planOperationQueue } from "@/lib/queue/queues";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function POST(
   request: NextRequest,
@@ -45,10 +45,13 @@ export async function POST(
       return notFoundResponse("Plano alimentar nao encontrado");
     }
 
-    const job = await planOperationQueue.add("activate-nutrition-library-plan", {
-      studentId,
-      libraryPlanId: validation.data.libraryPlanId,
-    });
+    const job = await planOperationQueue.add(
+      "activate-nutrition-library-plan",
+      {
+        studentId,
+        libraryPlanId: validation.data.libraryPlanId,
+      },
+    );
 
     return successResponse(
       {

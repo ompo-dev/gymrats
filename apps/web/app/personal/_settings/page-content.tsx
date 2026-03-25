@@ -15,5 +15,11 @@ export function PersonalSettingsPageContent({
   plans,
   onRefresh,
 }: PersonalSettingsPageContentProps) {
-  return <PersonalSettingsPage profile={profile} plans={plans} onRefresh={onRefresh} />;
+  return (
+    <PersonalSettingsPage
+      profile={profile}
+      plans={plans}
+      onRefresh={onRefresh}
+    />
+  );
 }

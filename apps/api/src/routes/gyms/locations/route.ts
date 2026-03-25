@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { gymLocationsQuerySchema } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ query }) => {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
 import { Dumbbell, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import { useEffect, useMemo, useRef } from "react";
 import { DuoCard } from "@/components/duo";
 import { useUserGeolocation } from "@/hooks/use-user-geolocation";
 import type { BoostCampaign, GymLocation } from "@/lib/types";
@@ -158,8 +158,14 @@ export function BoostCampaignCarousel({
   onViewPersonalProfile,
 }: BoostCampaignCarouselProps) {
   const trackImpression = useImpressionTracker();
-  const { position, loading: geoLoading, requestPermission } = useUserGeolocation();
-  const campaignsByKey = useBoostCampaignsStore((state) => state.campaignsByKey);
+  const {
+    position,
+    loading: geoLoading,
+    requestPermission,
+  } = useUserGeolocation();
+  const campaignsByKey = useBoostCampaignsStore(
+    (state) => state.campaignsByKey,
+  );
   const resources = useBoostCampaignsStore((state) => state.resources);
   const loadCampaigns = useBoostCampaignsStore((state) => state.loadCampaigns);
   const lastFetchedKeyRef = useRef<string | null>(null);

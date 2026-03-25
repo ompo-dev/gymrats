@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import {
   internalErrorResponse,
   successResponse,
@@ -7,6 +6,7 @@ import { assertGymStudentAccess } from "@/lib/services/nutrition/nutrition-acces
 import { getActiveNutritionPlan } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,

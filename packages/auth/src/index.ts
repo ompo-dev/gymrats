@@ -1,9 +1,9 @@
-import { createAuthMiddleware } from "better-auth/api";
-import { prismaAdapter } from "better-auth/adapters/prisma";
+import { db } from "@gymrats/db";
 import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { createAuthMiddleware } from "better-auth/api";
 import { bearer } from "better-auth/plugins/bearer";
 import { oneTimeToken } from "better-auth/plugins/one-time-token";
-import { db } from "@gymrats/db";
 
 function getAppUrl() {
   return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -26,9 +26,7 @@ function getTrustedOrigins() {
   const appUrl = getAppUrl();
   const apiUrl = getApiUrl();
   const baseOrigins =
-    process.env.NODE_ENV === "production"
-      ? [appUrl]
-      : [appUrl, apiUrl];
+    process.env.NODE_ENV === "production" ? [appUrl] : [appUrl, apiUrl];
 
   return Array.from(new Set([...baseOrigins, ...extraTrustedOrigins]));
 }
@@ -37,7 +35,9 @@ function getAuthErrorUrl() {
   return `${getAppUrl()}/auth/callback`;
 }
 
-function getRequiredEnv(name: "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET"): string {
+function getRequiredEnv(
+  name: "BETTER_AUTH_SECRET" | "GOOGLE_CLIENT_ID" | "GOOGLE_CLIENT_SECRET",
+): string {
   const value = process.env[name];
 
   if (!value) {
@@ -336,7 +336,9 @@ function getAuth() {
 }
 
 const authTarget = (async (request: Request) => {
-  const instance = getAuth() as unknown as AuthHandler | { handler: AuthHandler };
+  const instance = getAuth() as unknown as
+    | AuthHandler
+    | { handler: AuthHandler };
 
   if (typeof instance === "function") {
     return instance(request);

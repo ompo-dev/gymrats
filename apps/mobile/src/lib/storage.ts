@@ -82,7 +82,9 @@ export async function clearStoredSession() {
   await AsyncStorage.removeItem(SESSION_FALLBACK_KEY);
 }
 
-export async function readNativeNamespace<T>(namespace: NativeStorageNamespace) {
+export async function readNativeNamespace<T>(
+  namespace: NativeStorageNamespace,
+) {
   return loadJsonStorage<T>(getNamespaceKey(namespace));
 }
 

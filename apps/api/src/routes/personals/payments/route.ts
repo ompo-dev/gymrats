@@ -1,6 +1,6 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ personalContext, req }) => {

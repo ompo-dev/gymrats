@@ -104,7 +104,9 @@ class ResponseCookies {
   set(name: string, value: string, options?: ResponseCookieOptions): void;
   set(options: { name: string; value: string } & ResponseCookieOptions): void;
   set(
-    nameOrOptions: string | ({ name: string; value: string } & ResponseCookieOptions),
+    nameOrOptions:
+      | string
+      | ({ name: string; value: string } & ResponseCookieOptions),
     value?: string,
     options?: ResponseCookieOptions,
   ) {

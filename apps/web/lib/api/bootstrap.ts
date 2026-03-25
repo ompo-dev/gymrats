@@ -26,9 +26,9 @@ function buildSectionsQuery(sections?: readonly string[]) {
 export async function getStudentBootstrapRequest(
   sections?: readonly StudentDataSection[],
 ) {
-  const response = await apiClient.get<
-    BootstrapResponse<Partial<StudentData>>
-  >(`/api/students/bootstrap${buildSectionsQuery(sections)}`);
+  const response = await apiClient.get<BootstrapResponse<Partial<StudentData>>>(
+    `/api/students/bootstrap${buildSectionsQuery(sections)}`,
+  );
   return response.data;
 }
 

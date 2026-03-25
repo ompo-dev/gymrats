@@ -1,13 +1,12 @@
 import type { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
-import { createSessionPayload } from "@/lib/auth/session-payload";
 import { signUpSchema } from "@/lib/api/schemas";
+import { createSessionPayload } from "@/lib/auth/session-payload";
 import { db } from "@/lib/db";
 import { type SignUpInput, signUpUseCase } from "@/lib/use-cases/auth";
 import { createSession } from "@/lib/utils/session";
-import { ReferralService } from "@/lib/services/referral.service";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,22 +19,19 @@ export async function POST(request: NextRequest) {
     const result = await signUpUseCase(
       {
         findUserByEmail: async (email) => {
-          const u = await db.user.findUnique({ where: { email } });
-          return u as any;
+          return db.user.findUnique({ where: { email } });
         },
         hashPassword: (plain) => bcrypt.hash(plain, 10),
         createUser: async (data) => {
-          const u = await db.user.create({
+          return db.user.create({
             data: {
               ...data,
               role: data.role as UserRole,
             },
           });
-          return u as any;
         },
         createStudent: async (userId) => {
-          const student = await db.student.create({ data: { userId } });
-          return undefined;
+          await db.student.create({ data: { userId } });
         },
         createSession,
       },

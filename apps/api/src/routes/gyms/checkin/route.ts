@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const checkInSchema = z.object({
   studentId: z.string().min(1, "studentId é obrigatório"),

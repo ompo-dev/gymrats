@@ -1,8 +1,8 @@
 "use client";
 
 import { ChevronRight, Users } from "lucide-react";
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { PersonalListItemCard } from "@/components/organisms/sections/list-item-cards";
 import type { StudentPersonalAssignment } from "@/lib/types/student-discovery";
@@ -19,7 +19,8 @@ export function MyPersonalsCard() {
   const loadAssignedPersonals = useStudentDiscoveryStore(
     (state) => state.loadAssignedPersonals,
   );
-  const loading = assignments.length === 0 && (!resource || resource.status === "loading");
+  const loading =
+    assignments.length === 0 && (!resource || resource.status === "loading");
 
   const handleDiscoverPersonals = () => {
     router.push("/student?tab=personals");

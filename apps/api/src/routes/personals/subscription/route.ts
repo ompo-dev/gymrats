@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import { personalSubscriptionSchema } from "@/lib/api/schemas/personals.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
-import { PersonalSubscriptionService } from "@/lib/services/personal/personal-subscription.service";
-import { createPersonalSubscriptionPix } from "@/lib/utils/subscription";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { PersonalSubscriptionService } from "@/lib/services/personal/personal-subscription.service";
+import { createPersonalSubscriptionPix } from "@/lib/utils/subscription";
+import { NextResponse } from "@/runtime/next-server";
 
 export const GET = createSafeHandler(
   async ({ personalContext }) => {

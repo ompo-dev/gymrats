@@ -24,6 +24,7 @@ export function ExerciseDetail({
     <div className="mx-auto max-w-4xl space-y-6  ">
       <FadeIn>
         <button
+          type="button"
           onClick={onBack}
           className="mb-4 flex items-center gap-2 font-bold text-duo-green hover:underline"
         >

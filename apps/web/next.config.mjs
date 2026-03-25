@@ -25,7 +25,12 @@ function resolveProxyTarget() {
     process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL,
   );
 
-  if (publicApiUrl && publicApiOrigin && appOrigin && publicApiOrigin !== appOrigin) {
+  if (
+    publicApiUrl &&
+    publicApiOrigin &&
+    appOrigin &&
+    publicApiOrigin !== appOrigin
+  ) {
     return publicApiUrl;
   }
 

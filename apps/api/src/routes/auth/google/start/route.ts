@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateQuery } from "@/lib/api/middleware/validation.middleware";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const startQuerySchema = z.object({
   redirectTo: z.string().url().optional(),

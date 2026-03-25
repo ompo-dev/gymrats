@@ -1,4 +1,3 @@
-import type { NextRequest } from "@/runtime/next-server";
 import {
   internalErrorResponse,
   successResponse,
@@ -7,6 +6,7 @@ import { assertPersonalStudentAccess } from "@/lib/services/nutrition/nutrition-
 import { getActiveNutritionPlan } from "@/lib/services/nutrition/nutrition-plan.service";
 import { mapNutritionRouteError } from "@/lib/services/nutrition/nutrition-route-error";
 import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 export async function GET(
   request: NextRequest,
@@ -24,7 +24,10 @@ export async function GET(
     const data = await getActiveNutritionPlan(studentId);
     return successResponse({ data });
   } catch (error) {
-    console.error("[personals/students/[id]/nutrition/active] Erro GET:", error);
+    console.error(
+      "[personals/students/[id]/nutrition/active] Erro GET:",
+      error,
+    );
     return mapNutritionRouteError(
       error,
       "Erro ao buscar plano alimentar ativo do aluno",

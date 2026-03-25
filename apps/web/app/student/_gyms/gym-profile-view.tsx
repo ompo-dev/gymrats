@@ -57,8 +57,12 @@ export function GymProfileView({
   const profile = useDiscoveryProfilesStore(
     (state) => state.gymProfiles[cacheKey] as DiscoveryGymProfile | null,
   );
-  const resource = useDiscoveryProfilesStore((state) => state.resources[cacheKey]);
-  const loadGymProfile = useDiscoveryProfilesStore((state) => state.loadGymProfile);
+  const resource = useDiscoveryProfilesStore(
+    (state) => state.resources[cacheKey],
+  );
+  const loadGymProfile = useDiscoveryProfilesStore(
+    (state) => state.loadGymProfile,
+  );
   const loading = !profile && (!resource || resource.status === "loading");
   const error = resource?.error ?? null;
   const profilePhotos = Array.isArray(profile?.photos) ? profile.photos : [];
@@ -370,8 +374,7 @@ export function GymProfileView({
               const isActive = profile.myMembership?.status === "active";
               const isPending = profile.myMembership?.status === "pending";
               const showActions = variant === "student";
-              const canContract =
-                showActions && !hasMembership && !!onJoinPlan;
+              const canContract = showActions && !hasMembership && !!onJoinPlan;
               const canChangePlan =
                 showActions &&
                 hasMembership &&

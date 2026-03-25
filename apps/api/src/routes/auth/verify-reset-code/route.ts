@@ -1,4 +1,3 @@
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { verifyResetCodeSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
@@ -6,6 +5,7 @@ import {
   type VerifyResetCodeInput,
   verifyResetCodeUseCase,
 } from "@/lib/use-cases/auth";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 /**
  * POST /api/auth/verify-reset-code

@@ -182,8 +182,12 @@
     "typescript": "^5",
     "vitest": "^3.2.4"
   },
+  "overrides": {
+    "effect": "3.21.0"
+  },
   "pnpm": {
     "overrides": {
+      "effect": "3.21.0",
       "better-call>zod": "3.25.76"
     }
   }

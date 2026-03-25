@@ -3,7 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AppBottomNav } from "@/components/organisms/navigation/app-bottom-nav";
 import { AppHeader } from "@/components/organisms/navigation/app-header";
 import { useScrollReset } from "@/hooks/use-scroll-reset";

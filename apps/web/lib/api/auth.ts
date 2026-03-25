@@ -118,9 +118,8 @@ export const authApi = {
 
   async getSession(): Promise<AuthSessionResponse | null> {
     try {
-      const response = await apiClient.get<AuthSessionResponse>(
-        "/api/auth/session",
-      );
+      const response =
+        await apiClient.get<AuthSessionResponse>("/api/auth/session");
       return response.data;
     } catch {
       return null;

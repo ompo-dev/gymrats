@@ -84,7 +84,10 @@ function shouldIgnore(filePath, source) {
     normalizedSource.includes('"use client"') ||
     normalizedSource.includes("'use client'");
 
-  if (normalized.includes(`${join("apps", "web", "app")}`) && !isExplicitClient) {
+  if (
+    normalized.includes(`${join("apps", "web", "app")}`) &&
+    !isExplicitClient
+  ) {
     return true;
   }
 

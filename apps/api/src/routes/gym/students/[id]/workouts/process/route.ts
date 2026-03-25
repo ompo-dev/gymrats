@@ -7,16 +7,16 @@ export const maxDuration = 60;
 export const runtime = "nodejs";
 
 import type { Prisma } from "@prisma/client";
+import { Features } from "@/lib/access-control/features";
 import {
   AuthorizationError,
   requireAbility,
 } from "@/lib/access-control/server";
-import { Features } from "@/lib/access-control/features";
 import {
   badRequestResponse,
+  forbiddenResponse,
   internalErrorResponse,
   successResponse,
-  forbiddenResponse,
 } from "@/lib/api/utils/response.utils";
 import { db } from "@/lib/db";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
@@ -42,7 +42,7 @@ async function createExercisesInWorkout(
     preferredSets?: number | null;
     preferredRepRange?: string | null;
     restTime?: string | null;
-    activityLevel?: string | null;
+    activityLevel?: number | null;
     fitnessLevel?: string | null;
     goals?: string | null;
     gymType?: string | null;
@@ -493,7 +493,10 @@ export async function POST(
                 const calculatedRest =
                   exercise.rest !== undefined
                     ? exercise.rest
-                    : calculateRest(profile.restTime, profile.preferredRepRange);
+                    : calculateRest(
+                        profile.restTime,
+                        profile.preferredRepRange,
+                      );
 
                 const createdExercise = await db.workoutExercise.create({
                   data: {
@@ -531,7 +534,8 @@ export async function POST(
                 });
 
                 if (exerciseInfo && student?.profile) {
-                  const physicalLimitations = student.profile.physicalLimitations
+                  const physicalLimitations = student.profile
+                    .physicalLimitations
                     ? JSON.parse(student.profile.physicalLimitations)
                     : [];
                   const motorLimitations = student.profile.motorLimitations
@@ -572,11 +576,12 @@ export async function POST(
               }
             }
 
-            results.created.push(
-              `Workout: ${workoutPlan.title ?? "Treino"}`,
-            );
+            results.created.push(`Workout: ${workoutPlan.title ?? "Treino"}`);
           } catch (error) {
-            console.error("[gym/workouts/process] Erro ao criar workout:", error);
+            console.error(
+              "[gym/workouts/process] Erro ao criar workout:",
+              error,
+            );
             results.errors.push(
               `Erro ao criar workout ${workoutPlan.title ?? "Treino"}`,
             );
@@ -614,19 +619,42 @@ export async function POST(
           where: { id: targetId },
           data: {
             ...(updateData.title && { title: updateData.title }),
-            ...(updateData.description && { description: updateData.description }),
+            ...(updateData.description && {
+              description: updateData.description,
+            }),
             ...(updateData.type && { type: updateData.type }),
-            ...(updateData.muscleGroup && { muscleGroup: updateData.muscleGroup }),
+            ...(updateData.muscleGroup && {
+              muscleGroup: updateData.muscleGroup,
+            }),
             ...(updateData.difficulty && { difficulty: updateData.difficulty }),
           },
         });
 
         if (Array.isArray(updateData.exercises)) {
-          await db.workoutExercise.deleteMany({ where: { workoutId: targetId } });
+          const updatedExercises = updateData.exercises as Array<{
+            name?: string;
+            sets?: number;
+            reps?: string;
+            rest?: number;
+            notes?: string;
+          }>;
+          await db.workoutExercise.deleteMany({
+            where: { workoutId: targetId },
+          });
           await createExercisesInWorkout(
             targetId,
-            updateData.exercises
-              .filter((e) => !!e?.name)
+            updatedExercises
+              .filter(
+                (
+                  e,
+                ): e is {
+                  name: string;
+                  sets?: number;
+                  reps?: string;
+                  rest?: number;
+                  notes?: string;
+                } => Boolean(e?.name),
+              )
               .map((e) => ({
                 name: e.name,
                 sets: e.sets,
@@ -685,8 +713,26 @@ export async function POST(
         }
         await createExercisesInWorkout(
           targetId,
-          firstWorkout.exercises
-            .filter((e) => !!e?.name)
+          (
+            firstWorkout.exercises as Array<{
+              name?: string;
+              sets?: number;
+              reps?: string;
+              rest?: number;
+              notes?: string;
+            }>
+          )
+            .filter(
+              (
+                e,
+              ): e is {
+                name: string;
+                sets?: number;
+                reps?: string;
+                rest?: number;
+                notes?: string;
+              } => Boolean(e?.name),
+            )
             .map((e) => ({
               name: e.name,
               sets: e.sets,
@@ -749,9 +795,7 @@ export async function POST(
         break;
       }
       default:
-        return badRequestResponse(
-          `Ação não suportada: ${parsedPlan.action}`,
-        );
+        return badRequestResponse(`Ação não suportada: ${parsedPlan.action}`);
     }
 
     return successResponse({

@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import { StudentPersonalService } from "@/lib/services/personal/student-personal.service";
 
 const GYM_RECENT_CHECKINS_CACHE_TTL_SECONDS = 10;
@@ -10,7 +10,9 @@ function buildGymMemberCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -109,7 +111,7 @@ export class GymMemberService {
           age: student.age ?? 0,
           gender: student.gender ?? "",
           phone: student.phone || "",
-          membershipStatus: "network_pro" as any, // Adicionamos status especial
+          membershipStatus: "network_pro" as const,
           joinDate: a.createdAt,
           currentStreak: progress?.currentStreak || 0,
           currentWeight: profile?.weight ?? 0,
@@ -335,22 +337,20 @@ export class GymMemberService {
   /**
    * Busca check-ins recentes da academia
    */
-  static async getRecentCheckIns(
-    gymId: string,
-    options?: { fresh?: boolean },
-  ) {
+  static async getRecentCheckIns(gymId: string, options?: { fresh?: boolean }) {
     const cacheKey = buildGymMemberCacheKey(gymId, "recent-checkins");
 
     if (!options?.fresh) {
-      const cached = await getCachedJson<
-        Array<{
-          id: string;
-          studentId: string;
-          studentName: string;
-          timestamp: Date | string;
-          checkOut: Date | string | null;
-        }>
-      >(cacheKey);
+      const cached =
+        await getCachedJson<
+          Array<{
+            id: string;
+            studentId: string;
+            studentName: string;
+            timestamp: Date | string;
+            checkOut: Date | string | null;
+          }>
+        >(cacheKey);
       if (cached) {
         return cached;
       }

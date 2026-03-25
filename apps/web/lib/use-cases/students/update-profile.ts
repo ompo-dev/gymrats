@@ -2,8 +2,8 @@
  * Caso de uso: atualizar perfil do student
  */
 
+import type { updateStudentProfileSchema } from "@gymrats/schemas/students.schemas";
 import type { z } from "zod";
-import type { updateStudentProfileSchema } from "@/lib/api/schemas/students.schemas";
 import { db } from "@/lib/db";
 import { initializeStudentTrial } from "@/lib/utils/auto-trial";
 

@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { db } from "@/lib/db";
-import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import { NextResponse } from "@/runtime/next-server";
 
 export async function GET(request: Request) {
   try {
@@ -36,14 +36,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { code, notes, discountKind, discount, maxRedeems, expiresAt } = body as {
-      code: string;
-      notes?: string;
-      discountKind: "PERCENTAGE" | "FIXED";
-      discount: number;
-      maxRedeems?: number;
-      expiresAt?: string | null;
-    };
+    const { code, notes, discountKind, discount, maxRedeems, expiresAt } =
+      body as {
+        code: string;
+        notes?: string;
+        discountKind: "PERCENTAGE" | "FIXED";
+        discount: number;
+        maxRedeems?: number;
+        expiresAt?: string | null;
+      };
 
     const codeTrim = (code ?? "").trim().toUpperCase();
     if (!codeTrim) {
@@ -61,8 +62,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const discountType =
-      discountKind === "PERCENTAGE" ? "percentage" : "fixed";
+    const discountType = discountKind === "PERCENTAGE" ? "percentage" : "fixed";
     if (discountType === "percentage" && discountNum > 100) {
       return NextResponse.json(
         { error: "Porcentagem deve ser at\u00e9 100" },
@@ -104,10 +104,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 201 });
   } catch (error) {
     console.error("[POST /api/personals/coupons] Erro:", error);
-    return NextResponse.json(
-      { error: "Erro ao criar cupom" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Erro ao criar cupom" }, { status: 500 });
   }
 }
 

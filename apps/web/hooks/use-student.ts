@@ -3,6 +3,8 @@
 import { useShallow } from "zustand/react/shallow";
 import type { StudentData } from "@/lib/types/student-unified";
 import {
+  type StudentDataSelectorKey,
+  type StudentSelectorValueMap,
   selectFromData,
   selectMultiple,
 } from "@/lib/utils/student/student-selectors";
@@ -11,65 +13,9 @@ import {
   useStudentUnifiedStore,
 } from "@/stores/student-unified-store";
 
-type StudentSelector =
-  | "user"
-  | "student"
-  | "progress"
-  | "profile"
-  | "weightHistory"
-  | "weightGain"
-  | "units"
-  | "weeklyPlan"
-  | "libraryPlans"
-  | "workoutHistory"
-  | "personalRecords"
-  | "activeNutritionPlan"
-  | "nutritionLibraryPlans"
-  | "dailyNutrition"
-  | "foodDatabase"
-  | "subscription"
-  | "memberships"
-  | "payments"
-  | "paymentMethods"
-  | "referral"
-  | "dayPasses"
-  | "friends"
-  | "gymLocations"
-  | "activeWorkout"
-  | "metadata"
-  | "xp"
-  | "totalXP"
-  | "todayXP"
-  | "currentStreak"
-  | "longestStreak"
-  | "currentLevel"
-  | "level"
-  | "xpToNextLevel"
-  | "workoutsCompleted"
-  | "achievements"
-  | "name"
-  | "email"
-  | "username"
-  | "memberSince"
-  | "avatar"
-  | "age"
-  | "gender"
-  | "phone"
-  | "currentWeight"
-  | "weight"
-  | "height"
-  | "fitnessLevel"
-  | "goals"
-  | "targetCalories"
-  | "targetProtein"
-  | "targetCarbs"
-  | "targetFats"
-  | "isAdmin"
-  | "role"
-  | "actions"
-  | "loaders";
+type StudentSelector = StudentDataSelectorKey | "actions" | "loaders";
 
-type StudentDataSelector = Exclude<StudentSelector, "actions" | "loaders">;
+type StudentDataSelector = StudentDataSelectorKey;
 
 function getActions(state: StudentUnifiedState) {
   return {
@@ -161,7 +107,7 @@ export function useStudent(selector: "actions"): ReturnType<typeof getActions>;
 export function useStudent(selector: "loaders"): ReturnType<typeof getLoaders>;
 export function useStudent<S extends StudentDataSelector>(
   selector: S,
-): ReturnType<typeof selectFromData>;
+): StudentSelectorValueMap[S];
 export function useStudent<S extends StudentSelector[]>(
   ...selectors: S
 ): Record<string, unknown>;
@@ -186,7 +132,13 @@ export function useStudent(...selectors: StudentSelector[]) {
         return selectFromData(state.data, selector);
       }
 
-      const result = selectMultiple(state.data, selectors);
+      const dataSelectors = selectors.filter(
+        (selector): selector is StudentDataSelector =>
+          selector !== "actions" && selector !== "loaders",
+      );
+      const result: Record<string, unknown> = {
+        ...selectMultiple(state.data, dataSelectors),
+      };
 
       if (selectors.includes("actions")) {
         result.actions = getActions(state);

@@ -81,15 +81,17 @@ export function CheckInModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={(e) => e.target === e.currentTarget && handleClose()}
-      onKeyDown={(e) => e.key === "Escape" && handleClose()}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <button
+        type="button"
+        className="absolute inset-0"
+        aria-label="Fechar modal de check-in"
+        onClick={handleClose}
+      />
       <DuoCard.Root
         variant="default"
         size="default"
-        className="w-full max-w-md"
+        className="relative w-full max-w-md"
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">

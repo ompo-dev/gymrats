@@ -5,10 +5,10 @@
  * por requireAuth e /api/auth/session.
  */
 
-import { NextResponse } from "@/runtime/next-server";
+import { resolveAuthSessionFromHeaders } from "@/lib/auth/session-resolver";
 import { db } from "@/lib/db";
 import { log } from "@/lib/observability";
-import { resolveAuthSessionFromHeaders } from "@/lib/auth/session-resolver";
+import { NextResponse } from "@/runtime/next-server";
 import { getRequestContextHeaders } from "../runtime/request-context";
 
 type AuthRecord = Record<string, string | number | boolean | object | null>;
@@ -91,15 +91,24 @@ async function getAuthSessionFromHeaders(
   };
 }
 
-export async function getAuthContext(options: {
-  type: "gym";
-}, headers?: Headers | null): Promise<GymContextResult>;
-export async function getAuthContext(options: {
-  type: "student";
-}, headers?: Headers | null): Promise<StudentContextResult>;
-export async function getAuthContext(options: {
-  type: "personal";
-}, headers?: Headers | null): Promise<PersonalContextResult>;
+export async function getAuthContext(
+  options: {
+    type: "gym";
+  },
+  headers?: Headers | null,
+): Promise<GymContextResult>;
+export async function getAuthContext(
+  options: {
+    type: "student";
+  },
+  headers?: Headers | null,
+): Promise<StudentContextResult>;
+export async function getAuthContext(
+  options: {
+    type: "personal";
+  },
+  headers?: Headers | null,
+): Promise<PersonalContextResult>;
 export async function getAuthContext(
   options: {
     type: "gym" | "student" | "personal";

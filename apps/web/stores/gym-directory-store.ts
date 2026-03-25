@@ -136,7 +136,9 @@ export const useGymDirectoryStore = create<GymDirectoryState>()((set, get) => ({
     }
     set({ isSearchingTeam: true });
     try {
-      const response = await apiClient.get<{ personals: GymPersonalSearchResult[] }>(
+      const response = await apiClient.get<{
+        personals: GymPersonalSearchResult[];
+      }>(
         `/api/gym/personals/search?q=${encodeURIComponent(normalizedQuery)}&limit=8`,
       );
       set({ teamSearchResults: response.data.personals ?? [] });
@@ -155,9 +157,9 @@ export const useGymDirectoryStore = create<GymDirectoryState>()((set, get) => ({
 
     set({ isSearchingLinkedPersonals: true });
     try {
-      const response = await apiClient.get<{ personals: GymPersonalSearchResult[] }>(
-        `/api/gym/personals/search?${params.toString()}`,
-      );
+      const response = await apiClient.get<{
+        personals: GymPersonalSearchResult[];
+      }>(`/api/gym/personals/search?${params.toString()}`);
       set({ linkedPersonalSearchResults: response.data.personals ?? [] });
     } catch {
       set({ linkedPersonalSearchResults: [] });
@@ -204,7 +206,11 @@ export const useGymDirectoryStore = create<GymDirectoryState>()((set, get) => ({
     set({ teamError: "" });
     await apiClient.post("/api/gym/personals", { personalId });
     set((state) => ({
-      teamSearchResults: markSearchLinked(state.teamSearchResults, personalId, true),
+      teamSearchResults: markSearchLinked(
+        state.teamSearchResults,
+        personalId,
+        true,
+      ),
       linkedPersonalSearchResults: markSearchLinked(
         state.linkedPersonalSearchResults,
         personalId,

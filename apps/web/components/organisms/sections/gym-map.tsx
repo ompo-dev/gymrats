@@ -52,6 +52,27 @@ function GymMapSimple({
     lng: number;
   } | null>(null);
   const { loadGymLocationsWithPosition } = useStudent("loaders");
+  const handleSponsoredAdActivate = (gym: GymLocation) => {
+    const activeAd = gym.activeCampaigns?.[0];
+    if (!activeAd) return;
+
+    if (activeAd.linkedPlanId && onJoinPlan) {
+      onJoinPlan(
+        gym.id,
+        activeAd.linkedPlanId,
+        activeAd.linkedCouponId || undefined,
+      );
+      return;
+    }
+
+    if (onViewGymProfile) {
+      onViewGymProfile(
+        gym.id,
+        activeAd.linkedPlanId || undefined,
+        activeAd.linkedCouponId || undefined,
+      );
+    }
+  };
 
   useEffect(() => {
     if (!selectedGym) setExpandedPlanKey(null);
@@ -181,23 +202,12 @@ function GymMapSimple({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1, duration: 0.4 }}
                 >
-                  <div
+                  <button
+                    type="button"
                     className="border-2 rounded-2xl p-4 overflow-hidden relative group bg-duo-bg shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
                     style={{ borderColor: activeAd.primaryColor }}
                     onClick={() => {
-                      if (activeAd.linkedPlanId && onJoinPlan) {
-                        onJoinPlan(
-                          gym.id,
-                          activeAd.linkedPlanId,
-                          activeAd.linkedCouponId || undefined,
-                        );
-                      } else if (onViewGymProfile) {
-                        onViewGymProfile(
-                          gym.id,
-                          activeAd.linkedPlanId || undefined,
-                          activeAd.linkedCouponId || undefined,
-                        );
-                      }
+                      handleSponsoredAdActivate(gym);
                     }}
                   >
                     <div
@@ -225,14 +235,14 @@ function GymMapSimple({
                     </p>
 
                     <div className="mt-4 pt-3 border-t border-duo-border flex justify-end">
-                      <button
+                      <span
                         className="px-4 py-2 flex items-center gap-2 rounded-xl text-xs font-bold text-duo-bg transition-transform group-hover:scale-105 shadow-md"
                         style={{ backgroundColor: activeAd.primaryColor }}
                       >
                         Assinar Agora <ChevronRight className="w-4 h-4" />
-                      </button>
+                      </span>
                     </div>
-                  </div>
+                  </button>
                 </motion.div>
               );
             })}

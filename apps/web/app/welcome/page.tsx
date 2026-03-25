@@ -40,8 +40,7 @@ function WelcomePageContent() {
     }
 
     setError(
-      messageParam ||
-        "Erro ao fazer login com Google. Tente novamente.",
+      messageParam || "Erro ao fazer login com Google. Tente novamente.",
     );
     setIsLoading(false);
   }, [searchParams]);

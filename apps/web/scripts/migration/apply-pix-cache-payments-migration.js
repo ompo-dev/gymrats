@@ -39,14 +39,16 @@ async function applyMigration() {
         console.log(`⚠️  Coluna '${col.name}' já existe.`);
       } else {
         await prisma.$executeRawUnsafe(
-          `ALTER TABLE "payments" ADD COLUMN "${col.name}" ${col.type}`
+          `ALTER TABLE "payments" ADD COLUMN "${col.name}" ${col.type}`,
         );
         console.log(`✅ Coluna '${col.name}' adicionada com sucesso!`);
       }
     }
 
     console.log("\n📝 Execute: npx prisma generate");
-    console.log("\n📋 Resumo: cache de PIX em payments para reutilizar no \"Pagar agora\"");
+    console.log(
+      '\n📋 Resumo: cache de PIX em payments para reutilizar no "Pagar agora"',
+    );
   } catch (error) {
     console.error("❌ Erro:", error.message);
     process.exit(1);

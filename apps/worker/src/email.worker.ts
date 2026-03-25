@@ -1,6 +1,6 @@
+import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import type { Job } from "bullmq";
 import { Worker } from "bullmq";
-import { pushToDeadLetterQueue, redisConnection } from "@gymrats/cache";
 import { log } from "@/lib/observability/logger";
 import {
   processResetPasswordEmailSync,
@@ -33,7 +33,11 @@ async function handleEmailJob(
     }
     case "send-reset-password": {
       const payload = job.data as ResetPasswordEmailPayload;
-      await processResetPasswordEmailSync(payload.to, payload.name, payload.code);
+      await processResetPasswordEmailSync(
+        payload.to,
+        payload.name,
+        payload.code,
+      );
       return;
     }
     default:

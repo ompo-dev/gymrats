@@ -72,7 +72,9 @@ export async function updateMobileInstallation(
   apiUrl: string,
   token: string,
   installationId: string,
-  payload: Partial<Omit<MobileInstallationPayload, "installationId" | "platform">>,
+  payload: Partial<
+    Omit<MobileInstallationPayload, "installationId" | "platform">
+  >,
 ) {
   const response = await requestJson<InstallationResponse>(
     apiUrl,

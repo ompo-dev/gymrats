@@ -6,16 +6,16 @@ import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { StudentTabSelector } from "@/components/organisms/gym/gym-student-detail/components/student-tab-selector";
 import { NutritionLibraryModal } from "@/components/organisms/modals/nutrition-library-modal";
-import type { PersonalStudentAssignmentForDetail } from "./hooks/use-personal-student-detail";
-import { usePersonalStudentDetail } from "./hooks/use-personal-student-detail";
 import {
-  PersonalOverviewTab,
-  PersonalWorkoutsTab,
   PersonalDietTab,
+  PersonalOverviewTab,
   PersonalProgressTab,
   PersonalRecordsTab,
   PersonalStudentHeaderCard,
+  PersonalWorkoutsTab,
 } from "./components";
+import type { PersonalStudentAssignmentForDetail } from "./hooks/use-personal-student-detail";
+import { usePersonalStudentDetail } from "./hooks/use-personal-student-detail";
 
 interface PersonalStudentDetailProps {
   studentId: string;
@@ -176,7 +176,9 @@ export function PersonalStudentDetail({
 
       {activeTab === "progress" && (
         <SlideIn delay={0.2}>
-          <PersonalProgressTab progress={assignment.student?.progress ?? null} />
+          <PersonalProgressTab
+            progress={assignment.student?.progress ?? null}
+          />
         </SlideIn>
       )}
 

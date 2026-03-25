@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { createSessionPayload } from "@/lib/auth/session-payload";
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 const exchangeOneTimeTokenSchema = z.object({
   token: z.string().min(1, "Token eh obrigatorio"),

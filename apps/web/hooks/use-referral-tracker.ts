@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 /**
  * Hook que lê o search param `ref` da URL e salva em cookie gymrats_referral.

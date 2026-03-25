@@ -26,12 +26,10 @@ async function cloneWeeklyPlanFromLibrary(
       studentId,
       title: masterPlan.title,
       description: masterPlan.description,
-      ...({
-        isLibraryTemplate: false,
-        createdById: (masterPlan as { createdById?: string | null }).createdById,
-        creatorType: (masterPlan as { creatorType?: string | null }).creatorType,
-        sourceLibraryPlanId: libraryPlanId,
-      } as any),
+      isLibraryTemplate: false,
+      createdById: masterPlan.createdById,
+      creatorType: masterPlan.creatorType,
+      sourceLibraryPlanId: libraryPlanId,
     },
   });
 
@@ -114,7 +112,10 @@ export async function activateLibraryPlanForStudent(
     },
   });
 
-  if (!masterPlan || !(masterPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate) {
+  if (
+    !masterPlan ||
+    !(masterPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate
+  ) {
     return { ok: false as const, error: "Plano da biblioteca nao encontrado" };
   }
 
@@ -138,14 +139,17 @@ export async function activateLibraryPlanForStudent(
 
     await tx.student.update({
       where: { id: studentId },
-      ...({ data: { activeWeeklyPlanId: cloneWeeklyPlan.id } } as any),
+      data: { activeWeeklyPlanId: cloneWeeklyPlan.id },
     });
 
     if (oldActivePlanId && oldActivePlanId !== cloneWeeklyPlan.id) {
       const oldPlan = await tx.weeklyPlan.findUnique({
         where: { id: oldActivePlanId },
       });
-      if (oldPlan && !(oldPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate) {
+      if (
+        oldPlan &&
+        !(oldPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate
+      ) {
         await tx.weeklyPlan.delete({ where: { id: oldActivePlanId } });
       }
     }

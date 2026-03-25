@@ -1,10 +1,10 @@
-import { NextResponse } from "@/runtime/next-server";
 import {
   createGymExpenseSchema,
   gymExpensesQuerySchema,
 } from "@/lib/api/schemas/gyms.schemas";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { GymDomainService } from "@/lib/services/gym-domain.service";
+import { NextResponse } from "@/runtime/next-server";
 
 // GET — listar despesas
 export const GET = createSafeHandler(
@@ -12,7 +12,10 @@ export const GET = createSafeHandler(
     const { gymId } = gymContext!;
     const fresh = new URL(req.url).searchParams.get("fresh") === "1";
     const expenses = await GymDomainService.getExpenses(gymId, {
-      ...(query as Record<string, string | undefined>),
+      startDate: query.startDate,
+      endDate: query.endDate,
+      type: query.type,
+      limit: query.limit,
       fresh,
     });
     return NextResponse.json({ expenses });

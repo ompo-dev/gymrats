@@ -1,13 +1,13 @@
 import type { Gym, Student } from "@prisma/client";
-import { type NextRequest, NextResponse } from "@/runtime/next-server";
-import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { requireAuth } from "@/lib/api/middleware/auth.middleware";
+import { validateBody } from "@/lib/api/middleware/validation.middleware";
 import { updateUserRoleSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import {
   initializeGymTrial,
   initializeStudentTrial,
 } from "@/lib/utils/auto-trial";
+import { type NextRequest, NextResponse } from "@/runtime/next-server";
 
 export async function POST(request: NextRequest) {
   try {

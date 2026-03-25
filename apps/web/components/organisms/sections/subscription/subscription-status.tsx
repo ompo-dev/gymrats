@@ -133,7 +133,11 @@ function SubscriptionStatusSimple({
                 {formatPlanLabel(String(subscription.plan))}
                 {subscription.billingPeriod ? (
                   <span className="text-duo-gray-dark font-normal ml-1">
-                    ({subscription.billingPeriod === "annual" ? "Anual" : "Mensal"})
+                    (
+                    {subscription.billingPeriod === "annual"
+                      ? "Anual"
+                      : "Mensal"}
+                    )
                   </span>
                 ) : null}
               </h3>
@@ -223,7 +227,9 @@ function SubscriptionStatusSimple({
                 />
                 <div className="flex-1">
                   <h3 className="font-bold text-duo-text">
-                    {isCanceled ? "Assinatura Cancelada" : "Trial Gratuito Ativo"}
+                    {isCanceled
+                      ? "Assinatura Cancelada"
+                      : "Trial Gratuito Ativo"}
                   </h3>
                   {isCanceled ? (
                     <p className="text-xs text-duo-orange mt-1 font-bold">
@@ -235,7 +241,7 @@ function SubscriptionStatusSimple({
                     <span className="text-3xl font-black text-duo-blue">
                       {daysRemaining !== null
                         ? daysRemaining
-                        : subscription.daysRemaining ?? 0}
+                        : (subscription.daysRemaining ?? 0)}
                     </span>
                     <span className="text-sm text-duo-gray-dark">
                       {daysRemaining === 1 || subscription.daysRemaining === 1
@@ -248,7 +254,8 @@ function SubscriptionStatusSimple({
                   </p>
                   {subscription.trialEnd ? (
                     <p className="text-xs text-duo-gray-dark mt-1">
-                      {texts.trialValidUntil} {formatDate(subscription.trialEnd)}
+                      {texts.trialValidUntil}{" "}
+                      {formatDate(subscription.trialEnd)}
                     </p>
                   ) : null}
                 </div>
@@ -328,7 +335,8 @@ function SubscriptionStatusSimple({
                     </div>
                     <div className="flex items-center justify-between">
                       <span>
-                        Alunos ativos ({activeStudents} x {formatCurrency(pricePerStudent)})
+                        Alunos ativos ({activeStudents} x{" "}
+                        {formatCurrency(pricePerStudent)})
                       </span>
                       <span className="font-semibold text-duo-text">
                         {formatCurrency(studentVariableAmount)}
@@ -336,7 +344,8 @@ function SubscriptionStatusSimple({
                     </div>
                     <div className="flex items-center justify-between">
                       <span>
-                        Personais filiados ({activePersonals} x {formatCurrency(pricePerPersonal)})
+                        Personais filiados ({activePersonals} x{" "}
+                        {formatCurrency(pricePerPersonal)})
                       </span>
                       <span className="font-semibold text-duo-text">
                         {formatCurrency(personalVariableAmount)}

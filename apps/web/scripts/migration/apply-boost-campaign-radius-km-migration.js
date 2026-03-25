@@ -42,7 +42,9 @@ async function applyMigration() {
 
     console.log("\n✅ Migration aplicada com sucesso!");
     console.log("📝 Execute: npx prisma generate");
-    console.log("\n📋 Resumo: coluna radiusKm (default 5 km) adicionada em boost_campaigns.");
+    console.log(
+      "\n📋 Resumo: coluna radiusKm (default 5 km) adicionada em boost_campaigns.",
+    );
   } catch (error) {
     console.error("❌ Erro ao aplicar migration:", error.message);
     process.exit(1);

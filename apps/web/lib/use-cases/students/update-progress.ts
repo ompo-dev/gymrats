@@ -1,5 +1,5 @@
+import type { updateStudentProgressSchema } from "@gymrats/schemas/students.schemas";
 import type { z } from "zod";
-import type { updateStudentProgressSchema } from "@/lib/api/schemas/students.schemas";
 import { db } from "@/lib/db";
 
 export type UpdateStudentProgressInput = z.infer<

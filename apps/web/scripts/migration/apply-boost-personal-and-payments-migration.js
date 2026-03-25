@@ -51,7 +51,7 @@ async function applyMigration() {
       ) {
         throw err;
       }
-      console.log("⚠️  gymId já opcional ou erro: " + err.message);
+      console.log(`⚠️  gymId já opcional ou erro: ${err.message}`);
     }
 
     // 2. boost_campaigns: adicionar coluna personalId

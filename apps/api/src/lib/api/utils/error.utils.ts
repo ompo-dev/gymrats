@@ -1,14 +1,9 @@
 /**
- * Utilitários de Tratamento de Erros
- *
- * Centraliza o tratamento e logging de erros
+ * Utilitarios de tratamento de erros.
  */
 
 import { errorResponse, internalErrorResponse } from "./response.utils";
 
-/**
- * Trata erros da API de forma padronizada
- */
 export function handleApiError(
   error: Error & {
     code?: string;
@@ -16,38 +11,28 @@ export function handleApiError(
     errors?: Array<{ path?: string[]; message?: string }>;
   },
   context: string,
-  defaultMessage: string = "Erro ao processar requisição",
+  defaultMessage: string = "Erro ao processar requisicao",
 ): Response {
   console.error(`[${context}] Erro:`, error);
 
-  // Erros conhecidos do Prisma
   if (error.code === "P2002") {
-    return errorResponse("Registro duplicado", 400).toResponse();
+    return errorResponse("Registro duplicado", 400);
   }
 
   if (error.code === "P2025") {
-    return errorResponse("Registro não encontrado", 404).toResponse();
+    return errorResponse("Registro nao encontrado", 404);
   }
 
-  // Erro de validação
   if (error.name === "ValidationError" || error.name === "ZodError") {
-    return errorResponse(
-      error.message || "Dados inválidos",
-      400,
-      error.errors,
-    ).toResponse();
+    return errorResponse(error.message || "Dados invalidos", 400, error.errors);
   }
 
-  // Erro genérico
   return internalErrorResponse(
     defaultMessage,
     process.env.NODE_ENV === "development" ? error : undefined,
-  ).toResponse();
+  );
 }
 
-/**
- * Wrapper para handlers que trata erros automaticamente
- */
 export function withErrorHandling(
   handler: (request: Request, context?: string) => Promise<Response>,
   context: string,

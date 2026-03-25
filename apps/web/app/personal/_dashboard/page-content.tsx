@@ -1,13 +1,13 @@
 "use client";
 
 import { PersonalDashboardPage } from "@/components/organisms/personal";
+import type { FinancialSummary } from "@/lib/types";
 import type {
   PersonalAffiliation,
   PersonalProfile,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "../types";
-import type { FinancialSummary } from "@/lib/types";
 
 interface PersonalDashboardStats {
   gyms: number;
@@ -47,4 +47,3 @@ export function PersonalDashboardPageContent({
     />
   );
 }
-

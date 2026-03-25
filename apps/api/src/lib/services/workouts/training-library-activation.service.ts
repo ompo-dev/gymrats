@@ -21,7 +21,10 @@ export async function activateTrainingLibraryPlanForStudent(
     },
   });
 
-  if (!masterPlan || !(masterPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate) {
+  if (
+    !masterPlan ||
+    !(masterPlan as { isLibraryTemplate?: boolean }).isLibraryTemplate
+  ) {
     throw new Error("Plano da biblioteca nao encontrado");
   }
 
@@ -36,8 +39,10 @@ export async function activateTrainingLibraryPlanForStudent(
         title: masterPlan.title,
         description: masterPlan.description,
         isLibraryTemplate: false,
-        createdById: (masterPlan as { createdById?: string | null }).createdById ?? null,
-        creatorType: (masterPlan as { creatorType?: string | null }).creatorType ?? null,
+        createdById:
+          (masterPlan as { createdById?: string | null }).createdById ?? null,
+        creatorType:
+          (masterPlan as { creatorType?: string | null }).creatorType ?? null,
         sourceLibraryPlanId: libraryPlanId,
       },
     });

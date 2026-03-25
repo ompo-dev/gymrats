@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { abacatePay } from "@gymrats/api/abacatepay";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { ReferralService } from "@/lib/services/referral.service";
+import { NextResponse } from "@/runtime/next-server";
 
 /**
  * Simula o pagamento de um PIX de assinatura student em modo dev.

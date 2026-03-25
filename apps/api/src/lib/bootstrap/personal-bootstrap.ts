@@ -1,4 +1,7 @@
-import { createBootstrapResponse, measureBootstrapSection } from "@gymrats/domain";
+import {
+  createBootstrapResponse,
+  measureBootstrapSection,
+} from "@gymrats/domain";
 import { db } from "@/lib/db";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
 import { PersonalGymService } from "@/lib/services/personal/personal-gym.service";
@@ -32,9 +35,8 @@ export function parsePersonalBootstrapSections(
   const sections = sectionsParam
     .split(",")
     .map((section) => section.trim())
-    .filter(
-      (section): section is PersonalBootstrapSection =>
-        allowed.has(section as PersonalBootstrapSection),
+    .filter((section): section is PersonalBootstrapSection =>
+      allowed.has(section as PersonalBootstrapSection),
     );
 
   return sections.length > 0
@@ -59,7 +61,8 @@ async function loadPersonalBootstrapSection(
       };
     case "students":
       return {
-        students: await StudentPersonalService.listStudentsByPersonal(personalId),
+        students:
+          await StudentPersonalService.listStudentsByPersonal(personalId),
       };
     case "studentDirectory":
       return {

@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 
 const GYM_DOMAIN_LIST_CACHE_TTL_SECONDS = 20;
 type GymPlanWithParsedBenefits = Awaited<
@@ -15,7 +15,9 @@ function buildGymDomainCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -142,9 +144,9 @@ export class GymDomainService {
 
     if (!filters.fresh) {
       const cached =
-        await getCachedJson<Awaited<ReturnType<typeof db.gymMembership.findMany>>>(
-          cacheKey,
-        );
+        await getCachedJson<
+          Awaited<ReturnType<typeof db.gymMembership.findMany>>
+        >(cacheKey);
       if (cached) {
         return cached;
       }
@@ -176,7 +178,11 @@ export class GymDomainService {
       ...(search ? { take: 10 } : {}),
     });
 
-    await setCachedJson(cacheKey, memberships, GYM_DOMAIN_LIST_CACHE_TTL_SECONDS);
+    await setCachedJson(
+      cacheKey,
+      memberships,
+      GYM_DOMAIN_LIST_CACHE_TTL_SECONDS,
+    );
 
     return memberships;
   }
@@ -455,9 +461,7 @@ export class GymDomainService {
     });
 
     if (!filters.fresh) {
-      const cached = await getCachedJson<GymPlanWithParsedBenefits[]>(
-        cacheKey,
-      );
+      const cached = await getCachedJson<GymPlanWithParsedBenefits[]>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -816,8 +820,10 @@ export class GymDomainService {
         fitnessLevel: user.student.profile?.fitnessLevel,
         goals: user.student.profile?.goals
           ? (() => {
+              const rawGoals = user.student.profile?.goals;
+              if (!rawGoals) return [];
               try {
-                return JSON.parse(user.student?.profile?.goals!);
+                return JSON.parse(rawGoals);
               } catch {
                 return [];
               }

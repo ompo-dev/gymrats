@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 type ScalarUpdateValue = string | number | boolean | null | undefined;
 
 function toOptionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function toNullableNumber(value: unknown): number | null | undefined {
@@ -350,7 +352,7 @@ export class StudentDomainService {
   }
 
   /**
-   * Aggregate method to fetch all student data (replacement for getAllStudentData)
+   * Aggregate method to fetch canonical student bootstrap data.
    */
   static async getAllData(
     studentId: string,

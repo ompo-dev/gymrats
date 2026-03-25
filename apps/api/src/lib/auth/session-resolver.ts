@@ -1,8 +1,8 @@
-import type { NextRequest } from "@/runtime/next-server";
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import { getSessionUseCase } from "@/lib/use-cases/auth";
 import { getSession } from "@/lib/utils/session";
+import type { NextRequest } from "@/runtime/next-server";
 
 const requestCache = new WeakMap<Request, Promise<ResolvedSessionResult>>();
 const headersCache = new WeakMap<Headers, Promise<ResolvedSessionResult>>();

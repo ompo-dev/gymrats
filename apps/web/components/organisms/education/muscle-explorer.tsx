@@ -14,7 +14,7 @@ import { MuscleDetail } from "./components/muscle/muscle-detail";
 import { MuscleList } from "./components/muscle/muscle-list";
 import { SearchBar } from "./components/muscle/search-bar";
 
-interface MuscleExplorerProps {
+export interface MuscleExplorerProps {
   muscleId?: string | null;
   exerciseId?: string | null;
   onMuscleSelect?: (id: string) => void;

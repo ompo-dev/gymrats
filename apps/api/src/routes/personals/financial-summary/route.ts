@@ -1,12 +1,15 @@
-import { NextResponse } from "@/runtime/next-server";
-import { getPersonalContext } from "@/lib/utils/personal/personal-context";
 import { PersonalFinancialService } from "@/lib/services/personal/personal-financial.service";
+import { getPersonalContext } from "@/lib/utils/personal/personal-context";
+import { NextResponse } from "@/runtime/next-server";
 
 export async function GET(request: Request) {
   try {
     const { ctx, errorResponse } = await getPersonalContext(request);
     if (errorResponse || !ctx) {
-      return errorResponse ?? NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+      return (
+        errorResponse ??
+        NextResponse.json({ error: "Não autenticado" }, { status: 401 })
+      );
     }
     const fresh = new URL(request.url).searchParams.get("fresh") === "1";
     const financialSummary = await PersonalFinancialService.getFinancialSummary(

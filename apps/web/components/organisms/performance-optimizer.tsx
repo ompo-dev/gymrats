@@ -33,16 +33,18 @@ export function PerformanceOptimizer() {
 
   useEffect(() => {
     const route = pathname || "/";
-    const navigationEntry = performance.getEntriesByType(
-      "navigation",
-    )[0] as PerformanceNavigationTiming | undefined;
+    const navigationEntry = performance.getEntriesByType("navigation")[0] as
+      | PerformanceNavigationTiming
+      | undefined;
 
     void recordClientTelemetryEvent({
       eventType: "frontend.route_view",
       domain: "web",
       journey: route,
       metricName: "ttfb",
-      metricValue: navigationEntry ? Math.round(navigationEntry.responseStart) : 0,
+      metricValue: navigationEntry
+        ? Math.round(navigationEntry.responseStart)
+        : 0,
       payload: {
         route,
         requestCount: performance.getEntriesByType("resource").length,
@@ -72,7 +74,10 @@ export function PerformanceOptimizer() {
       const observer = new PerformanceObserver((list) => {
         handler(list.getEntries());
       });
-      observer.observe({ type: type as never, buffered: true } as PerformanceObserverInit);
+      observer.observe({
+        type: type as never,
+        buffered: true,
+      } as PerformanceObserverInit);
       observers.push(observer);
     };
 
@@ -141,7 +146,9 @@ export function PerformanceOptimizer() {
     });
 
     return () => {
-      observers.forEach((observer) => observer.disconnect());
+      observers.forEach((observer) => {
+        observer.disconnect();
+      });
     };
   }, []);
 

@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
 
 type Referral = Prisma.ReferralGetPayload<Record<string, never>>;
 

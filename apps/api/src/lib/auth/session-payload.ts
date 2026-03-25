@@ -17,10 +17,13 @@ export function shouldExposeSessionToken(request: Request) {
 
 export function createSessionPayload(
   request: Request,
-  session: {
-    id: string;
-    token?: string | null;
-  } | null | undefined,
+  session:
+    | {
+        id: string;
+        token?: string | null;
+      }
+    | null
+    | undefined,
 ): SessionPayload | null {
   if (!session) {
     return null;

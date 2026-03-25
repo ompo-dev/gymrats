@@ -1,8 +1,8 @@
-import { NextResponse } from "@/runtime/next-server";
 import { z } from "zod";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { persistBusinessEvent } from "@/lib/observability";
 import { createPixForPendingPayment } from "@/lib/services/gym/gym-membership-payment.service";
+import { NextResponse } from "@/runtime/next-server";
 
 const paramsSchema = z.object({
   paymentId: z.string().min(1),
@@ -20,7 +20,7 @@ export const POST = createSafeHandler(
     if (!studentId)
       return NextResponse.json(
         { error: "Estudante não autenticado" },
-        { status: 401 }
+        { status: 401 },
       );
 
     try {

@@ -102,7 +102,14 @@ export default function StudentOnboardingPage() {
       clearTimeout(timeoutId);
       isChecking = false;
     };
-  }, [isMounted, isSubmitting, loaders, profile?.height, profile?.weight, profile?.fitnessLevel]);
+  }, [
+    isMounted,
+    isSubmitting,
+    loaders,
+    profile?.height,
+    profile?.weight,
+    profile?.fitnessLevel,
+  ]);
 
   // Reseta forceValidation quando o step muda
   useEffect(() => {

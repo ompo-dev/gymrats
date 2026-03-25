@@ -1,17 +1,17 @@
-import type { NextRequest } from "@/runtime/next-server";
+import {
+  createWeeklyPlanSchema,
+  updateWeeklyPlanSchema,
+} from "@/lib/api/schemas/workouts.schemas";
 import {
   badRequestResponse,
   forbiddenResponse,
   internalErrorResponse,
   successResponse,
 } from "@/lib/api/utils/response.utils";
-import {
-  createWeeklyPlanSchema,
-  updateWeeklyPlanSchema,
-} from "@/lib/api/schemas/workouts.schemas";
 import { db } from "@/lib/db";
-import { getGymContext } from "@/lib/utils/gym/gym-context";
 import { getWeeklyPlanUseCase } from "@/lib/use-cases/workouts/get-weekly-plan";
+import { getGymContext } from "@/lib/utils/gym/gym-context";
+import type { NextRequest } from "@/runtime/next-server";
 
 /**
  * GET /api/gym/students/[id]/weekly-plan
@@ -194,13 +194,12 @@ export async function PATCH(
       select: { activeWeeklyPlanId: true },
     });
 
-    let weeklyPlan =
-      studentData?.activeWeeklyPlanId
-        ? await db.weeklyPlan.findUnique({
-            where: { id: studentData.activeWeeklyPlanId },
-            include: { slots: { orderBy: { dayOfWeek: "asc" } } },
-          })
-        : null;
+    let weeklyPlan = studentData?.activeWeeklyPlanId
+      ? await db.weeklyPlan.findUnique({
+          where: { id: studentData.activeWeeklyPlanId },
+          include: { slots: { orderBy: { dayOfWeek: "asc" } } },
+        })
+      : null;
 
     if (!weeklyPlan) {
       weeklyPlan = await db.weeklyPlan.create({

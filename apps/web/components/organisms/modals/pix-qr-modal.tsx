@@ -161,8 +161,8 @@ export function PixQrBlock({
     } catch (err) {
       const msg =
         err && typeof err === "object" && "response" in err
-          ? (err as { response?: { data?: { error?: string } } }).response
-              ?.data?.error
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
           : err instanceof Error
             ? err.message
             : "Erro ao simular";
@@ -219,17 +219,18 @@ export function PixQrBlock({
           ) : (
             <p className="text-xs text-duo-fg-muted">Valor a pagar</p>
           )}
-          {valueSlot?.strikethrough != null && valueSlot.strikethrough > amount && (
-            <p className="text-xs text-duo-gray-dark font-semibold line-through">
-              De R$ {(valueSlot.strikethrough / 100).toFixed(2)}
-            </p>
-          )}
+          {valueSlot?.strikethrough != null &&
+            valueSlot.strikethrough > amount && (
+              <p className="text-xs text-duo-gray-dark font-semibold line-through">
+                De R$ {(valueSlot.strikethrough / 100).toFixed(2)}
+              </p>
+            )}
           <p className="text-2xl font-bold text-duo-green">R$ {valueReais}</p>
           {valueSlot?.badge && (
             <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg border-2 border-duo-green bg-duo-green/10 px-2.5 py-1 text-xs font-bold text-duo-green">
-                <span>Cupom: {valueSlot.badge.code}</span>
-                <span className="opacity-60">•</span>
-                <span>-{valueSlot.badge.discountString}</span>
+              <span>Cupom: {valueSlot.badge.code}</span>
+              <span className="opacity-60">•</span>
+              <span>-{valueSlot.badge.discountString}</span>
             </div>
           )}
         </div>
@@ -297,8 +298,7 @@ export function PixQrModal({
     pollConfig?.type === "subscription" ? pollConfig : null;
   const checkPoll = checkPollConfig?.check;
   const checkPollIntervalMs = checkPollConfig?.intervalMs;
-  const checkPollBackoffSignature =
-    checkPollConfig?.backoffMs?.join(",") ?? "";
+  const checkPollBackoffSignature = checkPollConfig?.backoffMs?.join(",") ?? "";
   const checkPollMaxDurationMs = checkPollConfig?.maxDurationMs;
   const paymentConfirmedTitle = paymentConfirmedToast.title;
   const paymentConfirmedDescription = paymentConfirmedToast.description;

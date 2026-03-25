@@ -86,10 +86,16 @@ export function UnitSectionCard({
               <Loader2 className="h-6 w-6 animate-spin text-duo-green" />
             ) : buttonHref ? (
               <Link href={buttonHref}>
-                {ButtonIcon ? <ButtonIcon className="h-6 w-6" /> : <Pencil className="h-6 w-6" />}
+                {ButtonIcon ? (
+                  <ButtonIcon className="h-6 w-6" />
+                ) : (
+                  <Pencil className="h-6 w-6" />
+                )}
               </Link>
+            ) : ButtonIcon ? (
+              <ButtonIcon className="h-6 w-6" />
             ) : (
-              ButtonIcon ? <ButtonIcon className="h-6 w-6" /> : <Pencil className="h-6 w-6" />
+              <Pencil className="h-6 w-6" />
             )}
           </DuoButton>
         </div>

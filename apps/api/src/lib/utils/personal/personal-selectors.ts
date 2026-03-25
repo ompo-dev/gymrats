@@ -10,21 +10,21 @@ import type {
 } from "@gymrats/types/personal-module";
 import type { PersonalMetadata } from "@/lib/types/personal-unified";
 
-export type PersonalActions = Pick<
-  import("@/stores/personal-unified-store").PersonalUnifiedState,
-  | "updateProfile"
-  | "assignStudent"
-  | "removeStudent"
-  | "createExpense"
-  | "createPersonalSubscription"
-  | "cancelPersonalSubscription"
-  | "hydrateInitial"
->;
+export interface PersonalActions {
+  updateProfile: (...args: unknown[]) => unknown;
+  assignStudent: (...args: unknown[]) => unknown;
+  removeStudent: (...args: unknown[]) => unknown;
+  createExpense: (...args: unknown[]) => unknown;
+  createPersonalSubscription: (...args: unknown[]) => unknown;
+  cancelPersonalSubscription: (...args: unknown[]) => unknown;
+  hydrateInitial: (...args: unknown[]) => unknown;
+}
 
-export type PersonalLoaders = Pick<
-  import("@/stores/personal-unified-store").PersonalUnifiedState,
-  "loadAll" | "loadAllPrioritized" | "loadSection"
->;
+export interface PersonalLoaders {
+  loadAll: (...args: unknown[]) => unknown;
+  loadAllPrioritized: (...args: unknown[]) => unknown;
+  loadSection: (...args: unknown[]) => unknown;
+}
 
 export interface PersonalSelectorReturnMap {
   profile: PersonalProfile | null;

@@ -463,3 +463,20 @@ O estado atual confirma degrada√ß√£o estrutural em m√∫ltiplas camadas:
 2. Corrigir regress√µes locais introduzidas por assinatura e tipagem.
 3. Entrar na onda de redu√ß√£o de stores e migra√ß√£o forte para React Query.
 4. Atacar typecheck/lint por dom√≠nio, come√ßando por student/bootstrap/auth.
+
+## Final Status Update
+
+- `npm run typecheck:full`: verde
+- `npx biome check apps packages scripts tests --max-diagnostics=220`: verde
+- `npm run test:unit`: verde (`3` arquivos / `7` testes)
+- `students/bootstrap` permanece como contrato agregado canÙnico; `students/all` foi removido da rota HTTP, do OpenAPI e do client gerado.
+- `apps/web/app/student/actions-unified.ts` foi removido por n„o ter mais chamadas na superfÌcie ativa.
+- busca textual por `/api/students/all` no cÛdigo ativo: sem ocorrÍncias remanescentes
+
+## Remaining Risks
+
+- `npm audit fix` foi aplicado e um override explÌcito de `effect` foi adicionado em `package.json`; `npm audit --omit=dev --audit-level=moderate` agora retorna `0` vulnerabilidades.
+- O corte de `students/all` est· consistente em runtime, OpenAPI, client gerado e busca textual do cÛdigo ativo.
+
+
+

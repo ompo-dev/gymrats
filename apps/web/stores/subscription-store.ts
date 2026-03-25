@@ -1,6 +1,10 @@
 import { create } from "zustand";
+import {
+  centsToReais,
+  GYM_PLANS_CONFIG,
+} from "@/lib/access-control/plans-config";
 import { apiClient } from "@/lib/api/client";
-import { GYM_PLANS_CONFIG, centsToReais } from "@/lib/access-control/plans-config";
+import type { StudentData } from "@/lib/types/student-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 import { useGymsDataStore } from "@/stores/gyms-list-store";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
@@ -63,6 +67,7 @@ export interface GymSubscriptionData {
 
 export type SubscriptionLike = StudentSubscriptionData | GymSubscriptionData;
 export type SubscriptionUserType = "student" | "gym";
+type StudentSubscriptionSnapshot = NonNullable<StudentData["subscription"]>;
 
 interface SubscriptionMeta {
   isLoading: boolean;
@@ -147,7 +152,8 @@ function normalizeSubscription<T extends SubscriptionLike>(
       : null,
     trialEnd,
     isTrial:
-      (subscription.status === "trialing" || subscription.status === "canceled") &&
+      (subscription.status === "trialing" ||
+        subscription.status === "canceled") &&
       !!trialEnd &&
       trialEnd > new Date(),
     daysRemaining: trialEnd
@@ -161,17 +167,74 @@ function normalizeSubscription<T extends SubscriptionLike>(
   return normalized;
 }
 
+function toStudentSubscriptionSnapshot(
+  subscription: SubscriptionLike | null,
+): Partial<StudentSubscriptionSnapshot> | null {
+  if (!subscription || "basePrice" in subscription) {
+    return null;
+  }
+
+  return {
+    id: subscription.id,
+    plan: subscription.plan,
+    status: subscription.status,
+    currentPeriodStart: subscription.currentPeriodStart,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    canceledAt: subscription.canceledAt,
+    trialStart: subscription.trialStart,
+    trialEnd: subscription.trialEnd,
+    isTrial: subscription.isTrial,
+    daysRemaining: subscription.daysRemaining,
+    billingPeriod: subscription.billingPeriod,
+    source: subscription.source,
+    gymId: subscription.gymId,
+    enterpriseGymName: subscription.enterpriseGymName,
+  };
+}
+
 function syncStudentSubscription(subscription: SubscriptionLike | null) {
   void useStudentUnifiedStore
     .getState()
-    .updateSubscription((subscription as any) ?? null);
+    .updateSubscription(toStudentSubscriptionSnapshot(subscription));
+}
+
+function toGymSubscriptionSnapshot(
+  subscription: SubscriptionLike | null,
+): GymSubscriptionData | null {
+  if (!subscription || !("basePrice" in subscription)) {
+    return null;
+  }
+
+  return {
+    id: subscription.id,
+    plan: subscription.plan,
+    status: subscription.status,
+    basePrice: subscription.basePrice,
+    pricePerStudent: subscription.pricePerStudent,
+    pricePerPersonal: subscription.pricePerPersonal,
+    currentPeriodStart: subscription.currentPeriodStart,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+    canceledAt: subscription.canceledAt,
+    trialStart: subscription.trialStart,
+    trialEnd: subscription.trialEnd,
+    isTrial: subscription.isTrial,
+    daysRemaining: subscription.daysRemaining,
+    activeStudents: subscription.activeStudents,
+    activePersonals: subscription.activePersonals,
+    totalAmount: subscription.totalAmount,
+    billingPeriod: subscription.billingPeriod,
+    canStartTrial: subscription.canStartTrial,
+  };
 }
 
 function syncGymSubscription(subscription: SubscriptionLike | null) {
+  const nextSubscription = toGymSubscriptionSnapshot(subscription);
   useGymUnifiedStore.setState((state) => ({
     data: {
       ...state.data,
-      subscription: (subscription as any) ?? null,
+      subscription: nextSubscription,
     },
   }));
 }

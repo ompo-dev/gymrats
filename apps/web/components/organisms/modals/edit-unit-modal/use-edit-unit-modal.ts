@@ -4,9 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { useLibraryPlanStore } from "@/stores/library-plan-store";
-import { useStudentDetailStore } from "@/stores/student-detail-store";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import type {
   MuscleGroup,
   PlanSlotData,
@@ -14,6 +11,9 @@ import type {
   WorkoutExercise,
   WorkoutSession,
 } from "@/lib/types";
+import { useLibraryPlanStore } from "@/stores/library-plan-store";
+import { useStudentDetailStore } from "@/stores/student-detail-store";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export const DAY_NAMES = [
   "Segunda",
@@ -56,25 +56,30 @@ export function useEditUnitModal({
 
   const isGymMode = apiMode === "gym";
   const actions = useStudent("actions");
-  const storeWeeklyPlan = useStudent("weeklyPlan") as unknown as WeeklyPlanData | null;
+  const storeWeeklyPlan = useStudent(
+    "weeklyPlan",
+  ) as unknown as WeeklyPlanData | null;
   const storeLoaders = useStudent("loaders");
 
   const storeLibraryPlan = useStudentUnifiedStore((state) =>
     isLibraryMode && weeklyPlanOverride?.id
-      ? state.data.libraryPlans?.find((plan) => plan.id === weeklyPlanOverride.id) ??
-        null
+      ? (state.data.libraryPlans?.find(
+          (plan) => plan.id === weeklyPlanOverride.id,
+        ) ?? null)
       : null,
   );
 
   const weeklyPlan: WeeklyPlanData | null = isGymMode
     ? (weeklyPlanOverride ?? null)
     : isLibraryMode
-      ? ((storeLibraryPlan ?? weeklyPlanOverride) as unknown as WeeklyPlanData | null)
+      ? ((storeLibraryPlan ??
+          weeklyPlanOverride) as unknown as WeeklyPlanData | null)
       : storeWeeklyPlan;
 
-  const loadWeeklyPlan = isGymMode || isLibraryMode
-    ? loadWeeklyPlanOverride
-    : storeLoaders.loadWeeklyPlan;
+  const loadWeeklyPlan =
+    isGymMode || isLibraryMode
+      ? loadWeeklyPlanOverride
+      : storeLoaders.loadWeeklyPlan;
 
   const isOpen = isWeeklyPlanMode ? (isOpenProp ?? false) : isOpenEditUnit;
   const close = isWeeklyPlanMode ? (onCloseProp ?? (() => {})) : closeEditUnit;
@@ -100,15 +105,16 @@ export function useEditUnitModal({
   const [workoutMuscleGroup, setWorkoutMuscleGroup] = useState<string>("");
   const [workoutItems, setWorkoutItems] = useState<WorkoutSession[]>([]);
   const [exerciseItems, setExerciseItems] = useState<WorkoutExercise[]>([]);
-  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(
-    null,
-  );
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<
+    string | null
+  >(null);
   const [deleteWorkoutConfirmationId, setDeleteWorkoutConfirmationId] =
     useState<string | null>(null);
   const [weeklyPlanSlotsKey, setWeeklyPlanSlotsKey] = useState(0);
 
   const unit = useStudentUnifiedStore(
-    (state) => state.data.units.find((currentUnit) => currentUnit.id === unitId) || null,
+    (state) =>
+      state.data.units.find((currentUnit) => currentUnit.id === unitId) || null,
   );
 
   const sortedWorkouts = useMemo(() => {
@@ -120,14 +126,19 @@ export function useEditUnitModal({
     const currentIds = workoutItems.map((workout) => workout.id).join(",");
     const nextIds = sortedWorkouts.map((workout) => workout.id).join(",");
 
-    if (currentIds !== nextIds || workoutItems.length !== sortedWorkouts.length) {
+    if (
+      currentIds !== nextIds ||
+      workoutItems.length !== sortedWorkouts.length
+    ) {
       setWorkoutItems(sortedWorkouts);
     }
   }, [sortedWorkouts, workoutItems]);
 
   const exercisesRawFromStore = useStudentUnifiedStore((state) => {
     if (!editingWorkoutId || !unitId) return null;
-    const currentUnit = state.data.units.find((candidate) => candidate.id === unitId);
+    const currentUnit = state.data.units.find(
+      (candidate) => candidate.id === unitId,
+    );
     const currentWorkout = currentUnit?.workouts.find(
       (candidate) => candidate.id === editingWorkoutId,
     );
@@ -136,22 +147,30 @@ export function useEditUnitModal({
 
   const exercisesRawFromWeeklyPlan = useMemo(() => {
     if (!isWeeklyPlanMode || !editingWorkoutId) return null;
-    const slot = planSlots.find((candidate) => candidate.workout?.id === editingWorkoutId);
+    const slot = planSlots.find(
+      (candidate) => candidate.workout?.id === editingWorkoutId,
+    );
     return slot?.workout?.exercises ?? null;
   }, [editingWorkoutId, isWeeklyPlanMode, planSlots]);
 
   const exercises = useMemo(
-    () => (isWeeklyPlanMode ? exercisesRawFromWeeklyPlan : exercisesRawFromStore) ?? [],
+    () =>
+      (isWeeklyPlanMode ? exercisesRawFromWeeklyPlan : exercisesRawFromStore) ??
+      [],
     [exercisesRawFromStore, exercisesRawFromWeeklyPlan, isWeeklyPlanMode],
   );
 
   const activeWorkout = useMemo(() => {
     if (isWeeklyPlanMode && editingWorkoutId) {
-      const slot = planSlots.find((candidate) => candidate.workout?.id === editingWorkoutId);
+      const slot = planSlots.find(
+        (candidate) => candidate.workout?.id === editingWorkoutId,
+      );
       return slot?.workout ?? null;
     }
 
-    return sortedWorkouts.find((workout) => workout.id === editingWorkoutId) ?? null;
+    return (
+      sortedWorkouts.find((workout) => workout.id === editingWorkoutId) ?? null
+    );
   }, [editingWorkoutId, isWeeklyPlanMode, planSlots, sortedWorkouts]);
 
   const sortedExercises = useMemo(() => {
@@ -163,7 +182,10 @@ export function useEditUnitModal({
     const currentIds = exerciseItems.map((exercise) => exercise.id).join(",");
     const nextIds = sortedExercises.map((exercise) => exercise.id).join(",");
 
-    if (currentIds !== nextIds || exerciseItems.length !== sortedExercises.length) {
+    if (
+      currentIds !== nextIds ||
+      exerciseItems.length !== sortedExercises.length
+    ) {
       setExerciseItems(sortedExercises);
     }
   }, [sortedExercises, exerciseItems]);
@@ -187,7 +209,9 @@ export function useEditUnitModal({
       const timePerSet = avgReps * 2;
       const numberOfRests = sets > 0 ? sets - 1 : 0;
 
-      return accumulator + sets * timePerSet + numberOfRests * (exercise.rest || 60);
+      return (
+        accumulator + sets * timePerSet + numberOfRests * (exercise.rest || 60)
+      );
     }, 0);
 
     return Math.ceil(totalSeconds / 60) + 10;
@@ -261,14 +285,22 @@ export function useEditUnitModal({
         toast.error("Erro ao atualizar treino");
       });
     },
-    [actions, isGymMode, isLibraryMode, onPlanUpdated, studentId, weeklyPlan?.id],
+    [
+      actions,
+      isGymMode,
+      isLibraryMode,
+      onPlanUpdated,
+      studentId,
+      weeklyPlan?.id,
+    ],
   );
 
   useEffect(() => {
     if (!activeWorkout || calculatedEstimatedTime <= 0) return;
 
     const currentTime = activeWorkout.estimatedTime || 0;
-    const hasSignificantChange = Math.abs(currentTime - calculatedEstimatedTime) >= 1;
+    const hasSignificantChange =
+      Math.abs(currentTime - calculatedEstimatedTime) >= 1;
     const hasChangedSinceLastUpdate =
       lastCalculatedTimeRef.current !== calculatedEstimatedTime;
 
@@ -371,7 +403,9 @@ export function useEditUnitModal({
     } catch (error) {
       console.error(error);
       toast.error(
-        isWeeklyPlanMode ? "Erro ao atualizar plano" : "Erro ao atualizar treino",
+        isWeeklyPlanMode
+          ? "Erro ao atualizar plano"
+          : "Erro ao atualizar treino",
       );
     } finally {
       setSaving(false);
@@ -477,8 +511,8 @@ export function useEditUnitModal({
     } catch (error) {
       console.error(error);
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Falha ao remover treino";
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Falha ao remover treino";
       toast.error(message);
     }
   }, [
@@ -614,7 +648,9 @@ export function useEditUnitModal({
         }
 
         onPlanUpdated?.();
-        toast.success("Treino adicionado. Adicione exercicios ou use o Chat IA.");
+        toast.success(
+          "Treino adicionado. Adicione exercicios ou use o Chat IA.",
+        );
       } catch (error) {
         console.error(error);
         toast.error("Nao foi possivel adicionar o treino.");
@@ -701,7 +737,14 @@ export function useEditUnitModal({
         toast.error("Erro ao salvar exercicio");
       });
     },
-    [actions, isGymMode, isLibraryMode, onPlanUpdated, studentId, weeklyPlan?.id],
+    [
+      actions,
+      isGymMode,
+      isLibraryMode,
+      onPlanUpdated,
+      studentId,
+      weeklyPlan?.id,
+    ],
   );
 
   const handleReorderExercises = useCallback(
@@ -761,8 +804,8 @@ export function useEditUnitModal({
     } catch (error) {
       console.error(error);
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || "Erro ao remover exercicio. Tente novamente.";
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Erro ao remover exercicio. Tente novamente.";
       toast.error(message);
     }
   }, [

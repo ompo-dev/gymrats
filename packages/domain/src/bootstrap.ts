@@ -1,9 +1,9 @@
-import { getRequestContext } from "./request-runtime";
 import type {
   BootstrapMeta,
   BootstrapResponse,
   BootstrapSectionTimings,
 } from "@gymrats/types/bootstrap";
+import { getRequestContext } from "./request-runtime";
 
 export async function measureBootstrapSection<T>(
   section: string,
@@ -28,11 +28,10 @@ export function createBootstrapMeta(options: {
     generatedAt: new Date().toISOString(),
     requestId: requestContext?.requestId ?? "unknown",
     sectionTimings: options.sectionTimings,
-    cache:
-      options.cache ?? {
-        hit: false,
-        strategy: "none",
-      },
+    cache: options.cache ?? {
+      hit: false,
+      strategy: "none",
+    },
   };
 }
 

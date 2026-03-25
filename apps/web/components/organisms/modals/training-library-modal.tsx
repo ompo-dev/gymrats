@@ -1,23 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "motion/react";
 import { Check, Dumbbell, Edit, Loader2, Plus, Trash2 } from "lucide-react";
+import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DuoButton, DuoCard, DuoText } from "@/components/duo";
+import { useModalState } from "@/hooks/use-modal-state";
+import { useStudent } from "@/hooks/use-student";
 import { apiClient } from "@/lib/api/client";
 import type { WeeklyPlanData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useModalState } from "@/hooks/use-modal-state";
-import { useStudent } from "@/hooks/use-student";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { EditUnitModal } from "./edit-unit-modal";
 import { Modal } from "./modal";
 
 export function TrainingLibraryModal() {
   const { isOpen, close } = useModalState("training-library");
-  const libraryPlans = useStudent("libraryPlans") as unknown as WeeklyPlanData[] | null;
-  const weeklyPlan = useStudent("weeklyPlan") as unknown as WeeklyPlanData | null;
+  const libraryPlans = useStudent("libraryPlans") as unknown as
+    | WeeklyPlanData[]
+    | null;
+  const weeklyPlan = useStudent(
+    "weeklyPlan",
+  ) as unknown as WeeklyPlanData | null;
   const actions = useStudent("actions");
   const { loadLibraryPlans, loadWeeklyPlan } = useStudent("loaders");
 
@@ -72,7 +76,7 @@ export function TrainingLibraryModal() {
     try {
       await actions.deleteLibraryPlan(planId);
       toast.success("Treino excluido da biblioteca!");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Erro ao excluir o treino da biblioteca.");
     } finally {
       setLoadingId(null);
@@ -85,7 +89,7 @@ export function TrainingLibraryModal() {
       await actions.activateLibraryPlan(planId);
       toast.success("Treino ativado com sucesso!");
       close();
-    } catch (error) {
+    } catch (_error) {
       toast.error("Erro ao ativar o treino.");
     } finally {
       setActivatingId(null);
@@ -107,7 +111,7 @@ export function TrainingLibraryModal() {
       }
       setEditingPlan(newPlan);
       toast.success("Plano criado! Preencha os dias da semana.");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Erro ao criar o plano.");
     } finally {
       setCreatingPlan(false);
@@ -200,8 +204,8 @@ export function TrainingLibraryModal() {
 
               {plans.map((plan, index) => {
                 const workoutDays =
-                  plan.slots?.filter((slot) => slot.type === "workout").length ??
-                  0;
+                  plan.slots?.filter((slot) => slot.type === "workout")
+                    .length ?? 0;
 
                 return (
                   <motion.div
@@ -220,8 +224,9 @@ export function TrainingLibraryModal() {
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-duo-green/10 text-lg font-bold text-duo-green">
                             {workoutDays}
                           </div>
-                          <div
-                            className="min-w-0 flex-1 cursor-pointer"
+                          <button
+                            type="button"
+                            className="min-w-0 flex-1 cursor-pointer text-left"
                             onClick={() => void openPlanEditor(plan.id)}
                           >
                             <h4 className="truncate text-lg font-bold text-duo-fg">
@@ -243,7 +248,7 @@ export function TrainingLibraryModal() {
                                 </span>
                               )}
                             </div>
-                          </div>
+                          </button>
                         </div>
 
                         <div className="relative z-10 flex shrink-0 items-center gap-1 sm:flex-none">

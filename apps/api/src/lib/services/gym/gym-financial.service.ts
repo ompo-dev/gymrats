@@ -1,5 +1,5 @@
-import { db } from "@/lib/db";
 import { getCachedJson, setCachedJson } from "@/lib/cache/resource-cache";
+import { db } from "@/lib/db";
 import type { Expense, FinancialSummary, Payment } from "@/lib/types";
 
 /** Taxa AbacatePay por transação (recebimento de pagamento e saque). */
@@ -14,7 +14,9 @@ function buildGymFinancialCacheKey(
   params?: Record<string, string | number | boolean | null | undefined>,
 ) {
   const query = Object.entries(params ?? {})
-    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
     .sort(([left], [right]) => left.localeCompare(right))
     .map(
       ([key, value]) =>
@@ -225,25 +227,23 @@ export class GymFinancialService {
     return payload;
   }
 
-  static async getCoupons(
-    gymId: string,
-    options?: { fresh?: boolean },
-  ) {
+  static async getCoupons(gymId: string, options?: { fresh?: boolean }) {
     const cacheKey = buildGymFinancialCacheKey(gymId, "coupons");
 
     if (!options?.fresh) {
-      const cached = await getCachedJson<
-        Array<{
-          id: string;
-          code: string;
-          type: "percentage" | "fixed";
-          value: number;
-          maxUses: number;
-          currentUses: number;
-          expiryDate: Date | string;
-          isActive: boolean;
-        }>
-      >(cacheKey);
+      const cached =
+        await getCachedJson<
+          Array<{
+            id: string;
+            code: string;
+            type: "percentage" | "fixed";
+            value: number;
+            maxUses: number;
+            currentUses: number;
+            expiryDate: Date | string;
+            isActive: boolean;
+          }>
+        >(cacheKey);
       if (cached) {
         return cached;
       }
@@ -278,35 +278,33 @@ export class GymFinancialService {
     return payload;
   }
 
-  static async getBoostCampaigns(
-    gymId: string,
-    options?: { fresh?: boolean },
-  ) {
+  static async getBoostCampaigns(gymId: string, options?: { fresh?: boolean }) {
     const cacheKey = buildGymFinancialCacheKey(gymId, "campaigns");
 
     if (!options?.fresh) {
-      const cached = await getCachedJson<
-        Array<{
-          id: string;
-          gymId: string | null;
-          title: string;
-          description: string;
-          primaryColor: string;
-          durationHours: number;
-          amountCents: number;
-          status: string;
-          clicks: number;
-          impressions: number;
-          radiusKm: number | null;
-          linkedCouponId: string | null;
-          linkedPlanId: string | null;
-          abacatePayBillingId: string | null;
-          startsAt: Date | string | null;
-          endsAt: Date | string | null;
-          createdAt: Date | string;
-          updatedAt: Date | string;
-        }>
-      >(cacheKey);
+      const cached =
+        await getCachedJson<
+          Array<{
+            id: string;
+            gymId: string | null;
+            title: string;
+            description: string;
+            primaryColor: string;
+            durationHours: number;
+            amountCents: number;
+            status: string;
+            clicks: number;
+            impressions: number;
+            radiusKm: number | null;
+            linkedCouponId: string | null;
+            linkedPlanId: string | null;
+            abacatePayBillingId: string | null;
+            startsAt: Date | string | null;
+            endsAt: Date | string | null;
+            createdAt: Date | string;
+            updatedAt: Date | string;
+          }>
+        >(cacheKey);
       if (cached) {
         return cached;
       }
@@ -410,14 +408,10 @@ export class GymFinancialService {
         status: w.status,
         createdAt: w.createdAt,
         completedAt: w.completedAt ?? null,
-        })),
+      })),
     };
 
-    await setCachedJson(
-      cacheKey,
-      payload,
-      GYM_WITHDRAWS_CACHE_TTL_SECONDS,
-    );
+    await setCachedJson(cacheKey, payload, GYM_WITHDRAWS_CACHE_TTL_SECONDS);
 
     return payload;
   }

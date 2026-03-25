@@ -706,8 +706,10 @@ export class GymDomainService {
         fitnessLevel: user.student.profile?.fitnessLevel,
         goals: user.student.profile?.goals
           ? (() => {
+              const rawGoals = user.student.profile?.goals;
+              if (!rawGoals) return [];
               try {
-                return JSON.parse(user.student?.profile?.goals!);
+                return JSON.parse(rawGoals);
               } catch {
                 return [];
               }

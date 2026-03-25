@@ -1,7 +1,7 @@
-import { NextResponse } from "@/runtime/next-server";
 import { createSafeHandler } from "@/lib/api/utils/api-wrapper";
 import { db } from "@/lib/db";
 import { featureFlags } from "@/lib/feature-flags";
+import { NextResponse } from "@/runtime/next-server";
 
 export const POST = createSafeHandler(
   async ({ personalContext }) => {
