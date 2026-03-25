@@ -195,10 +195,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const handleCancelMembership = async (membershipId: string) => {
     try {
       await cancelMembershipAction(membershipId);
-      await Promise.all([
-        paymentFlow.invalidatePaymentQueries(),
-        refetchFinancial(),
-      ]);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Plano cancelado",
         description: "Sua mensalidade na academia foi cancelada.",
@@ -288,7 +285,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const handlePixConfirmed = async () => {
     await Promise.all([
       paymentFlow.invalidatePaymentQueries(),
-      refetchFinancial(),
       refetchSubscription(),
     ]);
   };
@@ -322,9 +318,8 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
   const handleCancelPayment = useCallback(
     async (paymentId: string) => {
       await paymentFlow.cancelPayment.mutateAsync(paymentId);
-      await refetchFinancial();
     },
-    [paymentFlow.cancelPayment, refetchFinancial],
+    [paymentFlow.cancelPayment],
   );
 
   const handleStartTrial = async () => {
@@ -335,7 +330,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         if (result.error.includes("já existe")) {
           await Promise.all([
             paymentFlow.invalidatePaymentQueries(),
-            refetchFinancial(),
             refetchSubscription(),
           ]);
           setActiveTab("subscription");
@@ -357,7 +351,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       if (result.success) {
         await Promise.all([
           paymentFlow.invalidatePaymentQueries(),
-          refetchFinancial(),
           refetchSubscription(),
         ]);
         setActiveTab("subscription");
@@ -400,7 +393,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       if (pix.pixId && pix.brCode) {
         await Promise.all([
           paymentFlow.invalidatePaymentQueries(),
-          refetchFinancial(),
           refetchSubscription(),
         ]);
         return {
@@ -491,12 +483,9 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       | StudentSubscriptionData
       | null
       | undefined;
-    await Promise.all([
-      paymentFlow.invalidatePaymentQueries(),
-      refetchFinancial(),
-    ]);
+    await Promise.all([paymentFlow.invalidatePaymentQueries()]);
     return latestSubscription?.status === "active";
-  }, [paymentFlow, refetchFinancial, refetchSubscription]);
+  }, [paymentFlow, refetchSubscription]);
 
   const handleCancelConfirm = async () => {
     cancelDialogModal.close();
@@ -511,7 +500,6 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
       } else {
         await Promise.all([
           paymentFlow.invalidatePaymentQueries(),
-          refetchFinancial(),
           refetchSubscription(),
         ]);
         toast({

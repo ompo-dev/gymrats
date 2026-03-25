@@ -1,7 +1,7 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
+import { useInvalidatePersonalBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,7 +12,7 @@ export function usePersonalFinancial() {
     "affiliations",
     "actions",
   );
-  const queryClient = useQueryClient();
+  const refreshFinancial = useInvalidatePersonalBootstrap();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -24,15 +24,6 @@ export function usePersonalFinancial() {
     expiresAt?: string;
   } | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-
-  const refreshFinancial = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      predicate: (query) =>
-        Array.isArray(query.queryKey) &&
-        query.queryKey[0] === "personal" &&
-        query.queryKey[1] === "bootstrap",
-    });
-  }, [queryClient]);
 
   const stats = useMemo(() => {
     const studentsViaGym = students.filter((item) => item.gym?.id).length;

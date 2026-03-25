@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { usePersonal } from "@/hooks/use-personal";
+import { useToast } from "@/hooks/use-toast";
 import type { FoodItem, Meal, MealFoodItem } from "@/lib/types";
 import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
 import {
@@ -62,7 +62,7 @@ export function usePersonalStudentDetail({
   assignment,
   onBack,
 }: UsePersonalStudentDetailProps) {
-  const { actions, loaders } = usePersonal("actions", "loaders");
+  const actions = usePersonal("actions");
   const { toast } = useToast();
   const [isRemovingAssignment, setIsRemovingAssignment] = useState(false);
   const [activeTab, setActiveTab] =
@@ -78,7 +78,9 @@ export function usePersonalStudentDetail({
     detailKey ? state.weeklyPlans[detailKey] : undefined,
   );
   const dailyNutrition = useStudentDetailStore((state) =>
-    detailKey ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null) : null,
+    detailKey
+      ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null)
+      : null,
   );
   const isLoadingWeeklyPlan = useStudentDetailStore((state) =>
     detailKey ? Boolean(state.weeklyPlanLoading[detailKey]) : false,
@@ -172,12 +174,7 @@ export function usePersonalStudentDetail({
         targetWater,
       });
     },
-    [
-      studentId,
-      isCurrentNutritionDate,
-      nutritionDate,
-      saveTargetWater,
-    ],
+    [studentId, isCurrentNutritionDate, nutritionDate, saveTargetWater],
   );
 
   const applyNutrition = useCallback(
@@ -294,7 +291,12 @@ export function usePersonalStudentDetail({
         );
         const totals = updatedFoods.reduce(
           (
-            sum: { calories: number; protein: number; carbs: number; fats: number },
+            sum: {
+              calories: number;
+              protein: number;
+              carbs: number;
+              fats: number;
+            },
             foodEntry: MealFoodItem,
           ) => ({
             calories: sum.calories + (foodEntry.calories || 0),
@@ -326,7 +328,9 @@ export function usePersonalStudentDetail({
       const current = dailyNutrition?.waterIntake ?? 0;
       const glassAmount = 250;
       const nextWater =
-        index < current / glassAmount ? current - glassAmount : current + glassAmount;
+        index < current / glassAmount
+          ? current - glassAmount
+          : current + glassAmount;
 
       await persistNutrition(baseMeals, nextWater);
     },
@@ -379,7 +383,6 @@ export function usePersonalStudentDetail({
       setIsRemovingAssignment(true);
       try {
         await actions.removeStudent(sId);
-        await loaders.loadSection("students");
         toast({
           title: "Vínculo removido",
           description: "O aluno foi desvinculado com sucesso.",
@@ -402,7 +405,7 @@ export function usePersonalStudentDetail({
         setIsRemovingAssignment(false);
       }
     },
-    [actions, loaders, toast, onBack],
+    [actions, toast, onBack],
   );
 
   return {

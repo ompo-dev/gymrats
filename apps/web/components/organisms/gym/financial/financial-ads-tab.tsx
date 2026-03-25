@@ -11,8 +11,12 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
-import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
+import {
+  useInvalidateGymBootstrap,
+  useInvalidatePersonalBootstrap,
+} from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
@@ -95,23 +99,21 @@ export function FinancialAdsTab({
   variant = "gym",
 }: FinancialAdsTabProps) {
   const { toast } = useToast();
-  const gymData = useGym(
-    "campaigns",
-    "coupons",
-    "membershipPlans",
-    "actions",
-    "loaders",
-  );
+  const gymData = useGym("campaigns", "coupons", "membershipPlans", "actions");
   const personalData = usePersonal(
     "campaigns",
     "coupons",
     "membershipPlans",
     "actions",
-    "loaders",
   );
   const selectedStore = variant === "personal" ? personalData : gymData;
   const actions = selectedStore.actions;
-  const loaders = selectedStore.loaders;
+  const invalidateGymBootstrap = useInvalidateGymBootstrap();
+  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
+  const refreshBootstrap =
+    variant === "personal"
+      ? invalidatePersonalBootstrap
+      : invalidateGymBootstrap;
   const campaignsList =
     campaigns.length > 0 ? campaigns : selectedStore.campaigns;
   const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
@@ -286,6 +288,7 @@ export function FinancialAdsTab({
             <div className="flex gap-2 flex-wrap">
               {STATUS_FILTERS.map((f) => (
                 <button
+                  type="button"
                   key={f.value}
                   onClick={() => setStatusFilter(f.value)}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all border-2 ${
@@ -297,7 +300,9 @@ export function FinancialAdsTab({
                   {f.label}
                   {f.value !== "all" && (
                     <span className="ml-1 opacity-60">
-                      ({campaignsList.filter((c) => c.status === f.value).length})
+                      (
+                      {campaignsList.filter((c) => c.status === f.value).length}
+                      )
                     </span>
                   )}
                 </button>
@@ -358,6 +363,7 @@ export function FinancialAdsTab({
                     {/* Botão de cancelar */}
                     {campaign.status !== "canceled" && (
                       <button
+                        type="button"
                         onClick={() => setConfirmDeleteId(campaign.id)}
                         className="p-1 rounded-lg text-duo-gray-dark hover:text-red-400 hover:bg-red-400/10 transition-colors"
                         title="Cancelar campanha"
@@ -419,249 +425,266 @@ export function FinancialAdsTab({
         </div>
       </DuoCard.Root>
 
-      <>
-        {modalOpen && (
-          <div
-            className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center"
+      {modalOpen && (
+        <div className="fixed inset-0 z-60 flex items-end justify-center bg-black/50 sm:items-center">
+          <button
+            type="button"
+            aria-label="Fechar modal de anúncio"
+            className="absolute inset-0"
             onClick={() => setModalOpen(false)}
+          />
+          <div
+            aria-labelledby="financial-ads-modal-title"
+            aria-modal="true"
+            role="dialog"
+            className="relative z-10 w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
+            style={{
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
-            <div
-              className="w-full max-w-2xl rounded-t-3xl bg-duo-bg-card sm:rounded-3xl"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              {/* Header */}
-              <div className="border-b-2 border-duo-border p-6 shrink-0">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-duo-text">
-                    Criar Anúncio
-                  </h2>
-                  <DuoButton
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setModalOpen(false)}
-                    className="h-10 w-10 rounded-full"
-                  >
-                    ✕
-                  </DuoButton>
-                </div>
+            {/* Header */}
+            <div className="border-b-2 border-duo-border p-6 shrink-0">
+              <div className="flex items-center justify-between">
+                <h2
+                  id="financial-ads-modal-title"
+                  className="text-2xl font-bold text-duo-text"
+                >
+                  Criar Anúncio
+                </h2>
+                <DuoButton
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setModalOpen(false)}
+                  className="h-10 w-10 rounded-full"
+                >
+                  ✕
+                </DuoButton>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Preview */}
+              <div>
+                <p className="text-sm font-bold text-duo-fg-muted mb-2">
+                  Preview do anúncio
+                </p>
+                <DuoCard.Root
+                  variant="default"
+                  padding="none"
+                  className="overflow-hidden ring-1 ring-black/5"
+                >
+                  <div className="p-5 flex-1 flex flex-col gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
+                        <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-duo-text truncate">
+                          {variant === "personal"
+                            ? "Seu perfil"
+                            : "Sua academia"}
+                        </p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Sparkles
+                            className="w-3 h-3"
+                            style={{ color: primaryColor }}
+                          />
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
+                            Patrocinado
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <h3
+                        className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
+                        style={{ color: primaryColor }}
+                      >
+                        {title || "Título Chamativo da Promoção"}
+                      </h3>
+                      <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
+                        {description ||
+                          (variant === "personal"
+                            ? "Mostre por que os alunos devem escolher você..."
+                            : "Mostre por que os alunos devem escolher a sua academia...")}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-duo-border/60">
+                      <div
+                        className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
+                        style={{ backgroundColor: primaryColor }}
+                      >
+                        Aproveitar Oferta
+                      </div>
+                    </div>
+                  </div>
+                </DuoCard.Root>
               </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-5">
-                {/* Preview */}
+              {/* Campos */}
+              <div className="space-y-4">
+                <DuoInput.Simple
+                  label="Título do Anúncio"
+                  placeholder="Ex: Promoção de Verão"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
                 <div>
-                  <p className="text-sm font-bold text-duo-fg-muted mb-2">
-                    Preview do anúncio
-                  </p>
-                  <DuoCard.Root
-                    variant="default"
-                    padding="none"
-                    className="overflow-hidden ring-1 ring-black/5"
+                  <label
+                    htmlFor="campaign-description"
+                    className="text-sm font-bold text-duo-text mb-1 block"
                   >
-                    <div className="p-5 flex-1 flex flex-col gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-duo-bg-elevated flex items-center justify-center border border-duo-border">
-                          <Dumbbell className="w-5 h-5 text-duo-gray-dark" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-duo-text truncate">
-                            {variant === "personal" ? "Seu perfil" : "Sua academia"}
-                          </p>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Sparkles
-                              className="w-3 h-3"
-                              style={{ color: primaryColor }}
-                            />
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-duo-gray-dark">
-                              Patrocinado
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex-1">
-                        <h3
-                          className="font-extrabold text-xl leading-snug mb-2 line-clamp-2"
-                          style={{ color: primaryColor }}
-                        >
-                          {title || "Título Chamativo da Promoção"}
-                        </h3>
-                        <p className="text-sm font-medium text-duo-fg-muted line-clamp-2">
-                          {description ||
-                            (variant === "personal"
-                              ? "Mostre por que os alunos devem escolher você..."
-                              : "Mostre por que os alunos devem escolher a sua academia...")}
-                        </p>
-                      </div>
-
-                      <div className="mt-4 pt-4 border-t border-duo-border/60">
-                        <div
-                          className="w-full py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90 active:scale-[0.98]"
-                          style={{ backgroundColor: primaryColor }}
-                        >
-                          Aproveitar Oferta
-                        </div>
-                      </div>
-                    </div>
-                  </DuoCard.Root>
+                    Descrição
+                  </label>
+                  <textarea
+                    id="campaign-description"
+                    className="w-full h-24 rounded-xl border-2 border-duo-border bg-duo-bg p-3 text-duo-text focus:border-duo-primary focus:outline-none transition-colors"
+                    placeholder="Descreva a oferta..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
                 </div>
 
-                {/* Campos */}
-                <div className="space-y-4">
-                  <DuoInput.Simple
-                    label="Título do Anúncio"
-                    placeholder="Ex: Promoção de Verão"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">
-                      Descrição
-                    </label>
-                    <textarea
-                      className="w-full h-24 rounded-xl border-2 border-duo-border bg-duo-bg p-3 text-duo-text focus:border-duo-primary focus:outline-none transition-colors"
-                      placeholder="Descreva a oferta..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                <div>
+                  <label
+                    htmlFor="campaign-primary-color"
+                    className="text-sm font-bold text-duo-text mb-1 block"
+                  >
+                    Cor Primária (opcional)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      id="campaign-primary-color"
+                      type="color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg"
+                    />
+                    <DuoInput.Simple
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
                     />
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-1 block">
-                      Cor Primária (opcional)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                        className="w-12 h-12 p-1 rounded-xl cursor-pointer border-2 border-duo-border bg-duo-bg"
-                      />
-                      <DuoInput.Simple
-                        value={primaryColor}
-                        onChange={(e) => setPrimaryColor(e.target.value)}
-                      />
+                <div>
+                  <p className="text-sm font-bold text-duo-text mb-2 block">
+                    Duração do Anúncio
+                  </p>
+                  <div className="flex items-center justify-between bg-duo-bg border-2 border-duo-border rounded-xl px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={decDuration}
+                      disabled={durationHours <= MIN_HOURS}
+                      className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      −
+                    </button>
+                    <div className="text-center">
+                      <p className="font-bold text-lg text-duo-text">
+                        {formatDuration(durationHours)}
+                      </p>
+                      <p className="text-xs text-duo-gray-dark">
+                        R$ {totalPrice.toFixed(2)}
+                      </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={incDuration}
+                      className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary"
+                    >
+                      +
+                    </button>
                   </div>
+                  <p className="text-xs text-duo-gray-dark mt-1 text-center">
+                    R$ {stepPrice.toFixed(2)} por cada 12h
+                  </p>
+                </div>
 
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 block">
-                      Duração do Anúncio
-                    </label>
-                    <div className="flex items-center justify-between bg-duo-bg border-2 border-duo-border rounded-xl px-4 py-3">
-                      <button
-                        onClick={decDuration}
-                        disabled={durationHours <= MIN_HOURS}
-                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        −
-                      </button>
-                      <div className="text-center">
-                        <p className="font-bold text-lg text-duo-text">
-                          {formatDuration(durationHours)}
-                        </p>
-                        <p className="text-xs text-duo-gray-dark">
-                          R$ {totalPrice.toFixed(2)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={incDuration}
-                        className="w-9 h-9 flex items-center justify-center rounded-full border-2 border-duo-border text-xl font-bold text-duo-text transition-all hover:border-duo-primary hover:text-duo-primary"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <p className="text-xs text-duo-gray-dark mt-1 text-center">
-                      R$ {stepPrice.toFixed(2)} por cada 12h
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-bold text-duo-text mb-2 flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
-                      Alcance (raio)
-                    </label>
-                    <DuoSelect.Simple
-                      value={String(radiusKm)}
-                      onChange={(val) => setRadiusKm(Number(val))}
-                      options={RADIUS_OPTIONS.map((o) => ({
-                        value: String(o.value),
-                        label: o.label,
-                      }))}
-                      placeholder="Raio em km"
-                    />
-                    <p className="text-xs text-duo-gray-dark mt-1">
-                      Alunos dentro deste raio verão o anúncio na home. Multiplicador: x
-                      {radiusMultiplier}.
-                    </p>
-                  </div>
-
+                <div>
+                  <p className="text-sm font-bold text-duo-text mb-2 flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    Alcance (raio)
+                  </p>
                   <DuoSelect.Simple
-                    label="Cupom Vinculado (Opcional)"
-                    value={linkedCouponId}
-                    onChange={(val) => setLinkedCouponId(val)}
-                    options={[
-                      { value: "", label: "Nenhum cupom" },
-                      ...couponsList
-                        .filter((c) => c.isActive)
-                        .map((c) => ({
+                    value={String(radiusKm)}
+                    onChange={(val) => setRadiusKm(Number(val))}
+                    options={RADIUS_OPTIONS.map((o) => ({
+                      value: String(o.value),
+                      label: o.label,
+                    }))}
+                    placeholder="Raio em km"
+                  />
+                  <p className="text-xs text-duo-gray-dark mt-1">
+                    Alunos dentro deste raio verão o anúncio na home.
+                    Multiplicador: x{radiusMultiplier}.
+                  </p>
+                </div>
+
+                <DuoSelect.Simple
+                  label="Cupom Vinculado (Opcional)"
+                  value={linkedCouponId}
+                  onChange={(val) => setLinkedCouponId(val)}
+                  options={[
+                    { value: "", label: "Nenhum cupom" },
+                    ...couponsList
+                      .filter((c) => c.isActive)
+                      .map((c) => ({
                         value: c.id,
                         label: `${c.code} (${c.type === "percentage" ? `${c.value}%` : `R$ ${c.value}`})`,
                       })),
-                    ]}
-                  />
+                  ]}
+                />
 
-                  <DuoSelect.Simple
-                    label="Plano Vinculado (Opcional)"
-                    value={linkedPlanId}
-                    onChange={(val) => setLinkedPlanId(val)}
-                    options={[
-                      { value: "", label: "Levar para o perfil da academia" },
-                      ...plansList.map((p) => ({ value: p.id, label: p.name })),
-                    ]}
-                  />
-                </div>
+                <DuoSelect.Simple
+                  label="Plano Vinculado (Opcional)"
+                  value={linkedPlanId}
+                  onChange={(val) => setLinkedPlanId(val)}
+                  options={[
+                    { value: "", label: "Levar para o perfil da academia" },
+                    ...plansList.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                />
               </div>
+            </div>
 
-              {/* Footer */}
-              <div className="shrink-0 border-t-2 border-duo-border p-6 space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-duo-gray-dark">
-                    {formatDuration(durationHours)}
-                  </span>
-                  <span className="font-bold text-duo-text text-xl">
-                    R$ {totalPrice.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex gap-3">
-                  <DuoButton
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => setModalOpen(false)}
-                  >
-                    Cancelar
-                  </DuoButton>
-                  <DuoButton
-                    className="flex-1"
-                    onClick={handleCreate}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Processando..." : `Gerar PIX `}
-                  </DuoButton>
-                </div>
+            {/* Footer */}
+            <div className="shrink-0 border-t-2 border-duo-border p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-duo-gray-dark">
+                  {formatDuration(durationHours)}
+                </span>
+                <span className="font-bold text-duo-text text-xl">
+                  R$ {totalPrice.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex gap-3">
+                <DuoButton
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setModalOpen(false)}
+                >
+                  Cancelar
+                </DuoButton>
+                <DuoButton
+                  className="flex-1"
+                  onClick={handleCreate}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Processando..." : `Gerar PIX `}
+                </DuoButton>
               </div>
             </div>
           </div>
-        )}
-      </>
+        </div>
+      )}
 
-      {/* Modal PIX */}
       {pixModal && (
         <PixQrModal
           isOpen={!!pixModal}
@@ -682,7 +705,7 @@ export function FinancialAdsTab({
               : `/api/gym/boost-campaigns/${pixModal.campaignId}/simulate-pix`
           }
           onSimulateSuccess={async () => {
-            await loaders.loadSection("campaigns");
+            await refreshBootstrap();
           }}
           pollConfig={{
             type: "check",
@@ -694,7 +717,7 @@ export function FinancialAdsTab({
           }}
           onPaymentConfirmed={() => {
             setPixModal(null);
-            loaders.loadSection("campaigns");
+            void refreshBootstrap();
           }}
           paymentConfirmedToast={{
             title: "Campanha ativada!",

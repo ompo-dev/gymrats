@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { SlideIn } from "@/components/animations/slide-in";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { AddPersonalStudentModal } from "@/components/organisms/personal/add-personal-student-modal";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
-import type { Payment, StudentData } from "@/lib/types";
+import type { MembershipPlan, Payment, StudentData } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { AddPersonalStudentModal } from "@/components/organisms/personal/add-personal-student-modal";
 import { AddStudentModal } from "./add-student-modal";
 import { GymStudentDetail } from "./gym-student-detail";
 
@@ -99,25 +99,18 @@ interface PersonalAffiliationOption {
 
 interface GymStudentsPageProps {
   students?: StudentData[];
+  membershipPlans?: MembershipPlan[];
   variant?: "gym" | "personal";
   personalAffiliations?: PersonalAffiliationOption[];
 }
 
 export function GymStudentsPage({
   students = [],
+  membershipPlans = [],
   variant = "gym",
   personalAffiliations = [],
 }: GymStudentsPageProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const membershipPlans = useGym("membershipPlans");
-  const storeStudents = useGym("students");
-  const personalStoreStudents = usePersonal("studentDirectory");
-  const effectiveStudents =
-    students.length > 0
-      ? students
-      : variant === "personal"
-        ? (personalStoreStudents as unknown as StudentData[])
-        : storeStudents;
 
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
@@ -134,7 +127,7 @@ export function GymStudentsPage({
   });
   const [studentId, setStudentId] = useQueryState("studentId");
 
-  const safeStudents = Array.isArray(effectiveStudents) ? effectiveStudents : [];
+  const safeStudents = Array.isArray(students) ? students : [];
   const filteredStudents = safeStudents.filter((student) => {
     const s = student as {
       name?: string;
@@ -424,7 +417,8 @@ export function GymStudentsPage({
                     <p className="text-xs font-bold text-duo-gray-dark">
                       Contexto:{" "}
                       <span className="text-duo-text">
-                        {student.gymMembership?.gymName ?? "Atendimento independente"}
+                        {student.gymMembership?.gymName ??
+                          "Atendimento independente"}
                       </span>
                     </p>
                   </DuoCard.Root>

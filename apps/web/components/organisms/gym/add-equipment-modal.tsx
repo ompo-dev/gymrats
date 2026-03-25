@@ -37,7 +37,7 @@ export function AddEquipmentModal({
   onSuccess,
   equipmentToEdit,
 }: AddEquipmentModalProps) {
-  const { actions, loaders } = useGym("actions", "loaders");
+  const actions = useGym("actions");
   const [form, setForm] = useState({
     name: "",
     type: "Musculação",
@@ -101,7 +101,6 @@ export function AddEquipmentModal({
       } else {
         await actions.createEquipment(payload);
       }
-      await loaders.loadSection("equipment");
       onSuccess({
         id: equipmentToEdit?.id || `${Date.now()}`,
         name: form.name,

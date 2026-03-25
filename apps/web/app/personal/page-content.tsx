@@ -1,11 +1,10 @@
 "use client";
 
 import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
-import { useQueryClient } from "@tanstack/react-query";
 import { parseAsString, useQueryState } from "nuqs";
-import { Suspense, useCallback, useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { PersonalMoreMenu } from "@/components/organisms/navigation/personal-more-menu";
-import { useLoadPrioritizedPersonal } from "@/hooks/use-load-prioritized-personal";
+import { useInvalidatePersonalBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { usePersonal } from "@/hooks/use-personal";
 import {
   usePersonalDashboardBootstrapBridge,
@@ -15,7 +14,6 @@ import {
   usePersonalStatsBootstrapBridge,
   usePersonalStudentsBootstrapBridge,
 } from "@/hooks/use-personal-bootstrap";
-import { usePersonalInitializer } from "@/hooks/use-personal-initializer";
 import type { MembershipPlan, StudentData } from "@/lib/types";
 import { PersonalDashboardPageContent } from "./_dashboard/page-content";
 import { PersonalFinancialPageContent } from "./_financial/page-content";
@@ -189,24 +187,12 @@ function PersonalStatsTab() {
 }
 
 function PersonalHomeContent() {
-  const queryClient = useQueryClient();
   const [tab, setTab] = useQueryState(
     "tab",
     parseAsString.withDefault("dashboard"),
   );
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-
-  usePersonalInitializer();
-  useLoadPrioritizedPersonal({ onlyPriorities: true });
-
-  const refreshPersonalBootstrap = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      predicate: (query) =>
-        Array.isArray(query.queryKey) &&
-        query.queryKey[0] === "personal" &&
-        query.queryKey[1] === "bootstrap",
-    });
-  }, [queryClient]);
+  const refreshPersonalBootstrap = useInvalidatePersonalBootstrap();
 
   const refreshGyms = refreshPersonalBootstrap;
   const refreshFinancial = refreshPersonalBootstrap;

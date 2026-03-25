@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { invalidateBootstrapQueries } from "@/hooks/use-bootstrap-refresh";
 import { apiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/query/query-keys";
 import type { StudentPixPaymentPayload } from "@/lib/types/student-unified";
@@ -21,16 +22,15 @@ export function usePaymentFlow() {
 
   const invalidatePaymentQueries = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.studentMemberships() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.studentPayments() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.studentSubscription() }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.studentReferral() }),
       queryClient.invalidateQueries({
-        predicate: (query) =>
-          Array.isArray(query.queryKey) &&
-          query.queryKey[0] === "student" &&
-          query.queryKey[1] === "bootstrap",
+        queryKey: queryKeys.studentMemberships(),
       }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentPayments() }),
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.studentSubscription(),
+      }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.studentReferral() }),
+      invalidateBootstrapQueries(queryClient, "student"),
     ]);
   };
 
@@ -41,7 +41,10 @@ export function usePaymentFlow() {
         {},
         {
           headers: {
-            "X-Idempotency-Key": createIdempotencyKey("student-pay-now", paymentId),
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-pay-now",
+              paymentId,
+            ),
           },
         },
       );

@@ -60,7 +60,7 @@ export function usePersonalStudents({
   const selectedAssignmentFromList = useMemo(
     () =>
       studentId
-        ? students.find((s) => s?.student?.id === studentId) ?? null
+        ? (students.find((s) => s?.student?.id === studentId) ?? null)
         : null,
     [studentId, students],
   );
@@ -85,13 +85,11 @@ export function usePersonalStudents({
     let cancelled = false;
     setIsLoadingAssignment(true);
 
-    loaders
-      .loadStudentDetail(studentId, true)
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingAssignment(false);
-        }
-      });
+    loaders.loadStudentDetail(studentId, true).finally(() => {
+      if (!cancelled) {
+        setIsLoadingAssignment(false);
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -123,7 +121,6 @@ export function usePersonalStudents({
       setRemovingId(id);
       try {
         await actions.removeStudent(id);
-        await loaders.loadSection("students");
         toast({
           title: "Vínculo removido",
           description: "O aluno deixou de estar atribuído a você.",
@@ -146,12 +143,15 @@ export function usePersonalStudents({
         setRemovingId(null);
       }
     },
-    [actions, loaders, toast, onRefresh],
+    [actions, toast, onRefresh],
   );
 
-  const handleOpenDetail = useCallback((id: string) => {
-    setStudentId(id);
-  }, [setStudentId]);
+  const handleOpenDetail = useCallback(
+    (id: string) => {
+      setStudentId(id);
+    },
+    [setStudentId],
+  );
 
   const handleBack = useCallback(() => {
     setStudentId(null);

@@ -84,7 +84,6 @@ export function useStudentReferral() {
         pixKeyType,
       });
       await invalidatePaymentQueries();
-      await refetch();
       toast({
         title: "Chave PIX atualizada!",
         description: "Agora voce pode realizar saques de suas comissoes.",
@@ -116,7 +115,6 @@ export function useStudentReferral() {
       setIsWithdrawing(true);
       await requestReferralWithdraw(Math.floor(parsed.data * 100));
       await invalidatePaymentQueries();
-      await refetch();
       toast({
         title: "Saque solicitado!",
         description: "O valor sera transferido para sua chave PIX.",

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, Loader2, Search, UserPlus, X } from "lucide-react";
+import { CheckCircle, Loader2, UserPlus, X } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
@@ -26,7 +26,7 @@ export function AddPersonalStudentModal({
   onSuccess,
   affiliations,
 }: AddPersonalStudentModalProps) {
-  const { actions, loaders } = usePersonal("actions", "loaders");
+  const actions = usePersonal("actions");
   const { toast } = useToast();
   const searchResult = usePersonalDirectoryStore(
     (state) => state.studentSearchResult,
@@ -48,7 +48,9 @@ export function AddPersonalStudentModal({
   const handleSearch = async () => {
     const trimmed = identifier.trim();
     if (!trimmed) return;
-    const normalizedIdentifier = trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+    const normalizedIdentifier = trimmed.startsWith("@")
+      ? trimmed
+      : `@${trimmed}`;
     if (normalizedIdentifier.length < 3) return; // @ + pelo menos 2 caracteres
     clearStudentSearchResult();
     setError("");
@@ -69,7 +71,6 @@ export function AddPersonalStudentModal({
         studentId: searchResult.student.id,
         gymId: selectedGymId || undefined,
       });
-      await loaders.loadSection("students");
       toast({
         title: "Aluno atribuído",
         description: "O aluno foi vinculado a você.",
@@ -101,6 +102,9 @@ export function AddPersonalStudentModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
       onKeyDown={(e) => e.key === "Escape" && handleClose()}
     >
@@ -114,9 +118,7 @@ export function AddPersonalStudentModal({
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-duo-blue/10">
               <UserPlus className="h-5 w-5 text-duo-blue" />
             </div>
-            <h2 className="text-xl font-bold text-duo-text">
-              Atribuir Aluno
-            </h2>
+            <h2 className="text-xl font-bold text-duo-text">Atribuir Aluno</h2>
           </div>
           <button
             onClick={handleClose}
@@ -167,27 +169,34 @@ export function AddPersonalStudentModal({
               </DuoCard.Root>
             )}
 
-            {searchResult.found && searchResult.student && (
+            {searchResult.found &&
+              searchResult.student &&
               (() => {
                 const currentContext = selectedGymId || "independent";
-                const isAlreadyAssignedInContext = searchResult.assignedGymIds?.includes(currentContext);
+                const isAlreadyAssignedInContext =
+                  searchResult.assignedGymIds?.includes(currentContext);
 
                 if (isAlreadyAssignedInContext) {
                   return (
                     <DuoCard.Root variant="orange" size="sm">
                       <p className="text-sm text-duo-text">
-                        Este aluno já está atribuído a você {selectedGymId ? "nesta academia" : "como atendimento independente"}.
+                        Este aluno já está atribuído a você{" "}
+                        {selectedGymId
+                          ? "nesta academia"
+                          : "como atendimento independente"}
+                        .
                       </p>
                     </DuoCard.Root>
                   );
                 }
                 return null;
-              })()
-            )}
+              })()}
 
             {searchResult.found &&
               searchResult.student &&
-              !searchResult.assignedGymIds?.includes(selectedGymId || "independent") && (
+              !searchResult.assignedGymIds?.includes(
+                selectedGymId || "independent",
+              ) && (
                 <>
                   <DuoCard.Root variant="highlighted" size="sm">
                     <div className="flex items-center gap-3">
@@ -246,7 +255,12 @@ export function AddPersonalStudentModal({
 
                   <DuoButton
                     onClick={handleAssign}
-                    disabled={isSubmitting || searchResult.assignedGymIds?.includes(selectedGymId || "independent")}
+                    disabled={
+                      isSubmitting ||
+                      searchResult.assignedGymIds?.includes(
+                        selectedGymId || "independent",
+                      )
+                    }
                     className="w-full"
                   >
                     {isSubmitting ? (

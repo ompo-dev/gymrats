@@ -20,8 +20,6 @@ import {
   useGymStatsBootstrapBridge,
   useGymStudentsBootstrapBridge,
 } from "@/hooks/use-gym-bootstrap";
-import { useGymInitializer } from "@/hooks/use-gym-initializer";
-import { useLoadPrioritizedGym } from "@/hooks/use-load-prioritized-gym";
 import { useUserSession } from "@/hooks/use-user-session";
 import { normalizeEquipmentList } from "@/lib/utils/gym/normalize-equipment";
 
@@ -64,8 +62,13 @@ function GymDashboardTab() {
 function GymStudentsTab() {
   useGymStudentsBootstrapBridge();
 
-  const students = useGym("students") ?? [];
-  return <GymStudentsPage students={students} />;
+  const { students = [], membershipPlans = [] } = useGym(
+    "students",
+    "membershipPlans",
+  );
+  return (
+    <GymStudentsPage students={students} membershipPlans={membershipPlans} />
+  );
 }
 
 function GymEquipmentTab() {
@@ -162,9 +165,6 @@ function GymHomeContent() {
   const router = useRouter();
   const { isAdmin, role } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
-
-  useGymInitializer();
-  useLoadPrioritizedGym({ onlyPriorities: true });
 
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 

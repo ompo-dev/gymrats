@@ -6,8 +6,8 @@ import { useState } from "react";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
 import { useGym } from "@/hooks/use-gym";
 import { useToast } from "@/hooks/use-toast";
-import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 import type { MembershipPlan } from "@/lib/types";
+import { useGymDirectoryStore } from "@/stores/gym-directory-store";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -22,10 +22,14 @@ export function AddStudentModal({
   onSuccess,
   membershipPlans,
 }: AddStudentModalProps) {
-  const { actions, loaders } = useGym("actions", "loaders");
+  const actions = useGym("actions");
   const { toast } = useToast();
-  const searchResult = useGymDirectoryStore((state) => state.studentSearchResult);
-  const isSearching = useGymDirectoryStore((state) => state.isSearchingStudents);
+  const searchResult = useGymDirectoryStore(
+    (state) => state.studentSearchResult,
+  );
+  const isSearching = useGymDirectoryStore(
+    (state) => state.isSearchingStudents,
+  );
   const searchStudentByIdentifier = useGymDirectoryStore(
     (state) => state.searchStudentByIdentifier,
   );
@@ -79,8 +83,6 @@ export function AddStudentModal({
         planId: selectedPlanId || null,
         amount,
       });
-      await loaders.loadSection("students");
-      await loaders.loadSection("stats");
       onSuccess();
       if (selectedPlanId) {
         toast({
@@ -116,6 +118,9 @@ export function AddStudentModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
       onKeyDown={(e) => e.key === "Escape" && handleClose()}
     >

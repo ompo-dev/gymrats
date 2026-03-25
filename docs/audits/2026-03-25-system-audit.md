@@ -291,6 +291,7 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/app/gym/page-content.tsx` passou a disparar bootstrap por aba enquanto os componentes continuam lendo do store, preservando resposta imediata para updates locais.
 - `apps/web/app/personal/page-content.tsx` passou a usar o mesmo padrÃ£o nas abas principais e a invalidar queries `personal/bootstrap` no refresh.
 - `apps/web/hooks/use-personal-financial.ts` e `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx` deixaram de recarregar seÃ§Ãµes manualmente e passaram a sincronizar o fluxo via invalidaÃ§Ã£o do bootstrap.
+- componentes de mutaÃ§Ã£o em `gym/personal` deixaram de repetir `loadSection` logo apÃ³s actions que jÃ¡ faziam refresh interno, reduzindo round trips redundantes em `students`, `equipment`, `expenses`, `membershipPlans` e vinculaÃ§Ãµes de personal.
 
 ## Changes Implemented In This Pass
 
@@ -337,6 +338,30 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/app/gym/page-content.tsx`
 - `apps/web/app/personal/page-content.tsx`
 - `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx`
+- `apps/web/components/organisms/gym/gym-students.tsx`
+- `apps/web/components/organisms/gym/add-student-modal.tsx`
+- `apps/web/components/organisms/gym/add-equipment-modal.tsx`
+- `apps/web/components/organisms/gym/maintenance-modal.tsx`
+- `apps/web/components/organisms/gym/financial/add-expense-modal.tsx`
+- `apps/web/components/organisms/gym/membership-plans-page.tsx`
+- `apps/web/components/organisms/personal/add-personal-student-modal.tsx`
+- `apps/web/components/organisms/personal/personal-student-detail/hooks/use-personal-student-detail.ts`
+- `apps/web/hooks/use-personal-settings.ts`
+- `apps/web/hooks/use-bootstrap-refresh.ts`
+
+## Focus Update - Duplicate Bootstrap Pipelines Removed
+
+- `apps/web/app/gym/page-content.tsx` e `apps/web/app/personal/page-content.tsx` deixaram de executar `initializer + loadAllPrioritized` em paralelo com o bootstrap por aba.
+- O fluxo ativo de gym/personal ficou reduzido a `SSR prefetch -> React Query cache -> bridge por aba -> hydrateInitial no Zustand`.
+- Foram removidos os hooks redundantes:
+  - `apps/web/hooks/use-gym-initializer.ts`
+  - `apps/web/hooks/use-personal-initializer.ts`
+  - `apps/web/hooks/use-load-prioritized-gym.ts`
+  - `apps/web/hooks/use-load-prioritized-personal.ts`
+- `apps/web/hooks/use-bootstrap-refresh.ts` centraliza a invalidaÃ§Ã£o de bootstrap de `student`, `gym` e `personal`.
+- `apps/web/components/organisms/gym/financial/financial-ads-tab.tsx`, `apps/web/hooks/use-personal-financial.ts` e `apps/web/hooks/use-payment-flow.ts` passaram a reutilizar esse invalidator em vez de repetir predicados de `invalidateQueries` ou `loadSection("campaigns")`.
+- `apps/web/hooks/use-personal-students.ts` deixou de forÃ§ar `loadSection("students")` apÃ³s `actions.removeStudent`, porque a action jÃ¡ sincroniza o store e a invalidaÃ§Ã£o do bootstrap atualiza o cache canÃ´nico.
+- `apps/web/app/student/_payments/hooks/use-payments-page.ts` e `apps/web/app/student/_payments/hooks/use-student-referral.ts` deixaram de combinar `invalidatePaymentQueries()` com `refetch` redundante da mesma superfÃ­cie quando o bootstrap financeiro jÃ¡ estÃ¡ ativo.
 
 ## Validation Status
 

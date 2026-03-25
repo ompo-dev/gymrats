@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,8 +19,10 @@ export interface UsePersonalSettingsProps {
   } | null;
 }
 
-export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps) {
-  const { profile, actions, loaders } = usePersonal("profile", "actions", "loaders");
+export function usePersonalSettings({
+  initialProfile,
+}: UsePersonalSettingsProps) {
+  const { profile, actions } = usePersonal("profile", "actions");
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -67,8 +69,8 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
       } catch (err) {
         const msg =
           err && typeof err === "object" && "response" in err
-            ? (err as { response?: { data?: { error?: string } } }).response?.data
-                ?.error
+            ? (err as { response?: { data?: { error?: string } } }).response
+                ?.data?.error
             : err instanceof Error
               ? err.message
               : "Erro ao salvar. Tente novamente.";
@@ -91,6 +93,5 @@ export function usePersonalSettings({ initialProfile }: UsePersonalSettingsProps
     saving,
     saveError,
     handleSave,
-    loadSection: loaders.loadSection,
   };
 }
