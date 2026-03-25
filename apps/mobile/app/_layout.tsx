@@ -1,3 +1,18 @@
+import {
+  Nunito_400Regular,
+  Nunito_400Regular_Italic,
+  Nunito_500Medium,
+  Nunito_500Medium_Italic,
+  Nunito_600SemiBold,
+  Nunito_600SemiBold_Italic,
+  Nunito_700Bold,
+  Nunito_700Bold_Italic,
+  Nunito_800ExtraBold,
+  Nunito_800ExtraBold_Italic,
+  Nunito_900Black,
+  Nunito_900Black_Italic,
+} from "@expo-google-fonts/nunito";
+import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
@@ -11,20 +26,35 @@ void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const ready = useBootstrapApp();
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_400Regular_Italic,
+    Nunito_500Medium,
+    Nunito_500Medium_Italic,
+    Nunito_600SemiBold,
+    Nunito_600SemiBold_Italic,
+    Nunito_700Bold,
+    Nunito_700Bold_Italic,
+    Nunito_800ExtraBold,
+    Nunito_800ExtraBold_Italic,
+    Nunito_900Black,
+    Nunito_900Black_Italic,
+  });
+  const appReady = ready && fontsLoaded;
 
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(colors.background);
   }, []);
 
   useEffect(() => {
-    if (!ready) {
+    if (!appReady) {
       return;
     }
 
     void SplashScreen.hideAsync();
-  }, [ready]);
+  }, [appReady]);
 
-  if (!ready) {
+  if (!appReady) {
     return null;
   }
 

@@ -34,14 +34,7 @@ export default function AuthCallbackScreen() {
       try {
         const authResult = await consumeOneTimeToken(config.apiUrl, token);
         await upsertSession(authResult);
-        router.replace(
-          authResult.user.role === "PENDING"
-            ? "/student/onboarding"
-            : authResult.user.role === "STUDENT" ||
-                authResult.user.role === "ADMIN"
-              ? "/student"
-              : "/web"
-        );
+        router.replace("/web");
       } catch (callbackError) {
         setError(
           callbackError instanceof Error

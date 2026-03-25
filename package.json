@@ -12,6 +12,8 @@
     "build:worker": "npm --prefix apps/worker run build",
     "build:cron": "npm --prefix apps/cron run build",
     "build:mobile": "npm --prefix apps/mobile run prebuild",
+    "build:apk": "npm --prefix apps/mobile run build:apk",
+    "build:ios": "npm --prefix apps/mobile run build:ios",
     "build:node": "npm --prefix apps/web run build:node",
     "dev": "npm --prefix apps/web run dev",
     "dev:api-app": "npm --prefix apps/api run dev",

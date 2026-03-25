@@ -1,5 +1,11 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { colors, radius, shadow, spacing, typography } from "../theme";
+import {
+  colors,
+  radius,
+  shadow,
+  typography,
+  withNunitoStyles,
+} from "../theme";
 
 type ButtonProps = {
   disabled?: boolean;
@@ -19,7 +25,8 @@ export function PrimaryButton({
       style={({ pressed }) => [
         styles.buttonBase,
         styles.primaryButton,
-        (pressed || disabled) && styles.buttonPressed
+        disabled && styles.buttonDisabled,
+        pressed && styles.primaryButtonPressed
       ]}
     >
       <Text style={styles.primaryButtonText}>{title}</Text>
@@ -39,7 +46,8 @@ export function SecondaryButton({
       style={({ pressed }) => [
         styles.buttonBase,
         styles.secondaryButton,
-        (pressed || disabled) && styles.buttonPressed
+        disabled && styles.buttonDisabled,
+        pressed && styles.secondaryButtonPressed
       ]}
     >
       <Text style={styles.secondaryButtonText}>{title}</Text>
@@ -47,14 +55,14 @@ export function SecondaryButton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(withNunitoStyles({
   buttonBase: {
     alignItems: "center",
     borderRadius: radius.md,
     justifyContent: "center",
-    minHeight: 56,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
+    minHeight: 42,
+    paddingHorizontal: 24,
+    paddingVertical: 10
   },
   primaryButton: {
     backgroundColor: colors.primary,
@@ -62,25 +70,37 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     ...shadow.soft
   },
+  primaryButtonPressed: {
+    borderBottomWidth: 2,
+    opacity: 0.92,
+    transform: [{ translateY: 2 }]
+  },
   secondaryButton: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.white,
     borderColor: colors.border,
     borderWidth: 2
   },
-  buttonPressed: {
-    opacity: 0.7,
-    transform: [{ translateY: 1 }]
+  secondaryButtonPressed: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.blue,
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }]
+  },
+  buttonDisabled: {
+    opacity: 0.5
   },
   primaryButtonText: {
     color: "#ffffff",
     fontSize: typography.body.fontSize,
     fontWeight: "900",
-    letterSpacing: typography.body.letterSpacing
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
   },
   secondaryButtonText: {
     color: colors.foreground,
     fontSize: typography.body.fontSize,
     fontWeight: "800",
-    letterSpacing: typography.body.letterSpacing
+    letterSpacing: 0.8,
+    textTransform: "uppercase"
   }
-});
+}));

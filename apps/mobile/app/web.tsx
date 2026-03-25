@@ -47,14 +47,7 @@ export default function WebScreen() {
   const [webViewKey, setWebViewKey] = useState(0);
 
   const getPostAuthRoute = useCallback((role: string | null | undefined) => {
-    if (role === "PENDING") {
-      return "/student/onboarding";
-    }
-
-    if (role === "STUDENT" || role === "ADMIN") {
-      return "/student";
-    }
-
+    // Agora que web.tsx é o padrão, sempre retorna para o Webview para os roteamentos da web (Next.js) atuarem!
     return "/web";
   }, []);
 
@@ -202,7 +195,7 @@ export default function WebScreen() {
   return (
     <ScreenBackground>
       <SafeAreaView
-        edges={["top", "left", "right", "bottom"]}
+        edges={["top", "left", "right"]}
         style={styles.container}
       >
         <View style={styles.webViewWrapper}>

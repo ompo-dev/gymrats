@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton, SecondaryButton } from "../src/components/buttons";
 import { DuoCard } from "../src/components/duo-card";
+import { refreshAuthSession } from "../src/lib/auth";
 import { ScreenBackground } from "../src/components/screen-background";
 import { useAppStore } from "../src/store/app-store";
 import { colors, radius, spacing, typography } from "../src/theme";
@@ -23,9 +24,14 @@ export default function SettingsScreen() {
   const router = useRouter();
   const config = useAppStore((state) => state.config);
   const updateConfig = useAppStore((state) => state.updateConfig);
+  const upsertSession = useAppStore((state) => state.upsertSession);
+  const clearSession = useAppStore((state) => state.clearSession);
+  const session = useAppStore((state) => state.session);
   const [webUrl, setWebUrl] = useState(config.webUrl);
   const [apiUrl, setApiUrl] = useState(config.apiUrl);
   const [isSaving, setIsSaving] = useState(false);
+  const [manualToken, setManualToken] = useState(session.token ?? "");
+  const [isImportingToken, setIsImportingToken] = useState(false);
   const [error, setError] = useState("");
 
   const resolvedHosts = useMemo(
@@ -61,6 +67,68 @@ export default function SettingsScreen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const resolvePostAuthRoute = (role?: string | null) => {
+    if (role === "PENDING") {
+      return "/student/onboarding";
+    }
+
+    if (role === "STUDENT" || role === "ADMIN") {
+      return "/student";
+    }
+
+    return "/web";
+  };
+
+  const handleManualTokenLogin = async () => {
+    setError("");
+
+    const normalizedApiUrl = normalizeUrl(apiUrl);
+    const trimmedToken = manualToken.trim();
+
+    if (!normalizedApiUrl) {
+      setError("Informe uma URL valida para a API antes de usar o token.");
+      return;
+    }
+
+    if (!trimmedToken) {
+      setError("Cole um token valido para entrar manualmente.");
+      return;
+    }
+
+    setIsImportingToken(true);
+
+    try {
+      if (
+        resolvedHosts.web &&
+        resolvedHosts.api &&
+        (resolvedHosts.web !== config.webUrl || resolvedHosts.api !== config.apiUrl)
+      ) {
+        await updateConfig({
+          webUrl: resolvedHosts.web,
+          apiUrl: resolvedHosts.api
+        });
+      }
+
+      const payload = await refreshAuthSession(normalizedApiUrl, trimmedToken);
+      await upsertSession(payload);
+      router.replace(resolvePostAuthRoute(payload.user.role));
+    } catch (importError) {
+      setError(
+        importError instanceof Error
+          ? importError.message
+          : "Nao foi possivel validar o token informado."
+      );
+    } finally {
+      setIsImportingToken(false);
+    }
+  };
+
+  const handleClearManualSession = async () => {
+    setError("");
+    setManualToken("");
+    await clearSession();
   };
 
   return (
@@ -129,6 +197,25 @@ export default function SettingsScreen() {
                 </Text>
               </View>
 
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Entrar com token manual</Text>
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  multiline
+                  onChangeText={setManualToken}
+                  placeholder="Cole aqui o auth_token do web"
+                  placeholderTextColor={colors.foregroundMuted}
+                  style={[styles.input, styles.tokenInput]}
+                  textAlignVertical="top"
+                  value={manualToken}
+                />
+                <Text style={styles.fieldHint}>
+                  Use este bypass enquanto o Google no mobile nao fecha o
+                  callback. O token e validado em /api/auth/session.
+                </Text>
+              </View>
+
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <PrimaryButton
@@ -139,12 +226,29 @@ export default function SettingsScreen() {
                 title={isSaving ? "Salvando..." : "Salvar e abrir app"}
               />
 
+              <PrimaryButton
+                disabled={isImportingToken}
+                onPress={() => {
+                  void handleManualTokenLogin();
+                }}
+                title={
+                  isImportingToken ? "Validando token..." : "Entrar com token"
+                }
+              />
+
+              <SecondaryButton
+                onPress={() => {
+                  void handleClearManualSession();
+                }}
+                title="Limpar sessao"
+              />
+
               <SecondaryButton
                 onPress={() => router.replace("/web")}
                 title="Voltar ao app"
               />
 
-              {isSaving ? (
+              {isSaving || isImportingToken ? (
                 <ActivityIndicator
                   color={colors.primary}
                   style={styles.savingIndicator}
@@ -227,6 +331,9 @@ const styles = StyleSheet.create({
     minHeight: 54,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm
+  },
+  tokenInput: {
+    minHeight: 132
   },
   errorText: {
     color: colors.danger,

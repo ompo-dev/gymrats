@@ -1,0 +1,18 @@
+bun.lock
+bun.lockb
+pnpm-lock.yaml
+yarn.lock
+
+# Ignorar o Monorepo que não pertence ao mobile para não encher o servidor da Expo (EAS Upload Size Fix)
+apps/web/
+apps/api/
+apps/worker/
+apps/cron/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+.cursor/
+docs/
+devops/

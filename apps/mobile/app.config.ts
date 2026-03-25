@@ -1,4 +1,5 @@
 import type { ExpoConfig } from "expo/config";
+import path from "path";
 
 const config: ExpoConfig = {
   name: "GymRats Mobile",
@@ -26,7 +27,8 @@ const config: ExpoConfig = {
       NSLocationWhenInUseUsageDescription:
         "A GymRats usa sua localizacao para exibir academias, unidades e experiencias baseadas em mapa.",
       NSLocalNetworkUsageDescription:
-        "A GymRats usa a rede local para conectar o app mobile aos ambientes web e API em desenvolvimento."
+        "A GymRats usa a rede local para conectar o app mobile aos ambientes web e API em desenvolvimento.",
+      ITSAppUsesNonExemptEncryption: false
     }
   },
   android: {
@@ -44,7 +46,12 @@ const config: ExpoConfig = {
     ]
   },
   plugins: [
-    "expo-router",
+    [
+      "expo-router",
+      {
+        root: "./app",
+      },
+    ],
     "expo-secure-store",
     [
       "expo-web-browser",
@@ -57,6 +64,9 @@ const config: ExpoConfig = {
     typedRoutes: true
   },
   extra: {
+    eas: {
+      projectId: "e6e6bfee-0a68-4a22-b38c-fa9ac2657d60"
+    },
     defaultWebUrl:
       process.env.EXPO_PUBLIC_WEB_URL || "https://gym-rats-testes.vercel.app",
     defaultApiUrl:

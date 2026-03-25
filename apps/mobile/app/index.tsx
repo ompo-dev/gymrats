@@ -4,22 +4,11 @@ import { useAppStore } from "../src/store/app-store";
 
 export default function IndexRoute() {
   const hydrated = useAppStore((state) => state.hydrated);
-  const session = useAppStore((state) => state.session);
 
   if (!hydrated) {
     return <NativeLoadingScreen message="Iniciando app..." />;
   }
 
-  if (
-    session.token &&
-    (session.user?.role === "STUDENT" || session.user?.role === "ADMIN")
-  ) {
-    return <Redirect href="/student" />;
-  }
-
-  if (session.token && session.user?.role === "PENDING") {
-    return <Redirect href="/student/onboarding" />;
-  }
-
+  // O usuário solicitou que o Webview seja o padrão. Removemos os desvios para telas nativas.
   return <Redirect href="/web" />;
 }
