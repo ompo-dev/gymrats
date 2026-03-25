@@ -20,12 +20,14 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useBootstrapApp } from "../src/hooks/use-bootstrap-app";
+import { useNativeRuntime } from "../src/hooks/use-native-runtime";
 import { colors } from "../src/theme";
 
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const ready = useBootstrapApp();
+  useNativeRuntime();
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_400Regular_Italic,

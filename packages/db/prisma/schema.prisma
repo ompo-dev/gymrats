@@ -32,6 +32,7 @@ model User {
   activeGymId    String? // Academia atualmente selecionada
   accounts       Account[]
   sessions       Session[]
+  mobileInstallations MobileInstallation[]
   gymPreference  GymUserPreference? // Preferências do usuário para academias
   paymentMethods PaymentMethod[] // Métodos de pagamento salvos
 
@@ -93,6 +94,28 @@ model Session {
   expires      DateTime? // Mantido para compatibilidade, mapeado de expiresAt
 
   @@map("sessions")
+}
+
+model MobileInstallation {
+  id             String   @id
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform       String
+  expoPushToken  String?
+  pushPermission String   @default("undetermined")
+  capabilities   Json?
+  appVersion     String?
+  deviceName     String?
+  locale         String?
+  timezone       String?
+  active         Boolean  @default(true)
+  lastSeenAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, active])
+  @@index([expoPushToken])
+  @@map("mobile_installations")
 }
 
 // Modelo antigo (mantido para compatibilidade, pode ser removido depois)

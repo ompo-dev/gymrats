@@ -1,36 +1,91 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
   Pressable,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   type WebViewMessageEvent,
   type WebViewNavigation,
-  WebView
+  WebView,
 } from "react-native-webview";
 import type { ShouldStartLoadRequest } from "react-native-webview/lib/WebViewTypes";
 import { SecondaryButton } from "../src/components/buttons";
 import { NativeLoadingScreen } from "../src/components/native-loading-screen";
 import { ScreenBackground } from "../src/components/screen-background";
+import { getNativeCapabilities } from "../src/lib/device-capabilities";
 import {
   consumeOneTimeToken,
   isAuthCallbackUrl,
-  startGoogleAuthSession
+  startGoogleAuthSession,
 } from "../src/lib/auth";
 import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushStateSnapshot,
+  openPushSystemSettings,
+  unlinkPushInstallationForLogout,
+} from "../src/lib/push";
+import {
+  clearWidgetSnapshot,
+  configureWidgetPreset,
+  getWidgetStateSnapshot,
+  refreshWidgetSnapshot,
+} from "../src/lib/widget";
+import {
+  buildBridgeEventScript,
+  buildBridgeResponseScript,
   buildInjectedBootstrapScript,
-  parseBridgeMessage
+  parseBridgeMessage,
 } from "../src/lib/webview-bridge";
+import {
+  readNativeNamespace,
+  writeNativeNamespace,
+} from "../src/lib/storage";
 import { useAppStore } from "../src/store/app-store";
+import type {
+  NativeBridgeEventType,
+  NativeBridgeRequestMessage,
+  NativeStorageNamespace,
+  WebBridgeMessage,
+  WidgetPreset,
+} from "../src/store/types";
 import { colors, radius, shadow, spacing, typography } from "../src/theme";
 import { getRoleHomePath } from "../src/utils/role";
-import { isSameHost, normalizeUrl } from "../src/utils/url";
+import {
+  getUrlOrigin,
+  isAllowedWebViewUrl,
+  isSameHost,
+  normalizeUrl,
+} from "../src/utils/url";
+
+function isWidgetPreset(value: unknown): value is WidgetPreset {
+  return value === "home" || value === "workout" || value === "nutrition";
+}
+
+function isNativeStorageNamespace(
+  value: unknown,
+): value is NativeStorageNamespace {
+  return (
+    value === "preferences" || value === "notification" || value === "widget"
+  );
+}
+
+function isNativeBridgeRequestMessage(
+  message: WebBridgeMessage,
+): message is NativeBridgeRequestMessage {
+  return (
+    "channel" in message &&
+    message.channel === "bridge-request" &&
+    "id" in message &&
+    typeof message.id === "string"
+  );
+}
 
 export default function WebScreen() {
   const params = useLocalSearchParams<{
@@ -45,11 +100,18 @@ export default function WebScreen() {
   const [isAuthBusy, setIsAuthBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [webViewKey, setWebViewKey] = useState(0);
+  const webViewRef = useRef<WebView>(null);
 
-  const getPostAuthRoute = useCallback((role: string | null | undefined) => {
-    // Agora que web.tsx é o padrão, sempre retorna para o Webview para os roteamentos da web (Next.js) atuarem!
-    return "/web";
-  }, []);
+  const nativeCapabilities = useMemo(() => getNativeCapabilities(), []);
+
+  const allowedHosts = useMemo(
+    () => [config.webUrl, config.apiUrl].filter(Boolean),
+    [config.apiUrl, config.webUrl],
+  );
+  const allowedOrigins = useMemo(() => {
+    const origins = allowedHosts.map((url) => getUrlOrigin(url)).filter(Boolean);
+    return [...new Set([...origins, "gymrats-mobile://*"])];
+  }, [allowedHosts]);
 
   const initialUrl = useMemo(() => {
     const forcedPath = Array.isArray(params.path) ? params.path[0] : params.path;
@@ -66,9 +128,51 @@ export default function WebScreen() {
     () =>
       buildInjectedBootstrapScript({
         apiUrl: config.apiUrl,
-        token: session.token
+        token: session.token,
+        debugToolsEnabled: nativeCapabilities.debugToolsEnabled,
       }),
-    [config.apiUrl, session.token]
+    [config.apiUrl, nativeCapabilities.debugToolsEnabled, session.token],
+  );
+
+  const emitBridgeEvent = useCallback(
+    (type: NativeBridgeEventType, payload?: unknown) => {
+      webViewRef.current?.injectJavaScript(
+        buildBridgeEventScript({
+          channel: "bridge-event",
+          type,
+          payload,
+        }),
+      );
+    },
+    [],
+  );
+
+  const emitCurrentBridgeState = useCallback(async () => {
+    emitBridgeEvent("capabilities.state", nativeCapabilities);
+    emitBridgeEvent("push.state", await getPushStateSnapshot());
+    emitBridgeEvent("widget.state", await getWidgetStateSnapshot());
+  }, [emitBridgeEvent, nativeCapabilities]);
+
+  const sendBridgeResponse = useCallback(
+    (message: {
+      id: string;
+      type: NativeBridgeRequestMessage["type"];
+      ok: boolean;
+      payload?: unknown;
+      error?: string;
+    }) => {
+      webViewRef.current?.injectJavaScript(
+        buildBridgeResponseScript({
+          channel: "bridge-response",
+          id: message.id,
+          type: message.type,
+          ok: message.ok,
+          payload: message.payload,
+          error: message.error,
+        }),
+      );
+    },
+    [],
   );
 
   const reloadApp = useCallback(() => {
@@ -83,17 +187,17 @@ export default function WebScreen() {
     try {
       const authResult = await startGoogleAuthSession(config);
       await upsertSession(authResult);
-      router.replace(getPostAuthRoute(authResult.user.role));
+      router.replace("/web");
     } catch (authError) {
       setErrorMessage(
         authError instanceof Error
           ? authError.message
-          : "Nao foi possivel concluir o login com Google."
+          : "Nao foi possivel concluir o login com Google.",
       );
     } finally {
       setIsAuthBusy(false);
     }
-  }, [config, getPostAuthRoute, upsertSession]);
+  }, [config, upsertSession]);
 
   const handleDeepLinkCallback = useCallback(
     async (requestUrl: string) => {
@@ -117,18 +221,213 @@ export default function WebScreen() {
       try {
         const authResult = await consumeOneTimeToken(config.apiUrl, token);
         await upsertSession(authResult);
-        router.replace(getPostAuthRoute(authResult.user.role));
+        router.replace("/web");
       } catch (callbackError) {
         setErrorMessage(
           callbackError instanceof Error
             ? callbackError.message
-            : "Nao foi possivel concluir o login."
+            : "Nao foi possivel concluir o login.",
         );
       } finally {
         setIsAuthBusy(false);
       }
     },
-    [config.apiUrl, getPostAuthRoute, upsertSession]
+    [config.apiUrl, upsertSession],
+  );
+
+  const handleBridgeRequest = useCallback(
+    async (message: NativeBridgeRequestMessage) => {
+      try {
+        if (message.type === "capabilities.get") {
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: nativeCapabilities,
+          });
+          return;
+        }
+
+        if (message.type === "push.status") {
+          const state = await getPushStateSnapshot();
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("push.state", state);
+          return;
+        }
+
+        if (message.type === "push.enable") {
+          if (!session.token) {
+            throw new Error("Usuario nao autenticado para registrar push.");
+          }
+
+          const state = await enablePushNotifications({
+            apiUrl: config.apiUrl,
+            sessionToken: session.token,
+            capabilities: nativeCapabilities,
+          });
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("push.state", state);
+          emitBridgeEvent("push.registered", state);
+          return;
+        }
+
+        if (message.type === "push.disable") {
+          const state = await disablePushNotifications({
+            apiUrl: config.apiUrl,
+            sessionToken: session.token,
+          });
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("push.state", state);
+          return;
+        }
+
+        if (message.type === "push.openSettings") {
+          await openPushSystemSettings();
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: { opened: true },
+          });
+          return;
+        }
+
+        if (message.type === "widget.status") {
+          const state = await getWidgetStateSnapshot();
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("widget.state", state);
+          return;
+        }
+
+        if (message.type === "widget.configure") {
+          const preset = (message.payload as { preset?: unknown } | undefined)
+            ?.preset;
+          if (!isWidgetPreset(preset)) {
+            throw new Error("Preset de widget invalido.");
+          }
+
+          const state = await configureWidgetPreset(preset);
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("widget.state", state);
+          return;
+        }
+
+        if (message.type === "widget.refresh") {
+          const state = await refreshWidgetSnapshot(session.user ?? null);
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("widget.state", state);
+          return;
+        }
+
+        if (message.type === "widget.clear") {
+          const state = await clearWidgetSnapshot();
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: state,
+          });
+          emitBridgeEvent("widget.state", state);
+          return;
+        }
+
+        if (message.type === "storage.get") {
+          const namespace = (
+            message.payload as { namespace?: unknown } | undefined
+          )?.namespace;
+          if (!isNativeStorageNamespace(namespace)) {
+            throw new Error("Namespace de storage invalido.");
+          }
+
+          const value = await readNativeNamespace(namespace);
+          const payload = {
+            namespace,
+            value,
+          };
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload,
+          });
+          emitBridgeEvent("storage.result", payload);
+          return;
+        }
+
+        if (message.type === "storage.set") {
+          const payload = message.payload as
+            | { namespace?: unknown; value?: unknown }
+            | undefined;
+          if (!isNativeStorageNamespace(payload?.namespace)) {
+            throw new Error("Namespace de storage invalido.");
+          }
+
+          await writeNativeNamespace(payload.namespace, payload.value ?? null);
+          const result = {
+            namespace: payload.namespace,
+            value: payload.value ?? null,
+          };
+          sendBridgeResponse({
+            id: message.id,
+            type: message.type,
+            ok: true,
+            payload: result,
+          });
+          emitBridgeEvent("storage.result", result);
+          return;
+        }
+
+        throw new Error("Mensagem de bridge nao suportada.");
+      } catch (error) {
+        sendBridgeResponse({
+          id: message.id,
+          type: message.type,
+          ok: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Falha ao processar a bridge nativa.",
+        });
+      }
+    },
+    [
+      config.apiUrl,
+      emitBridgeEvent,
+      nativeCapabilities,
+      sendBridgeResponse,
+      session.token,
+      session.user,
+    ],
   );
 
   const handleShouldStartLoad = useCallback(
@@ -159,13 +458,21 @@ export default function WebScreen() {
           void Linking.openURL(url);
           return false;
         }
+
+        if (
+          (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+          !isAllowedWebViewUrl(url, allowedHosts)
+        ) {
+          void Linking.openURL(url);
+          return false;
+        }
       } catch {
         return true;
       }
 
       return true;
     },
-    [config.apiUrl, config.webUrl, handleDeepLinkCallback, handleGoogleAuth]
+    [allowedHosts, config.apiUrl, config.webUrl, handleDeepLinkCallback, handleGoogleAuth],
   );
 
   const handleMessage = useCallback(
@@ -176,10 +483,20 @@ export default function WebScreen() {
       }
 
       if (message.type === "auth-state" && !message.hasToken && session.token) {
-        void clearSession();
+        void unlinkPushInstallationForLogout({
+          apiUrl: config.apiUrl,
+          sessionToken: session.token,
+        }).finally(() => {
+          void clearSession();
+        });
+        return;
+      }
+
+      if (isNativeBridgeRequestMessage(message)) {
+        void handleBridgeRequest(message);
       }
     },
-    [clearSession, session.token]
+    [clearSession, config.apiUrl, handleBridgeRequest, session.token],
   );
 
   const handleNavigationChange = useCallback((navigation: WebViewNavigation) => {
@@ -210,11 +527,12 @@ export default function WebScreen() {
             onError={(event) => {
               setErrorMessage(
                 event.nativeEvent.description ||
-                  "Erro ao abrir a plataforma."
+                  "Erro ao abrir a plataforma.",
               );
             }}
             onLoadEnd={() => {
               setIsPageLoading(false);
+              void emitCurrentBridgeState();
             }}
             onLoadStart={() => {
               setIsPageLoading(true);
@@ -222,16 +540,17 @@ export default function WebScreen() {
             onMessage={handleMessage}
             onNavigationStateChange={handleNavigationChange}
             onShouldStartLoadWithRequest={handleShouldStartLoad}
-            originWhitelist={["*"]}
+            originWhitelist={allowedOrigins}
+            ref={webViewRef}
             setSupportMultipleWindows={false}
             sharedCookiesEnabled
             source={{
               uri: initialUrl,
               headers: session.token
                 ? {
-                    Authorization: `Bearer ${session.token}`
+                    Authorization: `Bearer ${session.token}`,
                   }
-                : undefined
+                : undefined,
             }}
             startInLoadingState
             thirdPartyCookiesEnabled
@@ -282,11 +601,11 @@ export default function WebScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1
+    flex: 1,
   },
   webViewWrapper: {
     flex: 1,
-    overflow: "hidden"
+    overflow: "hidden",
   },
   settingsButton: {
     alignItems: "center",
@@ -303,12 +622,12 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 20,
-    ...shadow.soft
+    ...shadow.soft,
   },
   settingsButtonText: {
     color: colors.foreground,
     fontSize: typography.caption.fontSize,
-    fontWeight: "800"
+    fontWeight: "800",
   },
   overlay: {
     alignItems: "center",
@@ -319,7 +638,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
     top: 0,
-    zIndex: 15
+    zIndex: 15,
   },
   overlayCard: {
     alignItems: "center",
@@ -331,19 +650,19 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
-    ...shadow.soft
+    ...shadow.soft,
   },
   overlayTitle: {
     color: colors.foreground,
     fontSize: typography.body.fontSize,
     fontWeight: "900",
-    textAlign: "center"
+    textAlign: "center",
   },
   overlayDescription: {
     color: colors.foregroundMuted,
     fontSize: typography.caption.fontSize,
     lineHeight: 18,
-    textAlign: "center"
+    textAlign: "center",
   },
   errorCard: {
     alignItems: "stretch",
@@ -356,18 +675,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
     width: "84%",
-    ...shadow.soft
+    ...shadow.soft,
   },
   errorTitle: {
     color: colors.foreground,
     fontSize: typography.heading.fontSize,
     fontWeight: "900",
-    textAlign: "center"
+    textAlign: "center",
   },
   errorDescription: {
     color: colors.foregroundMuted,
     fontSize: typography.body.fontSize,
     lineHeight: 22,
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });
