@@ -2,10 +2,8 @@
  * Helpers de carregamento para gym-unified-store.
  */
 
-import { featureFlags } from "@gymrats/config";
 import { getGymBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type {
   GymDataSection,
   GymPendingAction,
@@ -239,7 +237,7 @@ export function transformSectionResponse(
           (data.campaigns as unknown as GymUnifiedData["campaigns"]) || [],
       };
       break;
-    case "balanceWithdraws":
+    case "balanceWithdraws": {
       const rawWithdraws = Array.isArray(data.withdraws)
         ? (data.withdraws as Array<
             Record<string, import("@/lib/types/api-error").JsonValue>
@@ -264,6 +262,7 @@ export function transformSectionResponse(
         },
       };
       break;
+    }
     case "subscription":
       result = {
         subscription:
@@ -377,31 +376,14 @@ export async function loadSectionsIncremental(
   set: SetStateFn,
   sections: GymDataSection[],
 ) {
-  if (
-    featureFlags.perfGymBootstrapV2 &&
-    isClientApiCapabilityEnabled("gymBootstrap") &&
-    sections.length > 1
-  ) {
-    try {
-      const bootstrapData = await loadGymBootstrap(sections);
-      if (Object.keys(bootstrapData).length > 0) {
-        updateStoreWithSection(set, bootstrapData);
-      }
-      return;
-    } catch {
-      // Fallback para o carregamento legado por secao.
-    }
+  if (sections.length === 0) {
+    return;
   }
 
-  await Promise.all(
-    sections.map(async (section) => {
-      const start = Date.now();
-      const sectionData = await loadSection(section);
-      if (Object.keys(sectionData).length > 0) {
-        updateStoreWithSection(set, sectionData, Date.now() - start, section);
-      }
-    }),
-  );
+  const bootstrapData = await loadGymBootstrap(sections);
+  if (Object.keys(bootstrapData).length > 0) {
+    updateStoreWithSection(set, bootstrapData);
+  }
 }
 
 export function addPendingAction(

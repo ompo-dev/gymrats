@@ -1,15 +1,18 @@
 "use server";
 
+import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { serverApiGet } from "@/lib/api/server";
 import { buildApiPath } from "@/lib/api/server-action-utils";
 
 export async function getAllStudentData(sections?: string[]) {
   try {
-    const path = buildApiPath("/api/students/all", {
+    const path = buildApiPath("/api/students/bootstrap", {
       sections: sections?.length ? sections.join(",") : undefined,
     });
 
-    return await serverApiGet<Record<string, unknown>>(path);
+    const response =
+      await serverApiGet<BootstrapResponse<Record<string, unknown>>>(path);
+    return response.data;
   } catch (error) {
     console.error("[getAllStudentData] Erro:", error);
     return getNeutralData();

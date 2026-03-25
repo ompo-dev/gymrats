@@ -121,17 +121,28 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 
 - Subsistema: student/gym/personal web
 - Evidência:
-  - hooks e initializers ainda admitiam caminhos legados e gating por capability.
+  - `apps/web/lib/api/bootstrap-server.ts`
+  - `apps/web/stores/student/load-helpers.ts`
+  - `apps/web/stores/gym/load-helpers.ts`
+  - `apps/web/stores/personal/load-helpers.ts`
+  - `apps/web/app/student/actions-unified.ts`
+  - `apps/web/app/student/_profile/actions.ts`
+  - layouts e hooks priorizados ainda faziam gating por feature flag.
 - Impacto:
   - duplicação de fetch, maior complexidade de runtime e maior risco de estado divergente.
 - Correção aplicada:
   - `apps/web/lib/api/bootstrap.ts` agora usa somente `/api/students/bootstrap`, `/api/gyms/bootstrap`, `/api/personals/bootstrap`
+  - `apps/web/lib/api/bootstrap-server.ts` deixou de cair para `/api/students/all`
+  - `apps/web/stores/student/load-helpers.ts`, `apps/web/stores/gym/load-helpers.ts` e `apps/web/stores/personal/load-helpers.ts` agora usam bootstrap como caminho Ãºnico para carregamento agregado
+  - `apps/web/stores/student-unified-store.ts` nÃ£o reabre mais o fallback legado por timeout em `loadAll`
+  - `apps/web/app/student/actions-unified.ts` e `apps/web/app/student/_profile/actions.ts` migrados para `/api/students/bootstrap`
   - `apps/web/hooks/use-student-bootstrap.ts`
   - `apps/web/hooks/use-gym-bootstrap.ts`
   - `apps/web/hooks/use-personal-bootstrap.ts`
   - `apps/web/hooks/use-student-initializer.ts`
   - `apps/web/hooks/use-gym-initializer.ts`
   - `apps/web/hooks/use-personal-initializer.ts`
+  - `apps/web/app/student/layout.tsx`, `apps/web/app/gym/layout.tsx`, `apps/web/app/personal/layout.tsx` e hooks `use-load-prioritized*` passaram a tratar bootstrap como fluxo padrÃ£o, sem gate de feature flag.
 - Ordem:
   - `P1 primeira onda`
 
@@ -280,18 +291,36 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/mobile/src/lib/auth.ts`
 - `apps/mobile/src/lib/webview-bridge.ts`
 - `apps/web/lib/api/bootstrap.ts`
+- `apps/web/lib/api/bootstrap-server.ts`
+- `apps/web/app/student/actions-unified.ts`
+- `apps/web/app/student/_profile/actions.ts`
+- `apps/web/app/student/layout.tsx`
+- `apps/web/app/gym/layout.tsx`
+- `apps/web/app/personal/layout.tsx`
 - `apps/web/hooks/use-student-bootstrap.ts`
 - `apps/web/hooks/use-gym-bootstrap.ts`
 - `apps/web/hooks/use-personal-bootstrap.ts`
+- `apps/web/hooks/use-load-prioritized.ts`
+- `apps/web/hooks/use-load-prioritized-gym.ts`
+- `apps/web/hooks/use-load-prioritized-personal.ts`
 - `apps/web/hooks/use-student-initializer.ts`
 - `apps/web/hooks/use-gym-initializer.ts`
 - `apps/web/hooks/use-personal-initializer.ts`
+- `apps/web/stores/student/load-helpers.ts`
+- `apps/web/stores/gym/load-helpers.ts`
+- `apps/web/stores/personal/load-helpers.ts`
+- `apps/web/stores/student-unified-store.ts`
 
 ## Validation Status
 
 - `npm run test:unit`: verde
 - `npm run typecheck:full`: ainda falha por dívida preexistente
 - `npx biome check apps packages scripts tests`: ainda falha por dívida preexistente
+
+## Validation Detail
+
+- `npx biome check` nos arquivos alterados nesta onda: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para os arquivos alterados nesta onda: sem erros correspondentes
 
 ## Next Execution Order
 

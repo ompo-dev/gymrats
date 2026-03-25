@@ -15,7 +15,6 @@ import type {
   DailyNutrition,
   DifficultyLevel,
   MuscleGroup,
-  PlanSlotData,
   PersonalRecord,
   Unit,
   UserProgress,
@@ -163,8 +162,11 @@ export interface StudentUnifiedState {
 
   // === ACTIONS - LIBRARY ===
   loadLibraryPlans: () => Promise<void>;
-  createLibraryPlan: (data: any) => Promise<string>;
-  updateLibraryPlan: (planId: string, data: any) => Promise<void>;
+  createLibraryPlan: (data: LibraryPlanPayload) => Promise<string>;
+  updateLibraryPlan: (
+    planId: string,
+    data: LibraryPlanPayload,
+  ) => Promise<void>;
   deleteLibraryPlan: (planId: string) => Promise<void>;
   activateLibraryPlan: (planId: string) => Promise<void>;
 
@@ -220,6 +222,8 @@ export interface StudentUnifiedState {
   reset: () => void;
   clearCache: () => void;
 }
+
+type LibraryPlanPayload = Record<string, unknown>;
 
 // ============================================
 // STORE
@@ -285,59 +289,6 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           }));
         } catch (error) {
           console.error("[loadAll] Erro ao carregar dados:", error);
-          const err = error as { code?: string; message?: string };
-          // Se for timeout, tentar carregamento incremental como fallback
-          if (
-            err?.code === "ECONNABORTED" ||
-            err?.message?.includes("timeout")
-          ) {
-            console.warn(
-              "[loadAll] Timeout detectado, tentando carregamento incremental...",
-            );
-
-            try {
-              // Carregar dados essenciais primeiro
-              await get().loadEssential();
-              await get().loadStudentCore();
-
-              // Tentar carregar o resto em background
-              Promise.all([
-                get().loadWorkouts(),
-                get().loadWorkoutHistory(),
-                get().loadPersonalRecords(),
-                get().loadNutrition(),
-                get().loadFinancial(),
-              ]).catch((err) => {
-                console.error(
-                  "[loadAll] Erro ao carregar dados adicionais:",
-                  err,
-                );
-              });
-
-              set((state) => ({
-                data: {
-                  ...state.data,
-                  metadata: {
-                    ...state.data.metadata,
-                    isLoading: false,
-                    isInitialized: true,
-                    lastSync: new Date(),
-                    errors: {
-                      loadAll: "Timeout - dados carregados incrementalmente",
-                    },
-                  },
-                },
-              }));
-
-              return;
-            } catch (incrementalError) {
-              console.error(
-                "[loadAll] Erro no carregamento incremental:",
-                incrementalError,
-              );
-            }
-          }
-
           set((state) => ({
             data: {
               ...state.data,
@@ -724,7 +675,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
       },
 
-      createLibraryPlan: async (data: any) => {
+      createLibraryPlan: async (data: LibraryPlanPayload) => {
         const response = await apiClient.post<{
           data?: { id?: string };
         }>("/api/workouts/library", data);
@@ -733,7 +684,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         return apiData?.id || "";
       },
 
-      updateLibraryPlan: async (planId: string, data: any) => {
+      updateLibraryPlan: async (planId: string, data: LibraryPlanPayload) => {
         await apiClient.put(`/api/workouts/library/${planId}`, data);
         await get().loadLibraryPlans();
       },
@@ -745,7 +696,9 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
 
       activateLibraryPlan: async (planId: string) => {
         const state = get();
-        const libraryPlan = state.data.libraryPlans?.find((p) => p.id === planId);
+        const libraryPlan = state.data.libraryPlans?.find(
+          (p) => p.id === planId,
+        );
 
         if (libraryPlan) {
           const optimisticSlots = (libraryPlan.slots ?? []).map((slot) => ({
@@ -795,7 +748,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put("/api/students/progress", updates as any);
+          await apiClient.put("/api/students/progress", updates);
         } catch (error) {
           console.error("Erro ao atualizar progresso:", error);
           // Reverter para o estado anterior em caso de erro
@@ -883,10 +836,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          const response = await apiClient.post(
-            "/api/workouts/units",
-            data as any,
-          );
+          const response = await apiClient.post("/api/workouts/units", data);
           const apiData =
             (response as { data?: { id?: string } }).data ?? undefined;
           if (apiData?.id) {
@@ -931,7 +881,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put(`/api/workouts/units/${unitId}`, data as any);
+          await apiClient.put(`/api/workouts/units/${unitId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar unit:", error);
           set((state) => ({
@@ -1001,10 +951,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          const response = await apiClient.post(
-            "/api/workouts/manage",
-            data as any,
-          );
+          const response = await apiClient.post("/api/workouts/manage", data);
           const workoutData = (
             response as { data?: { data?: { id?: string }; id?: string } }
           ).data;
@@ -1089,7 +1036,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put(`/api/workouts/manage/${workoutId}`, data as any);
+          await apiClient.put(`/api/workouts/manage/${workoutId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar workout:", error);
           set((state) => ({
@@ -1284,7 +1231,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
           const response = await apiClient.post("/api/workouts/exercises", {
             workoutId,
             ...data,
-          } as any);
+          } as Record<string, unknown>);
 
           const rawExerciseData =
             (response as { data?: Record<string, unknown> })?.data?.data ??
@@ -1465,9 +1412,8 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
                                       safeParse(exerciseData.tips) ??
                                       exercise.tips,
                                     commonMistakes:
-                                      safeParse(
-                                        exerciseData.commonMistakes,
-                                      ) ?? exercise.commonMistakes,
+                                      safeParse(exerciseData.commonMistakes) ??
+                                      exercise.commonMistakes,
                                     benefits:
                                       safeParse(exerciseData.benefits) ??
                                       exercise.benefits,
@@ -1566,10 +1512,7 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
         }));
 
         try {
-          await apiClient.put(
-            `/api/workouts/exercises/${exerciseId}`,
-            data as any,
-          );
+          await apiClient.put(`/api/workouts/exercises/${exerciseId}`, data);
         } catch (error) {
           console.error("Erro ao atualizar exercício:", error);
           set((state) => ({

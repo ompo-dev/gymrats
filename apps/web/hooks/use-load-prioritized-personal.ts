@@ -1,6 +1,5 @@
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback } from "react";
@@ -120,6 +119,6 @@ export function useLoadPrioritizedPersonal(options?: {
     loadPrioritized: loadAllPrioritized,
     getStoreSnapshot,
     hasSectionData,
-    enabled: !featureFlags.perfPersonalBootstrapV2 || isInitialized,
+    enabled: isInitialized,
   });
 }

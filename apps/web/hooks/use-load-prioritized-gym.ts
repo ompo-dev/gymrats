@@ -1,6 +1,5 @@
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback } from "react";
@@ -56,10 +55,7 @@ function detectGymContext(
   return "default";
 }
 
-function hasSectionData(
-  section: GymDataSection,
-  data: GymUnifiedData,
-) {
+function hasSectionData(section: GymDataSection, data: GymUnifiedData) {
   const resourceStatus = data.metadata.resources[section]?.status;
   switch (section) {
     case "profile":
@@ -111,7 +107,10 @@ export function useLoadPrioritizedGym(options?: {
   const isInitialized = useGymUnifiedStore(
     (state) => state.data.metadata.isInitialized,
   );
-  const getStoreSnapshot = useCallback(() => useGymUnifiedStore.getState().data, []);
+  const getStoreSnapshot = useCallback(
+    () => useGymUnifiedStore.getState().data,
+    [],
+  );
 
   usePrioritizedResourceLoader({
     context: options?.context,
@@ -124,6 +123,6 @@ export function useLoadPrioritizedGym(options?: {
     loadPrioritized: loadAllPrioritized,
     getStoreSnapshot,
     hasSectionData,
-    enabled: !featureFlags.perfGymBootstrapV2 || isInitialized,
+    enabled: isInitialized,
   });
 }

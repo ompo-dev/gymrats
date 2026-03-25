@@ -1,11 +1,14 @@
+import type { BootstrapResponse } from "@gymrats/types/bootstrap";
 import { serverApiGet } from "@/lib/api/server";
 import { buildApiPath } from "@/lib/api/server-action-utils";
 import type { UserProgress } from "@/lib/types";
 
 export async function getStudentProfileData() {
   try {
-    const payload = await serverApiGet<Record<string, unknown>>(
-      buildApiPath("/api/students/all", {
+    const response = await serverApiGet<
+      BootstrapResponse<Record<string, unknown>>
+    >(
+      buildApiPath("/api/students/bootstrap", {
         sections: [
           "user",
           "progress",
@@ -16,9 +19,14 @@ export async function getStudentProfileData() {
         ].join(","),
       }),
     );
+    const payload = response.data;
 
     const user = payload.user as
-      | { name?: string | null; email?: string | null; createdAt?: string | Date }
+      | {
+          name?: string | null;
+          email?: string | null;
+          createdAt?: string | Date;
+        }
       | undefined;
     const workoutHistory = Array.isArray(payload.workoutHistory)
       ? payload.workoutHistory
@@ -26,8 +34,14 @@ export async function getStudentProfileData() {
     const weightHistory = Array.isArray(payload.weightHistory)
       ? payload.weightHistory
       : [];
-    const progress = (payload.progress as UserProgress | undefined) ?? getNeutralUserProgress();
-    const profile = (payload.profile as { weight?: number | null; hasWeightLossGoal?: boolean } | null) ?? null;
+    const progress =
+      (payload.progress as UserProgress | undefined) ??
+      getNeutralUserProgress();
+    const profile =
+      (payload.profile as {
+        weight?: number | null;
+        hasWeightLossGoal?: boolean;
+      } | null) ?? null;
 
     return {
       progress,

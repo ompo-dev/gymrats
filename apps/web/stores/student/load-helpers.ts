@@ -3,7 +3,6 @@
  * Extraído para reduzir tamanho do store principal.
  */
 
-import { featureFlags } from "@gymrats/config";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
 import { apiClient } from "@/lib/api/client";
 import type { Meal } from "@/lib/types";
@@ -301,7 +300,10 @@ export function updateStoreWithSection(
         newState.weightGain =
           normalizedSectionData.weightGain ??
           calculateWeightGain(normalizedSectionData.weightHistory);
-        if (!newState.profile?.weight && normalizedSectionData.weightHistory[0]) {
+        if (
+          !newState.profile?.weight &&
+          normalizedSectionData.weightHistory[0]
+        ) {
           newState.profile = {
             ...newState.profile,
             weight: normalizedSectionData.weightHistory[0].weight,
@@ -393,9 +395,12 @@ export async function loadSection(
         ? `${route}${route.includes("?") ? "&" : "?"}fresh=1`
         : route;
       const response = await apiClient
-        .get<Record<string, string | number | boolean | object | null>>(requestUrl, {
-          timeout: 30000,
-        })
+        .get<Record<string, string | number | boolean | object | null>>(
+          requestUrl,
+          {
+            timeout: 30000,
+          },
+        )
         .catch(
           (err: {
             _isHandled?: boolean;
@@ -427,33 +432,14 @@ export async function loadSectionsIncremental(
   sections: StudentDataSection[],
   _skipNutrition = false,
 ): Promise<void> {
-  if (
-    featureFlags.perfStudentBootstrapV2 &&
-    sections.length > 1
-  ) {
-    try {
-      const bootstrapData = await loadStudentBootstrap(sections);
-      if (Object.keys(bootstrapData).length > 0) {
-        updateStoreWithSection(set, bootstrapData);
-      }
-      return;
-    } catch {
-      // Fallback para o carregamento legado por secao.
-    }
+  if (sections.length === 0) {
+    return;
   }
 
-  const sectionPromises = sections.map(async (section) => {
-    try {
-      const sectionData = await loadSection(section);
-      if (sectionData && Object.keys(sectionData).length > 0) {
-        updateStoreWithSection(set, sectionData);
-      }
-      return sectionData;
-    } catch {
-      return {};
-    }
-  });
-  await Promise.all(sectionPromises);
+  const bootstrapData = await loadStudentBootstrap(sections);
+  if (Object.keys(bootstrapData).length > 0) {
+    updateStoreWithSection(set, bootstrapData);
+  }
 }
 
 const ALL_SECTIONS: StudentDataSection[] = [
@@ -480,17 +466,5 @@ const ALL_SECTIONS: StudentDataSection[] = [
 ];
 
 export async function loadAllDataIncremental(set: SetStateFn): Promise<void> {
-  if (featureFlags.perfStudentBootstrapV2) {
-    try {
-      const bootstrapData = await loadStudentBootstrap(ALL_SECTIONS);
-      if (Object.keys(bootstrapData).length > 0) {
-        updateStoreWithSection(set, bootstrapData);
-      }
-      return;
-    } catch {
-      // Se o bootstrap falhar, continuamos com o fluxo legado.
-    }
-  }
-
   await loadSectionsIncremental(set, ALL_SECTIONS);
 }

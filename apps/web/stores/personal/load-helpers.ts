@@ -1,13 +1,11 @@
-import { featureFlags } from "@gymrats/config";
 import type {
   PersonalAffiliation,
   PersonalProfile,
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "@gymrats/types/personal-module";
-import { apiClient } from "@/lib/api/client";
 import { getPersonalBootstrapRequest } from "@/lib/api/bootstrap";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
+import { apiClient } from "@/lib/api/client";
 import type { Expense, FinancialSummary } from "@/lib/types";
 import type {
   PersonalDataSection,
@@ -159,26 +157,11 @@ async function loadPersonalBootstrap(
 export async function loadSectionsIncremental(
   sections: PersonalDataSection[],
 ): Promise<Partial<PersonalUnifiedData>> {
-  if (
-    featureFlags.perfPersonalBootstrapV2 &&
-    isClientApiCapabilityEnabled("personalBootstrap") &&
-    sections.length > 1
-  ) {
-    try {
-      return await loadPersonalBootstrap(sections);
-    } catch {
-      // Fallback para o carregamento legado por secao.
-    }
+  if (sections.length === 0) {
+    return {};
   }
 
-  const results: Partial<PersonalUnifiedData> = {};
-  await Promise.all(
-    sections.map(async (section) => {
-      const data = await loadSection(section);
-      Object.assign(results, data);
-    }),
-  );
-  return results;
+  return loadPersonalBootstrap(sections);
 }
 
 export type SetStateFn = (
