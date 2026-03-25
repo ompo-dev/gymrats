@@ -1,9 +1,18 @@
 ﻿import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
-import type { BoostCampaign, Equipment, Expense } from "@/lib/types";
+import type {
+  BoostCampaign,
+  CheckIn,
+  Equipment,
+  Expense,
+  MaintenanceRecord,
+  Payment,
+  StudentData,
+} from "@/lib/types";
 import type { GymDataSection, GymUnifiedData } from "@/lib/types/gym-unified";
 import { initialGymData } from "@/lib/types/gym-unified";
 import { normalizeGymDates } from "@/lib/utils/date-safe";
+import { normalizeEquipmentItem } from "@/lib/utils/gym/normalize-equipment";
 import {
   clearLoadingState,
   loadSection as loadSectionHelper,
@@ -59,6 +68,209 @@ function normalizeIncoming(
   return normalizeGymDates(incoming) as Partial<GymUnifiedData>;
 }
 
+type EnrollmentStudentSnapshot = {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  currentLevel?: number;
+  currentStreak?: number;
+};
+
+type EnrollmentResponse = {
+  success: true;
+  membership: {
+    id: string;
+    gymId?: string;
+    amount?: number;
+    status?: "active" | "suspended" | "canceled" | "pending";
+    nextBillingDate?: Date | string | null;
+    student?: { user?: { name?: string; email?: string } | null } | null;
+    plan?: {
+      id?: string | null;
+      name?: string | null;
+      type?: string | null;
+      benefits?: string[] | string | null;
+    } | null;
+  };
+  pendingPayment: boolean;
+};
+
+function parseMembershipBenefits(benefits: unknown): string[] {
+  if (Array.isArray(benefits)) {
+    return benefits.map(String);
+  }
+
+  if (typeof benefits === "string") {
+    try {
+      const parsed = JSON.parse(benefits) as unknown;
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function toStudentMembershipStatus(
+  status: "active" | "suspended" | "canceled" | "pending" | undefined,
+): StudentData["membershipStatus"] {
+  if (status === "active") {
+    return "active";
+  }
+
+  if (status === "suspended") {
+    return "suspended";
+  }
+
+  return "inactive";
+}
+
+function normalizePaymentSnapshot(
+  value: unknown,
+  fallback: Partial<Payment>,
+): Payment {
+  const payment = normalizeGymDates(value) as Partial<Payment>;
+
+  return {
+    id: String(payment.id ?? fallback.id ?? `payment-${Date.now()}`),
+    studentId: String(payment.studentId ?? fallback.studentId ?? ""),
+    studentName: String(payment.studentName ?? fallback.studentName ?? "Aluno"),
+    planId: String(payment.planId ?? fallback.planId ?? ""),
+    planName: String(payment.planName ?? fallback.planName ?? "Pagamento"),
+    amount:
+      typeof payment.amount === "number"
+        ? payment.amount
+        : (fallback.amount ?? 0),
+    date: payment.date ?? fallback.date ?? new Date(),
+    dueDate: payment.dueDate ?? fallback.dueDate ?? new Date(),
+    status: payment.status ?? fallback.status ?? "pending",
+    paymentMethod: payment.paymentMethod ?? fallback.paymentMethod ?? "pix",
+    reference: payment.reference ?? fallback.reference,
+    abacatePayBillingId:
+      payment.abacatePayBillingId ?? fallback.abacatePayBillingId,
+    withdrawnAt: payment.withdrawnAt ?? fallback.withdrawnAt,
+    withdrawId: payment.withdrawId ?? fallback.withdrawId,
+  };
+}
+
+function normalizeCheckInSnapshot(value: unknown): CheckIn {
+  const checkIn = normalizeGymDates(value) as Partial<CheckIn>;
+
+  return {
+    id: String(checkIn.id ?? `checkin-${Date.now()}`),
+    studentId: String(checkIn.studentId ?? ""),
+    studentName: String(checkIn.studentName ?? "Aluno"),
+    timestamp: checkIn.timestamp ?? new Date(),
+    checkOut: checkIn.checkOut,
+    duration: checkIn.duration,
+  };
+}
+
+function normalizeMaintenanceSnapshot(value: unknown): MaintenanceRecord {
+  const record = normalizeGymDates(value) as Partial<MaintenanceRecord>;
+
+  return {
+    id: String(record.id ?? `maintenance-${Date.now()}`),
+    date: record.date ?? new Date(),
+    type: record.type ?? "inspection",
+    description: String(record.description ?? ""),
+    performedBy: String(record.performedBy ?? ""),
+    cost: typeof record.cost === "number" ? record.cost : undefined,
+    nextScheduled: record.nextScheduled,
+  };
+}
+
+function updateSummaryForPaymentStatus(
+  summary: GymUnifiedData["financialSummary"],
+  payment: Payment,
+  nextStatus: Payment["status"],
+): GymUnifiedData["financialSummary"] {
+  if (!summary || payment.status === nextStatus) {
+    return summary;
+  }
+
+  const isRevenueStatus = (status: Payment["status"]) =>
+    status === "paid" || status === "withdrawn";
+
+  const pendingDelta =
+    (nextStatus === "pending" ? payment.amount : 0) -
+    (payment.status === "pending" ? payment.amount : 0);
+  const overdueDelta =
+    (nextStatus === "overdue" ? payment.amount : 0) -
+    (payment.status === "overdue" ? payment.amount : 0);
+  const revenueDelta =
+    (isRevenueStatus(nextStatus) ? payment.amount : 0) -
+    (isRevenueStatus(payment.status) ? payment.amount : 0);
+
+  return {
+    ...summary,
+    pendingPayments: Math.max(0, summary.pendingPayments + pendingDelta),
+    overduePayments: Math.max(0, summary.overduePayments + overdueDelta),
+    totalRevenue: Math.max(0, summary.totalRevenue + revenueDelta),
+    netProfit: summary.netProfit + revenueDelta,
+  };
+}
+
+function buildEnrolledStudentPlaceholder(
+  studentSnapshot: EnrollmentStudentSnapshot,
+  membership: EnrollmentResponse["membership"],
+  gymProfile: GymUnifiedData["profile"],
+): StudentData {
+  const normalizedMembership = normalizeGymDates(membership) as Partial<
+    EnrollmentResponse["membership"]
+  >;
+
+  return {
+    id: studentSnapshot.id,
+    name: studentSnapshot.name,
+    email: studentSnapshot.email,
+    avatar: studentSnapshot.avatar ?? undefined,
+    age: studentSnapshot.age ?? 0,
+    gender: studentSnapshot.gender ?? "",
+    phone: "",
+    membershipStatus: toStudentMembershipStatus(normalizedMembership.status),
+    joinDate: new Date(),
+    lastVisit: undefined,
+    totalVisits: 0,
+    currentStreak: studentSnapshot.currentStreak ?? 0,
+    profile: null,
+    progress: null,
+    recentWorkouts: [],
+    workoutHistory: [],
+    personalRecords: [],
+    currentWeight: 0,
+    weightHistory: [],
+    attendanceRate: 0,
+    favoriteEquipment: [],
+    gymMembership: {
+      id: normalizedMembership.id ?? "",
+      gymId: normalizedMembership.gymId ?? gymProfile?.id ?? "",
+      gymName: gymProfile?.name ?? "Academia",
+      gymLogo: gymProfile?.logo,
+      gymAddress: gymProfile?.address ?? "",
+      planId: normalizedMembership.plan?.id ?? "",
+      planName: normalizedMembership.plan?.name ?? "Plano",
+      planType:
+        normalizedMembership.plan?.type === "quarterly" ||
+        normalizedMembership.plan?.type === "semi-annual" ||
+        normalizedMembership.plan?.type === "annual"
+          ? normalizedMembership.plan.type
+          : "monthly",
+      startDate: new Date(),
+      nextBillingDate: normalizedMembership.nextBillingDate ?? undefined,
+      amount: normalizedMembership.amount ?? 0,
+      status: normalizedMembership.status ?? "pending",
+      autoRenew: true,
+      benefits: parseMembershipBenefits(normalizedMembership.plan?.benefits),
+    },
+    payments: [],
+  } as unknown as StudentData;
+}
+
 export interface GymUnifiedState {
   data: GymUnifiedData;
   resetForGymChange: () => void;
@@ -99,9 +311,9 @@ export interface GymUnifiedState {
     dueDate: string;
     paymentMethod?: string;
     reference?: string | null;
-  }) => Promise<void>;
-  checkInStudent: (studentId: string) => Promise<void>;
-  checkOutStudent: (checkInId: string) => Promise<void>;
+  }) => Promise<Payment>;
+  checkInStudent: (studentId: string) => Promise<CheckIn>;
+  checkOutStudent: (checkInId: string) => Promise<CheckIn>;
   updatePaymentStatus: (
     paymentId: string,
     status: "paid" | "pending" | "overdue" | "canceled",
@@ -117,7 +329,7 @@ export interface GymUnifiedState {
     model?: string | null;
     serialNumber?: string | null;
     purchaseDate?: string | null;
-  }) => Promise<void>;
+  }) => Promise<Equipment>;
   updateEquipment: (
     equipmentId: string,
     data: {
@@ -129,7 +341,7 @@ export interface GymUnifiedState {
       purchaseDate?: string | null;
       status?: "available" | "in-use" | "maintenance" | "broken";
     },
-  ) => Promise<void>;
+  ) => Promise<Equipment>;
   createMaintenance: (
     equipmentId: string,
     data: {
@@ -139,7 +351,7 @@ export interface GymUnifiedState {
       cost?: string | number;
       nextScheduled?: string;
     },
-  ) => Promise<void>;
+  ) => Promise<MaintenanceRecord>;
   createMembershipPlan: (data: {
     name: string;
     type: string;
@@ -202,7 +414,8 @@ export interface GymUnifiedState {
     studentId: string;
     planId?: string | null;
     amount: number;
-  }) => Promise<void>;
+    studentSnapshot?: EnrollmentStudentSnapshot;
+  }) => Promise<EnrollmentResponse>;
   applySubscriptionReferral: (referralCode: string) => Promise<{
     pixId?: string;
     brCode?: string;
@@ -504,56 +717,369 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     createPayment: async (payload) => {
-      await apiClient.post("/api/gyms/payments", payload);
-      await Promise.all([
-        get().loadSection("payments", true),
-        get().loadSection("financialSummary", true),
-      ]);
+      const response = await apiClient.post<{ payment: unknown }>(
+        "/api/gyms/payments",
+        payload,
+      );
+      const payment = normalizePaymentSnapshot(response.data.payment, {
+        studentId: payload.studentId,
+        studentName: payload.studentName ?? "Aluno",
+        planId: payload.planId ?? "",
+        planName: payload.reference ?? "Pagamento avulso",
+        amount: payload.amount,
+        dueDate: new Date(payload.dueDate),
+        date: new Date(),
+        status: "pending",
+        paymentMethod:
+          payload.paymentMethod === "credit-card" ||
+          payload.paymentMethod === "debit-card" ||
+          payload.paymentMethod === "cash" ||
+          payload.paymentMethod === "bank-transfer"
+            ? payload.paymentMethod
+            : "pix",
+        reference: payload.reference ?? undefined,
+      });
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          payments: [
+            payment,
+            ...state.data.payments.filter((item) => item.id !== payment.id),
+          ],
+          studentPayments: {
+            ...state.data.studentPayments,
+            [payment.studentId]: [
+              payment,
+              ...(state.data.studentPayments[payment.studentId] ?? []).filter(
+                (item) => item.id !== payment.id,
+              ),
+            ],
+          },
+          financialSummary: state.data.financialSummary
+            ? {
+                ...state.data.financialSummary,
+                pendingPayments:
+                  state.data.financialSummary.pendingPayments + payment.amount,
+              }
+            : state.data.financialSummary,
+        },
+      }));
+
+      return payment;
     },
 
     checkInStudent: async (studentId) => {
-      await apiClient.post("/api/gyms/checkin", { studentId });
-      await Promise.all([
-        get().loadSection("recentCheckIns", true),
-        get().loadSection("stats", true),
-      ]);
+      const response = await apiClient.post<{
+        success: true;
+        checkIn: unknown;
+      }>("/api/gyms/checkin", { studentId });
+      const checkIn = normalizeCheckInSnapshot(response.data.checkIn);
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          recentCheckIns: [
+            checkIn,
+            ...state.data.recentCheckIns.filter(
+              (item) => item.id !== checkIn.id,
+            ),
+          ],
+          students: state.data.students.map((student) =>
+            student.id === studentId
+              ? {
+                  ...student,
+                  lastVisit: checkIn.timestamp,
+                  totalVisits: (student.totalVisits ?? 0) + 1,
+                }
+              : student,
+          ),
+          stats: state.data.stats
+            ? {
+                ...state.data.stats,
+                today: {
+                  ...state.data.stats.today,
+                  checkins: state.data.stats.today.checkins + 1,
+                  activeStudents: state.data.stats.today.activeStudents + 1,
+                  equipmentInUse: state.data.stats.today.equipmentInUse + 1,
+                },
+                week: {
+                  ...state.data.stats.week,
+                  totalCheckins: state.data.stats.week.totalCheckins + 1,
+                },
+                month: {
+                  ...state.data.stats.month,
+                  totalCheckins: state.data.stats.month.totalCheckins + 1,
+                },
+              }
+            : state.data.stats,
+        },
+      }));
+
+      return checkIn;
     },
 
     checkOutStudent: async (checkInId) => {
-      await apiClient.post("/api/gyms/checkout", { checkInId });
-      await Promise.all([
-        get().loadSection("recentCheckIns", true),
-        get().loadSection("stats", true),
-      ]);
+      const currentCheckIn = get().data.recentCheckIns.find(
+        (item) => item.id === checkInId,
+      );
+      const response = await apiClient.post<{
+        success: true;
+        checkIn: unknown;
+      }>("/api/gyms/checkout", { checkInId });
+      const checkIn = normalizeCheckInSnapshot(response.data.checkIn);
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          recentCheckIns: state.data.recentCheckIns.map((item) =>
+            item.id === checkInId ? checkIn : item,
+          ),
+          stats: state.data.stats
+            ? {
+                ...state.data.stats,
+                today: {
+                  ...state.data.stats.today,
+                  activeStudents: Math.max(
+                    0,
+                    state.data.stats.today.activeStudents -
+                      (currentCheckIn?.checkOut ? 0 : 1),
+                  ),
+                  equipmentInUse: Math.max(
+                    0,
+                    state.data.stats.today.equipmentInUse -
+                      (currentCheckIn?.checkOut ? 0 : 1),
+                  ),
+                },
+              }
+            : state.data.stats,
+        },
+      }));
+
+      return checkIn;
     },
 
     updatePaymentStatus: async (paymentId, status) => {
-      await apiClient.patch(`/api/gyms/payments/${paymentId}`, { status });
-      await Promise.all([
-        get().loadSection("payments", true),
-        get().loadSection("financialSummary", true),
-      ]);
+      const currentPayment =
+        get().data.payments.find((payment) => payment.id === paymentId) ??
+        Object.values(get().data.studentPayments)
+          .flat()
+          .find((payment) => payment.id === paymentId);
+
+      if (!currentPayment) {
+        await apiClient.patch(`/api/gyms/payments/${paymentId}`, { status });
+        return;
+      }
+
+      await runOptimisticMutation({
+        getSnapshot: () => ({
+          payments: get().data.payments,
+          studentPayments: get().data.studentPayments,
+          financialSummary: get().data.financialSummary,
+        }),
+        applyOptimistic: () => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              payments: state.data.payments.map((payment) =>
+                payment.id === paymentId ? { ...payment, status } : payment,
+              ),
+              studentPayments: Object.fromEntries(
+                Object.entries(state.data.studentPayments).map(
+                  ([studentId, payments]) => [
+                    studentId,
+                    payments.map((payment) =>
+                      payment.id === paymentId
+                        ? { ...payment, status }
+                        : payment,
+                    ),
+                  ],
+                ),
+              ),
+              financialSummary: updateSummaryForPaymentStatus(
+                state.data.financialSummary,
+                currentPayment,
+                status,
+              ),
+            },
+          }));
+        },
+        rollback: (snapshot) => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              payments: snapshot.payments,
+              studentPayments: snapshot.studentPayments,
+              financialSummary: snapshot.financialSummary,
+            },
+          }));
+        },
+        execute: async () => {
+          const response = await apiClient.patch<{ payment: unknown }>(
+            `/api/gyms/payments/${paymentId}`,
+            { status },
+          );
+          return response.data.payment;
+        },
+        onSuccess: (result, snapshot) => {
+          const payment = normalizePaymentSnapshot(result, currentPayment);
+          set((state) => ({
+            data: {
+              ...state.data,
+              payments: state.data.payments.map((item) =>
+                item.id === paymentId ? payment : item,
+              ),
+              studentPayments: Object.fromEntries(
+                Object.entries(state.data.studentPayments).map(
+                  ([studentId, payments]) => [
+                    studentId,
+                    payments.map((item) =>
+                      item.id === paymentId ? payment : item,
+                    ),
+                  ],
+                ),
+              ),
+              financialSummary: updateSummaryForPaymentStatus(
+                snapshot.financialSummary,
+                currentPayment,
+                payment.status,
+              ),
+            },
+          }));
+        },
+      });
     },
 
     updateMemberStatus: async (membershipId, status) => {
-      await apiClient.patch(`/api/gyms/members/${membershipId}`, { status });
-      await Promise.all([
-        get().loadSection("students", true),
-        get().loadSection("stats", true),
-      ]);
+      await runOptimisticMutation({
+        getSnapshot: () => ({
+          students: get().data.students,
+          studentDetails: get().data.studentDetails,
+        }),
+        applyOptimistic: () => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              students: state.data.students.map((student) =>
+                student.gymMembership?.id === membershipId
+                  ? {
+                      ...student,
+                      membershipStatus: toStudentMembershipStatus(status),
+                      gymMembership: student.gymMembership
+                        ? { ...student.gymMembership, status }
+                        : student.gymMembership,
+                    }
+                  : student,
+              ),
+              studentDetails: Object.fromEntries(
+                Object.entries(state.data.studentDetails).map(
+                  ([studentId, student]) => [
+                    studentId,
+                    student?.gymMembership?.id === membershipId
+                      ? {
+                          ...student,
+                          membershipStatus: toStudentMembershipStatus(status),
+                          gymMembership: student.gymMembership
+                            ? { ...student.gymMembership, status }
+                            : student.gymMembership,
+                        }
+                      : student,
+                  ],
+                ),
+              ),
+            },
+          }));
+        },
+        rollback: (snapshot) => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              students: snapshot.students,
+              studentDetails: snapshot.studentDetails,
+            },
+          }));
+        },
+        execute: async () => {
+          const response = await apiClient.patch<{
+            success: true;
+            membership: {
+              status?: "active" | "suspended" | "canceled" | "pending";
+            };
+          }>(`/api/gyms/members/${membershipId}`, { status });
+          return response.data.membership;
+        },
+        onSuccess: (membership) => {
+          const resolvedStatus = membership.status ?? status;
+          set((state) => ({
+            data: {
+              ...state.data,
+              students: state.data.students.map((student) =>
+                student.gymMembership?.id === membershipId
+                  ? {
+                      ...student,
+                      membershipStatus:
+                        toStudentMembershipStatus(resolvedStatus),
+                      gymMembership: student.gymMembership
+                        ? { ...student.gymMembership, status: resolvedStatus }
+                        : student.gymMembership,
+                    }
+                  : student,
+              ),
+              studentDetails: Object.fromEntries(
+                Object.entries(state.data.studentDetails).map(
+                  ([studentId, student]) => [
+                    studentId,
+                    student?.gymMembership?.id === membershipId
+                      ? {
+                          ...student,
+                          membershipStatus:
+                            toStudentMembershipStatus(resolvedStatus),
+                          gymMembership: student.gymMembership
+                            ? {
+                                ...student.gymMembership,
+                                status: resolvedStatus,
+                              }
+                            : student.gymMembership,
+                        }
+                      : student,
+                  ],
+                ),
+              ),
+            },
+          }));
+        },
+      });
     },
 
     createEquipment: async (payload) => {
-      await apiClient.post("/api/gyms/equipment", payload);
-      await Promise.all([
-        get().loadSection("equipment", true),
-        get().loadSection("stats", true),
-      ]);
+      const response = await apiClient.post<{ equipment: unknown }>(
+        "/api/gyms/equipment",
+        payload,
+      );
+      const equipment = normalizeEquipmentItem(response.data.equipment);
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          equipment: [
+            equipment,
+            ...state.data.equipment.filter((item) => item.id !== equipment.id),
+          ],
+          profile: state.data.profile
+            ? {
+                ...state.data.profile,
+                equipmentCount: state.data.profile.equipmentCount + 1,
+              }
+            : state.data.profile,
+        },
+      }));
+
+      return equipment;
     },
 
     updateEquipment: async (equipmentId, payload) => {
       const previous = get().data.equipment;
-      await runOptimisticMutation({
+      const result = await runOptimisticMutation({
         getSnapshot: () => previous,
         applyOptimistic: () => {
           set((state) => ({
@@ -583,23 +1109,53 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }));
         },
         execute: async () => {
-          await apiClient.patch(`/api/gyms/equipment/${equipmentId}`, payload);
+          const response = await apiClient.patch<{ equipment: unknown }>(
+            `/api/gyms/equipment/${equipmentId}`,
+            payload,
+          );
+          return response.data.equipment;
         },
-        onSuccess: async () => {
-          await Promise.all([
-            get().loadSection("equipment", true),
-            get().loadSection("stats", true),
-          ]);
+        onSuccess: (result) => {
+          const equipment = normalizeEquipmentItem(result);
+          set((state) => ({
+            data: {
+              ...state.data,
+              equipment: state.data.equipment.map((item) =>
+                item.id === equipmentId ? equipment : item,
+              ),
+            },
+          }));
         },
       });
+
+      return normalizeEquipmentItem(result);
     },
 
     createMaintenance: async (equipmentId, payload) => {
-      await apiClient.post(
+      const response = await apiClient.post<{ record: unknown }>(
         `/api/gyms/equipment/${equipmentId}/maintenance`,
         payload,
       );
-      await get().loadSection("equipment", true);
+      const record = normalizeMaintenanceSnapshot(response.data.record);
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          equipment: state.data.equipment.map((equipment) =>
+            equipment.id === equipmentId
+              ? {
+                  ...equipment,
+                  status: "available",
+                  lastMaintenance: record.date,
+                  nextMaintenance: record.nextScheduled,
+                  maintenanceHistory: [record, ...equipment.maintenanceHistory],
+                }
+              : equipment,
+          ),
+        },
+      }));
+
+      return record;
     },
 
     createMembershipPlan: async (payload) => {
@@ -807,6 +1363,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
 
     createWithdraw: async ({ amountCents, fake }) => {
       const previous = get().data.balanceWithdraws;
+      const tempId = `temp-withdraw-${Date.now()}`;
       return runOptimisticMutation({
         getSnapshot: () => previous,
         applyOptimistic: () => {
@@ -824,7 +1381,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
                 ),
                 withdraws: [
                   {
-                    id: `temp-withdraw-${Date.now()}`,
+                    id: tempId,
                     amount: amountCents / 100,
                     pixKey: "PIX",
                     pixKeyType: "PIX",
@@ -851,19 +1408,164 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }>("/api/gyms/withdraws", { amountCents, fake });
           return response.data;
         },
-        onSuccess: async () => {
-          await get().loadSection("balanceWithdraws", true);
+        onSuccess: async (result) => {
+          set((state) => ({
+            data: {
+              ...state.data,
+              balanceWithdraws: {
+                ...state.data.balanceWithdraws,
+                withdraws: state.data.balanceWithdraws.withdraws.map(
+                  (withdraw) =>
+                    withdraw.id === tempId
+                      ? {
+                          ...withdraw,
+                          id: result.withdraw.id,
+                          amount: result.withdraw.amount,
+                          status: result.withdraw.status,
+                        }
+                      : withdraw,
+                ),
+              },
+            },
+          }));
         },
       });
     },
 
     enrollStudent: async (payload) => {
-      await apiClient.post("/api/gyms/members", payload);
-      await Promise.all([
-        get().loadSection("students", true),
-        get().loadSection("stats", true),
-        get().loadSection("payments", true),
-      ]);
+      const { studentSnapshot, ...requestPayload } = payload;
+      const response = await apiClient.post<EnrollmentResponse>(
+        "/api/gyms/members",
+        requestPayload,
+      );
+      const membership = normalizeGymDates(
+        response.data.membership,
+      ) as EnrollmentResponse["membership"];
+      const resolvedStudentSnapshot: EnrollmentStudentSnapshot = {
+        id: requestPayload.studentId,
+        name:
+          studentSnapshot?.name ?? membership.student?.user?.name ?? "Aluno",
+        email: studentSnapshot?.email ?? membership.student?.user?.email ?? "",
+        avatar: studentSnapshot?.avatar,
+        age: studentSnapshot?.age,
+        gender: studentSnapshot?.gender,
+        currentLevel: studentSnapshot?.currentLevel,
+        currentStreak: studentSnapshot?.currentStreak,
+      };
+      const placeholderStudent = buildEnrolledStudentPlaceholder(
+        resolvedStudentSnapshot,
+        membership,
+        get().data.profile,
+      );
+      const pendingPayment = response.data.pendingPayment
+        ? normalizePaymentSnapshot(
+            {},
+            {
+              id: `pending-membership-${membership.id}`,
+              studentId: requestPayload.studentId,
+              studentName: resolvedStudentSnapshot.name,
+              planId: membership.plan?.id ?? "",
+              planName: membership.plan?.name ?? "Plano",
+              amount: membership.amount ?? requestPayload.amount,
+              dueDate:
+                membership.nextBillingDate instanceof Date
+                  ? membership.nextBillingDate
+                  : membership.nextBillingDate
+                    ? new Date(membership.nextBillingDate)
+                    : new Date(),
+              date: new Date(),
+              status: "pending",
+              paymentMethod: "pix",
+            },
+          )
+        : null;
+
+      set((state) => {
+        const alreadyExists = state.data.students.some(
+          (student) => student.id === requestPayload.studentId,
+        );
+        const nextStudentDetails = {
+          ...state.data.studentDetails,
+          [requestPayload.studentId]: state.data.studentDetails[
+            requestPayload.studentId
+          ]
+            ? ({
+                ...state.data.studentDetails[requestPayload.studentId],
+                membershipStatus: placeholderStudent.membershipStatus,
+                gymMembership: placeholderStudent.gymMembership,
+              } as StudentData)
+            : placeholderStudent,
+        };
+
+        return {
+          data: {
+            ...state.data,
+            students: alreadyExists
+              ? state.data.students.map((student) =>
+                  student.id === requestPayload.studentId
+                    ? {
+                        ...student,
+                        membershipStatus: placeholderStudent.membershipStatus,
+                        gymMembership: placeholderStudent.gymMembership,
+                      }
+                    : student,
+                )
+              : [placeholderStudent, ...state.data.students],
+            studentDetails: nextStudentDetails,
+            payments: pendingPayment
+              ? [
+                  pendingPayment,
+                  ...state.data.payments.filter(
+                    (payment) => payment.id !== pendingPayment.id,
+                  ),
+                ]
+              : state.data.payments,
+            studentPayments: pendingPayment
+              ? {
+                  ...state.data.studentPayments,
+                  [requestPayload.studentId]: [
+                    pendingPayment,
+                    ...(
+                      state.data.studentPayments[requestPayload.studentId] ?? []
+                    ).filter((payment) => payment.id !== pendingPayment.id),
+                  ],
+                }
+              : state.data.studentPayments,
+            financialSummary:
+              pendingPayment && state.data.financialSummary
+                ? {
+                    ...state.data.financialSummary,
+                    pendingPayments:
+                      state.data.financialSummary.pendingPayments +
+                      pendingPayment.amount,
+                  }
+                : state.data.financialSummary,
+            profile: state.data.profile
+              ? {
+                  ...state.data.profile,
+                  totalStudents:
+                    state.data.profile.totalStudents + (alreadyExists ? 0 : 1),
+                  activeStudents:
+                    state.data.profile.activeStudents +
+                    (alreadyExists || membership.status !== "active" ? 0 : 1),
+                }
+              : state.data.profile,
+            stats: state.data.stats
+              ? {
+                  ...state.data.stats,
+                  week: {
+                    ...state.data.stats.week,
+                    newMembers:
+                      state.data.stats.week.newMembers +
+                      (alreadyExists ? 0 : 1),
+                  },
+                }
+              : state.data.stats,
+          },
+        };
+      });
+
+      return response.data;
     },
 
     applySubscriptionReferral: async (referralCode) => {

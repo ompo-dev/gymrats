@@ -1,8 +1,8 @@
-import { GymEquipmentPage } from "@/components/organisms/gym/gym-equipment";
 import { getGymEquipment } from "../actions";
+import EquipmentPageContent from "./page-content";
 
 export default async function EquipmentPage() {
   const equipment = await getGymEquipment();
 
-  return <GymEquipmentPage equipment={equipment} />;
+  return <EquipmentPageContent equipment={equipment} />;
 }

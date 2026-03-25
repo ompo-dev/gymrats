@@ -402,6 +402,27 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `unlinkAffiliation` e `removeStudent` agora aplicam remoção otimista no Zustand com rollback em caso de erro, reduzindo tempo até a UI refletir a ação.
 - `apps/web/components/organisms/personal/personal-gyms.tsx` passou a usar `onRefresh()` explicitamente após `link/unlink`, mantendo o bootstrap como reconciliação remota canônica em vez de depender de reload interno do store.
 
+## Focus Update - Gym Store Now Reconciles Without Internal Reloads
+
+- `apps/web/stores/gym-unified-store.ts` deixou de usar `loadSection(..., true)` em `createPayment`, `checkInStudent`, `checkOutStudent`, `updatePaymentStatus`, `updateMemberStatus`, `createEquipment`, `updateEquipment`, `createMaintenance` e `enrollStudent`.
+- As actions de `gym` agora devolvem payloads canÃ´nicos da API quando isso melhora a UI local (`Payment`, `CheckIn`, `Equipment`, `MaintenanceRecord` e o envelope de matrÃ­cula), permitindo que os componentes usem a resposta real em vez de reconstruir objetos parciais.
+- `updatePaymentStatus` passou a sincronizar `payments`, `studentPayments` e o resumo financeiro local de forma otimista, com rollback em caso de erro.
+- `updateMemberStatus` agora reconcilia `students` e `studentDetails` diretamente no Zustand, sem round-trip adicional para `students/stats`.
+- `enrollStudent` passou a aceitar `studentSnapshot` opcional vindo da busca local e usa esse contexto para preencher `students`, `studentDetails` e `studentPayments` sem esperar um reload global.
+
+## Focus Update - Gym UI Reads The Optimistic Bridge End-to-End
+
+- `apps/web/components/organisms/gym/add-student-modal.tsx` agora passa `studentSnapshot` para a action de matrÃ­cula, evitando cards vazios enquanto o bootstrap remoto ainda nÃ£o reconciliou.
+- `apps/web/components/organisms/gym/add-equipment-modal.tsx` e `apps/web/components/organisms/gym/maintenance-modal.tsx` deixaram de fabricar objetos locais; agora usam o retorno real da action/store.
+- `apps/web/components/organisms/gym/gym-equipment.tsx` passou a ressincronizar a lista local integralmente a partir do store, corrigindo o caso em que ediÃ§Ãµes com mesmo `id/status` nÃ£o propagavam para a tela de detalhe.
+- `apps/web/components/organisms/gym/financial/financial-overview-tab.tsx` teve o backdrop do modal de saque convertido para botÃ£o absoluto acessÃ­vel, removendo a interaÃ§Ã£o estÃ¡tica rejeitada pelo Biome.
+
+## Focus Update - Standalone Gym Routes Rejoined The Same State Pipeline
+
+- `apps/web/app/gym/_financial/page-content.tsx` deixou de viver apenas de props SSR; agora hidrata o store com os dados iniciais, usa `useGymFinancialBootstrapBridge()` e passa a renderizar `financial/payments/coupons/expenses/ads/subscription` a partir do Zustand.
+- `apps/web/app/gym/_equipment/page.tsx` foi convertido para usar `apps/web/app/gym/_equipment/page-content.tsx`, que hidrata `equipment` no store e consome `useGymBootstrapBridge(["equipment"])`.
+- Com isso, as rotas standalone de `gym` deixam de ficar fora do fluxo `bootstrap -> bridge -> Zustand otimista`, reduzindo divergÃªncia entre a home com tabs e as pÃ¡ginas dedicadas.
+
 ## Validation Status
 
 - `npm run test:unit`: verde
@@ -429,6 +450,12 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `npm run test:unit`: verde após a migração de `membershipPlans` do personal e da limpeza da superfície de loaders
 - `npx biome check` em `apps/web/stores/personal-unified-store.ts` e `apps/web/components/organisms/personal/personal-gyms.tsx`: verde após remover reloads internos de `affiliations/students`
 - `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para esse perímetro: `NO_MATCHING_ERRORS`
+
+- `npx biome check` em `apps/web/stores/gym-unified-store.ts`, `apps/web/components/organisms/gym/add-student-modal.tsx`, `apps/web/components/organisms/gym/add-equipment-modal.tsx`, `apps/web/components/organisms/gym/maintenance-modal.tsx`, `apps/web/components/organisms/gym/gym-equipment.tsx`, `apps/web/components/organisms/gym/financial/financial-overview-tab.tsx` e `apps/web/components/organisms/gym/gym-student-detail/hooks/use-gym-student-detail.ts`: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para esse perÃ­metro de `gym`: `NO_MATCHING_ERRORS`
+- `npx biome check` em `apps/web/app/gym/_financial/page-content.tsx`, `apps/web/app/gym/_equipment/page.tsx` e `apps/web/app/gym/_equipment/page-content.tsx`: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para as rotas standalone de `gym`: `NO_MATCHING_ERRORS`
+- `npm run test:unit`: verde apÃ³s a remoÃ§Ã£o dos reloads internos restantes de `gym`
 
 ## Next Execution Order
 

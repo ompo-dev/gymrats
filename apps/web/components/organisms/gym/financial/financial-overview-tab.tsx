@@ -171,13 +171,14 @@ export function FinancialOverviewTab({
       </DuoCard.Root>
 
       {showWithdraw && !disableWithdraw && withdrawModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={(event) =>
-            event.target === event.currentTarget && setWithdrawModalOpen(false)
-          }
-        >
-          <DuoCard.Root className="w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Fechar modal de saque"
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setWithdrawModalOpen(false)}
+          />
+          <DuoCard.Root className="relative z-10 w-full max-w-sm">
             <DuoCard.Header>
               <h3 className="font-bold">Sacar</h3>
             </DuoCard.Header>

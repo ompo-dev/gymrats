@@ -24,12 +24,12 @@ import {
   DuoStatsGrid,
 } from "@/components/duo";
 import type { Equipment } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import {
   normalizeEquipmentItem,
   normalizeEquipmentList,
 } from "@/lib/utils/gym/normalize-equipment";
-import { cn } from "@/lib/utils";
-import { formatDatePtBr, getTimeMs } from "@/lib/utils/date-safe";
 import { AddEquipmentModal } from "./add-equipment-modal";
 import { GymEquipmentDetail } from "./gym-equipment-detail";
 
@@ -45,23 +45,7 @@ export function GymEquipmentPage({
     normalizeEquipmentList(initialEquipment),
   );
   useEffect(() => {
-    setEquipmentList((current) => {
-      const next = normalizeEquipmentList(initialEquipment);
-
-      if (
-        current.length === next.length &&
-        current.every(
-          (item, index) =>
-            item.id === next[index]?.id &&
-            item.status === next[index]?.status &&
-            item.updatedAt?.valueOf?.() === next[index]?.updatedAt?.valueOf?.(),
-        )
-      ) {
-        return current;
-      }
-
-      return next;
-    });
+    setEquipmentList(normalizeEquipmentList(initialEquipment));
   }, [initialEquipment]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -264,10 +248,7 @@ export function GymEquipmentPage({
       <SlideIn delay={0.3}>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredEquipment.map((equipment, index) => (
-            <div
-              key={equipment.id}
-              className={index > 0 ? "pt-0" : undefined}
-            >
+            <div key={equipment.id} className={index > 0 ? "pt-0" : undefined}>
               <DuoCard.Root
                 variant="default"
                 size="default"

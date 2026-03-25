@@ -2,11 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useGym } from "@/hooks/use-gym";
-import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
-import {
-  createStudentDetailKey,
-  useStudentDetailStore,
-} from "@/stores/student-detail-store";
 import type {
   FoodItem,
   Meal,
@@ -15,6 +10,11 @@ import type {
   PlanSlotData,
   StudentData,
 } from "@/lib/types";
+import { getBrazilNutritionDateKey } from "@/lib/utils/brazil-nutrition-date";
+import {
+  createStudentDetailKey,
+  useStudentDetailStore,
+} from "@/stores/student-detail-store";
 
 const DAY_NAMES = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -63,7 +63,9 @@ export function useGymStudentDetail({
     detailKey ? state.weeklyPlans[detailKey] : undefined,
   );
   const dailyNutrition = useStudentDetailStore((state) =>
-    detailKey ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null) : null,
+    detailKey
+      ? (state.nutritionByDate[detailKey]?.[nutritionDate] ?? null)
+      : null,
   );
   const isLoadingWeeklyPlan = useStudentDetailStore((state) =>
     detailKey ? Boolean(state.weeklyPlanLoading[detailKey]) : false,
@@ -317,7 +319,12 @@ export function useGymStudentDetail({
         );
         const totals = updatedFoods.reduce(
           (
-            sum: { calories: number; protein: number; carbs: number; fats: number },
+            sum: {
+              calories: number;
+              protein: number;
+              carbs: number;
+              fats: number;
+            },
             foodEntry: MealFoodItem,
           ) => ({
             calories: sum.calories + (foodEntry.calories || 0),
@@ -348,7 +355,9 @@ export function useGymStudentDetail({
       const current = dailyNutrition?.waterIntake ?? 0;
       const glassAmount = 250;
       const nextWater =
-        index < current / glassAmount ? current - glassAmount : current + glassAmount;
+        index < current / glassAmount
+          ? current - glassAmount
+          : current + glassAmount;
       await persistNutrition(baseMeals, nextWater);
     },
     [dailyNutrition, persistNutrition],

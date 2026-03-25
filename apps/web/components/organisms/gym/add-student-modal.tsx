@@ -82,6 +82,7 @@ export function AddStudentModal({
         studentId: searchResult.student.id,
         planId: selectedPlanId || null,
         amount,
+        studentSnapshot: searchResult.student,
       });
       onSuccess();
       if (selectedPlanId) {

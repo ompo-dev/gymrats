@@ -46,22 +46,14 @@ export function MaintenanceModal({
 
     try {
       const costNum = form.cost ? parseCurrencyBR(form.cost) : undefined;
-      await actions.createMaintenance(equipmentId, {
+      const record = await actions.createMaintenance(equipmentId, {
         type: form.type,
         description: form.description,
         performedBy: form.performedBy,
         cost: costNum != null && costNum > 0 ? costNum : undefined,
         nextScheduled: form.nextScheduled,
       });
-      onSuccess({
-        id: `${Date.now()}`,
-        date: new Date(),
-        type: form.type,
-        description: form.description,
-        performedBy: form.performedBy,
-        cost: form.cost ? parseCurrencyBR(form.cost) : undefined,
-        nextScheduled: form.nextScheduled ? new Date(form.nextScheduled) : null,
-      } as MaintenanceRecord);
+      onSuccess(record);
       onClose();
       setForm({
         type: "preventive",

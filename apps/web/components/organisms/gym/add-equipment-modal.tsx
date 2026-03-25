@@ -96,29 +96,10 @@ export function AddEquipmentModal({
         ...form,
         status: form.status as Equipment["status"],
       };
-      if (equipmentToEdit) {
-        await actions.updateEquipment(equipmentToEdit.id, payload);
-      } else {
-        await actions.createEquipment(payload);
-      }
-      onSuccess({
-        id: equipmentToEdit?.id || `${Date.now()}`,
-        name: form.name,
-        type: form.type,
-        brand: form.brand || "",
-        model: form.model || "",
-        serialNumber: form.serialNumber || "",
-        status: form.status as Equipment["status"],
-        purchaseDate: form.purchaseDate ? new Date(form.purchaseDate) : null,
-        lastMaintenance: equipmentToEdit?.lastMaintenance ?? null,
-        nextMaintenance: equipmentToEdit?.nextMaintenance ?? null,
-        usageStats: equipmentToEdit?.usageStats ?? {
-          totalUses: 0,
-          avgUsageTime: 0,
-          popularTimes: [],
-        },
-        maintenanceHistory: equipmentToEdit?.maintenanceHistory ?? [],
-      } as Equipment);
+      const savedEquipment = equipmentToEdit
+        ? await actions.updateEquipment(equipmentToEdit.id, payload)
+        : await actions.createEquipment(payload);
+      onSuccess(savedEquipment);
       onClose();
     } catch (err) {
       console.error(err);
