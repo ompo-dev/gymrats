@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { PersonalSelectorReturnMap } from "@/lib/utils/personal/personal-selectors";
 import {
@@ -31,54 +32,55 @@ export function usePersonal<
 >(...selectors: S): Pick<PersonalSelectorReturnMap, S[number]>;
 export function usePersonal<T extends PersonalSelector>(
   ...selectors: T[]
-):
+): 
   | PersonalUnifiedState["data"]
   | PersonalSelectorReturnMap[T]
   | { [K in T]: PersonalSelectorReturnMap[K] } {
-  return usePersonalUnifiedStore(
+  const actions = usePersonalUnifiedStore(
+    useShallow((state: PersonalUnifiedState) => ({
+      updateProfile: state.updateProfile,
+      linkAffiliation: state.linkAffiliation,
+      unlinkAffiliation: state.unlinkAffiliation,
+      assignStudent: state.assignStudent,
+      removeStudent: state.removeStudent,
+      createExpense: state.createExpense,
+      createCoupon: state.createCoupon,
+      deleteCoupon: state.deleteCoupon,
+      createBoostCampaign: state.createBoostCampaign,
+      deleteBoostCampaign: state.deleteBoostCampaign,
+      getBoostCampaignPix: state.getBoostCampaignPix,
+      createMembershipPlan: state.createMembershipPlan,
+      updateMembershipPlan: state.updateMembershipPlan,
+      deleteMembershipPlan: state.deleteMembershipPlan,
+      createPersonalSubscription: state.createPersonalSubscription,
+      cancelPersonalSubscription: state.cancelPersonalSubscription,
+      checkBoostCampaignActive: state.checkBoostCampaignActive,
+      loadStudentDetail: state.loadStudentDetail,
+      loadStudentPayments: state.loadStudentPayments,
+      hydrateInitial: state.hydrateInitial,
+    })),
+  );
+  const loaders = usePersonalUnifiedStore(
+    useShallow((state: PersonalUnifiedState) => ({
+      loadAll: state.loadAll,
+      loadAllPrioritized: state.loadAllPrioritized,
+      loadSection: state.loadSection,
+      loadStudentDetail: state.loadStudentDetail,
+      loadStudentPayments: state.loadStudentPayments,
+    })),
+  );
+  const selectedData = usePersonalUnifiedStore(
     useShallow((state) => {
-      const actions = {
-        updateProfile: state.updateProfile,
-        linkAffiliation: state.linkAffiliation,
-        unlinkAffiliation: state.unlinkAffiliation,
-        assignStudent: state.assignStudent,
-        removeStudent: state.removeStudent,
-        createExpense: state.createExpense,
-        createCoupon: state.createCoupon,
-        deleteCoupon: state.deleteCoupon,
-        createBoostCampaign: state.createBoostCampaign,
-        deleteBoostCampaign: state.deleteBoostCampaign,
-        getBoostCampaignPix: state.getBoostCampaignPix,
-        createMembershipPlan: state.createMembershipPlan,
-        updateMembershipPlan: state.updateMembershipPlan,
-        deleteMembershipPlan: state.deleteMembershipPlan,
-        createPersonalSubscription: state.createPersonalSubscription,
-        cancelPersonalSubscription: state.cancelPersonalSubscription,
-        checkBoostCampaignActive: state.checkBoostCampaignActive,
-        loadStudentDetail: state.loadStudentDetail,
-        loadStudentPayments: state.loadStudentPayments,
-        hydrateInitial: state.hydrateInitial,
-      };
-      const loaders = {
-        loadAll: state.loadAll,
-        loadAllPrioritized: state.loadAllPrioritized,
-        loadSection: state.loadSection,
-        loadStudentDetail: state.loadStudentDetail,
-        loadStudentPayments: state.loadStudentPayments,
-      };
-
       if (selectors.length === 0) {
         return state.data;
       }
 
       if (selectors.length === 1) {
         const selector = selectors[0];
-        if (selector === "actions") {
-          return actions as unknown as PersonalSelectorReturnMap[T];
+        if (selector === "actions" || selector === "loaders") {
+          return undefined;
         }
-        if (selector === "loaders") {
-          return loaders as unknown as PersonalSelectorReturnMap[T];
-        }
+
         return dataSelector(
           selector,
           state.data,
@@ -87,13 +89,11 @@ export function usePersonal<T extends PersonalSelector>(
 
       const result: Record<string, unknown> = {};
       selectors.forEach((selector) => {
-        if (selector === "actions") {
-          result.actions = actions;
-        } else if (selector === "loaders") {
-          result.loaders = loaders;
-        } else {
-          result[selector] = dataSelector(selector, state.data);
+        if (selector === "actions" || selector === "loaders") {
+          return;
         }
+
+        result[selector] = dataSelector(selector, state.data);
       });
 
       return result as unknown as Pick<
@@ -102,4 +102,31 @@ export function usePersonal<T extends PersonalSelector>(
       >;
     }),
   );
+
+  return useMemo(() => {
+    if (selectors.length === 0) {
+      return selectedData as PersonalUnifiedState["data"];
+    }
+
+    if (selectors.length === 1) {
+      const selector = selectors[0];
+      if (selector === "actions") {
+        return actions as PersonalSelectorReturnMap[T];
+      }
+      if (selector === "loaders") {
+        return loaders as PersonalSelectorReturnMap[T];
+      }
+
+      return selectedData as PersonalSelectorReturnMap[T];
+    }
+
+    return {
+      ...(selectedData as Record<string, unknown>),
+      ...(selectors.includes("actions" as T) ? { actions } : {}),
+      ...(selectors.includes("loaders" as T) ? { loaders } : {}),
+    } as Pick<
+      PersonalSelectorReturnMap,
+      T[number] & keyof PersonalSelectorReturnMap
+    >;
+  }, [actions, loaders, selectedData, selectors]);
 }
