@@ -30,7 +30,7 @@ const EXPENSE_TYPES = [
 interface AddExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   variant?: "gym" | "personal";
 }
 
@@ -84,7 +84,7 @@ export function AddExpenseModal({
         date: new Date().toISOString().split("T")[0],
         category: form.category.trim() || null,
       });
-      onSuccess?.();
+      await onSuccess?.();
       onClose();
     } catch (err) {
       setError(

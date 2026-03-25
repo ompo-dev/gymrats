@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Flame, Loader2, Search, UserPlus } from "lucide-react";
 import Image from "next/image";
@@ -30,22 +30,22 @@ function StudentDetailLoader({
 }: StudentDetailLoaderProps) {
   const gymStudentDetails = useGym("studentDetails");
   const gymStudentPayments = useGym("studentPayments");
-  const gymLoaders = useGym("loaders");
+  const gymActions = useGym("actions");
   const personalStudentDetails = usePersonal("studentDetails");
   const personalStudentPayments = usePersonal("studentPayments");
-  const personalLoaders = usePersonal("loaders");
+  const personalActions = usePersonal("actions");
   const selectedStudentDetails =
     variant === "personal" ? personalStudentDetails : gymStudentDetails;
   const selectedStudentPayments =
     variant === "personal" ? personalStudentPayments : gymStudentPayments;
   const loadStudentDetail =
     variant === "personal"
-      ? personalLoaders.loadStudentDetail
-      : gymLoaders.loadStudentDetail;
+      ? personalActions.loadStudentDetail
+      : gymActions.loadStudentDetail;
   const loadStudentPayments =
     variant === "personal"
-      ? personalLoaders.loadStudentPayments
-      : gymLoaders.loadStudentPayments;
+      ? personalActions.loadStudentPayments
+      : gymActions.loadStudentPayments;
   const student =
     (selectedStudentDetails[studentId] as StudentData | null) ??
     fallbackStudent;
@@ -63,7 +63,7 @@ function StudentDetailLoader({
           loadStudentPayments(studentId, true),
         ]);
       } catch {
-        // fallback já vem do store ou prop
+        // fallback jÃ¡ vem do store ou prop
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -219,7 +219,7 @@ export function GymStudentsPage({
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="mb-2 text-3xl font-bold text-duo-text">
-              Gestão de Alunos
+              GestÃ£o de Alunos
             </h1>
             <p className="text-sm text-duo-gray-dark">
               {filteredStudents.length} aluno
@@ -270,7 +270,7 @@ export function GymStudentsPage({
                   options={networkOptions}
                   value={networkFilter || "all"}
                   onChange={(value) => setNetworkFilter(value as string)}
-                  placeholder="Tipo de Vínculo"
+                  placeholder="Tipo de VÃ­nculo"
                 />
               )}
             </div>
@@ -346,7 +346,7 @@ export function GymStudentsPage({
                           )}
                         />
                         <span className="font-bold text-duo-text">
-                          Sequência
+                          SequÃªncia
                         </span>
                       </div>
                       <span
@@ -363,7 +363,7 @@ export function GymStudentsPage({
                   <DuoCard.Root variant="default" size="sm">
                     <div className="mb-2 flex items-center justify-between">
                       <span className="font-bold text-duo-text">
-                        Frequência
+                        FrequÃªncia
                       </span>
                       <span className="text-xl font-bold text-duo-text">
                         {student.attendanceRate ?? 0}%

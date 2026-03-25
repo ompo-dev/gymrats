@@ -23,7 +23,7 @@ import {
 } from "@/components/templates/layouts/app-layout";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
-import { useStudentInitializer } from "@/hooks/use-student-initializer";
+import { useStudentDefaultBootstrapBridge } from "@/hooks/use-student-bootstrap";
 
 interface StudentLayoutContentProps {
   children: React.ReactNode;
@@ -51,12 +51,12 @@ export function StudentLayoutContent({
 
   // Inicializar dados do student automaticamente quando o layout carregar
   // Não bloquear renderização - dados carregam em background
-  useStudentInitializer({
-    autoLoad: true,
-  });
+  useStudentDefaultBootstrapBridge({ enabled: false });
 
   // Buscar progresso do store para atualizar header dinamicamente
-  const storeProgress = (useStudent("progress") as unknown) as import("@/lib/types").UserProgress | undefined;
+  const storeProgress = useStudent("progress") as unknown as
+    | import("@/lib/types").UserProgress
+    | undefined;
   const { loadWeeklyPlan } = useStudent("loaders");
   const editPlanModal = useModalState("edit-plan");
   const nutritionLibraryModal = useModalState("nutrition-library");

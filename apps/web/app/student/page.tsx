@@ -2,22 +2,17 @@
  * Página Principal do Student
  *
  * Arquitetura Offline-First:
- * - Não faz server-side fetching (dados vêm do store via useStudentInitializer)
- * - useStudentInitializer carrega todos os dados automaticamente no layout
- * - Componente usa apenas dados do store unificado (Zustand + IndexedDB)
+ * - O layout hidrata o bootstrap no cache do React Query
+ * - As bootstrap bridges reconciliam o Zustand com os dados remotos
+ * - O componente consome apenas o estado unificado da UI
  * - Funciona offline com dados em cache
  */
 
 import StudentHome from "./page-content";
 
 export default function StudentPage() {
-  // Não fazemos server-side fetching aqui!
-  // Todos os dados são carregados automaticamente pelo useStudentInitializer
-  // no layout e ficam disponíveis no store unificado.
-  // Isso permite:
-  // - Offline-first (dados em cache)
-  // - Performance (dados já carregados)
-  // - Sincronização automática
+  // Esta página delega o carregamento ao layout + bootstrap bridge.
+  // Aqui só renderizamos a superfície client consumindo o store unificado.
 
   return <StudentHome />;
 }

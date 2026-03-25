@@ -2,7 +2,6 @@
  * Slice financeiro para student-unified-store.
  */
 
-import { featureFlags } from "@gymrats/config";
 import { apiClient } from "@/lib/api/client";
 import type {
   StudentData,
@@ -10,6 +9,7 @@ import type {
   StudentPaymentPlanOption,
   StudentPixPaymentPayload,
   StudentReferralApplyResult,
+  StudentReferralWithdraw,
 } from "@/lib/types/student-unified";
 import { loadSection } from "../load-helpers";
 import type { StudentGetState, StudentSetState } from "./types";
@@ -29,15 +29,19 @@ export function createFinancialSlice(
   set: StudentSetState,
   get: StudentGetState,
 ) {
-  const refreshFinancialData = async () => {
-    await Promise.allSettled([
-      get().loadSubscription(),
-      get().loadMemberships(),
-      get().loadPayments(),
-      get().loadPaymentMethods(),
-      get().loadReferral(),
-      get().loadDayPasses(),
-    ]);
+  type StudentReferralSnapshot = Exclude<StudentData["referral"], null>;
+
+  const updateReferralSnapshot = (
+    updater: (referral: StudentReferralSnapshot) => StudentReferralSnapshot,
+  ) => {
+    set((state) => ({
+      data: {
+        ...state.data,
+        referral: state.data.referral
+          ? updater(state.data.referral)
+          : state.data.referral,
+      },
+    }));
   };
 
   return {
@@ -117,17 +121,55 @@ export function createFinancialSlice(
       pixKey: string;
       pixKeyType: string;
     }) => {
-      await apiClient.post("/api/students/referrals/pix-key", {
-        pixKey,
-        pixKeyType,
-      });
-      await get().loadReferral();
+      const previousReferral = get().data.referral;
+
+      if (previousReferral) {
+        updateReferralSnapshot((referral) => ({
+          ...referral,
+          pixKey,
+          pixKeyType,
+        }));
+      }
+
+      try {
+        await apiClient.post("/api/students/referrals/pix-key", {
+          pixKey,
+          pixKeyType,
+        });
+      } catch (error) {
+        if (previousReferral) {
+          set((state) => ({
+            data: {
+              ...state.data,
+              referral: previousReferral,
+            },
+          }));
+        }
+
+        throw error;
+      }
     },
     requestReferralWithdraw: async (amountCents: number) => {
-      await apiClient.post("/api/students/referrals/withdraw", {
+      const response = await apiClient.post<{
+        withdraw: StudentReferralWithdraw;
+      }>("/api/students/referrals/withdraw", {
         amountCents,
       });
-      await get().loadReferral();
+      const withdraw = {
+        ...response.data.withdraw,
+        completedAt: response.data.withdraw.completedAt ?? null,
+      };
+
+      updateReferralSnapshot((referral) => {
+        const balanceCents = Math.max(0, referral.balanceCents - amountCents);
+
+        return {
+          ...referral,
+          balanceCents,
+          balanceReais: Number((balanceCents / 100).toFixed(2)),
+          withdraws: [withdraw, ...referral.withdraws],
+        };
+      });
     },
     addDayPass: (dayPass: StudentData["dayPasses"][0]) => {
       set((state) => ({
@@ -154,15 +196,13 @@ export function createFinancialSlice(
         },
         {
           headers: {
-            "X-Idempotency-Key": createIdempotencyKey("student-join-gym", gymId),
+            "X-Idempotency-Key": createIdempotencyKey(
+              "student-join-gym",
+              gymId,
+            ),
           },
         },
       );
-      await Promise.allSettled([
-        get().loadMemberships(),
-        get().loadPayments(),
-        get().loadGymLocations(),
-      ]);
       return response.data;
     },
     loadGymPlans: async (gymId: string) => {
@@ -190,9 +230,6 @@ export function createFinancialSlice(
           },
         },
       );
-      if (!featureFlags.perfPaymentsV2) {
-        await Promise.allSettled([get().loadMemberships(), get().loadPayments()]);
-      }
       return response.data;
     },
     cancelMembership: async (membershipId: string) => {
@@ -214,7 +251,6 @@ export function createFinancialSlice(
           `/api/students/memberships/${membershipId}/cancel`,
           {},
         );
-        await Promise.allSettled([get().loadMemberships(), get().loadPayments()]);
       } catch (error) {
         set((state) => ({
           data: {
@@ -230,7 +266,6 @@ export function createFinancialSlice(
         `/api/students/personals/assignments/${assignmentId}/cancel`,
         {},
       );
-      await refreshFinancialData();
     },
     subscribeToPersonal: async ({
       personalId,
@@ -256,7 +291,6 @@ export function createFinancialSlice(
           },
         },
       );
-      await refreshFinancialData();
       return response.data;
     },
     payStudentPayment: async (paymentId: string) => {
@@ -272,27 +306,47 @@ export function createFinancialSlice(
           },
         },
       );
-      if (!featureFlags.perfPaymentsV2) {
-        await get().loadPayments();
-      }
       return response.data;
     },
     cancelStudentPayment: async (paymentId: string) => {
-      await apiClient.patch(
-        `/api/payments/${paymentId}`,
-        {
-          status: "canceled",
+      const previousPayments = get().data.payments;
+
+      set((state) => ({
+        data: {
+          ...state.data,
+          payments: state.data.payments.map((payment) =>
+            payment.id === paymentId
+              ? { ...payment, status: "canceled" }
+              : payment,
+          ),
         },
-        {
-          headers: {
-            "X-Idempotency-Key": createIdempotencyKey(
-              "student-cancel-payment",
-              paymentId,
-            ),
+      }));
+
+      try {
+        await apiClient.patch(
+          `/api/payments/${paymentId}`,
+          {
+            status: "canceled",
           },
-        },
-      );
-      await get().loadPayments();
+          {
+            headers: {
+              "X-Idempotency-Key": createIdempotencyKey(
+                "student-cancel-payment",
+                paymentId,
+              ),
+            },
+          },
+        );
+      } catch (error) {
+        set((state) => ({
+          data: {
+            ...state.data,
+            payments: previousPayments,
+          },
+        }));
+
+        throw error;
+      }
     },
     getStudentPaymentStatus: async (paymentId: string) => {
       const response = await apiClient.get<{ status: string }>(

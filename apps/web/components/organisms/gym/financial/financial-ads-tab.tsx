@@ -179,6 +179,7 @@ export function FinancialAdsTab({
         amountCents: totalPrice * 100,
         radiusKm,
       });
+      await refreshBootstrap();
       setModalOpen(false);
       setPixModal({
         brCode: result.brCode,
@@ -231,6 +232,7 @@ export function FinancialAdsTab({
     setDeletingId(campaignId);
     try {
       await actions.deleteBoostCampaign(campaignId);
+      await refreshBootstrap();
       toast({ title: "Campanha excluída." });
       setConfirmDeleteId(null);
     } catch (error) {

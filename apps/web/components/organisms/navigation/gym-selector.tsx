@@ -5,6 +5,7 @@ import { Building2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DuoSelect, type DuoSelectOption } from "@/components/duo";
+import { invalidateQueryDomains } from "@/hooks/use-bootstrap-refresh";
 import { useGymsList } from "@/hooks/use-gyms-list";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -73,8 +74,8 @@ function GymSelectorSimple() {
       useSubscriptionStore.getState().resetForGymChange();
       // 2. Atualizar academia ativa (aguarda backend)
       await setActiveGymId(gymId);
-      // 3. Limpar cache react-query
-      await queryClient.invalidateQueries();
+      // 3. Invalidar apenas domínios afetados pela troca de unidade
+      await invalidateQueryDomains(queryClient, ["gym", "payments"]);
       router.refresh();
     } finally {
       setIsSwitching(false);

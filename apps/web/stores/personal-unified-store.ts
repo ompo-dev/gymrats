@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import type { BoostCampaign, Expense } from "@/lib/types";
+﻿import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
 import { getAxiosInstance } from "@/lib/api/client-factory";
+import type { BoostCampaign, Expense } from "@/lib/types";
 import type {
   PersonalDataSection,
   PersonalUnifiedData,
@@ -18,6 +18,7 @@ import {
   markResourceError,
   markResourcesLoading,
   markResourcesReady,
+  type ResourceStateMap,
 } from "./shared/resource-metadata";
 
 const ALL_SECTIONS: readonly PersonalDataSection[] = [
@@ -34,9 +35,7 @@ const ALL_SECTIONS: readonly PersonalDataSection[] = [
   "membershipPlans",
 ];
 
-function withPersonalResources(
-  data: PersonalUnifiedData,
-): PersonalUnifiedData {
+function withPersonalResources(data: PersonalUnifiedData): PersonalUnifiedData {
   return {
     ...data,
     metadata: {
@@ -47,6 +46,12 @@ function withPersonalResources(
 }
 
 const initialState = withPersonalResources(initialPersonalData);
+
+function toPersonalResourceStateMap(
+  resources: PersonalUnifiedData["metadata"]["resources"],
+): ResourceStateMap<PersonalDataSection> {
+  return resources as ResourceStateMap<PersonalDataSection>;
+}
 
 export interface PersonalUnifiedState {
   data: PersonalUnifiedData;
@@ -73,10 +78,7 @@ export interface PersonalUnifiedState {
   }) => Promise<void>;
   linkAffiliation: (gymId: string) => Promise<void>;
   unlinkAffiliation: (gymId: string) => Promise<void>;
-  assignStudent: (data: {
-    studentId: string;
-    gymId?: string;
-  }) => Promise<void>;
+  assignStudent: (data: { studentId: string; gymId?: string }) => Promise<void>;
   removeStudent: (studentId: string) => Promise<void>;
   createExpense: (data: {
     type: string;
@@ -171,7 +173,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             ...state.data.metadata,
             isLoading: true,
             resources: markResourcesLoading(
-              state.data.metadata.resources as any,
+              toPersonalResourceStateMap(state.data.metadata.resources),
               sections,
             ),
           },
@@ -189,7 +191,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             isInitialized: true,
             lastSync: new Date(),
             resources: markResourcesReady(
-              state.data.metadata.resources as any,
+              toPersonalResourceStateMap(state.data.metadata.resources),
               sections,
             ),
           },
@@ -211,7 +213,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
               [section]: message,
             },
             resources: markResourceError(
-              state.data.metadata.resources as any,
+              toPersonalResourceStateMap(state.data.metadata.resources),
               section,
               message,
             ),
@@ -222,7 +224,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
 
     const hydrateSections = (incoming: Partial<PersonalUnifiedData>) => {
       const sections = ALL_SECTIONS.filter((section) =>
-        Object.prototype.hasOwnProperty.call(incoming, section),
+        Object.hasOwn(incoming, section),
       );
       if (sections.length === 0) return;
 
@@ -235,7 +237,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             isInitialized: true,
             lastSync: new Date(),
             resources: markResourcesReady(
-              state.data.metadata.resources as any,
+              toPersonalResourceStateMap(state.data.metadata.resources),
               sections,
             ),
           },
@@ -257,7 +259,9 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           updateStoreWithSection(set, result);
           setSectionsReady(ALL_SECTIONS);
         } catch (err) {
-          ALL_SECTIONS.forEach((section) => setSectionError(section, err));
+          ALL_SECTIONS.forEach((section) => {
+            setSectionError(section, err);
+          });
         }
       },
 
@@ -271,7 +275,9 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           updateStoreWithSection(set, result);
           setSectionsReady(sections);
         } catch (err) {
-          sections.forEach((section) => setSectionError(section, err));
+          sections.forEach((section) => {
+            setSectionError(section, err);
+          });
         }
       },
 
@@ -361,8 +367,33 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
       },
 
       updateProfile: async (data) => {
-        await apiClient.patch("/api/personals", data);
-        await get().loadSection("profile", true);
+        const previous = get().data.profile;
+        await runOptimisticMutation({
+          getSnapshot: () => previous,
+          applyOptimistic: () => {
+            if (!previous) {
+              return;
+            }
+
+            set((state) => ({
+              data: {
+                ...state.data,
+                profile: {
+                  ...previous,
+                  ...data,
+                },
+              },
+            }));
+          },
+          rollback: (snapshot) => {
+            set((state) => ({
+              data: { ...state.data, profile: snapshot },
+            }));
+          },
+          execute: async () => {
+            await apiClient.patch("/api/personals", data);
+          },
+        });
       },
 
       linkAffiliation: async (gymId) => {
@@ -372,14 +403,33 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             ? normalizedGymId
             : `@${normalizedGymId}`,
         });
-        await get().loadSection("affiliations", true);
       },
 
       unlinkAffiliation: async (gymId) => {
-        await apiClient.delete("/api/personals/affiliations", {
-          data: { gymId },
+        const previous = get().data.affiliations;
+        await runOptimisticMutation({
+          getSnapshot: () => previous,
+          applyOptimistic: () => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                affiliations: state.data.affiliations.filter(
+                  (affiliation) => affiliation.gym.id !== gymId,
+                ),
+              },
+            }));
+          },
+          rollback: (snapshot) => {
+            set((state) => ({
+              data: { ...state.data, affiliations: snapshot },
+            }));
+          },
+          execute: async () => {
+            await apiClient.delete("/api/personals/affiliations", {
+              data: { gymId },
+            });
+          },
         });
-        await get().loadSection("affiliations", true);
       },
 
       assignStudent: async ({ studentId, gymId }) => {
@@ -387,20 +437,56 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           studentId,
           ...(gymId ? { gymId } : {}),
         });
-        await Promise.all([
-          get().loadSection("students", true),
-          get().loadSection("studentDirectory", true),
-        ]);
       },
 
       removeStudent: async (studentId) => {
-        await getAxiosInstance().delete("/api/personals/students/assign", {
-          data: { studentId },
+        const previous = {
+          students: get().data.students,
+          studentDirectory: get().data.studentDirectory,
+          studentDetails: get().data.studentDetails,
+          studentPayments: get().data.studentPayments,
+        };
+        await runOptimisticMutation({
+          getSnapshot: () => previous,
+          applyOptimistic: () => {
+            set((state) => {
+              const nextStudentDetails = { ...state.data.studentDetails };
+              const nextStudentPayments = { ...state.data.studentPayments };
+              delete nextStudentDetails[studentId];
+              delete nextStudentPayments[studentId];
+
+              return {
+                data: {
+                  ...state.data,
+                  students: state.data.students.filter(
+                    (assignment) => assignment.student.id !== studentId,
+                  ),
+                  studentDirectory: state.data.studentDirectory.filter(
+                    (student) => student.id !== studentId,
+                  ),
+                  studentDetails: nextStudentDetails,
+                  studentPayments: nextStudentPayments,
+                },
+              };
+            });
+          },
+          rollback: (snapshot) => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                students: snapshot.students,
+                studentDirectory: snapshot.studentDirectory,
+                studentDetails: snapshot.studentDetails,
+                studentPayments: snapshot.studentPayments,
+              },
+            }));
+          },
+          execute: async () => {
+            await getAxiosInstance().delete("/api/personals/students/assign", {
+              data: { studentId },
+            });
+          },
         });
-        await Promise.all([
-          get().loadSection("students", true),
-          get().loadSection("studentDirectory", true),
-        ]);
       },
 
       createExpense: async (payload) => {
@@ -431,13 +517,7 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             }));
           },
           execute: async () => {
-            await apiClient.post("/api/personals/expenses", payload as any);
-          },
-          onSuccess: async () => {
-            await Promise.all([
-              get().loadSection("expenses", true),
-              get().loadSection("financialSummary", true),
-            ]);
+            await apiClient.post("/api/personals/expenses", payload);
           },
         });
       },
@@ -484,11 +564,8 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
               expiresAt:
                 payload.expiresAt instanceof Date
                   ? payload.expiresAt.toISOString()
-                  : payload.expiresAt ?? null,
+                  : (payload.expiresAt ?? null),
             });
-          },
-          onSuccess: async () => {
-            await get().loadSection("coupons", true);
           },
         });
       },
@@ -501,7 +578,9 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             set((state) => ({
               data: {
                 ...state.data,
-                coupons: state.data.coupons.filter((coupon) => coupon.id !== couponId),
+                coupons: state.data.coupons.filter(
+                  (coupon) => coupon.id !== couponId,
+                ),
               },
             }));
           },
@@ -514,9 +593,6 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             await apiClient.delete(
               `/api/personals/coupons?couponId=${encodeURIComponent(couponId)}`,
             );
-          },
-          onSuccess: async () => {
-            await get().loadSection("coupons", true);
           },
         });
       },
@@ -574,9 +650,6 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             }>("/api/personals/boost-campaigns", payload);
             return response.data;
           },
-          onSuccess: async () => {
-            await get().loadSection("campaigns", true);
-          },
         });
       },
 
@@ -604,9 +677,6 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
               `/api/personals/boost-campaigns?campaignId=${encodeURIComponent(campaignId)}`,
             );
           },
-          onSuccess: async () => {
-            await get().loadSection("campaigns", true);
-          },
         });
       },
 
@@ -623,13 +693,98 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
       },
 
       createMembershipPlan: async (payload) => {
-        await apiClient.post("/api/personals/membership-plans", payload);
-        await get().loadSection("membershipPlans", true);
+        const tempId = `temp-membership-plan-${Date.now()}`;
+        await runOptimisticMutation({
+          getSnapshot: () => get().data.membershipPlans,
+          applyOptimistic: () => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                membershipPlans: [
+                  {
+                    id: tempId,
+                    personalId: state.data.profile?.id ?? "",
+                    name: payload.name,
+                    description: payload.description ?? null,
+                    type: payload.type,
+                    price: payload.price,
+                    duration: payload.duration,
+                    benefits: payload.benefits ?? [],
+                    isActive: true,
+                  },
+                  ...state.data.membershipPlans,
+                ],
+              },
+            }));
+          },
+          rollback: (snapshot) => {
+            set((state) => ({
+              data: { ...state.data, membershipPlans: snapshot },
+            }));
+          },
+          execute: async () => {
+            const response = await apiClient.post<{
+              plan: PersonalUnifiedData["membershipPlans"][number];
+            }>("/api/personals/membership-plans", payload);
+            return response.data.plan;
+          },
+          onSuccess: (createdPlan) => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                membershipPlans: state.data.membershipPlans.map((plan) =>
+                  plan.id === tempId ? createdPlan : plan,
+                ),
+              },
+            }));
+          },
+        });
       },
 
       updateMembershipPlan: async (planId, payload) => {
-        await apiClient.patch(`/api/personals/membership-plans/${planId}`, payload);
-        await get().loadSection("membershipPlans", true);
+        const previous = get().data.membershipPlans;
+        await runOptimisticMutation({
+          getSnapshot: () => previous,
+          applyOptimistic: () => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                membershipPlans: state.data.membershipPlans.map((plan) =>
+                  plan.id === planId
+                    ? {
+                        ...plan,
+                        ...payload,
+                        description: payload.description ?? plan.description,
+                        benefits: payload.benefits ?? plan.benefits,
+                        isActive: payload.isActive ?? plan.isActive,
+                      }
+                    : plan,
+                ),
+              },
+            }));
+          },
+          rollback: (snapshot) => {
+            set((state) => ({
+              data: { ...state.data, membershipPlans: snapshot },
+            }));
+          },
+          execute: async () => {
+            const response = await apiClient.patch<{
+              plan: PersonalUnifiedData["membershipPlans"][number];
+            }>(`/api/personals/membership-plans/${planId}`, payload);
+            return response.data.plan;
+          },
+          onSuccess: (updatedPlan) => {
+            set((state) => ({
+              data: {
+                ...state.data,
+                membershipPlans: state.data.membershipPlans.map((plan) =>
+                  plan.id === planId ? updatedPlan : plan,
+                ),
+              },
+            }));
+          },
+        });
       },
 
       deleteMembershipPlan: async (planId) => {
@@ -654,9 +809,6 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
           execute: async () => {
             await apiClient.delete(`/api/personals/membership-plans/${planId}`);
           },
-          onSuccess: async () => {
-            await get().loadSection("membershipPlans", true);
-          },
         });
       },
 
@@ -671,13 +823,11 @@ export const usePersonalUnifiedStore = create<PersonalUnifiedState>()(
             expiresAt?: string;
           };
         }>("/api/personals/subscription", { plan, billingPeriod });
-        await get().loadSection("subscription", true);
         return res.data?.pix ? { pix: res.data.pix } : null;
       },
 
       cancelPersonalSubscription: async () => {
         await apiClient.post("/api/personals/subscription/cancel", {});
-        await get().loadSection("subscription", true);
       },
 
       checkBoostCampaignActive: async (campaignId) => {

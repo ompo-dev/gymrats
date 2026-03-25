@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef } from "react";
 import { useStudent } from "@/hooks/use-student";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
+import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
 import type {
@@ -17,6 +18,50 @@ import type {
   StudentReferralData,
   SubscriptionData,
 } from "@/lib/types/student-unified";
+import {
+  hydrateStudentBootstrapData,
+  updateStoreWithSection,
+} from "@/stores/student/load-helpers";
+import { useStudentUnifiedStore } from "@/stores/student-unified-store";
+
+type StudentStoreSetter = (
+  fn: (state: { data: StudentData }) => { data: StudentData },
+) => void;
+
+export const STUDENT_BASE_BOOTSTRAP_SECTIONS =
+  DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
+
+export const STUDENT_HOME_BOOTSTRAP_SECTIONS =
+  DEFAULT_STUDENT_BOOTSTRAP_SECTIONS;
+
+export const STUDENT_LEARN_BOOTSTRAP_SECTIONS = [
+  "weeklyPlan",
+  "progress",
+  "workoutHistory",
+  "units",
+] as const satisfies readonly StudentDataSection[];
+
+export const STUDENT_DIET_BOOTSTRAP_SECTIONS = [
+  "activeNutritionPlan",
+  "dailyNutrition",
+  "progress",
+] as const satisfies readonly StudentDataSection[];
+
+export const STUDENT_PROFILE_BOOTSTRAP_SECTIONS = [
+  "user",
+  "profile",
+  "weightHistory",
+  "progress",
+  "personalRecords",
+  "workoutHistory",
+  "units",
+] as const satisfies readonly StudentDataSection[];
+
+export const STUDENT_GYMS_BOOTSTRAP_SECTIONS = [
+  "gymLocations",
+  "memberships",
+  "dayPasses",
+] as const satisfies readonly StudentDataSection[];
 
 export const STUDENT_FINANCIAL_BOOTSTRAP_SECTIONS = [
   "subscription",
@@ -267,6 +312,78 @@ export function useStudentBootstrap(
   }, [query.data, sections]);
 
   return query;
+}
+
+export function useStudentBootstrapBridge(
+  sections?: readonly StudentDataSection[],
+  options?: {
+    enabled?: boolean;
+    initialize?: boolean;
+  },
+) {
+  const query = useStudentBootstrap(sections, options);
+  const lastHydratedRequestId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!query.data?.data) {
+      return;
+    }
+
+    const requestId =
+      query.data.meta.requestId ??
+      query.data.meta.generatedAt ??
+      (sections?.join(",") || "all");
+    if (lastHydratedRequestId.current === requestId) {
+      return;
+    }
+
+    lastHydratedRequestId.current = requestId;
+
+    const setState =
+      useStudentUnifiedStore.setState as unknown as StudentStoreSetter;
+
+    if (options?.initialize) {
+      hydrateStudentBootstrapData(setState, query.data.data);
+      return;
+    }
+
+    updateStoreWithSection(setState, query.data.data);
+  }, [options?.initialize, query.data]);
+
+  return query;
+}
+
+export function useStudentDefaultBootstrapBridge(options?: {
+  enabled?: boolean;
+}) {
+  return useStudentBootstrapBridge(STUDENT_BASE_BOOTSTRAP_SECTIONS, {
+    ...options,
+    initialize: true,
+  });
+}
+
+export function useStudentHomeBootstrapBridge(options?: { enabled?: boolean }) {
+  return useStudentBootstrapBridge(STUDENT_HOME_BOOTSTRAP_SECTIONS, options);
+}
+
+export function useStudentLearnBootstrapBridge(options?: {
+  enabled?: boolean;
+}) {
+  return useStudentBootstrapBridge(STUDENT_LEARN_BOOTSTRAP_SECTIONS, options);
+}
+
+export function useStudentDietBootstrapBridge(options?: { enabled?: boolean }) {
+  return useStudentBootstrapBridge(STUDENT_DIET_BOOTSTRAP_SECTIONS, options);
+}
+
+export function useStudentProfileBootstrapBridge(options?: {
+  enabled?: boolean;
+}) {
+  return useStudentBootstrapBridge(STUDENT_PROFILE_BOOTSTRAP_SECTIONS, options);
+}
+
+export function useStudentGymsBootstrapBridge(options?: { enabled?: boolean }) {
+  return useStudentBootstrapBridge(STUDENT_GYMS_BOOTSTRAP_SECTIONS, options);
 }
 
 export function useStudentPayments(options?: { enabled?: boolean }) {

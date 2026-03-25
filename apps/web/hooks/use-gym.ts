@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -20,7 +20,7 @@ const dataSelector = (selector: GymSelector, data: GymUnifiedState["data"]) => {
   }
 };
 
-// Overloads para inferência correta de tipo.
+// Overloads para inferÃªncia correta de tipo.
 export function useGym(): GymUnifiedState["data"];
 export function useGym<S extends GymSelector>(
   selector: S,
@@ -30,7 +30,7 @@ export function useGym<S extends [GymSelector, GymSelector, ...GymSelector[]]>(
 ): Pick<GymSelectorReturnMap, S[number]>;
 export function useGym<T extends GymSelector>(
   ...selectors: T[]
-): 
+):
   | GymUnifiedState["data"]
   | GymSelectorReturnMap[T]
   | { [K in T]: GymSelectorReturnMap[K] } {
@@ -55,8 +55,6 @@ export function useGym<T extends GymSelector>(
       getBoostCampaignPix: state.getBoostCampaignPix,
       createWithdraw: state.createWithdraw,
       enrollStudent: state.enrollStudent,
-      createGymSubscription: state.createGymSubscription,
-      cancelGymSubscription: state.cancelGymSubscription,
       applySubscriptionReferral: state.applySubscriptionReferral,
       checkCurrentSubscriptionActive: state.checkCurrentSubscriptionActive,
       checkBoostCampaignActive: state.checkBoostCampaignActive,
@@ -71,8 +69,6 @@ export function useGym<T extends GymSelector>(
       loadAll: state.loadAll,
       loadAllPrioritized: state.loadAllPrioritized,
       loadSection: state.loadSection,
-      loadStudentDetail: state.loadStudentDetail,
-      loadStudentPayments: state.loadStudentPayments,
     })),
   );
   const selectedData = useGymUnifiedStore(

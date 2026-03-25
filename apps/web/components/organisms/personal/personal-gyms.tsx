@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Building2, Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -27,7 +27,7 @@ export interface PersonalGymsPageProps {
 
 export function PersonalGymsPage({
   affiliations,
-  onRefresh: _onRefresh,
+  onRefresh,
   onViewGym,
 }: PersonalGymsPageProps) {
   const { toast } = useToast();
@@ -50,9 +50,10 @@ export function PersonalGymsPage({
     setIsLinking(true);
     try {
       await actions.linkAffiliation(gymId);
+      await onRefresh();
       toast({
         title: "Academia vinculada",
-        description: "Você foi vinculado à academia.",
+        description: "VocÃª foi vinculado Ã  academia.",
       });
       setGymHandleInput("");
     } catch (err: unknown) {
@@ -77,9 +78,10 @@ export function PersonalGymsPage({
     setUnlinkingId(gymId);
     try {
       await actions.unlinkAffiliation(gymId);
+      await onRefresh();
       toast({
         title: "Academia desvinculada",
-        description: "O vínculo com a academia foi removido.",
+        description: "O vÃ­nculo com a academia foi removido.",
       });
     } catch (err: unknown) {
       const msg =
@@ -104,7 +106,9 @@ export function PersonalGymsPage({
       <FadeIn>
         <div className="text-center">
           <h1 className="mb-2 text-3xl font-bold text-duo-text">Academias</h1>
-          <p className="text-sm text-duo-gray-dark">Academias onde você atua</p>
+          <p className="text-sm text-duo-gray-dark">
+            Academias onde vocÃª atua
+          </p>
         </div>
       </FadeIn>
 

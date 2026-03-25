@@ -7,11 +7,11 @@ import { useEffect } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { WorkoutNode } from "@/components/organisms/workout/workout-node";
 import { UnitSectionCard } from "@/components/ui/unit-section-card";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentLearnBootstrapBridge } from "@/hooks/use-student-bootstrap";
 import { useToast } from "@/hooks/use-toast";
-import type { PlanSlotData } from "@/lib/types";
+import type { PlanSlotData, WeeklyPlanData } from "@/lib/types";
 import { useWorkoutStore } from "@/stores/workout-store";
 import { StaggerContainer } from "../../../components/animations/stagger-container";
 import { StaggerItem } from "../../../components/animations/stagger-item";
@@ -30,10 +30,9 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
   );
   const { toast } = useToast();
 
-  useLoadPrioritized({ context: "learn" });
+  const { refetch: refetchLearnData } = useStudentLearnBootstrapBridge();
 
-  const weeklyPlan = useStudent("weeklyPlan");
-  const { loadWeeklyPlan } = useStudent("loaders");
+  const weeklyPlan = useStudent("weeklyPlan") as WeeklyPlanData | null;
   const { createWeeklyPlan } = useStudent("actions");
 
   useEffect(() => {
@@ -47,7 +46,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
       store.completeWorkout(workoutId);
 
       try {
-        await loadWeeklyPlan(true);
+        await refetchLearnData();
       } catch (error) {
         console.error("[LearningPath] Erro ao recarregar plano:", error);
       }
@@ -57,7 +56,7 @@ export function LearningPath({ onLessonSelect }: LearningPathProps) {
     return () => {
       window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
     };
-  }, [loadWeeklyPlan]);
+  }, [refetchLearnData]);
 
   const handleWorkoutClick = (
     workoutId: string,

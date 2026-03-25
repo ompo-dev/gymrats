@@ -363,6 +363,45 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/hooks/use-personal-students.ts` deixou de forÃ§ar `loadSection("students")` apÃ³s `actions.removeStudent`, porque a action jÃ¡ sincroniza o store e a invalidaÃ§Ã£o do bootstrap atualiza o cache canÃ´nico.
 - `apps/web/app/student/_payments/hooks/use-payments-page.ts` e `apps/web/app/student/_payments/hooks/use-student-referral.ts` deixaram de combinar `invalidatePaymentQueries()` com `refetch` redundante da mesma superfÃ­cie quando o bootstrap financeiro jÃ¡ estÃ¡ ativo.
 
+## Focus Update - Student Financial Bridge And Scoped Context Invalidations
+
+- `apps/web/stores/student/slices/financial-slice.ts` deixou de disparar reloads encadeados como `loadMemberships`, `loadPayments` e `loadReferral` apos mutacoes financeiras.
+- `updateReferralPixKey` e `cancelStudentPayment` agora atualizam o Zustand de forma otimista com rollback em caso de erro.
+- `requestReferralWithdraw` passa a reconciliar saldo e historico localmente a partir da resposta da API, sem round-trip extra para `loadReferral`.
+- `joinGym`, `changeMembershipPlan`, `subscribeToPersonal`, `cancelMembership` e `cancelPersonalAssignment` deixaram de forcar refresh legado dentro do store. A reconciliacao remota ficou concentrada nos handlers de tela via `invalidatePaymentQueries()`.
+- `apps/web/app/student/page-content.tsx`, `apps/web/app/student/_payments/hooks/use-payments-page.ts` e `apps/web/app/student/_personals/personal-profile-view.tsx` passaram a invalidar o bootstrap financeiro canonico nos pontos corretos, preservando o Zustand apenas como ponte otimista.
+- `apps/web/components/organisms/navigation/gym-selector.tsx` e `apps/web/components/organisms/gym/academias/hooks/use-academias-page.ts` deixaram de usar invalidacao global do React Query. A troca de academia agora invalida apenas os dominios `gym` e `payments`.
+- `apps/web/stores/student-unified-store.ts` deixou de encadear loaders individuais em `loadFinancial`; agora usa `loadSectionsIncremental(...)` como caminho agregado.
+
+## Focus Update - Gym And Personal Mutations Follow The Same Pattern
+
+- `apps/web/stores/gym-unified-store.ts` deixou de recarregar `expenses`, `membershipPlans`, `coupons` e `campaigns` por `loadSection(..., true)` depois de mutacoes que ja tinham update otimista local.
+- `apps/web/stores/personal-unified-store.ts` deixou de recarregar `expenses`, `coupons`, `campaigns` e `subscription` dentro do proprio store. O refresh remoto ficou concentrado na superficie que iniciou a mutacao.
+- `apps/web/components/organisms/gym/financial/financial-expenses-tab.tsx`, `apps/web/components/organisms/gym/financial/financial-coupons-tab.tsx`, `apps/web/components/organisms/gym/financial/financial-ads-tab.tsx` e `apps/web/components/organisms/gym/membership-plans-page.tsx` agora disparam uma unica invalidacao de bootstrap por fluxo bem-sucedido.
+- `apps/web/components/organisms/gym/financial/add-expense-modal.tsx` passou a aceitar `onSuccess` assíncrono para que a reconciliação do bootstrap aconteça sem corrida entre fechamento do modal e invalidação remota.
+
+## Focus Update - Store Surface Cleanup And Optimistic Profile Sync
+
+- `apps/web/stores/gym-unified-store.ts` e `apps/web/stores/personal-unified-store.ts` deixaram de usar `as any` em metadata/resources e nos payloads de request desse perímetro. O Biome ficou verde nesses dois arquivos após a tipagem local de `ResourceStateMap`.
+- `apps/web/stores/gym-unified-store.ts` e `apps/web/stores/personal-unified-store.ts` agora fazem `updateProfile` como mutação otimista no próprio Zustand, sem `loadSection("profile")` logo após salvar.
+- `apps/web/components/organisms/personal/personal-membership-plans-page.tsx` deixou de usar client helpers diretos e passou a consumir `usePersonal("actions")`, alinhando `membershipPlans` do personal ao padrão `store otimista + refresh canônico`.
+- `apps/web/stores/personal-unified-store.ts` passou a aplicar `createMembershipPlan`, `updateMembershipPlan` e `deleteMembershipPlan` de forma otimista, reconciliando com a resposta real da API quando necessário.
+- `apps/web/lib/api/personal-client.ts` teve removidos os helpers exclusivos de membership plan que ficaram redundantes após a migração para actions do store.
+- `apps/web/stores/gym-unified-store.ts`, `apps/web/hooks/use-gym.ts` e `apps/web/lib/utils/gym/gym-selectors.ts` tiveram removidas as actions mortas `createGymSubscription` e `cancelGymSubscription`, que já não eram chamadas por nenhuma superfície ativa.
+
+## Focus Update - Loader Exposure Reduced In UI
+
+- `apps/web/components/organisms/gym/gym-students.tsx` deixou de depender de `useGym("loaders")` e `usePersonal("loaders")`; o detalhe do aluno agora usa apenas `actions.loadStudentDetail/loadStudentPayments`, reduzindo a superfície pública de loaders.
+- `apps/web/hooks/use-personal-students.ts` deixou de depender de `loaders.loadStudentDetail(...)` e passou a usar `actions.loadStudentDetail(...)`.
+- `apps/web/hooks/use-gym.ts`, `apps/web/hooks/use-personal.ts`, `apps/web/lib/utils/gym/gym-selectors.ts` e `apps/web/lib/utils/personal/personal-selectors.ts` tiveram `loadStudentDetail/loadStudentPayments` removidos do bloco `loaders`, mantendo esses fetches dirigidos apenas em `actions`.
+- busca textual por `useGym("loaders")` e `usePersonal("loaders")` em `apps/web`: sem ocorrências remanescentes na UI após esta onda.
+
+## Focus Update - Personal Domain Reloads Reduced
+
+- `apps/web/stores/personal-unified-store.ts` deixou de recarregar `affiliations`, `students` e `studentDirectory` depois de `linkAffiliation`, `unlinkAffiliation`, `assignStudent` e `removeStudent`.
+- `unlinkAffiliation` e `removeStudent` agora aplicam remoção otimista no Zustand com rollback em caso de erro, reduzindo tempo até a UI refletir a ação.
+- `apps/web/components/organisms/personal/personal-gyms.tsx` passou a usar `onRefresh()` explicitamente após `link/unlink`, mantendo o bootstrap como reconciliação remota canônica em vez de depender de reload interno do store.
+
 ## Validation Status
 
 - `npm run test:unit`: verde
@@ -377,6 +416,19 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 
 - `npx biome check` em `apps/web/hooks/use-gym-bootstrap.ts`, `apps/web/hooks/use-personal-bootstrap.ts`, `apps/web/app/gym/page-content.tsx`, `apps/web/app/personal/page-content.tsx`, `apps/web/hooks/use-personal-financial.ts` e `apps/web/components/organisms/personal/financial/personal-financial-subscription-tab.tsx`: verde
 - `npm run test:unit`: verde apÃ³s introduzir o padrÃ£o `React Query bootstrap -> hydrateInitial -> Zustand otimista` em `gym/personal`
+
+- `npx biome check` em `apps/web/app/student/_diet/diet-page.tsx`, `apps/web/app/student/_payments/hooks/use-payments-page.ts`, `apps/web/app/student/_personals/personal-profile-view.tsx`, `apps/web/app/student/page-content.tsx`, `apps/web/components/organisms/navigation/gym-selector.tsx`, `apps/web/hooks/use-bootstrap-refresh.ts`, `apps/web/stores/student/slices/financial-slice.ts` e `apps/web/stores/student-unified-store.ts`: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para esse perimetro: `NO_MATCHING_ERRORS`
+- busca textual por `invalidateQueries()` sem escopo em `apps/web`: sem ocorrencias remanescentes
+- busca textual por `loadMemberships()`, `loadPayments()` e `loadReferral()` fora de loaders e compatibilidade: removida do fluxo ativo do `student`
+- `npx biome check` em `apps/web/components/organisms/gym/financial/financial-coupons-tab.tsx`, `apps/web/components/organisms/gym/financial/financial-ads-tab.tsx`, `apps/web/components/organisms/gym/financial/financial-expenses-tab.tsx`, `apps/web/components/organisms/gym/financial/add-expense-modal.tsx` e `apps/web/components/organisms/gym/membership-plans-page.tsx`: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para `apps/web/stores/gym-unified-store.ts`, `apps/web/stores/personal-unified-store.ts` e os componentes financeiros de `gym`: `NO_MATCHING_ERRORS`
+- `biome check` em `apps/web/stores/gym-unified-store.ts` e `apps/web/stores/personal-unified-store.ts` continua falhando por divida preexistente de `any` e `forEach` nos arquivos monoliticos, nao pelos cortes desta onda
+- `npx biome check` em `apps/web/stores/gym-unified-store.ts`, `apps/web/stores/personal-unified-store.ts`, `apps/web/components/organisms/personal/personal-membership-plans-page.tsx`, `apps/web/components/organisms/gym/gym-students.tsx`, `apps/web/hooks/use-gym.ts`, `apps/web/hooks/use-personal.ts`, `apps/web/hooks/use-personal-students.ts`, `apps/web/lib/utils/gym/gym-selectors.ts`, `apps/web/lib/utils/personal/personal-selectors.ts` e `apps/web/lib/api/personal-client.ts`: verde
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para os arquivos acima: `NO_MATCHING_ERRORS`
+- `npm run test:unit`: verde após a migração de `membershipPlans` do personal e da limpeza da superfície de loaders
+- `npx biome check` em `apps/web/stores/personal-unified-store.ts` e `apps/web/components/organisms/personal/personal-gyms.tsx`: verde após remover reloads internos de `affiliations/students`
+- `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para esse perímetro: `NO_MATCHING_ERRORS`
 
 ## Next Execution Order
 

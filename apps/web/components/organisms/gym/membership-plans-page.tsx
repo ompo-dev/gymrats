@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useInvalidateGymBootstrap } from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import type { MembershipPlan } from "@/lib/types";
 
@@ -46,6 +47,7 @@ export function MembershipPlansPage({
   plans: MembershipPlan[];
 }) {
   const actions = useGym("actions");
+  const refreshGymBootstrap = useInvalidateGymBootstrap();
   const [plans, setPlans] = useState(initialPlans);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function MembershipPlansPage({
       };
       if (editingId) {
         await actions.updateMembershipPlan(editingId, payload);
+        await refreshGymBootstrap();
         setPlans((prev) =>
           prev.map((p) =>
             p.id === editingId
@@ -93,6 +96,7 @@ export function MembershipPlansPage({
         );
       } else {
         await actions.createMembershipPlan(payload);
+        await refreshGymBootstrap();
         setPlans((prev) => [
           ...prev,
           {
@@ -126,6 +130,7 @@ export function MembershipPlansPage({
 
     try {
       await actions.deleteMembershipPlan(planToDelete);
+      await refreshGymBootstrap();
       setPlans((prev) => prev.filter((p) => p.id !== planToDelete));
     } catch (error) {
       console.error("Erro ao deletar plano:", error);

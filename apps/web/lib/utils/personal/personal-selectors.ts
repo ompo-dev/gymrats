@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mapeamento de tipos de retorno por seletor do usePersonal.
  */
 
@@ -9,7 +9,13 @@ import type {
   PersonalStudentAssignment,
   PersonalSubscriptionData,
 } from "@gymrats/types/personal-module";
-import type { BoostCampaign, Coupon, Expense, Payment, StudentData } from "@/lib/types";
+import type {
+  BoostCampaign,
+  Coupon,
+  Expense,
+  Payment,
+  StudentData,
+} from "@/lib/types";
 import type { PersonalMetadata } from "@/lib/types/personal-unified";
 
 export type PersonalActions = Pick<
@@ -38,11 +44,7 @@ export type PersonalActions = Pick<
 
 export type PersonalLoaders = Pick<
   import("@/stores/personal-unified-store").PersonalUnifiedState,
-  | "loadAll"
-  | "loadAllPrioritized"
-  | "loadSection"
-  | "loadStudentDetail"
-  | "loadStudentPayments"
+  "loadAll" | "loadAllPrioritized" | "loadSection"
 >;
 
 export interface PersonalSelectorReturnMap {

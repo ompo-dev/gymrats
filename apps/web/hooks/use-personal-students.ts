@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -39,11 +39,7 @@ export function usePersonalStudents({
   onRefresh,
 }: UsePersonalStudentsProps) {
   const { toast } = useToast();
-  const { actions, loaders, studentDetails } = usePersonal(
-    "actions",
-    "loaders",
-    "studentDetails",
-  );
+  const { actions, studentDetails } = usePersonal("actions", "studentDetails");
   const [searchQuery, setSearchQuery] = useQueryState("search", {
     defaultValue: "",
   });
@@ -85,7 +81,7 @@ export function usePersonalStudents({
     let cancelled = false;
     setIsLoadingAssignment(true);
 
-    loaders.loadStudentDetail(studentId, true).finally(() => {
+    actions.loadStudentDetail(studentId, true).finally(() => {
       if (!cancelled) {
         setIsLoadingAssignment(false);
       }
@@ -94,7 +90,7 @@ export function usePersonalStudents({
     return () => {
       cancelled = true;
     };
-  }, [loaders, selectedAssignmentFromList, studentDetails, studentId]);
+  }, [actions, selectedAssignmentFromList, studentDetails, studentId]);
 
   const filteredStudents = useMemo(
     () =>
@@ -122,8 +118,8 @@ export function usePersonalStudents({
       try {
         await actions.removeStudent(id);
         toast({
-          title: "Vínculo removido",
-          description: "O aluno deixou de estar atribuído a você.",
+          title: "VÃ­nculo removido",
+          description: "O aluno deixou de estar atribuÃ­do a vocÃª.",
         });
         await onRefresh();
       } catch (err: unknown) {

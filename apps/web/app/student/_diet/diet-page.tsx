@@ -1,12 +1,10 @@
 /**
- * Página de Dieta/Nutrição do Student
+ * Pagina de dieta/nutricao do student.
  *
- * Arquitetura Offline-First:
- * - Usa apenas dados do store unificado (via useStudent hook)
- * - Não recebe props SSR (dados vêm do store)
- * - Funciona offline com dados em cache
- * - Sincronização automática via syncManager
- * - Dados carregados automaticamente pelo useStudentInitializer no layout
+ * Arquitetura atual:
+ * - bootstrap bridge da aba alimenta o store
+ * - Zustand mantem a ponte otimista da UI
+ * - o carregamento remoto permanece centralizado no bootstrap
  */
 
 "use client";
@@ -17,26 +15,15 @@ import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState, useModalStateWithParam } from "@/hooks/use-modal-state";
 import { useNutritionHandlers } from "@/hooks/use-nutrition-handlers";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentDietBootstrapBridge } from "@/hooks/use-student-bootstrap";
 import type { FoodItem } from "@/lib/types";
 import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 
 export function DietPage() {
-  // Carregamento prioritizado: dailyNutrition e progress aparecem primeiro
-  // Se dados já existem no store, só carrega o que falta
-  useLoadPrioritized({ context: "diet" });
-
-  // ============================================
-  // DADOS DO STORE UNIFICADO (Offline-First)
-  // ============================================
-  // Todos os dados vêm do store unificado, que:
-  // - É carregado automaticamente pelo useStudentInitializer no layout
-  // - Persiste em IndexedDB (funciona offline)
-  // - Sincroniza automaticamente via syncManager
-  // - Usa rotas específicas otimizadas (3-5x mais rápido)
+  useStudentDietBootstrapBridge();
 
   const foodDatabase = useStudent("foodDatabase");
   const resolvedFoodDatabase = Array.isArray(foodDatabase)
@@ -47,7 +34,6 @@ export function DietPage() {
   );
   const hasRequestedFoodDatabaseRef = useRef(false);
 
-  // Modais controlados por search params
   const addMealModal = useModalState("add-meal");
   const foodSearchModal = useModalStateWithParam("food-search", "mealId");
   const nutritionLibraryModal = useModalState("nutrition-library");
@@ -63,13 +49,9 @@ export function DietPage() {
     paramValue: foodSearchMealId,
     setParamValue: setFoodSearchMealId,
   } = foodSearchModal;
-  const {
-    open: openNutritionLibrary,
-  } = nutritionLibraryModal;
+  const { open: openNutritionLibrary } = nutritionLibraryModal;
 
-  // Carregar foodDatabase apenas se não estiver no store
-  // O useStudentInitializer já carrega a maioria dos dados, mas foodDatabase
-  // pode não ser carregado automaticamente (é grande e opcional)
+  // `foodDatabase` segue fora do bootstrap base para nao inflar payload.
   useEffect(() => {
     if (resolvedFoodDatabase.length > 0) {
       hasRequestedFoodDatabaseRef.current = true;
@@ -85,6 +67,7 @@ export function DietPage() {
       console.error("[DietPage] Erro ao carregar foodDatabase:", error);
     });
   }, [loadFoodDatabase, resolvedFoodDatabase.length]);
+
   const {
     dailyNutrition,
     selectedMealId,
@@ -98,14 +81,12 @@ export function DietPage() {
     removeFoodFromMeal,
   } = useNutritionHandlers();
 
-  // Sincronizar selectedMealId com search param
   useEffect(() => {
     if (!selectedMealId) return;
     if (foodSearchMealId === selectedMealId) return;
     setFoodSearchMealId(selectedMealId);
   }, [selectedMealId, foodSearchMealId, setFoodSearchMealId]);
 
-  // Handler para abrir food search com mealId
   const handleOpenFoodSearch = (mealId?: string) => {
     if (mealId) {
       setSelectedMealId(mealId);
@@ -115,7 +96,6 @@ export function DietPage() {
     }
   };
 
-  // Handler para fechar food search
   const handleCloseFoodSearch = () => {
     closeFoodSearchModal();
     setSelectedMealId(null);
@@ -130,9 +110,9 @@ export function DietPage() {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h1 className="mb-2 text-3xl font-bold text-duo-text">Nutrição</h1>
+        <h1 className="mb-2 text-3xl font-bold text-duo-text">Nutricao</h1>
         <p className="text-sm text-duo-gray-dark">
-          {completedMeals} de {totalMeals} refeições concluídas hoje
+          {completedMeals} de {totalMeals} refeicoes concluidas hoje
         </p>
       </div>
 
@@ -140,13 +120,13 @@ export function DietPage() {
         <DuoStatCard.Simple
           icon={Calendar}
           value={`${completedMeals}/${totalMeals}`}
-          label="refeições hoje"
+          label="refeicoes hoje"
           iconColor="var(--duo-secondary)"
         />
         <DuoStatCard.Simple
           icon={TrendingUp}
           value={`${caloriesPercentage}%`}
-          label="meta calórica"
+          label="meta calorica"
           iconColor="var(--duo-primary)"
         />
       </DuoStatsGrid.Root>
@@ -186,7 +166,6 @@ export function DietPage() {
           }}
         />
       )}
-
     </div>
   );
 }

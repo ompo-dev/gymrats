@@ -3,6 +3,10 @@
 import { Plus, Receipt } from "lucide-react";
 import { useState } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
+import {
+  useInvalidateGymBootstrap,
+  useInvalidatePersonalBootstrap,
+} from "@/hooks/use-bootstrap-refresh";
 import type { Expense } from "@/lib/types";
 import { formatDatePtBr } from "@/lib/utils/date-safe";
 import { AddExpenseModal } from "./add-expense-modal";
@@ -16,6 +20,12 @@ export function FinancialExpensesTab({
   expenses = [],
   variant = "gym",
 }: FinancialExpensesTabProps) {
+  const invalidateGymBootstrap = useInvalidateGymBootstrap();
+  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
+  const refreshBootstrap =
+    variant === "personal"
+      ? invalidatePersonalBootstrap
+      : invalidateGymBootstrap;
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const list = Array.isArray(expenses) ? expenses : [];
   const totalExpenses = list.reduce((sum, exp) => sum + (exp.amount ?? 0), 0);
@@ -92,7 +102,10 @@ export function FinancialExpensesTab({
       <AddExpenseModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        onSuccess={() => setIsAddModalOpen(false)}
+        onSuccess={async () => {
+          await refreshBootstrap();
+          setIsAddModalOpen(false);
+        }}
         variant={variant}
       />
     </>

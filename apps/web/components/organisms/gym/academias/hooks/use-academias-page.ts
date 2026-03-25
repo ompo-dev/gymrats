@@ -1,6 +1,8 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { invalidateQueryDomains } from "@/hooks/use-bootstrap-refresh";
 import { useGymsList } from "@/hooks/use-gyms-list";
 
 export interface CreateGymFormData {
@@ -20,6 +22,7 @@ const INITIAL_FORM: CreateGymFormData = {
 };
 
 export function useAcademiasPage() {
+  const queryClient = useQueryClient();
   const {
     gyms,
     activeGymId,
@@ -36,6 +39,7 @@ export function useAcademiasPage() {
 
   const handleSelectGym = async (gymId: string) => {
     await setActiveGymId(gymId);
+    await invalidateQueryDomains(queryClient, ["gym", "payments"]);
   };
 
   const handleCreateGym = async (e: React.FormEvent) => {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mapeamento de tipos de retorno por seletor do useGym.
  */
 
@@ -41,8 +41,6 @@ export type GymActions = Pick<
   | "getBoostCampaignPix"
   | "createWithdraw"
   | "enrollStudent"
-  | "createGymSubscription"
-  | "cancelGymSubscription"
   | "applySubscriptionReferral"
   | "checkCurrentSubscriptionActive"
   | "checkBoostCampaignActive"
@@ -54,11 +52,7 @@ export type GymActions = Pick<
 
 export type GymLoaders = Pick<
   import("@/stores/gym-unified-store").GymUnifiedState,
-  | "loadAll"
-  | "loadAllPrioritized"
-  | "loadSection"
-  | "loadStudentDetail"
-  | "loadStudentPayments"
+  "loadAll" | "loadAllPrioritized" | "loadSection"
 >;
 
 export interface GymSelectorReturnMap {

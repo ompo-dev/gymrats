@@ -257,6 +257,7 @@ export function usePaymentsPage(props: UsePaymentsPageProps = {}) {
         membershipId: changePlanMembershipId,
         planId,
       });
+      await paymentFlow.invalidatePaymentQueries();
       setPixModal({
         paymentId: result.paymentId,
         brCode: result.brCode,

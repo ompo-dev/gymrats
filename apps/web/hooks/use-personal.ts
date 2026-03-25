@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -32,7 +32,7 @@ export function usePersonal<
 >(...selectors: S): Pick<PersonalSelectorReturnMap, S[number]>;
 export function usePersonal<T extends PersonalSelector>(
   ...selectors: T[]
-): 
+):
   | PersonalUnifiedState["data"]
   | PersonalSelectorReturnMap[T]
   | { [K in T]: PersonalSelectorReturnMap[K] } {
@@ -65,8 +65,6 @@ export function usePersonal<T extends PersonalSelector>(
       loadAll: state.loadAll,
       loadAllPrioritized: state.loadAllPrioritized,
       loadSection: state.loadSection,
-      loadStudentDetail: state.loadStudentDetail,
-      loadStudentPayments: state.loadStudentPayments,
     })),
   );
   const selectedData = usePersonalUnifiedStore(

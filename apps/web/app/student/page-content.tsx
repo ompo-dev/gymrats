@@ -30,9 +30,12 @@ import { WeightProgressCard } from "@/components/organisms/home/home/weight-prog
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { GymMapWithLeaflet } from "@/components/organisms/sections/gym-map-with-leaflet";
 import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
+import {
+  useStudentGymsBootstrapBridge,
+  useStudentHomeBootstrapBridge,
+} from "@/hooks/use-student-bootstrap";
 import { useToast } from "@/hooks/use-toast";
 import type {
   DailyNutrition,
@@ -53,8 +56,13 @@ import type {
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
 
-function HomeTabPrioritizedLoader() {
-  useLoadPrioritized({ context: "home" });
+function HomeTabBootstrapBridge() {
+  useStudentHomeBootstrapBridge();
+  return null;
+}
+
+function GymsTabBootstrapBridge() {
+  useStudentGymsBootstrapBridge();
   return null;
 }
 
@@ -168,7 +176,6 @@ function StudentHomeContent() {
     getStudentPaymentStatus,
     getPersonalPaymentStatus,
   } = useStudent("actions");
-  const { loadMemberships, loadPayments, loadReferral } = useStudent("loaders");
   const paymentFlow = usePaymentFlow();
   const { toast } = useToast();
 
@@ -268,6 +275,7 @@ function StudentHomeContent() {
         typeof data.amount === "number" &&
         data.amount > 0;
       if (hasPixData) {
+        await paymentFlow.invalidatePaymentQueries();
         setPixModal({
           open: true,
           paymentId: data.paymentId!,
@@ -306,6 +314,7 @@ function StudentHomeContent() {
   const handleChangePlan = async (membershipId: string, planId: string) => {
     try {
       const res = await changeMembershipPlan({ membershipId, planId });
+      await paymentFlow.invalidatePaymentQueries();
       setPixModal({
         open: true,
         paymentId: res.paymentId,
@@ -389,12 +398,7 @@ function StudentHomeContent() {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([
-      paymentFlow.invalidatePaymentQueries(),
-      loadMemberships(),
-      loadPayments(),
-      loadReferral(),
-    ]);
+    await paymentFlow.invalidatePaymentQueries();
     setProfileRefreshKey((k) => k + 1);
   };
 
@@ -425,6 +429,7 @@ function StudentHomeContent() {
   const handleCancelPersonalAssignment = async (assignmentId: string) => {
     try {
       await cancelPersonalAssignment(assignmentId);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Desvinculado",
         description: "Você foi desvinculado deste personal.",
@@ -443,6 +448,27 @@ function StudentHomeContent() {
         title: "Erro",
         description: String(msg),
       });
+    }
+  };
+
+  const handleCancelPixPayment = async (paymentId: string) => {
+    try {
+      await cancelStudentPayment(paymentId);
+      await paymentFlow.invalidatePaymentQueries();
+    } catch (err) {
+      const msg =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { error?: string } } }).response?.data
+              ?.error
+          : err instanceof Error
+            ? err.message
+            : "Erro ao cancelar pagamento";
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: String(msg),
+      });
+      throw err;
     }
   };
 
@@ -479,7 +505,7 @@ function StudentHomeContent() {
     >
       {tab === "home" && (
         <div className="mx-auto max-w-2xl space-y-6">
-          <HomeTabPrioritizedLoader />
+          <HomeTabBootstrapBridge />
           <FadeIn>
             <div className="text-center">
               <h1 className="mb-2 text-3xl font-bold text-duo-text">
@@ -686,42 +712,48 @@ function StudentHomeContent() {
 
       {tab === "gyms" &&
         (gymId ? (
-          <GymProfileView
-            gymId={gymId}
-            onBack={() => {
-              setGymId(null);
-              setPreSelectedPlan(null);
-              setPreSelectedCoupon(null);
-            }}
-            onJoinPlan={handleJoinGym}
-            onChangePlan={handleChangePlan}
-            onCancelMembership={handleCancelMembership}
-            onViewPersonal={(id) => {
-              setTab("personals");
-              setPersonalId(id);
-              setGymId(null);
-            }}
-            profileRefreshKey={profileRefreshKey}
-            preSelectedPlan={preSelectedPlan}
-            preSelectedCoupon={preSelectedCoupon}
-          />
+          <>
+            <GymsTabBootstrapBridge />
+            <GymProfileView
+              gymId={gymId}
+              onBack={() => {
+                setGymId(null);
+                setPreSelectedPlan(null);
+                setPreSelectedCoupon(null);
+              }}
+              onJoinPlan={handleJoinGym}
+              onChangePlan={handleChangePlan}
+              onCancelMembership={handleCancelMembership}
+              onViewPersonal={(id) => {
+                setTab("personals");
+                setPersonalId(id);
+                setGymId(null);
+              }}
+              profileRefreshKey={profileRefreshKey}
+              preSelectedPlan={preSelectedPlan}
+              preSelectedCoupon={preSelectedCoupon}
+            />
+          </>
         ) : (
-          <GymMapWithLeaflet
-            gyms={currentGymLocations}
-            dayPasses={currentDayPasses}
-            memberships={currentMemberships}
-            onPurchaseDayPass={handlePurchaseDayPass}
-            onJoinPlan={handleJoinGym}
-            onChangePlan={handleChangePlan}
-            onViewGymProfile={handleViewGymProfile}
-          />
+          <>
+            <GymsTabBootstrapBridge />
+            <GymMapWithLeaflet
+              gyms={currentGymLocations}
+              dayPasses={currentDayPasses}
+              memberships={currentMemberships}
+              onPurchaseDayPass={handlePurchaseDayPass}
+              onJoinPlan={handleJoinGym}
+              onChangePlan={handleChangePlan}
+              onViewGymProfile={handleViewGymProfile}
+            />
+          </>
         ))}
 
       {pixModal && (
         <PixQrModal
           isOpen={pixModal.open}
           onClose={() => setPixModal(null)}
-          onCancelPayment={() => cancelStudentPayment(pixModal.paymentId)}
+          onCancelPayment={() => handleCancelPixPayment(pixModal.paymentId)}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}

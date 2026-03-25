@@ -1,7 +1,6 @@
 import type { AxiosError } from "axios";
-import { apiClient } from "./client";
 import type { Payment, StudentData } from "@/lib/types";
-import type { PersonalMembershipPlan } from "@gymrats/types/personal-module";
+import { apiClient } from "./client";
 
 function getErrorMessage(error: unknown, fallback: string) {
   const payload = (error as AxiosError<{ error?: string }>)?.response?.data;
@@ -22,7 +21,7 @@ export async function createPersonalCouponRequest(data: {
       expiresAt:
         typeof data.expiresAt === "string"
           ? data.expiresAt
-          : data.expiresAt?.toISOString() ?? null,
+          : (data.expiresAt?.toISOString() ?? null),
     });
     return { success: true } as const;
   } catch (error) {
@@ -126,29 +125,4 @@ export async function getPersonalStudentByIdRequest(studentId: string) {
 
 export async function getPersonalStudentPaymentsRequest(_studentId: string) {
   return [] as Payment[];
-}
-
-export async function createPersonalMembershipPlanRequest(
-  data: Omit<PersonalMembershipPlan, "id" | "isActive" | "personalId">,
-) {
-  const response = await apiClient.post<{ plan: PersonalMembershipPlan }>(
-    "/api/personals/membership-plans",
-    data,
-  );
-  return response.data.plan;
-}
-
-export async function updatePersonalMembershipPlanRequest(
-  planId: string,
-  data: Partial<Omit<PersonalMembershipPlan, "id" | "personalId">>,
-) {
-  const response = await apiClient.patch<{ plan: PersonalMembershipPlan }>(
-    `/api/personals/membership-plans/${planId}`,
-    data,
-  );
-  return response.data.plan;
-}
-
-export async function deletePersonalMembershipPlanRequest(planId: string) {
-  await apiClient.delete(`/api/personals/membership-plans/${planId}`);
 }

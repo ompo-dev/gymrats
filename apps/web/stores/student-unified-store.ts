@@ -451,15 +451,15 @@ export const useStudentUnifiedStore = create<StudentUnifiedState>()(
       },
 
       loadFinancial: async () => {
-        // Carrega dados financeiros (Subscription + Payments)
+        // Carrega dados financeiros por seções para evitar encadear loaders legados.
         try {
-          await Promise.all([
-            get().loadSubscription(),
-            get().loadPayments(),
-            get().loadMemberships(),
-            get().loadPaymentMethods(),
-            get().loadReferral(),
-            get().loadDayPasses(),
+          await loadSectionsIncremental(set, [
+            "subscription",
+            "payments",
+            "memberships",
+            "paymentMethods",
+            "referral",
+            "dayPasses",
           ]);
         } catch (error) {
           console.error("[loadFinancial] Erro:", error);

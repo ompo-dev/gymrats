@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
 import { useModalState } from "@/hooks/use-modal-state";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentProfileBootstrapBridge } from "@/hooks/use-student-bootstrap";
 import type {
   PersonalRecord,
   Unit,
@@ -18,49 +18,23 @@ import type {
   WeightHistoryItem,
 } from "@/lib/types/student-unified";
 import { useAuthStore } from "@/stores";
-import { useStudentUnifiedStore } from "@/stores/student-unified-store";
 import { useWorkoutStore } from "@/stores/workout-store";
 
 export function useProfilePage() {
-  useLoadPrioritized({ context: "profile" });
+  const { refetch: refetchProfileData } = useStudentProfileBootstrapBridge();
 
   const router = useRouter();
   const weightModal = useModalState("weight");
   const [newWeight, setNewWeight] = useState<string>("");
 
-  const { loadWeightHistory, loadProfile, loadProgress, loadUser } =
-    useStudent("loaders");
-
-  useEffect(() => {
-    const loadData = async () => {
-      const state = useStudentUnifiedStore.getState();
-      if (!state.data.weightHistory || state.data.weightHistory.length === 0) {
-        await loadWeightHistory();
-      }
-      if (!state.data.profile) {
-        await loadProfile();
-      }
-      if (
-        !state.data.progress ||
-        state.data.progress.workoutsCompleted === undefined
-      ) {
-        await loadProgress();
-      }
-      if (!state.data.user || !state.data.user.email) {
-        await loadUser();
-      }
-    };
-    loadData();
-  }, [loadWeightHistory, loadProfile, loadProgress, loadUser]);
-
   useEffect(() => {
     const handleWorkoutCompleted = async () => {
-      await loadProgress();
+      await refetchProfileData();
     };
     window.addEventListener("workoutCompleted", handleWorkoutCompleted);
     return () =>
       window.removeEventListener("workoutCompleted", handleWorkoutCompleted);
-  }, [loadProgress]);
+  }, [refetchProfileData]);
 
   const {
     progress: storeProgress,

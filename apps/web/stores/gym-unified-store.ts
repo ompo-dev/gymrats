@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
 import type { BoostCampaign, Equipment, Expense } from "@/lib/types";
 import type { GymDataSection, GymUnifiedData } from "@/lib/types/gym-unified";
@@ -16,6 +16,7 @@ import {
   markResourceError,
   markResourcesLoading,
   markResourcesReady,
+  type ResourceStateMap,
 } from "./shared/resource-metadata";
 
 const ALL_SECTIONS: readonly GymDataSection[] = [
@@ -45,6 +46,12 @@ function withGymResources(data: GymUnifiedData): GymUnifiedData {
 }
 
 const initialState = withGymResources(initialGymData);
+
+function toGymResourceStateMap(
+  resources: GymUnifiedData["metadata"]["resources"],
+): ResourceStateMap<GymDataSection> {
+  return resources as ResourceStateMap<GymDataSection>;
+}
 
 function normalizeIncoming(
   incoming: Partial<GymUnifiedData>,
@@ -196,10 +203,6 @@ export interface GymUnifiedState {
     planId?: string | null;
     amount: number;
   }) => Promise<void>;
-  createGymSubscription: (data: {
-    billingPeriod?: "monthly" | "annual";
-  }) => Promise<void>;
-  cancelGymSubscription: () => Promise<void>;
   applySubscriptionReferral: (referralCode: string) => Promise<{
     pixId?: string;
     brCode?: string;
@@ -226,7 +229,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           ...state.data.metadata,
           isLoading: true,
           resources: markResourcesLoading(
-            state.data.metadata.resources as any,
+            toGymResourceStateMap(state.data.metadata.resources),
             sections,
           ),
         },
@@ -244,7 +247,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           isInitialized: true,
           lastSync: new Date(),
           resources: markResourcesReady(
-            state.data.metadata.resources as any,
+            toGymResourceStateMap(state.data.metadata.resources),
             sections,
           ),
         },
@@ -266,7 +269,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
             [section]: message,
           },
           resources: markResourceError(
-            state.data.metadata.resources as any,
+            toGymResourceStateMap(state.data.metadata.resources),
             section,
             message,
           ),
@@ -277,7 +280,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
 
   const hydrateSections = (incoming: Partial<GymUnifiedData>) => {
     const sections = ALL_SECTIONS.filter((section) =>
-      Object.prototype.hasOwnProperty.call(incoming, section),
+      Object.hasOwn(incoming, section),
     );
     if (sections.length === 0) return;
 
@@ -290,7 +293,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           isInitialized: true,
           lastSync: new Date(),
           resources: markResourcesReady(
-            state.data.metadata.resources as any,
+            toGymResourceStateMap(state.data.metadata.resources),
             sections,
           ),
         },
@@ -313,8 +316,57 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     updateProfile: async (payload) => {
-      await apiClient.patch("/api/gyms/profile", payload);
-      await get().loadSection("profile", true);
+      const previous = get().data.profile;
+      await runOptimisticMutation({
+        getSnapshot: () => previous,
+        applyOptimistic: () => {
+          if (!previous) {
+            return;
+          }
+
+          const nextProfile: GymUnifiedData["profile"] = {
+            ...previous,
+            ...(Object.hasOwn(payload, "address")
+              ? { address: payload.address ?? "" }
+              : {}),
+            ...(Object.hasOwn(payload, "phone")
+              ? { phone: payload.phone ?? "" }
+              : {}),
+            ...(Object.hasOwn(payload, "cnpj")
+              ? { cnpj: payload.cnpj ?? "" }
+              : {}),
+            ...(Object.hasOwn(payload, "pixKey")
+              ? { pixKey: payload.pixKey ?? undefined }
+              : {}),
+            ...(Object.hasOwn(payload, "pixKeyType")
+              ? { pixKeyType: payload.pixKeyType ?? undefined }
+              : {}),
+            ...(payload.openingHours
+              ? {
+                  openingHours: {
+                    ...payload.openingHours,
+                    byDay: payload.openingHours.byDay ?? undefined,
+                  },
+                }
+              : {}),
+          };
+
+          set((state) => ({
+            data: {
+              ...state.data,
+              profile: nextProfile,
+            },
+          }));
+        },
+        rollback: (snapshot) => {
+          set((state) => ({
+            data: { ...state.data, profile: snapshot },
+          }));
+        },
+        execute: async () => {
+          await apiClient.patch("/api/gyms/profile", payload);
+        },
+      });
     },
 
     loadAll: async () => {
@@ -323,7 +375,9 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
         await loadSectionsIncremental(set, [...ALL_SECTIONS]);
         setSectionsReady(ALL_SECTIONS);
       } catch (error) {
-        ALL_SECTIONS.forEach((section) => setSectionError(section, error));
+        ALL_SECTIONS.forEach((section) => {
+          setSectionError(section, error);
+        });
       }
     },
 
@@ -336,7 +390,9 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
         await loadSectionsIncremental(set, sections);
         setSectionsReady(sections);
       } catch (error) {
-        sections.forEach((section) => setSectionError(section, error));
+        sections.forEach((section) => {
+          setSectionError(section, error);
+        });
       }
     },
 
@@ -360,9 +416,9 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
 
       const promise = (async () => {
         try {
-          const response = await apiClient.get<{ student: GymUnifiedData["students"][number] }>(
-            `/api/gyms/students/${studentId}${force ? "?fresh=1" : ""}`,
-          );
+          const response = await apiClient.get<{
+            student: GymUnifiedData["students"][number];
+          }>(`/api/gyms/students/${studentId}${force ? "?fresh=1" : ""}`);
           set((state) => ({
             data: {
               ...state.data,
@@ -442,19 +498,13 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }));
         },
         execute: async () => {
-          await apiClient.post("/api/gyms/expenses", payload as any);
-        },
-        onSuccess: async () => {
-          await Promise.all([
-            get().loadSection("expenses", true),
-            get().loadSection("financialSummary", true),
-          ]);
+          await apiClient.post("/api/gyms/expenses", payload);
         },
       });
     },
 
     createPayment: async (payload) => {
-      await apiClient.post("/api/gyms/payments", payload as any);
+      await apiClient.post("/api/gyms/payments", payload);
       await Promise.all([
         get().loadSection("payments", true),
         get().loadSection("financialSummary", true),
@@ -462,7 +512,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     checkInStudent: async (studentId) => {
-      await apiClient.post("/api/gyms/checkin", { studentId } as any);
+      await apiClient.post("/api/gyms/checkin", { studentId });
       await Promise.all([
         get().loadSection("recentCheckIns", true),
         get().loadSection("stats", true),
@@ -470,7 +520,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     checkOutStudent: async (checkInId) => {
-      await apiClient.post("/api/gyms/checkout", { checkInId } as any);
+      await apiClient.post("/api/gyms/checkout", { checkInId });
       await Promise.all([
         get().loadSection("recentCheckIns", true),
         get().loadSection("stats", true),
@@ -478,7 +528,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     updatePaymentStatus: async (paymentId, status) => {
-      await apiClient.patch(`/api/gyms/payments/${paymentId}`, { status } as any);
+      await apiClient.patch(`/api/gyms/payments/${paymentId}`, { status });
       await Promise.all([
         get().loadSection("payments", true),
         get().loadSection("financialSummary", true),
@@ -486,7 +536,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     updateMemberStatus: async (membershipId, status) => {
-      await apiClient.patch(`/api/gyms/members/${membershipId}`, { status } as any);
+      await apiClient.patch(`/api/gyms/members/${membershipId}`, { status });
       await Promise.all([
         get().loadSection("students", true),
         get().loadSection("stats", true),
@@ -494,7 +544,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     createEquipment: async (payload) => {
-      await apiClient.post("/api/gyms/equipment", payload as any);
+      await apiClient.post("/api/gyms/equipment", payload);
       await Promise.all([
         get().loadSection("equipment", true),
         get().loadSection("stats", true),
@@ -533,7 +583,7 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }));
         },
         execute: async () => {
-          await apiClient.patch(`/api/gyms/equipment/${equipmentId}`, payload as any);
+          await apiClient.patch(`/api/gyms/equipment/${equipmentId}`, payload);
         },
         onSuccess: async () => {
           await Promise.all([
@@ -547,19 +597,17 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     createMaintenance: async (equipmentId, payload) => {
       await apiClient.post(
         `/api/gyms/equipment/${equipmentId}/maintenance`,
-        payload as any,
+        payload,
       );
       await get().loadSection("equipment", true);
     },
 
     createMembershipPlan: async (payload) => {
-      await apiClient.post("/api/gyms/plans", payload as any);
-      await get().loadSection("membershipPlans", true);
+      await apiClient.post("/api/gyms/plans", payload);
     },
 
     updateMembershipPlan: async (planId, payload) => {
-      await apiClient.patch(`/api/gyms/plans/${planId}`, payload as any);
-      await get().loadSection("membershipPlans", true);
+      await apiClient.patch(`/api/gyms/plans/${planId}`, payload);
     },
 
     deleteMembershipPlan: async (planId) => {
@@ -583,9 +631,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
         },
         execute: async () => {
           await apiClient.delete(`/api/gyms/plans/${planId}`);
-        },
-        onSuccess: async () => {
-          await get().loadSection("membershipPlans", true);
         },
       });
     },
@@ -632,11 +677,8 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
             expiresAt:
               payload.expiresAt instanceof Date
                 ? payload.expiresAt.toISOString()
-                : payload.expiresAt ?? null,
+                : (payload.expiresAt ?? null),
           });
-        },
-        onSuccess: async () => {
-          await get().loadSection("coupons", true);
         },
       });
     },
@@ -649,7 +691,9 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           set((state) => ({
             data: {
               ...state.data,
-              coupons: state.data.coupons.filter((coupon) => coupon.id !== couponId),
+              coupons: state.data.coupons.filter(
+                (coupon) => coupon.id !== couponId,
+              ),
             },
           }));
         },
@@ -662,9 +706,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           await apiClient.delete(
             `/api/gyms/coupons?couponId=${encodeURIComponent(couponId)}`,
           );
-        },
-        onSuccess: async () => {
-          await get().loadSection("coupons", true);
         },
       });
     },
@@ -722,9 +763,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           }>("/api/gyms/boost-campaigns", payload);
           return response.data;
         },
-        onSuccess: async () => {
-          await get().loadSection("campaigns", true);
-        },
       });
     },
 
@@ -751,9 +789,6 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
           await apiClient.delete(
             `/api/gyms/boost-campaigns?campaignId=${encodeURIComponent(campaignId)}`,
           );
-        },
-        onSuccess: async () => {
-          await get().loadSection("campaigns", true);
         },
       });
     },
@@ -823,22 +858,12 @@ export const useGymUnifiedStore = create<GymUnifiedState>()((set, get) => {
     },
 
     enrollStudent: async (payload) => {
-      await apiClient.post("/api/gyms/members", payload as any);
+      await apiClient.post("/api/gyms/members", payload);
       await Promise.all([
         get().loadSection("students", true),
         get().loadSection("stats", true),
         get().loadSection("payments", true),
       ]);
-    },
-
-    createGymSubscription: async (payload) => {
-      await apiClient.post("/api/gym-subscriptions/create", payload as any);
-      await get().loadSection("subscription", true);
-    },
-
-    cancelGymSubscription: async () => {
-      await apiClient.post("/api/gym-subscriptions/cancel", {} as any);
-      await get().loadSection("subscription", true);
     },
 
     applySubscriptionReferral: async (referralCode) => {

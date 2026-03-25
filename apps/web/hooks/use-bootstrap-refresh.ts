@@ -5,14 +5,30 @@ import { useCallback } from "react";
 
 export type BootstrapDomain = "student" | "gym" | "personal";
 
+function matchesDomain(queryKey: unknown, domain: string) {
+  return Array.isArray(queryKey) && queryKey[0] === domain;
+}
+
+export async function invalidateQueryDomains(
+  queryClient: QueryClient,
+  domains: readonly string[],
+) {
+  await Promise.all(
+    domains.map((domain) =>
+      queryClient.invalidateQueries({
+        predicate: (query) => matchesDomain(query.queryKey, domain),
+      }),
+    ),
+  );
+}
+
 export async function invalidateBootstrapQueries(
   queryClient: QueryClient,
   domain: BootstrapDomain,
 ) {
   await queryClient.invalidateQueries({
     predicate: (query) =>
-      Array.isArray(query.queryKey) &&
-      query.queryKey[0] === domain &&
+      matchesDomain(query.queryKey, domain) &&
       query.queryKey[1] === "bootstrap",
   });
 }

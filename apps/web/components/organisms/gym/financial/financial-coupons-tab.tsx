@@ -2,8 +2,12 @@
 
 import { Calendar, Gift, Plus, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
-import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
 import { DuoButton, DuoCard, DuoInput, DuoSelect } from "@/components/duo";
+import { DeleteConfirmationModal } from "@/components/organisms/modals/delete-confirmation-modal";
+import {
+  useInvalidateGymBootstrap,
+  useInvalidatePersonalBootstrap,
+} from "@/hooks/use-bootstrap-refresh";
 import { useGym } from "@/hooks/use-gym";
 import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +28,12 @@ export function FinancialCouponsTab({
   const gymData = useGym("coupons", "actions");
   const personalData = usePersonal("coupons", "actions");
   const selectedStore = variant === "personal" ? personalData : gymData;
+  const invalidateGymBootstrap = useInvalidateGymBootstrap();
+  const invalidatePersonalBootstrap = useInvalidatePersonalBootstrap();
+  const refreshBootstrap =
+    variant === "personal"
+      ? invalidatePersonalBootstrap
+      : invalidateGymBootstrap;
   const couponsList = coupons.length > 0 ? coupons : selectedStore.coupons;
   const actions = selectedStore.actions;
 
@@ -103,6 +113,7 @@ export function FinancialCouponsTab({
           : undefined,
         expiresAt: parsedExpiresAt ?? null,
       });
+      await refreshBootstrap();
       toast({
         title: "Cupom criado",
         description: `${codeTrim} disponível para uso.`,
@@ -131,6 +142,7 @@ export function FinancialCouponsTab({
     setConfirmDeleteCouponId(null);
     try {
       await actions.deleteCoupon(couponId);
+      await refreshBootstrap();
       toast({ title: "Cupom excluído" });
     } catch (error) {
       toast({
@@ -255,13 +267,14 @@ export function FinancialCouponsTab({
       </DuoCard.Root>
 
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={(event) =>
-            event.target === event.currentTarget && setModalOpen(false)
-          }
-        >
-          <DuoCard.Root className="w-full max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <button
+            type="button"
+            aria-label="Fechar modal de cupom"
+            className="absolute inset-0"
+            onClick={() => setModalOpen(false)}
+          />
+          <DuoCard.Root className="relative w-full max-w-sm">
             <DuoCard.Header>
               <h3 className="font-bold">Novo cupom</h3>
             </DuoCard.Header>
