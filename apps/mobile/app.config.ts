@@ -13,6 +13,7 @@ const config: ExpoConfig = {
   orientation: "portrait",
   userInterfaceStyle: "light",
   splash: {
+    image: "./assets/icon.png",
     resizeMode: "contain",
     backgroundColor: "#f7f7f0",
   },

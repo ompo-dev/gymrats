@@ -3,13 +3,10 @@ bun.lockb
 pnpm-lock.yaml
 yarn.lock
 
-# Ignorar o Monorepo que não pertence ao mobile para não encher o servidor da Expo (EAS Upload Size Fix)
-apps/web/
-apps/api/
-apps/worker/
-apps/cron/
+# Ignorando apenas as pastas pesadas de compilação, mantendo os package.json das outras pastas pro npm ci não dar erro
 .next/
 dist/
+build/
 coverage/
 playwright-report/
 test-results/

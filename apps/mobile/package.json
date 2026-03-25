@@ -11,7 +11,7 @@
     "prebuild": "expo prebuild",
     "typecheck": "tsc --noEmit",
     "doctor": "npx expo-doctor",
-    "build:apk": "eas build -p android --profile preview --local",
+    "build:apk": "eas build -p android --profile preview",
     "build:ios": "eas build -p ios --profile preview"
   },
   "dependencies": {
