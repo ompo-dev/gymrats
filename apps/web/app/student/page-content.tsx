@@ -2,21 +2,18 @@
 
 import { Dumbbell, Flame, Trophy, Zap } from "lucide-react";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { Suspense, useEffect, useState } from "react";
 import { CardioFunctionalPage } from "@/app/student/_cardio/cardio-functional-page";
-import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { DietPage } from "@/app/student/_diet/diet-page";
 import { GymProfileView } from "@/app/student/_gyms/gym-profile-view";
-import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
-import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { LearningPath } from "@/app/student/_learn/learning-path";
 import { StudentMoreMenu } from "@/app/student/_more/student-more-menu";
 import {
   StudentPaymentsPage,
   type StudentPaymentsPageProps,
 } from "@/app/student/_payments/student-payments-page";
+import { PersonalProfileView } from "@/app/student/_personals/personal-profile-view";
 import { ProfilePage } from "@/app/student/_profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
@@ -30,11 +27,13 @@ import { LevelProgressCard } from "@/components/organisms/home/home/level-progre
 import { NutritionStatusCard } from "@/components/organisms/home/home/nutrition-status-card";
 import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-workouts-card";
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
+import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { GymMapWithLeaflet } from "@/components/organisms/sections/gym-map-with-leaflet";
+import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
 import { useLoadPrioritized } from "@/hooks/use-load-prioritized";
+import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
 import { useToast } from "@/hooks/use-toast";
-import { useUserSession } from "@/hooks/use-user-session";
 import type {
   DailyNutrition,
   DayPass,
@@ -47,8 +46,8 @@ import type {
   WorkoutHistory,
 } from "@/lib/types";
 import type {
-  StudentProfileData,
   StudentPixPaymentPayload,
+  StudentProfileData,
   SubscriptionData,
   UserInfo,
   WeightHistoryItem,
@@ -76,20 +75,17 @@ function asArray<T>(value: unknown): T[] {
 function StudentHomeContent() {
   // Carregamento prioritizado: progress, workoutHistory, profile aparecem primeiro
   // Se dados já existem no store, só carrega o que falta
-  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [tab, setTab] = useQueryState("tab", parseAsString.withDefault("home"));
   const [gymId, setGymId] = useQueryState("gymId", parseAsString);
-  const [personalId, setPersonalId] = useQueryState("personalId", parseAsString);
+  const [personalId, setPersonalId] = useQueryState(
+    "personalId",
+    parseAsString,
+  );
 
   // ✅ SEGURO: Verificar se é admin validando no servidor
-  const { isAdmin, role, isLoading: isSessionLoading } = useUserSession();
-  const userIsAdmin = isAdmin || role === "ADMIN";
 
   // Redirecionar se a sessão ainda estiver carregando
-  useEffect(() => {
-    if (isSessionLoading) return;
-  }, [isSessionLoading]);
   const [educationView, setEducationView] = useQueryState(
     "view",
     parseAsString.withDefault("menu"),
@@ -172,8 +168,8 @@ function StudentHomeContent() {
     getStudentPaymentStatus,
     getPersonalPaymentStatus,
   } = useStudent("actions");
-  const { loadSubscription, loadMemberships, loadPayments, loadReferral } =
-    useStudent("loaders");
+  const { loadMemberships, loadPayments, loadReferral } = useStudent("loaders");
+  const paymentFlow = usePaymentFlow();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -370,6 +366,7 @@ function StudentHomeContent() {
   const handleCancelMembership = async (membershipId: string) => {
     try {
       await cancelMembership(membershipId);
+      await paymentFlow.invalidatePaymentQueries();
       toast({
         title: "Assinatura cancelada",
         description: "Sua matrícula nesta academia foi cancelada.",
@@ -392,7 +389,12 @@ function StudentHomeContent() {
   };
 
   const handlePixConfirmed = async () => {
-    await Promise.all([loadMemberships(), loadPayments(), loadReferral()]);
+    await Promise.all([
+      paymentFlow.invalidatePaymentQueries(),
+      loadMemberships(),
+      loadPayments(),
+      loadReferral(),
+    ]);
     setProfileRefreshKey((k) => k + 1);
   };
 
@@ -416,6 +418,7 @@ function StudentHomeContent() {
 
   const handlePersonalPixConfirmed = async () => {
     setPersonalPixModal(null);
+    await paymentFlow.invalidatePaymentQueries();
     setProfileRefreshKey((k) => k + 1);
   };
 
@@ -678,9 +681,7 @@ function StudentHomeContent() {
             preSelectedCoupon={preSelectedCoupon}
           />
         ) : (
-          <PersonalMapWithLeaflet
-            onViewPersonal={(id) => setPersonalId(id)}
-          />
+          <PersonalMapWithLeaflet onViewPersonal={(id) => setPersonalId(id)} />
         ))}
 
       {tab === "gyms" &&

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
+import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
+import { useStudentReferralBootstrap } from "@/hooks/use-student-bootstrap";
 import { useToast } from "@/hooks/use-toast";
 import type { StudentReferralData } from "@/lib/types/student-unified";
 import { parseCurrencyBR } from "@/lib/utils/currency";
@@ -20,14 +22,15 @@ export type ReferralData = StudentReferralData;
 
 export function useStudentReferral() {
   const { toast } = useToast();
-  const referralData = useStudent("referral") as unknown as
-    | StudentReferralData
-    | null;
-  const { loadReferral } = useStudent("loaders");
+  const { invalidatePaymentQueries } = usePaymentFlow();
+  const {
+    referral: referralData,
+    isLoading,
+    refetch,
+  } = useStudentReferralBootstrap();
   const { updateReferralPixKey, requestReferralWithdraw } =
     useStudent("actions");
 
-  const [isLoading, setIsLoading] = useState(true);
   const [pixKey, setPixKey] = useState("");
   const [pixKeyType, setPixKeyType] = useState("CPF");
   const [isUpdatingPix, setIsUpdatingPix] = useState(false);
@@ -37,22 +40,15 @@ export function useStudentReferral() {
 
   const loadData = useCallback(async () => {
     try {
-      setIsLoading(true);
-      await loadReferral();
+      await refetch();
     } catch {
       toast({
         variant: "destructive",
         title: "Erro ao carregar indicacoes",
         description: "Nao foi possivel carregar o historico de indicacoes.",
       });
-    } finally {
-      setIsLoading(false);
     }
-  }, [loadReferral, toast]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  }, [refetch, toast]);
 
   useEffect(() => {
     if (referralData?.pixKey) {
@@ -60,9 +56,6 @@ export function useStudentReferral() {
     }
     if (referralData?.pixKeyType) {
       setPixKeyType(referralData.pixKeyType);
-    }
-    if (referralData) {
-      setIsLoading(false);
     }
   }, [referralData]);
 
@@ -90,6 +83,8 @@ export function useStudentReferral() {
         pixKey,
         pixKeyType,
       });
+      await invalidatePaymentQueries();
+      await refetch();
       toast({
         title: "Chave PIX atualizada!",
         description: "Agora voce pode realizar saques de suas comissoes.",
@@ -120,6 +115,8 @@ export function useStudentReferral() {
     try {
       setIsWithdrawing(true);
       await requestReferralWithdraw(Math.floor(parsed.data * 100));
+      await invalidatePaymentQueries();
+      await refetch();
       toast({
         title: "Saque solicitado!",
         description: "O valor sera transferido para sua chave PIX.",
@@ -142,7 +139,14 @@ export function useStudentReferral() {
     } finally {
       setIsWithdrawing(false);
     }
-  }, [referralData?.balanceReais, requestReferralWithdraw, toast, withdrawAmount]);
+  }, [
+    referralData?.balanceReais,
+    invalidatePaymentQueries,
+    refetch,
+    requestReferralWithdraw,
+    toast,
+    withdrawAmount,
+  ]);
 
   return {
     data: referralData,

@@ -20,6 +20,7 @@ type UseSubscriptionReturn = {
   isLoading: boolean;
   error: Error | null;
   refetch: () => Promise<unknown>;
+  isFirstPayment: boolean;
   startTrial: () => Promise<{ success?: boolean; error?: string }>;
   isStartingTrial: boolean;
   createSubscription: (

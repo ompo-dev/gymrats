@@ -1,21 +1,15 @@
 "use client";
 
 import { Building2, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { DuoButton, DuoCard } from "@/components/duo";
 import { AcademyListItemCard } from "@/components/organisms/sections/list-item-cards";
-import { useStudent } from "@/hooks/use-student";
-import type { StudentGymMembership } from "@/lib/types";
+import { useStudentMemberships } from "@/hooks/use-student-bootstrap";
 
 export function MyAcademiasCard() {
   const router = useRouter();
-  const requestedRef = useRef(false);
-  const memberships = useStudent("memberships") as unknown as
-    | StudentGymMembership[]
-    | undefined;
-  const metadata = useStudent("metadata") as { isLoading?: boolean } | null;
-  const { loadMemberships } = useStudent("loaders");
+  const { memberships, isLoading } = useStudentMemberships();
 
   const uniqueMemberships = useMemo(() => {
     const raw = Array.isArray(memberships) ? memberships : [];
@@ -27,19 +21,11 @@ export function MyAcademiasCard() {
     });
   }, [memberships]);
 
-  const loading =
-    uniqueMemberships.length === 0 && (metadata?.isLoading ?? !requestedRef.current);
+  const loading = isLoading && uniqueMemberships.length === 0;
 
   const handleViewAcademias = () => {
     router.push("/student?tab=gyms");
   };
-
-  useEffect(() => {
-    if (!requestedRef.current && uniqueMemberships.length === 0) {
-      requestedRef.current = true;
-      void loadMemberships();
-    }
-  }, [loadMemberships, uniqueMemberships.length]);
 
   if (loading) {
     return (
@@ -63,11 +49,7 @@ export function MyAcademiasCard() {
             <Building2 className="h-5 w-5 text-duo-blue" />
             <h2 className="font-bold text-duo-fg">Minhas Academias</h2>
           </div>
-          <DuoButton
-            size="sm"
-            variant="outline"
-            onClick={handleViewAcademias}
-          >
+          <DuoButton size="sm" variant="outline" onClick={handleViewAcademias}>
             Encontrar academias
             <ChevronRight className="h-4 w-4" />
           </DuoButton>

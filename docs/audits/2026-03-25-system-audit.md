@@ -275,6 +275,13 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - remover wrappers de compatibilidade já vencidos.
 - podar código órfão e duplicações restantes.
 
+## Focus Update - Student Financial
+
+- O fluxo financeiro principal do student deixou de ler `subscription`, `memberships`, `payments`, `paymentMethods` e `referral` diretamente do store nas superfÃ­cies principais.
+- `apps/web/hooks/use-student-bootstrap.ts` passou a expÃµr seletores normalizados para bootstrap financeiro.
+- `apps/web/app/student/_payments/hooks/use-payments-page.ts`, `apps/web/app/student/_payments/hooks/use-student-referral.ts` e `apps/web/app/student/_profile/components/my-academias-card.tsx` passaram a consumir React Query como fonte canÃ´nica de leitura remota.
+- `apps/web/app/student/page-content.tsx` agora invalida as queries financeiras apÃ³s mutaÃ§Ãµes relevantes para evitar cache divergente.
+
 ## Changes Implemented In This Pass
 
 - `apps/api/src/lib/auth/session-payload.ts`
@@ -306,10 +313,16 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 - `apps/web/hooks/use-student-initializer.ts`
 - `apps/web/hooks/use-gym-initializer.ts`
 - `apps/web/hooks/use-personal-initializer.ts`
+- `apps/web/hooks/use-subscription.ts`
 - `apps/web/stores/student/load-helpers.ts`
 - `apps/web/stores/gym/load-helpers.ts`
 - `apps/web/stores/personal/load-helpers.ts`
 - `apps/web/stores/student-unified-store.ts`
+- `apps/web/app/student/_payments/hooks/use-payments-page.ts`
+- `apps/web/app/student/_payments/hooks/use-student-referral.ts`
+- `apps/web/app/student/_payments/student-payments-page.tsx`
+- `apps/web/app/student/_profile/components/my-academias-card.tsx`
+- `apps/web/app/student/page-content.tsx`
 
 ## Validation Status
 
@@ -321,6 +334,7 @@ O estado atual confirma degradação estrutural em múltiplas camadas:
 
 - `npx biome check` nos arquivos alterados nesta onda: verde
 - `npx tsc -p apps/web/tsconfig.json --noEmit --pretty false` filtrado para os arquivos alterados nesta onda: sem erros correspondentes
+- busca textual por `useStudent("subscription" | "memberships" | "payments" | "paymentMethods" | "referral")` em `apps/web`: sem ocorrÃªncias remanescentes
 
 ## Next Execution Order
 

@@ -9,11 +9,15 @@ import {
   Plus,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import {
+  DuoButton,
+  DuoCard,
+  DuoStatCard,
+  DuoStatsGrid,
+} from "@/components/duo";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
-import { DuoButton, DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
 import { SubscriptionCancelDialog } from "@/components/organisms/modals/subscription-cancel-dialog";
 import { SubscriptionSection } from "@/components/organisms/sections/subscription-section";
-import { useStudent } from "@/hooks/use-student";
 import type { StudentGymMembership, StudentPayment } from "@/lib/types";
 import {
   MembershipCard,
@@ -25,7 +29,6 @@ import {
   type UsePaymentsPageProps,
   usePaymentsPage,
 } from "./hooks/use-payments-page";
-import { STUDENT_PLANS_CONFIG } from "@/lib/access-control/plans-config";
 
 export interface StudentPaymentsPageProps {
   subscription?: {
@@ -77,18 +80,18 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
     handleSelectChangePlan,
     handlePixConfirmed,
     handlePayNowClick,
+    handleCancelPayment,
     handleStartTrial,
     handleUpgrade,
     handleApplyReferralStudent,
     checkSubscriptionIsActive,
     handleCancelConfirm,
+    getStudentPaymentStatus,
     isFirstPayment,
     refetchSubscription,
     subscriptionPixModal,
     setSubscriptionPixModal,
   } = usePaymentsPage(props as UsePaymentsPageProps);
-  const { cancelStudentPayment, getStudentPaymentStatus } =
-    useStudent("actions");
 
   const [expandedGymIdMemberships, setExpandedGymIdMemberships] = useState<
     string | null
@@ -381,7 +384,7 @@ export function StudentPaymentsPage(props: StudentPaymentsPageProps = {}) {
         <PixQrModal
           isOpen={true}
           onClose={() => setPixModal(null)}
-          onCancelPayment={() => cancelStudentPayment(pixModal.paymentId)}
+          onCancelPayment={() => handleCancelPayment(pixModal.paymentId)}
           brCode={pixModal.brCode}
           brCodeBase64={pixModal.brCodeBase64}
           amount={pixModal.amount}
