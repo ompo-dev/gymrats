@@ -292,6 +292,22 @@ export function PixQrModal({
   const hasClosedRef = useRef(false);
   const [referralCode, setReferralCode] = useState("");
   const [isApplyingReferral, setIsApplyingReferral] = useState(false);
+  const checkPollConfig = pollConfig?.type === "check" ? pollConfig : null;
+  const subscriptionPollConfig =
+    pollConfig?.type === "subscription" ? pollConfig : null;
+  const checkPoll = checkPollConfig?.check;
+  const checkPollIntervalMs = checkPollConfig?.intervalMs;
+  const checkPollBackoffSignature =
+    checkPollConfig?.backoffMs?.join(",") ?? "";
+  const checkPollMaxDurationMs = checkPollConfig?.maxDurationMs;
+  const paymentConfirmedTitle = paymentConfirmedToast.title;
+  const paymentConfirmedDescription = paymentConfirmedToast.description;
+
+  useEffect(() => {
+    if (!isOpen) {
+      hasClosedRef.current = false;
+    }
+  }, [isOpen]);
 
   /** Fechamento pelo usuário (X ou clique fora): cancela cobrança e depois fecha. Não usado ao fechar após pagamento confirmado. */
   const handleUserClose = useCallback(async () => {
@@ -304,20 +320,18 @@ export function PixQrModal({
 
   // Poll tipo "check" (payment, boost)
   useEffect(() => {
-    if (
-      !isOpen ||
-      !pollConfig ||
-      pollConfig.type !== "check" ||
-      !onPaymentConfirmed
-    )
-      return;
+    if (!isOpen || !checkPoll || !onPaymentConfirmed) return;
 
-    const {
-      check,
-      intervalMs = 8000,
-      backoffMs = [2000, 5000, 10000],
-      maxDurationMs = 20 * 60 * 1000,
-    } = pollConfig;
+    const check = checkPoll;
+    const intervalMs = checkPollIntervalMs ?? 8000;
+    const backoffMs =
+      checkPollBackoffSignature.length > 0
+        ? checkPollBackoffSignature
+            .split(",")
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value))
+        : [2000, 5000, 10000];
+    const maxDurationMs = checkPollMaxDurationMs ?? 20 * 60 * 1000;
     const startedAt = Date.now();
     let timeoutId: number | null = null;
     let attempt = 0;
@@ -333,8 +347,8 @@ export function PixQrModal({
           onPaymentConfirmed();
           onClose();
           toast({
-            title: paymentConfirmedToast.title,
-            description: paymentConfirmedToast.description,
+            title: paymentConfirmedTitle,
+            description: paymentConfirmedDescription,
           });
           return true;
         }
@@ -391,70 +405,69 @@ export function PixQrModal({
     };
   }, [
     isOpen,
-    pollConfig,
+    checkPoll,
+    checkPollIntervalMs,
+    checkPollBackoffSignature,
+    checkPollMaxDurationMs,
     onPaymentConfirmed,
     onClose,
     toast,
-    paymentConfirmedToast,
+    paymentConfirmedTitle,
+    paymentConfirmedDescription,
   ]);
 
   // Poll tipo "subscription" (refetch + currentStatus)
   useEffect(() => {
-    if (
-      !isOpen ||
-      !pollConfig ||
-      pollConfig.type !== "subscription" ||
-      !onPaymentConfirmed
-    )
-      return;
+    if (!isOpen || !subscriptionPollConfig || !onPaymentConfirmed) return;
 
-    const {
-      refetch,
-      currentStatus,
-      initialStatus = "pending",
-      targetStatus = "active",
-      intervalMs = 8000,
-    } = pollConfig;
+    const refetch = subscriptionPollConfig.refetch;
+    const intervalMs = subscriptionPollConfig.intervalMs ?? 8000;
 
     const interval = setInterval(() => {
       if (document.visibilityState === "visible") refetch();
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [isOpen, pollConfig]);
+  }, [
+    isOpen,
+    onPaymentConfirmed,
+    subscriptionPollConfig?.refetch,
+    subscriptionPollConfig?.intervalMs,
+  ]);
 
   // Fechar quando subscription ficar active
   useEffect(() => {
     if (
-      !pollConfig ||
-      pollConfig.type !== "subscription" ||
+      !subscriptionPollConfig ||
       hasClosedRef.current ||
       !isOpen ||
       !onPaymentConfirmed
     )
       return;
 
-    const { currentStatus, initialStatus = "pending", targetStatus = "active" } =
-      pollConfig;
-    if (
-      currentStatus === targetStatus &&
-      initialStatus !== targetStatus
-    ) {
+    const currentStatus = subscriptionPollConfig.currentStatus;
+    const initialStatus = subscriptionPollConfig.initialStatus ?? "pending";
+    const targetStatus = subscriptionPollConfig.targetStatus ?? "active";
+
+    if (currentStatus === targetStatus && initialStatus !== targetStatus) {
       hasClosedRef.current = true;
       onPaymentConfirmed();
       onClose();
       toast({
-        title: paymentConfirmedToast.title,
-        description: paymentConfirmedToast.description,
+        title: paymentConfirmedTitle,
+        description: paymentConfirmedDescription,
       });
     }
   }, [
     isOpen,
-    pollConfig,
+    subscriptionPollConfig?.currentStatus,
+    subscriptionPollConfig?.initialStatus,
+    subscriptionPollConfig?.targetStatus,
     onPaymentConfirmed,
     onClose,
     toast,
-    paymentConfirmedToast,
+    paymentConfirmedTitle,
+    paymentConfirmedDescription,
   ]);
 
   const handleApplyReferral = useCallback(async () => {
@@ -486,7 +499,7 @@ export function PixQrModal({
     } finally {
       setIsApplyingReferral(false);
     }
-  }, [referralSlot, referralCode, toast, onClose]);
+  }, [referralSlot, referralCode, toast]);
 
   return (
     <Modal.Root isOpen={isOpen} onClose={handleUserClose} maxWidth="max-w-sm">

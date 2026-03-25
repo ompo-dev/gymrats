@@ -136,7 +136,9 @@ function SubscriptionSectionSimple({
       });
 
       // Para gym: webhook ativa a assinatura. Refetch com polling até obter dados atualizados.
-      if (userType === "gym" && onPaymentSuccess) {
+      if (userType !== "student") {
+        if (!onPaymentSuccess) return;
+
         for (let i = 0; i < 10; i++) {
           if (cancelled) return;
           await onPaymentSuccess();

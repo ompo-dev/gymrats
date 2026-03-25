@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 import { PersonalFinancialPageContent } from "./page-content";
@@ -33,15 +33,29 @@ export function PersonalFinancialRouteWrapper({
 }) {
   const router = useRouter();
   const hydrateInitial = usePersonalUnifiedStore((s) => s.hydrateInitial);
-  const hydrationKey = JSON.stringify({
-    subscriptionId: subscription?.id ?? null,
-    studentIds: students.map((student) => student.id),
-    affiliationIds: affiliations.map((affiliation) => affiliation.id),
-  });
+  const lastHydrationKeyRef = useRef<string | null>(null);
+  const hydrationPayload = useMemo(
+    () => ({ subscription, students, affiliations }),
+    [subscription, students, affiliations],
+  );
+  const hydrationKey = useMemo(
+    () =>
+      JSON.stringify({
+        subscription,
+        students,
+        affiliations,
+      }),
+    [subscription, students, affiliations],
+  );
 
   useEffect(() => {
-    hydrateInitial({ subscription, students, affiliations });
-  }, [hydrateInitial, hydrationKey, subscription, students, affiliations]);
+    if (lastHydrationKeyRef.current === hydrationKey) {
+      return;
+    }
+
+    lastHydrationKeyRef.current = hydrationKey;
+    hydrateInitial(hydrationPayload);
+  }, [hydrateInitial, hydrationKey, hydrationPayload]);
 
   const onRefresh = useCallback(async () => {
     router.refresh();

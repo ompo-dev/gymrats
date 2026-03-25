@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   PERSONAL_PLANS_CONFIG,
   centsToReais,
@@ -15,7 +15,7 @@ interface PersonalFinancialSubscriptionTabProps {
 }
 
 export function PersonalFinancialSubscriptionTab({
-  onRefresh,
+  onRefresh: _onRefresh,
 }: PersonalFinancialSubscriptionTabProps = {}) {
   const {
     subscription,
@@ -66,6 +66,42 @@ export function PersonalFinancialSubscriptionTab({
       }
     : null;
 
+  const refreshSubscription = useCallback(
+    async () => loadSection("subscription", true),
+    [loadSection],
+  );
+
+  const handlePaymentSuccess = useCallback(
+    async () => refreshSubscription(),
+    [refreshSubscription],
+  );
+
+  const handleSimulationSuccess = useCallback(
+    async () => refreshSubscription(),
+    [refreshSubscription],
+  );
+
+  const handlePaymentConfirmed = useCallback(async () => {
+    handlePixConfirmed();
+    await Promise.all([
+      loadSection("subscription", true),
+      loadSection("financialSummary", true),
+      loadSection("payments", true),
+    ]);
+  }, [handlePixConfirmed, loadSection]);
+
+  const pollConfig = useMemo(
+    () => ({
+      type: "subscription" as const,
+      refetch: refreshSubscription,
+      currentStatus: subscription?.status,
+      initialStatus: "pending_payment",
+      targetStatus: "active",
+      intervalMs: 3000,
+    }),
+    [refreshSubscription, subscription?.status],
+  );
+
   const handleCancel = async () => {
     setCancelDialogOpen(true);
   };
@@ -87,7 +123,7 @@ export function PersonalFinancialSubscriptionTab({
           );
         }}
         onCancel={handleCancel}
-        onPaymentSuccess={async () => loadSection("subscription", true)}
+        onPaymentSuccess={handlePaymentSuccess}
         plans={plans}
         showPlansWhen="always"
         texts={{
@@ -110,19 +146,9 @@ export function PersonalFinancialSubscriptionTab({
           amount={pixModal.amount}
           expiresAt={pixModal.expiresAt}
           simulatePixUrl={`/api/personals/subscription/simulate-pix?pixId=${encodeURIComponent(pixModal.pixId)}`}
-          onSimulateSuccess={() => loadSection("subscription", true)}
-          pollConfig={{
-            type: "subscription",
-            refetch: () => loadSection("subscription", true),
-            currentStatus: subscription?.status,
-            initialStatus: "pending_payment",
-            targetStatus: "active",
-            intervalMs: 3000,
-          }}
-          onPaymentConfirmed={async () => {
-            handlePixConfirmed();
-            await onRefresh?.();
-          }}
+          onSimulateSuccess={handleSimulationSuccess}
+          pollConfig={pollConfig}
+          onPaymentConfirmed={handlePaymentConfirmed}
           paymentConfirmedToast={{
             title: "Pagamento confirmado!",
             description: "Sua assinatura foi ativada.",

@@ -25,8 +25,6 @@ interface FinancialSubscriptionTabProps {
       | "trialing"
       | "pending_payment"
       | string;
-    basePrice: number;
-    pricePerStudent: number;
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
     cancelAtPeriodEnd: boolean;
@@ -122,7 +120,6 @@ export function FinancialSubscriptionTab({
     canApplyReferral?: boolean;
   } | null>(null);
   const {
-    subscription: subscriptionData,
     isFirstPayment,
     isLoading: isLoadingSubscription,
     startTrial: startTrialHook,
@@ -136,39 +133,85 @@ export function FinancialSubscriptionTab({
     includeDaysRemaining: true,
     includeTrialInfo: true,
     includeActiveStudents: true,
+    enabled: false,
   });
 
   type SubscriptionType = typeof initialSubscription;
 
   const hasOptimisticUpdate =
     storeSubscription?.id === "temp-trial-id" ||
-    (subscriptionData &&
-      typeof subscriptionData === "object" &&
-      "id" in subscriptionData &&
-      (subscriptionData as { id?: string }).id === "temp-trial-id");
+    (storeSubscription &&
+      typeof storeSubscription === "object" &&
+      "id" in storeSubscription &&
+      (storeSubscription as { id?: string }).id === "temp-trial-id");
 
   const subscription: SubscriptionType =
     hasOptimisticUpdate && storeSubscription
       ? (storeSubscription as SubscriptionType)
-      : subscriptionData !== undefined
-        ? (subscriptionData as SubscriptionType)
-        : storeSubscription !== null
-          ? (storeSubscription as SubscriptionType)
-          : initialSubscription;
+      : storeSubscription !== null
+        ? (storeSubscription as SubscriptionType)
+        : initialSubscription;
+
+  const refreshSubscription = useCallback(async () => {
+    await refetchSubscription();
+  }, [refetchSubscription]);
+
+  const handlePaymentSuccess = useCallback(async () => {
+    await refreshSubscription();
+    await useGymsDataStore.getState().loadAllGyms();
+  }, [refreshSubscription]);
+
+  const handlePixSimulationSuccess = useCallback(async () => {
+    await refreshSubscription();
+  }, [refreshSubscription]);
+
+  const checkSubscriptionPayment = useCallback(async () => {
+    await refreshSubscription();
+    return gymActions.checkCurrentSubscriptionActive();
+  }, [gymActions, refreshSubscription]);
+
+  const handlePixPaymentConfirmed = useCallback(() => {
+    clearPendingPixStorage();
+    void refreshSubscription();
+    void useGymsDataStore.getState().loadAllGyms();
+  }, [refreshSubscription]);
+
+  const plans = useMemo(
+    () =>
+      Object.values(GYM_PLANS_CONFIG).map((config) => ({
+        id: config.id,
+        name: config.name,
+        monthlyPrice: centsToReais(config.prices.monthly),
+        annualPrice: centsToReais(config.prices.annual),
+        perStudentPrice: centsToReais(config.pricePerStudent),
+        perPersonalPrice: centsToReais(config.pricePerPersonal ?? 0),
+        features: config.features,
+      })),
+    [],
+  );
+
+  const pollConfig = useMemo(
+    () => ({
+      type: "check" as const,
+      check: checkSubscriptionPayment,
+      intervalMs: 3000,
+    }),
+    [checkSubscriptionPayment],
+  );
 
   // Restaurar PIX pendente ao voltar (ex.: fechou modal, foi ao banco, voltou)
   useEffect(() => {
     if (isLoadingSubscription) return;
     const stored = loadPendingPixFromStorage();
     if (!stored) return;
-    if (subscriptionData?.status === "active") {
+    if (subscription?.status === "active") {
       clearPendingPixStorage();
       return;
     }
-    if (subscriptionData?.status === "pending") {
+    if (subscription?.status === "pending_payment") {
       setPendingPix(stored);
     }
-  }, [isLoadingSubscription, subscriptionData?.status]);
+  }, [isLoadingSubscription, subscription?.status]);
 
   // Refetch ao voltar para a aba (ex.: foi ao app do banco pagar)
   useEffect(() => {
@@ -244,7 +287,11 @@ export function FinancialSubscriptionTab({
     referralCode: string | null,
   ) => {
     try {
-      const result = await createSubscription(plan, billingPeriod, referralCode);
+      const result = await createSubscription(
+        plan,
+        billingPeriod,
+        referralCode,
+      );
       if (result.error) {
         toast({
           variant: "destructive",
@@ -263,7 +310,6 @@ export function FinancialSubscriptionTab({
         canApplyReferral?: boolean;
       };
       if (pix.pixId && pix.brCode) {
-        await refetchSubscription();
         const pixData = {
           pixId: pix.pixId,
           brCode: pix.brCode,
@@ -317,7 +363,7 @@ export function FinancialSubscriptionTab({
       }
       return { error: "Resposta inválida" };
     },
-    [gymActions]
+    [gymActions],
   );
 
   const handleCancel = async () => {
@@ -374,9 +420,7 @@ export function FinancialSubscriptionTab({
             : null
         }
         onPaymentSuccess={async () => {
-          await refetchSubscription();
-          // Atualizar lista de academias (reativação de unidades ao assinar Premium/Enterprise)
-          useGymsDataStore.getState().loadAllGyms();
+          await handlePaymentSuccess();
         }}
         isLoading={isLoadingSubscription}
         isStartingTrial={isStartingTrial}
@@ -386,19 +430,7 @@ export function FinancialSubscriptionTab({
         onSubscribe={handleSubscribe}
         onCancel={handleCancel}
         isFirstPayment={isFirstPayment}
-        plans={useMemo(
-          () =>
-            Object.values(GYM_PLANS_CONFIG).map((config) => ({
-              id: config.id,
-              name: config.name,
-              monthlyPrice: centsToReais(config.prices.monthly),
-              annualPrice: centsToReais(config.prices.annual),
-              perStudentPrice: centsToReais(config.pricePerStudent),
-              perPersonalPrice: centsToReais(config.pricePerPersonal ?? 0),
-              features: config.features,
-            })),
-          [],
-        )}
+        plans={plans}
         showPlansWhen="always"
         trialEndingDays={3}
         texts={{
@@ -437,7 +469,8 @@ export function FinancialSubscriptionTab({
               : undefined
           }
           valueSlot={
-            pendingPix.originalAmount && pendingPix.originalAmount > pendingPix.amount
+            pendingPix.originalAmount &&
+            pendingPix.originalAmount > pendingPix.amount
               ? {
                   strikethrough: pendingPix.originalAmount,
                   badge: { code: "Indicação", discountString: "5%" },
@@ -445,24 +478,9 @@ export function FinancialSubscriptionTab({
               : undefined
           }
           simulatePixUrl={`/api/gym-subscriptions/simulate-pix?pixId=${encodeURIComponent(pendingPix.pixId)}`}
-          onSimulateSuccess={
-            refetchSubscription
-              ? () => refetchSubscription().then(() => undefined)
-              : undefined
-          }
-          pollConfig={{
-            type: "check",
-            check: async () => {
-              await refetchSubscription();
-              return gymActions.checkCurrentSubscriptionActive();
-            },
-            intervalMs: 3000,
-          }}
-          onPaymentConfirmed={() => {
-            clearPendingPixStorage();
-            refetchSubscription();
-            useGymsDataStore.getState().loadAllGyms();
-          }}
+          onSimulateSuccess={handlePixSimulationSuccess}
+          pollConfig={pollConfig}
+          onPaymentConfirmed={handlePixPaymentConfirmed}
           paymentConfirmedToast={{
             title: "Pagamento confirmado!",
             description: "Sua assinatura está ativa.",

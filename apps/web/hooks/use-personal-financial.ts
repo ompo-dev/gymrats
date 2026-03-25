@@ -5,14 +5,11 @@ import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
 
 export function usePersonalFinancial() {
-  const { subscription, students, affiliations, actions, loaders } =
-    usePersonal(
-      "subscription",
-      "students",
-      "affiliations",
-      "actions",
-      "loaders",
-    );
+  const subscription = usePersonal("subscription");
+  const students = usePersonal("students");
+  const affiliations = usePersonal("affiliations");
+  const actions = usePersonal("actions");
+  const loaders = usePersonal("loaders");
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -107,8 +104,7 @@ export function usePersonalFinancial() {
 
   const handlePixConfirmed = useCallback(() => {
     setPixModal(null);
-    void loaders.loadSection("subscription", true);
-  }, [loaders]);
+  }, []);
 
   return {
     subscription,

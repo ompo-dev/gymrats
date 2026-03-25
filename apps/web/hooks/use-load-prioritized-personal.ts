@@ -5,7 +5,10 @@ import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback } from "react";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
-import type { PersonalDataSection } from "@/lib/types/personal-unified";
+import type {
+  PersonalDataSection,
+  PersonalUnifiedData,
+} from "@/lib/types/personal-unified";
 import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
 type PersonalContextType =
@@ -57,9 +60,35 @@ function detectPersonalContext(
 
 function hasSectionData(
   section: PersonalDataSection,
-  resources: Record<string, { status?: string }>,
+  data: PersonalUnifiedData,
 ) {
-  return resources[section]?.status === "ready";
+  const resourceStatus = data.metadata.resources[section]?.status;
+  switch (section) {
+    case "profile":
+      return !!data.profile || resourceStatus === "ready";
+    case "affiliations":
+      return data.affiliations.length > 0 || resourceStatus === "ready";
+    case "students":
+      return data.students.length > 0 || resourceStatus === "ready";
+    case "studentDirectory":
+      return data.studentDirectory.length > 0 || resourceStatus === "ready";
+    case "subscription":
+      return data.subscription !== null || resourceStatus === "ready";
+    case "financialSummary":
+      return data.financialSummary !== null || resourceStatus === "ready";
+    case "expenses":
+      return data.expenses.length > 0 || resourceStatus === "ready";
+    case "payments":
+      return data.payments.length > 0 || resourceStatus === "ready";
+    case "coupons":
+      return data.coupons.length > 0 || resourceStatus === "ready";
+    case "campaigns":
+      return data.campaigns.length > 0 || resourceStatus === "ready";
+    case "membershipPlans":
+      return data.membershipPlans.length > 0 || resourceStatus === "ready";
+    default:
+      return resourceStatus === "ready";
+  }
 }
 
 export function useLoadPrioritizedPersonal(options?: {
@@ -72,13 +101,13 @@ export function useLoadPrioritizedPersonal(options?: {
   const loadAllPrioritized = usePersonalUnifiedStore(
     (state) => state.loadAllPrioritized,
   );
-  const resources = usePersonalUnifiedStore(
-    (state) => state.data.metadata.resources,
-  );
   const isInitialized = usePersonalUnifiedStore(
     (state) => state.data.metadata.isInitialized,
   );
-  const getStoreSnapshot = useCallback(() => resources, [resources]);
+  const getStoreSnapshot = useCallback(
+    () => usePersonalUnifiedStore.getState().data,
+    [],
+  );
 
   usePrioritizedResourceLoader({
     context: options?.context,

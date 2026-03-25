@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { useCallback } from "react";
 import { usePrioritizedResourceLoader } from "@/hooks/shared/use-prioritized-resource-loader";
-import type { GymDataSection } from "@/lib/types/gym-unified";
+import type { GymDataSection, GymUnifiedData } from "@/lib/types/gym-unified";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 type GymContextType =
@@ -58,9 +58,44 @@ function detectGymContext(
 
 function hasSectionData(
   section: GymDataSection,
-  resources: Record<string, { status?: string }>,
+  data: GymUnifiedData,
 ) {
-  return resources[section]?.status === "ready";
+  const resourceStatus = data.metadata.resources[section]?.status;
+  switch (section) {
+    case "profile":
+      return !!data.profile || resourceStatus === "ready";
+    case "stats":
+      return !!data.stats || resourceStatus === "ready";
+    case "students":
+      return data.students.length > 0 || resourceStatus === "ready";
+    case "equipment":
+      return data.equipment.length > 0 || resourceStatus === "ready";
+    case "financialSummary":
+      return data.financialSummary !== null || resourceStatus === "ready";
+    case "recentCheckIns":
+      return data.recentCheckIns.length > 0 || resourceStatus === "ready";
+    case "membershipPlans":
+      return data.membershipPlans.length > 0 || resourceStatus === "ready";
+    case "payments":
+      return data.payments.length > 0 || resourceStatus === "ready";
+    case "expenses":
+      return data.expenses.length > 0 || resourceStatus === "ready";
+    case "coupons":
+      return data.coupons.length > 0 || resourceStatus === "ready";
+    case "campaigns":
+      return data.campaigns.length > 0 || resourceStatus === "ready";
+    case "balanceWithdraws":
+      return (
+        data.balanceWithdraws.withdraws.length > 0 ||
+        data.balanceWithdraws.balanceCents !== 0 ||
+        data.balanceWithdraws.balanceReais !== 0 ||
+        resourceStatus === "ready"
+      );
+    case "subscription":
+      return data.subscription !== null || resourceStatus === "ready";
+    default:
+      return resourceStatus === "ready";
+  }
 }
 
 export function useLoadPrioritizedGym(options?: {
@@ -73,13 +108,10 @@ export function useLoadPrioritizedGym(options?: {
   const loadAllPrioritized = useGymUnifiedStore(
     (state) => state.loadAllPrioritized,
   );
-  const resources = useGymUnifiedStore(
-    (state) => state.data.metadata.resources,
-  );
   const isInitialized = useGymUnifiedStore(
     (state) => state.data.metadata.isInitialized,
   );
-  const getStoreSnapshot = useCallback(() => resources, [resources]);
+  const getStoreSnapshot = useCallback(() => useGymUnifiedStore.getState().data, []);
 
   usePrioritizedResourceLoader({
     context: options?.context,
