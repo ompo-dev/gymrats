@@ -12,6 +12,7 @@ export type AuthSession = {
   user: {
     id: string;
     student?: AuthStudentRecord | null;
+    personal?: { id: string } | null;
     gyms?: { id: string }[];
     role?: string;
     activeGymId?: string;
@@ -78,10 +79,7 @@ async function getSessionToken(): Promise<string | null> {
   if (cookieHeader) {
     for (const cookie of cookieHeader.split(";")) {
       const [rawKey, ...rest] = cookie.trim().split("=");
-      if (
-        rawKey === "auth_token" ||
-        rawKey === "better-auth.session_token"
-      ) {
+      if (rawKey === "auth_token" || rawKey === "better-auth.session_token") {
         return decodeURIComponent(rest.join("="));
       }
     }
@@ -182,32 +180,21 @@ export async function getAuthContext(options: {
       include: { personal: { select: { id: true } } },
     });
 
-    let personalId = (userWithPersonal?.personal as { id: string } | null)?.id;
-    if (!personalId && (isAdmin || isPersonalRole)) {
-      const existing = await db.personal.findUnique({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (existing) {
-        personalId = existing.id;
-      } else {
-        const created = await db.personal.create({
-          data: {
-            userId: user.id,
-            name: user.name || "Personal",
-            email: user.email || "",
-          },
+    const personalId =
+      (user.personal as { id: string } | null | undefined)?.id ||
+      (userWithPersonal?.personal as { id: string } | null)?.id ||
+      (
+        await db.personal.findUnique({
+          where: { userId: user.id },
           select: { id: true },
-        });
-        personalId = created.id;
-      }
-    }
+        })
+      )?.id;
 
     if (!personalId) {
       return {
         errorResponse: NextResponse.json(
-          { error: "Personal ID nao encontrado" },
-          { status: 500 },
+          { error: "Perfil de personal nao encontrado" },
+          { status: 403 },
         ),
       };
     }
@@ -218,34 +205,11 @@ export async function getAuthContext(options: {
   }
 
   if (options.type === "gym") {
-    const isAdmin = user.role === "ADMIN";
-    let gymId = user.activeGymId || user.gyms?.[0]?.id;
-
-    if (isAdmin && !gymId) {
-      const existingGym = await db.gym.findFirst({
-        where: { userId: user.id },
-      });
-
-      if (existingGym) {
-        gymId = existingGym.id;
-      } else {
-        const newGym = await db.gym.create({
-          data: {
-            userId: user.id,
-            name: user.name || "Admin Gym",
-            address: "",
-            phone: "",
-            email: user.email || "",
-            isActive: true,
-          },
-        });
-        gymId = newGym.id;
-        await db.user.update({
-          where: { id: user.id },
-          data: { activeGymId: gymId },
-        });
-      }
-    }
+    const existingGym = await db.gym.findFirst({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    const gymId = user.activeGymId || user.gyms?.[0]?.id || existingGym?.id;
 
     if (!gymId) {
       return {
@@ -261,15 +225,9 @@ export async function getAuthContext(options: {
     };
   }
 
-  const isAdmin = user.role === "ADMIN";
-  let student = user.student;
-
-  if (isAdmin && !student) {
-    student = await db.student.findUnique({ where: { userId: user.id } });
-    if (!student) {
-      student = await db.student.create({ data: { userId: user.id } });
-    }
-  }
+  const student =
+    user.student ??
+    (await db.student.findUnique({ where: { userId: user.id } }));
 
   if (!student) {
     return { error: "Perfil de aluno nao encontrado." };

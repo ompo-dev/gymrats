@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { createSessionPayload } from "@/lib/auth/session-payload";
 import { auth } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
@@ -77,10 +78,10 @@ export async function POST(request: NextRequest) {
         student: user.student,
         personal: user.personal,
       },
-      session: {
+      session: createSessionPayload(request, {
         id: verifiedSession.session.id,
         token: verifiedSession.session.token,
-      },
+      }),
     });
 
     response.cookies.set("auth_token", verifiedSession.session.token, {

@@ -1,10 +1,8 @@
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { getPersonalBootstrapRequest } from "@/lib/api/bootstrap";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { recordClientTelemetryEvent } from "@/lib/observability/client-events";
 import { queryKeys } from "@/lib/query/query-keys";
 import type { PersonalDataSection } from "@/lib/types/personal-unified";
@@ -18,10 +16,7 @@ export function usePersonalBootstrap(
   const query = useQuery({
     queryKey: queryKeys.personalBootstrap(sections),
     queryFn: () => getPersonalBootstrapRequest(sections),
-    enabled:
-      (options?.enabled ?? true) &&
-      featureFlags.perfPersonalBootstrapV2 &&
-      isClientApiCapabilityEnabled("personalBootstrap"),
+    enabled: options?.enabled ?? true,
     retry: false,
   });
   const lastTrackedRequestId = useRef<string | null>(null);

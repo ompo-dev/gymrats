@@ -1,18 +1,15 @@
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useGymBootstrap } from "@/hooks/use-gym-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
 import { DEFAULT_GYM_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import { isAdmin, isGym } from "@/lib/utils/role";
 import { useGymUnifiedStore } from "@/stores/gym-unified-store";
 
 export function useGymInitializer(options?: { autoLoad?: boolean }) {
   const { autoLoad = true } = options || {};
   const { userSession, isLoading: sessionLoading, role } = useUserSession();
-  const loadAll = useGymUnifiedStore((state) => state.loadAll);
   const isInitialized = useGymUnifiedStore(
     (state) => state.data.metadata.isInitialized,
   );
@@ -31,20 +28,14 @@ export function useGymInitializer(options?: { autoLoad?: boolean }) {
     canInitializeRole: (currentRole) =>
       isGym(currentRole as string) || isAdmin(currentRole as string),
     loadAll: async () => {
-      if (
-        featureFlags.perfGymBootstrapV2 &&
-        isClientApiCapabilityEnabled("gymBootstrap")
-      ) {
-        const bootstrapData =
-          bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
+      const bootstrapData =
+        bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
 
-        if (bootstrapData?.data) {
-          useGymUnifiedStore.getState().hydrateInitial(bootstrapData.data);
-          return;
-        }
+      if (!bootstrapData?.data) {
+        throw new Error("Gym bootstrap retornou payload vazio.");
       }
 
-      await loadAll();
+      useGymUnifiedStore.getState().hydrateInitial(bootstrapData.data);
     },
     isInitialized,
     lastSync,

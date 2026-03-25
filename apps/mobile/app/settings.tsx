@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,8 +15,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PrimaryButton, SecondaryButton } from "../src/components/buttons";
 import { DuoCard } from "../src/components/duo-card";
-import { getNativeCapabilities } from "../src/lib/device-capabilities";
+import { ScreenBackground } from "../src/components/screen-background";
 import { refreshAuthSession } from "../src/lib/auth";
+import { getNativeCapabilities } from "../src/lib/device-capabilities";
+import { signOutRemoteSession } from "../src/lib/native-api";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -27,7 +29,6 @@ import {
   sendPushTest,
   unlinkPushInstallationForLogout,
 } from "../src/lib/push";
-import { signOutRemoteSession } from "../src/lib/native-api";
 import { isDebugToolsEnabled } from "../src/lib/runtime";
 import {
   clearWidgetSnapshot,
@@ -35,7 +36,6 @@ import {
   getWidgetStateSnapshot,
   refreshWidgetSnapshot,
 } from "../src/lib/widget";
-import { ScreenBackground } from "../src/components/screen-background";
 import { useAppStore } from "../src/store/app-store";
 import type {
   StoredPushState,
@@ -159,11 +159,10 @@ export default function SettingsScreen() {
 
   const nativeCapabilities = useMemo(() => getNativeCapabilities(), []);
   const debugToolsEnabled = isDebugToolsEnabled();
-  const canShowQaControls =
-    debugToolsEnabled || session.user?.role === "ADMIN";
+  const canShowQaControls = debugToolsEnabled || session.user?.role === "ADMIN";
   const pushDebugMetadata = useMemo(() => getDebugPushMetadata(), []);
 
-  const loadNativeState = async () => {
+  const loadNativeState = useCallback(async () => {
     setIsLoadingNativeState(true);
 
     try {
@@ -176,11 +175,11 @@ export default function SettingsScreen() {
     } finally {
       setIsLoadingNativeState(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadNativeState();
-  }, []);
+  }, [loadNativeState]);
 
   const handleSaveEnvironment = async () => {
     setError("");
@@ -234,7 +233,8 @@ export default function SettingsScreen() {
       if (
         resolvedHosts.web &&
         resolvedHosts.api &&
-        (resolvedHosts.web !== config.webUrl || resolvedHosts.api !== config.apiUrl)
+        (resolvedHosts.web !== config.webUrl ||
+          resolvedHosts.api !== config.apiUrl)
       ) {
         await updateConfig({
           webUrl: resolvedHosts.web,
@@ -546,7 +546,8 @@ export default function SettingsScreen() {
                 </View>
                 <Switch
                   disabled={
-                    isUpdatingPush || nativeCapabilities.push.status !== "supported"
+                    isUpdatingPush ||
+                    nativeCapabilities.push.status !== "supported"
                   }
                   onValueChange={(value) => {
                     void handlePushToggle(value);
@@ -659,7 +660,9 @@ export default function SettingsScreen() {
               </View>
 
               {widgetState.supportReason ? (
-                <Text style={styles.fieldHint}>{widgetState.supportReason}</Text>
+                <Text style={styles.fieldHint}>
+                  {widgetState.supportReason}
+                </Text>
               ) : null}
 
               <View style={styles.presetRow}>
@@ -771,15 +774,15 @@ export default function SettingsScreen() {
                     autoCorrect={false}
                     multiline
                     onChangeText={setManualToken}
-                    placeholder="Cole aqui o auth_token do web"
+                    placeholder="Cole aqui um bearer token valido"
                     placeholderTextColor={colors.foregroundMuted}
                     style={[styles.input, styles.tokenInput]}
                     textAlignVertical="top"
                     value={manualToken}
                   />
                   <Text style={styles.fieldHint}>
-                    O token e validado em /api/auth/session e o shell volta para
-                    /web apos a importacao.
+                    O token e validado em /api/auth/session com cabecalho de
+                    cliente nativo e o shell volta para /web apos a importacao.
                   </Text>
                 </View>
 
@@ -800,9 +803,7 @@ export default function SettingsScreen() {
                     void handleManualTokenLogin();
                   }}
                   title={
-                    isImportingToken
-                      ? "Validando token..."
-                      : "Entrar com token"
+                    isImportingToken ? "Validando token..." : "Entrar com token"
                   }
                 />
               </DuoCard>

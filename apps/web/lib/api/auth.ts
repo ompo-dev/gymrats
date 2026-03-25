@@ -23,7 +23,7 @@ export interface AuthResponse {
   };
   session: {
     id: string;
-    token: string;
+    token?: string | null;
   };
 }
 

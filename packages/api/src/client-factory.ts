@@ -1,10 +1,7 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { isSameOriginApiBaseUrl, normalizeApiBaseUrl } from "./base-url";
-import {
-  getAuthToken,
-  refreshAuthToken,
-} from "./token-client";
+import { refreshAuthToken } from "./token-client";
 
 const SILENT_500_ROUTES = [
   "/api/students/",
@@ -40,7 +37,8 @@ function resolveRuntimePublicApiUrl(): string {
   }
 
   const datasetUrl = normalizeApiBaseUrl(
-    document.body?.dataset.apiBaseUrl || document.documentElement?.dataset.apiBaseUrl,
+    document.body?.dataset.apiBaseUrl ||
+      document.documentElement?.dataset.apiBaseUrl,
   );
 
   if (datasetUrl) {
@@ -96,12 +94,6 @@ function createAxiosClient(): AxiosInstance {
         config.baseURL = baseUrl;
       }
 
-      const token = getAuthToken();
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-
       return config;
     },
     (error) => Promise.reject(error),
@@ -124,11 +116,9 @@ function createAxiosClient(): AxiosInstance {
 
         if (originalConfig && !originalConfig._authRetried) {
           originalConfig._authRetried = true;
-          const refreshedToken = await refreshAuthToken();
+          const sessionRestored = await refreshAuthToken();
 
-          if (refreshedToken) {
-            originalConfig.headers = originalConfig.headers ?? {};
-            originalConfig.headers.Authorization = `Bearer ${refreshedToken}`;
+          if (sessionRestored) {
             return client.request(originalConfig);
           }
         }

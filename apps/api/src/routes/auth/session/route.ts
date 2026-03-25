@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
+import { createSessionPayload } from "@/lib/auth/session-payload";
 import { resolveAuthSessionFromRequest } from "@/lib/auth/session-resolver";
 import {
   getBillingPeriodFromPlan,
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
         ...result.data.user,
         subscription: subscriptionData,
       },
-      session: result.data.session,
+      session: createSessionPayload(request, result.data.session),
     });
 
     if (result.data.shouldSyncAuthToken && result.data.sessionToken) {

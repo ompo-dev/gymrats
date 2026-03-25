@@ -2,7 +2,7 @@
  * Hook para Inicialização Automática dos Dados do Student
  *
  * Este hook verifica se há uma sessão válida e carrega automaticamente
- * todos os dados do student via `/api/students/all` quando:
+ * todos os dados do student via bootstrap quando:
  * - O usuário faz login
  * - O app é carregado/refreshado e há uma sessão válida
  *
@@ -11,13 +11,11 @@
 
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { useCallback } from "react";
 import { useDomainInitializer } from "@/hooks/shared/use-domain-initializer";
 import { useStudentBootstrap } from "@/hooks/use-student-bootstrap";
 import { useUserSession } from "@/hooks/use-user-session";
 import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
-import { isClientApiCapabilityEnabled } from "@/lib/api/route-capabilities";
 import type { StudentData } from "@/lib/types/student-unified";
 import { isAdmin, isStudent } from "@/lib/utils/role";
 import { hydrateStudentBootstrapData } from "@/stores/student/load-helpers";
@@ -53,7 +51,6 @@ export function useStudentInitializer(options?: {
   const { userSession, isLoading: sessionLoading, role } = useUserSession();
 
   // Usar seletores separados e estáveis para evitar re-renders infinitos
-  const loadAll = useStudentUnifiedStore((state) => state.loadAll);
   const isInitialized = useStudentUnifiedStore(
     (state) => state.data.metadata.isInitialized,
   );
@@ -96,24 +93,17 @@ export function useStudentInitializer(options?: {
       isStudent(currentRole as string) || isAdmin(currentRole as string),
     loadAll: async () => {
       memoizedOnLoadStart();
-      if (
-        featureFlags.perfStudentBootstrapV2 &&
-        isClientApiCapabilityEnabled("studentBootstrap")
-      ) {
-        const bootstrapData =
-          bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
+      const bootstrapData =
+        bootstrapQuery.data ?? (await bootstrapQuery.refetch()).data ?? null;
 
-        if (bootstrapData?.data) {
-          hydrateStudentBootstrapData(
-            useStudentUnifiedStore.setState as unknown as StudentStoreSetter,
-            bootstrapData.data,
-          );
-        } else {
-          await loadAll();
-        }
-      } else {
-        await loadAll();
+      if (!bootstrapData?.data) {
+        throw new Error("Student bootstrap retornou payload vazio.");
       }
+
+      hydrateStudentBootstrapData(
+        useStudentUnifiedStore.setState as unknown as StudentStoreSetter,
+        bootstrapData.data,
+      );
       memoizedOnLoadComplete();
     },
     isInitialized,

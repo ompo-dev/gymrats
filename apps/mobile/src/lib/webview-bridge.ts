@@ -39,7 +39,9 @@ function buildDispatchScript(eventName: string, payload: unknown) {
   `;
 }
 
-export function buildBridgeResponseScript(message: NativeBridgeResponseMessage) {
+export function buildBridgeResponseScript(
+  message: NativeBridgeResponseMessage,
+) {
   return buildDispatchScript("gymrats-native-bridge-response", message);
 }
 
@@ -63,28 +65,64 @@ export function buildInjectedBootstrapScript({
       var DEBUG_TOOLS_ENABLED = ${safeDebugToolsEnabled};
       var bridgePendingRequests = Object.create(null);
 
+      function setNativeAuthHint(isActive) {
+        try {
+          window.__GYMRATS_NATIVE_AUTH_ACTIVE__ = !!isActive;
+        } catch (error) {}
+      }
+
+      function setNativeToken(nextToken) {
+        TOKEN = nextToken || null;
+        setNativeAuthHint(!!TOKEN);
+      }
+
       function notifyAuthState() {
         try {
-          var currentToken = window.localStorage.getItem("auth_token");
           var payload = {
             type: "auth-state",
             href: window.location.href,
-            hasToken: !!currentToken
+            hasToken: !!TOKEN
           };
           window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload));
         } catch (error) {}
       }
 
-      function syncCookieFromToken(nextToken) {
+      function resolveRequestUrl(input) {
         try {
-          if (!nextToken) {
-            document.cookie = "auth_token=; Path=/; Max-Age=0; SameSite=Lax";
-            return;
-          }
+          return new URL(String(input), window.location.href);
+        } catch (error) {
+          return null;
+        }
+      }
 
-          var secure = window.location.protocol === "https:" ? "; Secure" : "";
-          document.cookie = "auth_token=" + encodeURIComponent(nextToken) + "; Path=/; Max-Age=2592000; SameSite=Lax" + secure;
-        } catch (error) {}
+      function resolveApiOrigin() {
+        try {
+          return API_URL ? new URL(API_URL, window.location.href).origin : null;
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function isApiRequest(input) {
+        var parsedUrl = resolveRequestUrl(input);
+        if (!parsedUrl) {
+          return false;
+        }
+
+        if (parsedUrl.origin === window.location.origin && parsedUrl.pathname.indexOf("/api/") === 0) {
+          return true;
+        }
+
+        var apiOrigin = resolveApiOrigin();
+        return !!apiOrigin && parsedUrl.origin === apiOrigin && parsedUrl.pathname.indexOf("/api/") === 0;
+      }
+
+      function withAuthorizationHeader(headersLike) {
+        var headers = new Headers(headersLike || {});
+        if (TOKEN && !headers.has("Authorization")) {
+          headers.set("Authorization", "Bearer " + TOKEN);
+        }
+        return headers;
       }
 
       function dispatchBridgeEvent(name, detail) {
@@ -172,6 +210,7 @@ export function buildInjectedBootstrapScript({
       try {
         window.__GYMRATS_API_URL__ = API_URL;
         window.__GYMRATS_MOBILE_DEBUG__ = DEBUG_TOOLS_ENABLED;
+        setNativeAuthHint(!!TOKEN);
       } catch (error) {}
 
       try {
@@ -189,29 +228,84 @@ export function buildInjectedBootstrapScript({
       });
 
       try {
-        if (TOKEN) {
-          window.localStorage.setItem("auth_token", TOKEN);
-          syncCookieFromToken(TOKEN);
+        var originalFetch = window.fetch ? window.fetch.bind(window) : null;
+        if (originalFetch) {
+          window.fetch = function(input, init) {
+            var requestUrl =
+              typeof input === "string" || input instanceof URL
+                ? input
+                : input && typeof input.url === "string"
+                  ? input.url
+                  : "";
+
+            if (!TOKEN || !isApiRequest(requestUrl)) {
+              return originalFetch(input, init);
+            }
+
+            var nextInit = init ? Object.assign({}, init) : {};
+            nextInit.headers = withAuthorizationHeader(
+              init && init.headers
+                ? init.headers
+                : input && input.headers
+                  ? input.headers
+                  : undefined
+            );
+
+            if (typeof Request === "function" && input instanceof Request) {
+              return originalFetch(new Request(input, nextInit));
+            }
+
+            return originalFetch(input, nextInit);
+          };
         }
       } catch (error) {}
 
       try {
-        var originalSetItem = window.localStorage.setItem.bind(window.localStorage);
-        var originalRemoveItem = window.localStorage.removeItem.bind(window.localStorage);
-        window.localStorage.setItem = function(key, value) {
-          originalSetItem(key, value);
-          if (key === "auth_token") {
-            syncCookieFromToken(value);
-            notifyAuthState();
-          }
+        var originalOpen = XMLHttpRequest.prototype.open;
+        var originalSend = XMLHttpRequest.prototype.send;
+        var originalSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+
+        XMLHttpRequest.prototype.open = function(method, url) {
+          this.__gymratsRequestUrl = url;
+          this.__gymratsHasAuthorization = false;
+          return originalOpen.apply(this, arguments);
         };
-        window.localStorage.removeItem = function(key) {
-          originalRemoveItem(key);
-          if (key === "auth_token") {
-            syncCookieFromToken("");
-            notifyAuthState();
+
+        XMLHttpRequest.prototype.setRequestHeader = function(name, value) {
+          if (String(name).toLowerCase() === "authorization") {
+            this.__gymratsHasAuthorization = true;
           }
+          return originalSetRequestHeader.call(this, name, value);
         };
+
+        XMLHttpRequest.prototype.send = function(body) {
+          if (
+            TOKEN &&
+            !this.__gymratsHasAuthorization &&
+            isApiRequest(this.__gymratsRequestUrl || "")
+          ) {
+            originalSetRequestHeader.call(this, "Authorization", "Bearer " + TOKEN);
+          }
+
+          return originalSend.call(this, body);
+        };
+      } catch (error) {}
+
+      try {
+        window.addEventListener("gymrats-auth-token-set", function(event) {
+          var nextToken =
+            event && event.detail && typeof event.detail.token === "string"
+              ? event.detail.token
+              : null;
+
+          setNativeToken(nextToken);
+          notifyAuthState();
+        });
+
+        window.addEventListener("gymrats-auth-token-clear", function() {
+          setNativeToken(null);
+          notifyAuthState();
+        });
       } catch (error) {}
 
       try {

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { type NextRequest, NextResponse } from "@/runtime/next-server";
 import { validateBody } from "@/lib/api/middleware/validation.middleware";
+import { createSessionPayload } from "@/lib/auth/session-payload";
 import { signInSchema } from "@/lib/api/schemas";
 import { db } from "@/lib/db";
 import { type SignInInput, signInUseCase } from "@/lib/use-cases/auth";
@@ -39,7 +40,10 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({
       user: result.data.user,
-      session: result.data.session,
+      session: createSessionPayload(request, {
+        id: result.data.sessionToken,
+        token: result.data.session.token,
+      }),
     });
 
     response.cookies.set("auth_token", result.data.sessionToken, {

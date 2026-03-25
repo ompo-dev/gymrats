@@ -16,6 +16,9 @@ type TokenExchangeCacheEntry = {
 
 const TOKEN_EXCHANGE_CACHE_TTL_MS = 30_000;
 const tokenExchangeCache = new Map<string, TokenExchangeCacheEntry>();
+const NATIVE_CLIENT_HEADERS = {
+  "x-gymrats-client": "mobile-native",
+} as const;
 
 async function parseError(response: Response): Promise<string> {
   try {
@@ -60,7 +63,7 @@ export function isAuthCallbackUrl(url: string): boolean {
 
 export async function exchangeOneTimeToken(
   apiUrl: string,
-  token: string
+  token: string,
 ): Promise<AuthSessionPayload> {
   const normalizedApiUrl = normalizeUrl(apiUrl);
   if (!normalizedApiUrl) {
@@ -73,10 +76,11 @@ export async function exchangeOneTimeToken(
       method: "POST",
       headers: {
         Accept: "application/json",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        ...NATIVE_CLIENT_HEADERS,
       },
-      body: JSON.stringify({ token })
-    }
+      body: JSON.stringify({ token }),
+    },
   );
 
   if (!response.ok) {
@@ -93,7 +97,7 @@ export async function exchangeOneTimeToken(
 
 export async function consumeOneTimeToken(
   apiUrl: string,
-  token: string
+  token: string,
 ): Promise<AuthSessionPayload> {
   cleanupTokenExchangeCache();
 
@@ -110,7 +114,7 @@ export async function consumeOneTimeToken(
     .then((payload) => {
       tokenExchangeCache.set(token, {
         expiresAt: Date.now() + TOKEN_EXCHANGE_CACHE_TTL_MS,
-        result: payload
+        result: payload,
       });
 
       return payload;
@@ -122,7 +126,7 @@ export async function consumeOneTimeToken(
 
   tokenExchangeCache.set(token, {
     expiresAt: Date.now() + TOKEN_EXCHANGE_CACHE_TTL_MS,
-    promise: exchangePromise
+    promise: exchangePromise,
   });
 
   return exchangePromise;
@@ -130,7 +134,7 @@ export async function consumeOneTimeToken(
 
 export async function refreshAuthSession(
   apiUrl: string,
-  token: string
+  token: string,
 ): Promise<AuthSessionPayload> {
   const normalizedApiUrl = normalizeUrl(apiUrl);
   if (!normalizedApiUrl) {
@@ -140,8 +144,9 @@ export async function refreshAuthSession(
   const response = await fetch(`${normalizedApiUrl}/api/auth/session`, {
     headers: {
       Accept: "application/json",
-      Authorization: `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+      ...NATIVE_CLIENT_HEADERS,
+    },
   });
 
   if (!response.ok) {
@@ -157,7 +162,7 @@ export async function refreshAuthSession(
 }
 
 export async function startGoogleAuthSession(
-  config: AppConfig
+  config: AppConfig,
 ): Promise<AuthSessionPayload> {
   const normalizedWebUrl = normalizeUrl(config.webUrl);
   const normalizedApiUrl = normalizeUrl(config.apiUrl);
@@ -174,11 +179,13 @@ export async function startGoogleAuthSession(
 
   const result = await WebBrowser.openAuthSessionAsync(
     startUrl.toString(),
-    redirectUrl
+    redirectUrl,
   );
 
   if (result.type !== "success" || !result.url) {
-    throw new Error("O login foi cancelado ou nao retornou um callback valido.");
+    throw new Error(
+      "O login foi cancelado ou nao retornou um callback valido.",
+    );
   }
 
   const callbackUrl = new URL(result.url);

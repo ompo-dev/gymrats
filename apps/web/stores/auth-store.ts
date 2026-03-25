@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { apiClient } from "@/lib/api/client";
-import {
-  clearAuthToken,
-  getAuthToken,
-  hasBrowserSessionHint,
-  setAuthToken,
-} from "@/lib/auth/token-client";
+import { clearAuthToken, hasBrowserSessionHint } from "@/lib/auth/token-client";
 import type { UserProfile } from "@/lib/types";
 
 const SESSION_TTL_MS = 60_000;
@@ -95,7 +90,12 @@ function clearLocalAuthStorage() {
 function normalizeRole(
   role: AuthSessionUser["role"] | Exclude<AuthRole, "PENDING"> | null,
 ): Exclude<AuthRole, "PENDING"> | null {
-  if (role === "STUDENT" || role === "GYM" || role === "PERSONAL" || role === "ADMIN") {
+  if (
+    role === "STUDENT" ||
+    role === "GYM" ||
+    role === "PERSONAL" ||
+    role === "ADMIN"
+  ) {
     return role;
   }
 
@@ -107,11 +107,7 @@ function isSessionFresh(lastSessionSyncAt: Date | null) {
   return Date.now() - new Date(lastSessionSyncAt).getTime() < SESSION_TTL_MS;
 }
 
-function persistClientAuthState(user: AuthSessionUser | null, token?: string | null) {
-  if (token) {
-    setAuthToken(token);
-  }
-
+function persistClientAuthState(user: AuthSessionUser | null) {
   if (typeof window === "undefined") return;
 
   if (!user) {
@@ -128,14 +124,11 @@ function persistClientAuthState(user: AuthSessionUser | null, token?: string | n
 
 function applySessionToState(
   set: (
-    partial:
-      | Partial<AuthState>
-      | ((state: AuthState) => Partial<AuthState>),
+    partial: Partial<AuthState> | ((state: AuthState) => Partial<AuthState>),
   ) => void,
   payload: SessionResponse | null,
 ) {
   const user = payload?.user ?? null;
-  const sessionToken = payload?.session?.token ?? null;
 
   if (!user) {
     clearLocalAuthStorage();
@@ -152,7 +145,7 @@ function applySessionToState(
     return;
   }
 
-  persistClientAuthState(user, sessionToken);
+  persistClientAuthState(user);
   const normalizedRole = normalizeRole(user.role);
 
   set({
@@ -217,7 +210,11 @@ export const useAuthStore = create<AuthState>()(
       },
       ensureSession: async (force = false) => {
         const state = get();
-        if (!force && state.sessionUser && isSessionFresh(state.lastSessionSyncAt)) {
+        if (
+          !force &&
+          state.sessionUser &&
+          isSessionFresh(state.lastSessionSyncAt)
+        ) {
           return state.sessionUser;
         }
 
@@ -240,9 +237,7 @@ export const useAuthStore = create<AuthState>()(
             return payload?.user ?? null;
           } catch (error) {
             const message =
-              error instanceof Error
-                ? error.message
-                : "Erro ao validar sessao";
+              error instanceof Error ? error.message : "Erro ao validar sessao";
 
             set({
               isSessionLoading: false,
@@ -297,13 +292,13 @@ export const useAuthStore = create<AuthState>()(
         localStorage.removeItem("userRole");
         localStorage.removeItem("isAdmin");
 
-        const token = getAuthToken();
+        const hasSessionHint = hasBrowserSessionHint();
         const storedUserId = localStorage.getItem("userId");
 
-        if (token) {
+        if (hasSessionHint || state.isAuthenticated) {
           state.isAuthenticated = true;
           state.userId = storedUserId || state.userId;
-        } else if (state.isAuthenticated) {
+        } else {
           state.isAuthenticated = false;
           state.userProfile = null;
           state.userId = null;

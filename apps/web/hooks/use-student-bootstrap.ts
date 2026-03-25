@@ -1,6 +1,5 @@
 "use client";
 
-import { featureFlags } from "@gymrats/config";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { getStudentBootstrapRequest } from "@/lib/api/bootstrap";
@@ -20,9 +19,7 @@ export function useStudentBootstrap(
   const query = useQuery({
     queryKey: queryKeys.studentBootstrap(sections),
     queryFn: () => getStudentBootstrapRequest(sections),
-    enabled:
-      (options?.enabled ?? true) &&
-      featureFlags.perfStudentBootstrapV2,
+    enabled: options?.enabled ?? true,
     retry: false,
   });
   const lastTrackedRequestId = useRef<string | null>(null);

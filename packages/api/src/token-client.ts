@@ -1,10 +1,37 @@
 import { isSameOriginApiBaseUrl, normalizeApiBaseUrl } from "./base-url";
 
-const AUTH_TOKEN_KEY = "auth_token";
-let authTokenSyncPromise: Promise<string | null> | null = null;
+const NATIVE_AUTH_HINT_KEY = "__GYMRATS_NATIVE_AUTH_ACTIVE__";
+const NATIVE_AUTH_SET_EVENT = "gymrats-auth-token-set";
+const NATIVE_AUTH_CLEAR_EVENT = "gymrats-auth-token-clear";
+
+let authSessionProbePromise: Promise<boolean> | null = null;
+
+type RuntimeWindow = Window & {
+  __GYMRATS_API_URL__?: string;
+  __GYMRATS_NATIVE_AUTH_ACTIVE__?: boolean;
+  ReactNativeWebView?: unknown;
+  GymRatsNativeBridge?: unknown;
+};
+
+type SessionResponse = {
+  session?: {
+    id?: string | null;
+    token?: string | null;
+  } | null;
+};
+
+function getRuntimeWindow(): RuntimeWindow | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window as RuntimeWindow;
+}
 
 function getCookieValue(name: string): string | null {
-  if (typeof document === "undefined") return null;
+  if (typeof document === "undefined") {
+    return null;
+  }
 
   const cookies = document.cookie.split(";").map((cookie) => cookie.trim());
   const tokenCookie = cookies.find((cookie) => cookie.startsWith(`${name}=`));
@@ -18,13 +45,11 @@ function getCookieValue(name: string): string | null {
 }
 
 function resolveRuntimePublicApiUrl(): string {
-  if (typeof window === "undefined") {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
     return "";
   }
 
-  const runtimeWindow = window as Window & {
-    __GYMRATS_API_URL__?: string;
-  };
   const windowUrl = normalizeApiBaseUrl(runtimeWindow.__GYMRATS_API_URL__);
 
   if (windowUrl) {
@@ -41,13 +66,11 @@ function resolveRuntimePublicApiUrl(): string {
     return datasetUrl;
   }
 
-  const metaUrl = normalizeApiBaseUrl(
+  return normalizeApiBaseUrl(
     document
       .querySelector('meta[name="gymrats-api-base-url"]')
       ?.getAttribute("content") || undefined,
   );
-
-  return metaUrl;
 }
 
 function resolveSessionEndpointUrl(): string {
@@ -63,99 +86,95 @@ function resolveSessionEndpointUrl(): string {
   return baseUrl ? `${baseUrl}/api/auth/session` : "/api/auth/session";
 }
 
-function getCookieToken(): string | null {
-  return getCookieValue(AUTH_TOKEN_KEY);
+function isNativeShell() {
+  const runtimeWindow = getRuntimeWindow();
+  return Boolean(
+    runtimeWindow?.ReactNativeWebView || runtimeWindow?.GymRatsNativeBridge,
+  );
 }
 
-function getLocalStorageToken(): string | null {
-  if (typeof window === "undefined") return null;
+function updateNativeAuthHint(isActive: boolean) {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
+    return;
+  }
 
-  return window.localStorage.getItem(AUTH_TOKEN_KEY);
+  runtimeWindow[NATIVE_AUTH_HINT_KEY] = isActive;
 }
 
-function setCookieToken(token: string): void {
-  if (typeof document === "undefined") return;
+function dispatchNativeAuthEvent(
+  eventName: string,
+  detail?: { token: string },
+) {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow || !isNativeShell()) {
+    return;
+  }
 
-  const secure =
-    typeof window !== "undefined" && window.location.protocol === "https:"
-      ? "; Secure"
-      : "";
+  try {
+    const event =
+      typeof CustomEvent === "function"
+        ? new CustomEvent(eventName, { detail })
+        : (() => {
+            const fallbackEvent = document.createEvent("CustomEvent");
+            fallbackEvent.initCustomEvent(eventName, true, true, detail);
+            return fallbackEvent;
+          })();
 
-  document.cookie = `${AUTH_TOKEN_KEY}=${encodeURIComponent(token)}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax${secure}`;
-}
-
-function clearCookieToken(): void {
-  if (typeof document === "undefined") return;
-
-  const secure =
-    typeof window !== "undefined" && window.location.protocol === "https:"
-      ? "; Secure"
-      : "";
-
-  document.cookie = `${AUTH_TOKEN_KEY}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+    runtimeWindow.dispatchEvent(event);
+    document.dispatchEvent(event);
+  } catch {
+    // noop
+  }
 }
 
 export function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-
-  const cookieToken = getCookieToken();
-  const localStorageToken = getLocalStorageToken();
-
-  // No browser, priorizamos localStorage porque ele e' o estado mais estavel
-  // para requests client-side. Se houver divergencia, sincronizamos o cookie.
-  if (localStorageToken) {
-    if (cookieToken !== localStorageToken) {
-      setCookieToken(localStorageToken);
-    }
-    return localStorageToken;
-  }
-
-  if (cookieToken) {
-    window.localStorage.setItem(AUTH_TOKEN_KEY, cookieToken);
-    return cookieToken;
-  }
-
   return null;
 }
 
 export function hasBrowserSessionHint(): boolean {
-  if (typeof window === "undefined") return false;
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
+    return false;
+  }
 
-  return Boolean(getAuthToken() || getCookieValue("better-auth.session_token"));
+  return Boolean(
+    runtimeWindow[NATIVE_AUTH_HINT_KEY] ||
+      getCookieValue("better-auth.session_token"),
+  );
 }
 
 export function setAuthToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(AUTH_TOKEN_KEY, token);
-  setCookieToken(token);
+  const nextToken = token.trim();
+  if (!nextToken) {
+    clearAuthToken();
+    return;
+  }
+
+  updateNativeAuthHint(true);
+  dispatchNativeAuthEvent(NATIVE_AUTH_SET_EVENT, { token: nextToken });
 }
 
 export function clearAuthToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(AUTH_TOKEN_KEY);
-  clearCookieToken();
+  updateNativeAuthHint(false);
+  dispatchNativeAuthEvent(NATIVE_AUTH_CLEAR_EVENT);
 }
 
-type SessionResponse = {
-  session?: {
-    token?: string | null;
-  } | null;
-};
-
-async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-
-  const existingToken = getAuthToken();
-
-  if (!forceRefresh && existingToken) {
-    return existingToken;
+async function syncAuthSession(forceRefresh: boolean): Promise<boolean> {
+  const runtimeWindow = getRuntimeWindow();
+  if (!runtimeWindow) {
+    return false;
   }
 
-  if (authTokenSyncPromise) {
-    return authTokenSyncPromise;
+  if (!forceRefresh && hasBrowserSessionHint()) {
+    return true;
   }
 
-  authTokenSyncPromise = (async () => {
+  if (authSessionProbePromise) {
+    return authSessionProbePromise;
+  }
+
+  authSessionProbePromise = (async () => {
     try {
       const response = await fetch(resolveSessionEndpointUrl(), {
         method: "GET",
@@ -163,39 +182,35 @@ async function syncAuthToken(forceRefresh: boolean): Promise<string | null> {
         credentials: "include",
         headers: {
           Accept: "application/json",
-          ...(existingToken
-            ? { Authorization: `Bearer ${existingToken}` }
-            : {}),
         },
       });
 
       if (!response.ok) {
-        return existingToken;
+        if (response.status === 401) {
+          updateNativeAuthHint(false);
+        }
+        return false;
       }
 
       const data = (await response.json()) as SessionResponse;
-      const sessionToken = data.session?.token?.trim();
+      const hasSession = Boolean(data.session?.id);
 
-      if (sessionToken) {
-        setAuthToken(sessionToken);
-        return sessionToken;
-      }
-
-      return existingToken;
+      updateNativeAuthHint(hasSession);
+      return hasSession;
     } catch {
-      return existingToken;
+      return hasBrowserSessionHint();
     } finally {
-      authTokenSyncPromise = null;
+      authSessionProbePromise = null;
     }
   })();
 
-  return authTokenSyncPromise;
+  return authSessionProbePromise;
 }
 
-export async function ensureAuthToken(): Promise<string | null> {
-  return syncAuthToken(false);
+export async function ensureAuthToken(): Promise<boolean> {
+  return syncAuthSession(false);
 }
 
-export async function refreshAuthToken(): Promise<string | null> {
-  return syncAuthToken(true);
+export async function refreshAuthToken(): Promise<boolean> {
+  return syncAuthSession(true);
 }

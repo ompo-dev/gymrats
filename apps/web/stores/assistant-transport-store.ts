@@ -3,7 +3,6 @@
 import { create } from "zustand";
 import { apiClient } from "@/lib/api/client";
 import { resolveApiBaseUrl } from "@/lib/api/client-factory";
-import { getAuthToken } from "@/lib/auth/token-client";
 
 interface StreamJsonSseParams {
   key: string;
@@ -37,7 +36,6 @@ interface AssistantTransportState {
 
 async function openSseRequest({ url, body }: OpenSseParams) {
   const apiBaseUrl = resolveApiBaseUrl();
-  const token = getAuthToken();
 
   return fetch(`${apiBaseUrl}${url}`, {
     method: "POST",
@@ -46,7 +44,6 @@ async function openSseRequest({ url, body }: OpenSseParams) {
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -161,13 +158,15 @@ export const useAssistantTransportStore = create<AssistantTransportState>()(
           url,
           (body ?? {}) as Record<string, unknown>,
           {
-          timeout: timeoutMs,
+            timeout: timeoutMs,
           },
         );
         return response.data;
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Erro ao processar requisicao";
+          error instanceof Error
+            ? error.message
+            : "Erro ao processar requisicao";
         set((state) => ({
           errorByKey: { ...state.errorByKey, [key]: message },
         }));

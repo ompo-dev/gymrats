@@ -2,8 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { authApi } from "@/lib/api/auth";
-import { setAuthToken } from "@/lib/auth/token-client";
+import { type AuthSessionResponse, authApi } from "@/lib/api/auth";
 import { useAuthStore } from "@/stores";
 
 function AuthCallbackPageContent() {
@@ -15,21 +14,7 @@ function AuthCallbackPageContent() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const processSuccess = (sessionResponse: {
-      user: {
-        id: string;
-        email: string;
-        name: string;
-        role?: string;
-        hasGym?: boolean;
-        hasStudent?: boolean;
-      };
-      session?: { token?: string };
-    }) => {
-      if (sessionResponse.session?.token) {
-        setAuthToken(sessionResponse.session.token);
-      }
-
+    const processSuccess = (sessionResponse: AuthSessionResponse) => {
       syncSession({
         user: {
           id: sessionResponse.user.id,
