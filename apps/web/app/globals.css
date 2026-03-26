@@ -395,3 +395,33 @@
 .animate-glow-pulse {
   animation: glow-pulse 2s ease-in-out infinite;
 }
+
+.cq-screen-shell,
+.cq-screen-header,
+.cq-screen-actions,
+.cq-dashboard-panel,
+.cq-dashboard-panel-header,
+.cq-stats-grid {
+  container-type: inline-size;
+}
+
+@container (max-width: 42rem) {
+  .cq-screen-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cq-screen-actions {
+    width: 100%;
+  }
+
+  .cq-screen-actions > * {
+    width: 100%;
+  }
+
+  .cq-dashboard-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

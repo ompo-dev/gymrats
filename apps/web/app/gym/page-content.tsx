@@ -163,16 +163,16 @@ function GymGamificationTab() {
 
 function GymHomeContent() {
   const router = useRouter();
-  const { isAdmin, role } = useUserSession();
+  const { isAdmin, role, hasResolvedSession } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
   const [tab] = useQueryState("tab", parseAsString.withDefault("dashboard"));
 
   useEffect(() => {
-    if (tab === "gamification" && !userIsAdmin) {
+    if (tab === "gamification" && hasResolvedSession && !userIsAdmin) {
       router.replace("/gym?tab=dashboard");
     }
-  }, [tab, userIsAdmin, router]);
+  }, [hasResolvedSession, tab, userIsAdmin, router]);
 
   return (
     <div className="px-4 py-6">
@@ -182,7 +182,8 @@ function GymHomeContent() {
       {tab === "financial" && <GymFinancialTab />}
       {tab === "stats" && <GymStatsTab />}
       {tab === "settings" && <GymSettingsTab />}
-      {tab === "gamification" && userIsAdmin && <GymGamificationTab />}
+      {tab === "gamification" &&
+        (userIsAdmin ? <GymGamificationTab /> : null)}
       {tab === "more" && <GymMoreMenu.Simple />}
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
-import { Book } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { FadeIn } from "@/components/animations/fade-in";
-import { SlideIn } from "@/components/animations/slide-in";
-import { DuoCard, DuoSelect } from "@/components/duo";
+import {
+  StudentMuscleExplorerScreen,
+  type StudentMuscleExplorerView,
+} from "@/components/screens/student";
 import { exerciseDatabase } from "@/lib/educational-data/exercises";
 import { muscleDatabase } from "@/lib/educational-data/muscles";
 import type { ExerciseInfo, MuscleGroup, MuscleInfo } from "@/lib/types";
@@ -27,9 +27,9 @@ const muscleGroupLabels: Record<MuscleGroup, string> = {
   costas: "Costas",
   pernas: "Pernas",
   ombros: "Ombros",
-  bracos: "Braços",
+  bracos: "BraÃ§os",
   core: "Core",
-  gluteos: "Glúteos",
+  gluteos: "GlÃºteos",
   cardio: "Cardio",
   funcional: "Funcional",
 };
@@ -66,28 +66,30 @@ function MuscleExplorerSimple({
   const [selectedExercise, setSelectedExercise] = useState<ExerciseInfo | null>(
     null,
   );
-  const [view, setView] = useState<"muscles" | "exercises">("muscles");
+  const [view, setView] = useState<StudentMuscleExplorerView>("muscles");
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (muscleId) {
-      const muscle = muscleDatabase.find((m) => m.id === muscleId);
+      const muscle = muscleDatabase.find((item) => item.id === muscleId);
       if (muscle) setSelectedMuscle(muscle);
-    } else {
-      setSelectedMuscle(null);
+      return;
     }
+
+    setSelectedMuscle(null);
   }, [muscleId]);
 
   useEffect(() => {
     if (exerciseId) {
-      const exercise = exerciseDatabase.find((e) => e.id === exerciseId);
+      const exercise = exerciseDatabase.find((item) => item.id === exerciseId);
       if (exercise) {
         setSelectedExercise(exercise);
-        setView("exercises"); // Mudar para a view de exercícios
+        setView("exercises");
       }
-    } else {
-      setSelectedExercise(null);
+      return;
     }
+
+    setSelectedExercise(null);
   }, [exerciseId]);
 
   const handleMuscleSelect = (muscle: MuscleInfo) => {
@@ -105,11 +107,6 @@ function MuscleExplorerSimple({
     setSelectedExercise(null);
     onBack?.();
   };
-
-  const viewOptions = [
-    { value: "muscles", label: "Músculos", emoji: "💪" },
-    { value: "exercises", label: "Exercícios", emoji: "🏋️" },
-  ];
 
   const filteredMuscles = useMemo(() => {
     if (!searchQuery.trim()) return muscleDatabase;
@@ -131,11 +128,15 @@ function MuscleExplorerSimple({
     return exerciseDatabase.filter(
       (exercise) =>
         exercise.name.toLowerCase().includes(query) ||
-        exercise.primaryMuscles.some((m) => m.toLowerCase().includes(query)) ||
-        exercise.secondaryMuscles.some((m) =>
-          m.toLowerCase().includes(query),
+        exercise.primaryMuscles.some((muscle) =>
+          muscle.toLowerCase().includes(query),
         ) ||
-        exercise.equipment.some((e) => e.toLowerCase().includes(query)),
+        exercise.secondaryMuscles.some((muscle) =>
+          muscle.toLowerCase().includes(query),
+        ) ||
+        exercise.equipment.some((equipment) =>
+          equipment.toLowerCase().includes(query),
+        ),
     );
   }, [searchQuery]);
 
@@ -156,7 +157,7 @@ function MuscleExplorerSimple({
       grouped[muscle.group].push(muscle);
     });
 
-    return Object.entries(grouped).filter(([_, muscles]) => muscles.length > 0);
+    return Object.entries(grouped).filter(([, muscles]) => muscles.length > 0);
   }, [filteredMuscles]);
 
   const exercisesByPrimaryMuscle = useMemo(() => {
@@ -167,6 +168,7 @@ function MuscleExplorerSimple({
         if (!grouped[muscle]) {
           grouped[muscle] = [];
         }
+
         grouped[muscle].push(exercise);
       });
     });
@@ -176,7 +178,7 @@ function MuscleExplorerSimple({
         muscleGroup: muscle as MuscleGroup,
         exercises,
       }))
-      .sort((a, b) => {
+      .sort((left, right) => {
         const order: MuscleGroup[] = [
           "peito",
           "costas",
@@ -186,7 +188,8 @@ function MuscleExplorerSimple({
           "core",
           "gluteos",
         ];
-        return order.indexOf(a.muscleGroup) - order.indexOf(b.muscleGroup);
+
+        return order.indexOf(left.muscleGroup) - order.indexOf(right.muscleGroup);
       });
   }, [filteredExercises]);
 
@@ -198,78 +201,47 @@ function MuscleExplorerSimple({
     return (
       <ExerciseDetail
         exercise={selectedExercise}
-        onBack={handleBack}
-        muscleGroupLabels={muscleGroupLabels}
         getDifficultyClasses={getDifficultyClasses}
+        muscleGroupLabels={muscleGroupLabels}
+        onBack={handleBack}
       />
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6  ">
-      <FadeIn>
-        <div className="text-center">
-          <h1 className="mb-2 text-3xl font-bold text-duo-text">
-            Biblioteca de Conhecimento
-          </h1>
-          <p className="text-sm text-duo-gray-dark">
-            Aprenda sobre anatomia e técnica com base científica
-          </p>
-        </div>
-      </FadeIn>
-
-      <SlideIn delay={0.1}>
-        <DuoCard.Root variant="default" padding="md">
-          <DuoCard.Header>
-            <div className="flex items-center gap-2">
-              <Book
-                className="h-5 w-5 shrink-0"
-                style={{ color: "var(--duo-secondary)" }}
-                aria-hidden
-              />
-              <h2 className="font-bold text-[var(--duo-fg)]">
-                Selecione a Categoria
-              </h2>
-            </div>
-          </DuoCard.Header>
-          <DuoSelect.Simple
-            options={viewOptions}
-            value={view}
-            onChange={(value) => setView(value as "muscles" | "exercises")}
-            placeholder="Selecione a categoria"
+    <StudentMuscleExplorerScreen
+      contentSlot={
+        view === "muscles" ? (
+          <MuscleList
+            muscleGroupLabels={muscleGroupLabels}
+            muscles={filteredMuscles}
+            musclesByGroup={musclesByGroup}
+            onMuscleSelect={handleMuscleSelect}
+            searchQuery={searchQuery}
           />
-        </DuoCard.Root>
-      </SlideIn>
-
-      <SearchBar
-        value={searchQuery}
-        onChange={setSearchQuery}
-        placeholder={
-          view === "muscles" ? "Buscar músculos..." : "Buscar exercícios..."
-        }
-      />
-
-      {view === "muscles" && (
-        <MuscleList
-          muscles={filteredMuscles}
-          musclesByGroup={musclesByGroup}
-          searchQuery={searchQuery}
-          onMuscleSelect={handleMuscleSelect}
-          muscleGroupLabels={muscleGroupLabels}
+        ) : (
+          <ExerciseList
+            exercises={filteredExercises}
+            exercisesByPrimaryMuscle={exercisesByPrimaryMuscle}
+            getDifficultyClasses={getDifficultyClasses}
+            muscleGroupLabels={muscleGroupLabels}
+            onExerciseSelect={handleExerciseSelect}
+            searchQuery={searchQuery}
+          />
+        )
+      }
+      onViewChange={setView}
+      searchSlot={
+        <SearchBar
+          onChange={setSearchQuery}
+          placeholder={
+            view === "muscles" ? "Buscar mÃºsculos..." : "Buscar exercÃ­cios..."
+          }
+          value={searchQuery}
         />
-      )}
-
-      {view === "exercises" && (
-        <ExerciseList
-          exercises={filteredExercises}
-          exercisesByPrimaryMuscle={exercisesByPrimaryMuscle}
-          searchQuery={searchQuery}
-          onExerciseSelect={handleExerciseSelect}
-          muscleGroupLabels={muscleGroupLabels}
-          getDifficultyClasses={getDifficultyClasses}
-        />
-      )}
-    </div>
+      }
+      view={view}
+    />
   );
 }
 

@@ -18,6 +18,7 @@ import { ProfilePage } from "@/app/student/_profile/profile-page";
 import { FadeIn } from "@/components/animations/fade-in";
 import { WhileInView } from "@/components/animations/while-in-view";
 import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { createTestSelector } from "@/components/foundations";
 import { EducationPage } from "@/components/organisms/education/education-page";
 import { EducationalLessons } from "@/components/organisms/education/educational-lessons";
 import { MuscleExplorer } from "@/components/organisms/education/muscle-explorer";
@@ -29,6 +30,7 @@ import { RecentWorkoutsCard } from "@/components/organisms/home/home/recent-work
 import { WeightProgressCard } from "@/components/organisms/home/home/weight-progress-card";
 import { PixQrModal } from "@/components/organisms/modals/pix-qr-modal";
 import { GymMapWithLeaflet } from "@/components/organisms/sections/gym-map-with-leaflet";
+import { StudentHomeScreen } from "@/components/screens/student";
 import { PersonalMapWithLeaflet } from "@/components/organisms/sections/personal-map-with-leaflet";
 import { usePaymentFlow } from "@/hooks/use-payment-flow";
 import { useStudent } from "@/hooks/use-student";
@@ -256,6 +258,7 @@ function StudentHomeContent() {
     appliedCoupon?: { code: string; discountString: string };
   } | null>(null);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+  const studentHomeScreenId = "student-home-screen";
 
   const handleJoinGym = async (
     gymId: string,
@@ -495,6 +498,26 @@ function StudentHomeContent() {
     });
   };
 
+  const studentHomeUnits = (
+    (storeWeeklyPlan as unknown as WeeklyPlanData | null)?.slots
+      ? ([
+          {
+            id: (storeWeeklyPlan as unknown as WeeklyPlanData).id,
+            title: (storeWeeklyPlan as unknown as WeeklyPlanData).title,
+            description: "",
+            workouts: (storeWeeklyPlan as unknown as WeeklyPlanData).slots
+              .filter(
+                (slot: PlanSlotData) =>
+                  slot.type === "workout" && slot.workout,
+              )
+              .map((slot: PlanSlotData) => slot.workout!),
+            color: "#58CC02",
+            icon: "💪",
+          },
+        ] as Unit[])
+      : asArray<Unit>(storeUnits)
+  ) as Unit[];
+
   return (
     <motion.div
       initial={isMounted ? { opacity: 0 } : false}
@@ -504,13 +527,39 @@ function StudentHomeContent() {
       suppressHydrationWarning
     >
       {tab === "home" && (
-        <div className="mx-auto max-w-2xl space-y-6">
+        <>
           <HomeTabBootstrapBridge />
+          <StudentHomeScreen
+            userName={currentUser?.name}
+            displayProgress={displayProgress}
+            showLevelProgress={Boolean(progress)}
+            workoutHistory={currentWorkoutHistory}
+            units={studentHomeUnits}
+            dailyNutrition={
+              (storeDailyNutrition ?? null) as unknown as DailyNutrition | null
+            }
+            currentWeight={currentWeight ?? null}
+            weightGain={currentWeightGain ?? null}
+            hasWeightLossGoal={profile?.hasWeightLossGoal ?? false}
+            weightHistory={currentWeightHistory}
+            campaignsSlot={
+              <BoostCampaignCarousel
+                gyms={currentGymLocations}
+                onViewGymProfile={handleViewGymProfile}
+                onViewPersonalProfile={handleViewPersonalProfile}
+              />
+            }
+          />
+          {false ? (
+            <div
+              className="mx-auto max-w-2xl space-y-6"
+              data-testid={studentHomeScreenId}
+            >
           <FadeIn>
             <div className="text-center">
               <h1 className="mb-2 text-3xl font-bold text-duo-text">
                 {currentUser?.name
-                  ? `Olá, ${currentUser.name.split(" ")[0]}!`
+                  ? `Olá, ${currentUser?.name?.split(" ")[0] ?? "Atleta"}!`
                   : "Olá, Atleta!"}
               </h1>
               <p className="text-sm text-duo-gray-dark">
@@ -532,15 +581,21 @@ function StudentHomeContent() {
           {progress && (
             <WhileInView delay={0.4}>
               <LevelProgressCard.Simple
-                currentLevel={progress.currentLevel}
-                totalXP={progress.totalXP}
-                xpToNextLevel={progress.xpToNextLevel}
+                currentLevel={progress?.currentLevel ?? displayProgress.currentLevel}
+                totalXP={progress?.totalXP ?? displayProgress.totalXP}
+                xpToNextLevel={
+                  progress?.xpToNextLevel ?? displayProgress.xpToNextLevel
+                }
               />
             </WhileInView>
           )}
 
           {/* Cards de Estatísticas Principais */}
-          <DuoStatsGrid.Root columns={2} className="gap-4">
+          <DuoStatsGrid.Root
+            columns={2}
+            className="gap-4"
+            data-testid={createTestSelector(studentHomeScreenId, "metrics")}
+          >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -606,8 +661,8 @@ function StudentHomeContent() {
           {currentWeight != null && (
             <WhileInView delay={0.45}>
               <WeightProgressCard.Simple
-                currentWeight={currentWeight}
-                weightGain={currentWeightGain}
+                currentWeight={currentWeight ?? null}
+                weightGain={currentWeightGain ?? null}
                 hasWeightLossGoal={profile?.hasWeightLossGoal ?? false}
                 weightHistory={currentWeightHistory}
               />
@@ -661,7 +716,9 @@ function StudentHomeContent() {
               />
             </WhileInView>
           )}
-        </div>
+            </div>
+          ) : null}
+        </>
       )}
 
       {tab === "learn" && (

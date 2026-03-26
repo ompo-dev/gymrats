@@ -5,15 +5,23 @@ import { DEFAULT_GYM_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections";
 import { getGymBootstrapServerRequest } from "@/lib/api/bootstrap-server";
 import { createAppQueryClient } from "@/lib/query/create-query-client";
 import { queryKeys } from "@/lib/query/query-keys";
-import { getGymProfile } from "./actions";
 import { GymLayoutContent } from "./layout-content";
 
 export const dynamic = "force-dynamic";
 
+type GymLayoutProfile = {
+  gamification?: {
+    currentStreak?: number;
+    xp?: number;
+    level?: number;
+    ranking?: number;
+  } | null;
+};
+
 async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
   const queryClient = createAppQueryClient();
 
-  let profile = null as Awaited<ReturnType<typeof getGymProfile>>;
+  let profile: GymLayoutProfile | null = null;
 
   try {
     const bootstrap = await queryClient.fetchQuery({
@@ -22,11 +30,9 @@ async function GymLayoutWrapper({ children }: { children: React.ReactNode }) {
         getGymBootstrapServerRequest(DEFAULT_GYM_BOOTSTRAP_SECTIONS),
     });
 
-    profile =
-      (bootstrap.data.profile as Awaited<ReturnType<typeof getGymProfile>>) ??
-      null;
+    profile = (bootstrap.data.profile as GymLayoutProfile | null) ?? null;
   } catch {
-    profile = await getGymProfile();
+    // Mantemos o layout utilizável mesmo se o prefetch falhar.
   }
 
   return (

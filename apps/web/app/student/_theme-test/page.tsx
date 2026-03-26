@@ -16,16 +16,16 @@ import {
 
 export default function StudentThemeTestPage() {
   const router = useRouter();
-  const { isAdmin, role } = useUserSession();
+  const { isAdmin, role, hasResolvedSession } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
   useEffect(() => {
-    if (!userIsAdmin) {
+    if (hasResolvedSession && !userIsAdmin) {
       router.replace("/student");
     }
-  }, [userIsAdmin, router]);
+  }, [hasResolvedSession, userIsAdmin, router]);
 
-  if (!userIsAdmin) {
+  if (!hasResolvedSession || !userIsAdmin) {
     return null;
   }
 

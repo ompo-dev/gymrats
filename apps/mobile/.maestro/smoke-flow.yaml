@@ -1,0 +1,7 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- assertVisible: "Ajustes nativos do GymRats"
+- tapOn: "Voltar"

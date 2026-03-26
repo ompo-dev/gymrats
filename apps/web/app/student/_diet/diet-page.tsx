@@ -9,9 +9,8 @@
 
 "use client";
 
-import { Calendar, TrendingUp } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { DuoStatCard, DuoStatsGrid } from "@/components/duo";
+import { StudentDietScreen } from "@/components/screens/student";
 import { AddMealModal } from "@/components/organisms/modals/add-meal-modal";
 import { FoodSearch } from "@/components/organisms/modals/food-search";
 import { NutritionTracker } from "@/components/organisms/trackers/nutrition-tracker";
@@ -108,64 +107,50 @@ export function DietPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="mb-2 text-3xl font-bold text-duo-text">Nutricao</h1>
-        <p className="text-sm text-duo-gray-dark">
-          {completedMeals} de {totalMeals} refeicoes concluidas hoje
-        </p>
-      </div>
+    <StudentDietScreen
+      caloriesPercentage={caloriesPercentage}
+      completedMeals={completedMeals}
+      foodSearchModalSlot={
+        <>
+          {isAddMealOpen && (
+            <AddMealModal.Simple
+              onClose={closeAddMeal}
+              onAddMeal={(mealsData) => {
+                handleAddMealSubmit(mealsData);
+                closeAddMeal();
+              }}
+            />
+          )}
 
-      <DuoStatsGrid.Root columns={2} className="gap-4">
-        <DuoStatCard.Simple
-          icon={Calendar}
-          value={`${completedMeals}/${totalMeals}`}
-          label="refeicoes hoje"
-          iconColor="var(--duo-secondary)"
+          {isFoodSearchOpen && (
+            <FoodSearch.Simple
+              foodDatabase={resolvedFoodDatabase}
+              meals={dailyNutrition.meals}
+              onAddFood={handleAddFood}
+              onAddMeal={handleAddMealSubmit}
+              onClose={handleCloseFoodSearch}
+              onSelectMeal={(mealId) => {
+                setSelectedMealId(mealId);
+                setFoodSearchMealId(mealId);
+              }}
+              selectedMealId={foodSearchMealId || selectedMealId}
+            />
+          )}
+        </>
+      }
+      totalMeals={totalMeals}
+      trackerSlot={
+        <NutritionTracker.Simple
+          nutrition={dailyNutrition}
+          onAddFoodToMeal={handleOpenFoodSearch}
+          onAddMeal={openAddMeal}
+          onDeleteFood={removeFoodFromMeal}
+          onDeleteMeal={removeMeal}
+          onMealComplete={handleMealComplete}
+          onOpenLibrary={openNutritionLibrary}
+          onToggleWaterGlass={handleToggleWaterGlass}
         />
-        <DuoStatCard.Simple
-          icon={TrendingUp}
-          value={`${caloriesPercentage}%`}
-          label="meta calorica"
-          iconColor="var(--duo-primary)"
-        />
-      </DuoStatsGrid.Root>
-
-      <NutritionTracker.Simple
-        nutrition={dailyNutrition}
-        onMealComplete={handleMealComplete}
-        onAddMeal={openAddMeal}
-        onOpenLibrary={openNutritionLibrary}
-        onAddFoodToMeal={handleOpenFoodSearch}
-        onDeleteMeal={removeMeal}
-        onDeleteFood={removeFoodFromMeal}
-        onToggleWaterGlass={handleToggleWaterGlass}
-      />
-
-      {isAddMealOpen && (
-        <AddMealModal.Simple
-          onClose={closeAddMeal}
-          onAddMeal={(mealsData) => {
-            handleAddMealSubmit(mealsData);
-            closeAddMeal();
-          }}
-        />
-      )}
-
-      {isFoodSearchOpen && (
-        <FoodSearch.Simple
-          onAddFood={handleAddFood}
-          onAddMeal={handleAddMealSubmit}
-          onClose={handleCloseFoodSearch}
-          selectedMealId={foodSearchMealId || selectedMealId}
-          meals={dailyNutrition.meals}
-          foodDatabase={resolvedFoodDatabase}
-          onSelectMeal={(mealId) => {
-            setSelectedMealId(mealId);
-            setFoodSearchMealId(mealId);
-          }}
-        />
-      )}
-    </div>
+      }
+    />
   );
 }

@@ -1,0 +1,11 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- assertVisible: "Conta e sessao"
+- assertVisible: "Usuario"
+- assertVisible: "Email"
+- assertVisible: "Role"
+- assertVisible: "Sessao local"
+- tapOn: "Voltar"

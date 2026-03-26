@@ -1,28 +1,35 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-interface DuoStatsGridRootProps {
+interface DuoStatsGridRootProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   columns?: 2 | 3 | 4;
-  className?: string;
 }
 
 function DuoStatsGridRoot({
   children,
   columns = 2,
   className,
+  style,
+  ...props
 }: DuoStatsGridRootProps) {
+  const minColumnWidth =
+    columns === 2 ? "14rem" : columns === 3 ? "12rem" : "10.5rem";
+
   return (
     <div
+      data-slot="duo-stats-grid"
       className={cn(
-        "grid gap-3",
-        columns === 2 && "grid-cols-2",
-        columns === 3 && "grid-cols-2 sm:grid-cols-3",
-        columns === 4 && "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4",
+        "cq-stats-grid grid gap-3",
         className,
       )}
+      style={{
+        gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${minColumnWidth}), 1fr))`,
+        ...style,
+      }}
+      {...props}
     >
       {children}
     </div>
@@ -38,7 +45,7 @@ function DuoStatsGridItem({
   className?: string;
 }) {
   return (
-    <div className={cn(className)} {...props}>
+    <div data-slot="duo-stats-grid-item" className={cn(className)} {...props}>
       {children}
     </div>
   );

@@ -9,5 +9,6 @@ export * from "./modals";
 export * from "./navigation";
 export { PerformanceOptimizer } from "./performance-optimizer";
 export * from "./sections";
+export * from "./shared";
 export * from "./trackers";
 export * from "./workout";

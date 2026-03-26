@@ -1,0 +1,10 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- assertVisible: "Notificacoes"
+- assertVisible: "Receber notificacoes neste dispositivo"
+- assertVisible: "Permissao"
+- assertVisible: "Registro"
+- tapOn: "Voltar"

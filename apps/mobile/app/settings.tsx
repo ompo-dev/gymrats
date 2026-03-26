@@ -1,21 +1,5 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { PrimaryButton, SecondaryButton } from "../src/components/buttons";
-import { DuoCard } from "../src/components/duo-card";
-import { ScreenBackground } from "../src/components/screen-background";
 import { refreshAuthSession } from "../src/lib/auth";
 import { getNativeCapabilities } from "../src/lib/device-capabilities";
 import { signOutRemoteSession } from "../src/lib/native-api";
@@ -36,13 +20,13 @@ import {
   getWidgetStateSnapshot,
   refreshWidgetSnapshot,
 } from "../src/lib/widget";
+import { NativeSettingsScreen } from "../src/screens/settings/native-settings-screen";
 import { useAppStore } from "../src/store/app-store";
 import type {
   StoredPushState,
   StoredWidgetState,
   WidgetPreset,
 } from "../src/store/types";
-import { colors, radius, spacing, typography } from "../src/theme";
 import { normalizeUrl } from "../src/utils/url";
 
 function formatDateTime(value: string | null) {
@@ -104,12 +88,6 @@ function getRoleLabel(role?: string | null) {
 
   return role;
 }
-
-const widgetPresetOptions: Array<{ label: string; value: WidgetPreset }> = [
-  { label: "Home", value: "home" },
-  { label: "Workout", value: "workout" },
-  { label: "Nutrition", value: "nutrition" },
-];
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -458,544 +436,102 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScreenBackground>
-      <SafeAreaView
-        edges={["top", "left", "right", "bottom"]}
-        style={styles.safeArea}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.keyboard}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.header}>
-              <Pressable hitSlop={12} onPress={() => router.replace("/web")}>
-                <Text style={styles.backText}>Voltar</Text>
-              </Pressable>
-              <Text style={styles.headerTitle}>Central do dispositivo</Text>
-              <View style={styles.headerSpacer} />
-            </View>
-
-            <View style={styles.hero}>
-              <Text style={styles.heroTitle}>Ajustes nativos do GymRats</Text>
-              <Text style={styles.heroDescription}>
-                Controle sessao, notificacoes push, estado local de widgets e,
-                quando habilitado pelo build, ferramentas de ambiente.
-              </Text>
-            </View>
-
-            <DuoCard>
-              <Text style={styles.sectionTitle}>Conta e sessao</Text>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Usuario</Text>
-                <Text style={styles.infoValue}>
-                  {session.user ? session.user.name : "Nao autenticado"}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>
-                  {session.user?.email || "Sem sessao"}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Role</Text>
-                <Text style={styles.infoValue}>
-                  {getRoleLabel(session.user?.role)}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Sessao local</Text>
-                <Text style={styles.infoValue}>
-                  {session.token ? "Sincronizada" : "Nao autenticada"}
-                </Text>
-              </View>
-
-              <SecondaryButton
-                onPress={() => {
-                  void handleSignOut();
-                }}
-                title={isSigningOut ? "Encerrando..." : "Encerrar sessao"}
-              />
-
-              <SecondaryButton
-                onPress={() => router.replace("/web")}
-                title="Voltar ao app"
-              />
-            </DuoCard>
-
-            <DuoCard>
-              <Text style={styles.sectionTitle}>Notificacoes</Text>
-              <Text style={styles.sectionDescription}>
-                Ative push neste dispositivo e acompanhe o estado real da
-                permissao e do registro remoto.
-              </Text>
-
-              <View style={styles.toggleRow}>
-                <View style={styles.toggleCopy}>
-                  <Text style={styles.fieldLabel}>
-                    Receber notificacoes neste dispositivo
-                  </Text>
-                  <Text style={styles.fieldHint}>
-                    {nativeCapabilities.push.reason ||
-                      "O app vai registrar este aparelho no backend para alertas e navegacao por push."}
-                  </Text>
-                </View>
-                <Switch
-                  disabled={
-                    isUpdatingPush ||
-                    nativeCapabilities.push.status !== "supported"
-                  }
-                  onValueChange={(value) => {
-                    void handlePushToggle(value);
-                  }}
-                  trackColor={{
-                    false: colors.border,
-                    true: colors.primaryLight,
-                  }}
-                  value={pushState.enabled}
-                />
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Permissao</Text>
-                <Text style={styles.infoValue}>
-                  {getPermissionLabel(pushState.permissionStatus)}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Registro</Text>
-                <Text style={styles.infoValue}>
-                  {getRegistrationLabel(pushState.registrationStatus)}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Ultima sincronizacao</Text>
-                <Text style={styles.infoValue}>
-                  {formatDateTime(pushState.lastSyncAt)}
-                </Text>
-              </View>
-
-              {pushState.lastError ? (
-                <Text style={styles.errorText}>{pushState.lastError}</Text>
-              ) : null}
-
-              {pushState.permissionStatus === "denied" ? (
-                <SecondaryButton
-                  onPress={() => {
-                    void openPushSystemSettings();
-                  }}
-                  title="Abrir ajustes do sistema"
-                />
-              ) : null}
-
-              {pushState.enabled &&
-              pushState.registrationStatus !== "registered" ? (
-                <SecondaryButton
-                  onPress={() => {
-                    void handleReRegisterPush();
-                  }}
-                  title="Reativar registro"
-                />
-              ) : null}
-
-              {canShowQaControls ? (
-                <SecondaryButton
-                  onPress={() => {
-                    void handleSendPushTest();
-                  }}
-                  title="Enviar push de teste"
-                />
-              ) : null}
-
-              {canShowQaControls ? (
-                <View style={styles.debugBlock}>
-                  <Text style={styles.debugLine}>
-                    Installation ID: {pushState.installationId || "nao gerado"}
-                  </Text>
-                  <Text style={styles.debugLine}>
-                    Token: {getShortPushToken(pushState.expoPushToken)}
-                  </Text>
-                  <Text style={styles.debugLine}>
-                    Plataforma: {pushDebugMetadata.platform}
-                  </Text>
-                  <Text style={styles.debugLine}>
-                    App version: {pushDebugMetadata.appVersion}
-                  </Text>
-                </View>
-              ) : null}
-            </DuoCard>
-
-            <DuoCard>
-              <Text style={styles.sectionTitle}>Widgets</Text>
-              <Text style={styles.sectionDescription}>
-                Controle o preset local e o snapshot que um widget futuro deste
-                build vai consumir.
-              </Text>
-
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Suporte no build</Text>
-                <Text style={styles.infoValue}>
-                  {widgetState.supportStatus === "supported"
-                    ? "Suportado"
-                    : widgetState.supportStatus === "not-supported"
-                      ? "Nao suportado"
-                      : "Indisponivel neste build"}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Snapshot</Text>
-                <Text style={styles.infoValue}>
-                  {getWidgetStatusLabel(widgetState)}
-                </Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Ultima atualizacao</Text>
-                <Text style={styles.infoValue}>
-                  {formatDateTime(widgetState.lastSnapshotAt)}
-                </Text>
-              </View>
-
-              {widgetState.supportReason ? (
-                <Text style={styles.fieldHint}>
-                  {widgetState.supportReason}
-                </Text>
-              ) : null}
-
-              <View style={styles.presetRow}>
-                {widgetPresetOptions.map((option) => (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => {
-                      void handleWidgetPresetChange(option.value);
-                    }}
-                    style={[
-                      styles.presetButton,
-                      widgetState.preset === option.value &&
-                        styles.presetButtonActive,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.presetButtonText,
-                        widgetState.preset === option.value &&
-                          styles.presetButtonTextActive,
-                      ]}
-                    >
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-
-              <PrimaryButton
-                disabled={isUpdatingWidget}
-                onPress={() => {
-                  void handleRefreshWidgetSnapshot();
-                }}
-                title={
-                  isUpdatingWidget
-                    ? "Atualizando..."
-                    : "Atualizar dados do widget agora"
-                }
-              />
-
-              <SecondaryButton
-                onPress={() => {
-                  void handleClearWidgetSnapshot();
-                }}
-                title="Limpar dados do widget"
-              />
-
-              {widgetState.snapshot ? (
-                <View style={styles.debugBlock}>
-                  <Text style={styles.debugLine}>
-                    Preset: {widgetState.snapshot.preset}
-                  </Text>
-                  <Text style={styles.debugLine}>
-                    Route: {widgetState.snapshot.route}
-                  </Text>
-                  <Text style={styles.debugLine}>
-                    Summary: {widgetState.snapshot.summary}
-                  </Text>
-                </View>
-              ) : null}
-            </DuoCard>
-
-            {debugToolsEnabled ? (
-              <DuoCard variant="blue">
-                <Text style={styles.sectionTitle}>Ambiente</Text>
-                <Text style={styles.sectionDescription}>
-                  Ferramentas de debug liberadas por build para webUrl, apiUrl e
-                  importacao manual de sessao.
-                </Text>
-
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>URL da aplicacao web</Text>
-                  <TextInput
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="url"
-                    onChangeText={setWebUrl}
-                    placeholder="https://gym-rats-testes.vercel.app"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={styles.input}
-                    value={webUrl}
-                  />
-                  <Text style={styles.fieldHint}>
-                    Exemplo local: http://192.168.0.10:3000
-                  </Text>
-                </View>
-
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>URL da API</Text>
-                  <TextInput
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    keyboardType="url"
-                    onChangeText={setApiUrl}
-                    placeholder="https://gymrats-production.up.railway.app"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={styles.input}
-                    value={apiUrl}
-                  />
-                  <Text style={styles.fieldHint}>
-                    Exemplo local: http://192.168.0.10:4000
-                  </Text>
-                </View>
-
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.fieldLabel}>Entrar com token manual</Text>
-                  <TextInput
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    multiline
-                    onChangeText={setManualToken}
-                    placeholder="Cole aqui um bearer token valido"
-                    placeholderTextColor={colors.foregroundMuted}
-                    style={[styles.input, styles.tokenInput]}
-                    textAlignVertical="top"
-                    value={manualToken}
-                  />
-                  <Text style={styles.fieldHint}>
-                    O token e validado em /api/auth/session com cabecalho de
-                    cliente nativo e o shell volta para /web apos a importacao.
-                  </Text>
-                </View>
-
-                <PrimaryButton
-                  disabled={isSavingEnvironment}
-                  onPress={() => {
-                    void handleSaveEnvironment();
-                  }}
-                  title={
-                    isSavingEnvironment
-                      ? "Salvando..."
-                      : "Salvar ambiente e abrir app"
-                  }
-                />
-
-                <SecondaryButton
-                  onPress={() => {
-                    void handleManualTokenLogin();
-                  }}
-                  title={
-                    isImportingToken ? "Validando token..." : "Entrar com token"
-                  }
-                />
-              </DuoCard>
-            ) : null}
-
-            {(isLoadingNativeState ||
-              isSavingEnvironment ||
-              isImportingToken ||
-              isUpdatingPush ||
-              isUpdatingWidget ||
-              isSigningOut) && (
-              <ActivityIndicator
-                color={colors.primary}
-                style={styles.loadingIndicator}
-              />
-            )}
-
-            {notice ? <Text style={styles.noticeText}>{notice}</Text> : null}
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </ScreenBackground>
+    <NativeSettingsScreen
+      canShowQaControls={canShowQaControls}
+      debugToolsEnabled={debugToolsEnabled}
+      environmentSection={{
+        apiUrl,
+        isImportingToken,
+        isSavingEnvironment,
+        manualToken,
+        webUrl,
+        onApiUrlChange: setApiUrl,
+        onManualTokenChange: setManualToken,
+        onSaveEnvironment: () => {
+          void handleSaveEnvironment();
+        },
+        onTokenLogin: () => {
+          void handleManualTokenLogin();
+        },
+        onWebUrlChange: setWebUrl,
+      }}
+      error={error}
+      isBusy={
+        isLoadingNativeState ||
+        isSavingEnvironment ||
+        isImportingToken ||
+        isUpdatingPush ||
+        isUpdatingWidget ||
+        isSigningOut
+      }
+      isSigningOut={isSigningOut}
+      notice={notice}
+      onBack={() => router.replace("/web")}
+      onSignOut={() => {
+        void handleSignOut();
+      }}
+      pushSection={{
+        appVersion: pushDebugMetadata.appVersion,
+        canShowQaControls,
+        canToggle: nativeCapabilities.push.status === "supported",
+        capabilityReason:
+          nativeCapabilities.push.reason ||
+          "O app vai registrar este aparelho no backend para alertas e navegacao por push.",
+        installationId: pushState.installationId,
+        isUpdating: isUpdatingPush,
+        lastSyncAtLabel: formatDateTime(pushState.lastSyncAt),
+        onOpenSystemSettings: () => {
+          void openPushSystemSettings();
+        },
+        onReRegister: () => {
+          void handleReRegisterPush();
+        },
+        onSendTest: () => {
+          void handleSendPushTest();
+        },
+        onToggle: (value) => {
+          void handlePushToggle(value);
+        },
+        permissionLabel: getPermissionLabel(pushState.permissionStatus),
+        platform: pushDebugMetadata.platform,
+        pushEnabled: pushState.enabled,
+        pushLastError: pushState.lastError,
+        pushToken: getShortPushToken(pushState.expoPushToken),
+        registrationLabel: getRegistrationLabel(pushState.registrationStatus),
+        showOpenSystemSettings: pushState.permissionStatus === "denied",
+        showReRegister:
+          pushState.enabled &&
+          pushState.registrationStatus !== "registered",
+      }}
+      sessionEmail={session.user?.email || "Sem sessao"}
+      sessionName={session.user ? session.user.name : "Nao autenticado"}
+      sessionRoleLabel={getRoleLabel(session.user?.role)}
+      sessionStatusLabel={
+        session.token ? "Sincronizada" : "Nao autenticada"
+      }
+      widgetSection={{
+        isUpdating: isUpdatingWidget,
+        lastUpdatedLabel: formatDateTime(widgetState.lastSnapshotAt),
+        onClearSnapshot: () => {
+          void handleClearWidgetSnapshot();
+        },
+        onPresetChange: (preset) => {
+          void handleWidgetPresetChange(preset);
+        },
+        onRefreshSnapshot: () => {
+          void handleRefreshWidgetSnapshot();
+        },
+        preset: widgetState.preset,
+        snapshot: widgetState.snapshot,
+        statusLabel: getWidgetStatusLabel(widgetState),
+        supportLabel:
+          widgetState.supportStatus === "supported"
+            ? "Suportado"
+            : widgetState.supportStatus === "not-supported"
+              ? "Nao suportado"
+              : "Indisponivel neste build",
+        supportReason: widgetState.supportReason,
+      }}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  keyboard: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    gap: spacing.lg,
-    padding: spacing.lg,
-  },
-  header: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  headerTitle: {
-    color: colors.foreground,
-    fontSize: typography.body.fontSize,
-    fontWeight: "800",
-    letterSpacing: typography.body.letterSpacing,
-  },
-  headerSpacer: {
-    width: 48,
-  },
-  backText: {
-    color: colors.primary,
-    fontSize: typography.body.fontSize,
-    fontWeight: "700",
-  },
-  hero: {
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  heroTitle: {
-    color: colors.foreground,
-    fontSize: typography.heading.fontSize,
-    fontWeight: "900",
-    letterSpacing: typography.heading.letterSpacing,
-  },
-  heroDescription: {
-    color: colors.foregroundMuted,
-    fontSize: typography.body.fontSize,
-    lineHeight: 22,
-  },
-  sectionTitle: {
-    color: colors.foreground,
-    fontSize: typography.body.fontSize,
-    fontWeight: "900",
-  },
-  sectionDescription: {
-    color: colors.foregroundMuted,
-    fontSize: typography.caption.fontSize,
-    lineHeight: 18,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  infoLabel: {
-    color: colors.foregroundMuted,
-    flex: 1,
-    fontSize: typography.caption.fontSize,
-    lineHeight: 18,
-  },
-  infoValue: {
-    color: colors.foreground,
-    flex: 1,
-    fontSize: typography.body.fontSize,
-    fontWeight: "700",
-    textAlign: "right",
-  },
-  toggleRow: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.md,
-    justifyContent: "space-between",
-  },
-  toggleCopy: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  fieldGroup: {
-    gap: spacing.xs,
-  },
-  fieldLabel: {
-    color: colors.foreground,
-    fontSize: typography.body.fontSize,
-    fontWeight: "800",
-  },
-  fieldHint: {
-    color: colors.foregroundMuted,
-    fontSize: typography.caption.fontSize,
-    lineHeight: 18,
-  },
-  input: {
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    color: colors.foreground,
-    fontSize: typography.body.fontSize,
-    minHeight: 54,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  tokenInput: {
-    minHeight: 132,
-  },
-  presetRow: {
-    flexDirection: "row",
-    gap: spacing.sm,
-  },
-  presetButton: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    borderWidth: 2,
-    flex: 1,
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  presetButtonActive: {
-    backgroundColor: colors.primarySoft,
-    borderColor: colors.primary,
-  },
-  presetButtonText: {
-    color: colors.foregroundMuted,
-    fontSize: typography.caption.fontSize,
-    fontWeight: "800",
-    textTransform: "uppercase",
-  },
-  presetButtonTextActive: {
-    color: colors.foreground,
-  },
-  debugBlock: {
-    backgroundColor: colors.surfaceMuted,
-    borderRadius: radius.md,
-    gap: spacing.xs,
-    padding: spacing.md,
-  },
-  debugLine: {
-    color: colors.foreground,
-    fontSize: typography.caption.fontSize,
-    lineHeight: 18,
-  },
-  loadingIndicator: {
-    marginBottom: spacing.md,
-  },
-  noticeText: {
-    color: colors.primaryDark,
-    fontSize: typography.caption.fontSize,
-    fontWeight: "700",
-    lineHeight: 18,
-    textAlign: "center",
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: typography.caption.fontSize,
-    fontWeight: "700",
-    lineHeight: 18,
-    textAlign: "center",
-  },
-});

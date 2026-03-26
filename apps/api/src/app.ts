@@ -5,15 +5,17 @@ import { log } from "@/lib/observability";
 import { apiApp as baseApiApp } from "./server/app";
 
 export const apiApp = baseApiApp
-  .post("/api/webhooks/abacatepay", async ({ request, set }) => {
+  .post("/api/webhooks/abacatepay", async ({ body, request, set }) => {
     try {
       const signature = request.headers.get("x-webhook-signature");
-      const rawBody = await request.text();
 
       if (!signature) {
         set.status = 400;
         return { error: "Missing webhook signature" };
       }
+
+      const rawBody =
+        typeof body === "string" ? body : JSON.stringify(body ?? {});
 
       const isSignatureValid = abacatePay.verifyWebhookSignature(
         rawBody,
@@ -25,14 +27,20 @@ export const apiApp = baseApiApp
         return { error: "Invalid cryptographic signature" };
       }
 
-      const body = JSON.parse(rawBody) as {
-        event: string;
-        data: Record<string, unknown>;
-      };
+      const parsedBody =
+        typeof body === "string"
+          ? (JSON.parse(rawBody) as {
+              event: string;
+              data: Record<string, unknown>;
+            })
+          : ((body ?? {}) as {
+              event?: string;
+              data?: Record<string, unknown>;
+            });
 
       await webhookQueue.add("process-payment", {
-        event: body.event,
-        data: body.data,
+        event: parsedBody.event ?? "unknown",
+        data: parsedBody.data ?? {},
       });
 
       return { received: true, queued: true };

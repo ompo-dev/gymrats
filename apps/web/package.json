@@ -12,6 +12,8 @@
     "dev:full": "npx concurrently \"npm run dev\" \"npm run dev:api\"",
     "start": "node scripts/start-next.js",
     "start:frontend": "node scripts/start-next.js",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "generate:openapi": "bun run scripts/generate-openapi.ts",
     "generate:api": "npm run generate:openapi && npx orval",
     "generate:secret": "node scripts/generate-secret.js",

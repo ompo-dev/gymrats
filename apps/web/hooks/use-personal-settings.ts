@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { usePersonal } from "@/hooks/use-personal";
 import { useToast } from "@/hooks/use-toast";
+import { usePersonalUnifiedStore } from "@/stores/personal-unified-store";
 
 export interface UsePersonalSettingsProps {
   initialProfile: {
@@ -22,7 +22,8 @@ export interface UsePersonalSettingsProps {
 export function usePersonalSettings({
   initialProfile,
 }: UsePersonalSettingsProps) {
-  const { profile, actions } = usePersonal("profile", "actions");
+  const profile = usePersonalUnifiedStore((state) => state.data.profile);
+  const updateProfile = usePersonalUnifiedStore((state) => state.updateProfile);
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -49,7 +50,7 @@ export function usePersonalSettings({
       }
       setSaving(true);
       try {
-        await actions.updateProfile({
+        await updateProfile({
           name: data.name.trim(),
           email: data.email.trim(),
           phone: data.phone?.trim() || null,
@@ -85,7 +86,7 @@ export function usePersonalSettings({
         setSaving(false);
       }
     },
-    [actions, toast],
+    [toast, updateProfile],
   );
 
   return {

@@ -28,6 +28,7 @@ import { useStudentDefaultBootstrapBridge } from "@/hooks/use-student-bootstrap"
 interface StudentLayoutContentProps {
   children: React.ReactNode;
   hasProfile: boolean;
+  profileResolved: boolean;
   initialProgress: {
     streak: number;
     xp: number;
@@ -37,6 +38,7 @@ interface StudentLayoutContentProps {
 export function StudentLayoutContent({
   children,
   hasProfile,
+  profileResolved,
   initialProgress,
 }: StudentLayoutContentProps) {
   const [isMounted, setIsMounted] = useState(false);
@@ -80,7 +82,7 @@ export function StudentLayoutContent({
 
   // Redirecionar para onboarding se não tiver perfil (dentro de useEffect para evitar erro de render)
   useEffect(() => {
-    if (isMounted && !hasProfile && !isOnboarding) {
+    if (isMounted && profileResolved && !hasProfile && !isOnboarding) {
       // Usar replace em vez de push para evitar histórico de navegação
       // E adicionar um pequeno delay para evitar múltiplos redirecionamentos
       const timeoutId = setTimeout(() => {
@@ -89,7 +91,7 @@ export function StudentLayoutContent({
 
       return () => clearTimeout(timeoutId);
     }
-  }, [isMounted, hasProfile, isOnboarding, router]);
+  }, [isMounted, hasProfile, isOnboarding, profileResolved, router]);
 
   // Aguardar montagem no cliente antes de renderizar conteúdo que usa nuqs
   if (!isMounted) {
@@ -101,7 +103,7 @@ export function StudentLayoutContent({
   }
 
   // Mostrar loading enquanto redireciona para onboarding
-  if (!hasProfile && !isOnboarding) {
+  if (profileResolved && !hasProfile && !isOnboarding) {
     return (
       <LoadingScreen.Simple variant="student" message="Redirecionando..." />
     );

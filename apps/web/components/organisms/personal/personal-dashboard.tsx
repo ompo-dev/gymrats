@@ -1,21 +1,10 @@
 "use client";
 
 import {
-  Building2,
-  DollarSign,
-  TrendingDown,
-  TrendingUp,
-  Users,
-} from "lucide-react";
-import { FadeIn } from "@/components/animations/fade-in";
-import { SlideIn } from "@/components/animations/slide-in";
-import { DuoAlert, DuoCard, DuoStatCard, DuoStatsGrid } from "@/components/duo";
-import {
-  AcademyListItemCard,
-  StudentListItemCard,
-} from "@/components/organisms/sections/list-item-cards";
+  PersonalDashboardScreen,
+  type PersonalDashboardScreenProps,
+} from "@/components/screens/personal";
 import type { FinancialSummary } from "@/lib/types";
-import { formatCurrencyBR } from "@/lib/utils/currency";
 
 export interface PersonalDashboardStats {
   gyms: number;
@@ -67,223 +56,15 @@ export function PersonalDashboardPage({
   financialSummary,
   onViewGym,
 }: PersonalDashboardProps) {
-  const studentName = (s: PersonalStudentItem) =>
-    s.student?.user?.name ?? "Aluno";
-
-  const studentsByGym = students
-    .filter((s) => s.gym?.id)
-    .reduce(
-      (acc, s) => {
-        const gymName = s.gym!.name;
-        if (!acc[gymName]) acc[gymName] = [];
-        acc[gymName].push(s);
-        return acc;
-      },
-      {} as Record<string, PersonalStudentItem[]>,
-    );
-
-  const topStudents = students.slice(0, 5);
-
-  const formatCurrency = formatCurrencyBR;
-
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <FadeIn>
-        <div className="space-y-4">
-          {subscription?.status === "past_due" && (
-            <DuoAlert variant="danger" title="Assinatura Atrasada">
-              Sua assinatura está atrasada. Regularize para evitar a suspensão
-              do acesso.
-            </DuoAlert>
-          )}
-
-          {subscription?.status === "trialing" &&
-            subscription.currentPeriodEnd && (
-              <DuoAlert variant="warning" title="Período de Avaliação">
-                Seu trial termina em{" "}
-                {Math.max(
-                  0,
-                  Math.ceil(
-                    (new Date(subscription.currentPeriodEnd).getTime() -
-                      Date.now()) /
-                      (1000 * 3600 * 24),
-                  ),
-                )}{" "}
-                dias. Assine um plano para continuar usando.
-              </DuoAlert>
-            )}
-
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-            <div className="text-center sm:text-left">
-              <h1 className="mb-1 text-3xl font-bold text-duo-text">
-                Olá, {profile?.name?.split(" ")[0] || "Personal"}!
-              </h1>
-              <p className="text-sm text-duo-gray-dark">
-                Visão geral das suas academias e alunos
-              </p>
-            </div>
-          </div>
-        </div>
-      </FadeIn>
-      <SlideIn delay={0.1}>
-        <DuoStatsGrid.Root columns={4} className="gap-4">
-          <DuoStatCard.Simple
-            icon={Building2}
-            value={String(stats.gyms)}
-            label="Academias"
-            badge="Vinculadas"
-            iconColor="var(--duo-primary)"
-          />
-          <DuoStatCard.Simple
-            icon={Users}
-            value={String(stats.students)}
-            label="Alunos"
-            badge="Total"
-            iconColor="var(--duo-secondary)"
-          />
-          <DuoStatCard.Simple
-            icon={Users}
-            value={String(stats.studentsViaGym)}
-            label="Via academia"
-            badge="Atribuídos"
-            iconColor="var(--duo-accent)"
-          />
-          <DuoStatCard.Simple
-            icon={Users}
-            value={String(stats.independentStudents)}
-            label="Independentes"
-            badge="Diretos"
-            iconColor="#A560E8"
-          />
-        </DuoStatsGrid.Root>
-      </SlideIn>
-
-      {/* Financial Summary Card */}
-      {financialSummary && (
-        <SlideIn delay={0.15}>
-          <DuoCard.Root variant="default" padding="md">
-            <DuoCard.Header>
-              <div className="flex items-center gap-2">
-                <DollarSign
-                  className="h-5 w-5 shrink-0"
-                  style={{ color: "var(--duo-secondary)" }}
-                  aria-hidden
-                />
-                <h2 className="font-bold text-[var(--duo-fg)]">
-                  Resumo Financeiro do Mês
-                </h2>
-              </div>
-            </DuoCard.Header>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-xl bg-duo-green/10 p-3 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <TrendingUp className="h-3.5 w-3.5 text-duo-green" />
-                  <p className="text-xs font-bold text-duo-gray-dark">
-                    Receita
-                  </p>
-                </div>
-                <p className="mt-1 text-lg font-bold text-duo-green">
-                  {formatCurrency(financialSummary.totalRevenue)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-duo-danger/10 p-3 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <TrendingDown className="h-3.5 w-3.5 text-duo-danger" />
-                  <p className="text-xs font-bold text-duo-gray-dark">
-                    Despesas
-                  </p>
-                </div>
-                <p className="mt-1 text-lg font-bold text-duo-danger">
-                  {formatCurrency(financialSummary.totalExpenses)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-duo-primary/10 p-3 text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <DollarSign className="h-3.5 w-3.5 text-duo-primary" />
-                  <p className="text-xs font-bold text-duo-gray-dark">Lucro</p>
-                </div>
-                <p
-                  className={`mt-1 text-lg font-bold ${financialSummary.netProfit >= 0 ? "text-duo-green" : "text-duo-danger"}`}
-                >
-                  {formatCurrency(financialSummary.netProfit)}
-                </p>
-              </div>
-            </div>
-          </DuoCard.Root>
-        </SlideIn>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SlideIn delay={0.2}>
-          <DuoCard.Root variant="default" padding="md">
-            <DuoCard.Header>
-              <div className="flex items-center gap-2">
-                <Users
-                  className="h-5 w-5 shrink-0"
-                  style={{ color: "var(--duo-secondary)" }}
-                  aria-hidden
-                />
-                <h2 className="font-bold text-[var(--duo-fg)]">
-                  Alunos Recentes
-                </h2>
-              </div>
-            </DuoCard.Header>
-            <div className="space-y-3">
-              {topStudents.length === 0 && (
-                <p className="py-4 text-center text-sm text-duo-gray-dark">
-                  Nenhum aluno vinculado ainda.
-                </p>
-              )}
-              {topStudents.map((item, index) => (
-                <div key={item.id} className={index > 0 ? "pt-0" : undefined}>
-                  <StudentListItemCard
-                    image="/placeholder.svg"
-                    name={studentName(item)}
-                    subtitle={
-                      item.gym ? `via ${item.gym.name}` : "Independente"
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </DuoCard.Root>
-        </SlideIn>
-
-        <SlideIn delay={0.3}>
-          <DuoCard.Root variant="default" padding="md">
-            <DuoCard.Header>
-              <div className="flex items-center gap-2">
-                <Building2
-                  className="h-5 w-5 shrink-0"
-                  style={{ color: "var(--duo-secondary)" }}
-                  aria-hidden
-                />
-                <h2 className="font-bold text-[var(--duo-fg)]">
-                  Academias Vinculadas
-                </h2>
-              </div>
-            </DuoCard.Header>
-            <div className="space-y-3">
-              {affiliations.length === 0 && (
-                <p className="py-4 text-center text-sm text-duo-gray-dark">
-                  Nenhuma academia vinculada ainda.
-                </p>
-              )}
-              {affiliations.map((a, index) => (
-                <div key={a.id} className={index > 0 ? "pt-0" : undefined}>
-                  <AcademyListItemCard
-                    image={a.gym.logo || a.gym.image || "/placeholder.svg"}
-                    name={a.gym.name}
-                    onClick={() => onViewGym?.(a.gym.id)}
-                    planName={`${studentsByGym[a.gym.name]?.length ?? 0} alunos`}
-                    hoverColor="duo-blue"
-                  />
-                </div>
-              ))}
-            </div>
-          </DuoCard.Root>
-        </SlideIn>
-      </div>
-    </div>
+    <PersonalDashboardScreen
+      profile={profile as PersonalDashboardScreenProps["profile"]}
+      stats={stats}
+      affiliations={affiliations}
+      students={students}
+      subscription={subscription}
+      financialSummary={financialSummary}
+      onViewGym={onViewGym}
+    />
   );
 }

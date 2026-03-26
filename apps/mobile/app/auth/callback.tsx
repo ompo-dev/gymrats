@@ -1,12 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { NativeLoadingScreen } from "../../src/components/native-loading-screen";
+import { NativeAuthCallbackScreen } from "../../src/screens/auth/native-auth-callback-screen";
 import { consumeOneTimeToken } from "../../src/lib/auth";
 import { useAppStore } from "../../src/store/app-store";
-import { colors, spacing, typography } from "../../src/theme";
 
-export default function AuthCallbackScreen() {
+export default function AuthCallbackRoute() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     error?: string;
@@ -53,37 +51,5 @@ export default function AuthCallbackScreen() {
     upsertSession,
   ]);
 
-  if (!error) {
-    return <NativeLoadingScreen message="Finalizando autenticacao..." />;
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Erro no login</Text>
-      <Text style={styles.description}>{error}</Text>
-    </View>
-  );
+  return <NativeAuthCallbackScreen error={error} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    backgroundColor: colors.background,
-    flex: 1,
-    gap: spacing.sm,
-    justifyContent: "center",
-    padding: spacing.lg,
-  },
-  title: {
-    color: colors.foreground,
-    fontSize: typography.heading.fontSize,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  description: {
-    color: colors.foregroundMuted,
-    fontSize: typography.body.fontSize,
-    lineHeight: 22,
-    textAlign: "center",
-  },
-});

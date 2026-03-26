@@ -15,6 +15,7 @@ function DuoStatCardRoot({
 }: DuoStatCardRootProps) {
   return (
     <div
+      data-slot="duo-stat-card"
       className={cn(
         "relative flex items-center gap-3 rounded-2xl px-4 py-3",
         "border border-[var(--duo-border)] bg-[var(--duo-bg-card)]",
@@ -38,6 +39,7 @@ interface DuoStatCardIconProps {
 function DuoStatCardIcon({ icon: Icon, iconColor }: DuoStatCardIconProps) {
   return (
     <span
+      data-slot="duo-stat-card-icon"
       className="flex h-8 w-8 shrink-0 items-center justify-center"
       style={{ color: iconColor ?? "var(--duo-primary)" }}
     >
@@ -53,6 +55,7 @@ function DuoStatCardValue({
 }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
+      data-slot="duo-stat-card-value"
       className={cn(
         "tabular-nums text-xl font-extrabold leading-tight text-[var(--duo-fg)]",
         className,
@@ -71,6 +74,7 @@ function DuoStatCardLabel({
 }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
+      data-slot="duo-stat-card-label"
       className={cn("truncate text-xs text-[var(--duo-fg-muted)]", className)}
       {...props}
     >
@@ -85,7 +89,11 @@ function DuoStatCardContent({
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex min-w-0 flex-col", className)} {...props}>
+    <div
+      data-slot="duo-stat-card-content"
+      className={cn("flex min-w-0 flex-col", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -97,7 +105,10 @@ interface DuoStatCardBadgeProps {
 
 function DuoStatCardBadge({ children }: DuoStatCardBadgeProps) {
   return (
-    <span className="absolute -right-2 -top-2 animate-in zoom-in-75 rounded-full bg-[var(--duo-accent)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm duration-300">
+    <span
+      data-slot="duo-stat-card-badge"
+      className="absolute -right-2 -top-2 animate-in zoom-in-75 rounded-full bg-[var(--duo-accent)] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm duration-300"
+    >
       {children}
     </span>
   );

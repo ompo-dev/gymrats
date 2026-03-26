@@ -1,0 +1,12 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "Ambiente"
+    direction: DOWN
+- assertVisible: "Ambiente"
+- assertVisible: "Entrar com token manual"
+- assertVisible: "Entrar com token"
+- tapOn: "Voltar"

@@ -5,7 +5,6 @@ import { DEFAULT_STUDENT_BOOTSTRAP_SECTIONS } from "@/lib/api/bootstrap-sections
 import { getStudentBootstrapServerRequest } from "@/lib/api/bootstrap-server";
 import { createAppQueryClient } from "@/lib/query/create-query-client";
 import { queryKeys } from "@/lib/query/query-keys";
-import { getStudentProfile, getStudentProgress } from "./actions";
 import { StudentLayoutContent } from "./layout-content";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +15,7 @@ async function StudentLayoutWrapper({
   children: React.ReactNode;
 }) {
   const queryClient = createAppQueryClient();
+  let profileResolved = false;
 
   let profileData = {
     hasProfile: false,
@@ -38,6 +38,7 @@ async function StudentLayoutWrapper({
       profile:
         (bootstrap.data.profile as Record<string, unknown> | null) ?? null,
     };
+    profileResolved = true;
     progressData = {
       currentStreak:
         (bootstrap.data.progress as { currentStreak?: number } | undefined)
@@ -47,21 +48,15 @@ async function StudentLayoutWrapper({
           ?.totalXP ?? 0,
     };
   } catch {
-    const [fallbackProfile, fallbackProgress] = await Promise.all([
-      getStudentProfile(),
-      getStudentProgress(),
-    ]);
-    profileData = fallbackProfile;
-    progressData = {
-      currentStreak: fallbackProgress.currentStreak,
-      totalXP: fallbackProgress.totalXP,
-    };
+    // Mantemos o layout utilizável mesmo se o prefetch falhar.
+    // A hidratação client-side continua responsável por reconciliar os dados.
   }
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <StudentLayoutContent
         hasProfile={profileData.hasProfile}
+        profileResolved={profileResolved}
         initialProgress={{
           streak: progressData.currentStreak,
           xp: progressData.totalXP,

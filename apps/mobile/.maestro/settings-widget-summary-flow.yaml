@@ -1,0 +1,12 @@
+appId: com.gymrats.mobile
+---
+- launchApp
+- assertVisible: "Ajustes"
+- tapOn: "Ajustes"
+- scrollUntilVisible:
+    element: "Suporte no build"
+    direction: DOWN
+- assertVisible: "Suporte no build"
+- assertVisible: "Snapshot"
+- assertVisible: "Ultima atualizacao"
+- tapOn: "Voltar"

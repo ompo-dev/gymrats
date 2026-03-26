@@ -16,16 +16,16 @@ import { useUserSession } from "@/hooks/use-user-session";
 
 export default function GymThemeTestPage() {
   const router = useRouter();
-  const { isAdmin, role } = useUserSession();
+  const { isAdmin, role, hasResolvedSession } = useUserSession();
   const userIsAdmin = isAdmin || role === "ADMIN";
 
   useEffect(() => {
-    if (!userIsAdmin) {
+    if (hasResolvedSession && !userIsAdmin) {
       router.replace("/gym");
     }
-  }, [userIsAdmin, router]);
+  }, [hasResolvedSession, userIsAdmin, router]);
 
-  if (!userIsAdmin) {
+  if (!hasResolvedSession || !userIsAdmin) {
     return null;
   }
 
