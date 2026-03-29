@@ -62,7 +62,7 @@ const config: ExpoConfig = {
       projectId: "e6e6bfee-0a68-4a22-b38c-fa9ac2657d60",
     },
     defaultWebUrl:
-      process.env.EXPO_PUBLIC_WEB_URL || "https://gym-rats-testes.vercel.app",
+      process.env.EXPO_PUBLIC_WEB_URL || "https://gymrats.up.railway.app",
     defaultApiUrl:
       process.env.EXPO_PUBLIC_API_URL ||
       "https://gymrats-production.up.railway.app",

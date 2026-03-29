@@ -136,74 +136,79 @@ function NativeSettingsPushSection({
   return (
     <View testID="native-settings-screen.push">
       <DuoCard>
-      <Text style={styles.sectionTitle}>Notificacoes</Text>
-      <Text style={styles.sectionDescription}>
-        Ative push neste dispositivo e acompanhe o estado real da permissao e
-        do registro remoto.
-      </Text>
+        <Text style={styles.sectionTitle}>Notificacoes</Text>
+        <Text style={styles.sectionDescription}>
+          Ative push neste dispositivo e acompanhe o estado real da permissao e
+          do registro remoto.
+        </Text>
 
-      <View style={styles.toggleRow}>
-        <View style={styles.toggleCopy}>
-          <Text style={styles.fieldLabel}>
-            Receber notificacoes neste dispositivo
-          </Text>
-          <Text style={styles.fieldHint}>{capabilityReason}</Text>
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleCopy}>
+            <Text style={styles.fieldLabel}>
+              Receber notificacoes neste dispositivo
+            </Text>
+            <Text style={styles.fieldHint}>{capabilityReason}</Text>
+          </View>
+          <Switch
+            disabled={isUpdating || !canToggle}
+            onValueChange={onToggle}
+            testID="native-settings-screen.push.toggle"
+            trackColor={{
+              false: colors.border,
+              true: colors.primaryLight,
+            }}
+            value={pushEnabled}
+          />
         </View>
-        <Switch
-          disabled={isUpdating || !canToggle}
-          onValueChange={onToggle}
-          testID="native-settings-screen.push.toggle"
-          trackColor={{
-            false: colors.border,
-            true: colors.primaryLight,
-          }}
-          value={pushEnabled}
+
+        <NativeSettingsInfoRow
+          label="Permissao"
+          testID="native-settings-screen.push.permission"
+          value={permissionLabel}
         />
-      </View>
-
-      <NativeSettingsInfoRow
-        label="Permissao"
-        testID="native-settings-screen.push.permission"
-        value={permissionLabel}
-      />
-      <NativeSettingsInfoRow
-        label="Registro"
-        testID="native-settings-screen.push.registration"
-        value={registrationLabel}
-      />
-      <NativeSettingsInfoRow
-        label="Ultima sincronizacao"
-        testID="native-settings-screen.push.last-sync"
-        value={lastSyncAtLabel}
-      />
-
-      {pushLastError ? <Text style={styles.errorText}>{pushLastError}</Text> : null}
-
-      {showOpenSystemSettings ? (
-        <SecondaryButton
-          onPress={onOpenSystemSettings}
-          title="Abrir ajustes do sistema"
+        <NativeSettingsInfoRow
+          label="Registro"
+          testID="native-settings-screen.push.registration"
+          value={registrationLabel}
         />
-      ) : null}
+        <NativeSettingsInfoRow
+          label="Ultima sincronizacao"
+          testID="native-settings-screen.push.last-sync"
+          value={lastSyncAtLabel}
+        />
 
-      {showReRegister ? (
-        <SecondaryButton onPress={onReRegister} title="Reativar registro" />
-      ) : null}
+        {pushLastError ? (
+          <Text style={styles.errorText}>{pushLastError}</Text>
+        ) : null}
 
-      {canShowQaControls ? (
-        <SecondaryButton onPress={onSendTest} title="Enviar push de teste" />
-      ) : null}
+        {showOpenSystemSettings ? (
+          <SecondaryButton
+            onPress={onOpenSystemSettings}
+            title="Abrir ajustes do sistema"
+          />
+        ) : null}
 
-      {canShowQaControls ? (
-        <View style={styles.debugBlock} testID="native-settings-screen.push.debug">
-          <Text style={styles.debugLine}>
-            Installation ID: {installationId || "nao gerado"}
-          </Text>
-          <Text style={styles.debugLine}>Token: {pushToken}</Text>
-          <Text style={styles.debugLine}>Plataforma: {platform}</Text>
-          <Text style={styles.debugLine}>App version: {appVersion}</Text>
-        </View>
-      ) : null}
+        {showReRegister ? (
+          <SecondaryButton onPress={onReRegister} title="Reativar registro" />
+        ) : null}
+
+        {canShowQaControls ? (
+          <SecondaryButton onPress={onSendTest} title="Enviar push de teste" />
+        ) : null}
+
+        {canShowQaControls ? (
+          <View
+            style={styles.debugBlock}
+            testID="native-settings-screen.push.debug"
+          >
+            <Text style={styles.debugLine}>
+              Installation ID: {installationId || "nao gerado"}
+            </Text>
+            <Text style={styles.debugLine}>Token: {pushToken}</Text>
+            <Text style={styles.debugLine}>Plataforma: {platform}</Text>
+            <Text style={styles.debugLine}>App version: {appVersion}</Text>
+          </View>
+        ) : null}
       </DuoCard>
     </View>
   );
@@ -224,71 +229,81 @@ function NativeSettingsWidgetSection({
   return (
     <View testID="native-settings-screen.widgets">
       <DuoCard>
-      <Text style={styles.sectionTitle}>Widgets</Text>
-      <Text style={styles.sectionDescription}>
-        Controle o preset local e o snapshot que um widget futuro deste build
-        vai consumir.
-      </Text>
+        <Text style={styles.sectionTitle}>Widgets</Text>
+        <Text style={styles.sectionDescription}>
+          Controle o preset local e o snapshot que um widget futuro deste build
+          vai consumir.
+        </Text>
 
-      <NativeSettingsInfoRow
-        label="Suporte no build"
-        testID="native-settings-screen.widgets.support"
-        value={supportLabel}
-      />
-      <NativeSettingsInfoRow
-        label="Snapshot"
-        testID="native-settings-screen.widgets.status"
-        value={statusLabel}
-      />
-      <NativeSettingsInfoRow
-        label="Ultima atualizacao"
-        testID="native-settings-screen.widgets.last-update"
-        value={lastUpdatedLabel}
-      />
+        <NativeSettingsInfoRow
+          label="Suporte no build"
+          testID="native-settings-screen.widgets.support"
+          value={supportLabel}
+        />
+        <NativeSettingsInfoRow
+          label="Snapshot"
+          testID="native-settings-screen.widgets.status"
+          value={statusLabel}
+        />
+        <NativeSettingsInfoRow
+          label="Ultima atualizacao"
+          testID="native-settings-screen.widgets.last-update"
+          value={lastUpdatedLabel}
+        />
 
-      {supportReason ? <Text style={styles.fieldHint}>{supportReason}</Text> : null}
+        {supportReason ? (
+          <Text style={styles.fieldHint}>{supportReason}</Text>
+        ) : null}
 
-      <View style={styles.presetRow} testID="native-settings-screen.widgets.presets">
-        {widgetPresetOptions.map((option) => (
-          <Pressable
-            key={option.value}
-            onPress={() => onPresetChange(option.value)}
-            style={[
-              styles.presetButton,
-              preset === option.value && styles.presetButtonActive,
-            ]}
-            testID={`native-settings-screen.widgets.preset.${option.value}`}
-          >
-            <Text
+        <View
+          style={styles.presetRow}
+          testID="native-settings-screen.widgets.presets"
+        >
+          {widgetPresetOptions.map((option) => (
+            <Pressable
+              key={option.value}
+              onPress={() => onPresetChange(option.value)}
               style={[
-                styles.presetButtonText,
-                preset === option.value && styles.presetButtonTextActive,
+                styles.presetButton,
+                preset === option.value && styles.presetButtonActive,
               ]}
+              testID={`native-settings-screen.widgets.preset.${option.value}`}
             >
-              {option.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <PrimaryButton
-        disabled={isUpdating}
-        onPress={onRefreshSnapshot}
-        title={isUpdating ? "Atualizando..." : "Atualizar dados do widget agora"}
-      />
-
-      <SecondaryButton
-        onPress={onClearSnapshot}
-        title="Limpar dados do widget"
-      />
-
-      {snapshot ? (
-        <View style={styles.debugBlock} testID="native-settings-screen.widgets.snapshot">
-          <Text style={styles.debugLine}>Preset: {snapshot.preset}</Text>
-          <Text style={styles.debugLine}>Route: {snapshot.route}</Text>
-          <Text style={styles.debugLine}>Summary: {snapshot.summary}</Text>
+              <Text
+                style={[
+                  styles.presetButtonText,
+                  preset === option.value && styles.presetButtonTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          ))}
         </View>
-      ) : null}
+
+        <PrimaryButton
+          disabled={isUpdating}
+          onPress={onRefreshSnapshot}
+          title={
+            isUpdating ? "Atualizando..." : "Atualizar dados do widget agora"
+          }
+        />
+
+        <SecondaryButton
+          onPress={onClearSnapshot}
+          title="Limpar dados do widget"
+        />
+
+        {snapshot ? (
+          <View
+            style={styles.debugBlock}
+            testID="native-settings-screen.widgets.snapshot"
+          >
+            <Text style={styles.debugLine}>Preset: {snapshot.preset}</Text>
+            <Text style={styles.debugLine}>Route: {snapshot.route}</Text>
+            <Text style={styles.debugLine}>Summary: {snapshot.summary}</Text>
+          </View>
+        ) : null}
       </DuoCard>
     </View>
   );
@@ -309,76 +324,80 @@ function NativeSettingsEnvironmentSection({
   return (
     <View testID="native-settings-screen.environment">
       <DuoCard variant="blue">
-      <Text style={styles.sectionTitle}>Ambiente</Text>
-      <Text style={styles.sectionDescription}>
-        Ferramentas de debug liberadas por build para webUrl, apiUrl e
-        importacao manual de sessao.
-      </Text>
-
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>URL da aplicacao web</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          onChangeText={onWebUrlChange}
-          placeholder="https://gym-rats-testes.vercel.app"
-          placeholderTextColor={colors.foregroundMuted}
-          style={styles.input}
-          testID="native-settings-screen.environment.web-url"
-          value={webUrl}
-        />
-        <Text style={styles.fieldHint}>Exemplo local: http://192.168.0.10:3000</Text>
-      </View>
-
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>URL da API</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          onChangeText={onApiUrlChange}
-          placeholder="https://gymrats-production.up.railway.app"
-          placeholderTextColor={colors.foregroundMuted}
-          style={styles.input}
-          testID="native-settings-screen.environment.api-url"
-          value={apiUrl}
-        />
-        <Text style={styles.fieldHint}>Exemplo local: http://192.168.0.10:4000</Text>
-      </View>
-
-      <View style={styles.fieldGroup}>
-        <Text style={styles.fieldLabel}>Entrar com token manual</Text>
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          multiline
-          onChangeText={onManualTokenChange}
-          placeholder="Cole aqui um bearer token valido"
-          placeholderTextColor={colors.foregroundMuted}
-          style={[styles.input, styles.tokenInput]}
-          testID="native-settings-screen.environment.manual-token"
-          textAlignVertical="top"
-          value={manualToken}
-        />
-        <Text style={styles.fieldHint}>
-          O token e validado em /api/auth/session com cabecalho de cliente
-          nativo e o shell volta para /web apos a importacao.
+        <Text style={styles.sectionTitle}>Ambiente</Text>
+        <Text style={styles.sectionDescription}>
+          Ferramentas de debug liberadas por build para webUrl, apiUrl e
+          importacao manual de sessao.
         </Text>
-      </View>
 
-      <PrimaryButton
-        disabled={isSavingEnvironment}
-        onPress={onSaveEnvironment}
-        title={
-          isSavingEnvironment ? "Salvando..." : "Salvar ambiente e abrir app"
-        }
-      />
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>URL da aplicacao web</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            onChangeText={onWebUrlChange}
+            placeholder="https://gymrats.up.railway.app"
+            placeholderTextColor={colors.foregroundMuted}
+            style={styles.input}
+            testID="native-settings-screen.environment.web-url"
+            value={webUrl}
+          />
+          <Text style={styles.fieldHint}>
+            Exemplo local: http://192.168.0.10:3000
+          </Text>
+        </View>
 
-      <SecondaryButton
-        onPress={onTokenLogin}
-        title={isImportingToken ? "Validando token..." : "Entrar com token"}
-      />
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>URL da API</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            onChangeText={onApiUrlChange}
+            placeholder="https://gymrats-production.up.railway.app"
+            placeholderTextColor={colors.foregroundMuted}
+            style={styles.input}
+            testID="native-settings-screen.environment.api-url"
+            value={apiUrl}
+          />
+          <Text style={styles.fieldHint}>
+            Exemplo local: http://192.168.0.10:4000
+          </Text>
+        </View>
+
+        <View style={styles.fieldGroup}>
+          <Text style={styles.fieldLabel}>Entrar com token manual</Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+            onChangeText={onManualTokenChange}
+            placeholder="Cole aqui um bearer token valido"
+            placeholderTextColor={colors.foregroundMuted}
+            style={[styles.input, styles.tokenInput]}
+            testID="native-settings-screen.environment.manual-token"
+            textAlignVertical="top"
+            value={manualToken}
+          />
+          <Text style={styles.fieldHint}>
+            O token e validado em /api/auth/session com cabecalho de cliente
+            nativo e o shell volta para /web apos a importacao.
+          </Text>
+        </View>
+
+        <PrimaryButton
+          disabled={isSavingEnvironment}
+          onPress={onSaveEnvironment}
+          title={
+            isSavingEnvironment ? "Salvando..." : "Salvar ambiente e abrir app"
+          }
+        />
+
+        <SecondaryButton
+          onPress={onTokenLogin}
+          title={isImportingToken ? "Validando token..." : "Entrar com token"}
+        />
       </DuoCard>
     </View>
   );
@@ -434,33 +453,33 @@ export function NativeSettingsScreen({
 
             <View testID="native-settings-screen.account">
               <DuoCard>
-              <Text style={styles.sectionTitle}>Conta e sessao</Text>
-              <NativeSettingsInfoRow
-                label="Usuario"
-                testID="native-settings-screen.account.user"
-                value={sessionName}
-              />
-              <NativeSettingsInfoRow
-                label="Email"
-                testID="native-settings-screen.account.email"
-                value={sessionEmail}
-              />
-              <NativeSettingsInfoRow
-                label="Role"
-                testID="native-settings-screen.account.role"
-                value={sessionRoleLabel}
-              />
-              <NativeSettingsInfoRow
-                label="Sessao local"
-                testID="native-settings-screen.account.status"
-                value={sessionStatusLabel}
-              />
+                <Text style={styles.sectionTitle}>Conta e sessao</Text>
+                <NativeSettingsInfoRow
+                  label="Usuario"
+                  testID="native-settings-screen.account.user"
+                  value={sessionName}
+                />
+                <NativeSettingsInfoRow
+                  label="Email"
+                  testID="native-settings-screen.account.email"
+                  value={sessionEmail}
+                />
+                <NativeSettingsInfoRow
+                  label="Role"
+                  testID="native-settings-screen.account.role"
+                  value={sessionRoleLabel}
+                />
+                <NativeSettingsInfoRow
+                  label="Sessao local"
+                  testID="native-settings-screen.account.status"
+                  value={sessionStatusLabel}
+                />
 
-              <SecondaryButton
-                onPress={onSignOut}
-                title={isSigningOut ? "Encerrando..." : "Encerrar sessao"}
-              />
-              <SecondaryButton onPress={onBack} title="Voltar ao app" />
+                <SecondaryButton
+                  onPress={onSignOut}
+                  title={isSigningOut ? "Encerrando..." : "Encerrar sessao"}
+                />
+                <SecondaryButton onPress={onBack} title="Voltar ao app" />
               </DuoCard>
             </View>
 
