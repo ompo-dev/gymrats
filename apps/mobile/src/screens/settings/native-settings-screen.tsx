@@ -337,7 +337,7 @@ function NativeSettingsEnvironmentSection({
             autoCorrect={false}
             keyboardType="url"
             onChangeText={onWebUrlChange}
-            placeholder="https://gymrats.up.railway.app"
+            placeholder="https://gym-rats-testes.vercel.app"
             placeholderTextColor={colors.foregroundMuted}
             style={styles.input}
             testID="native-settings-screen.environment.web-url"

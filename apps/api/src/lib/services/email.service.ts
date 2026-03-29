@@ -77,7 +77,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                             <div style="background-color: #FFFFFF; width: 110px; height: 110px; border-radius: 24px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
                                 <img src="${
                                   process.env.NEXT_PUBLIC_APP_URL ||
-                                  "https://gymrats.up.railway.app"
+                                  "https://gym-rats-testes.vercel.app"
                                 }/icon-512.png" alt="Gym Rats Logo" width="56" height="56" style="display: block; width: 56px; height: 56px; margin: 0 auto;" />
                             </div>
                             <h1 style="margin: 0; color: #FFFFFF; font-size: 32px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -108,7 +108,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                     <td align="center">
                                         <a href="${
                                           process.env.NEXT_PUBLIC_APP_URL ||
-                                          "https://gymrats.up.railway.app"
+                                          "https://gym-rats-testes.vercel.app"
                                         }/student" 
                                            style="display: inline-block; background-color: #58CC02; color: #FFFFFF; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; text-decoration: none; padding: 16px 32px; border-radius: 16px; box-shadow: 0 4px 0 #58A700; font-size: 13.2px; line-height: 18px;">
                                             Começar minha jornada
@@ -130,7 +130,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
                                               process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gymrats.up.railway.app"
+                                              "https://gym-rats-testes.vercel.app"
                                             }/student?tab=learn" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">💪</div>
@@ -147,7 +147,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
                                               process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gymrats.up.railway.app"
+                                              "https://gym-rats-testes.vercel.app"
                                             }/student?tab=diet" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">🍎</div>
@@ -165,7 +165,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
                                               process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gymrats.up.railway.app"
+                                              "https://gym-rats-testes.vercel.app"
                                             }/student?tab=education" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">📚</div>
@@ -182,7 +182,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                                         <td style="padding: 8px; vertical-align: top; width: 50%;">
                                             <a href="${
                                               process.env.NEXT_PUBLIC_APP_URL ||
-                                              "https://gymrats.up.railway.app"
+                                              "https://gym-rats-testes.vercel.app"
                                             }/student?tab=profile" 
                                                style="display: block; background-color: #FFFFFF; border-radius: 12px; border: 2px solid #D1D5DB; box-shadow: 0 2px 0 #D1D5DB; padding: 20px; text-decoration: none; text-align: center; transition: all 0.2s;">
                                                 <div style="font-size: 32px; margin-bottom: 12px;">👤</div>
@@ -235,7 +235,7 @@ function getWelcomeEmailTemplate(userName: string): string {
                             <p style="margin: 12px 0 0; color: #9CA3AF; font-size: 12px;">
                                 <a href="${
                                   process.env.NEXT_PUBLIC_APP_URL ||
-                                  "https://gymrats.up.railway.app"
+                                  "https://gym-rats-testes.vercel.app"
                                 }" style="color: #1899D6; text-decoration: none;">Visite nosso site</a>
                             </p>
                         </td>
@@ -292,7 +292,7 @@ export async function processResetPasswordEmailSync(
 function getResetPasswordEmailTemplate(userName: string, code: string): string {
   const firstName = userName.split(" ")[0];
   const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://gymrats.up.railway.app";
+    process.env.NEXT_PUBLIC_APP_URL || "https://gym-rats-testes.vercel.app";
 
   return `
     <!DOCTYPE html>

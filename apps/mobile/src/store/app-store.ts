@@ -22,14 +22,14 @@ function createDefaultConfig(): AppConfig {
   const defaultWebUrl =
     typeof extra?.defaultWebUrl === "string"
       ? extra.defaultWebUrl
-      : "https://gymrats.up.railway.app";
+      : "https://gym-rats-testes.vercel.app";
   const defaultApiUrl =
     typeof extra?.defaultApiUrl === "string"
       ? extra.defaultApiUrl
       : "https://gymrats-production.up.railway.app";
 
   return {
-    webUrl: normalizeUrl(defaultWebUrl) || "https://gymrats.up.railway.app",
+    webUrl: normalizeUrl(defaultWebUrl) || "https://gym-rats-testes.vercel.app",
     apiUrl:
       normalizeUrl(defaultApiUrl) ||
       "https://gymrats-production.up.railway.app",

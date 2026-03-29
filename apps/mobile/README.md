@@ -9,7 +9,7 @@ App mobile Expo Router em SDK 54, com autenticação nativa e renderização 1:1
 
 Sem variáveis, o app usa os ambientes já documentados no repositório:
 
-- web: `https://gymrats.up.railway.app`
+- web: `https://gym-rats-testes.vercel.app`
 - api: `https://gymrats-production.up.railway.app`
 
 ## Scripts
